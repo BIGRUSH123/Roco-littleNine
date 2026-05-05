@@ -42,6 +42,12 @@
       "index": null,
       "desc": "玩家经验总结与攻略",
       "use_when": "用户问游戏心得、新手攻略、技巧总结"
+    },
+    "meta": {
+      "path": "meta/",
+      "index": null,
+      "desc": "Obsidian Base 数据库视图文件（.base），提供精灵/技能的可排序动态表格",
+      "use_when": "用户想查看可交互的精灵/技能表格"
     }
   }
 }

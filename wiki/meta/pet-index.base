@@ -1,0 +1,47 @@
+filters:
+  and:
+    - file.inFolder("wiki/精灵图鉴/")
+properties:
+  number:
+    displayName: "#"
+  name:
+    displayName: 名称
+  attributes:
+    displayName: 属性
+  hp:
+    displayName: HP
+  atk:
+    displayName: 物攻
+  sp_atk:
+    displayName: 魔攻
+  def:
+    displayName: 物防
+  sp_def:
+    displayName: 魔防
+  speed:
+    displayName: 速度
+  total_stats:
+    displayName: 种族值
+  ability:
+    displayName: 特性
+views:
+  - type: table
+    name: 全精灵图鉴
+    groupBy:
+      property: attributes
+      direction: ASC
+    order:
+      - number
+      - name
+      - attributes
+      - hp
+      - atk
+      - sp_atk
+      - def
+      - sp_def
+      - speed
+      - total_stats
+      - ability
+    sort:
+      - property: total_stats
+        direction: DESC
