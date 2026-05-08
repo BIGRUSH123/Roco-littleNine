@@ -1,0 +1,24 @@
+{
+  "name": "疫病吐息",
+  "element": "毒",
+  "skill_type": "状态",
+  "power": 0,
+  "energy_cost": 3,
+  "counter": "无",
+  "priority": 0,
+  "effects": [
+    {
+      "kind": "mark",
+      "target": "opp_team",
+      "name": "中毒印记",
+      "stacks": 1
+    },
+    {
+      "kind": "abnormal",
+      "target": "opp",
+      "name": "中毒",
+      "scope": "battlefield",
+      "stacks": 1
+    }
+  ]
+}

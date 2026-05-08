@@ -1,0 +1,18 @@
+{
+  "name": "撒娇",
+  "element": "萌",
+  "skill_type": "魔攻",
+  "power": 30,
+  "energy_cost": 3,
+  "counter": "无",
+  "priority": 0,
+  "effects": [
+    {
+      "kind": "abnormal",
+      "target": "self",
+      "name": "萌化",
+      "scope": "persistent",
+      "stacks": 1
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "name": "啄击",
+  "element": "翼",
+  "skill_type": "物攻",
+  "power": 15,
+  "energy_cost": 0,
+  "counter": "无",
+  "priority": 0,
+  "effects": []
+}

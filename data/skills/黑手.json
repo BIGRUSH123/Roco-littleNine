@@ -1,0 +1,10 @@
+{
+  "name": "黑手",
+  "element": "恶",
+  "skill_type": "魔攻",
+  "power": 45,
+  "energy_cost": 3,
+  "counter": "无",
+  "priority": 0,
+  "effects": []
+}

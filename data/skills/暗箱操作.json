@@ -1,0 +1,67 @@
+{
+  "name": "暗箱操作",
+  "element": "恶",
+  "skill_type": "状态",
+  "power": 0,
+  "energy_cost": 1,
+  "counter": "防御",
+  "priority": 0,
+  "effects": [
+    {
+      "kind": "stat",
+      "target": "self",
+      "stat": "atk",
+      "steps": -10,
+      "scope": "battlefield"
+    },
+    {
+      "kind": "stat",
+      "target": "self",
+      "stat": "sp_atk",
+      "steps": -10,
+      "scope": "battlefield"
+    },
+    {
+      "kind": "stat",
+      "target": "self",
+      "stat": "def",
+      "steps": -10,
+      "scope": "battlefield"
+    },
+    {
+      "kind": "stat",
+      "target": "self",
+      "stat": "sp_def",
+      "steps": -10,
+      "scope": "battlefield"
+    },
+    {
+      "kind": "stat",
+      "target": "opp",
+      "stat": "atk",
+      "steps": -10,
+      "scope": "battlefield"
+    },
+    {
+      "kind": "stat",
+      "target": "opp",
+      "stat": "sp_atk",
+      "steps": -10,
+      "scope": "battlefield"
+    },
+    {
+      "kind": "stat",
+      "target": "opp",
+      "stat": "def",
+      "steps": -10,
+      "scope": "battlefield"
+    },
+    {
+      "kind": "stat",
+      "target": "opp",
+      "stat": "sp_def",
+      "steps": -10,
+      "scope": "battlefield"
+    }
+  ]
+}

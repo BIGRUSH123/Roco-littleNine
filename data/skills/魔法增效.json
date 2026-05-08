@@ -1,0 +1,18 @@
+{
+  "name": "魔法增效",
+  "element": "普通",
+  "skill_type": "状态",
+  "power": 0,
+  "energy_cost": 0,
+  "counter": "无",
+  "priority": 0,
+  "effects": [
+    {
+      "kind": "stat",
+      "target": "self",
+      "stat": "sp_atk",
+      "steps": 7,
+      "scope": "battlefield"
+    }
+  ]
+}

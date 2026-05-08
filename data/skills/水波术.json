@@ -1,0 +1,10 @@
+{
+  "name": "水波术",
+  "element": "水",
+  "skill_type": "魔攻",
+  "power": 90,
+  "energy_cost": 6,
+  "counter": "无",
+  "priority": 0,
+  "effects": []
+}

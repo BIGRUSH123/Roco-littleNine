@@ -1,0 +1,10 @@
+{
+  "name": "惊吓盒子",
+  "element": "幽",
+  "skill_type": "物攻",
+  "power": 80,
+  "energy_cost": 3,
+  "counter": "状态",
+  "priority": 0,
+  "effects": []
+}

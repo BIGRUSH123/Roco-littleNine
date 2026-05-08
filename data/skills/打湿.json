@@ -1,0 +1,10 @@
+{
+  "name": "打湿",
+  "element": "水",
+  "skill_type": "状态",
+  "power": 0,
+  "energy_cost": 4,
+  "counter": "无",
+  "priority": 0,
+  "effects": []
+}

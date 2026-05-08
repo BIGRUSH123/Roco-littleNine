@@ -1,0 +1,10 @@
+{
+  "name": "爆冲",
+  "element": "武",
+  "skill_type": "物攻",
+  "power": 65,
+  "energy_cost": 3,
+  "counter": "状态",
+  "priority": 0,
+  "effects": []
+}

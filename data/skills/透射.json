@@ -1,0 +1,10 @@
+{
+  "name": "透射",
+  "element": "光",
+  "skill_type": "物攻",
+  "power": 60,
+  "energy_cost": 1,
+  "counter": "无",
+  "priority": 0,
+  "effects": []
+}

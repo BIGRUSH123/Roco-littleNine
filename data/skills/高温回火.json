@@ -1,0 +1,10 @@
+{
+  "name": "高温回火",
+  "element": "火",
+  "skill_type": "魔攻",
+  "power": 40,
+  "energy_cost": 2,
+  "counter": "无",
+  "priority": 0,
+  "effects": []
+}

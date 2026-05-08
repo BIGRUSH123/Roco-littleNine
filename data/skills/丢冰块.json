@@ -1,0 +1,18 @@
+{
+  "name": "丢冰块",
+  "element": "冰",
+  "skill_type": "物攻",
+  "power": 90,
+  "energy_cost": 3,
+  "counter": "无",
+  "priority": 0,
+  "effects": [
+    {
+      "kind": "stat",
+      "target": "opp",
+      "stat": "speed",
+      "steps": -3,
+      "scope": "battlefield"
+    }
+  ]
+}

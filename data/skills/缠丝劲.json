@@ -1,0 +1,10 @@
+{
+  "name": "缠丝劲",
+  "element": "武",
+  "skill_type": "物攻",
+  "power": 25,
+  "energy_cost": 1,
+  "counter": "无",
+  "priority": 0,
+  "effects": []
+}

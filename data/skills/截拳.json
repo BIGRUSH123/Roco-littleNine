@@ -1,0 +1,10 @@
+{
+  "name": "截拳",
+  "element": "武",
+  "skill_type": "物攻",
+  "power": 90,
+  "energy_cost": 3,
+  "counter": "状态",
+  "priority": 0,
+  "effects": []
+}

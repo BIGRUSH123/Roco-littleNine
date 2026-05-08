@@ -1,0 +1,18 @@
+{
+  "name": "冰捆缚",
+  "element": "冰",
+  "skill_type": "状态",
+  "power": 0,
+  "energy_cost": 3,
+  "counter": "无",
+  "priority": 0,
+  "effects": [
+    {
+      "kind": "stat",
+      "target": "opp",
+      "stat": "energy_cost",
+      "steps": 1,
+      "scope": "battlefield"
+    }
+  ]
+}

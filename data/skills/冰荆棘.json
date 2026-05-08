@@ -1,0 +1,38 @@
+{
+  "name": "冰荆棘",
+  "element": "冰",
+  "skill_type": "防御",
+  "power": 0,
+  "energy_cost": 2,
+  "counter": "攻击",
+  "priority": 0,
+  "effects": [
+    {
+      "kind": "abnormal",
+      "target": "opp",
+      "name": "冻结",
+      "scope": "persistent",
+      "stacks": 1
+    },
+    {
+      "kind": "special",
+      "name": "damage_reduction",
+      "value": 0.7
+    },
+    {
+      "kind": "conditional",
+      "when": {
+        "kind": "counter_succeeded"
+      },
+      "then": [
+        {
+          "kind": "abnormal",
+          "target": "opp",
+          "name": "冻结",
+          "scope": "persistent",
+          "stacks": 1
+        }
+      ]
+    }
+  ]
+}

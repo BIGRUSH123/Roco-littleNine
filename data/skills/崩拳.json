@@ -1,0 +1,18 @@
+{
+  "name": "崩拳",
+  "element": "武",
+  "skill_type": "物攻",
+  "power": 65,
+  "energy_cost": 2,
+  "counter": "状态",
+  "priority": 0,
+  "effects": [
+    {
+      "kind": "stat",
+      "target": "self",
+      "stat": "atk",
+      "steps": 10,
+      "scope": "battlefield"
+    }
+  ]
+}

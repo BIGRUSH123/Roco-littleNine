@@ -1,0 +1,10 @@
+{
+  "name": "触底强击",
+  "element": "普通",
+  "skill_type": "魔攻",
+  "power": 65,
+  "energy_cost": 3,
+  "counter": "无",
+  "priority": 0,
+  "effects": []
+}

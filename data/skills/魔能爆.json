@@ -1,0 +1,10 @@
+{
+  "name": "魔能爆",
+  "element": "普通",
+  "skill_type": "魔攻",
+  "power": 1,
+  "energy_cost": 0,
+  "counter": "无",
+  "priority": 0,
+  "effects": []
+}

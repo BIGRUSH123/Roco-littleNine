@@ -1,0 +1,10 @@
+{
+  "name": "鸣沙陷阱",
+  "element": "地",
+  "skill_type": "物攻",
+  "power": 60,
+  "energy_cost": 4,
+  "counter": "无",
+  "priority": 0,
+  "effects": []
+}

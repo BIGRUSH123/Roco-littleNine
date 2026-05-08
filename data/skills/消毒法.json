@@ -1,0 +1,10 @@
+{
+  "name": "消毒法",
+  "element": "普通",
+  "skill_type": "魔攻",
+  "power": 115,
+  "energy_cost": 4,
+  "counter": "无",
+  "priority": 0,
+  "effects": []
+}

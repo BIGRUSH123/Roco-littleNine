@@ -1,0 +1,16 @@
+{
+  "name": "蜡质膜",
+  "element": "草",
+  "skill_type": "防御",
+  "power": 0,
+  "energy_cost": 2,
+  "counter": "攻击",
+  "priority": 0,
+  "effects": [
+    {
+      "kind": "special",
+      "name": "damage_reduction",
+      "value": 0.8
+    }
+  ]
+}

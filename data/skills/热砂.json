@@ -1,0 +1,10 @@
+{
+  "name": "热砂",
+  "element": "地",
+  "skill_type": "魔攻",
+  "power": 80,
+  "energy_cost": 2,
+  "counter": "无",
+  "priority": 0,
+  "effects": []
+}

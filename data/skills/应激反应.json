@@ -1,0 +1,10 @@
+{
+  "name": "应激反应",
+  "element": "普通",
+  "skill_type": "状态",
+  "power": 0,
+  "energy_cost": 2,
+  "counter": "防御",
+  "priority": 0,
+  "effects": []
+}

@@ -1,0 +1,10 @@
+{
+  "name": "撕裂",
+  "element": "恶",
+  "skill_type": "物攻",
+  "power": 85,
+  "energy_cost": 3,
+  "counter": "状态",
+  "priority": 0,
+  "effects": []
+}

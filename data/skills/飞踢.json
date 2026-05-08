@@ -1,0 +1,10 @@
+{
+  "name": "飞踢",
+  "element": "普通",
+  "skill_type": "物攻",
+  "power": 110,
+  "energy_cost": 3,
+  "counter": "无",
+  "priority": 0,
+  "effects": []
+}

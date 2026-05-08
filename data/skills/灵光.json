@@ -1,0 +1,10 @@
+{
+  "name": "灵光",
+  "element": "幽",
+  "skill_type": "魔攻",
+  "power": 25,
+  "energy_cost": 3,
+  "counter": "无",
+  "priority": 0,
+  "effects": []
+}

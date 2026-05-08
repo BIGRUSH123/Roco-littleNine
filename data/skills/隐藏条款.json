@@ -1,0 +1,10 @@
+{
+  "name": "隐藏条款",
+  "element": "恶",
+  "skill_type": "状态",
+  "power": 0,
+  "energy_cost": 8,
+  "counter": "无",
+  "priority": 0,
+  "effects": []
+}

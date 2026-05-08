@@ -1,0 +1,26 @@
+{
+  "name": "芳香诱引",
+  "element": "草",
+  "skill_type": "状态",
+  "power": 0,
+  "energy_cost": 1,
+  "counter": "防御",
+  "priority": 0,
+  "effects": [
+    {
+      "kind": "conditional",
+      "when": {
+        "kind": "counter_succeeded"
+      },
+      "then": [
+        {
+          "kind": "abnormal",
+          "target": "opp",
+          "name": "眩晕",
+          "scope": "battlefield",
+          "stacks": 1
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "name": "四维降解",
+  "element": "幻",
+  "skill_type": "魔攻",
+  "power": 100,
+  "energy_cost": 7,
+  "counter": "无",
+  "priority": 0,
+  "effects": []
+}

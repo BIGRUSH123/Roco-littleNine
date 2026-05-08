@@ -1,0 +1,10 @@
+{
+  "name": "灵媒",
+  "element": "幽",
+  "skill_type": "魔攻",
+  "power": 100,
+  "energy_cost": 3,
+  "counter": "无",
+  "priority": 0,
+  "effects": []
+}

@@ -1,0 +1,18 @@
+{
+  "name": "电离爆破",
+  "element": "电",
+  "skill_type": "状态",
+  "power": 0,
+  "energy_cost": 3,
+  "counter": "无",
+  "priority": 0,
+  "effects": [
+    {
+      "kind": "stat",
+      "target": "opp",
+      "stat": "speed",
+      "steps": -4,
+      "scope": "battlefield"
+    }
+  ]
+}

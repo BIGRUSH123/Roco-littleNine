@@ -1,0 +1,10 @@
+{
+  "name": "放晴",
+  "element": "光",
+  "skill_type": "状态",
+  "power": 0,
+  "energy_cost": 0,
+  "counter": "防御",
+  "priority": 0,
+  "effects": []
+}

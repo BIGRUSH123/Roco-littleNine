@@ -1,0 +1,10 @@
+{
+  "name": "抓挠",
+  "element": "普通",
+  "skill_type": "物攻",
+  "power": 35,
+  "energy_cost": 0,
+  "counter": "无",
+  "priority": 0,
+  "effects": []
+}

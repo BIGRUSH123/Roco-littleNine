@@ -1,0 +1,33 @@
+{
+  "name": "炙热波动",
+  "element": "火",
+  "skill_type": "魔攻",
+  "power": 55,
+  "energy_cost": 3,
+  "counter": "状态",
+  "priority": 0,
+  "effects": [
+    {
+      "kind": "abnormal",
+      "target": "opp",
+      "name": "灼烧",
+      "scope": "battlefield",
+      "stacks": 4
+    },
+    {
+      "kind": "conditional",
+      "when": {
+        "kind": "counter_succeeded"
+      },
+      "then": [
+        {
+          "kind": "abnormal",
+          "target": "opp",
+          "name": "灼烧",
+          "scope": "battlefield",
+          "stacks": 1
+        }
+      ]
+    }
+  ]
+}

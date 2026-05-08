@@ -1,0 +1,18 @@
+{
+  "name": "毒液渗透",
+  "element": "毒",
+  "skill_type": "魔攻",
+  "power": 120,
+  "energy_cost": 5,
+  "counter": "无",
+  "priority": 0,
+  "effects": [
+    {
+      "kind": "abnormal",
+      "target": "opp",
+      "name": "中毒",
+      "scope": "battlefield",
+      "stacks": 1
+    }
+  ]
+}

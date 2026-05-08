@@ -1,0 +1,31 @@
+{
+  "name": "错乱",
+  "element": "幻",
+  "skill_type": "魔攻",
+  "power": 65,
+  "energy_cost": 2,
+  "counter": "状态",
+  "priority": 0,
+  "effects": [
+    {
+      "kind": "mark",
+      "target": "opp_team",
+      "name": "星陨印记",
+      "stacks": 3
+    },
+    {
+      "kind": "conditional",
+      "when": {
+        "kind": "counter_succeeded"
+      },
+      "then": [
+        {
+          "kind": "mark",
+          "target": "opp_team",
+          "name": "星陨印记",
+          "stacks": 3
+        }
+      ]
+    }
+  ]
+}

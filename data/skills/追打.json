@@ -1,0 +1,10 @@
+{
+  "name": "追打",
+  "element": "普通",
+  "skill_type": "魔攻",
+  "power": 75,
+  "energy_cost": 3,
+  "counter": "状态",
+  "priority": 0,
+  "effects": []
+}

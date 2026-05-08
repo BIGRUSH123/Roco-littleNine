@@ -1,0 +1,10 @@
+{
+  "name": "爆裂飞弹",
+  "element": "火",
+  "skill_type": "魔攻",
+  "power": 160,
+  "energy_cost": 7,
+  "counter": "无",
+  "priority": 0,
+  "effects": []
+}

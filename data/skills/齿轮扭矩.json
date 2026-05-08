@@ -1,0 +1,10 @@
+{
+  "name": "齿轮扭矩",
+  "element": "机械",
+  "skill_type": "物攻",
+  "power": 80,
+  "energy_cost": 3,
+  "counter": "无",
+  "priority": 0,
+  "effects": []
+}

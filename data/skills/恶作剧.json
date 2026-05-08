@@ -1,0 +1,10 @@
+{
+  "name": "恶作剧",
+  "element": "幽",
+  "skill_type": "状态",
+  "power": 0,
+  "energy_cost": 1,
+  "counter": "防御",
+  "priority": 0,
+  "effects": []
+}

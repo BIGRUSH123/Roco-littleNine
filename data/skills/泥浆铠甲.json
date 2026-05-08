@@ -1,0 +1,25 @@
+{
+  "name": "泥浆铠甲",
+  "element": "地",
+  "skill_type": "状态",
+  "power": 0,
+  "energy_cost": 2,
+  "counter": "防御",
+  "priority": 0,
+  "effects": [
+    {
+      "kind": "stat",
+      "target": "self",
+      "stat": "atk",
+      "steps": 6,
+      "scope": "battlefield"
+    },
+    {
+      "kind": "stat",
+      "target": "self",
+      "stat": "def",
+      "steps": 6,
+      "scope": "battlefield"
+    }
+  ]
+}

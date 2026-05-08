@@ -1,0 +1,25 @@
+{
+  "name": "石肤术",
+  "element": "地",
+  "skill_type": "状态",
+  "power": 0,
+  "energy_cost": 3,
+  "counter": "无",
+  "priority": 0,
+  "effects": [
+    {
+      "kind": "stat",
+      "target": "self",
+      "stat": "def",
+      "steps": 16,
+      "scope": "battlefield"
+    },
+    {
+      "kind": "stat",
+      "target": "self",
+      "stat": "sp_def",
+      "steps": -6,
+      "scope": "battlefield"
+    }
+  ]
+}

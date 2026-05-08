@@ -1,0 +1,10 @@
+{
+  "name": "砂糖弹球",
+  "element": "萌",
+  "skill_type": "物攻",
+  "power": 0,
+  "energy_cost": 2,
+  "counter": "无",
+  "priority": 0,
+  "effects": []
+}

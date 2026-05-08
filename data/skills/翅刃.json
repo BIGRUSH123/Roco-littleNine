@@ -1,0 +1,10 @@
+{
+  "name": "翅刃",
+  "element": "虫",
+  "skill_type": "物攻",
+  "power": 95,
+  "energy_cost": 4,
+  "counter": "状态",
+  "priority": 0,
+  "effects": []
+}

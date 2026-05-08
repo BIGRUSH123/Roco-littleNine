@@ -1,0 +1,10 @@
+{
+  "name": "流星火雨",
+  "element": "火",
+  "skill_type": "物攻",
+  "power": 75,
+  "energy_cost": 3,
+  "counter": "无",
+  "priority": 0,
+  "effects": []
+}

@@ -1,0 +1,26 @@
+{
+  "name": "极寒领域",
+  "element": "冰",
+  "skill_type": "魔攻",
+  "power": 105,
+  "energy_cost": 6,
+  "counter": "状态",
+  "priority": 0,
+  "effects": [
+    {
+      "kind": "conditional",
+      "when": {
+        "kind": "counter_succeeded"
+      },
+      "then": [
+        {
+          "kind": "abnormal",
+          "target": "opp",
+          "name": "冻结",
+          "scope": "persistent",
+          "stacks": 1
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "name": "能量炮",
+  "element": "普通",
+  "skill_type": "魔攻",
+  "power": 50,
+  "energy_cost": 3,
+  "counter": "无",
+  "priority": 0,
+  "effects": []
+}

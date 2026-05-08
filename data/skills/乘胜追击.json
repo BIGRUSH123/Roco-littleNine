@@ -1,0 +1,10 @@
+{
+  "name": "乘胜追击",
+  "element": "普通",
+  "skill_type": "物攻",
+  "power": 40,
+  "energy_cost": 2,
+  "counter": "无",
+  "priority": 0,
+  "effects": []
+}

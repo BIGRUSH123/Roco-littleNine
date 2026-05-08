@@ -1,0 +1,31 @@
+{
+  "name": "冰天雪地",
+  "element": "冰",
+  "skill_type": "防御",
+  "power": 0,
+  "energy_cost": 2,
+  "counter": "攻击",
+  "priority": 0,
+  "effects": [
+    {
+      "kind": "special",
+      "name": "damage_reduction",
+      "value": 0.8
+    },
+    {
+      "kind": "conditional",
+      "when": {
+        "kind": "counter_succeeded"
+      },
+      "then": [
+        {
+          "kind": "stat",
+          "target": "opp",
+          "stat": "energy_cost",
+          "steps": 3,
+          "scope": "battlefield"
+        }
+      ]
+    }
+  ]
+}

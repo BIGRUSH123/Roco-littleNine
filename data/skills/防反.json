@@ -1,0 +1,30 @@
+{
+  "name": "防反",
+  "element": "普通",
+  "skill_type": "防御",
+  "power": 0,
+  "energy_cost": 2,
+  "counter": "攻击",
+  "priority": 0,
+  "effects": [
+    {
+      "kind": "stat",
+      "target": "self",
+      "stat": "atk",
+      "steps": 4,
+      "scope": "battlefield"
+    },
+    {
+      "kind": "stat",
+      "target": "self",
+      "stat": "sp_atk",
+      "steps": 4,
+      "scope": "battlefield"
+    },
+    {
+      "kind": "special",
+      "name": "damage_reduction",
+      "value": 0.6
+    }
+  ]
+}

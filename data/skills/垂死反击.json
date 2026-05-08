@@ -1,0 +1,10 @@
+{
+  "name": "垂死反击",
+  "element": "普通",
+  "skill_type": "物攻",
+  "power": 80,
+  "energy_cost": 4,
+  "counter": "无",
+  "priority": 0,
+  "effects": []
+}

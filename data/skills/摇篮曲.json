@@ -1,0 +1,33 @@
+{
+  "name": "摇篮曲",
+  "element": "普通",
+  "skill_type": "状态",
+  "power": 0,
+  "energy_cost": 5,
+  "counter": "防御",
+  "priority": 0,
+  "effects": [
+    {
+      "kind": "stat",
+      "target": "opp",
+      "stat": "energy_cost",
+      "steps": 3,
+      "scope": "battlefield"
+    },
+    {
+      "kind": "conditional",
+      "when": {
+        "kind": "counter_succeeded"
+      },
+      "then": [
+        {
+          "kind": "abnormal",
+          "target": "opp",
+          "name": "眩晕",
+          "scope": "battlefield",
+          "stacks": 1
+        }
+      ]
+    }
+  ]
+}

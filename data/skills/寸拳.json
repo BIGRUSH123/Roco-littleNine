@@ -1,0 +1,10 @@
+{
+  "name": "寸拳",
+  "element": "武",
+  "skill_type": "物攻",
+  "power": 30,
+  "energy_cost": 0,
+  "counter": "无",
+  "priority": 0,
+  "effects": []
+}

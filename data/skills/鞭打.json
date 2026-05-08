@@ -1,0 +1,10 @@
+{
+  "name": "鞭打",
+  "element": "萌",
+  "skill_type": "物攻",
+  "power": 40,
+  "energy_cost": 0,
+  "counter": "无",
+  "priority": 0,
+  "effects": []
+}

@@ -1,0 +1,10 @@
+{
+  "name": "杠杆置换",
+  "element": "机械",
+  "skill_type": "状态",
+  "power": 0,
+  "energy_cost": 0,
+  "counter": "无",
+  "priority": 0,
+  "effects": []
+}

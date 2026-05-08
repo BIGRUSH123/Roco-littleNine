@@ -1,0 +1,10 @@
+{
+  "name": "毒沼",
+  "element": "毒",
+  "skill_type": "物攻",
+  "power": 80,
+  "energy_cost": 2,
+  "counter": "无",
+  "priority": 0,
+  "effects": []
+}

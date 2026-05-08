@@ -1,0 +1,18 @@
+{
+  "name": "花炮",
+  "element": "草",
+  "skill_type": "状态",
+  "power": 0,
+  "energy_cost": 2,
+  "counter": "无",
+  "priority": 0,
+  "effects": [
+    {
+      "kind": "stat",
+      "target": "self",
+      "stat": "sp_atk",
+      "steps": 6,
+      "scope": "battlefield"
+    }
+  ]
+}

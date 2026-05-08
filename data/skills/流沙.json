@@ -1,0 +1,47 @@
+{
+  "name": "流沙",
+  "element": "地",
+  "skill_type": "状态",
+  "power": 0,
+  "energy_cost": 2,
+  "counter": "防御",
+  "priority": 0,
+  "effects": [
+    {
+      "kind": "stat",
+      "target": "opp",
+      "stat": "def",
+      "steps": -6,
+      "scope": "battlefield"
+    },
+    {
+      "kind": "stat",
+      "target": "opp",
+      "stat": "sp_def",
+      "steps": -6,
+      "scope": "battlefield"
+    },
+    {
+      "kind": "conditional",
+      "when": {
+        "kind": "counter_succeeded"
+      },
+      "then": [
+        {
+          "kind": "stat",
+          "target": "opp",
+          "stat": "def",
+          "steps": -6,
+          "scope": "battlefield"
+        },
+        {
+          "kind": "stat",
+          "target": "opp",
+          "stat": "sp_def",
+          "steps": -6,
+          "scope": "battlefield"
+        }
+      ]
+    }
+  ]
+}

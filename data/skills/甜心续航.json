@@ -1,0 +1,25 @@
+{
+  "name": "甜心续航",
+  "element": "萌",
+  "skill_type": "状态",
+  "power": 0,
+  "energy_cost": 3,
+  "counter": "无",
+  "priority": 0,
+  "effects": [
+    {
+      "kind": "abnormal",
+      "target": "self",
+      "name": "萌化",
+      "scope": "persistent",
+      "stacks": 1
+    },
+    {
+      "kind": "abnormal",
+      "target": "opp",
+      "name": "萌化",
+      "scope": "persistent",
+      "stacks": 1
+    }
+  ]
+}

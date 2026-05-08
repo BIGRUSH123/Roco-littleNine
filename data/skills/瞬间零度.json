@@ -1,0 +1,10 @@
+{
+  "name": "瞬间零度",
+  "element": "冰",
+  "skill_type": "状态",
+  "power": 0,
+  "energy_cost": 0,
+  "counter": "防御",
+  "priority": 0,
+  "effects": []
+}

@@ -1,0 +1,10 @@
+{
+  "name": "连续爪击",
+  "element": "普通",
+  "skill_type": "物攻",
+  "power": 30,
+  "energy_cost": 2,
+  "counter": "状态",
+  "priority": 0,
+  "effects": []
+}

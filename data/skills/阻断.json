@@ -1,0 +1,10 @@
+{
+  "name": "阻断",
+  "element": "普通",
+  "skill_type": "魔攻",
+  "power": 80,
+  "energy_cost": 2,
+  "counter": "状态",
+  "priority": 0,
+  "effects": []
+}

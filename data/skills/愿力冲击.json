@@ -1,0 +1,10 @@
+{
+  "name": "愿力冲击",
+  "element": "动态（血脉属性）",
+  "skill_type": "动态攻击",
+  "power": 80,
+  "energy_cost": 2,
+  "counter": "状态",
+  "priority": 0,
+  "effects": []
+}

@@ -1,0 +1,10 @@
+{
+  "name": "地震",
+  "element": "地",
+  "skill_type": "物攻",
+  "power": 190,
+  "energy_cost": 10,
+  "counter": "无",
+  "priority": 0,
+  "effects": []
+}

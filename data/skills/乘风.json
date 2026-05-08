@@ -1,0 +1,18 @@
+{
+  "name": "乘风",
+  "element": "翼",
+  "skill_type": "状态",
+  "power": 0,
+  "energy_cost": 2,
+  "counter": "无",
+  "priority": 0,
+  "effects": [
+    {
+      "kind": "stat",
+      "target": "self",
+      "stat": "speed",
+      "steps": 12,
+      "scope": "battlefield"
+    }
+  ]
+}

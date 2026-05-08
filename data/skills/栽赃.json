@@ -1,0 +1,10 @@
+{
+  "name": "栽赃",
+  "element": "恶",
+  "skill_type": "魔攻",
+  "power": 150,
+  "energy_cost": 6,
+  "counter": "无",
+  "priority": 0,
+  "effects": []
+}

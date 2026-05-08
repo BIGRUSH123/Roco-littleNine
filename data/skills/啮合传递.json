@@ -1,0 +1,18 @@
+{
+  "name": "啮合传递",
+  "element": "机械",
+  "skill_type": "状态",
+  "power": 0,
+  "energy_cost": 1,
+  "counter": "无",
+  "priority": 0,
+  "effects": [
+    {
+      "kind": "stat",
+      "target": "self",
+      "stat": "speed",
+      "steps": 8,
+      "scope": "battlefield"
+    }
+  ]
+}

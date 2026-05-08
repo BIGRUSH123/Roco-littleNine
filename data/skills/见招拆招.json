@@ -1,0 +1,10 @@
+{
+  "name": "见招拆招",
+  "element": "普通",
+  "skill_type": "物攻",
+  "power": 65,
+  "energy_cost": 2,
+  "counter": "无",
+  "priority": 0,
+  "effects": []
+}

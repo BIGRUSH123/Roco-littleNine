@@ -1,0 +1,25 @@
+{
+  "name": "以毒攻毒",
+  "element": "毒",
+  "skill_type": "状态",
+  "power": 0,
+  "energy_cost": 1,
+  "counter": "无",
+  "priority": 0,
+  "effects": [
+    {
+      "kind": "stat",
+      "target": "self",
+      "stat": "sp_atk",
+      "steps": 3,
+      "scope": "battlefield"
+    },
+    {
+      "kind": "abnormal",
+      "target": "opp",
+      "name": "中毒",
+      "scope": "battlefield",
+      "stacks": 1
+    }
+  ]
+}

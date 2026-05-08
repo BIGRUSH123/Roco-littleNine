@@ -1,0 +1,10 @@
+{
+  "name": "天洪",
+  "element": "水",
+  "skill_type": "魔攻",
+  "power": 150,
+  "energy_cost": 7,
+  "counter": "状态",
+  "priority": 0,
+  "effects": []
+}

@@ -1,0 +1,10 @@
+{
+  "name": "气沉丹田",
+  "element": "武",
+  "skill_type": "状态",
+  "power": 0,
+  "energy_cost": 10,
+  "counter": "无",
+  "priority": 0,
+  "effects": []
+}

@@ -1,0 +1,10 @@
+{
+  "name": "羽刃",
+  "element": "翼",
+  "skill_type": "物攻",
+  "power": 75,
+  "energy_cost": 2,
+  "counter": "状态",
+  "priority": 0,
+  "effects": []
+}

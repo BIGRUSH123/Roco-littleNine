@@ -1,0 +1,10 @@
+{
+  "name": "落星",
+  "element": "普通",
+  "skill_type": "物攻",
+  "power": 45,
+  "energy_cost": 0,
+  "counter": "无",
+  "priority": 0,
+  "effects": []
+}

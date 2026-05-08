@@ -1,0 +1,10 @@
+{
+  "name": "氧输送",
+  "element": "草",
+  "skill_type": "状态",
+  "power": 0,
+  "energy_cost": 2,
+  "counter": "无",
+  "priority": 0,
+  "effects": []
+}

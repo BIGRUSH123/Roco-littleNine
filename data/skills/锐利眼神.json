@@ -1,0 +1,25 @@
+{
+  "name": "锐利眼神",
+  "element": "普通",
+  "skill_type": "状态",
+  "power": 0,
+  "energy_cost": 2,
+  "counter": "无",
+  "priority": 0,
+  "effects": [
+    {
+      "kind": "stat",
+      "target": "opp",
+      "stat": "def",
+      "steps": -12,
+      "scope": "battlefield"
+    },
+    {
+      "kind": "stat",
+      "target": "opp",
+      "stat": "sp_def",
+      "steps": -12,
+      "scope": "battlefield"
+    }
+  ]
+}

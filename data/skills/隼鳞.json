@@ -1,0 +1,10 @@
+{
+  "name": "隼鳞",
+  "element": "龙",
+  "skill_type": "物攻",
+  "power": 140,
+  "energy_cost": 5,
+  "counter": "无",
+  "priority": 0,
+  "effects": []
+}

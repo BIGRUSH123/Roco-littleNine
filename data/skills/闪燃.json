@@ -1,0 +1,10 @@
+{
+  "name": "闪燃",
+  "element": "火",
+  "skill_type": "物攻",
+  "power": 40,
+  "energy_cost": 1,
+  "counter": "状态",
+  "priority": 0,
+  "effects": []
+}

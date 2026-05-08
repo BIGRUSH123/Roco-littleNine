@@ -1,0 +1,25 @@
+{
+  "name": "柔弱",
+  "element": "萌",
+  "skill_type": "状态",
+  "power": 0,
+  "energy_cost": 1,
+  "counter": "无",
+  "priority": 0,
+  "effects": [
+    {
+      "kind": "stat",
+      "target": "opp",
+      "stat": "atk",
+      "steps": -7,
+      "scope": "battlefield"
+    },
+    {
+      "kind": "stat",
+      "target": "opp",
+      "stat": "def",
+      "steps": -7,
+      "scope": "battlefield"
+    }
+  ]
+}

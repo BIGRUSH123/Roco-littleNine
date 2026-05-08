@@ -1,0 +1,10 @@
+{
+  "name": "主轴",
+  "element": "机械",
+  "skill_type": "物攻",
+  "power": 75,
+  "energy_cost": 2,
+  "counter": "无",
+  "priority": 0,
+  "effects": []
+}

@@ -1,0 +1,36 @@
+{
+  "name": "冥想",
+  "element": "幻",
+  "skill_type": "防御",
+  "power": 0,
+  "energy_cost": 3,
+  "counter": "攻击",
+  "priority": 0,
+  "effects": [
+    {
+      "kind": "mark",
+      "target": "opp_team",
+      "name": "星陨印记",
+      "stacks": 2
+    },
+    {
+      "kind": "special",
+      "name": "damage_reduction",
+      "value": 0.8
+    },
+    {
+      "kind": "conditional",
+      "when": {
+        "kind": "counter_succeeded"
+      },
+      "then": [
+        {
+          "kind": "mark",
+          "target": "opp_team",
+          "name": "星陨印记",
+          "stacks": 2
+        }
+      ]
+    }
+  ]
+}

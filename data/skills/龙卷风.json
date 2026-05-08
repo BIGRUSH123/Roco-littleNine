@@ -1,0 +1,10 @@
+{
+  "name": "龙卷风",
+  "element": "翼",
+  "skill_type": "物攻",
+  "power": 70,
+  "energy_cost": 5,
+  "counter": "状态",
+  "priority": 0,
+  "effects": []
+}
