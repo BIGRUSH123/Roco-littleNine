@@ -1,5 +1,5 @@
 {
-  "total": 469,
+  "total": 493,
   "by_element": {
     "光": {
       "count": 15,
@@ -22,7 +22,7 @@
       ]
     },
     "冰": {
-      "count": 29,
+      "count": 35,
       "names": [
         "丢冰块",
         "冬至",
@@ -52,7 +52,13 @@
         "霜冻",
         "霜天",
         "霜降",
-        "风吹雪"
+        "风吹雪",
+        "冰刺",
+        "冰荆棘",
+        "碎冰击",
+        "堆雪人",
+        "极速冷冻",
+        "缓冻"
       ]
     },
     "地": {
@@ -115,7 +121,7 @@
       ]
     },
     "幽": {
-      "count": 17,
+      "count": 18,
       "names": [
         "勾魂",
         "午夜噪音",
@@ -133,11 +139,12 @@
         "虚化",
         "诡刺",
         "降灵",
-        "鬼火"
+        "鬼火",
+        "小偷小摸"
       ]
     },
     "恶": {
-      "count": 27,
+      "count": 30,
       "names": [
         "伪造账单",
         "力量吞噬",
@@ -165,11 +172,14 @@
         "迫害",
         "隐藏条款",
         "魔爪",
-        "黑手"
+        "黑手",
+        "冲击",
+        "骗局",
+        "横纵斩"
       ]
     },
     "普通": {
-      "count": 78,
+      "count": 81,
       "names": [
         "三连破",
         "主场优势",
@@ -248,7 +258,10 @@
         "飞踢",
         "魔法增效",
         "魔能爆",
-        "鼓劲"
+        "鼓劲",
+        "三鼓作气",
+        "指指点点",
+        "愿力冲击"
       ]
     },
     "机械": {
@@ -327,7 +340,7 @@
       ]
     },
     "水": {
-      "count": 26,
+      "count": 28,
       "names": [
         "天洪",
         "打湿",
@@ -354,11 +367,13 @@
         "盐水浴",
         "肥皂泡",
         "落雨",
-        "蓄水"
+        "蓄水",
+        "水星水",
+        "求雨"
       ]
     },
     "火": {
-      "count": 35,
+      "count": 36,
       "names": [
         "充分燃烧",
         "双响炮",
@@ -394,7 +409,8 @@
         "闪燃",
         "阳火增辉",
         "除厄",
-        "高温回火"
+        "高温回火",
+        "炎爆术"
       ]
     },
     "电": {
@@ -428,7 +444,7 @@
       ]
     },
     "翼": {
-      "count": 21,
+      "count": 23,
       "names": [
         "乘风",
         "俯冲猛击",
@@ -450,11 +466,13 @@
         "飞羽",
         "鸣叫",
         "鹰爪",
-        "龙卷风"
+        "龙卷风",
+        "疾风涡轮",
+        "羽毛舞"
       ]
     },
     "草": {
-      "count": 32,
+      "count": 33,
       "names": [
         "丰饶",
         "仙人掌刺击",
@@ -487,11 +505,12 @@
         "酶浓度调整",
         "针刺射击",
         "顶端优势",
-        "飞叶"
+        "飞叶",
+        "藤鞭"
       ]
     },
     "萌": {
-      "count": 17,
+      "count": 21,
       "names": [
         "击鼓传花",
         "反弹",
@@ -509,11 +528,15 @@
         "超级糖果",
         "鞭打",
         "飞吻",
-        "魅惑"
+        "魅惑",
+        "玩具乐园",
+        "柔弱",
+        "幼态延续",
+        "逆向演化"
       ]
     },
     "虫": {
-      "count": 23,
+      "count": 24,
       "names": [
         "假寐",
         "啃咬",
@@ -537,7 +560,8 @@
         "蛰针",
         "贮藏",
         "飞断",
-        "食腐"
+        "食腐",
+        "束缚"
       ]
     },
     "龙": {
@@ -5720,6 +5744,270 @@
       "description": "减伤70%，本技能可以在蓄力状态下使用，应对攻击：下次技能无需蓄力。",
       "learner_count": 2,
       "file": "技能图鉴/龙/龙血.md"
+    },
+    {
+      "name": "缓冻",
+      "element": "冰",
+      "type": "魔攻",
+      "power": "85",
+      "energy": "3",
+      "counter": "无",
+      "description": "造成物伤，敌方速度-10。",
+      "learner_count": 0,
+      "file": "技能图鉴/冰/缓冻.md"
+    },
+    {
+      "name": "冰刺",
+      "element": "冰",
+      "type": "物攻",
+      "power": "85",
+      "energy": "3",
+      "counter": "状态",
+      "description": "造成物伤，应对状态：敌方2回合无法换宠。",
+      "learner_count": 0,
+      "file": "技能图鉴/冰/冰刺.md"
+    },
+    {
+      "name": "冰荆棘",
+      "element": "冰",
+      "type": "防御",
+      "power": "0",
+      "energy": "2",
+      "counter": "攻击",
+      "description": "减伤70%，应对攻击：敌方冻结层数翻倍。",
+      "learner_count": 0,
+      "file": "技能图鉴/冰/冰荆棘.md"
+    },
+    {
+      "name": "碎冰击",
+      "element": "冰",
+      "type": "物攻",
+      "power": "90",
+      "energy": "4",
+      "counter": "无",
+      "description": "造成物伤，敌方获得全技能能耗+1。",
+      "learner_count": 0,
+      "file": "技能图鉴/冰/碎冰击.md"
+    },
+    {
+      "name": "堆雪人",
+      "element": "冰",
+      "type": "魔攻",
+      "power": "60",
+      "energy": "2",
+      "counter": "无",
+      "description": "造成魔伤，敌方获得魔防-20%。",
+      "learner_count": 0,
+      "file": "技能图鉴/冰/堆雪人.md"
+    },
+    {
+      "name": "极速冷冻",
+      "element": "冰",
+      "type": "状态",
+      "power": "0",
+      "energy": "2",
+      "counter": "防御",
+      "description": "敌方获得全技能能耗+2，应对防御：能耗+4。",
+      "learner_count": 0,
+      "file": "技能图鉴/冰/极速冷冻.md"
+    },
+    {
+      "name": "玩具乐园",
+      "element": "萌",
+      "type": "状态",
+      "power": "0",
+      "energy": "7",
+      "counter": "无",
+      "description": "自身及背包里的精灵获得萌化，并提升30%攻防，速度+20。",
+      "learner_count": 0,
+      "file": "技能图鉴/萌/玩具乐园.md"
+    },
+    {
+      "name": "柔弱",
+      "element": "萌",
+      "type": "状态",
+      "power": "0",
+      "energy": "1",
+      "counter": "无",
+      "description": "获得萌化，敌方获得物攻-70%，敌方获得物防-70%。",
+      "learner_count": 0,
+      "file": "技能图鉴/萌/柔弱.md"
+    },
+    {
+      "name": "幼态延续",
+      "element": "萌",
+      "type": "魔攻",
+      "power": "90",
+      "energy": "4",
+      "counter": "无",
+      "description": "造成魔伤，自身拥有萌化时威力+60。",
+      "learner_count": 0,
+      "file": "技能图鉴/萌/幼态延续.md"
+    },
+    {
+      "name": "逆向演化",
+      "element": "萌",
+      "type": "状态",
+      "power": "0",
+      "energy": "1",
+      "counter": "无",
+      "description": "解除萌化，每层萌化会给敌方赋予一层萌化。",
+      "learner_count": 0,
+      "file": "技能图鉴/萌/逆向演化.md"
+    },
+    {
+      "name": "冲击",
+      "element": "恶",
+      "type": "物攻",
+      "power": "80",
+      "energy": "2",
+      "counter": "无",
+      "description": "对敌方精灵造成物理伤害。",
+      "learner_count": 0,
+      "file": "技能图鉴/恶/冲击.md"
+    },
+    {
+      "name": "骗局",
+      "element": "恶",
+      "type": "魔攻",
+      "power": "110",
+      "energy": "4",
+      "counter": "无",
+      "description": "造成魔伤，能量不足时，消耗5%生命代替1能量。",
+      "learner_count": 0,
+      "file": "技能图鉴/恶/骗局.md"
+    },
+    {
+      "name": "横纵斩",
+      "element": "恶",
+      "type": "魔攻",
+      "power": "25",
+      "energy": "2",
+      "counter": "无",
+      "description": "造成魔伤，2连击。",
+      "learner_count": 0,
+      "file": "技能图鉴/恶/横纵斩.md"
+    },
+    {
+      "name": "三鼓作气",
+      "element": "普通",
+      "type": "状态",
+      "power": "0",
+      "energy": "3",
+      "counter": "无",
+      "description": "获得物攻+30%，3连击。",
+      "learner_count": 0,
+      "file": "技能图鉴/普通/三鼓作气.md"
+    },
+    {
+      "name": "指指点点",
+      "element": "普通",
+      "type": "物攻",
+      "power": "5",
+      "energy": "10",
+      "counter": "无",
+      "description": "造成物伤，10连击。",
+      "learner_count": 0,
+      "file": "技能图鉴/普通/指指点点.md"
+    },
+    {
+      "name": "水星水",
+      "element": "水",
+      "type": "魔攻",
+      "power": "0",
+      "energy": "3",
+      "counter": "状态",
+      "description": "造成魔伤，应对状态：本次伤害不受自身属性减益和敌方属性增益影响",
+      "learner_count": 0,
+      "file": "技能图鉴/水/水星水.md"
+    },
+    {
+      "name": "求雨",
+      "element": "水",
+      "type": "状态",
+      "power": "0",
+      "energy": "8",
+      "counter": "无",
+      "description": "将天气变为雨天，本技能能耗降低效果收益翻倍。",
+      "learner_count": 0,
+      "file": "技能图鉴/水/求雨.md"
+    },
+    {
+      "name": "疾风涡轮",
+      "element": "翼",
+      "type": "物攻",
+      "power": "115",
+      "energy": "7",
+      "counter": "无",
+      "description": "造成物伤，先手+1。",
+      "learner_count": 0,
+      "file": "技能图鉴/翼/疾风涡轮.md"
+    },
+    {
+      "name": "羽毛舞",
+      "element": "翼",
+      "type": "状态",
+      "power": "0",
+      "energy": "2",
+      "counter": "无",
+      "description": "迅捷，驱散敌方一种增益。",
+      "learner_count": 0,
+      "file": "技能图鉴/翼/羽毛舞.md"
+    },
+    {
+      "name": "炎爆术",
+      "element": "火",
+      "type": "状态",
+      "power": "0",
+      "energy": "2",
+      "counter": "无",
+      "description": "将敌方印记转换为三倍的灼烧层数。",
+      "learner_count": 0,
+      "file": "技能图鉴/火/炎爆术.md"
+    },
+    {
+      "name": "藤鞭",
+      "element": "草",
+      "type": "物攻",
+      "power": "35",
+      "energy": "3",
+      "counter": "无",
+      "description": "造成物伤，2连击。",
+      "learner_count": 0,
+      "file": "技能图鉴/草/藤鞭.md"
+    },
+    {
+      "name": "束缚",
+      "element": "虫",
+      "type": "状态",
+      "power": "0",
+      "energy": "2",
+      "counter": "无",
+      "description": "敌方获得2层中毒，获得1次奉献：敌方获得2层中毒。",
+      "learner_count": 0,
+      "file": "技能图鉴/虫/束缚.md"
+    },
+    {
+      "name": "小偷小摸",
+      "element": "幽",
+      "type": "状态",
+      "power": "0",
+      "energy": "1",
+      "counter": "无",
+      "description": "偷取敌方3能量。",
+      "learner_count": 0,
+      "file": "技能图鉴/幽/小偷小摸.md"
+    },
+    {
+      "name": "愿力冲击",
+      "element": "普通",
+      "type": "攻击",
+      "power": "80",
+      "energy": "2",
+      "counter": "状态",
+      "description": "造成伤害，类型取决于精灵攻击最高的一项。应对状态：本次威力+150%。",
+      "learner_count": 0,
+      "file": "技能图鉴/普通/愿力冲击.md"
     }
   ]
 }
