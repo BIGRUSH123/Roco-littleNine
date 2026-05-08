@@ -30,21 +30,10 @@ if hasattr(sys.stderr, 'reconfigure'):
     sys.stderr.reconfigure(encoding='utf-8')
 
 BASE = Path(__file__).resolve().parent.parent
+if str(BASE) not in sys.path:
+    sys.path.insert(0, str(BASE))
 
-# ─── 游戏效果类型常量 ────────────────────────────────────────────
-
-STAT_TYPES = ['物攻', '魔攻', '物防', '魔防', '双攻', '双防', '速度', '生命']
-STAT_PAT   = '|'.join(STAT_TYPES)
-
-MARK_TYPES = [
-    '星陨印记', '光合印记', '降临印记', '润泽印记', '蓄势印记', '蓄电印记',
-    '龙式印记', '中毒印记', '减速印记', '棘刺', '迟缓', '风起',
-    '攻击印记',
-]
-MARK_PAT = '|'.join(re.escape(m) for m in sorted(MARK_TYPES, key=len, reverse=True))
-
-ABNORMAL_TYPES = ['萌化', '中毒', '寄生', '冻结', '灼烧', '晕眩', '眩晕']
-ABNORMAL_PAT   = '|'.join(re.escape(a) for a in sorted(ABNORMAL_TYPES, key=len, reverse=True))
+from scripts.common.constants import STAT_PAT, MARK_PAT, ABNORMAL_PAT, ABNORMAL_TYPES
 
 
 # ─── 工具函数 ─────────────────────────────────────────────────────

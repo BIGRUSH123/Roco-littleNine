@@ -28,33 +28,16 @@ from dataclasses import dataclass, field
 from typing import Optional
 
 BASE = Path(__file__).resolve().parent.parent  # project root
+if str(BASE) not in sys.path:
+    sys.path.insert(0, str(BASE))
+
+from scripts.common import (
+    is_team_mark_effect, is_persistent_abnormal,
+)
 
 INIT_ENERGY = 10   # 开局满能量（固定值，非假设）
 MAX_ENERGY  = 10   # 能量上限
 CHARGE_GAIN = 5    # 聚能 +5
-
-# 队伍级别的印记名（换宠后不消失，追踪在 StateEngine._team_marks 里）
-TEAM_MARK_NAMES: frozenset[str] = frozenset({
-    '星陨印记', '蓄势印记', '蓄电印记', '降临印记', '光合印记', '润泽印记',
-    '龙式印记', '中毒印记', '减速印记', '攻击印记', '棘刺', '迟缓', '风起',
-})
-
-# 异常状态：换宠后依然保留在精灵身上（per rocom-data 实现）
-PERSISTENT_ABNORMALS: frozenset[str] = frozenset({
-    '中毒', '灼烧', '冻结', '寄生', '晕眩', '萌化', '眩晕',
-})
-
-
-def _is_team_mark_effect(effect: str) -> bool:
-    """判断效果字符串是否为队伍级别印记（如 '星陨印记×3' 或 '蓄势印记'）。"""
-    m = re.match(r'^(.+?)×\d+$', effect)
-    name = m.group(1) if m else effect
-    return name in TEAM_MARK_NAMES
-
-
-def _is_persistent_abnormal(effect: str) -> bool:
-    """判断是否为换宠后依然持续的异常状态。"""
-    return effect in PERSISTENT_ABNORMALS
 
 
 # ═══════════════════════════════════════════════
@@ -645,7 +628,7 @@ class StateEngine:
                     s.defense_cd = False
                     # 换宠：清除场上增益/减益，但保留异常状态（中毒/灼烧/冻结等）
                     s.buffs.clear()
-                    s.debuffs = [d for d in s.debuffs if _is_persistent_abnormal(d)]
+                    s.debuffs = [d for d in s.debuffs if is_persistent_abnormal(d)]
                     notes.append(f"换入{new_pet}(E={s.energy_display()})")
                 else:
                     # 模糊匹配
@@ -657,7 +640,7 @@ class StateEngine:
                                 s = pets[p]
                                 s.defense_cd = False
                                 s.buffs.clear()
-                                s.debuffs = [d for d in s.debuffs if _is_persistent_abnormal(d)]
+                                s.debuffs = [d for d in s.debuffs if is_persistent_abnormal(d)]
                                 notes.append(f"换入{p}(E={s.energy_display()})")
                                 found = True
                                 break
@@ -712,13 +695,13 @@ class StateEngine:
                 if info:
                     # 自身效果：队伍印记→_team_marks，其余→精灵状态
                     for eff in info.self_buffs:
-                        if _is_team_mark_effect(eff):
+                        if is_team_mark_effect(eff):
                             self._apply_effect(
                                 self._team_marks.setdefault(owner, []), eff)
                         else:
                             self._apply_effect(s.buffs, eff)
                     for eff in info.self_debuffs:
-                        if _is_team_mark_effect(eff):
+                        if is_team_mark_effect(eff):
                             self._apply_effect(
                                 self._team_marks.setdefault(owner, []), eff)
                         else:
@@ -728,13 +711,13 @@ class StateEngine:
                         opp_owner = self._get_opponent_owner(owner)
                         opp_state = self._get_opponent_field_state(owner)
                         for eff in info.opp_debuffs:
-                            if _is_team_mark_effect(eff) and opp_owner:
+                            if is_team_mark_effect(eff) and opp_owner:
                                 self._apply_effect(
                                     self._team_marks.setdefault(opp_owner, []), eff)
                             elif opp_state:
                                 self._apply_effect(opp_state.debuffs, eff)
                         for eff in info.opp_buffs:
-                            if _is_team_mark_effect(eff) and opp_owner:
+                            if is_team_mark_effect(eff) and opp_owner:
                                 self._apply_effect(
                                     self._team_marks.setdefault(opp_owner, []), eff)
                             elif opp_state:
@@ -799,7 +782,7 @@ class StateEngine:
                 s_end = self._pool[owner][pet_end]
                 s_end.defense_cd = False
                 s_end.buffs.clear()
-                s_end.debuffs = [d for d in s_end.debuffs if _is_persistent_abnormal(d)]
+                s_end.debuffs = [d for d in s_end.debuffs if is_persistent_abnormal(d)]
 
         # 回合末：更新所有场上精灵的 defense_cd
         # 使用了防御技能的精灵 → True（下回合不可用）

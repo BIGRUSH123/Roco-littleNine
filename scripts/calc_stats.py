@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-scripts/calc_stats.py — 精灵六维属性计算器
+scripts/calc_stats.py — 精灵六维属性计算器 CLI
 
 根据精灵种类、性格、个体值、能力修正、特性，输出最终六项属性。
 
@@ -9,16 +9,6 @@ scripts/calc_stats.py — 精灵六维属性计算器
        [--iv-hp N --iv-atk N --iv-sp-atk N --iv-def N --iv-sp-def N --iv-speed N]
        [--mod "物攻+100%" "速度-30" ...]
        [--ability <特性名>] [--json]
-
-公式（用户提供，区别于 wiki 旧公式）：
-  HP   = [1.7 × 种族值 + 个体值 × 6 × 0.85 + 70] × (1 + 性格修正) + 50
-  其他 = [1.1 × 种族值 + 个体值 × 6 × 0.55 + 10] × (1 + 性格修正) + 50
-
-性格系统（按性格修正表）：
-  - 使用 wiki/对战机制/宠物性格修正表.md 的“增加/减少”映射
-  - 增加属性：性格修正 = +0.20（+20%）
-  - 减少属性：性格修正 = -0.10（-10%）
-  - 其余属性：性格修正 = 0
 
 数据来源：
   1. wiki/精灵图鉴/**/*.md 的 frontmatter（hp/atk/sp_atk/def/sp_def/speed）
@@ -33,7 +23,6 @@ import csv
 import json
 import re
 import sys
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
@@ -43,92 +32,20 @@ if hasattr(sys.stderr, 'reconfigure'):
     sys.stderr.reconfigure(encoding='utf-8')
 
 BASE = Path(__file__).resolve().parent.parent
+if str(BASE) not in sys.path:
+    sys.path.insert(0, str(BASE))
 
-STAT_KEYS    = ('hp', 'atk', 'sp_atk', 'def', 'sp_def', 'speed')
-STAT_LABELS  = {
-    'hp': '生命', 'atk': '物攻', 'sp_atk': '魔攻',
-    'def': '物防', 'sp_def': '魔防', 'speed': '速度',
-}
-LABEL_TO_KEY = {v: k for k, v in STAT_LABELS.items()}
-LABEL_TO_KEY['双攻'] = ('atk', 'sp_atk')   # 复合标签
-LABEL_TO_KEY['双防'] = ('def', 'sp_def')
-
-
-# ═══════════════════════════════════════════════
-# 1. NatureTable — 性格修正
-# ═══════════════════════════════════════════════
-
-# 从 wiki/对战机制/宠物性格修正表.md 抄录的 30 个性格
-# value: (加项 stat_key, 减项 stat_key)；同项加减抵消时为 (None, None) 但官方不存在
-NATURE_TABLE: dict[str, tuple[str, str]] = {
-    '聪明': ('sp_atk', 'atk'),    '专注': ('sp_atk', 'def'),
-    '偏执': ('sp_atk', 'sp_def'), '冷静': ('sp_atk', 'speed'),
-    '理性': ('sp_atk', 'hp'),
-
-    '固执': ('atk', 'sp_atk'),    '大胆': ('atk', 'def'),
-    '调皮': ('atk', 'sp_def'),    '勇敢': ('atk', 'speed'),
-    '逞强': ('atk', 'hp'),
-
-    '警惕': ('sp_def', 'atk'),    '害羞': ('sp_def', 'sp_atk'),
-    '温顺': ('sp_def', 'def'),    '慎重': ('sp_def', 'speed'),
-    '焦虑': ('sp_def', 'hp'),
-
-    '稳重': ('def', 'atk'),       '天真': ('def', 'sp_atk'),
-    '悠闲': ('def', 'speed'),     '懒散': ('def', 'sp_def'),
-    '坦率': ('def', 'hp'),
-
-    '胆小': ('speed', 'atk'),     '开朗': ('speed', 'sp_atk'),
-    '急躁': ('speed', 'def'),     '莽撞': ('speed', 'sp_def'),
-    '热情': ('speed', 'hp'),
-
-    '沉默': ('hp', 'atk'),        '平和': ('hp', 'sp_atk'),
-    '忧郁': ('hp', 'def'),        '粗心': ('hp', 'sp_def'),
-    '踏实': ('hp', 'speed'),
-}
-
-NATURE_PLUS_DELTA  =  0.20    # +20%
-NATURE_MINUS_DELTA = -0.10    # -10%
-
-
-def get_nature_mod(nature: Optional[str]) -> dict[str, float]:
-    """返回每项 stat 的性格修正增量（+0.20/-0.10/0）。"""
-    deltas = {k: 0.0 for k in STAT_KEYS}
-    if not nature:
-        return deltas
-    if nature not in NATURE_TABLE:
-        raise ValueError(f"未识别的性格：{nature}（共30种，详见 wiki/对战机制/宠物性格修正表.md）")
-    plus, minus = NATURE_TABLE[nature]
-    deltas[plus] = NATURE_PLUS_DELTA
-    deltas[minus] = NATURE_MINUS_DELTA
-    return deltas
+from scripts.common import (
+    STAT_KEYS, STAT_LABELS, LABEL_TO_KEY,
+    get_nature_coeff,
+    half_round, apply_mods, StatsCalc,
+    SpeciesStats, StatsResult,
+)
 
 
 # ═══════════════════════════════════════════════
-# 2. SpriteDB — 精灵种族值数据库
+# SpriteDB — 精灵种族值数据库
 # ═══════════════════════════════════════════════
-
-@dataclass
-class SpeciesStats:
-    name: str
-    form: str = ""
-    hp: int = 0
-    atk: int = 0
-    sp_atk: int = 0
-    def_: int = 0
-    sp_def: int = 0
-    speed: int = 0
-    attributes: str = ""
-    ability: str = ""
-
-    def base_dict(self) -> dict[str, int]:
-        return {
-            'hp': self.hp, 'atk': self.atk, 'sp_atk': self.sp_atk,
-            'def': self.def_, 'sp_def': self.sp_def, 'speed': self.speed,
-        }
-
-    def display_name(self) -> str:
-        return f"{self.name}（{self.form}）" if self.form else self.name
-
 
 class SpriteDB:
     """两个数据来源（优先级由高到低）：
@@ -274,109 +191,6 @@ class SpriteDB:
 
 
 # ═══════════════════════════════════════════════
-# 3. StatsCalc — 属性计算
-# ═══════════════════════════════════════════════
-
-# 能力修正条目解析：'物攻+100%' / '速度-30' / '双攻+50%'
-RE_MOD = re.compile(r'^\s*(双攻|双防|生命|物攻|魔攻|物防|魔防|速度)\s*([+\-])\s*(\d+(?:\.\d+)?)\s*(%?)\s*$')
-
-
-def _half_round(x: float) -> int:
-    """正向四舍五入（避免 Python 银行家舍入对 .5 取偶）。"""
-    if x >= 0:
-        return int(x + 0.5)
-    return -int(-x + 0.5)
-
-
-@dataclass
-class StatsResult:
-    species: SpeciesStats
-    nature: Optional[str]
-    iv: dict[str, int]
-    mods: list[str]
-    ability: str
-    base_stats: dict[str, int]            # 种族值
-    raw_stats: dict[str, int]             # 公式中括号内（×2 + iv×6 + +5/100）四舍五入后
-    nature_stats: dict[str, int]          # 性格修正后
-    final_stats: dict[str, int]           # 应用能力修正后
-
-
-class StatsCalc:
-
-    def __init__(self):
-        pass
-
-    def compute(
-        self,
-        species: SpeciesStats,
-        nature: Optional[str] = None,
-        iv:     Optional[dict[str, int]] = None,
-        mods:   Optional[list[str]] = None,
-        ability: str = '',
-    ) -> StatsResult:
-        iv  = iv  or {k: 10 for k in STAT_KEYS}
-        mods = mods or []
-
-        # 1. 应用基础公式（用户指定版本）
-        base    = species.base_dict()
-        nat_mod = get_nature_mod(nature)
-        raw_stats     : dict[str, int] = {}
-        nature_stats  : dict[str, int] = {}
-        for k, b in base.items():
-            iv_v = iv.get(k, 10)
-            if k == 'hp':
-                raw = 1.7 * b + iv_v * 6 * 0.85 + 70
-            else:
-                raw = 1.1 * b + iv_v * 6 * 0.55 + 10
-            raw_stats[k] = _half_round(raw)
-            nature_stats[k] = _half_round(raw_stats[k] * (1.0 + nat_mod[k]) + 50)
-
-        # 2. 应用能力修正
-        final_stats = self._apply_mods(nature_stats, mods)
-
-        return StatsResult(
-            species=species, nature=nature, iv=dict(iv),
-            mods=list(mods), ability=ability or species.ability,
-            base_stats=dict(base),
-            raw_stats=raw_stats,
-            nature_stats=nature_stats,
-            final_stats=final_stats,
-        )
-
-    @staticmethod
-    def _apply_mods(stats: dict[str, int], mods: list[str]) -> dict[str, int]:
-        # 累加：每项的百分比修正、固定值修正
-        pct  = {k: 0.0 for k in STAT_KEYS}
-        flat = {k: 0   for k in STAT_KEYS}
-        warnings: list[str] = []
-        for raw in mods:
-            m = RE_MOD.match(raw)
-            if not m:
-                warnings.append(f"[!] 无法解析修正：{raw!r}")
-                continue
-            label, sign, num_s, percent = m.group(1), m.group(2), m.group(3), m.group(4)
-            num = float(num_s) * (1 if sign == '+' else -1)
-            keys = LABEL_TO_KEY.get(label)
-            if keys is None:
-                warnings.append(f"[!] 未知属性：{label}")
-                continue
-            target_keys = keys if isinstance(keys, tuple) else (keys,)
-            for k in target_keys:
-                if percent == '%':
-                    pct[k] += num / 100.0
-                else:
-                    flat[k] += int(num)
-
-        for w in warnings:
-            _err(w)
-        result: dict[str, int] = {}
-        for k, v in stats.items():
-            scaled = v * (1.0 + pct[k]) + flat[k]
-            result[k] = max(0, _half_round(scaled))
-        return result
-
-
-# ═══════════════════════════════════════════════
 # 4. 输出格式
 # ═══════════════════════════════════════════════
 
@@ -404,12 +218,12 @@ def format_table(r: StatsResult) -> str:
 
     lines.append('| ' + ' | '.join(cols) + ' |')
     lines.append('|' + '|'.join(['------'] * len(cols)) + '|')
-    nat_mod = get_nature_mod(r.nature)
+    nat_coeff = get_nature_coeff(r.nature)
     for k in STAT_KEYS:
         marker = ''
-        if nat_mod[k] > 0:
+        if nat_coeff[k] > 1.0:
             marker = '↑'
-        elif nat_mod[k] < 0:
+        elif nat_coeff[k] < 1.0:
             marker = '↓'
         row = [
             f"{STAT_LABELS[k]}{marker}",
@@ -457,7 +271,7 @@ def parse_args(argv: list[str]) -> dict:
     out: dict = {
         'name': name, 'form': '',
         'nature': None,
-        'iv': {k: 10 for k in STAT_KEYS},
+        'iv': {k: 0 for k in STAT_KEYS},
         'mods': [],
         'ability': '',
         'json': False,
