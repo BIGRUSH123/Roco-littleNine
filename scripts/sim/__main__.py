@@ -19,22 +19,26 @@ WIKI_ROOT = BASE / 'wiki'
 SKILLS_DIR = BASE / 'data' / 'skills'
 
 
-def _load_sprite_skills() -> dict[str, list[str]]:
-    """从 wiki 精灵图鉴提取每只精灵的技能列表，只保留有 JSON 的技能。"""
+def _load_sprite_skills() -> list[tuple[int, str, list[str]]]:
+    """从 wiki 精灵图鉴提取精灵→技能映射，按编号排序。
+    返回 [(编号, 精灵名, [技能]), ...]。
+    """
     available_skills = {p.stem for p in SKILLS_DIR.glob('*.json')}
 
-    sprite_skills: dict[str, list[str]] = {}
+    entries: list[tuple[int, str, list[str]]] = []
     sprite_dir = WIKI_ROOT / '精灵图鉴'
     if not sprite_dir.is_dir():
-        return sprite_skills
+        return entries
 
     for md in sprite_dir.rglob('*.md'):
         if md.name.startswith('_') or md.stem == 'index':
             continue
         text = md.read_text(encoding='utf-8', errors='ignore')
 
-        fm_match = re.search(r'^name:\s*"(.+?)"', text, re.MULTILINE)
-        sprite_name = fm_match.group(1) if fm_match else md.stem
+        num_m = re.search(r'^number:\s*(\d+)', text, re.MULTILINE)
+        num = int(num_m.group(1)) if num_m else 9999
+        name_m = re.search(r'^name:\s*"(.+?)"', text, re.MULTILINE)
+        sprite_name = name_m.group(1) if name_m else md.stem
 
         skills: list[str] = []
         in_section = False
@@ -52,63 +56,71 @@ def _load_sprite_skills() -> dict[str, list[str]]:
                         skills.append(name)
 
         if skills:
-            sprite_skills[sprite_name] = skills
+            entries.append((num, sprite_name, skills))
 
-    return sprite_skills
+    entries.sort(key=lambda x: x[0])
+    return entries
 
 
-def _pick_sprites(sprite_skills: dict[str, list[str]], player_name: str,
+def _pick_sprites(entries: list[tuple[int, str, list[str]]], player_name: str,
                   count: int = 3) -> list[dict]:
-    """交互式组队：先选精灵，再为该精灵选技能。"""
-    available = sorted(sprite_skills.keys())
-    if not available:
+    """交互式组队：先选精灵，再为该精灵选技能。精灵按编号排序。"""
+    if not entries:
         print('无可用精灵')
         return []
 
+    page_size = 20
+    total_pages = (len(entries) + page_size - 1) // page_size
+
     print(f'\n{player_name} 组队 (选{count}只):')
-    print(f'  共 {len(available)} 只精灵可选')
+    print(f'  共 {len(entries)} 只精灵可选 ({total_pages} 页)')
 
     team: list[dict] = []
     while len(team) < count:
-        # ── 选精灵 ──
         print(f'\n--- 第{len(team)+1}只精灵 ---')
-        page_size = 20
-        total_pages = (len(available) + page_size - 1) // page_size
         page = 0
         while True:
             start = page * page_size
-            end = min(start + page_size, len(available))
+            end = min(start + page_size, len(entries))
+            print(f'  [第{page+1}/{total_pages}页]')
             for i in range(start, end):
-                skills_preview = ', '.join(sprite_skills[available[i]][:5])
-                if len(sprite_skills[available[i]]) > 5:
-                    skills_preview += f' ...(+{len(sprite_skills[available[i]])-5})'
-                print(f'  [{i:3d}] {available[i]:　<10s}  技能: {skills_preview}')
-            if total_pages > 1:
-                print(f'  --- 第{page+1}/{total_pages}页 (n=下一页, p=上一页) ---')
+                num, name, skills = entries[i]
+                skills_preview = ', '.join(skills[:5])
+                if len(skills) > 5:
+                    skills_preview += f' ...(+{len(skills)-5})'
+                print(f'  [{i:3d}] #{num:03d} {name:　<10s}  技能: {skills_preview}')
 
             try:
-                raw = input('选择精灵编号 > ').strip()
+                raw = input('选择编号/翻页(n/p) > ').strip()
             except EOFError:
                 print('\n  非交互模式')
                 return []
 
-            if raw.lower() == 'n' and page < total_pages - 1:
-                page += 1; continue
-            if raw.lower() == 'p' and page > 0:
-                page -= 1; continue
+            r = raw.lower()
+            if r == 'n':
+                if page < total_pages - 1:
+                    page += 1
+                else:
+                    print(f'  已是最后一页')
+                continue
+            if r == 'p':
+                if page > 0:
+                    page -= 1
+                else:
+                    print(f'  已是第一页')
+                continue
 
             try:
                 idx = int(raw)
-                if 0 <= idx < len(available):
-                    sprite_name = available[idx]
+                if 0 <= idx < len(entries):
+                    num, sprite_name, skill_pool = entries[idx]
                     break
-                print(f'  超出范围，输入 0-{len(available)-1}')
+                print(f'  超出范围，输入 0-{len(entries)-1}')
             except ValueError:
                 print('  请输入数字 (或 n/p 翻页)')
 
         # ── 选技能 ──
-        skill_pool = sprite_skills[sprite_name]
-        print(f'\n  {sprite_name} 可学技能 ({len(skill_pool)}个):')
+        print(f'\n  #{num:03d} {sprite_name} 可学技能 ({len(skill_pool)}个):')
         for i, s in enumerate(skill_pool):
             print(f'    [{i:2d}] {s}')
 
@@ -139,7 +151,7 @@ def _pick_sprites(sprite_skills: dict[str, list[str]], player_name: str,
 
         if selected_skills:
             team.append({'name': sprite_name, 'skills': selected_skills})
-            print(f'  OK {sprite_name}: {", ".join(selected_skills)}')
+            print(f'  OK #{num:03d} {sprite_name}: {", ".join(selected_skills)}')
         else:
             print('  跳过该精灵')
 
@@ -169,13 +181,13 @@ def main() -> None:
         print('═' * 40)
 
         # 加载精灵技能映射
-        sprite_skills = _load_sprite_skills()
-        if not sprite_skills:
+        entries = _load_sprite_skills()
+        if not entries:
             print('错误: 无可用精灵/技能数据')
             sys.exit(1)
 
         # 玩家组队（选精灵 + 选技能）
-        team = _pick_sprites(sprite_skills, '你的队伍')
+        team = _pick_sprites(entries, '你的队伍')
 
         p1 = factory.build_player('你', team, item=Item.leader())
         p2 = factory.build_player('AI', [
