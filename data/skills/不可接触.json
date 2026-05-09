@@ -8,16 +8,16 @@
   "priority": 0,
   "effects": [
     {
+      "kind": "special",
+      "name": "damage_reduction",
+      "value": 0.5
+    },
+    {
       "kind": "abnormal",
       "target": "opp",
       "name": "中毒",
       "scope": "battlefield",
       "stacks": 1
-    },
-    {
-      "kind": "special",
-      "name": "damage_reduction",
-      "value": 0.5
     }
   ]
 }

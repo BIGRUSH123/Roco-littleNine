@@ -13,6 +13,13 @@
       "name": "灼烧",
       "scope": "battlefield",
       "stacks": 10
+    },
+    {
+      "kind": "abnormal",
+      "target": "opp",
+      "name": "灼烧",
+      "scope": "battlefield",
+      "stacks": 10
     }
   ]
 }

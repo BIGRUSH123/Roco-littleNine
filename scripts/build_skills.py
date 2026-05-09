@@ -182,58 +182,131 @@ def _parse_effect_string(
     return results
 
 
-def _parse_counter_from_desc(description: str) -> list[dict]:
-    """从描述中提取应对条件效果（best-effort）。
+def _effect_fingerprint(eff: dict) -> str:
+    """生成效果的匹配指纹，用于去重/比对。"""
+    kind = eff.get('kind', '')
+    if kind == 'stat':
+        return f'stat:{eff.get("stat")}:{eff.get("target","")}'
+    if kind == 'abnormal':
+        return f'abnormal:{eff.get("name")}:{eff.get("target","")}'
+    if kind == 'mark':
+        return f'mark:{eff.get("name")}:{eff.get("target","")}'
+    if kind == 'weather':
+        return f'weather:{eff.get("weather")}'
+    return ''
 
-    模式：
-      "减伤X%，应对YY：ZZ"  →  base 减伤 + counter conditional (ZZ)
-      "造成物伤，应对YY：ZZ"  →  counter conditional (ZZ)
-      "减伤X%" (无应对)      →  base 减伤
+
+def _parse_text_to_effects(text: str, default_target: str) -> list[dict]:
+    """将自由文本解析为效果 dict 列表。处理各种描述句式。"""
+    # 预处理：清理前缀
+    clean = text
+    for prefix in ['被应对技能', '额外使', '敌方获得', '获得', '使', '全技能']:
+        clean = clean.replace(prefix, '')
+    # "N层X" → "X×N" 或 "N层XX印记" → "XX印记×N"
+    clean = re.sub(r'(\d+)层\s*', r'\1', clean)
+    # 末尾可能有量词
+    m_stack = re.match(r'(\d+)\s*(.+)', clean.strip())
+    if m_stack:
+        clean = f'{m_stack.group(2)}×{m_stack.group(1)}'
+    # 直接尝试解析
+    return _parse_effect_string(clean, default_target)
+
+
+def _parse_counter_from_desc(description: str) -> tuple[list[dict], list[dict] | None, bool]:
+    """从描述中提取效果。返回 (base_effects, counter_then, is_extra)。
+
+    is_extra: True = 应对是"额外"效果（base 保留）；False = 效果应移入 conditional。
     """
-    effects: list[dict] = []
+    base_effects: list[dict] = []
+    counter_then: list[dict] | None = None
+    is_extra = '额外' in description
 
-    # 1. 提取 base 减伤（始终在「应对」之前）
+    # 1. 提取 base 减伤（始终在「应对」之前，始终无条件）
     base_dr = re.match(r'^减伤(\d+)%', description)
     if base_dr:
         reduction_pct = int(base_dr.group(1)) / 100.0
-        effects.append({
+        base_effects.append({
             'kind': 'special', 'name': 'damage_reduction', 'value': reduction_pct,
         })
 
-    # 2. 提取「应对XX：ZZ」
-    counter_pat = re.compile(
-        r'应对(攻击|防御|状态)[：:]\s*(.*?)(?:[。.]|$)'
-    )
-    m = counter_pat.search(description)
-    if m:
-        extra = m.group(2)
+    # 2. 描述中非应对部分的无条件效果
+    # 模式: "敌方获得5层冻结，应对防御：额外获得5层"
+    #       └─ pre_counter ─┘  └─ counter clause ─┘
+    counter_pat = re.compile(r'应对(攻击|防御|状态)[：:]')
+    cm = counter_pat.search(description)
+    pre_counter = description[:cm.start()].strip() if cm else description
 
-        # 解析额外效果
-        then_effects: list[dict] = []
-        parsed = _parse_effect_string(extra, 'opp')
-        if parsed:
-            then_effects.extend(parsed)
-        else:
-            # 尝试 "被应对技能能耗+3" / "敌方获得..." 等特殊表述
-            clean = extra.replace('被应对技能', '').replace('额外使', '').replace('敌方获得', '').replace('获得', '')
-            # "2层星陨印记" → "星陨印记×2"
-            clean = re.sub(r'(\d+)层\s*', r'\1', clean)
-            # 尝试 "星陨印记×2" 句式
-            m_stack = re.match(r'(\d+)\s*(.+)', clean)
-            if m_stack:
-                clean = f'{m_stack.group(2)}×{m_stack.group(1)}'
-            parsed2 = _parse_effect_string(clean, 'opp')
-            if parsed2:
-                then_effects.extend(parsed2)
+    # 提取 pre_counter 中的无条件效果（去除 "造成物伤/魔伤" 前缀）
+    pre_clean = re.sub(r'^造成[物魔]+伤[，,。.]*\s*', '', pre_counter)
+    if pre_clean and pre_clean != description:  # 有非攻击描述
+        for part in re.split(r'[，,。.]', pre_clean):
+            part = part.strip()
+            if part:
+                parsed = _parse_text_to_effects(part, 'opp')
+                for e in parsed:
+                    # 只添加非 damage_reduction 的效果（DR 已单独处理）
+                    if not (e.get('kind') == 'special' and e.get('name') == 'damage_reduction'):
+                        base_effects.append(e)
 
-        if then_effects:
-            effects.append({
+    # 3. 提取「应对XX：ZZ」
+    if cm:
+        extra = description[cm.end():].strip().rstrip('。.')
+        counter_then = _parse_text_to_effects(extra, 'opp')
+
+    return base_effects, counter_then, is_extra
+
+
+def _reconcile_effects(
+    unconditional: list[dict],
+    base_from_desc: list[dict],
+    counter_then: list[dict] | None,
+    is_extra: bool,
+) -> list[dict]:
+    """调和 wiki 无条件效果与描述中的 counter 条件效果。
+
+    规则：
+    - is_extra=True → counter 是对 base 的追加 → 无条件保留 + counter conditional
+    - is_extra=False → counter 中的效果应从无条件中移除 → 移入 conditional
+    - base_from_desc 中的效果（如 damage_reduction）始终无条件
+    """
+    result: list[dict] = list(base_from_desc)
+
+    if not counter_then:
+        # 无 counter 效果 → 所有无条件效果保留
+        result.extend(unconditional)
+        return result
+
+    # 生成 counter 效果的指纹集合
+    counter_fps = {_effect_fingerprint(e) for e in counter_then}
+    counter_fps.discard('')  # 移除空指纹
+
+    if is_extra:
+        # "额外" → 无条件全部保留 + counter conditional 追加
+        result.extend(unconditional)
+        result.append({
+            'kind': 'conditional',
+            'when': {'kind': 'counter_succeeded'},
+            'then': list(counter_then),
+        })
+    else:
+        # 非"额外" → 从无条件中移除匹配项，移入 counter conditional
+        remaining: list[dict] = []
+        removed: list[dict] = []
+        for eff in unconditional:
+            fp = _effect_fingerprint(eff)
+            if fp and fp in counter_fps:
+                removed.append(eff)
+            else:
+                remaining.append(eff)
+        result.extend(remaining)
+        if removed:
+            result.append({
                 'kind': 'conditional',
                 'when': {'kind': 'counter_succeeded'},
-                'then': then_effects,
+                'then': removed + [e for e in counter_then if _effect_fingerprint(e) not in {_effect_fingerprint(r) for r in removed}],
             })
 
-    return effects
+    return result
 
 
 def _build_skill_data(
@@ -243,28 +316,31 @@ def _build_skill_data(
     self_debuffs: list[str], opp_buffs: list[str],
 ) -> dict:
     """组装完整的技能 JSON dict。"""
-    effects: list[dict] = []
+    unconditional: list[dict] = []
 
     # self_buffs → effects (target=self)
     for eff_str in self_buffs:
-        effects.extend(_parse_effect_string(eff_str, 'self'))
+        unconditional.extend(_parse_effect_string(eff_str, 'self'))
 
     # self_debuffs → effects (target=self, 负面)
     for eff_str in self_debuffs:
-        effects.extend(_parse_effect_string(eff_str, 'self'))
+        unconditional.extend(_parse_effect_string(eff_str, 'self'))
 
     # opp_debuffs → effects (target=opp)
     for eff_str in opp_debuffs:
-        effects.extend(_parse_effect_string(eff_str, 'opp'))
+        unconditional.extend(_parse_effect_string(eff_str, 'opp'))
 
     # opp_buffs → effects (target=opp, 正面效果在对手)
     for eff_str in opp_buffs:
-        effects.extend(_parse_effect_string(eff_str, 'opp', from_opp_buffs=True))
+        unconditional.extend(_parse_effect_string(eff_str, 'opp', from_opp_buffs=True))
 
-    # 描述 → conditional / special 效果
+    # 描述 → base effects + counter conditional，然后调和
+    effects: list[dict]
     if description:
-        desc_effects = _parse_counter_from_desc(description)
-        effects.extend(desc_effects)
+        base_from_desc, counter_then, is_extra = _parse_counter_from_desc(description)
+        effects = _reconcile_effects(unconditional, base_from_desc, counter_then, is_extra)
+    else:
+        effects = unconditional
 
     # 类型归一化
     normalized_type = _SKILL_TYPE_NORMALIZE.get(skill_type, skill_type)

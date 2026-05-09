@@ -8,20 +8,6 @@
   "priority": 0,
   "effects": [
     {
-      "kind": "stat",
-      "target": "opp",
-      "stat": "def",
-      "steps": -6,
-      "scope": "battlefield"
-    },
-    {
-      "kind": "stat",
-      "target": "opp",
-      "stat": "sp_def",
-      "steps": -6,
-      "scope": "battlefield"
-    },
-    {
       "kind": "conditional",
       "when": {
         "kind": "counter_succeeded"

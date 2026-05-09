@@ -13,6 +13,13 @@
       "stat": "speed",
       "steps": -3,
       "scope": "battlefield"
+    },
+    {
+      "kind": "stat",
+      "target": "opp",
+      "stat": "speed",
+      "steps": -3,
+      "scope": "battlefield"
     }
   ]
 }

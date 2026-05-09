@@ -13,6 +13,13 @@
       "name": "中毒",
       "scope": "battlefield",
       "stacks": 1
+    },
+    {
+      "kind": "abnormal",
+      "target": "opp",
+      "name": "中毒",
+      "scope": "battlefield",
+      "stacks": 1
     }
   ]
 }

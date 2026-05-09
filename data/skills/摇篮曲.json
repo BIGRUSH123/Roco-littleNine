@@ -15,6 +15,13 @@
       "scope": "battlefield"
     },
     {
+      "kind": "stat",
+      "target": "opp",
+      "stat": "energy_cost",
+      "steps": 3,
+      "scope": "battlefield"
+    },
+    {
       "kind": "conditional",
       "when": {
         "kind": "counter_succeeded"

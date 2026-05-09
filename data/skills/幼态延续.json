@@ -6,5 +6,13 @@
   "energy_cost": 4,
   "counter": "无",
   "priority": 0,
-  "effects": []
+  "effects": [
+    {
+      "kind": "abnormal",
+      "target": "opp",
+      "name": "萌化",
+      "scope": "persistent",
+      "stacks": 1
+    }
+  ]
 }

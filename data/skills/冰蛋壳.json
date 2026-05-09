@@ -8,12 +8,6 @@
   "priority": 0,
   "effects": [
     {
-      "kind": "mark",
-      "target": "opp_team",
-      "name": "减速印记",
-      "stacks": 2
-    },
-    {
       "kind": "special",
       "name": "damage_reduction",
       "value": 0.6

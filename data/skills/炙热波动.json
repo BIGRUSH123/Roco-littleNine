@@ -25,7 +25,7 @@
           "target": "opp",
           "name": "灼烧",
           "scope": "battlefield",
-          "stacks": 1
+          "stacks": 4
         }
       ]
     }

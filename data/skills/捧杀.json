@@ -8,13 +8,6 @@
   "priority": 0,
   "effects": [
     {
-      "kind": "abnormal",
-      "target": "opp",
-      "name": "萌化",
-      "scope": "persistent",
-      "stacks": 1
-    },
-    {
       "kind": "special",
       "name": "damage_reduction",
       "value": 0.9

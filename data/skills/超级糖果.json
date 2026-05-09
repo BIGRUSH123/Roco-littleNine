@@ -9,6 +9,13 @@
   "effects": [
     {
       "kind": "abnormal",
+      "target": "opp",
+      "name": "萌化",
+      "scope": "persistent",
+      "stacks": 1
+    },
+    {
+      "kind": "abnormal",
       "target": "self",
       "name": "萌化",
       "scope": "persistent",

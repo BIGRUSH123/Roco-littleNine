@@ -8,19 +8,11 @@
   "priority": 0,
   "effects": [
     {
-      "kind": "conditional",
-      "when": {
-        "kind": "counter_succeeded"
-      },
-      "then": [
-        {
-          "kind": "abnormal",
-          "target": "opp",
-          "name": "冻结",
-          "scope": "persistent",
-          "stacks": 1
-        }
-      ]
+      "kind": "abnormal",
+      "target": "opp",
+      "name": "冻结",
+      "scope": "persistent",
+      "stacks": 1
     }
   ]
 }

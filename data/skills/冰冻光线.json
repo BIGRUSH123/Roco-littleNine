@@ -13,6 +13,13 @@
       "stat": "energy_cost",
       "steps": 2,
       "scope": "battlefield"
+    },
+    {
+      "kind": "stat",
+      "target": "opp",
+      "stat": "energy_cost",
+      "steps": 2,
+      "scope": "battlefield"
     }
   ]
 }

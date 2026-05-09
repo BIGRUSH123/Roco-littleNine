@@ -20,6 +20,20 @@
       "stat": "sp_def",
       "steps": -7,
       "scope": "battlefield"
+    },
+    {
+      "kind": "stat",
+      "target": "opp",
+      "stat": "def",
+      "steps": -7,
+      "scope": "battlefield"
+    },
+    {
+      "kind": "stat",
+      "target": "opp",
+      "stat": "sp_def",
+      "steps": -7,
+      "scope": "battlefield"
     }
   ]
 }

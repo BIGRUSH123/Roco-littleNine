@@ -8,16 +8,16 @@
   "priority": 0,
   "effects": [
     {
+      "kind": "special",
+      "name": "damage_reduction",
+      "value": 0.6
+    },
+    {
       "kind": "stat",
       "target": "self",
       "stat": "energy_cost",
       "steps": -2,
       "scope": "battlefield"
-    },
-    {
-      "kind": "special",
-      "name": "damage_reduction",
-      "value": 0.6
     }
   ]
 }

@@ -8,6 +8,11 @@
   "priority": 0,
   "effects": [
     {
+      "kind": "special",
+      "name": "damage_reduction",
+      "value": 0.6
+    },
+    {
       "kind": "stat",
       "target": "self",
       "stat": "atk",
@@ -20,11 +25,6 @@
       "stat": "sp_atk",
       "steps": 4,
       "scope": "battlefield"
-    },
-    {
-      "kind": "special",
-      "name": "damage_reduction",
-      "value": 0.6
     }
   ]
 }
