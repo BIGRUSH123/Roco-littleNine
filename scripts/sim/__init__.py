@@ -25,6 +25,7 @@ Effect 类型 (effects.py):
 
 from .sprite import Sprite
 from .skill import Skill
+from .battleskill import BattleSkill
 from .action import Action
 from .player import Item, PlayStyle, Player
 from .globals import Mark, GlobalEffects

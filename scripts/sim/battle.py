@@ -380,7 +380,7 @@ class Battle:
 
         # 防御技能冷却
         if skill.is_defense:
-            user.cooldowns[action.skill_index] = 1
+            skill.cooldown = 1
 
         # 脱离/折返
         escape_effects = [

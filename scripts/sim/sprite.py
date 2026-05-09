@@ -9,6 +9,7 @@ from scripts.common.models import SpeciesStats, StatsResult
 
 if TYPE_CHECKING:
     from .skill import Skill
+    from .battleskill import BattleSkill
 
 # 步数换算
 _STEP_PCT = 10       # 非速度六维：1步=10%
@@ -52,7 +53,7 @@ class Sprite:
 
     # ── 静态 ──
     species: SpeciesStats
-    skills: list['Skill'] = field(default_factory=list)
+    skills: list['BattleSkill'] = field(default_factory=list)
 
     # ── 初始六维（nature + IV 后的最终值，mods 前） ──
     initial_stats: dict[str, int] = field(default_factory=dict)
@@ -64,9 +65,6 @@ class Sprite:
 
     # 全部效果（增/减益 + 异常状态 + 特殊状态）
     effects: list[StatusEffect] = field(default_factory=list)
-
-    # 技能冷却 {skill_index: remaining_turns}
-    cooldowns: dict[int, int] = field(default_factory=dict)
 
     # 进场回合
     entry_turn: int = 0

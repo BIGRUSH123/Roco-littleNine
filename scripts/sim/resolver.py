@@ -426,10 +426,9 @@ class SkillResolver:
                 events.append(f'{s.name} 寄生-{dmg}HP')
 
             # 冷却递减
-            for idx in list(s.cooldowns.keys()):
-                s.cooldowns[idx] -= 1
-                if s.cooldowns[idx] <= 0:
-                    del s.cooldowns[idx]
+            for bs in s.skills:
+                if bs.cooldown > 0:
+                    bs.cooldown -= 1
 
         events += globals_.weather_turn_effects(all_sprites)
         globals_.tick_weather()

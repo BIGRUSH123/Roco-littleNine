@@ -97,7 +97,7 @@ class RuleAgent:
         best_score = -1.0
         for i, skill in enumerate(s.skills):
             # 跳过冷却中的技能
-            if i in s.cooldowns:
+            if s.skills[i].cooldown > 0:
                 continue
             if skill.energy_cost > s.energy:
                 continue
@@ -303,7 +303,7 @@ class HumanAgent:
 
         # 技能
         for i, skill in enumerate(s.skills):
-            cooldown = i in s.cooldowns
+            cooldown = s.skills[i].cooldown > 0
             enough_e = skill.energy_cost <= s.energy
             disabled = cooldown or not enough_e
             tags: list[str] = []

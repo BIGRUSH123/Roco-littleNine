@@ -9,6 +9,7 @@ from scripts.calc_stats import SpriteDB
 
 from .sprite import Sprite
 from .skill import Skill
+from .battleskill import BattleSkill
 from .player import Item, Player, PlayStyle
 from .battle import Battle
 
@@ -47,13 +48,13 @@ class SimFactory:
         sprite.skills = self._build_skill_list(skills)
         return sprite
 
-    def _build_skill_list(self, skill_names: list[str]) -> list[Skill]:
-        skills: list[Skill] = []
+    def _build_skill_list(self, skill_names: list[str]) -> list[BattleSkill]:
+        skills: list[BattleSkill] = []
         for name in skill_names:
             path = self._skills_dir / f'{name}.json'
             if path.exists():
                 data = json.loads(path.read_text(encoding='utf-8'))
-                skills.append(Skill.load(data))
+                skills.append(BattleSkill(base=Skill.load(data)))
             else:
                 print(f'[SimFactory] 技能JSON未找到: {name!r}', file=sys.stderr)
         return skills
