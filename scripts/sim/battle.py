@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING
 
 from .globals import GlobalEffects
 from .resolver import SkillResolver, TurnContext
-from .battleskill import SkillUse
+from .battleskill import BattleSkill, SkillUse
 from .action import Action
 
 if TYPE_CHECKING:
@@ -238,13 +238,23 @@ class Battle:
             counter_b = SkillResolver.resolve_counter(skill_a, skill_b)
         countered = counter_a or counter_b
 
+        # 被应对的技能（counter_b=True 表示 A 应对了 B）
+        countered_skill_a = skill_b if counter_b else None
+        countered_skill_b = skill_a if counter_a else None
+
         if countered:
             # 应对成功 → 双方同时（均视为"同时"，无先后之分）
-            events += self._execute_single_action('A', action_a, is_countered=counter_a, is_first=True)
+            events += self._execute_single_action(
+                'A', action_a, is_countered=counter_a,
+                countered_skill=countered_skill_a, is_first=True,
+            )
             self._check_faint_interrupt('A', events)
             self._check_faint_interrupt('B', events)
             if not self.is_finished:
-                events += self._execute_single_action('B', action_b, is_countered=counter_b, is_first=True)
+                events += self._execute_single_action(
+                    'B', action_b, is_countered=counter_b,
+                    countered_skill=countered_skill_b, is_first=True,
+                )
             return events
 
         # 无应对 → 按优先级先后执行
@@ -295,6 +305,7 @@ class Battle:
     def _execute_single_action(
         self, team: str, action: Action,
         is_countered: bool = False,
+        countered_skill: 'BattleSkill | None' = None,
         is_first: bool = False,
     ) -> list[str]:
         """执行单个玩家的技能/聚能行动。返回事件列表。"""
@@ -342,13 +353,21 @@ class Battle:
         is_burst = user.first_action and any(e.name == 'burst' for e in burst_specials)
         user.first_action = False
 
-        ctx = TurnContext(turn=self.turn, is_first=is_first)
+        ctx = TurnContext(turn=self.turn, is_first=is_first,
+                          countered_skill=countered_skill)
 
         use = SkillUse(
             battle_skill=skill,
             is_countered=is_countered,
             is_first=is_first,
+            countered_skill=countered_skill,
+            skill_index=action.skill_index or -1,
         )
+
+        # 消费 next_attack_mult（热身等设置的下次攻击倍率）
+        if skill.is_attack and skill.next_attack_mult != 1.0:
+            use.modifiers['power_mult'] = use.modifiers.get('power_mult', 1.0) * skill.next_attack_mult
+            skill.next_attack_mult = 1.0
 
         # 攻击技能 → 伤害计算
         if skill.is_attack:

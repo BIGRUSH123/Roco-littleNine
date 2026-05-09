@@ -6,5 +6,24 @@
   "energy_cost": 0,
   "counter": "防御",
   "priority": 0,
-  "effects": []
+  "effects": [
+    {
+      "kind": "special",
+      "name": "adjacent_power_bonus",
+      "value": 20
+    },
+    {
+      "kind": "conditional",
+      "when": {
+        "kind": "counter_succeeded"
+      },
+      "then": [
+        {
+          "kind": "special",
+          "name": "adjacent_power_bonus",
+          "value": 30
+        }
+      ]
+    }
+  ]
 }

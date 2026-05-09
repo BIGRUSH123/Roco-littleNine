@@ -24,6 +24,7 @@ class TurnContext:
     is_first: bool = False
     opponent_switched: bool = False
     opponent_gathered: bool = False
+    countered_skill: 'BattleSkill | None' = None
 
 
 # 系别克制表（18 系）
@@ -94,10 +95,10 @@ class SkillResolver:
             elif kind == 'weather':
                 events += SkillResolver._handle_weather(globals_, effect)
             elif kind == 'special':
-                events += SkillResolver._handle_special(user, target, effect, globals_, ctx)
+                events += SkillResolver._handle_special(user, target, effect, globals_, ctx, use)
             elif kind == 'conditional':
                 events += SkillResolver._eval_conditional(
-                    user, target, effect, globals_, ctx, team,
+                    user, target, effect, globals_, ctx, team, use,
                 )
         return events
 
@@ -157,11 +158,30 @@ class SkillResolver:
     def _handle_special(
         user: 'Sprite', target: 'Sprite', effect: 'Effect',
         globals_: 'GlobalEffects', ctx: 'TurnContext | None' = None,
+        use: 'SkillUse | None' = None,
     ) -> list[str]:
         events: list[str] = []
+        is_attack = use.battle_skill.is_attack if use else True
 
-        # 伤害相关 → 由 calc_damage / modifiers 处理，此处跳过
+        # 伤害相关 specials
         if effect.name in _DAMAGE_SPECIALS:
+            if is_attack:
+                return events  # 由 calc_damage / modifiers 处理
+            # 非攻击技能的 damage specials → 转为 BattleSkill 状态变更
+            if effect.name == 'power_mult':
+                val = getattr(effect, 'value', 1.0) or 1.0
+                for bs in user.skills:
+                    bs.next_attack_mult = max(bs.next_attack_mult, val)
+                events.append(f'{user.name} 下次攻击威力×{val}')
+            elif effect.name == 'power_bonus':
+                # 非攻击技能的 power_bonus → 转为 power_mod（联动装置基础）
+                val = int(getattr(effect, 'value', 0) or getattr(effect, 'amount', 0))
+                if use and use.skill_index >= 0:
+                    for offset in (-1, 1):
+                        idx = use.skill_index + offset
+                        if 0 <= idx < len(user.skills):
+                            user.skills[idx].power_mod += val
+                            events.append(f'{user.skills[idx].name} 威力永久+{val}')
             return events
 
         if effect.name == 'burst':
@@ -178,7 +198,6 @@ class SkillResolver:
             events.append(f'{user.name} 偷取{stolen}E')
         elif effect.name == 'life_drain':
             pct = effect.value / 100.0 if effect.value > 1 else effect.value
-            # 吸血量在 battle 中基于实际伤害计算
             events.append(f'{user.name} 吸血{pct*100:.0f}%')
         elif effect.name == 'direct_heal':
             healed = user.heal(effect.amount or 0)
@@ -190,7 +209,19 @@ class SkillResolver:
             if healed:
                 events.append(f'{user.name} 回复+{healed}HP')
         elif effect.name == 'reflect_damage':
-            events.append(f'{user.name} 反射伤害')
+            if use and use.countered_skill:
+                use.battle_skill.replaced_by = use.countered_skill.base
+                events.append(f'{user.name} {use.battle_skill.name}→{use.countered_skill.name}')
+            else:
+                events.append(f'{user.name} 反射伤害')
+        elif effect.name == 'adjacent_power_bonus':
+            val = int(getattr(effect, 'value', 0) or getattr(effect, 'amount', 0))
+            if use and use.skill_index >= 0:
+                for offset in (-1, 1):
+                    idx = use.skill_index + offset
+                    if 0 <= idx < len(user.skills):
+                        user.skills[idx].power_mod += val
+                        events.append(f'{user.skills[idx].name} 威力永久+{val}')
         elif effect.name == 'priority_bonus':
             pass  # 已在 battle 中通过 effective_priority 处理
 
@@ -203,6 +234,7 @@ class SkillResolver:
         user: 'Sprite', target: 'Sprite', effect: 'Effect',
         globals_: 'GlobalEffects', ctx: 'TurnContext | None',
         team: str = 'A',
+        use: 'SkillUse | None' = None,
     ) -> list[str]:
         if SkillResolver._check_condition(effect.when, user, target, globals_, ctx):
             events: list[str] = []
@@ -217,10 +249,10 @@ class SkillResolver:
                 elif kind == 'weather':
                     events += SkillResolver._handle_weather(globals_, sub)
                 elif kind == 'special':
-                    events += SkillResolver._handle_special(user, target, sub, globals_, ctx)
+                    events += SkillResolver._handle_special(user, target, sub, globals_, ctx, use)
                 elif kind == 'conditional':
                     events += SkillResolver._eval_conditional(
-                        user, target, sub, globals_, ctx, team,
+                        user, target, sub, globals_, ctx, team, use,
                     )
             return events
         return []
@@ -237,7 +269,7 @@ class SkillResolver:
         kind = cond.get('kind', '')
 
         if kind == 'counter_succeeded':
-            return True  # 调用方在 countered 时才遍历此 conditional
+            return ctx is not None and ctx.countered_skill is not None
 
         if kind == 'is_first':
             return bool(ctx and ctx.is_first)

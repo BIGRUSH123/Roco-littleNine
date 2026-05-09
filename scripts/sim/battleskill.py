@@ -59,6 +59,8 @@ class SkillUse:
     battle_skill: BattleSkill
     is_countered: bool = False
     is_first: bool = False
+    countered_skill: 'BattleSkill | None' = None   # 被应对的对方技能
+    skill_index: int = -1                           # 在 sprite.skills 中的位置
 
     # __post_init__ 预计算
     modifiers: dict = field(init=False, default_factory=dict)
@@ -67,14 +69,18 @@ class SkillUse:
         self.modifiers = self._collect_modifiers()
 
     def _collect_modifiers(self) -> dict:
-        """收集伤害修正：无条件 special + conditional（is_countered 感知）。"""
+        """收集伤害修正：仅攻击技能收集 damage specials。
+        非攻击技能的 damage specials 由 dispatch 转为 BattleSkill 状态变更。
+        """
         modifiers: dict = {}
+        is_attack = self.battle_skill.is_attack
 
         for effect in self.battle_skill.effects:
             kind = getattr(effect, 'kind', '')
 
             if kind == 'special':
-                # 无条件 special → 始终应用
+                if not is_attack:
+                    continue
                 if getattr(effect, 'name', '') in _DAMAGE_SPECIALS:
                     modifiers[effect.name] = getattr(effect, 'value', 0) or getattr(effect, 'amount', 0)
 
@@ -83,9 +89,11 @@ class SkillUse:
                 then = getattr(effect, 'then', None)
                 if not when or not then:
                     continue
-                if when.get('kind') == 'counter_succeeded' and not self.is_countered:
+                if when.get('kind') == 'counter_succeeded' and self.countered_skill is None:
                     continue
                 for sub in then:
+                    if not is_attack:
+                        continue
                     if getattr(sub, 'kind', '') == 'special' and getattr(sub, 'name', '') in _DAMAGE_SPECIALS:
                         modifiers[sub.name] = getattr(sub, 'value', 0) or getattr(sub, 'amount', 0)
 
