@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
-scripts/extract_stat_skills.py — 从技能描述中提取所有六维属性变化效果
+scripts/tools/extract_stat_skills.py — 从技能描述中提取所有六维属性变化效果
 
 扫描 wiki/技能图鉴/**/*.md，直接解析 description 文字，
 识别六维属性变化（含百分比和固定值），按效果方向分类输出。
 
 用法：
-  python scripts/extract_stat_skills.py > wiki/meta/stat_skills.md
+  python scripts/tools/extract_stat_skills.py > wiki/meta/stat_skills.md
 
 输出字段：
   - 自身增益：描述中"自己/自身获得…"
@@ -23,7 +23,7 @@ if hasattr(sys.stdout, 'reconfigure'):
 if hasattr(sys.stderr, 'reconfigure'):
     sys.stderr.reconfigure(encoding='utf-8')
 
-BASE = Path(__file__).resolve().parent.parent
+BASE = Path(__file__).resolve().parent.parent.parent
 if str(BASE) not in sys.path:
     sys.path.insert(0, str(BASE))
 

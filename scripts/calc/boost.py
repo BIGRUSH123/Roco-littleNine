@@ -1,18 +1,18 @@
 #!/usr/bin/env python3
 """
-scripts/calc_boost.py — 属性增幅/降幅计算器
+scripts/calc/boost.py — 属性增幅/降幅计算器
 
 以 10% 为基础单位，对六维分别增幅或降低，支持叠加。
 支持百分比（"物攻+20%"）和固定值（"速度+120"）。
 
 用法1（管道，接 calc_stats）：
-  python scripts/calc_stats.py <精灵> [选项] --json | python scripts/calc_boost.py --mod "物攻+20%" "速度-10%"
+  python scripts/calc/stats.py <精灵> [选项] --json | python scripts/calc/boost.py --mod "物攻+20%" "速度-10%"
 
 用法2（直接输入六个值）：
-  python scripts/calc_boost.py 400 250 150 180 160 220 --mod "物攻+20%" "速度-10%"
+  python scripts/calc/boost.py 400 250 150 180 160 220 --mod "物攻+20%" "速度-10%"
 
 用法3（交互输入）：
-  python scripts/calc_boost.py --mod "双攻+30%" "双防-20%"
+  python scripts/calc/boost.py --mod "双攻+30%" "双防-20%"
   然后输入六维（空格分隔）。
 
 mod 格式：属性 + 符号 + 数值 + 可选%，如 "物攻+20%" "速度+120" "双攻-50%"。
@@ -29,7 +29,7 @@ if hasattr(sys.stdout, 'reconfigure'):
 if hasattr(sys.stderr, 'reconfigure'):
     sys.stderr.reconfigure(encoding='utf-8')
 
-BASE = Path(__file__).resolve().parent.parent
+BASE = Path(__file__).resolve().parent.parent.parent
 if str(BASE) not in sys.path:
     sys.path.insert(0, str(BASE))
 

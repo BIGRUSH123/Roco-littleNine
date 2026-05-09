@@ -147,7 +147,7 @@ def parse_skill(filepath):
 
 
 def main():
-    # 用法: python scripts/add_frontmatter_pilot.py [属性名]
+    # 用法: python scripts/tools/add_frontmatter_pilot.py [属性名]
     # 默认值: "光"
     attr = sys.argv[1] if len(sys.argv) > 1 else "光"
 

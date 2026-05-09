@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """
-scripts/calc_stats.py — 精灵六维属性计算器 CLI
+scripts/calc/stats.py — 精灵六维属性计算器 CLI
 
 根据精灵种类、性格、个体值、能力修正、特性，输出最终六项属性。
 
 用法（CLI）：
-  python scripts/calc_stats.py <精灵名> [--form <形态>] [--nature <性格>]
+  python scripts/calc/stats.py <精灵名> [--form <形态>] [--nature <性格>]
        [--iv-hp N --iv-atk N --iv-sp-atk N --iv-def N --iv-sp-def N --iv-speed N]
        [--mod "物攻+100%" "速度-30" ...]
        [--ability <特性名>] [--json]
@@ -31,7 +31,7 @@ if hasattr(sys.stdout, 'reconfigure'):
 if hasattr(sys.stderr, 'reconfigure'):
     sys.stderr.reconfigure(encoding='utf-8')
 
-BASE = Path(__file__).resolve().parent.parent
+BASE = Path(__file__).resolve().parent.parent.parent
 if str(BASE) not in sys.path:
     sys.path.insert(0, str(BASE))
 
@@ -41,153 +41,7 @@ from scripts.common import (
     half_round, apply_mods, StatsCalc,
     SpeciesStats, StatsResult,
 )
-
-
-# ═══════════════════════════════════════════════
-# SpriteDB — 精灵种族值数据库
-# ═══════════════════════════════════════════════
-
-class SpriteDB:
-    """两个数据来源（优先级由高到低）：
-      1. wiki/精灵图鉴/**/*.md frontmatter（含 form 拆分）
-      2. wiki/meta/sprites.csv（spd → speed 字段映射）
-    """
-
-    def __init__(self, wiki_root: Path):
-        self._db: dict[str, SpeciesStats] = {}    # 主键：display_name
-        self._index: dict[str, list[str]] = {}    # 名称 → display_name 列表
-        self._load_wiki(wiki_root / "精灵图鉴")
-        self._load_csv(wiki_root / "meta" / "sprites.csv")
-
-    # ── wiki 加载 ───────────────────────────────────
-
-    _RE_FORM_SUFFIX = re.compile(r'（([^）]+)）$')
-
-    def _load_wiki(self, sprite_dir: Path) -> None:
-        if not sprite_dir.is_dir():
-            return
-        cnt = 0
-        for md in sprite_dir.rglob("*.md"):
-            if md.name.startswith('_') or md.stem == 'index':
-                continue
-            try:
-                text = md.read_text(encoding='utf-8', errors='ignore')
-            except OSError:
-                continue
-            if not text.startswith('---'):
-                continue
-            end = text.find('\n---', 3)
-            if end == -1:
-                continue
-            data = self._parse_fm(text[4:end])
-            name_full = data.get('name', '').strip().strip('"').strip("'")
-            if not name_full:
-                continue
-            # 名称中分离 base + form
-            m = self._RE_FORM_SUFFIX.search(name_full)
-            if m:
-                base_name, form = name_full[:m.start()].strip(), m.group(1).strip()
-            else:
-                base_name, form = name_full, ''
-            try:
-                stats = SpeciesStats(
-                    name=base_name, form=form,
-                    hp=int(data.get('hp', '0')),
-                    atk=int(data.get('atk', '0')),
-                    sp_atk=int(data.get('sp_atk', '0')),
-                    def_=int(data.get('def', '0')),
-                    sp_def=int(data.get('sp_def', '0')),
-                    speed=int(data.get('speed', '0')),
-                    attributes=data.get('attributes', ''),
-                )
-            except (ValueError, TypeError):
-                continue
-            display = stats.display_name()
-            if display in self._db:
-                continue   # 已存在
-            self._db[display] = stats
-            self._index.setdefault(base_name, []).append(display)
-            cnt += 1
-        _err(f"[SpriteDB] wiki 加载 {cnt} 个精灵")
-
-    # ── CSV 回退 ────────────────────────────────────
-
-    def _load_csv(self, csv_path: Path) -> None:
-        if not csv_path.is_file():
-            _err(f"[SpriteDB] 未找到 CSV: {csv_path}")
-            return
-        cnt = 0
-        try:
-            with open(csv_path, encoding='utf-8-sig', newline='') as f:
-                for row in csv.DictReader(f):
-                    name = row.get('name', '').strip()
-                    form = row.get('form', '').strip()
-                    if not name:
-                        continue
-                    try:
-                        stats = SpeciesStats(
-                            name=name, form=form,
-                            hp=int(row.get('hp', '0') or '0'),
-                            atk=int(row.get('atk', '0') or '0'),
-                            sp_atk=int(row.get('sp_atk', '0') or '0'),
-                            def_=int(row.get('def', '0') or '0'),
-                            sp_def=int(row.get('sp_def', '0') or '0'),
-                            speed=int(row.get('spd', '0') or '0'),
-                            attributes=row.get('attributes', ''),
-                            ability=row.get('ability_name', ''),
-                        )
-                    except (ValueError, TypeError):
-                        continue
-                    display = stats.display_name()
-                    if display in self._db:
-                        # 仅补充缺失的 ability 字段
-                        if not self._db[display].ability and stats.ability:
-                            self._db[display].ability = stats.ability
-                        continue
-                    self._db[display] = stats
-                    self._index.setdefault(name, []).append(display)
-                    cnt += 1
-        except OSError as e:
-            _err(f"[SpriteDB] 读取 CSV 失败: {e}")
-            return
-        _err(f"[SpriteDB] CSV 补充 {cnt} 个精灵")
-
-    @staticmethod
-    def _parse_fm(raw: str) -> dict[str, str]:
-        d: dict[str, str] = {}
-        for line in raw.splitlines():
-            if ':' not in line:
-                continue
-            k, _, v = line.partition(':')
-            d[k.strip()] = v.strip().strip('"').strip("'")
-        return d
-
-    # ── 查询 ────────────────────────────────────────
-
-    def get(self, name: str, form: str = '') -> Optional[SpeciesStats]:
-        """精确查询：按 (name, form) 找到唯一形态。"""
-        m = self._RE_FORM_SUFFIX.search(name)
-        if m and not form:
-            form = m.group(1)
-            name = name[:m.start()].strip()
-
-        key = SpeciesStats(name=name, form=form).display_name()
-        if key in self._db:
-            return self._db[key]
-        # 模糊：匹配 base name 唯一形态
-        candidates = self._index.get(name, [])
-        if len(candidates) == 1:
-            return self._db[candidates[0]]
-        if candidates and not form:
-            # 多个形态时，优先空 form
-            for d in candidates:
-                if self._db[d].form == '':
-                    return self._db[d]
-        return None
-
-    def list_forms(self, name: str) -> list[str]:
-        """返回某个 base name 下的所有形态名。"""
-        return [self._db[d].form for d in self._index.get(name, [])]
+from scripts.common.sprite_db import SpriteDB
 
 
 # ═══════════════════════════════════════════════

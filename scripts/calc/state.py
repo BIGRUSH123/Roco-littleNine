@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """
-scripts/calc_state.py — 对局状态快照计算器
+scripts/calc/state.py — 对局状态快照计算器
 
 从对局记录中提取回合操作，结合 wiki 技能数据，逐回合计算状态快照并插入文件。
 
 用法：
-  python scripts/calc_state.py <record_path> [--dry-run]
+  python scripts/calc/state.py <record_path> [--dry-run]
 
 退出码：
   0  成功（全部技能数据来自 wiki）
@@ -27,7 +27,7 @@ from copy import deepcopy
 from dataclasses import dataclass, field
 from typing import Optional
 
-BASE = Path(__file__).resolve().parent.parent  # project root
+BASE = Path(__file__).resolve().parent.parent.parent  # project root
 if str(BASE) not in sys.path:
     sys.path.insert(0, str(BASE))
 
