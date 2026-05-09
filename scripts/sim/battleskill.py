@@ -1,4 +1,4 @@
-"""scripts/sim/battleskill.py — 战斗中技能实例（可变状态 + 静态 Skill）"""
+"""scripts/sim/battleskill.py — 战斗中技能实例 + 使用时快照"""
 
 from __future__ import annotations
 from dataclasses import dataclass, field
@@ -6,6 +6,12 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from .skill import Skill
+
+# 伤害相关的特殊效果名 — 与 resolver._DAMAGE_SPECIALS 同步
+_DAMAGE_SPECIALS: frozenset[str] = frozenset({
+    'power_bonus', 'power_mult', 'damage_mult', 'damage_reduction',
+    'multi_hit',
+})
 
 
 @dataclass
@@ -39,5 +45,66 @@ class BattleSkill:
 
     def __getattr__(self, name: str):
         """未覆写的属性 → 委托给 effective skill。"""
-        # __getattr__ 仅在常规查找失败时调用
         return getattr(self.skill, name)
+
+
+@dataclass
+class SkillUse:
+    """技能一次使用的快照。预计算 modifiers，打包 is_countered / is_first。
+
+    构造后只读，由 Battle._execute_single_action 创建并传递给
+    calc_damage / dispatch。
+    """
+
+    battle_skill: BattleSkill
+    is_countered: bool = False
+    is_first: bool = False
+
+    # __post_init__ 预计算
+    modifiers: dict = field(init=False, default_factory=dict)
+
+    def __post_init__(self) -> None:
+        self.modifiers = self._collect_modifiers()
+
+    def _collect_modifiers(self) -> dict:
+        """收集伤害修正：无条件 special + conditional（is_countered 感知）。"""
+        modifiers: dict = {}
+
+        for effect in self.battle_skill.effects:
+            kind = getattr(effect, 'kind', '')
+
+            if kind == 'special':
+                # 无条件 special → 始终应用
+                if getattr(effect, 'name', '') in _DAMAGE_SPECIALS:
+                    modifiers[effect.name] = getattr(effect, 'value', 0) or getattr(effect, 'amount', 0)
+
+            elif kind == 'conditional':
+                when = getattr(effect, 'when', None)
+                then = getattr(effect, 'then', None)
+                if not when or not then:
+                    continue
+                if when.get('kind') == 'counter_succeeded' and not self.is_countered:
+                    continue
+                for sub in then:
+                    if getattr(sub, 'kind', '') == 'special' and getattr(sub, 'name', '') in _DAMAGE_SPECIALS:
+                        modifiers[sub.name] = getattr(sub, 'value', 0) or getattr(sub, 'amount', 0)
+
+        return modifiers
+
+    # ── 便捷属性 ──
+
+    @property
+    def power_mult(self) -> float:
+        return self.modifiers.get('power_mult', 1.0)
+
+    @property
+    def damage_mult(self) -> float:
+        return self.modifiers.get('damage_mult', 1.0)
+
+    @property
+    def damage_reduction(self) -> float:
+        return self.modifiers.get('damage_reduction', 0.0)
+
+    @property
+    def multi_hit(self) -> float:
+        return self.modifiers.get('multi_hit', 1.0)

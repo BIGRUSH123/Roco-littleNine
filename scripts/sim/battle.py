@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING
 
 from .globals import GlobalEffects
 from .resolver import SkillResolver, TurnContext
+from .battleskill import SkillUse
 from .action import Action
 
 if TYPE_CHECKING:
@@ -343,17 +344,17 @@ class Battle:
 
         ctx = TurnContext(turn=self.turn, is_first=is_first)
 
-        # 收集伤害修正（来自 conditional + counter_succeeded）
-        modifiers = SkillResolver.collect_modifiers(skill, is_countered)
+        use = SkillUse(
+            battle_skill=skill,
+            is_countered=is_countered,
+            is_first=is_first,
+        )
 
         # 攻击技能 → 伤害计算
         if skill.is_attack:
             damage, dmg_events = self._resolver.calc_damage(
-                user, target, skill, self.globals,
+                user, target, use, self.globals,
                 attacker_team=team,
-                is_countered=is_countered,
-                is_first=is_first,
-                modifiers=modifiers,
             )
             target.take_damage(damage)
             target.inc_counter('times_hit')
@@ -374,7 +375,7 @@ class Battle:
 
         # 技能效果
         effect_events = self._resolver.dispatch(
-            user, target, skill, self.globals, ctx, team=team,
+            user, target, use, self.globals, ctx, team=team,
         )
         events.extend(effect_events)
 

@@ -12,6 +12,7 @@ from scripts.common import STAT_KEYS
 if TYPE_CHECKING:
     from .sprite import Sprite, StatusEffect
     from .skill import Skill
+    from .battleskill import BattleSkill, SkillUse
     from .globals import GlobalEffects
     from .effects import Effect
 
@@ -76,13 +77,13 @@ class SkillResolver:
 
     @staticmethod
     def dispatch(
-        user: 'Sprite', target: 'Sprite', skill: 'Skill',
+        user: 'Sprite', target: 'Sprite', use: 'SkillUse',
         globals_: 'GlobalEffects', ctx: 'TurnContext | None' = None,
         team: str = 'A',
     ) -> list[str]:
-        """遍历 skill.effects，按 kind 分派到对应 handler。"""
+        """遍历 use.battle_skill.effects，按 kind 分派到对应 handler。"""
         events: list[str] = []
-        for effect in skill.effects:
+        for effect in use.battle_skill.effects:
             kind = effect.kind
             if kind == 'stat':
                 events += SkillResolver._handle_stat(user, target, effect)
@@ -276,26 +277,6 @@ class SkillResolver:
 
         return True
 
-    # ── 伤害修正收集 ──
-
-    @staticmethod
-    def collect_modifiers(skill: 'Skill', is_countered: bool = False) -> dict:
-        """从 conditional 效果预制收集中收集伤害修正。"""
-        modifiers: dict = {}
-        for effect in skill.effects:
-            if effect.kind != 'conditional':
-                continue
-            if not effect.when or not effect.then:
-                continue
-            if effect.when.get('kind') == 'counter_succeeded' and not is_countered:
-                continue
-            # 非 counter_succeeded 且无条件限制的 conditional → 始终应用
-            # counter_succeeded → 只有 countered 时才应用
-            for sub in (effect.then or []):
-                if sub.kind == 'special' and sub.name in _DAMAGE_SPECIALS:
-                    modifiers[sub.name] = sub.value or sub.amount
-        return modifiers
-
     # ── 应对 ──
 
     @staticmethod
@@ -314,15 +295,13 @@ class SkillResolver:
     @staticmethod
     def calc_damage(
         attacker: 'Sprite', defender: 'Sprite',
-        skill: 'Skill', globals_: 'GlobalEffects',
+        use: 'SkillUse', globals_: 'GlobalEffects',
         attacker_team: str = 'A',
-        is_countered: bool = False,
-        is_first: bool = False,
-        modifiers: dict | None = None,
     ) -> tuple[int, list[str]]:
         events: list[str] = []
+        bs = use.battle_skill
 
-        keys = skill.get_atk_def_keys(attacker)
+        keys = bs.get_atk_def_keys(attacker)
         if not keys:
             return 0, events
 
@@ -330,16 +309,14 @@ class SkillResolver:
         atk_val = attacker.effective_stat(atk_key)
         def_val = defender.effective_stat(def_key)
 
-        mods = modifiers or {}
-
-        # 威力修正：技能基础 + 精灵威力步数 + 印记 + modifiers
+        # 威力修正：技能基础 + 精灵威力步数 + 印记 + SkillUse modifiers
         effective_power = (
-            skill.power
+            bs.power
             + attacker.power_mod * 10
-            + globals_.mark_power_bonus(attacker_team, skill)
-            + mods.get('power_bonus', 0)
+            + globals_.mark_power_bonus(attacker_team, bs)
+            + use.modifiers.get('power_bonus', 0)
         )
-        effective_power = round(effective_power * mods.get('power_mult', 1.0))
+        effective_power = round(effective_power * use.power_mult)
         if effective_power <= 0:
             return 0, events
 
@@ -347,19 +324,15 @@ class SkillResolver:
             return 0, events
 
         base = round((37 / 41) * effective_power * atk_val / def_val)
-        type_mult = SkillResolver._get_type_mult(skill, attacker, defender)
-        weather_mult = globals_.weather_damage_mult(skill.element or '')
-        mark_mult = globals_.mark_damage_mult(attacker_team, is_first)
-        stab_mult = SkillResolver._get_stab(skill, attacker)
+        type_mult = SkillResolver._get_type_mult(bs, attacker, defender)
+        weather_mult = globals_.weather_damage_mult(bs.element or '')
+        mark_mult = globals_.mark_damage_mult(attacker_team, use.is_first)
+        stab_mult = SkillResolver._get_stab(bs, attacker)
 
-        burst_mult = 1.5 if ('burst' in [e.name for e in skill.effects if getattr(e, 'kind', '') == 'special'] and attacker.first_action) else 1.0
+        burst_mult = 1.5 if ('burst' in [e.name for e in bs.effects if getattr(e, 'kind', '') == 'special'] and attacker.first_action) else 1.0
 
-        damage_mult = mods.get('damage_mult', 1.0)
-        damage_reduction = mods.get('damage_reduction', 0.0)
-        multi_hit = mods.get('multi_hit', 1.0)
-
-        damage = round(base * type_mult * weather_mult * mark_mult * stab_mult * burst_mult * damage_mult * multi_hit)
-        damage = round(damage * (1.0 - damage_reduction))
+        damage = round(base * type_mult * weather_mult * mark_mult * stab_mult * burst_mult * use.damage_mult * use.multi_hit)
+        damage = round(damage * (1.0 - use.damage_reduction))
         damage = max(1, damage)
 
         return damage, events

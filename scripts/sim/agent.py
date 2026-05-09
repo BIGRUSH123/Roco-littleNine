@@ -10,6 +10,7 @@ TODO: 接入大模型 API（如 Claude/DeepSeek），将 battle 状态序列化�
 from typing import Protocol, TYPE_CHECKING
 
 from .action import Action
+from .battleskill import SkillUse
 
 if TYPE_CHECKING:
     from .battle import Battle
@@ -46,8 +47,8 @@ class RuleAgent:
             for skill in sprite.skills:
                 if skill.is_attack:
                     dmg, _ = battle._resolver.calc_damage(
-                        sprite, opponent, skill, battle.globals,
-                        attacker_team=self.team, is_first=False,
+                        sprite, opponent, SkillUse(battle_skill=skill), battle.globals,
+                        attacker_team=self.team,
                     )
                     if dmg > max_dmg:
                         max_dmg = dmg
@@ -105,8 +106,8 @@ class RuleAgent:
             if skill.is_attack:
                 # 用伤害公式估算（保守：假设后手）
                 dmg, _ = battle._resolver.calc_damage(
-                    s, opponent, skill, battle.globals,
-                    attacker_team=self.team, is_first=False,
+                    s, opponent, SkillUse(battle_skill=skill), battle.globals,
+                    attacker_team=self.team,
                 )
                 score = dmg * style.aggression
             elif skill.is_defense:
@@ -148,8 +149,8 @@ class RuleAgent:
             for skill in sprite.skills:
                 if skill.is_attack:
                     dmg, _ = battle._resolver.calc_damage(
-                        sprite, opponent, skill, battle.globals,
-                        attacker_team=self.team, is_first=False,
+                        sprite, opponent, SkillUse(battle_skill=skill), battle.globals,
+                        attacker_team=self.team,
                     )
                     if dmg > max_dmg:
                         max_dmg = dmg
@@ -317,8 +318,8 @@ class HumanAgent:
             dmg_preview = ''
             if skill.is_attack and enough_e:
                 dmg, _ = battle._resolver.calc_damage(
-                    s, opp, skill, battle.globals,
-                    attacker_team=self.team, is_first=False,
+                    s, opp, SkillUse(battle_skill=skill), battle.globals,
+                    attacker_team=self.team,
                 )
                 dmg_preview = f' → ~{dmg}伤害'
 
