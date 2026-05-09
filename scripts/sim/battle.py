@@ -8,6 +8,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 from .globals import GlobalEffects
+from .effects import SpecialName
 from .resolver import SkillResolver, TurnContext
 from .battleskill import BattleSkill, SkillUse
 from .action import Action
@@ -173,14 +174,14 @@ class Battle(BattleMechanicsMixin):
             events += self._resolve_switch('A', action_a)
             record.first_team = 'B'
             if not self.is_finished and not self.player_b.active.is_fainted:
-                events += self._resolve_single_action('B', action_b)
+                events += self._resolve_single_action('B', action_b, opponent_switched=True)
             return events
 
         if b_kind == 'switch':
             events += self._resolve_switch('B', action_b)
             record.first_team = 'A'
             if not self.is_finished and not self.player_a.active.is_fainted:
-                events += self._resolve_single_action('A', action_a)
+                events += self._resolve_single_action('A', action_a, opponent_switched=True)
             return events
 
         # 双方技能/聚能 → 优先级判定
@@ -267,11 +268,13 @@ class Battle(BattleMechanicsMixin):
 
     # ── 单方行动执行 ──
 
-    def _resolve_single_action(self, team: str, action: Action) -> list[str]:
+    def _resolve_single_action(self, team: str, action: Action,
+                               opponent_switched: bool = False) -> list[str]:
         """执行单方行动（换宠已处理，此处仅技能/聚能）。
         此路径下本侧是唯一技能方 → is_first=True。"""
         if action.kind in ('skill', 'gather'):
-            return self._execute_single_action(team, action, is_first=True)
+            return self._execute_single_action(team, action, is_first=True,
+                                               opponent_switched=opponent_switched)
         return []
 
     def _execute_single_action(
@@ -280,6 +283,7 @@ class Battle(BattleMechanicsMixin):
         countered_skill: 'BattleSkill | None' = None,
         countering_skill: 'BattleSkill | None' = None,
         is_first: bool = False,
+        opponent_switched: bool = False,
     ) -> list[str]:
         """执行单个玩家的技能/聚能行动。返回事件列表。"""
         player = self.get_player(team)
@@ -323,11 +327,12 @@ class Battle(BattleMechanicsMixin):
 
         # 迸发：第一次行动标记在伤害/效果前消费
         burst_specials = [e for e in skill.effects if getattr(e, 'kind', '') == 'special']
-        is_burst = user.first_action and any(e.name == 'burst' for e in burst_specials)
+        is_burst = user.first_action and any(e.name == SpecialName.BURST for e in burst_specials)
         user.first_action = False
 
         ctx = TurnContext(turn=self.turn, is_first=is_first,
-                          countered_skill=countered_skill)
+                          countered_skill=countered_skill,
+                          opponent_switched=opponent_switched)
 
         use = SkillUse(
             battle_skill=skill,
@@ -347,10 +352,10 @@ class Battle(BattleMechanicsMixin):
         for e in skill.effects:
             if getattr(e, 'kind', '') != 'special':
                 continue
-            if e.name == 'power_by_enemy_energy':
+            if e.name == SpecialName.POWER_BY_ENEMY_ENERGY:
                 total_e = sum(bs.energy_cost for bs in target.skills)
                 skill.power_override = int(total_e * (e.value or 10))
-            elif e.name == 'power_by_adjacent':
+            elif e.name == SpecialName.POWER_BY_ADJACENT:
                 adj_sum = 0
                 si = action.skill_index
                 if si is not None:
@@ -402,7 +407,7 @@ class Battle(BattleMechanicsMixin):
                     drain_pct = 0.0
                     life_drain_effects = [
                         e for e in skill.effects
-                        if getattr(e, 'kind', '') == 'special' and e.name == 'life_drain'
+                        if getattr(e, 'kind', '') == 'special' and e.name == SpecialName.LIFE_DRAIN
                     ]
                     for ld in life_drain_effects:
                         pct = ld.value / 100.0 if ld.value > 1 else ld.value
@@ -415,11 +420,11 @@ class Battle(BattleMechanicsMixin):
                         if healed:
                             events.append(f'{user.name} 吸血{drain_pct*100:.0f}%+{healed}HP')
 
-                # 技能效果
-                effect_events = self._resolver.dispatch(
-                    user, target, use, self.globals, ctx, team=team,
-                )
-                events.extend(effect_events)
+        # 技能效果（只执行一次，不在连击循环内）
+        effect_events = self._resolver.dispatch(
+            user, target, use, self.globals, ctx, team=team,
+        )
+        events.extend(effect_events)
 
         # 防御技能冷却（连击循环外）
         if skill.is_defense:
@@ -428,16 +433,16 @@ class Battle(BattleMechanicsMixin):
         # 脱离/折返 + 新效果（连击循环外）
         special_names = {getattr(e, 'name', '') for e in skill.effects if getattr(e, 'kind', '') == 'special'}
 
-        if 'escape_inherit' in special_names:
+        if SpecialName.ESCAPE_INHERIT in special_names:
             self._handle_escape_inherit(team, user, events)
-        elif 'escape' in special_names:
+        elif SpecialName.ESCAPE in special_names:
             self._handle_escape(team, user, events)
 
-        if 'force_return' in special_names:
+        if SpecialName.FORCE_RETURN in special_names:
             opp_team = 'B' if team == 'A' else 'A'
             events += self._resolve_return(opp_team)
 
-        if 'borrow_skill' in special_names:
+        if SpecialName.BORROW_SKILL in special_names:
             self._handle_borrow_skill(team, user, action.skill_index or 0, events)
 
         return events

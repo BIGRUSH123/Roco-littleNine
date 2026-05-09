@@ -24,18 +24,73 @@ class Mark:
         return self.category == 'negative'
 
 
-# 正面印记
-POSITIVE_MARKS = frozenset({
-    '光合印记', '攻击印记', '蓄电印记', '润泽印记',
-    '龙式印记', '风起', '蓄势印记',
-})
-
-# 负面印记
-NEGATIVE_MARKS = frozenset({
-    '减速', '迟缓', '降临印记', '棘刺', '中毒印记', '星陨印记',
-})
-
 WEATHER_DURATION = 8  # 天气持续回合
+
+
+# ── 印记效果配置（集中管理，新增印记只需在此添加）──
+# 每个印记条目定义其效果类型和参数。查询方法统一从此配置读取。
+_MARK_EFFECTS: dict[str, dict] = {
+    '攻击印记': {
+        'category': 'positive',
+        'power_bonus': 10,           # 每层 +10 威力
+    },
+    '蓄电印记': {
+        'category': 'positive',
+        'power_bonus': 10,           # 每层 +10 威力（仅攻击技能）
+        'condition': 'is_attack',
+    },
+    '润泽印记': {
+        'category': 'positive',
+        'energy_mod': 1,             # 每层 -1 能耗
+    },
+    '风起': {
+        'category': 'positive',
+        'damage_mult': 0.20,         # 每层 +20% 伤害
+        'condition': 'is_first',
+    },
+    '光合印记': {
+        'category': 'positive',
+        'turn_end_energy': 1,        # 每层回合末 +1 能量
+    },
+    '龙式印记': {
+        'category': 'positive',
+    },
+    '蓄势印记': {
+        'category': 'positive',
+    },
+    '减速': {
+        'category': 'negative',
+        'speed_penalty': 10,         # 每层 -10 速度
+    },
+    '迟缓': {
+        'category': 'negative',
+        'damage_mult': 0.30,         # 每层 +30% 伤害
+        'condition': 'not_first',
+    },
+    '棘刺': {
+        'category': 'negative',
+        'switch_damage_pct': 0.06,   # 每层进场 6% 最大HP 伤害
+    },
+    '降临印记': {
+        'category': 'negative',
+        'switch_energy_loss': 1,     # 每层进场 -1 能量
+    },
+    '中毒印记': {
+        'category': 'negative',
+        'turn_end_damage_pct': 0.03, # 每层回合末 3% 最大HP 伤害
+    },
+    '星陨印记': {
+        'category': 'negative',
+    },
+}
+
+# 从配置派生正/负面印记集合
+POSITIVE_MARKS = frozenset(
+    name for name, cfg in _MARK_EFFECTS.items() if cfg['category'] == 'positive'
+)
+NEGATIVE_MARKS = frozenset(
+    name for name, cfg in _MARK_EFFECTS.items() if cfg['category'] == 'negative'
+)
 
 
 @dataclass
@@ -95,73 +150,99 @@ class GlobalEffects:
             return self.pos_mark_a, self.neg_mark_a
         return self.pos_mark_b, self.neg_mark_b
 
+    @staticmethod
+    def _get_mark_config(name: str) -> dict:
+        return _MARK_EFFECTS.get(name, {})
+
     def mark_power_bonus(self, team: str, skill: 'Skill') -> int:
-        """印记威力加成（攻击印记、蓄电印记）。"""
+        """印记威力加成。从配置读取 power_bonus 字段。"""
         pos, _ = self.get_marks(team)
         if not pos:
             return 0
-        if pos.name == '攻击印记':
-            return 10 * pos.stacks
-        if pos.name == '蓄电印记' and skill.is_attack:
-            return 10 * pos.stacks
-        return 0
+        cfg = self._get_mark_config(pos.name)
+        bonus = cfg.get('power_bonus', 0)
+        if bonus and cfg.get('condition') == 'is_attack' and not skill.is_attack:
+            return 0
+        return bonus * pos.stacks
 
     def mark_damage_mult(self, team: str, is_first: bool) -> float:
-        """印记伤害倍率（迟缓、风起）。"""
+        """印记伤害倍率。从配置读取 damage_mult 字段。"""
         pos, neg = self.get_marks(team)
         mult = 1.0
-        if pos and pos.name == '风起' and is_first:
-            mult += 0.20 * pos.stacks
-        if neg and neg.name == '迟缓' and not is_first:
-            mult += 0.30 * neg.stacks
+        for mark, cond_key in [(pos, 'is_first'), (neg, 'not_first')]:
+            if not mark:
+                continue
+            cfg = self._get_mark_config(mark.name)
+            dmg_mult = cfg.get('damage_mult', 0)
+            condition = cfg.get('condition', '')
+            if dmg_mult and (
+                condition == ''
+                or (condition == 'is_first' and is_first)
+                or (condition == 'not_first' and not is_first)
+            ):
+                mult += dmg_mult * mark.stacks
         return mult
 
     def mark_speed_penalty(self, team: str) -> int:
-        """减速印记：每层 -10 速度。"""
+        """减速印记速度惩罚。从配置读取 speed_penalty 字段。"""
         _, neg = self.get_marks(team)
-        if neg and neg.name == '减速':
-            return 10 * neg.stacks
-        return 0
+        if not neg:
+            return 0
+        cfg = self._get_mark_config(neg.name)
+        penalty = cfg.get('speed_penalty', 0)
+        return penalty * neg.stacks
 
     def mark_energy_mod(self, team: str) -> int:
-        """润泽印记：每层 -1 能耗。"""
+        """印记能耗减免。从配置读取 energy_mod 字段。"""
         pos, _ = self.get_marks(team)
-        if pos and pos.name == '润泽印记':
-            return pos.stacks
-        return 0
+        if not pos:
+            return 0
+        cfg = self._get_mark_config(pos.name)
+        mod = cfg.get('energy_mod', 0)
+        return mod * pos.stacks
 
     def mark_switch_damage(self, team: str, sprite: 'Sprite') -> int:
-        """棘刺印记进场伤害（6% 最大 HP/层）。"""
+        """印记进场伤害。从配置读取 switch_damage_pct 字段。"""
         _, neg = self.get_marks(team)
-        if neg and neg.name == '棘刺':
-            return max(0, round(sprite.max_hp * 0.06 * neg.stacks))
-        return 0
+        if not neg:
+            return 0
+        cfg = self._get_mark_config(neg.name)
+        pct = cfg.get('switch_damage_pct', 0)
+        return max(0, round(sprite.max_hp * pct * neg.stacks)) if pct else 0
 
     def mark_switch_energy_loss(self, team: str) -> int:
-        """降临印记进场扣能（1/层）。"""
+        """印记进场扣能。从配置读取 switch_energy_loss 字段。"""
         _, neg = self.get_marks(team)
-        if neg and neg.name == '降临印记':
-            return neg.stacks
-        return 0
+        if not neg:
+            return 0
+        cfg = self._get_mark_config(neg.name)
+        loss = cfg.get('switch_energy_loss', 0)
+        return loss * neg.stacks
 
     def mark_turn_end_effects(self, sprites: dict[str, 'Sprite']) -> list[str]:
-        """回合末印记效果（光合回能、中毒扣血、星陨结算）。"""
+        """回合末印记效果。从配置读取 turn_end_energy / turn_end_damage_pct 字段。"""
         events: list[str] = []
         for team_key in ('A', 'B'):
             pos, neg = self.get_marks(team_key)
             sprite = sprites.get(team_key)
             if not sprite or sprite.is_fainted:
                 continue
-            # 光合回能
-            if pos and pos.name == '光合印记':
-                gained = sprite.gain_energy(pos.stacks)
-                if gained:
-                    events.append(f'{sprite.name} 光合+{gained}E')
-            # 中毒扣血
-            if neg and neg.name == '中毒印记':
-                dmg = max(1, round(sprite.max_hp * 0.03 * neg.stacks))
-                sprite.take_damage(dmg)
-                events.append(f'{sprite.name} 中毒-{dmg}HP')
+            # 回合末回能
+            if pos:
+                cfg = self._get_mark_config(pos.name)
+                gain = cfg.get('turn_end_energy', 0)
+                if gain:
+                    gained = sprite.gain_energy(gain * pos.stacks)
+                    if gained:
+                        events.append(f'{sprite.name} {pos.name}+{gained}E')
+            # 回合末扣血
+            if neg:
+                cfg = self._get_mark_config(neg.name)
+                dmg_pct = cfg.get('turn_end_damage_pct', 0)
+                if dmg_pct:
+                    dmg = max(1, round(sprite.max_hp * dmg_pct * neg.stacks))
+                    sprite.take_damage(dmg)
+                    events.append(f'{sprite.name} {neg.name}-{dmg}HP')
         return events
 
     # ── 印记增删 ──

@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from scripts.common import STAT_KEYS
+from .effects import SpecialName
 
 if TYPE_CHECKING:
     from .sprite import Sprite, StatusEffect
@@ -64,16 +65,12 @@ _STEP_UNIT: dict[str, int] = {
 _SPEED_STEP = 10
 _STEP_PCT = 10
 
-# 伤害相关的特殊效果名（由 calc_damage 的 modifiers 处理，dispatch 中跳过）
-_DAMAGE_SPECIALS: frozenset[str] = frozenset({
-    'power_bonus', 'power_mult', 'damage_mult', 'damage_reduction',
-    'multi_hit',
-})
+_DAMAGE_SPECIALS = SpecialName.DAMAGE_SPECIALS
 
 # 奉献池（虫系特有机制）：每次随机奉献从中选一
 _DEVOTION_POOL: list[dict] = [
     {'kind': 'stat', 'target': 'self', 'stat': 'power', 'steps': 2, 'scope': 'battlefield'},
-    {'kind': 'special', 'name': 'life_drain', 'value': 0.1, 'target': 'self'},
+    {'kind': 'special', 'name': SpecialName.LIFE_DRAIN, 'value': 0.1, 'target': 'self'},
     {'kind': 'stat', 'target': 'self', 'stat': 'combo', 'steps': 1, 'scope': 'battlefield'},
     {'kind': 'abnormal', 'target': 'opp', 'name': '中毒', 'stacks': 2},
 ]
@@ -177,84 +174,70 @@ class SkillResolver:
         if effect.name in _DAMAGE_SPECIALS:
             if is_attack:
                 return events  # 由 calc_damage / modifiers 处理
-            # 非攻击技能的 damage specials → 转为 BattleSkill 状态变更
-            if effect.name == 'power_mult':
-                val = getattr(effect, 'value', 1.0) or 1.0
-                for bs in user.skills:
-                    bs.next_attack_mult = max(bs.next_attack_mult, val)
-                events.append(f'{user.name} 下次攻击威力×{val}')
-            elif effect.name == 'power_bonus':
-                # 非攻击技能的 power_bonus → 转为 power_mod（联动装置基础）
-                val = int(getattr(effect, 'value', 0) or getattr(effect, 'amount', 0))
-                if use and use.skill_index >= 0:
-                    for offset in (-1, 1):
-                        idx = use.skill_index + offset
-                        if 0 <= idx < len(user.skills):
-                            user.skills[idx].power_mod += val
-                            events.append(f'{user.skills[idx].name} 威力永久+{val}')
+            events += SkillResolver._handle_non_attack_damage_special(user, effect, use)
             return events
 
-        if effect.name == 'burst':
+        if effect.name == SpecialName.BURST:
             if user.first_action:
                 events.append(f'{user.name} 迸发')
-        elif effect.name == 'charge':
+        elif effect.name == SpecialName.CHARGE:
             events.append(f'{user.name} 蓄力')
-        elif effect.name == 'escape':
+        elif effect.name == SpecialName.ESCAPE:
             events.append(f'{user.name} 触发脱离/折返')
-        elif effect.name == 'steal_energy':
+        elif effect.name == SpecialName.STEAL_ENERGY:
             amount = effect.amount or 1
             stolen = target.lose_energy(amount)
             user.gain_energy(stolen)
             events.append(f'{user.name} 偷取{stolen}E')
-        elif effect.name == 'life_drain':
+        elif effect.name == SpecialName.LIFE_DRAIN:
             pct = effect.value / 100.0 if effect.value > 1 else effect.value
             events.append(f'{user.name} 吸血{pct*100:.0f}%')
-        elif effect.name == 'direct_heal':
+        elif effect.name == SpecialName.DIRECT_HEAL:
             healed = user.heal(effect.amount or 0)
             if healed:
                 events.append(f'{user.name} 回复+{healed}HP')
-        elif effect.name == 'gain_energy':
+        elif effect.name == SpecialName.GAIN_ENERGY:
             gained = user.gain_energy(effect.amount or 0)
             if gained:
                 events.append(f'{user.name} 回复+{gained}E')
-        elif effect.name == 'gain_energy_by_enemy':
+        elif effect.name == SpecialName.GAIN_ENERGY_BY_ENEMY:
             total_e = sum(bs.energy_cost for bs in target.skills)
             amount = max(1, int(total_e * (effect.value or 0.5)))
             gained = user.gain_energy(amount)
             if gained:
                 events.append(f'{user.name} 回复+{gained}E(敌总耗{total_e})')
-        elif effect.name == 'heal':
+        elif effect.name == SpecialName.HEAL:
             pct = effect.value
             healed = user.heal(round(user.max_hp * pct))
             if healed:
                 events.append(f'{user.name} 回复+{healed}HP')
-        elif effect.name == 'dispel_positive':
+        elif effect.name == SpecialName.DISPEL_POSITIVE:
             sprite = user if getattr(effect, 'target', 'opp') == 'self' else target
             n = sprite.dispel_positive(effect.amount or -1)
             if n:
                 events.append(f'{sprite.name} 驱散{n}个正面效果')
-        elif effect.name == 'dispel_negative':
+        elif effect.name == SpecialName.DISPEL_NEGATIVE:
             sprite = user if getattr(effect, 'target', 'opp') == 'self' else target
             n = sprite.dispel_negative(effect.amount or -1)
             if n:
                 events.append(f'{sprite.name} 驱散{n}个负面效果')
-        elif effect.name == 'double_positive':
+        elif effect.name == SpecialName.DOUBLE_POSITIVE:
             sprite = user if getattr(effect, 'target', 'opp') == 'self' else target
             n = sprite.double_positive()
             if n:
                 events.append(f'{sprite.name} {n}个正面效果翻倍')
-        elif effect.name == 'double_negative':
+        elif effect.name == SpecialName.DOUBLE_NEGATIVE:
             sprite = user if getattr(effect, 'target', 'opp') == 'self' else target
             n = sprite.double_negative()
             if n:
                 events.append(f'{sprite.name} {n}个负面效果翻倍')
-        elif effect.name == 'reflect_damage':
+        elif effect.name == SpecialName.REFLECT_DAMAGE:
             if use and use.countered_skill:
                 use.battle_skill.replaced_by = use.countered_skill.base
                 events.append(f'{user.name} {use.battle_skill.name}→{use.countered_skill.name}')
             else:
                 events.append(f'{user.name} 反射伤害')
-        elif effect.name == 'adjacent_power_bonus':
+        elif effect.name == SpecialName.ADJACENT_POWER_BONUS:
             val = int(getattr(effect, 'value', 0) or getattr(effect, 'amount', 0))
             if use and use.skill_index >= 0:
                 for offset in (-1, 1):
@@ -262,16 +245,16 @@ class SkillResolver:
                     if 0 <= idx < len(user.skills):
                         user.skills[idx].power_mod += val
                         events.append(f'{user.skills[idx].name} 威力永久+{val}')
-        elif effect.name == 'priority_bonus':
+        elif effect.name == SpecialName.PRIORITY_BONUS:
             pass  # 已在 battle 中通过 effective_priority 处理
-        elif effect.name == 'interrupt':
+        elif effect.name == SpecialName.INTERRUPT:
             if use and use.countered_skill:
                 from .skill import Skill
                 use.countered_skill.base = Skill.null()
                 events.append(f'{user.name} 打断 {target.name} 的技能')
             else:
                 events.append(f'{user.name} 打断')
-        elif effect.name == 'counter_damage':
+        elif effect.name == SpecialName.COUNTER_DAMAGE:
             if ctx and ctx.countered_skill:
                 power = int(effect.value)
                 atk_val = user.effective_stat('atk')
@@ -284,29 +267,29 @@ class SkillResolver:
                     damage = max(1, round(base * type_mult))
                     target.take_damage(damage)
                     events.append(f'{user.name} 反击 {target.name} -{damage}HP')
-        elif effect.name == 'exchange_hp_ratio':
+        elif effect.name == SpecialName.EXCHANGE_HP_RATIO:
             if user.max_hp > 0 and target.max_hp > 0:
                 ur = user.current_hp / user.max_hp
                 tr = target.current_hp / target.max_hp
                 user.current_hp = max(1, round(tr * user.max_hp))
                 target.current_hp = max(1, round(ur * target.max_hp))
                 events.append(f'{user.name} 与 {target.name} 交换了生命比例')
-        elif effect.name == 'exchange_effects':
+        elif effect.name == SpecialName.EXCHANGE_EFFECTS:
             user.effects, target.effects = target.effects, user.effects
             events.append(f'{user.name} 与 {target.name} 交换了增益和减益')
-        elif effect.name == 'exchange_skills':
+        elif effect.name == SpecialName.EXCHANGE_SKILLS:
             user.skills, target.skills = target.skills, user.skills
             events.append(f'{user.name} 与 {target.name} 交换了技能')
-        elif effect.name == 'escape_inherit':
+        elif effect.name == SpecialName.ESCAPE_INHERIT:
             events.append(f'{user.name} 脱离(继承增益)')
-        elif effect.name == 'force_return':
+        elif effect.name == SpecialName.FORCE_RETURN:
             pass  # 由 battle.py 在 dispatch 后处理
-        elif effect.name == 'return_self':
+        elif effect.name == SpecialName.RETURN_SELF:
             user.pending_return = True
             events.append(f'{user.name} 蓄力返场')
-        elif effect.name == 'ignore_mods':
+        elif effect.name == SpecialName.IGNORE_MODS:
             pass  # 由 SkillUse._collect_modifiers 注入 modifiers['ignore_mods']
-        elif effect.name == 'random_devotion':
+        elif effect.name == SpecialName.RANDOM_DEVOTION:
             import random
             from .effects import effect_from_dict
             amount = getattr(effect, 'amount', 1)
@@ -319,9 +302,35 @@ class SkillResolver:
                 elif kind == 'abnormal':
                     events += SkillResolver._handle_abnormal(user, target, sub)
             events.append(f'{user.name} 随机奉献×{amount}')
-        elif effect.name == 'borrow_skill':
+        elif effect.name == SpecialName.BORROW_SKILL:
             pass  # 由 battle.py 在回合开始阶段处理
 
+        return events
+
+    @staticmethod
+    def _handle_non_attack_damage_special(
+        user: 'Sprite', effect: 'Effect', use: 'SkillUse | None',
+    ) -> list[str]:
+        """非攻击技能的 damage specials → 转为 BattleSkill 状态变更。
+
+        与攻击路径的 SkillUse._collect_modifiers 对称：
+        - power_mult  → next_attack_mult（热身）
+        - power_bonus → 相邻技能 power_mod（联动装置）
+        """
+        events: list[str] = []
+        if effect.name == SpecialName.POWER_MULT:
+            val = getattr(effect, 'value', 1.0) or 1.0
+            for bs in user.skills:
+                bs.next_attack_mult = max(bs.next_attack_mult, val)
+            events.append(f'{user.name} 下次攻击威力×{val}')
+        elif effect.name == SpecialName.POWER_BONUS:
+            val = int(getattr(effect, 'value', 0) or getattr(effect, 'amount', 0))
+            if use and use.skill_index >= 0:
+                for offset in (-1, 1):
+                    idx = use.skill_index + offset
+                    if 0 <= idx < len(user.skills):
+                        user.skills[idx].power_mod += val
+                        events.append(f'{user.skills[idx].name} 威力永久+{val}')
         return events
 
     # ── 条件求值 ──
@@ -459,7 +468,7 @@ class SkillResolver:
         mark_mult = globals_.mark_damage_mult(attacker_team, use.is_first)
         stab_mult = SkillResolver._get_stab(bs, attacker)
 
-        burst_mult = 1.5 if ('burst' in [e.name for e in bs.effects if getattr(e, 'kind', '') == 'special'] and attacker.first_action) else 1.0
+        burst_mult = 1.5 if (SpecialName.BURST in [e.name for e in bs.effects if getattr(e, 'kind', '') == 'special'] and attacker.first_action) else 1.0
 
         damage = round(base * type_mult * weather_mult * mark_mult * stab_mult * burst_mult * use.damage_mult * use.multi_hit)
         damage = round(damage * (1.0 - use.damage_reduction))

@@ -7,6 +7,75 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 
+class SpecialName:
+    """SpecialEffect.name 合法值集合。新增特殊效果只需在此添加。"""
+
+    # ── 伤害相关（攻击技能，由 _collect_modifiers / calc_damage 处理）──
+    POWER_BONUS = 'power_bonus'
+    POWER_MULT = 'power_mult'
+    DAMAGE_MULT = 'damage_mult'
+    DAMAGE_REDUCTION = 'damage_reduction'
+    MULTI_HIT = 'multi_hit'
+
+    # ── 治疗 / 能量 ──
+    HEAL = 'heal'
+    DIRECT_HEAL = 'direct_heal'
+    GAIN_ENERGY = 'gain_energy'
+    STEAL_ENERGY = 'steal_energy'
+    LIFE_DRAIN = 'life_drain'
+    GAIN_ENERGY_BY_ENEMY = 'gain_energy_by_enemy'
+
+    # ── 控制 ──
+    BURST = 'burst'
+    CHARGE = 'charge'
+    INTERRUPT = 'interrupt'
+    REFLECT_DAMAGE = 'reflect_damage'
+    COUNTER_DAMAGE = 'counter_damage'
+
+    # ── 场地 / 返场 ──
+    ESCAPE = 'escape'
+    ESCAPE_INHERIT = 'escape_inherit'
+    FORCE_RETURN = 'force_return'
+    RETURN_SELF = 'return_self'
+
+    # ── 驱散 / 加倍 ──
+    DISPEL_POSITIVE = 'dispel_positive'
+    DISPEL_NEGATIVE = 'dispel_negative'
+    DOUBLE_POSITIVE = 'double_positive'
+    DOUBLE_NEGATIVE = 'double_negative'
+
+    # ── 交换 ──
+    EXCHANGE_HP_RATIO = 'exchange_hp_ratio'
+    EXCHANGE_EFFECTS = 'exchange_effects'
+    EXCHANGE_SKILLS = 'exchange_skills'
+
+    # ── 特殊计算 ──
+    POWER_BY_ENEMY_ENERGY = 'power_by_enemy_energy'
+    POWER_BY_ADJACENT = 'power_by_adjacent'
+    ADJACENT_POWER_BONUS = 'adjacent_power_bonus'
+    PRIORITY_BONUS = 'priority_bonus'
+    IGNORE_MODS = 'ignore_mods'
+    RANDOM_DEVOTION = 'random_devotion'
+    BORROW_SKILL = 'borrow_skill'
+
+    # ── 聚合 ──
+    ALL: frozenset[str] = frozenset({
+        POWER_BONUS, POWER_MULT, DAMAGE_MULT, DAMAGE_REDUCTION, MULTI_HIT,
+        HEAL, DIRECT_HEAL, GAIN_ENERGY, STEAL_ENERGY, LIFE_DRAIN, GAIN_ENERGY_BY_ENEMY,
+        BURST, CHARGE, INTERRUPT, REFLECT_DAMAGE, COUNTER_DAMAGE,
+        ESCAPE, ESCAPE_INHERIT, FORCE_RETURN, RETURN_SELF,
+        DISPEL_POSITIVE, DISPEL_NEGATIVE, DOUBLE_POSITIVE, DOUBLE_NEGATIVE,
+        EXCHANGE_HP_RATIO, EXCHANGE_EFFECTS, EXCHANGE_SKILLS,
+        POWER_BY_ENEMY_ENERGY, POWER_BY_ADJACENT, ADJACENT_POWER_BONUS,
+        PRIORITY_BONUS, IGNORE_MODS, RANDOM_DEVOTION, BORROW_SKILL,
+    })
+
+    # 伤害相关子集 — 由 _collect_modifiers / calc_damage 处理
+    DAMAGE_SPECIALS: frozenset[str] = frozenset({
+        POWER_BONUS, POWER_MULT, DAMAGE_MULT, DAMAGE_REDUCTION, MULTI_HIT,
+    })
+
+
 @dataclass
 class StatEffect:
     """持久属性变化。"""

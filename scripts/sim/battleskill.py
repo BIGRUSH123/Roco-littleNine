@@ -4,23 +4,15 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
+from .effects import SpecialName
+
 if TYPE_CHECKING:
     from .skill import Skill
-
-# 伤害相关的特殊效果名 — 与 resolver._DAMAGE_SPECIALS 同步
-_DAMAGE_SPECIALS: frozenset[str] = frozenset({
-    'power_bonus', 'power_mult', 'damage_mult', 'damage_reduction',
-    'multi_hit',
-})
 
 
 @dataclass
 class BattleSkill:
-    """战斗中一个技能槽的实例。持有静态 Skill + 可变战斗状态。
-
-    通过 __getattr__ 将未覆写的属性委托给 effective skill，
-    因此大多数只读代码无需改动。
-    """
+    """战斗中一个技能槽的实例。持有静态 Skill + 可变战斗状态。"""
 
     base: 'Skill'
 
@@ -36,6 +28,53 @@ class BattleSkill:
         """当前生效的技能（可能被替换）。"""
         return self.replaced_by or self.base
 
+    # ── Skill 属性显式委托（替代 __getattr__）──
+
+    @property
+    def name(self) -> str:
+        return self.skill.name
+
+    @property
+    def element(self) -> str:
+        return self.skill.element
+
+    @property
+    def skill_type(self) -> str:
+        return self.skill.skill_type
+
+    @property
+    def counter(self) -> str:
+        return self.skill.counter
+
+    @property
+    def priority(self) -> int:
+        return self.skill.priority
+
+    @property
+    def combo(self) -> int:
+        return self.skill.combo
+
+    @property
+    def effects(self) -> list:
+        return self.skill.effects
+
+    @property
+    def is_attack(self) -> bool:
+        return self.skill.is_attack
+
+    @property
+    def is_defense(self) -> bool:
+        return self.skill.is_defense
+
+    @property
+    def is_status(self) -> bool:
+        return self.skill.is_status
+
+    def get_atk_def_keys(self, sprite=None) -> tuple[str, str] | None:
+        return self.skill.get_atk_def_keys(sprite)
+
+    # ── 合成属性 ──
+
     @property
     def power(self) -> int:
         base = self.skill.power
@@ -46,10 +85,6 @@ class BattleSkill:
     @property
     def energy_cost(self) -> int:
         return self.skill.energy_cost
-
-    def __getattr__(self, name: str):
-        """未覆写的属性 → 委托给 effective skill。"""
-        return getattr(self.skill, name)
 
 
 @dataclass
@@ -84,11 +119,11 @@ class SkillUse:
 
             if kind == 'special':
                 name = getattr(effect, 'name', '')
-                if name == 'ignore_mods':
+                if name == SpecialName.IGNORE_MODS:
                     modifiers['ignore_mods'] = True
                 if not is_attack:
                     continue
-                if name in _DAMAGE_SPECIALS:
+                if name in SpecialName.DAMAGE_SPECIALS:
                     modifiers[name] = getattr(effect, 'value', 0) or getattr(effect, 'amount', 0)
 
             elif kind == 'conditional':
@@ -102,11 +137,11 @@ class SkillUse:
                     if getattr(sub, 'kind', '') != 'special':
                         continue
                     sub_name = getattr(sub, 'name', '')
-                    if sub_name == 'ignore_mods':
+                    if sub_name == SpecialName.IGNORE_MODS:
                         modifiers['ignore_mods'] = True
                     if not is_attack:
                         continue
-                    if sub_name in _DAMAGE_SPECIALS:
+                    if sub_name in SpecialName.DAMAGE_SPECIALS:
                         modifiers[sub.name] = getattr(sub, 'value', 0) or getattr(sub, 'amount', 0)
 
         # ── 对方防御技能注入（我被 counter 了，对方的防御效果削弱我的伤害）──
@@ -116,12 +151,12 @@ class SkillUse:
                 if kind == 'special':
                     name = getattr(effect, 'name', '')
                     val = getattr(effect, 'value', 0) or 0
-                    if name == 'ignore_mods':
+                    if name == SpecialName.IGNORE_MODS:
                         modifiers['ignore_mods'] = True
-                    if name == 'damage_reduction':
+                    if name == SpecialName.DAMAGE_REDUCTION:
                         modifiers['damage_reduction'] = max(
                             modifiers.get('damage_reduction', 0), val)
-                    elif name == 'damage_mult':
+                    elif name == SpecialName.DAMAGE_MULT:
                         modifiers['damage_mult'] = min(
                             modifiers.get('damage_mult', 1.0), val or 1.0)
                 elif kind == 'conditional':
@@ -136,12 +171,12 @@ class SkillUse:
                             continue
                         name = getattr(sub, 'name', '')
                         val = getattr(sub, 'value', 0) or 0
-                        if name == 'ignore_mods':
+                        if name == SpecialName.IGNORE_MODS:
                             modifiers['ignore_mods'] = True
-                        if name == 'damage_reduction':
+                        if name == SpecialName.DAMAGE_REDUCTION:
                             modifiers['damage_reduction'] = max(
                                 modifiers.get('damage_reduction', 0), val)
-                        elif name == 'damage_mult':
+                        elif name == SpecialName.DAMAGE_MULT:
                             modifiers['damage_mult'] = min(
                                 modifiers.get('damage_mult', 1.0), val or 1.0)
 

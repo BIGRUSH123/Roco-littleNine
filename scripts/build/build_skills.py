@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""scripts/build_skills.py — 一次性预处理：wiki/CSV → data/skills/*.json
+"""scripts/build/build_skills.py — 一次性预处理：wiki/CSV → data/skills/*.json
 
 用法:
-  python scripts/build_skills.py            # 生成全部技能 JSON
-  python scripts/build_skills.py --limit 10 # 仅生成前 N 个（调试用）
+  python scripts/build/build_skills.py            # 生成全部技能 JSON
+  python scripts/build/build_skills.py --limit 10 # 仅生成前 N 个（调试用）
 """
 
 import csv
@@ -12,7 +12,7 @@ import re
 import sys
 from pathlib import Path
 
-BASE = Path(__file__).resolve().parent.parent
+BASE = Path(__file__).resolve().parent.parent.parent
 
 # ── 正则：复用现有解析逻辑 ──
 
@@ -23,6 +23,31 @@ _STAT_MOD_RE = re.compile(
 # 复杂描述中的特殊效果
 _POWER_MULT_RE = re.compile(r'威力变为\s*(\d+(?:\.\d+)?)\s*倍')
 _MULTI_HIT_RE = re.compile(r'变为\s*(\d+)\s*连击')
+
+# 中文分数："M分之N" → N/M。用于两侧技能威力动态计算。
+_PARSE_FRACTION = re.compile(
+    r'两侧.*?威力和的([一二三四五六七八九十\d]+)分之([一二三四五六七八九十\d]+)'
+)
+
+_CN_NUM: dict[str, int] = {
+    '一': 1, '二': 2, '三': 3, '四': 4, '五': 5,
+    '六': 6, '七': 7, '八': 8, '九': 9, '十': 10,
+}
+
+
+def _fraction_value(m: re.Match) -> float | None:
+    """从正则匹配提取中文分数值。den=分母, num=分子。返回 num/den。"""
+    den_str = m.group(1)
+    num_str = m.group(2)
+    try:
+        den = int(den_str) if den_str.isdigit() else _CN_NUM.get(den_str)
+        num = int(num_str) if num_str.isdigit() else _CN_NUM.get(num_str)
+        if den and num and den > 0:
+            return num / den
+    except (ValueError, TypeError):
+        pass
+    return None
+
 
 _STAT_LABEL_MAP: dict[str, list[str]] = {
     '物攻': ['atk'], '魔攻': ['sp_atk'],
@@ -118,19 +143,16 @@ def _parse_effect_string(
     if m_mark:
         mark_name = m_mark.group(1)
         stacks = int(m_mark.group(2)) if m_mark.group(2) else 1
-        if mark_name in _MARK_NAMES:
+        is_mark = (
+            mark_name in _MARK_NAMES
+            or mark_name.endswith('印记')
+            or mark_name in ('棘刺', '迟缓', '风起', '减速')
+        )
+        if is_mark:
             target = 'own_team' if default_target == 'self' else 'opp_team'
-            # 有些印记对自己是 positive，对敌人是 negative
             results.append({
                 'kind': 'mark', 'target': target,
                 'name': mark_name, 'stacks': stacks,
-            })
-            return results
-        # "减速" (简写) — 视为印记
-        if mark_name == '减速':
-            results.append({
-                'kind': 'mark', 'target': 'opp_team',
-                'name': '减速', 'stacks': 1,
             })
             return results
 
@@ -146,11 +168,35 @@ def _parse_effect_string(
             })
             return results
 
-    # 3. 检测属性变化
+    # 3. 检测天气
+    m_weather = re.search(r'天气[变为改]{1,2}(\S+)', eff)
+    if m_weather:
+        weather_raw = m_weather.group(1)
+        # 归一化天气名
+        weather_map = {
+            '雨天': 'rain', '下雨': 'rain',
+            '沙暴': 'sand', '沙尘暴': 'sand',
+            '暴风雪': 'snow', '雪天': 'snow', '冰雹': 'snow',
+        }
+        for key, val in weather_map.items():
+            if key in weather_raw:
+                results.append({
+                    'kind': 'weather', 'weather': val,
+                    'turns': 8,
+                })
+                return results
+        # 兜底：直接使用原文
+        results.append({
+            'kind': 'weather', 'weather': weather_raw,
+            'turns': 8,
+        })
+        return results
+
+    # 4. 检测属性变化
     scope = 'persistent' if '永久' in eff else 'battlefield'
     clean = eff.replace('永久', '').replace('提升', '+').replace('降低', '-')
 
-    m = _STAT_MOD_RE.match(clean)
+    m = _STAT_MOD_RE.search(clean)
     if m:
         label, sign, num_s, is_pct = m.group(1), m.group(2), m.group(3), m.group(4)
         value = int(num_s)
@@ -182,7 +228,140 @@ def _parse_effect_string(
             })
         return results
 
-    # 4. 检测复杂描述中的特殊效果
+    # 5. 检测回复 / 能量操作
+    m_heal_pct = re.search(r'回复(\d+)%生命', eff)
+    if m_heal_pct:
+        results.append({
+            'kind': 'special', 'name': 'heal',
+            'value': int(m_heal_pct.group(1)) / 100.0,
+        })
+        return results
+
+    m_heal_flat = re.search(r'回复(\d+)点生命', eff)
+    if m_heal_flat:
+        results.append({
+            'kind': 'special', 'name': 'direct_heal',
+            'amount': int(m_heal_flat.group(1)),
+        })
+        return results
+
+    # "偷取敌方N点能量" / "偷取N点能量" / "偷取敌方N能量"
+    m_steal = re.search(r'偷取.*?(\d+)点?能量', eff)
+    if m_steal:
+        results.append({
+            'kind': 'special', 'name': 'steal_energy',
+            'amount': int(m_steal.group(1)),
+        })
+        return results
+
+    # "敌方失去N点能量" / "失去N点能量" / "敌方失去N能量"
+    m_lose_energy = re.search(r'失去(\d+)点?能量', eff)
+    if m_lose_energy:
+        results.append({
+            'kind': 'special', 'name': 'steal_energy',
+            'amount': int(m_lose_energy.group(1)),
+        })
+        return results
+
+    # "回复N点能量" / "自己回复N能量" (self energy gain)
+    m_gain_energy = re.search(r'(?:自己)?回复(\d+)点?能量', eff)
+    if m_gain_energy:
+        results.append({
+            'kind': 'special', 'name': 'gain_energy',
+            'amount': int(m_gain_energy.group(1)),
+        })
+        return results
+
+    # 连击数修正（仅匹配绝对数值，排除百分数如"连击数+100%"）
+    m_combo_mod = re.search(r'连击数([+\-])(\d+)(?![%\d])', eff)
+    if m_combo_mod:
+        sign, num = m_combo_mod.group(1), m_combo_mod.group(2)
+        value = int(num)
+        if sign == '-':
+            value = -value
+        results.append({
+            'kind': 'stat', 'target': default_target,
+            'stat': 'combo', 'steps': value, 'scope': 'battlefield',
+        })
+        return results
+
+    # 连击数百分比："连击数+100%" → combo_mult stat (1step=100%)
+    m_combo_pct = re.search(r'连击数([+\-])(\d+)%', eff)
+    if m_combo_pct:
+        sign, num = m_combo_pct.group(1), m_combo_pct.group(2)
+        pct = int(num)
+        steps = max(1, pct // 100)
+        if sign == '-':
+            steps = -steps
+        results.append({
+            'kind': 'stat', 'target': default_target,
+            'stat': 'combo_mult', 'steps': steps, 'scope': 'battlefield',
+        })
+        return results
+
+    # "N%吸血" → life_drain stat (1step=10%)
+    m_life_drain = re.search(r'(\d+)%吸血', eff)
+    if m_life_drain:
+        pct = int(m_life_drain.group(1))
+        steps = max(1, pct // 10)
+        results.append({
+            'kind': 'stat', 'target': default_target,
+            'stat': 'life_drain', 'steps': steps, 'scope': 'battlefield',
+        })
+        return results
+
+    # 5a. 检测驱散
+    m_dispel = re.search(r'驱散(?:敌方|自己)的?(所有|一种|1种)?(增益|减益)', eff)
+    if m_dispel:
+        count = -1 if (m_dispel.group(1) and '所有' in m_dispel.group(1)) else 1 if m_dispel.group(1) else -1
+        is_positive = m_dispel.group(2) == '增益'
+        name = 'dispel_positive' if is_positive else 'dispel_negative'
+        tgt = 'self' if '自己' in eff else 'opp'
+        results.append({'kind': 'special', 'name': name, 'amount': count, 'target': tgt})
+        return results
+
+    # 5b. 检测翻倍
+    m_double = re.search(r'(增益|减益).*翻倍|翻倍.*(增益|减益)', eff)
+    if m_double:
+        is_positive = (m_double.group(1) or m_double.group(2)) == '增益'
+        name = 'double_positive' if is_positive else 'double_negative'
+        tgt = 'self' if '自己' in eff else 'opp'
+        results.append({'kind': 'special', 'name': name, 'target': tgt})
+        return results
+
+    # 6. 检测动态威力/能量（基于敌方技能总能耗）
+    m_pow_energy = re.search(r'总能耗的?(\d+)倍', eff)
+    if m_pow_energy:
+        results.append({
+            'kind': 'special', 'name': 'power_by_enemy_energy',
+            'value': float(m_pow_energy.group(1)),
+        })
+        return results
+    if '总能耗的一半' in eff:
+        results.append({
+            'kind': 'special', 'name': 'gain_energy_by_enemy', 'value': 0.5,
+        })
+        return results
+    m_energy_frac = re.search(r'总能耗的?(\d+)分之(\d+)', eff)
+    if m_energy_frac:
+        den, num = int(m_energy_frac.group(1)), int(m_energy_frac.group(2))
+        results.append({
+            'kind': 'special', 'name': 'gain_energy_by_enemy',
+            'value': num / den,
+        })
+        return results
+    # 动态威力：两侧技能威力和的N分之一
+    m_adj_pow = _PARSE_FRACTION.search(eff)
+    if m_adj_pow:
+        val = _fraction_value(m_adj_pow)
+        if val is not None:
+            results.append({
+                'kind': 'special', 'name': 'power_by_adjacent',
+                'value': val,
+            })
+            return results
+
+    # 7. 检测特殊效果
     # "本技能变为被应对的技能" → reflect_damage
     if '变为被应对' in eff:
         results.append({'kind': 'special', 'name': 'reflect_damage'})
@@ -211,6 +390,75 @@ def _parse_effect_string(
             'kind': 'special', 'name': 'multi_hit',
             'value': float(m_multi.group(1)),
         })
+        return results
+
+    # "下个入场精灵继承增益" → escape_inherit
+    if '下个入场' in eff and '继承' in eff:
+        results.append({'kind': 'special', 'name': 'escape_inherit'})
+        return results
+
+    # "自己返场" → return_self
+    if '自己返场' in eff or ('返场' in eff and '下回合' in eff):
+        results.append({'kind': 'special', 'name': 'return_self'})
+        return results
+
+    # "使敌方精灵返场" → force_return
+    if '敌方' in eff and '返场' in eff:
+        results.append({'kind': 'special', 'name': 'force_return'})
+        return results
+
+    # "脱离" / "折返" → escape
+    if '脱离' in eff or '折返' in eff:
+        results.append({'kind': 'special', 'name': 'escape'})
+        return results
+
+    # "打断" → interrupt (硬门)
+    if '打断' in eff:
+        results.append({'kind': 'special', 'name': 'interrupt'})
+        return results
+
+    # "造成N威力物伤/魔伤" → counter_damage
+    m_cnt_dmg = re.search(r'造成(\d+)威力(物|魔)伤', eff)
+    if m_cnt_dmg:
+        results.append({
+            'kind': 'special', 'name': 'counter_damage',
+            'value': float(m_cnt_dmg.group(1)),
+        })
+        return results
+
+    # "交换生命比例" → exchange_hp_ratio
+    if '交换生命比例' in eff:
+        results.append({'kind': 'special', 'name': 'exchange_hp_ratio'})
+        return results
+
+    # "交换增益和减益" → exchange_effects
+    if '交换增益' in eff and '减益' in eff:
+        results.append({'kind': 'special', 'name': 'exchange_effects'})
+        return results
+
+    # "N次随机奉献" (输入可能是 "次随机奉献×N" 已被 _parse_text_to_effects 转换)
+    m_dev = re.search(r'(\d+)次随机奉献|次随机奉献×(\d+)', eff)
+    if m_dev:
+        amount = int(m_dev.group(1) or m_dev.group(2))
+        results.append({
+            'kind': 'special', 'name': 'random_devotion',
+            'amount': amount,
+        })
+        return results
+
+    # "每回合随机变成己方队伍中其他精灵的技能" → borrow_skill
+    if '随机变成' in eff and '技能' in eff:
+        results.append({'kind': 'special', 'name': 'borrow_skill'})
+        return results
+
+    # "不受自身属性减益和敌方属性增益影响" → ignore_mods
+    if '不受自身' in eff and '减益' in eff and '增益' in eff:
+        results.append({'kind': 'special', 'name': 'ignore_mods'})
+        return results
+
+    # "交换携带的技能" → exchange_skills
+    if '交换' in eff and '技能' in eff:
+        results.append({'kind': 'special', 'name': 'exchange_skills'})
         return results
 
     # 未识别
@@ -247,14 +495,17 @@ def _parse_text_to_effects(text: str, default_target: str) -> list[dict]:
     return _parse_effect_string(clean, default_target)
 
 
-def _parse_counter_from_desc(description: str) -> tuple[list[dict], list[dict] | None, bool]:
-    """从描述中提取效果。返回 (base_effects, counter_then, is_extra)。
+def _parse_counter_from_desc(description: str, skill_type: str = '') -> tuple[list[dict], list[dict] | None, bool, int]:
+    """从描述中提取效果。返回 (base_effects, counter_then, is_extra, combo)。
 
     is_extra: True = 应对是"额外"效果（base 保留）；False = 效果应移入 conditional。
     """
     base_effects: list[dict] = []
     counter_then: list[dict] | None = None
     is_extra = '额外' in description
+
+    # 0. 默认目标：攻击技能 → opp，状态/防御 → self
+    default_target = 'opp' if skill_type in ('物攻', '魔攻', '动态攻击') else 'self'
 
     # 1. 提取 base 减伤（始终在「应对」之前，始终无条件）
     base_dr = re.match(r'^减伤(\d+)%', description)
@@ -271,13 +522,22 @@ def _parse_counter_from_desc(description: str) -> tuple[list[dict], list[dict] |
     cm = counter_pat.search(description)
     pre_counter = description[:cm.start()].strip() if cm else description
 
-    # 提取 pre_counter 中的无条件效果（去除 "造成物伤/魔伤" 前缀）
+    # 提取静态连击数
+    combo = 1
+    m_combo = re.search(r'(\d+)连击', pre_counter)
+    if m_combo:
+        combo = int(m_combo.group(1))
+
+    # 提取 pre_counter 中的无条件效果（去除 "造成物伤/魔伤" 前缀 + "N连击"）
     pre_clean = re.sub(r'^造成[物魔]+伤[，,。.]*\s*', '', pre_counter)
-    if pre_clean and pre_clean != description:  # 有非攻击描述
+    pre_clean = re.sub(r'\d+连击', '', pre_clean).strip('，,。.')
+    has_non_attack = pre_clean and pre_clean != pre_counter  # "造成X伤" 前缀被移除了
+    no_counter = not cm                                      # 无应对从句
+    if pre_clean and (has_non_attack or no_counter):
         for part in re.split(r'[，,。.]', pre_clean):
             part = part.strip()
             if part:
-                parsed = _parse_text_to_effects(part, 'opp')
+                parsed = _parse_text_to_effects(part, default_target)
                 for e in parsed:
                     # 只添加非 damage_reduction 的效果（DR 已单独处理）
                     if not (e.get('kind') == 'special' and e.get('name') == 'damage_reduction'):
@@ -286,9 +546,13 @@ def _parse_counter_from_desc(description: str) -> tuple[list[dict], list[dict] |
     # 3. 提取「应对XX：ZZ」
     if cm:
         extra = description[cm.end():].strip().rstrip('。.')
-        counter_then = _parse_text_to_effects(extra, 'opp')
+        counter_then = []
+        for part in re.split(r'[，,。.]', extra):
+            part = part.strip()
+            if part:
+                counter_then.extend(_parse_text_to_effects(part, 'opp'))
 
-    return base_effects, counter_then, is_extra
+    return base_effects, counter_then, is_extra, combo
 
 
 def _reconcile_effects(
@@ -376,13 +640,18 @@ def _build_skill_data(
     for eff_str in opp_buffs:
         unconditional.extend(_parse_effect_string(eff_str, 'opp', from_opp_buffs=True))
 
+    combo = 1
     # 描述 → base effects + counter conditional，然后调和
     effects: list[dict]
     if description:
-        base_from_desc, counter_then, is_extra = _parse_counter_from_desc(description)
+        base_from_desc, counter_then, is_extra, combo = _parse_counter_from_desc(description, skill_type)
         effects = _reconcile_effects(unconditional, base_from_desc, counter_then, is_extra)
     else:
         effects = unconditional
+
+    # dedup: escape_inherit 覆盖 escape（击鼓传花）
+    if any(e.get('name') == 'escape_inherit' for e in effects):
+        effects = [e for e in effects if e.get('name') != 'escape']
 
     # 类型归一化
     normalized_type = _SKILL_TYPE_NORMALIZE.get(skill_type, skill_type)
@@ -398,6 +667,7 @@ def _build_skill_data(
         'energy_cost': energy_cost,
         'counter': counter if counter else '无',
         'priority': 0,
+        'combo': combo,
         'effects': effects,
     }
 
@@ -489,6 +759,69 @@ def _process_csv_skills(csv_path: Path, existing: dict[str, dict]) -> dict[str, 
     return skills
 
 
+# ═══════════════════════════════════════════════════════════════
+# 输出校验
+# ═══════════════════════════════════════════════════════════════
+
+_VALID_EFFECT_KINDS: frozenset[str] = frozenset({
+    'stat', 'abnormal', 'mark', 'weather', 'special', 'conditional',
+})
+
+# 从 parse 阶段已知的合法 special name（与 effects.SpecialName 对应）
+_VALID_SPECIAL_NAMES: frozenset[str] = frozenset({
+    'power_bonus', 'power_mult', 'damage_mult', 'damage_reduction', 'multi_hit',
+    'heal', 'direct_heal', 'gain_energy', 'steal_energy', 'life_drain',
+    'gain_energy_by_enemy', 'burst', 'charge', 'interrupt', 'reflect_damage',
+    'counter_damage', 'escape', 'escape_inherit', 'force_return', 'return_self',
+    'dispel_positive', 'dispel_negative', 'double_positive', 'double_negative',
+    'exchange_hp_ratio', 'exchange_effects', 'exchange_skills',
+    'power_by_enemy_energy', 'power_by_adjacent', 'adjacent_power_bonus',
+    'priority_bonus', 'ignore_mods', 'random_devotion', 'borrow_skill',
+})
+
+
+def _validate_skill_json(name: str, data: dict) -> list[str]:
+    """校验单个技能 JSON 数据。返回问题描述列表（空=无问题）。"""
+    issues: list[str] = []
+
+    # 必填字段
+    for field in ('name', 'skill_type', 'power', 'energy_cost', 'counter'):
+        if field not in data:
+            issues.append(f'缺少必填字段: {field}')
+
+    # 校验 effects 数组
+    for i, effect in enumerate(data.get('effects', [])):
+        kind = effect.get('kind', '')
+        if kind not in _VALID_EFFECT_KINDS:
+            issues.append(f'effects[{i}]: 无效 kind={kind!r}')
+            continue
+
+        if kind == 'stat':
+            if not effect.get('stat'):
+                issues.append(f'effects[{i}] stat: 缺少 stat 字段')
+            if not effect.get('target'):
+                issues.append(f'effects[{i}] stat: 缺少 target 字段')
+            if 'steps' not in effect:
+                issues.append(f'effects[{i}] stat: 缺少 steps 字段')
+
+        elif kind == 'special':
+            sname = effect.get('name', '')
+            if sname not in _VALID_SPECIAL_NAMES:
+                issues.append(f'effects[{i}] special: 未知 name={sname!r}')
+
+        elif kind == 'conditional':
+            when = effect.get('when') or {}
+            when_kind = when.get('kind', '')
+            valid_cond_kinds = {
+                'counter_succeeded', 'is_first', 'opp_switched', 'hp_below',
+                'has_abnormal', 'weather_is', 'counter_ge', 'and', 'or',
+            }
+            if when_kind not in valid_cond_kinds:
+                issues.append(f'effects[{i}] conditional.when: 未知 kind={when_kind!r}')
+
+    return issues
+
+
 def main() -> None:
     limit = None
     args = sys.argv[1:]
@@ -509,6 +842,20 @@ def main() -> None:
     # 2. 从 CSV 补充
     csv_skills = _process_csv_skills(csv_path, skills)
     skills.update(csv_skills)
+
+    # 2.5 校验
+    total_issues = 0
+    for name, data in skills.items():
+        issues = _validate_skill_json(name, data)
+        if issues:
+            total_issues += len(issues)
+            print(f'[校验] {name}:', file=sys.stderr)
+            for issue in issues:
+                print(f'  ! {issue}', file=sys.stderr)
+    if total_issues:
+        print(f'[校验] 共 {total_issues} 个问题', file=sys.stderr)
+    else:
+        print(f'[校验] 全部通过', file=sys.stderr)
 
     # 3. 写入 JSON
     index: dict[str, str] = {}
