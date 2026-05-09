@@ -20,6 +20,10 @@ _STAT_MOD_RE = re.compile(
     r'(双攻|双防|物攻|魔攻|物防|魔防|速度|威力|先手|能耗)\s*([+\-])\s*(\d+)\s*(%?)'
 )
 
+# 复杂描述中的特殊效果
+_POWER_MULT_RE = re.compile(r'威力变为\s*(\d+(?:\.\d+)?)\s*倍')
+_MULTI_HIT_RE = re.compile(r'变为\s*(\d+)\s*连击')
+
 _STAT_LABEL_MAP: dict[str, list[str]] = {
     '物攻': ['atk'], '魔攻': ['sp_atk'],
     '物防': ['def'], '魔防': ['sp_def'],
@@ -178,6 +182,37 @@ def _parse_effect_string(
             })
         return results
 
+    # 4. 检测复杂描述中的特殊效果
+    # "本技能变为被应对的技能" → reflect_damage
+    if '变为被应对' in eff:
+        results.append({'kind': 'special', 'name': 'reflect_damage'})
+        return results
+
+    # "威力变为N倍" → power_mult
+    m_pow_mult = _POWER_MULT_RE.search(eff)
+    if m_pow_mult:
+        results.append({
+            'kind': 'special', 'name': 'power_mult',
+            'value': float(m_pow_mult.group(1)),
+        })
+        return results
+
+    # "威力翻倍" → power_mult = 2
+    if '威力翻倍' in eff:
+        results.append({
+            'kind': 'special', 'name': 'power_mult', 'value': 2.0,
+        })
+        return results
+
+    # "变为N连击" → multi_hit
+    m_multi = _MULTI_HIT_RE.search(eff)
+    if m_multi:
+        results.append({
+            'kind': 'special', 'name': 'multi_hit',
+            'value': float(m_multi.group(1)),
+        })
+        return results
+
     # 未识别
     return results
 
@@ -304,6 +339,13 @@ def _reconcile_effects(
                 'kind': 'conditional',
                 'when': {'kind': 'counter_succeeded'},
                 'then': removed + [e for e in counter_then if _effect_fingerprint(e) not in {_effect_fingerprint(r) for r in removed}],
+            })
+        else:
+            # 无条件中没有匹配项 → counter_then 效果是纯条件追加
+            result.append({
+                'kind': 'conditional',
+                'when': {'kind': 'counter_succeeded'},
+                'then': list(counter_then),
             })
 
     return result

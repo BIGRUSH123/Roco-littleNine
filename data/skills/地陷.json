@@ -13,6 +13,19 @@
       "stat": "def",
       "steps": 7,
       "scope": "battlefield"
+    },
+    {
+      "kind": "conditional",
+      "when": {
+        "kind": "counter_succeeded"
+      },
+      "then": [
+        {
+          "kind": "special",
+          "name": "power_mult",
+          "value": 2.0
+        }
+      ]
     }
   ]
 }

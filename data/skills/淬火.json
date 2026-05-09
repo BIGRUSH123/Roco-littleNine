@@ -11,6 +11,19 @@
       "kind": "special",
       "name": "damage_reduction",
       "value": 0.8
+    },
+    {
+      "kind": "conditional",
+      "when": {
+        "kind": "counter_succeeded"
+      },
+      "then": [
+        {
+          "kind": "special",
+          "name": "power_mult",
+          "value": 2.0
+        }
+      ]
     }
   ]
 }

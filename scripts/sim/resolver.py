@@ -63,6 +63,7 @@ _STEP_PCT = 10
 # 伤害相关的特殊效果名（由 calc_damage 的 modifiers 处理，dispatch 中跳过）
 _DAMAGE_SPECIALS: frozenset[str] = frozenset({
     'power_bonus', 'power_mult', 'damage_mult', 'damage_reduction',
+    'multi_hit',
 })
 
 
@@ -355,8 +356,9 @@ class SkillResolver:
 
         damage_mult = mods.get('damage_mult', 1.0)
         damage_reduction = mods.get('damage_reduction', 0.0)
+        multi_hit = mods.get('multi_hit', 1.0)
 
-        damage = round(base * type_mult * weather_mult * mark_mult * stab_mult * burst_mult * damage_mult)
+        damage = round(base * type_mult * weather_mult * mark_mult * stab_mult * burst_mult * damage_mult * multi_hit)
         damage = round(damage * (1.0 - damage_reduction))
         damage = max(1, damage)
 
