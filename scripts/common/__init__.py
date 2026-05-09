@@ -1,7 +1,7 @@
 """
 scripts/common/ — 属性计算与游戏常量公共模块
 
-从 calc_stats.py / calc_state.py / build_skill_effects.py 中提取的共享代码。
+从 calc/stats.py / calc/state.py 中提取的共享代码。
 """
 
 from .constants import (
@@ -13,3 +13,4 @@ from .constants import (
 from .nature import NATURE_TABLE, NATURE_PLUS_COEFF, NATURE_MINUS_COEFF, get_nature_coeff
 from .formulas import half_round, RE_MOD, calc_initial_stats, calc_final_stats, apply_mods, StatsCalc
 from .models import SpeciesStats, StatsResult
+from .sprite_db import SpriteDB

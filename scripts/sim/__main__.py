@@ -3,6 +3,7 @@
 用法:
   python -m scripts.sim                        # 人 vs AI
   python -m scripts.sim --ai-only              # AI vs AI 观战
+  python -m scripts.sim --log battle_log.md    # 保存对局记录
 """
 
 import re
@@ -161,6 +162,13 @@ def _pick_sprites(entries: list[tuple[int, str, list[str]]], player_name: str,
 def main() -> None:
     ai_only = '--ai-only' in sys.argv
 
+    # --log <path>
+    log_path = ''
+    for i, arg in enumerate(sys.argv):
+        if arg == '--log' and i + 1 < len(sys.argv):
+            log_path = sys.argv[i + 1]
+            break
+
     factory = SimFactory()
 
     if ai_only:
@@ -204,6 +212,10 @@ def main() -> None:
         print(f'\n对局结束: {winner or "平局"} 胜')
     except (KeyboardInterrupt, EOFError):
         print('\n对局中断')
+
+    if log_path and battle.log:
+        battle.save_log(log_path)
+        print(f'对局记录已保存: {log_path}')
 
 
 if __name__ == '__main__':

@@ -19,7 +19,7 @@ _PRIORITY_STEP = 1   # 先手：1步=1
 _ENERGY_STEP = 1     # 能耗：1步=1
 
 # 非百分比型 stat_key（直接累加步数×单位，不做乘法）
-_NON_PCT_KEYS: frozenset[str] = frozenset({'power', 'priority', 'energy_cost'})
+_NON_PCT_KEYS: frozenset[str] = frozenset({'power', 'priority', 'energy_cost', 'combo', 'life_drain', 'combo_mult'})
 
 
 @dataclass
@@ -75,6 +75,10 @@ class Sprite:
     # 迸发判定：进场后第一次行动
     first_action: bool = True
 
+    # 返场标记：回合结束时清 battlefield 效果 + 下回合技能双倍
+    pending_return: bool = False
+    extra_skill_use: bool = False
+
     # ── 有效属性 ──
 
     @property
@@ -85,18 +89,24 @@ class Sprite:
     def name(self) -> str:
         return self.species.display_name()
 
-    def _sum_steps(self, stat_key: str) -> int:
-        return sum(
-            e.steps for e in self.effects
-            if e.is_stat and e.stat_key == stat_key
-        )
+    def _sum_steps(self, stat_key: str, ignore_negative: bool = False, ignore_positive: bool = False) -> int:
+        total = 0
+        for e in self.effects:
+            if not e.is_stat or e.stat_key != stat_key:
+                continue
+            if ignore_negative and e.steps < 0:
+                continue
+            if ignore_positive and e.steps > 0:
+                continue
+            total += e.steps
+        return total
 
-    def effective_stat(self, stat_key: str) -> int:
+    def effective_stat(self, stat_key: str, ignore_negative: bool = False, ignore_positive: bool = False) -> int:
         """返回六维属性经效果修正后的有效值。"""
         if stat_key in _NON_PCT_KEYS:
-            return self._sum_steps(stat_key)
+            return self._sum_steps(stat_key, ignore_negative, ignore_positive)
         base = self.initial_stats.get(stat_key, 0)
-        total_steps = self._sum_steps(stat_key)
+        total_steps = self._sum_steps(stat_key, ignore_negative, ignore_positive)
         if stat_key == 'speed':
             return max(0, base + total_steps * _SPEED_STEP)
         return max(0, round(base * (1.0 + total_steps / _STEP_PCT)))
@@ -168,6 +178,44 @@ class Sprite:
             if e.scope != scope
         ]
 
+    # ── 驱散 / 翻倍 ──
+
+    def dispel_positive(self, count: int = -1) -> int:
+        """移除正面的 stat 效果。count=-1 移除全部。返回移除数。"""
+        targets = [e for e in self.effects if e.is_stat and e.steps > 0]
+        if count >= 0:
+            targets = targets[:count]
+        for e in targets:
+            self.effects.remove(e)
+        return len(targets)
+
+    def dispel_negative(self, count: int = -1) -> int:
+        """移除负面的 stat 效果。"""
+        targets = [e for e in self.effects if e.is_stat and e.steps < 0]
+        if count >= 0:
+            targets = targets[:count]
+        for e in targets:
+            self.effects.remove(e)
+        return len(targets)
+
+    def double_positive(self) -> int:
+        """加倍全部正面 stat 效果的步数。返回影响数量。"""
+        n = 0
+        for e in self.effects:
+            if e.is_stat and e.steps > 0:
+                e.steps *= 2
+                n += 1
+        return n
+
+    def double_negative(self) -> int:
+        """加倍全部负面 stat 效果的步数。返回影响数量。"""
+        n = 0
+        for e in self.effects:
+            if e.is_stat and e.steps < 0:
+                e.steps *= 2
+                n += 1
+        return n
+
     def clear_all_effects(self) -> None:
         self.effects.clear()
 
@@ -193,7 +241,8 @@ class Sprite:
         return actual
 
     def gain_energy(self, amount: int) -> int:
-        actual = min(10 - self.energy, amount)
+        room = max(0, 10 - self.energy)
+        actual = min(room, amount)
         self.energy += actual
         return actual
 

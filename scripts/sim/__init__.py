@@ -30,6 +30,7 @@ from .action import Action
 from .player import Item, PlayStyle, Player
 from .globals import Mark, GlobalEffects
 from .resolver import SkillResolver, TurnContext
+from .battle_mechanics import BattleMechanicsMixin
 from .battle import TurnRecord, Battle
 from .agent import Agent, RuleAgent, HumanAgent
 from .factory import SimFactory

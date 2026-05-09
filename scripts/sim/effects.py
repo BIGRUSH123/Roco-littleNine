@@ -51,8 +51,10 @@ class SpecialEffect:
     name: str = ""              # power_bonus|power_mult|damage_mult|damage_reduction
                                 # life_drain|steal_energy|escape|burst|charge|multi_hit
                                 # direct_heal|heal|reflect_damage|priority_bonus
+                                # dispel_positive|dispel_negative|double_positive|double_negative
     value: float = 0.0          # 数值（倍率/百分比/次数）
-    amount: int = 0             # 整数参数（偷能量点数等）
+    amount: int = 0             # 整数参数（偷能量点数、驱散数量等）
+    target: str = "opp"         # 效果施加对象（self|opp）
 
 
 @dataclass

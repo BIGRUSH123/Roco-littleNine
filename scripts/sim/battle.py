@@ -11,6 +11,7 @@ from .globals import GlobalEffects
 from .resolver import SkillResolver, TurnContext
 from .battleskill import BattleSkill, SkillUse
 from .action import Action
+from .battle_mechanics import BattleMechanicsMixin
 
 if TYPE_CHECKING:
     from .player import Player
@@ -44,14 +45,14 @@ class TurnRecord:
         )
 
 
-class Battle:
-    """对局引擎。"""
+class Battle(BattleMechanicsMixin):
+    """对局引擎。回合调度 + 动作执行。场地变动由 BattleMechanicsMixin 提供。"""
 
     MAX_TURNS = 150
 
     def __init__(
         self, player_a: 'Player', player_b: 'Player',
-        weather: str = '',
+        weather: str = '', verbose: bool = True,
     ):
         self.player_a = player_a
         self.player_b = player_b
@@ -64,6 +65,8 @@ class Battle:
         self._resolver = SkillResolver()
         self._agent_a: 'Agent | None' = None
         self._agent_b: 'Agent | None' = None
+        self.verbose = verbose
+        self._borrowed_restore: dict[tuple[str, int], 'Skill'] = {}
 
     @property
     def is_finished(self) -> bool:
@@ -98,8 +101,8 @@ class Battle:
         # 2. 行动选择阶段（道具不互见）
         action_a, item_a = self._select_action(agent_a, 'A')
         action_b, item_b = self._select_action(agent_b, 'B')
-        record.action_a = str(action_a)
-        record.action_b = str(action_b)
+        record.action_a = self._describe_action('A', action_a)
+        record.action_b = self._describe_action('B', action_b)
         record.item_used_a = item_a
         record.item_used_b = item_b
 
@@ -184,42 +187,6 @@ class Battle:
         events += self._resolve_both_skills(action_a, action_b, record)
         return events
 
-    # ── 换宠 ──
-
-    def _resolve_switch(self, team: str, action: Action) -> list[str]:
-        events: list[str] = []
-        player = self.get_player(team)
-        old = player.active
-
-        if action.switch_index is None or action.switch_index >= len(player.team):
-            return events
-
-        player.active_index = action.switch_index
-        new = player.active
-
-        # 入场印记伤害
-        opp_team = 'B' if team == 'A' else 'A'
-        dmg = self.globals.mark_switch_damage(opp_team, new)
-        if dmg:
-            new.take_damage(dmg)
-            events.append(f'{new.name} 棘刺-{dmg}HP')
-
-        # 入场扣能
-        lost = self.globals.mark_switch_energy_loss(opp_team)
-        if lost:
-            new.lose_energy(lost)
-            events.append(f'{new.name} 降临-{lost}E')
-
-        new.clear_effects('battlefield')
-        new.entry_turn = self.turn
-        new.first_action = True
-        new.inc_counter('times_entered')
-        events.append(f'{old.name}↓ {new.name}↑')
-
-        # 力竭检查（进场的精灵可能被棘刺弹死）
-        self._check_faint_interrupt(team, events)
-        return events
-
     # ── 双方技能/聚能 ──
 
     def _resolve_both_skills(self, action_a: Action, action_b: Action, record: TurnRecord) -> list[str]:
@@ -238,22 +205,27 @@ class Battle:
             counter_b = SkillResolver.resolve_counter(skill_a, skill_b)
         countered = counter_a or counter_b
 
-        # 被应对的技能（counter_b=True 表示 A 应对了 B）
-        countered_skill_a = skill_b if counter_b else None
-        countered_skill_b = skill_a if counter_a else None
+        # countered_skill:  被我方反击的对方技能（用于 reflect_damage / interrupt）
+        # countering_skill: 反击了我方的对方技能（用于 damage_reduction 注入）
+        countered_skill_a = skill_b if counter_a else None
+        countered_skill_b = skill_a if counter_b else None
+        countering_skill_a = skill_b if counter_b else None
+        countering_skill_b = skill_a if counter_a else None
 
         if countered:
             # 应对成功 → 双方同时（均视为"同时"，无先后之分）
             events += self._execute_single_action(
-                'A', action_a, is_countered=counter_a,
-                countered_skill=countered_skill_a, is_first=True,
+                'A', action_a, is_countered=counter_b,
+                countered_skill=countered_skill_a,
+                countering_skill=countering_skill_a, is_first=True,
             )
             self._check_faint_interrupt('A', events)
             self._check_faint_interrupt('B', events)
             if not self.is_finished:
                 events += self._execute_single_action(
-                    'B', action_b, is_countered=counter_b,
-                    countered_skill=countered_skill_b, is_first=True,
+                    'B', action_b, is_countered=counter_a,
+                    countered_skill=countered_skill_b,
+                    countering_skill=countering_skill_b, is_first=True,
                 )
             return events
 
@@ -306,6 +278,7 @@ class Battle:
         self, team: str, action: Action,
         is_countered: bool = False,
         countered_skill: 'BattleSkill | None' = None,
+        countering_skill: 'BattleSkill | None' = None,
         is_first: bool = False,
     ) -> list[str]:
         """执行单个玩家的技能/聚能行动。返回事件列表。"""
@@ -361,6 +334,7 @@ class Battle:
             is_countered=is_countered,
             is_first=is_first,
             countered_skill=countered_skill,
+            countering_skill=countering_skill,
             skill_index=action.skill_index or -1,
         )
 
@@ -369,112 +343,104 @@ class Battle:
             use.modifiers['power_mult'] = use.modifiers.get('power_mult', 1.0) * skill.next_attack_mult
             skill.next_attack_mult = 1.0
 
-        # 攻击技能 → 伤害计算
-        if skill.is_attack:
-            damage, dmg_events = self._resolver.calc_damage(
-                user, target, use, self.globals,
-                attacker_team=team,
-            )
-            target.take_damage(damage)
-            target.inc_counter('times_hit')
-            user.inc_counter('times_dealt')
-            events.append(f'{user.name} {skill.name} → {target.name} -{damage}HP')
-            events.extend(dmg_events)
+        # 动态威力（冰锋横扫/钢钻等）
+        for e in skill.effects:
+            if getattr(e, 'kind', '') != 'special':
+                continue
+            if e.name == 'power_by_enemy_energy':
+                total_e = sum(bs.energy_cost for bs in target.skills)
+                skill.power_override = int(total_e * (e.value or 10))
+            elif e.name == 'power_by_adjacent':
+                adj_sum = 0
+                si = action.skill_index
+                if si is not None:
+                    for offset in (-1, 1):
+                        idx = si + offset
+                        if 0 <= idx < len(user.skills):
+                            adj_sum += user.skills[idx].power
+                skill.power_override = max(1, int(adj_sum * (e.value or 0.333)))
 
-            # 吸血
-            life_drain_effects = [
-                e for e in skill.effects
-                if getattr(e, 'kind', '') == 'special' and e.name == 'life_drain'
-            ]
-            for ld in life_drain_effects:
-                pct = ld.value / 100.0 if ld.value > 1 else ld.value
-                healed = user.heal(round(damage * pct))
-                if healed:
-                    events.append(f'{user.name} 吸血+{healed}HP')
+        # 有效连击数：静态 combo + 精灵连击修正
+        effective_combo = skill.combo
+        if skill.combo >= 1:
+            combo_mod = user.effective_stat('combo')
+            if combo_mod:
+                effective_combo = max(1, effective_combo + combo_mod)
+            combo_mult_steps = user.effective_stat('combo_mult')
+            if combo_mult_steps > 0:
+                effective_combo = max(1, int(effective_combo * (1.0 + combo_mult_steps)))
+            dynamic_combo = int(use.modifiers.get('multi_hit', 1.0))
+            if dynamic_combo > 1:
+                effective_combo = max(effective_combo, dynamic_combo)
+                use.modifiers.pop('multi_hit', None)  # 防止 calc_damage 重复乘
 
-        # 技能效果
-        effect_events = self._resolver.dispatch(
-            user, target, use, self.globals, ctx, team=team,
-        )
-        events.extend(effect_events)
+        # 额外使用次数（过载回路返场后：技能双倍执行，不耗能）
+        extra_uses = 2 if user.extra_skill_use else 1
+        user.extra_skill_use = False
 
-        # 防御技能冷却
+        for extra_i in range(extra_uses):
+            if extra_i > 0:
+                events.append(f'{user.name} {skill.name} 额外使用(不耗能)')
+
+            for hit_i in range(effective_combo):
+                if target.is_fainted:
+                    break
+
+                if skill.is_attack:
+                    damage, dmg_events = self._resolver.calc_damage(
+                        user, target, use, self.globals,
+                        attacker_team=team,
+                    )
+                    target.take_damage(damage)
+                    target.inc_counter('times_hit')
+                    user.inc_counter('times_dealt')
+                    combo_label = f' ({hit_i+1}/{effective_combo})' if effective_combo > 1 else ''
+                    events.append(f'{user.name} {skill.name} → {target.name} -{damage}HP{combo_label}')
+                    events.extend(dmg_events)
+
+                    # 吸血（技能效果 + 精灵增益）
+                    drain_pct = 0.0
+                    life_drain_effects = [
+                        e for e in skill.effects
+                        if getattr(e, 'kind', '') == 'special' and e.name == 'life_drain'
+                    ]
+                    for ld in life_drain_effects:
+                        pct = ld.value / 100.0 if ld.value > 1 else ld.value
+                        drain_pct = max(drain_pct, pct)
+                    sprite_drain = user.effective_stat('life_drain')
+                    if sprite_drain > 0:
+                        drain_pct = max(drain_pct, sprite_drain * 0.1)
+                    if drain_pct > 0:
+                        healed = user.heal(round(damage * drain_pct))
+                        if healed:
+                            events.append(f'{user.name} 吸血{drain_pct*100:.0f}%+{healed}HP')
+
+                # 技能效果
+                effect_events = self._resolver.dispatch(
+                    user, target, use, self.globals, ctx, team=team,
+                )
+                events.extend(effect_events)
+
+        # 防御技能冷却（连击循环外）
         if skill.is_defense:
             skill.cooldown = 1
 
-        # 脱离/折返
-        escape_effects = [
-            e for e in skill.effects
-            if getattr(e, 'kind', '') == 'special' and e.name == 'escape'
-        ]
-        if escape_effects:
+        # 脱离/折返 + 新效果（连击循环外）
+        special_names = {getattr(e, 'name', '') for e in skill.effects if getattr(e, 'kind', '') == 'special'}
+
+        if 'escape_inherit' in special_names:
+            self._handle_escape_inherit(team, user, events)
+        elif 'escape' in special_names:
             self._handle_escape(team, user, events)
 
+        if 'force_return' in special_names:
+            opp_team = 'B' if team == 'A' else 'A'
+            events += self._resolve_return(opp_team)
+
+        if 'borrow_skill' in special_names:
+            self._handle_borrow_skill(team, user, action.skill_index or 0, events)
+
         return events
-
-    # ── 力竭中断 ──
-
-    def _check_faint_interrupt(self, team: str, events: list[str]) -> None:
-        """检查力竭并立即强制换宠。扣减魔力，无存活则判负。"""
-        player = self.get_player(team)
-        s = player.active
-        if not s.is_fainted:
-            return
-
-        player.lives -= 1
-        events.append(f'{s.name} 力竭({player.name} 魔力-1→{player.lives})')
-
-        if player.lives <= 0:
-            self.winner = 'B' if team == 'A' else 'A'
-            events.append(f'{player.name} 魔力耗尽 → {self.get_opponent(team).name} 胜')
-            return
-
-        agent = self._get_agent(team)
-        replacement = agent.choose_replacement(self)
-        if replacement < 0:
-            self.winner = 'B' if team == 'A' else 'A'
-            events.append(f'{s.name} 力竭 → 无存活精灵 → {self.get_opponent(team).name} 胜')
-            return
-
-        old = s
-        player.active_index = replacement
-        new = player.active
-        new.clear_effects('battlefield')
-        new.entry_turn = self.turn
-        new.first_action = True
-        new.inc_counter('times_entered')
-        events.append(f'{old.name} 力竭↓ {new.name}↑(本回合跳过)')
-
-    # ── 道具 ──
-
-    def _resolve_item(self, team: str) -> str:
-        """使用道具，立即应用效果。返回道具名（用于记录）。"""
-        from .sprite import StatusEffect
-
-        player = self.get_player(team)
-        item = player.item
-        if not item or not item.can_use(self.turn):
-            return ''
-
-        item.use(self.turn)
-        sprite = player.active
-
-        if item.name == '进化之力':
-            for key in ['atk', 'sp_atk', 'def', 'sp_def', 'speed']:
-                sprite.add_effect(StatusEffect(
-                    name='首领化', category='stat', stat_key=key, steps=2,
-                    scope='permanent', source='进化之力',
-                ))
-            return '进化之力'
-
-        elif item.name == '愿力强化':
-            sprite.add_effect(StatusEffect(
-                name='愿力强化', category='stat', stat_key='power', steps=5,
-                scope='battlefield', source='愿力强化',
-            ))
-            return '愿力强化'
-
-        return item.name
 
     # ── 辅助 ──
 
@@ -494,26 +460,31 @@ class Battle:
         base = skill.priority if skill else 0
         return base + self.get_player(team).active.priority_mod
 
-    def _handle_escape(self, team: str, user: 'Sprite', events: list[str]) -> None:
-        """处理脱离/折返：agent 选择换宠。"""
-        player = self.get_player(team)
-        agent = self._get_agent(team)
-        replacement = agent.choose_replacement(self)
-        if replacement >= 0:
-            player.active_index = replacement
-            new_sprite = player.active
-            new_sprite.inc_counter('times_entered')
-            new_sprite.clear_effects('battlefield')
-            new_sprite.entry_turn = self.turn
-            new_sprite.first_action = True
-            events.append(f'{user.name} 脱离→{new_sprite.name}')
-
     # ═══════════════════════════════════════════════════════════════
     # Phase 4: 回合结束
     # ═══════════════════════════════════════════════════════════════
 
     def _phase_turn_end(self) -> list[str]:
         events: list[str] = []
+
+        # 借用还原
+        for (team, si), original in self._borrowed_restore.items():
+            sprite = self.get_player(team).active
+            if si < len(sprite.skills):
+                bs = sprite.skills[si]
+                borrowed_name = bs.name
+                bs.replaced_by = None
+                events.append(f'{sprite.name} 归还 {borrowed_name}')
+        self._borrowed_restore.clear()
+
+        # 返场结算（过载回路）：清 battlefield 效果 + 下回合双倍
+        for team in ('A', 'B'):
+            player = self.get_player(team)
+            sprite = player.active
+            if not sprite.is_fainted and sprite.pending_return:
+                sprite.pending_return = False
+                sprite.extra_skill_use = True
+                events += self._resolve_return(team)
 
         sprites: dict[str, 'Sprite'] = {}
         if not self.player_a.active.is_fainted:
@@ -544,12 +515,113 @@ class Battle:
         self.player_a.active_index = lead_a
         self.player_b.active_index = lead_b
 
+        if self.verbose:
+            print(f'\n{"═" * 50}')
+            print(f'  {self.player_a.name} ({self.player_a.active.name})'
+                  f'  vs  {self.player_b.name} ({self.player_b.active.name})')
+            print(f'{"═" * 50}')
+
         # 回合循环
         while not self.is_finished:
-            self.execute_turn(agent_a, agent_b)
+            record = self.execute_turn(agent_a, agent_b)
+            if self.verbose:
+                self._print_turn(record)
 
         # 终局
         result = self.winner or 'draw'
+        if self.verbose:
+            self._print_result(result)
         agent_a.on_game_end(result)
         agent_b.on_game_end(result)
         return result
+
+    # ── 日志输出 ──
+
+    def _describe_action(self, team: str, action: Action) -> str:
+        """将 Action 转为可读字符串（含技能名）。"""
+        if action.kind == 'skill' and action.skill_index is not None:
+            sprite = self.get_player(team).active
+            if action.skill_index < len(sprite.skills):
+                return f'skill:{sprite.skills[action.skill_index].name}'
+        if action.kind == 'switch' and action.switch_index is not None:
+            player = self.get_player(team)
+            if action.switch_index < len(player.team):
+                return f'switch:{player.team[action.switch_index].name}'
+        return action.kind
+
+    @staticmethod
+    def _action_short(action_str: str) -> str:
+        """压缩行动字符串：'skill:闪击' → '闪击'，'switch:迪莫' → '↓迪莫'。"""
+        if action_str.startswith('skill:'):
+            return action_str[6:]
+        if action_str.startswith('switch:'):
+            return '↓' + action_str[7:]
+        return action_str
+
+    def _print_turn(self, r: TurnRecord) -> None:
+        """单回合紧凑日志。"""
+        a_short = self._action_short(r.action_a)
+        b_short = self._action_short(r.action_b)
+        first = r.first_team or '?'
+
+        parts = [f'T{r.turn:03d} [{first}先]']
+        parts.append(f'A:{a_short}  B:{b_short}')
+
+        if r.events:
+            key_events = [e for e in r.events if 'HP' in e or '力竭' in e or '脱离' in e]
+            shown = key_events if key_events else r.events[:2]
+            parts.append('| ' + ' '.join(shown))
+
+        weather = f' [{r.weather}]' if r.weather else ''
+        parts.append(f'(A:{r.sprite_a_hp}HP/{r.sprite_a_energy}E'
+                     f' B:{r.sprite_b_hp}HP/{r.sprite_b_energy}E{weather})')
+        print('  '.join(parts))
+
+    def _print_result(self, result: str) -> None:
+        """终局总结。"""
+        print(f'\n{"═" * 50}')
+        winner_name = (
+            self.player_a.name if result == 'A'
+            else self.player_b.name if result == 'B'
+            else '平局'
+        )
+        print(f'  对局结束: {winner_name} 胜 ({self.turn}回合)')
+        print(f'{"═" * 50}')
+
+        # 回合详情表
+        print(f'\n  {"回合":<5} {"先":<3} {"A行动":<12} {"B行动":<12} {"A HP/E":<12} {"B HP/E":<12}')
+        print(f'  {"─" * 60}')
+        for r in self.log:
+            a_short = self._action_short(r.action_a)
+            b_short = self._action_short(r.action_b)
+            print(f'  T{r.turn:<4d} {r.first_team:<3}'
+                  f' {a_short:<12} {b_short:<12}'
+                  f' {r.sprite_a_hp}/{r.sprite_a_energy:<8}'
+                  f' {r.sprite_b_hp}/{r.sprite_b_energy:<8}')
+
+    def save_log(self, path: str) -> None:
+        """将对局日志保存到文件。"""
+        from datetime import datetime
+        with open(path, 'w', encoding='utf-8') as f:
+            f.write(f'# 对局记录 — {datetime.now().strftime("%Y-%m-%d %H:%M")}\n')
+            f.write(f'# {self.player_a.name} vs {self.player_b.name}\n')
+            f.write(f'# 结果: {self.winner or "draw"} ({self.turn}回合)\n\n')
+            for r in self.log:
+                f.write(f'## T{r.turn} [{r.first_team}先]\n')
+                f.write(f'- A: {r.action_a}')
+                if r.item_used_a:
+                    f.write(f' (道具:{r.item_used_a})')
+                f.write('\n')
+                f.write(f'- B: {r.action_b}')
+                if r.item_used_b:
+                    f.write(f' (道具:{r.item_used_b})')
+                f.write('\n')
+                if r.events:
+                    f.write('- 事件:\n')
+                    for e in r.events:
+                        f.write(f'  - {e}\n')
+                f.write(f'- 结果: A HP={r.sprite_a_hp} E={r.sprite_a_energy}  '
+                        f'B HP={r.sprite_b_hp} E={r.sprite_b_energy}')
+                if r.weather:
+                    f.write(f'  天气={r.weather}')
+                f.write('\n\n')

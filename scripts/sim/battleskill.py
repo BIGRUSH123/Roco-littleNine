@@ -26,6 +26,7 @@ class BattleSkill:
 
     # ── 可变状态 ──
     power_mod: int = 0              # 永久威力变化（联动装置等）
+    power_override: int | None = None  # 动态威力（冰锋横扫/钢钻），覆盖 base.power
     replaced_by: 'Skill | None' = None  # 技能替换（镜像反射）
     cooldown: int = 0               # 剩余冷却回合（防御技能）
     next_attack_mult: float = 1.0   # 下次攻击威力倍率（热身），使用后重置为 1
@@ -37,7 +38,10 @@ class BattleSkill:
 
     @property
     def power(self) -> int:
-        return self.skill.power + self.power_mod
+        base = self.skill.power
+        if self.power_override is not None:
+            base = self.power_override
+        return base + self.power_mod
 
     @property
     def energy_cost(self) -> int:
@@ -59,8 +63,9 @@ class SkillUse:
     battle_skill: BattleSkill
     is_countered: bool = False
     is_first: bool = False
-    countered_skill: 'BattleSkill | None' = None   # 被应对的对方技能
-    skill_index: int = -1                           # 在 sprite.skills 中的位置
+    countered_skill: 'BattleSkill | None' = None    # 我方反击的对方技能（reflect_damage 用）
+    countering_skill: 'BattleSkill | None' = None   # 反击我方的对方技能（damage_reduction 注入用）
+    skill_index: int = -1                            # 在 sprite.skills 中的位置
 
     # __post_init__ 预计算
     modifiers: dict = field(init=False, default_factory=dict)
@@ -69,20 +74,22 @@ class SkillUse:
         self.modifiers = self._collect_modifiers()
 
     def _collect_modifiers(self) -> dict:
-        """收集伤害修正：仅攻击技能收集 damage specials。
-        非攻击技能的 damage specials 由 dispatch 转为 BattleSkill 状态变更。
-        """
+        """收集伤害修正：自身技能 + 对方防御技能的 countered_skill 注入。"""
         modifiers: dict = {}
         is_attack = self.battle_skill.is_attack
 
+        # ── 自身技能效果 ──
         for effect in self.battle_skill.effects:
             kind = getattr(effect, 'kind', '')
 
             if kind == 'special':
+                name = getattr(effect, 'name', '')
+                if name == 'ignore_mods':
+                    modifiers['ignore_mods'] = True
                 if not is_attack:
                     continue
-                if getattr(effect, 'name', '') in _DAMAGE_SPECIALS:
-                    modifiers[effect.name] = getattr(effect, 'value', 0) or getattr(effect, 'amount', 0)
+                if name in _DAMAGE_SPECIALS:
+                    modifiers[name] = getattr(effect, 'value', 0) or getattr(effect, 'amount', 0)
 
             elif kind == 'conditional':
                 when = getattr(effect, 'when', None)
@@ -92,10 +99,51 @@ class SkillUse:
                 if when.get('kind') == 'counter_succeeded' and self.countered_skill is None:
                     continue
                 for sub in then:
+                    if getattr(sub, 'kind', '') != 'special':
+                        continue
+                    sub_name = getattr(sub, 'name', '')
+                    if sub_name == 'ignore_mods':
+                        modifiers['ignore_mods'] = True
                     if not is_attack:
                         continue
-                    if getattr(sub, 'kind', '') == 'special' and getattr(sub, 'name', '') in _DAMAGE_SPECIALS:
+                    if sub_name in _DAMAGE_SPECIALS:
                         modifiers[sub.name] = getattr(sub, 'value', 0) or getattr(sub, 'amount', 0)
+
+        # ── 对方防御技能注入（我被 counter 了，对方的防御效果削弱我的伤害）──
+        if self.is_countered and self.countering_skill:
+            for effect in self.countering_skill.effects:
+                kind = getattr(effect, 'kind', '')
+                if kind == 'special':
+                    name = getattr(effect, 'name', '')
+                    val = getattr(effect, 'value', 0) or 0
+                    if name == 'ignore_mods':
+                        modifiers['ignore_mods'] = True
+                    if name == 'damage_reduction':
+                        modifiers['damage_reduction'] = max(
+                            modifiers.get('damage_reduction', 0), val)
+                    elif name == 'damage_mult':
+                        modifiers['damage_mult'] = min(
+                            modifiers.get('damage_mult', 1.0), val or 1.0)
+                elif kind == 'conditional':
+                    when = getattr(effect, 'when', None)
+                    then = getattr(effect, 'then', None)
+                    if not when or not then:
+                        continue
+                    if when.get('kind') != 'counter_succeeded':
+                        continue
+                    for sub in then:
+                        if getattr(sub, 'kind', '') != 'special':
+                            continue
+                        name = getattr(sub, 'name', '')
+                        val = getattr(sub, 'value', 0) or 0
+                        if name == 'ignore_mods':
+                            modifiers['ignore_mods'] = True
+                        if name == 'damage_reduction':
+                            modifiers['damage_reduction'] = max(
+                                modifiers.get('damage_reduction', 0), val)
+                        elif name == 'damage_mult':
+                            modifiers['damage_mult'] = min(
+                                modifiers.get('damage_mult', 1.0), val or 1.0)
 
         return modifiers
 

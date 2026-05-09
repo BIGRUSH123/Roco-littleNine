@@ -30,6 +30,7 @@ class Skill:
     energy_cost: int = 0
     counter: str = '无'        # 无|攻击|防御|状态
     priority: int = 0
+    combo: int = 1             # 连击数：技能重复执行次数
     effects: list[Effect] = field(default_factory=list)
 
     @classmethod
@@ -45,8 +46,14 @@ class Skill:
             energy_cost=data.get('energy_cost', 0),
             counter=data.get('counter', '无'),
             priority=data.get('priority', 0),
+            combo=data.get('combo', 1),
             effects=effects,
         )
+
+    @classmethod
+    def null(cls) -> 'Skill':
+        """空技能：打断后被替换为此，无属性/无威力/无效果。"""
+        return cls(name='(打断)', element='', skill_type='物攻', power=0, energy_cost=0)
 
     # ── 类型判定 ──
 

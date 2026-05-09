@@ -5,7 +5,7 @@ import sys
 from pathlib import Path
 from typing import Optional
 
-from scripts.calc_stats import SpriteDB
+from scripts.common.sprite_db import SpriteDB
 
 from .sprite import Sprite
 from .skill import Skill
