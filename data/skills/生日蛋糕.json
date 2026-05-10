@@ -6,5 +6,18 @@
   "energy_cost": 4,
   "counter": "无",
   "priority": 0,
-  "effects": []
+  "combo": 1,
+  "effects": [
+    {
+      "kind": "special",
+      "name": "dispel_negative",
+      "amount": -1,
+      "target": "self"
+    },
+    {
+      "kind": "special",
+      "name": "double_positive",
+      "target": "self"
+    }
+  ]
 }

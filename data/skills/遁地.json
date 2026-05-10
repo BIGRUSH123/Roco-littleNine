@@ -6,11 +6,16 @@
   "energy_cost": 3,
   "counter": "攻击",
   "priority": 0,
+  "combo": 1,
   "effects": [
     {
       "kind": "special",
       "name": "damage_reduction",
       "value": 0.5
+    },
+    {
+      "kind": "special",
+      "name": "escape"
     }
   ]
 }

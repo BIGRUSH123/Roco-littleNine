@@ -6,5 +6,20 @@
   "energy_cost": 1,
   "counter": "无",
   "priority": 0,
-  "effects": []
+  "combo": 1,
+  "effects": [
+    {
+      "kind": "special",
+      "name": "dispel_negative",
+      "amount": -1,
+      "target": "self"
+    },
+    {
+      "kind": "stat",
+      "target": "self",
+      "stat": "energy_cost",
+      "steps": -1,
+      "scope": "battlefield"
+    }
+  ]
 }

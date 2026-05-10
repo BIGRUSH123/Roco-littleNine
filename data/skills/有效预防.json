@@ -6,11 +6,27 @@
   "energy_cost": 1,
   "counter": "攻击",
   "priority": 0,
+  "combo": 1,
   "effects": [
     {
       "kind": "special",
       "name": "damage_reduction",
       "value": 0.5
+    },
+    {
+      "kind": "conditional",
+      "when": {
+        "kind": "counter_succeeded"
+      },
+      "then": [
+        {
+          "kind": "stat",
+          "target": "opp",
+          "stat": "priority",
+          "steps": 1,
+          "scope": "battlefield"
+        }
+      ]
     }
   ]
 }

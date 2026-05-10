@@ -318,9 +318,10 @@ class SkillResolver:
         globals_: 'GlobalEffects', ctx: 'TurnContext | None' = None,
     ) -> list[str]:
         """L4: 反击伤害。使用独立简化公式（power × atk/def × type），
-        不含 STAB、天气、印记、burst 倍率。"""
+        不含 STAB、天气、印记、burst 倍率。
+        始终检查原始技能（.base）的效果，而非可能被 reflect_damage 替换后的 skill。"""
         events: list[str] = []
-        for effect in use.battle_skill.effects:
+        for effect in use.battle_skill.base.effects:
             if getattr(effect, 'kind', '') != 'special':
                 continue
             if effect.name != SpecialName.COUNTER_DAMAGE:
@@ -449,8 +450,7 @@ class SkillResolver:
     @staticmethod
     def _special_interrupt(user, target, _effect, _g, _ctx, use):
         if use and use.countered_skill:
-            from .skill import Skill
-            use.countered_skill.base = Skill.null()
+            use.countered_skill.nullified = True
             return [f'{user.name} 打断 {target.name} 的技能']
         return [f'{user.name} 打断']
 

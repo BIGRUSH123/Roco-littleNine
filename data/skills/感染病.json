@@ -6,12 +6,12 @@
   "energy_cost": 4,
   "counter": "无",
   "priority": 0,
+  "combo": 1,
   "effects": [
     {
-      "kind": "abnormal",
-      "target": "opp",
-      "name": "中毒",
-      "scope": "battlefield",
+      "kind": "mark",
+      "target": "opp_team",
+      "name": "若击败敌方则将中毒转化为中毒印记",
       "stacks": 1
     }
   ]

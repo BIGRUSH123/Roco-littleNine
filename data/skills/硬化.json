@@ -6,11 +6,19 @@
   "energy_cost": 2,
   "counter": "攻击",
   "priority": 0,
+  "combo": 1,
   "effects": [
     {
       "kind": "special",
       "name": "damage_reduction",
       "value": 0.9
+    },
+    {
+      "kind": "stat",
+      "target": "self",
+      "stat": "energy_cost",
+      "steps": -2,
+      "scope": "battlefield"
     }
   ]
 }

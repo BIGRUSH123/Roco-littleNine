@@ -6,7 +6,14 @@
   "energy_cost": 1,
   "counter": "无",
   "priority": 0,
+  "combo": 1,
   "effects": [
+    {
+      "kind": "mark",
+      "target": "own_team",
+      "name": "星陨印记",
+      "stacks": 2
+    },
     {
       "kind": "mark",
       "target": "opp_team",

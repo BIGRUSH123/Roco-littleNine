@@ -6,10 +6,11 @@
   "energy_cost": 3,
   "counter": "防御",
   "priority": 0,
+  "combo": 1,
   "effects": [
     {
       "kind": "abnormal",
-      "target": "opp",
+      "target": "self",
       "name": "灼烧",
       "scope": "battlefield",
       "stacks": 10

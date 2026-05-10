@@ -6,7 +6,22 @@
   "energy_cost": 4,
   "counter": "无",
   "priority": 0,
+  "combo": 1,
   "effects": [
+    {
+      "kind": "stat",
+      "target": "opp",
+      "stat": "atk",
+      "steps": -5,
+      "scope": "battlefield"
+    },
+    {
+      "kind": "stat",
+      "target": "opp",
+      "stat": "sp_atk",
+      "steps": -5,
+      "scope": "battlefield"
+    },
     {
       "kind": "stat",
       "target": "self",

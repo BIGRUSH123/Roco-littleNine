@@ -6,11 +6,25 @@
   "energy_cost": 2,
   "counter": "攻击",
   "priority": 0,
+  "combo": 1,
   "effects": [
     {
       "kind": "special",
       "name": "damage_reduction",
       "value": 0.7
+    },
+    {
+      "kind": "conditional",
+      "when": {
+        "kind": "counter_succeeded"
+      },
+      "then": [
+        {
+          "kind": "special",
+          "name": "steal_energy",
+          "amount": 3
+        }
+      ]
     }
   ]
 }

@@ -447,8 +447,10 @@ class Battle(BattleMechanicsMixin):
         )
 
         # 防御技能冷却（连击循环外）
-        if skill.is_defense:
-            skill.cooldown = 1
+        # 使用 .base 而非 .skill，避免 reflect_damage 替换技能后误判类型
+        # 设为 2 而非 1：回合末冷却递减会立刻 -1，需要多 1 回合余量
+        if skill.base.is_defense:
+            skill.cooldown = 2
 
         # ═══ L5: 换宠层 [once] ═══
         special_names = {getattr(e, 'name', '') for e in skill.effects if getattr(e, 'kind', '') == 'special'}

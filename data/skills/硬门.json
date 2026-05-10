@@ -6,5 +6,24 @@
   "energy_cost": 2,
   "counter": "攻击",
   "priority": 0,
-  "effects": []
+  "combo": 1,
+  "effects": [
+    {
+      "kind": "conditional",
+      "when": {
+        "kind": "counter_succeeded"
+      },
+      "then": [
+        {
+          "kind": "special",
+          "name": "interrupt"
+        },
+        {
+          "kind": "special",
+          "name": "counter_damage",
+          "value": 90.0
+        }
+      ]
+    }
+  ]
 }

@@ -6,5 +6,20 @@
   "energy_cost": 7,
   "counter": "无",
   "priority": 0,
-  "effects": []
+  "combo": 1,
+  "effects": [
+    {
+      "kind": "mark",
+      "target": "opp_team",
+      "name": "敌方每有1印记",
+      "stacks": 1
+    },
+    {
+      "kind": "stat",
+      "target": "opp",
+      "stat": "energy_cost",
+      "steps": -1,
+      "scope": "battlefield"
+    }
+  ]
 }

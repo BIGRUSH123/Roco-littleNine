@@ -6,5 +6,14 @@
   "energy_cost": 2,
   "counter": "无",
   "priority": 0,
-  "effects": []
+  "combo": 1,
+  "effects": [
+    {
+      "kind": "abnormal",
+      "target": "self",
+      "name": "灼烧",
+      "scope": "battlefield",
+      "stacks": 1
+    }
+  ]
 }

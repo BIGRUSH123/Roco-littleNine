@@ -6,5 +6,14 @@
   "energy_cost": 6,
   "counter": "无",
   "priority": 0,
-  "effects": []
+  "combo": 1,
+  "effects": [
+    {
+      "kind": "stat",
+      "target": "opp",
+      "stat": "energy_cost",
+      "steps": -2,
+      "scope": "persistent"
+    }
+  ]
 }

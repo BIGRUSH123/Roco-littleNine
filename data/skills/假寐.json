@@ -6,5 +6,19 @@
   "energy_cost": 2,
   "counter": "无",
   "priority": 0,
-  "effects": []
+  "combo": 1,
+  "effects": [
+    {
+      "kind": "special",
+      "name": "gain_energy",
+      "amount": 2
+    },
+    {
+      "kind": "stat",
+      "target": "self",
+      "stat": "energy_cost",
+      "steps": -2,
+      "scope": "battlefield"
+    }
+  ]
 }

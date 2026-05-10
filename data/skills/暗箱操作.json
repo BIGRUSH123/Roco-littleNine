@@ -6,10 +6,25 @@
   "energy_cost": 1,
   "counter": "防御",
   "priority": 0,
+  "combo": 1,
   "effects": [
     {
       "kind": "stat",
       "target": "self",
+      "stat": "def",
+      "steps": -10,
+      "scope": "battlefield"
+    },
+    {
+      "kind": "stat",
+      "target": "self",
+      "stat": "sp_def",
+      "steps": -10,
+      "scope": "battlefield"
+    },
+    {
+      "kind": "stat",
+      "target": "self",
       "stat": "atk",
       "steps": -10,
       "scope": "battlefield"
@@ -50,18 +65,26 @@
       "scope": "battlefield"
     },
     {
-      "kind": "stat",
-      "target": "opp",
-      "stat": "def",
-      "steps": -10,
-      "scope": "battlefield"
-    },
-    {
-      "kind": "stat",
-      "target": "opp",
-      "stat": "sp_def",
-      "steps": -10,
-      "scope": "battlefield"
+      "kind": "conditional",
+      "when": {
+        "kind": "counter_succeeded"
+      },
+      "then": [
+        {
+          "kind": "stat",
+          "target": "opp",
+          "stat": "def",
+          "steps": -10,
+          "scope": "battlefield"
+        },
+        {
+          "kind": "stat",
+          "target": "opp",
+          "stat": "sp_def",
+          "steps": -10,
+          "scope": "battlefield"
+        }
+      ]
     }
   ]
 }

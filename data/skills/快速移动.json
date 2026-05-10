@@ -6,6 +6,7 @@
   "energy_cost": 1,
   "counter": "防御",
   "priority": 0,
+  "combo": 1,
   "effects": [
     {
       "kind": "stat",
@@ -13,6 +14,28 @@
       "stat": "speed",
       "steps": 8,
       "scope": "battlefield"
+    },
+    {
+      "kind": "stat",
+      "target": "self",
+      "stat": "speed",
+      "steps": 8,
+      "scope": "battlefield"
+    },
+    {
+      "kind": "conditional",
+      "when": {
+        "kind": "counter_succeeded"
+      },
+      "then": [
+        {
+          "kind": "stat",
+          "target": "opp",
+          "stat": "speed",
+          "steps": 16,
+          "scope": "battlefield"
+        }
+      ]
     }
   ]
 }

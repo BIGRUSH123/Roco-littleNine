@@ -6,10 +6,11 @@
   "energy_cost": 5,
   "counter": "防御",
   "priority": 0,
+  "combo": 1,
   "effects": [
     {
       "kind": "stat",
-      "target": "opp",
+      "target": "self",
       "stat": "energy_cost",
       "steps": 3,
       "scope": "battlefield"
@@ -27,6 +28,10 @@
         "kind": "counter_succeeded"
       },
       "then": [
+        {
+          "kind": "special",
+          "name": "interrupt"
+        },
         {
           "kind": "abnormal",
           "target": "opp",

@@ -6,7 +6,15 @@
   "energy_cost": 2,
   "counter": "防御",
   "priority": 0,
+  "combo": 1,
   "effects": [
+    {
+      "kind": "stat",
+      "target": "self",
+      "stat": "priority",
+      "steps": -1,
+      "scope": "battlefield"
+    },
     {
       "kind": "stat",
       "target": "opp",

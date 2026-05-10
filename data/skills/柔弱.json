@@ -6,7 +6,29 @@
   "energy_cost": 1,
   "counter": "无",
   "priority": 0,
+  "combo": 1,
   "effects": [
+    {
+      "kind": "abnormal",
+      "target": "self",
+      "name": "萌化",
+      "scope": "persistent",
+      "stacks": 1
+    },
+    {
+      "kind": "stat",
+      "target": "self",
+      "stat": "atk",
+      "steps": -7,
+      "scope": "battlefield"
+    },
+    {
+      "kind": "stat",
+      "target": "self",
+      "stat": "def",
+      "steps": -7,
+      "scope": "battlefield"
+    },
     {
       "kind": "stat",
       "target": "opp",

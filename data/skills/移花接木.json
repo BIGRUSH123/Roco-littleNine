@@ -6,5 +6,16 @@
   "energy_cost": 2,
   "counter": "无",
   "priority": 0,
-  "effects": []
+  "combo": 1,
+  "effects": [
+    {
+      "kind": "special",
+      "name": "heal",
+      "value": 0.15
+    },
+    {
+      "kind": "special",
+      "name": "escape"
+    }
+  ]
 }

@@ -6,5 +6,12 @@
   "energy_cost": 7,
   "counter": "无",
   "priority": 0,
-  "effects": []
+  "combo": 1,
+  "effects": [
+    {
+      "kind": "weather",
+      "weather": "snow",
+      "turns": 8
+    }
+  ]
 }

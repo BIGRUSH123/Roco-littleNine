@@ -6,6 +6,7 @@
   "energy_cost": 3,
   "counter": "状态",
   "priority": 0,
+  "combo": 1,
   "effects": [
     {
       "kind": "abnormal",
@@ -15,11 +16,33 @@
       "stacks": 1
     },
     {
+      "kind": "stat",
+      "target": "opp",
+      "stat": "power",
+      "steps": 1,
+      "scope": "battlefield"
+    },
+    {
       "kind": "abnormal",
       "target": "opp",
       "name": "中毒",
       "scope": "battlefield",
       "stacks": 1
+    },
+    {
+      "kind": "conditional",
+      "when": {
+        "kind": "counter_succeeded"
+      },
+      "then": [
+        {
+          "kind": "stat",
+          "target": "opp",
+          "stat": "power",
+          "steps": 2,
+          "scope": "battlefield"
+        }
+      ]
     }
   ]
 }

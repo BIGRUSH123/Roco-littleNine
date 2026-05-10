@@ -22,10 +22,14 @@ class BattleSkill:
     replaced_by: 'Skill | None' = None  # 技能替换（镜像反射）
     cooldown: int = 0               # 剩余冷却回合（防御技能）
     next_attack_mult: float = 1.0   # 下次攻击威力倍率（热身），使用后重置为 1
+    nullified: bool = False         # 打断标记：技能被无效化但不破坏 base
 
     @property
     def skill(self) -> 'Skill':
-        """当前生效的技能（可能被替换）。"""
+        """当前生效的技能（可能被替换/打断）。"""
+        if self.nullified:
+            from .skill import Skill
+            return Skill.null()
         return self.replaced_by or self.base
 
     # ── Skill 属性显式委托（替代 __getattr__）──

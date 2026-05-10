@@ -1,0 +1,16 @@
+{
+  "name": "test_l3_exchange",
+  "element": "普通",
+  "skill_type": "状态",
+  "power": 0,
+  "energy_cost": 2,
+  "counter": "无",
+  "priority": 0,
+  "combo": 1,
+  "effects": [
+    { "kind": "special", "name": "exchange_hp_ratio" },
+    { "kind": "special", "name": "exchange_effects" },
+    { "kind": "special", "name": "exchange_skills" },
+    { "kind": "special", "name": "random_devotion", "amount": 3 }
+  ]
+}

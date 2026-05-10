@@ -6,7 +6,29 @@
   "energy_cost": 1,
   "counter": "无",
   "priority": 0,
+  "combo": 1,
   "effects": [
+    {
+      "kind": "abnormal",
+      "target": "self",
+      "name": "中毒",
+      "scope": "battlefield",
+      "stacks": 1
+    },
+    {
+      "kind": "stat",
+      "target": "self",
+      "stat": "atk",
+      "steps": -3,
+      "scope": "battlefield"
+    },
+    {
+      "kind": "stat",
+      "target": "self",
+      "stat": "sp_atk",
+      "steps": -3,
+      "scope": "battlefield"
+    },
     {
       "kind": "stat",
       "target": "opp",

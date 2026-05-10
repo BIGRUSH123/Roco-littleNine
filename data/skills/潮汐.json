@@ -6,11 +6,26 @@
   "energy_cost": 4,
   "counter": "攻击",
   "priority": 0,
+  "combo": 1,
   "effects": [
     {
       "kind": "special",
       "name": "damage_reduction",
       "value": 0.6
+    },
+    {
+      "kind": "conditional",
+      "when": {
+        "kind": "counter_succeeded"
+      },
+      "then": [
+        {
+          "kind": "mark",
+          "target": "opp_team",
+          "name": "自己1湿润印记",
+          "stacks": 1
+        }
+      ]
     }
   ]
 }

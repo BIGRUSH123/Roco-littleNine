@@ -6,5 +6,6 @@
   "energy_cost": 1,
   "counter": "状态",
   "priority": 0,
+  "combo": 1,
   "effects": []
 }

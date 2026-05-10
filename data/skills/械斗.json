@@ -6,5 +6,14 @@
   "energy_cost": 1,
   "counter": "无",
   "priority": 0,
-  "effects": []
+  "combo": 1,
+  "effects": [
+    {
+      "kind": "stat",
+      "target": "opp",
+      "stat": "power",
+      "steps": 6,
+      "scope": "battlefield"
+    }
+  ]
 }

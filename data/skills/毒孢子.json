@@ -6,7 +6,15 @@
   "energy_cost": 3,
   "counter": "无",
   "priority": 0,
+  "combo": 1,
   "effects": [
+    {
+      "kind": "abnormal",
+      "target": "self",
+      "name": "中毒",
+      "scope": "battlefield",
+      "stacks": 5
+    },
     {
       "kind": "abnormal",
       "target": "opp",

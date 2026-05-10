@@ -6,6 +6,7 @@
   "energy_cost": 3,
   "counter": "无",
   "priority": 0,
+  "combo": 1,
   "effects": [
     {
       "kind": "abnormal",
@@ -13,6 +14,13 @@
       "name": "冻结",
       "scope": "persistent",
       "stacks": 1
+    },
+    {
+      "kind": "stat",
+      "target": "opp",
+      "stat": "power",
+      "steps": 2,
+      "scope": "battlefield"
     },
     {
       "kind": "abnormal",
