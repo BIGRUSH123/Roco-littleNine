@@ -331,6 +331,7 @@ class Battle(BattleMechanicsMixin):
         # ═══ gate: 能量支付 ═══
         # 能量不足 → 管线短路，L0-L6 全部跳过
         cost = skill.energy_cost
+        cost += user.effective_stat('energy_cost')  # sprite 能耗修正（特性/效果）
         cost = round(cost * self.globals.weather_energy_mod(skill.element or ''))
         cost = max(0, cost - self.globals.mark_energy_mod(team))
 
