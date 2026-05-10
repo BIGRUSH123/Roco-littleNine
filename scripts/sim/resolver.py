@@ -641,6 +641,10 @@ class SkillResolver:
         use: 'SkillUse', globals_: 'GlobalEffects',
         attacker_team: str = 'A',
     ) -> tuple[int, list[str]]:
+        """伤害公式 (v2):
+        伤害 = 39/41 * 基础攻击/基础防御 * (技能威力*应对加成+固定威力) * 百分比威力
+               * 本系加成(125%) * 克制关系 * 天气影响 * (1-减伤) * (1+攻方修正-防方修正)
+        """
         events: list[str] = []
         bs = use.battle_skill
 
@@ -650,36 +654,55 @@ class SkillResolver:
 
         atk_key, def_key = keys
         ignore_mods = use.modifiers.get('ignore_mods', False)
-        atk_val = attacker.effective_stat(atk_key, ignore_negative=ignore_mods)
-        def_val = defender.effective_stat(def_key, ignore_positive=ignore_mods)
 
-        # 威力修正：技能基础 + 精灵威力步数 + 印记 + SkillUse modifiers
-        effective_power = (
-            bs.power
-            + attacker.power_mod * 10
+        # 基础攻击/防御（不含 stat stage）
+        atk_base = attacker.initial_stats.get(atk_key, 0)
+        def_base = defender.initial_stats.get(def_key, 0)
+        if atk_base <= 0 or def_base <= 0:
+            return 0, events
+
+        # stat stage 百分比修正（1步 = 10%）
+        atk_steps = attacker._sum_steps(atk_key)
+        def_steps = defender._sum_steps(def_key)
+        if ignore_mods:
+            atk_steps = max(0, atk_steps)
+            def_steps = min(0, def_steps)
+        atk_stage = atk_steps / _STEP_PCT
+        def_stage = def_steps / _STEP_PCT
+
+        # 威力 = (技能威力 * 应对百分比加成 + 固定威力增益) * 百分比威力增益
+        counter_mult = 1.0  # 应对百分比加成（预留）
+        additive_power = (
+            attacker.power_mod * 10
             + globals_.mark_power_bonus(attacker_team, bs)
             + use.modifiers.get('power_bonus', 0)
         )
-        effective_power = round(effective_power * use.power_mult)
-        if effective_power <= 0:
+        power_term = round((bs.power * counter_mult + additive_power) * use.power_mult)
+        if power_term <= 0:
             return 0, events
 
-        if def_val == 0:
-            return 0, events
-
-        base = round((37 / 41) * effective_power * atk_val / def_val)
+        # 克制关系
         type_mult = SkillResolver._get_type_mult(bs, attacker, defender)
-        use.modifiers['type_mult'] = type_mult  # 供 trait (最好的伙伴等) 读取
+        use.modifiers['type_mult'] = type_mult  # 供 trait 读取
         weather_mult = globals_.weather_damage_mult(bs.element or '')
         mark_mult = globals_.mark_damage_mult(attacker_team, use.is_first)
+
+        # 本系加成 125%
         stab_mult = SkillResolver._get_stab(bs, attacker)
 
-        burst_mult = 1.5 if (SpecialName.BURST in [e.name for e in bs.effects if getattr(e, 'kind', '') == 'special'] and attacker.first_action) else 1.0
+        # 迸发
+        burst_mult = 1.5 if (
+            SpecialName.BURST in [e.name for e in bs.effects if getattr(e, 'kind', '') == 'special']
+            and attacker.first_action
+        ) else 1.0
 
-        damage = round(base * type_mult * weather_mult * mark_mult * stab_mult * burst_mult * use.damage_mult * use.multi_hit)
-        damage = round(damage * (1.0 - use.damage_reduction))
-        damage = max(1, damage)
+        # 核心公式
+        core = (37 / 41) * atk_base / def_base * power_term
+        core *= stab_mult * type_mult * weather_mult * (1.0 - use.damage_reduction)
+        core *= (1.0 + atk_stage - def_stage)
+        core *= burst_mult * mark_mult * use.damage_mult * use.multi_hit
 
+        damage = max(1, round(core))
         return damage, events
 
     @staticmethod
@@ -726,7 +749,7 @@ class SkillResolver:
             return 1.0
         attrs = attacker.species.attributes or ''
         if elem in attrs:
-            return 1.5
+            return 1.25
         return 1.0
 
     # ═══════════════════════════════════════════════════════════════
