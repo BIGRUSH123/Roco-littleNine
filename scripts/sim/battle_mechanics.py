@@ -8,6 +8,7 @@ import random
 from typing import TYPE_CHECKING
 
 from .action import Action
+from .traits import dispatch_entry, dispatch_leave, dispatch_faint
 
 if TYPE_CHECKING:
     from .sprite import Sprite
@@ -50,8 +51,9 @@ class BattleMechanicsMixin:
         new.inc_counter('times_entered')
         events.append(f'{old.name}↓ {new.name}↑')
 
-        # ── trait entry hook ──
-        events += self._on_trait_entry(new)
+        # ── trait hooks ──
+        events += dispatch_leave(old, self, team)
+        events += dispatch_entry(new, self, team)
 
         self._check_faint_interrupt(team, events)
         return events
@@ -69,7 +71,7 @@ class BattleMechanicsMixin:
         events.append(f'{sprite.name} 返场(-{n}效果)')
 
         # ── trait entry hook ──
-        events += self._on_trait_entry(sprite)
+        events += dispatch_entry(sprite, self, team)
 
         return events
 
@@ -104,8 +106,10 @@ class BattleMechanicsMixin:
         new.inc_counter('times_entered')
         events.append(f'{old.name} 力竭↓ {new.name}↑(本回合跳过)')
 
-        # ── trait entry hook ──
-        events += self._on_trait_entry(new)
+        # ── trait hooks ──
+        events += dispatch_leave(old, self, team, is_faint=True)
+        events += dispatch_faint(old, None, self, team)
+        events += dispatch_entry(new, self, team)
 
     def _resolve_item(self, team: str) -> str:
         """使用道具，立即应用效果。返回道具名（用于记录）。"""
@@ -150,8 +154,9 @@ class BattleMechanicsMixin:
             new_sprite.first_action = True
             events.append(f'{user.name} 脱离→{new_sprite.name}')
 
-            # ── trait entry hook ──
-            events += self._on_trait_entry(new_sprite)
+            # ── trait hooks ──
+            events += dispatch_leave(user, self, team)
+            events += dispatch_entry(new_sprite, self, team)
 
     def _handle_escape_inherit(self, team: str, user: 'Sprite', events: list[str]) -> None:
         """脱离 + 下个入场精灵继承增益。"""
@@ -171,8 +176,9 @@ class BattleMechanicsMixin:
                 new_sprite.add_effect(e)
             events.append(f'{user.name} 脱离→{new_sprite.name}(继承{len(inherited)}增益)')
 
-            # ── trait entry hook ──
-            events += self._on_trait_entry(new_sprite)
+            # ── trait hooks ──
+            events += dispatch_leave(old, self, team)
+            events += dispatch_entry(new_sprite, self, team)
 
     def _handle_borrow_skill(self, team: str, user: 'Sprite', skill_index: int, events: list[str]) -> None:
         """借用：从替补精灵随机借用一个技能替换当前技能槽，回合结束时还原。"""

@@ -13,6 +13,12 @@ from .resolver import SkillResolver, TurnContext
 from .battleskill import BattleSkill, SkillUse
 from .action import Action
 from .battle_mechanics import BattleMechanicsMixin
+from .traits import (
+    dispatch_entry, dispatch_leave, dispatch_turn_start, dispatch_turn_end,
+    dispatch_modifier, dispatch_damage, dispatch_skill_use,
+    dispatch_take_damage, dispatch_ko_enemy, dispatch_counter_success,
+    dispatch_faint, dispatch_energy_short,
+)
 
 if TYPE_CHECKING:
     from .player import Player
@@ -130,8 +136,13 @@ class Battle(BattleMechanicsMixin):
     # ═══════════════════════════════════════════════════════════════
 
     def _phase_turn_start(self) -> list[str]:
-        """回合开始效果（预留钩子 — 天气、场地等触发）。"""
-        return []
+        """回合开始效果（天气、场地、特性触发）。"""
+        events: list[str] = []
+        if not self.player_a.active.is_fainted:
+            events += dispatch_turn_start(self.player_a.active, self, 'A')
+        if not self.player_b.active.is_fainted:
+            events += dispatch_turn_start(self.player_b.active, self, 'B')
+        return events
 
     # ═══════════════════════════════════════════════════════════════
     # Phase 2: 行动选择（含私有道具循环）
@@ -228,6 +239,11 @@ class Battle(BattleMechanicsMixin):
                     countered_skill=countered_skill_b,
                     countering_skill=countering_skill_b, is_first=True,
                 )
+            # trait: counter success hooks
+            if counter_a:
+                events += dispatch_counter_success(s_a, countered_skill_a, self, 'A')
+            if counter_b:
+                events += dispatch_counter_success(s_b, countered_skill_b, self, 'B')
             return events
 
         # 无应对 → 按优先级先后执行
@@ -319,8 +335,15 @@ class Battle(BattleMechanicsMixin):
         cost = max(0, cost - self.globals.mark_energy_mod(team))
 
         if user.energy < cost:
-            events.append(f'[能量不足] {user.name} E={user.energy} < {cost}')
-            return events
+            deficit = cost - user.energy
+            hp_sub = dispatch_energy_short(user, deficit, self, team)
+            if hp_sub > 0:
+                user.take_damage(hp_sub)
+                user.lose_energy(user.energy)
+                events.append(f'{user.name} 消耗{hp_sub}HP代替{deficit}E')
+            else:
+                events.append(f'[能量不足] {user.name} E={user.energy} < {cost}')
+                return events
 
         user.lose_energy(cost)
         user.inc_counter(f'skill_used:{skill.name}')
@@ -350,7 +373,7 @@ class Battle(BattleMechanicsMixin):
         events += self._resolver.dispatch_modifiers(user, use)
 
         # ── trait modifier hook（L0→L1 之间）──
-        events += self._on_trait_modifier(user, use)
+        events += dispatch_modifier(user, use, self, team)
 
         # ═══ L1: 动态威力解算 ═══
         # 消费 next_attack_mult（热身等设置的下次攻击倍率）
@@ -394,7 +417,7 @@ class Battle(BattleMechanicsMixin):
         user.extra_skill_use = False
 
         # ── trait damage hook（L1→L2 之间）──
-        events += self._on_trait_damage(user, target, use)
+        events += dispatch_damage(user, target, use, self, team)
 
         # ═══ L2: 伤害层 [per-hit loop] ═══
         for extra_i in range(extra_uses):
@@ -416,6 +439,12 @@ class Battle(BattleMechanicsMixin):
                     combo_label = f' ({hit_i+1}/{effective_combo})' if effective_combo > 1 else ''
                     events.append(f'{user.name} {skill.name} → {target.name} -{damage}HP{combo_label}')
                     events.extend(dmg_events)
+
+                    # ── trait: 受到伤害 / 击败敌人 ──
+                    target_team = 'B' if team == 'A' else 'A'
+                    events += dispatch_take_damage(target, user, damage, self, target_team)
+                    if target.is_fainted:
+                        events += dispatch_ko_enemy(user, target, self, team)
 
                     # 吸血（技能效果 + 精灵增益）
                     drain_pct = 0.0
@@ -467,6 +496,10 @@ class Battle(BattleMechanicsMixin):
         if SpecialName.BORROW_SKILL in special_names:
             self._handle_borrow_skill(team, user, action.skill_index or 0, events)
 
+        # ── trait: 技能执行完毕 ──
+        if action.kind == 'skill':
+            events += dispatch_skill_use(user, skill, self, team)
+
         return events
 
     # ── 辅助 ──
@@ -486,27 +519,6 @@ class Battle(BattleMechanicsMixin):
         skill = self._get_skill(team, action)
         base = skill.priority if skill else 0
         return base + self.get_player(team).active.priority_mod
-
-    # ═══════════════════════════════════════════════════════════════
-    # 特性钩子（预留，当前空实现）
-    # ═══════════════════════════════════════════════════════════════
-
-    def _on_trait_modifier(self, user: 'Sprite', use: 'SkillUse') -> list[str]:
-        """L0 hook: 特性修改技能参数。在 modifier 预计算之后、威力解算之前调用。"""
-        return []
-
-    def _on_trait_damage(self, user: 'Sprite', target: 'Sprite',
-                         use: 'SkillUse') -> list[str]:
-        """L2 hook: 特性影响伤害。在 L1 之后、per-hit loop 之前调用（一次，非每 hit）。"""
-        return []
-
-    def _on_trait_entry(self, sprite: 'Sprite') -> list[str]:
-        """L5 hook: 特性入场效果。精灵以任何方式入场时调用。"""
-        return []
-
-    def _on_trait_turn_end(self, sprite: 'Sprite') -> list[str]:
-        """L6 hook: 特性回合末效果。对每个 active 精灵调用。"""
-        return []
 
     # ═══════════════════════════════════════════════════════════════
     # Phase 4: 回合结束
@@ -543,8 +555,8 @@ class Battle(BattleMechanicsMixin):
         events += SkillResolver.turn_end(sprites, self.globals)
 
         # ── trait turn end hook ──
-        for sprite in sprites.values():
-            events += self._on_trait_turn_end(sprite)
+        for team, sprite in sprites.items():
+            events += dispatch_turn_end(sprite, self, team)
 
         # 回合结束力竭检查
         for team in ('A', 'B'):

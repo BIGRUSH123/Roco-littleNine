@@ -34,3 +34,6 @@ from .battle_mechanics import BattleMechanicsMixin
 from .battle import TurnRecord, Battle
 from .agent import Agent, RuleAgent, HumanAgent
 from .factory import SimFactory
+
+# 导入 trait 子模块以触发 @register 装饰器（放在最后，避免循环导入）
+from .traits import _simple  # noqa: E402, F401
