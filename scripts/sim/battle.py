@@ -312,7 +312,8 @@ class Battle(BattleMechanicsMixin):
             events.append(f'[错误] {user.name} 无技能[{action.skill_index}]')
             return events
 
-        # 能耗计算
+        # ═══ gate: 能量支付 ═══
+        # 能量不足 → 管线短路，L0-L6 全部跳过
         cost = skill.energy_cost
         cost = round(cost * self.globals.weather_energy_mod(skill.element or ''))
         cost = max(0, cost - self.globals.mark_energy_mod(team))
@@ -334,6 +335,8 @@ class Battle(BattleMechanicsMixin):
                           countered_skill=countered_skill,
                           opponent_switched=opponent_switched)
 
+        # ═══ L0: modifier 预计算 ═══
+        # SkillUse.__post_init__ → _collect_modifiers 已处理 DAMAGE_SPECIALS
         use = SkillUse(
             battle_skill=skill,
             is_countered=is_countered,
@@ -343,6 +346,13 @@ class Battle(BattleMechanicsMixin):
             skill_index=action.skill_index or -1,
         )
 
+        # L0 扩展：需要 sprite 上下文的 modifier（adjacent_power_bonus / 非攻击 power 转换）
+        events += self._resolver.dispatch_modifiers(user, use)
+
+        # ── trait modifier hook（L0→L1 之间）──
+        events += self._on_trait_modifier(user, use)
+
+        # ═══ L1: 动态威力解算 ═══
         # 消费 next_attack_mult（热身等设置的下次攻击倍率）
         if skill.is_attack and skill.next_attack_mult != 1.0:
             use.modifiers['power_mult'] = use.modifiers.get('power_mult', 1.0) * skill.next_attack_mult
@@ -383,6 +393,10 @@ class Battle(BattleMechanicsMixin):
         extra_uses = 2 if user.extra_skill_use else 1
         user.extra_skill_use = False
 
+        # ── trait damage hook（L1→L2 之间）──
+        events += self._on_trait_damage(user, target, use)
+
+        # ═══ L2: 伤害层 [per-hit loop] ═══
         for extra_i in range(extra_uses):
             if extra_i > 0:
                 events.append(f'{user.name} {skill.name} 额外使用(不耗能)')
@@ -420,17 +434,23 @@ class Battle(BattleMechanicsMixin):
                         if healed:
                             events.append(f'{user.name} 吸血{drain_pct*100:.0f}%+{healed}HP')
 
-        # 技能效果（只执行一次，不在连击循环内）
-        effect_events = self._resolver.dispatch(
+        # ═══ L3: 状态层 [once] ═══
+        # stat/abnormal/mark/weather + L3 specials，按 effects 数组顺序执行
+        events += self._resolver.dispatch_L3(
             user, target, use, self.globals, ctx, team=team,
         )
-        events.extend(effect_events)
+
+        # ═══ L4: 反击层 [once] ═══
+        # counter_damage — 独立简化公式，不走 L2 calc_damage
+        events += self._resolver.resolve_counter_damage(
+            user, target, use, self.globals, ctx,
+        )
 
         # 防御技能冷却（连击循环外）
         if skill.is_defense:
             skill.cooldown = 1
 
-        # 脱离/折返 + 新效果（连击循环外）
+        # ═══ L5: 换宠层 [once] ═══
         special_names = {getattr(e, 'name', '') for e in skill.effects if getattr(e, 'kind', '') == 'special'}
 
         if SpecialName.ESCAPE_INHERIT in special_names:
@@ -466,6 +486,27 @@ class Battle(BattleMechanicsMixin):
         return base + self.get_player(team).active.priority_mod
 
     # ═══════════════════════════════════════════════════════════════
+    # 特性钩子（预留，当前空实现）
+    # ═══════════════════════════════════════════════════════════════
+
+    def _on_trait_modifier(self, user: 'Sprite', use: 'SkillUse') -> list[str]:
+        """L0 hook: 特性修改技能参数。在 modifier 预计算之后、威力解算之前调用。"""
+        return []
+
+    def _on_trait_damage(self, user: 'Sprite', target: 'Sprite',
+                         use: 'SkillUse') -> list[str]:
+        """L2 hook: 特性影响伤害。在 L1 之后、per-hit loop 之前调用（一次，非每 hit）。"""
+        return []
+
+    def _on_trait_entry(self, sprite: 'Sprite') -> list[str]:
+        """L5 hook: 特性入场效果。精灵以任何方式入场时调用。"""
+        return []
+
+    def _on_trait_turn_end(self, sprite: 'Sprite') -> list[str]:
+        """L6 hook: 特性回合末效果。对每个 active 精灵调用。"""
+        return []
+
+    # ═══════════════════════════════════════════════════════════════
     # Phase 4: 回合结束
     # ═══════════════════════════════════════════════════════════════
 
@@ -498,6 +539,10 @@ class Battle(BattleMechanicsMixin):
             sprites['B'] = self.player_b.active
 
         events += SkillResolver.turn_end(sprites, self.globals)
+
+        # ── trait turn end hook ──
+        for sprite in sprites.values():
+            events += self._on_trait_turn_end(sprite)
 
         # 回合结束力竭检查
         for team in ('A', 'B'):

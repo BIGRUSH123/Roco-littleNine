@@ -50,6 +50,9 @@ class BattleMechanicsMixin:
         new.inc_counter('times_entered')
         events.append(f'{old.name}↓ {new.name}↑')
 
+        # ── trait entry hook ──
+        events += self._on_trait_entry(new)
+
         self._check_faint_interrupt(team, events)
         return events
 
@@ -64,6 +67,10 @@ class BattleMechanicsMixin:
         sprite.first_action = True
         sprite.inc_counter('times_entered')
         events.append(f'{sprite.name} 返场(-{n}效果)')
+
+        # ── trait entry hook ──
+        events += self._on_trait_entry(sprite)
+
         return events
 
     def _check_faint_interrupt(self, team: str, events: list[str]) -> None:
@@ -96,6 +103,9 @@ class BattleMechanicsMixin:
         new.first_action = True
         new.inc_counter('times_entered')
         events.append(f'{old.name} 力竭↓ {new.name}↑(本回合跳过)')
+
+        # ── trait entry hook ──
+        events += self._on_trait_entry(new)
 
     def _resolve_item(self, team: str) -> str:
         """使用道具，立即应用效果。返回道具名（用于记录）。"""
@@ -140,6 +150,9 @@ class BattleMechanicsMixin:
             new_sprite.first_action = True
             events.append(f'{user.name} 脱离→{new_sprite.name}')
 
+            # ── trait entry hook ──
+            events += self._on_trait_entry(new_sprite)
+
     def _handle_escape_inherit(self, team: str, user: 'Sprite', events: list[str]) -> None:
         """脱离 + 下个入场精灵继承增益。"""
         player = self.get_player(team)
@@ -157,6 +170,9 @@ class BattleMechanicsMixin:
             for e in inherited:
                 new_sprite.add_effect(e)
             events.append(f'{user.name} 脱离→{new_sprite.name}(继承{len(inherited)}增益)')
+
+            # ── trait entry hook ──
+            events += self._on_trait_entry(new_sprite)
 
     def _handle_borrow_skill(self, team: str, user: 'Sprite', skill_index: int, events: list[str]) -> None:
         """借用：从替补精灵随机借用一个技能替换当前技能槽，回合结束时还原。"""

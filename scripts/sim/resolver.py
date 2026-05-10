@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from scripts.common import STAT_KEYS
-from .effects import SpecialName
+from .effects import SpecialName, EffectLayer
 
 if TYPE_CHECKING:
     from .sprite import Sprite, StatusEffect
@@ -67,6 +67,55 @@ _STEP_PCT = 10
 
 _DAMAGE_SPECIALS = SpecialName.DAMAGE_SPECIALS
 
+# Special 效果 → 管线层映射。L0/L4/L5 效果在各层独立方法中处理；L3 效果由 dispatch_L3 统一分派。
+_SPECIAL_LAYER: dict[str, int] = {
+    # L0: modifier 注入（attack → SkillUse.modifiers；non-attack → BattleSkill 状态）
+    SpecialName.POWER_BONUS: EffectLayer.MODIFIER,
+    SpecialName.POWER_MULT: EffectLayer.MODIFIER,
+    SpecialName.DAMAGE_MULT: EffectLayer.MODIFIER,
+    SpecialName.DAMAGE_REDUCTION: EffectLayer.MODIFIER,
+    SpecialName.MULTI_HIT: EffectLayer.MODIFIER,
+    SpecialName.IGNORE_MODS: EffectLayer.MODIFIER,
+    SpecialName.ADJACENT_POWER_BONUS: EffectLayer.MODIFIER,
+
+    # L1: 动态威力（battle.py 内联处理）
+    SpecialName.POWER_BY_ENEMY_ENERGY: EffectLayer.POWER,
+    SpecialName.POWER_BY_ADJACENT: EffectLayer.POWER,
+
+    # L2: 伤害 per-hit（burst 在 calc_damage 消费，life_drain 在连击循环消费）
+    SpecialName.BURST: EffectLayer.DAMAGE,
+    SpecialName.LIFE_DRAIN: EffectLayer.DAMAGE,
+
+    # L3: 状态变更（dispatch_L3 分派）
+    SpecialName.HEAL: EffectLayer.STATE,
+    SpecialName.DIRECT_HEAL: EffectLayer.STATE,
+    SpecialName.GAIN_ENERGY: EffectLayer.STATE,
+    SpecialName.STEAL_ENERGY: EffectLayer.STATE,
+    SpecialName.GAIN_ENERGY_BY_ENEMY: EffectLayer.STATE,
+    SpecialName.CHARGE: EffectLayer.STATE,
+    SpecialName.DISPEL_POSITIVE: EffectLayer.STATE,
+    SpecialName.DISPEL_NEGATIVE: EffectLayer.STATE,
+    SpecialName.DOUBLE_POSITIVE: EffectLayer.STATE,
+    SpecialName.DOUBLE_NEGATIVE: EffectLayer.STATE,
+    SpecialName.REFLECT_DAMAGE: EffectLayer.STATE,
+    SpecialName.INTERRUPT: EffectLayer.STATE,
+    SpecialName.EXCHANGE_HP_RATIO: EffectLayer.STATE,
+    SpecialName.EXCHANGE_EFFECTS: EffectLayer.STATE,
+    SpecialName.EXCHANGE_SKILLS: EffectLayer.STATE,
+    SpecialName.RANDOM_DEVOTION: EffectLayer.STATE,
+    SpecialName.PRIORITY_BONUS: EffectLayer.STATE,
+
+    # L4: 反击伤害（resolve_counter_damage 独立公式）
+    SpecialName.COUNTER_DAMAGE: EffectLayer.COUNTER,
+
+    # L5: 换宠/返场（battle.py 后处理）
+    SpecialName.ESCAPE: EffectLayer.SWITCH,
+    SpecialName.ESCAPE_INHERIT: EffectLayer.SWITCH,
+    SpecialName.FORCE_RETURN: EffectLayer.SWITCH,
+    SpecialName.RETURN_SELF: EffectLayer.SWITCH,
+    SpecialName.BORROW_SKILL: EffectLayer.SWITCH,
+}
+
 # 奉献池（虫系特有机制）：每次随机奉献从中选一
 _DEVOTION_POOL: list[dict] = [
     {'kind': 'stat', 'target': 'self', 'stat': 'power', 'steps': 2, 'scope': 'battlefield'},
@@ -96,13 +145,46 @@ class SkillResolver:
     # 主入口
     # ═══════════════════════════════════════════════════════════════
 
+    # ═══════════════════════════════════════════════════════════════
+    # L0: modifier 预计算（需要 sprite 上下文的部分）
+    # ═══════════════════════════════════════════════════════════════
+
     @staticmethod
-    def dispatch(
+    def dispatch_modifiers(user: 'Sprite', use: 'SkillUse') -> list[str]:
+        """L0: 处理需要 sprite 上下文的 Modifier 层 special 效果。
+
+        DAMAGE_SPECIALS（攻击技能）→ 已在 SkillUse._collect_modifiers 中处理。
+        DAMAGE_SPECIALS（非攻击技能）→ 转为 BattleSkill 状态（next_attack_mult / power_mod）。
+        adjacent_power_bonus → 相邻技能 power_mod。
+        """
+        events: list[str] = []
+        for effect in use.battle_skill.effects:
+            if getattr(effect, 'kind', '') != 'special':
+                continue
+            if _SPECIAL_LAYER.get(effect.name) != EffectLayer.MODIFIER:
+                continue
+            is_attack = use.battle_skill.is_attack
+            if effect.name in _DAMAGE_SPECIALS:
+                if is_attack:
+                    continue  # 已在 use.modifiers 中
+                events += SkillResolver._handle_non_attack_damage_special(user, effect, use)
+            else:
+                handler = _SPECIAL_HANDLERS.get(effect.name)
+                if handler:
+                    events += handler(user, None, effect, None, None, use)
+        return events
+
+    # ═══════════════════════════════════════════════════════════════
+    # L3: 状态变更分派
+    # ═══════════════════════════════════════════════════════════════
+
+    @staticmethod
+    def dispatch_L3(
         user: 'Sprite', target: 'Sprite', use: 'SkillUse',
         globals_: 'GlobalEffects', ctx: 'TurnContext | None' = None,
         team: str = 'A',
     ) -> list[str]:
-        """遍历 use.battle_skill.effects，按 kind 分派到对应 handler。"""
+        """L3: 状态变更层。遍历 effects 数组顺序执行，跳过 L4/L5 层 special 效果。"""
         events: list[str] = []
         for effect in use.battle_skill.effects:
             kind = effect.kind
@@ -115,12 +197,24 @@ class SkillResolver:
             elif kind == 'weather':
                 events += SkillResolver._handle_weather(globals_, effect)
             elif kind == 'special':
+                layer = _SPECIAL_LAYER.get(effect.name, EffectLayer.STATE)
+                if layer >= EffectLayer.COUNTER:
+                    continue  # L4/L5 效果由各自层方法处理
                 events += SkillResolver._handle_special(user, target, effect, globals_, ctx, use)
             elif kind == 'conditional':
                 events += SkillResolver._eval_conditional(
                     user, target, effect, globals_, ctx, team, use,
                 )
         return events
+
+    @staticmethod
+    def dispatch(
+        user: 'Sprite', target: 'Sprite', use: 'SkillUse',
+        globals_: 'GlobalEffects', ctx: 'TurnContext | None' = None,
+        team: str = 'A',
+    ) -> list[str]:
+        """[兼容] 完整效果分派。等同于 dispatch_L3。"""
+        return SkillResolver.dispatch_L3(user, target, use, globals_, ctx, team)
 
     # ── 效果分派 ──
 
@@ -180,15 +274,9 @@ class SkillResolver:
         globals_: 'GlobalEffects', ctx: 'TurnContext | None' = None,
         use: 'SkillUse | None' = None,
     ) -> list[str]:
-        """Special 效果：查注册表分派到对应 handler。"""
-        is_attack = use.battle_skill.is_attack if use else True
-
-        # 伤害相关 specials → 攻击技能由 calc_damage / modifiers 处理
+        """L3 special 效果分派。L0/L4/L5 效果由各自层方法处理，此处跳过。"""
         if effect.name in _DAMAGE_SPECIALS:
-            if is_attack:
-                return []
-            return SkillResolver._handle_non_attack_damage_special(user, effect, use)
-
+            return []  # L0 — 已在 dispatch_modifiers 中处理
         handler = _SPECIAL_HANDLERS.get(effect.name)
         if handler is not None:
             return handler(user, target, effect, globals_, ctx, use)
@@ -218,6 +306,28 @@ class SkillResolver:
                     if 0 <= idx < len(user.skills):
                         user.skills[idx].power_mod += val
                         events.append(f'{user.skills[idx].name} 威力永久+{val}')
+        return events
+
+    # ═══════════════════════════════════════════════════════════════
+    # L4: 反击伤害（独立简化公式，不走 L2 calc_damage）
+    # ═══════════════════════════════════════════════════════════════
+
+    @staticmethod
+    def resolve_counter_damage(
+        user: 'Sprite', target: 'Sprite', use: 'SkillUse',
+        globals_: 'GlobalEffects', ctx: 'TurnContext | None' = None,
+    ) -> list[str]:
+        """L4: 反击伤害。使用独立简化公式（power × atk/def × type），
+        不含 STAB、天气、印记、burst 倍率。"""
+        events: list[str] = []
+        for effect in use.battle_skill.effects:
+            if getattr(effect, 'kind', '') != 'special':
+                continue
+            if effect.name != SpecialName.COUNTER_DAMAGE:
+                continue
+            handler = _SPECIAL_HANDLERS.get(SpecialName.COUNTER_DAMAGE)
+            if handler:
+                events += handler(user, target, effect, globals_, ctx, use)
         return events
 
     # ── Special 效果处理器（链式注册）──
