@@ -17,7 +17,8 @@ from .traits import (
     dispatch_entry, dispatch_leave, dispatch_turn_start, dispatch_turn_end,
     dispatch_modifier, dispatch_damage, dispatch_skill_use,
     dispatch_take_damage, dispatch_ko_enemy, dispatch_counter_success,
-    dispatch_faint, dispatch_energy_short,
+    dispatch_faint, dispatch_energy_short, dispatch_defend,
+    dispatch_abnormal_tick,
 )
 
 if TYPE_CHECKING:
@@ -76,6 +77,20 @@ class Battle(BattleMechanicsMixin):
         self._borrowed_restore: dict[tuple[str, int], 'Skill'] = {}
         self.team_counters: dict[str, dict[str, int]] = {'A': {}, 'B': {}}  # pre-entry accumulators
         self.pending_effects: dict[str, list] = {'A': [], 'B': []}  # leave-buff → next entry
+        self.species_db = None  # 由 SimFactory 注入，供形态变换查询
+        self.skill_loader = None  # 由 SimFactory 注入，供形态变换加载技能
+
+    def lookup_species(self, name: str, form: str = ''):
+        """形态变换时查询目标物种。由 SimFactory 注入数据库后可用。"""
+        if self.species_db is None:
+            return None
+        return self.species_db.get(name, form)
+
+    def build_skills(self, skill_names: list[str]) -> list:
+        """形态变换时构建技能列表。由 SimFactory 注入后可用。"""
+        if self.skill_loader is None:
+            return []
+        return self.skill_loader(skill_names)
 
     @property
     def is_finished(self) -> bool:
@@ -149,10 +164,58 @@ class Battle(BattleMechanicsMixin):
     def _phase_turn_start(self) -> list[str]:
         """回合开始效果（天气、场地、特性触发）。"""
         events: list[str] = []
+        # 杠杆置换（先于传动）— 预留钩子
+        # 传动（回合开始自动执行）
+        prev_a = [bs.name for bs in self.player_a.active.skills] if not self.player_a.active.is_fainted else []
+        prev_b = [bs.name for bs in self.player_b.active.skills] if not self.player_b.active.is_fainted else []
+        if not self.player_a.active.is_fainted:
+            events += self._apply_transmission(self.player_a.active)
+        if not self.player_b.active.is_fainted:
+            events += self._apply_transmission(self.player_b.active)
+        # 机械变式：传动后技能位置变化 → 能耗-1
+        for team, sprite, prev in [('A', self.player_a.active, prev_a), ('B', self.player_b.active, prev_b)]:
+            if sprite.is_fainted or not prev:
+                continue
+            from .traits import get_trait
+            h = get_trait(sprite)
+            if h and h.name == '机械变式':
+                for i, bs in enumerate(sprite.skills):
+                    if i < len(prev) and bs.name != prev[i]:
+                        bs.base.energy_cost = max(0, bs.base.energy_cost - 1)
+                        events.append(f'{sprite.name} 机械变式: {bs.name} 能耗-1(传动位移)')
+        # trait turn_start
         if not self.player_a.active.is_fainted:
             events += dispatch_turn_start(self.player_a.active, self, 'A')
         if not self.player_b.active.is_fainted:
             events += dispatch_turn_start(self.player_b.active, self, 'B')
+
+        # 不朽：力竭后 3 回合复活（扫描 bench）
+        for team in ('A', 'B'):
+            player = self.get_player(team)
+            for i, s in enumerate(player.team):
+                if not s.is_fainted:
+                    continue
+                faint_turn = getattr(s, '_faint_turn', 0)
+                if faint_turn <= 0:
+                    continue
+                if self.turn - faint_turn < 3:
+                    continue
+                # 复活
+                s.current_hp = max(1, s.max_hp)
+                s.energy = min(5, s.energy + 3)
+                s._faint_turn = 0
+                events.append(f'{s.name} 不朽: 第{faint_turn}回合力竭 → 第{self.turn}回合复活')
+                # 如果该队无存活精灵，自动换上
+                if player.active.is_fainted and i != player.active_index:
+                    old_active = player.active
+                    player.active_index = i
+                    new = player.active
+                    new.clear_effects('battlefield')
+                    new.entry_turn = self.turn
+                    new.first_action = True
+                    new.inc_counter('times_entered')
+                    events.append(f'{old_active.name}↓ {new.name}↑(不朽复活)')
+
         return events
 
     # ═══════════════════════════════════════════════════════════════
@@ -366,10 +429,12 @@ class Battle(BattleMechanicsMixin):
         user.inc_counter(f'skill_used:{skill.name}')
         user.inc_counter('skills_used')
 
-        # 迸发：第一次行动标记在伤害/效果前消费
-        burst_specials = [e for e in skill.effects if getattr(e, 'kind', '') == 'special']
-        is_burst = user.first_action and any(e.name == SpecialName.BURST for e in burst_specials)
-        user.first_action = False
+        # 迸发/初次行动标记：L0 modifier 和 L2 calc_damage 需要读取
+        # 在 L2 伤害计算之后消费（见下方）
+        is_burst = user.first_action and any(
+            e.name == SpecialName.BURST
+            for e in skill.effects if getattr(e, 'kind', '') == 'special'
+        )
 
         ctx = TurnContext(turn=self.turn, is_first=is_first,
                           countered_skill=countered_skill,
@@ -446,6 +511,10 @@ class Battle(BattleMechanicsMixin):
                     break
 
                 if skill.is_attack:
+                    # ── trait: 防御方伤害修正（偏振/绝对秩序等）──
+                    target_team_def = 'B' if team == 'A' else 'A'
+                    events += dispatch_defend(target, user, use, self, target_team_def)
+
                     damage, dmg_events = self._resolver.calc_damage(
                         user, target, use, self.globals,
                         attacker_team=team,
@@ -479,6 +548,23 @@ class Battle(BattleMechanicsMixin):
                         healed = user.heal(round(damage * drain_pct))
                         if healed:
                             events.append(f'{user.name} 吸血{drain_pct*100:.0f}%+{healed}HP')
+
+        # 迸发/初次行动标记消费（L2 之后，L3 之前）
+        # 连续负荷 可设置 _burst_remaining 延长迸发回合数
+        remaining = getattr(user, '_burst_remaining', 0)
+        if remaining > 0:
+            user._burst_remaining = remaining - 1
+        else:
+            user.first_action = False
+
+        # 星陨结算（非幻系攻击 → 消耗星陨印记 → 额外幻系伤害）
+        if skill.is_attack and not target.is_fainted:
+            defender_team_star = 'B' if team == 'A' else 'A'
+            star_dmg, star_events = self._resolver.resolve_starfall(
+                user, target, skill, self.globals, defender_team_star)
+            events += star_events
+            if target.is_fainted:
+                events += dispatch_ko_enemy(user, target, self, team)
 
         # ═══ L3: 状态层 [once] ═══
         # stat/abnormal/mark/weather + L3 specials，按 effects 数组顺序执行
@@ -578,9 +664,46 @@ class Battle(BattleMechanicsMixin):
 
         events += SkillResolver.turn_end(sprites, self.globals)
 
+        # ── 异常 tick trait 通知（只读，不修改层数/HP）──
+        for team, sprite in list(sprites.items()):
+            for e in sprite.effects:
+                if e.category != 'abnormal':
+                    continue
+                if e.name in ('灼烧', '中毒'):
+                    dmg = max(1, round(sprite.max_hp / 16)) if e.name == '灼烧' else max(1, round(sprite.max_hp / 8))
+                    events += dispatch_abnormal_tick(sprite, e.name, dmg, self, team)
+                    opp_team = 'B' if team == 'A' else 'A'
+                    opp = self.get_opponent(team).active
+                    if not opp.is_fainted:
+                        events += dispatch_abnormal_tick(opp, e.name, dmg, self, opp_team)
+
         # ── trait turn end hook ──
         for team, sprite in sprites.items():
             events += dispatch_turn_end(sprite, self, team)
+
+        # 星地善良：回合末若己方能量=0，板凳星地善良替换上场
+        for team in ('A', 'B'):
+            player = self.get_player(team)
+            active = player.active
+            if active.is_fainted or active.energy > 0:
+                continue
+            for i, bench_sprite in enumerate(player.team):
+                if i == player.active_index or bench_sprite.is_fainted:
+                    continue
+                from .traits import get_trait
+                h = get_trait(bench_sprite)
+                if h and h.name == '星地善良':
+                    old = active
+                    player.active_index = i
+                    new = player.active
+                    new.clear_effects('battlefield')
+                    new.entry_turn = self.turn
+                    new.first_action = True
+                    new.inc_counter('times_entered')
+                    events.append(f'{old.name} 能量0↓ {new.name}↑(星地善良)')
+                    events += dispatch_leave(old, self, team)
+                    events += dispatch_entry(new, self, team)
+                    break
 
         # 回合结束力竭检查
         for team in ('A', 'B'):

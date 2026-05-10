@@ -55,6 +55,7 @@ def make_sprite(species: SpeciesStats, skills: list[BattleSkill],
     max_hp = stats['hp']
     s = Sprite(
         species=species,
+        bloodline=species.bloodline,
         initial_stats=stats,
         current_hp=hp if hp is not None else max_hp,
         max_hp=max_hp, energy=energy,
@@ -324,9 +325,9 @@ def test_l3_state():
         f'Expected weather turns 4 after tick, got {battle.globals.weather_turns}'
 
     # L3b: mark(光合印记, own_team)
-    pos_mark, _ = battle.globals.get_marks('A')
-    assert pos_mark is not None and pos_mark.name == '光合印记', \
-        f'Expected 光合印记, got {pos_mark}'
+    pos_marks, _ = battle.globals.get_marks('A')
+    assert len(pos_marks) >= 1 and pos_marks[0].name == '光合印记', \
+        f'Expected 光合印记, got {pos_marks}'
 
     # L3b: adjacent_power_bonus → 相邻技能 power_mod 增加
     # conditional(weather_is rain → sp_atk+1)
@@ -529,9 +530,9 @@ def test_l6_turn_end():
         f'Weather turns should tick down from 4, got {battle.globals.weather_turns}'
 
     # L6: 印记光合印记 → turn_end +1 E (A 已满能量，静默处理)
-    pos_mark, _ = battle.globals.get_marks('A')
-    assert pos_mark is not None and pos_mark.name == '光合印记', \
-        f'Mark should still exist, got {pos_mark}'
+    pos_marks, _ = battle.globals.get_marks('A')
+    assert len(pos_marks) >= 1 and pos_marks[0].name == '光合印记', \
+        f'Mark should still exist, got {pos_marks}'
 
     dmg_taken = hp_before - s_b.current_hp
     print(f'  L6 turn_end: B HP {hp_before}→{s_b.current_hp} (-{dmg_taken}), '

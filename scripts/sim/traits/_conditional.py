@@ -127,8 +127,9 @@ class FallingStar(TraitHandler):
             return []
         opp_team = 'B' if team == 'A' else 'A'
         _, neg = battle.globals.get_marks(opp_team)
-        if neg and neg.name == '星陨印记':
-            use.modifiers['power_mult'] = use.modifiers.get('power_mult', 1.0) + neg.stacks * 0.15
+        starfall = next((m for m in neg if m.name == '星陨印记'), None)
+        if starfall:
+            use.modifiers['power_mult'] = use.modifiers.get('power_mult', 1.0) + starfall.stacks * 0.15
         return []
 
 
@@ -144,8 +145,9 @@ class Stargazing(TraitHandler):
             return []
         opp_team = 'B' if team == 'A' else 'A'
         _, neg = battle.globals.get_marks(opp_team)
-        if neg and neg.name == '星陨印记':
-            use.modifiers['power_mult'] = use.modifiers.get('power_mult', 1.0) + neg.stacks * 0.15
+        starfall = next((m for m in neg if m.name == '星陨印记'), None)
+        if starfall:
+            use.modifiers['power_mult'] = use.modifiers.get('power_mult', 1.0) + starfall.stacks * 0.15
         return []
 
 
@@ -740,8 +742,11 @@ class SweepMop(TraitHandler):
     def on_turn_end(self, sprite: Sprite, battle: Battle, team: str) -> list[str]:
         opp_team = 'B' if team == 'A' else 'A'
         pos, neg = battle.globals.get_marks(opp_team)
-        target = pos or neg
-        if target and target.stacks > 0:
+        all_marks = pos + neg
+        if not all_marks:
+            return []
+        target = all_marks[0]
+        if target.stacks > 0:
             target.stacks -= 1
             player = battle.get_player(team)
             player.lives += 1

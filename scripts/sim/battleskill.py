@@ -23,6 +23,9 @@ class BattleSkill:
     cooldown: int = 0               # 剩余冷却回合（防御技能）
     next_attack_mult: float = 1.0   # 下次攻击威力倍率（热身），使用后重置为 1
     nullified: bool = False         # 打断标记：技能被无效化但不破坏 base
+    sealed: bool = False            # 封印标记：此槽位不可选用（宝剑王牌/正位宝剑）
+    _transmission: int = 0          # 传动等级（向心力/翼轴）
+    _main_axis: bool = False        # 主轴技能：不参与传动
 
     @property
     def skill(self) -> 'Skill':

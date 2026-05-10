@@ -8,7 +8,7 @@ import random
 from typing import TYPE_CHECKING
 
 from .action import Action
-from .traits import dispatch_entry, dispatch_leave, dispatch_faint
+from .traits import dispatch_entry, dispatch_leave, dispatch_faint, dispatch_enemy_leave
 
 if TYPE_CHECKING:
     from .sprite import Sprite
@@ -54,6 +54,12 @@ class BattleMechanicsMixin:
         # ── trait hooks ──
         events += dispatch_leave(old, self, team)
         events += dispatch_entry(new, self, team)
+        # 入场传动（首回合入场自动传动一次）
+        events += self._apply_transmission(new)
+        # 通知敌方：观测到对手换宠（做噩梦/下黑手/珊瑚骨）
+        opp_active = self.get_opponent(team).active
+        if not opp_active.is_fainted:
+            events += dispatch_enemy_leave(opp_active, old, new, self, opp_team)
         # team counter: enemy switch (搜刮 等 pre-entry accumulator)
         self.inc_team_counter(opp_team, 'enemy_switch')
 
@@ -74,6 +80,7 @@ class BattleMechanicsMixin:
 
         # ── trait entry hook ──
         events += dispatch_entry(sprite, self, team)
+        events += self._apply_transmission(sprite)
 
         return events
 
@@ -112,6 +119,12 @@ class BattleMechanicsMixin:
         events += dispatch_leave(old, self, team, is_faint=True)
         events += dispatch_faint(old, None, self, team)
         events += dispatch_entry(new, self, team)
+        events += self._apply_transmission(new)
+        # 通知敌方：观测到对手力竭换宠（做噩梦/下黑手/珊瑚骨）
+        opp_team = 'B' if team == 'A' else 'A'
+        opp_active = self.get_opponent(team).active
+        if not opp_active.is_fainted:
+            events += dispatch_enemy_leave(opp_active, old, new, self, opp_team)
 
     def _resolve_item(self, team: str) -> str:
         """使用道具，立即应用效果。返回道具名（用于记录）。"""
@@ -126,6 +139,11 @@ class BattleMechanicsMixin:
         sprite = player.active
 
         if item.name == '进化之力':
+            if sprite.bloodline != '首领':
+                return ''
+            boss_species = self.species_db.get_alternate_species(sprite.species) if self.species_db else None
+            if boss_species:
+                sprite.transform(boss_species, None)
             for key in ['atk', 'sp_atk', 'def', 'sp_def', 'speed']:
                 sprite.add_effect(StatusEffect(
                     name='首领化', category='stat', stat_key=key, steps=2,
@@ -199,3 +217,77 @@ class BattleMechanicsMixin:
             self._borrowed_restore[(team, skill_index)] = bs.base
             bs.replaced_by = borrowed.base
             events.append(f'{user.name} 借用 {donor.name} 的 {borrowed.name}')
+
+    # ═══════════════════════════════════════════════════════════════
+    # 传动系统
+    # ═══════════════════════════════════════════════════════════════
+
+    def _apply_transmission(self, sprite: 'Sprite') -> list[str]:
+        """执行一次传动 pass：传动技能向下移动一个槽位，相邻传动合成块。
+
+        传动X: 传动 >= 当前 pass 的参与本次移动。
+        返回事件列表。"""
+        skills = sprite.skills
+        n = len(skills)
+        if n < 2:
+            return []
+
+        events: list[str] = []
+        max_lv = max((getattr(bs, '_transmission', 0) for bs in skills), default=0)
+        if max_lv <= 0:
+            return events
+
+        # 多 pass：先所有传动一起移动（pass 0），再仅传动2 单独移动（pass 1），依此类推
+        for pass_num in range(max_lv):
+            moved: set[int] = set()
+            moves: list[tuple[int, int]] = []  # (old_pos, new_pos)
+
+            i = 0
+            while i < n:
+                bs = skills[i]
+                trans_lv = getattr(bs, '_transmission', 0)
+                main_axis = getattr(bs, '_main_axis', False)
+                if trans_lv <= pass_num or main_axis:
+                    i += 1
+                    continue
+
+                # 找到传动块 [block_start, block_end]
+                block_start = i
+                block_end = i
+                while block_end + 1 < n:
+                    next_bs = skills[block_end + 1]
+                    next_lv = getattr(next_bs, '_transmission', 0)
+                    next_axis = getattr(next_bs, '_main_axis', False)
+                    if next_lv > pass_num and not next_axis:
+                        block_end += 1
+                    else:
+                        break
+
+                # 被顶替的技能位置（块下端 + 1，四号位下行到一号位）
+                displaced_idx = (block_end + 1) % n
+                displaced = skills[displaced_idx]
+                if getattr(displaced, '_main_axis', False):
+                    # 主轴技能不参与：跳过整个块
+                    i = block_end + 1
+                    continue
+
+                # 块内每个技能下移一个位置
+                for pos in range(block_start, block_end + 1):
+                    moves.append((pos, (pos + 1) % n))
+                    moved.add(pos)
+
+                # 被顶替的技能移到块顶端
+                moves.append((displaced_idx, block_start))
+                moved.add(displaced_idx)
+
+                i = block_end + 1
+
+            # 应用移动
+            if moves:
+                temp = list(skills)
+                for old_pos, new_pos in moves:
+                    skills[new_pos] = temp[old_pos]
+                names = '/'.join(bs.name for bs in skills)
+                events.append(f'{sprite.name} 传动→ {names}')
+
+        return events

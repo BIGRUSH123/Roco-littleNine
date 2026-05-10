@@ -54,6 +54,11 @@ class TraitHandler:
         """L1→L2：影响伤害计算。"""
         return []
 
+    def on_defend(self, target: Sprite, attacker: Sprite, use: SkillUse,
+                  battle: Battle, team: str) -> list[str]:
+        """L1→L2：防御方特性修改 incoming 伤害（偏振/绝对秩序等）。"""
+        return []
+
     def on_skill_use(self, user: Sprite, skill: BattleSkill,
                      battle: Battle, team: str) -> list[str]:
         """技能执行完毕后触发。"""
@@ -99,6 +104,16 @@ class TraitHandler:
     def on_inflict(self, user: Sprite, target: Sprite, effect_name: str,
                    battle: Battle, team: str) -> list[str]:
         """对敌方施加效果时触发。"""
+        return []
+
+    def on_enemy_leave(self, sprite: Sprite, enemy_old: Sprite,
+                        enemy_new: Sprite, battle: Battle, team: str) -> list[str]:
+        """敌方精灵离场时触发（做噩梦/下黑手/珊瑚骨）。"""
+        return []
+
+    def on_abnormal_tick(self, sprite: Sprite, effect_name: str, damage: int,
+                         battle: Battle, team: str) -> list[str]:
+        """异常效果回合末扣血时触发（仁心/耐活王/煤渣草）。"""
         return []
 
 
@@ -190,6 +205,13 @@ def dispatch_damage(user: Sprite, target: Sprite, use: SkillUse,
     return h.on_damage(user, target, use, battle, team) if h else []
 
 
+def dispatch_defend(target: Sprite, attacker: Sprite, use: SkillUse,
+                    battle: Battle, team: str) -> list[str]:
+    """防御方特性修改 incoming 伤害（偏振/绝对秩序 等）。"""
+    h = get_trait(target)
+    return h.on_defend(target, attacker, use, battle, team) if h else []
+
+
 def dispatch_skill_use(user: Sprite, skill: BattleSkill,
                        battle: Battle, team: str) -> list[str]:
     h = get_trait(user)
@@ -251,6 +273,20 @@ def dispatch_inflict(user: Sprite, target: Sprite, effect_name: str,
                      battle: Battle, team: str) -> list[str]:
     h = get_trait(user)
     return h.on_inflict(user, target, effect_name, battle, team) if h else []
+
+
+def dispatch_enemy_leave(observer: Sprite, enemy_old: Sprite, enemy_new: Sprite,
+                          battle: Battle, team: str) -> list[str]:
+    """敌方精灵离场时，通知己方 observer（做噩梦/下黑手/珊瑚骨）。"""
+    h = get_trait(observer)
+    return h.on_enemy_leave(observer, enemy_old, enemy_new, battle, team) if h else []
+
+
+def dispatch_abnormal_tick(sprite: Sprite, effect_name: str, damage: int,
+                            battle: Battle, team: str) -> list[str]:
+    """异常效果回合末扣血时触发（仁心/耐活王/煤渣草）。"""
+    h = get_trait(sprite)
+    return h.on_abnormal_tick(sprite, effect_name, damage, battle, team) if h else []
 
 
 def _opposite_team(team: str) -> str:

@@ -87,9 +87,22 @@ class RuleAgent:
             if replacement is not None:
                 return Action(kind='switch', switch_index=replacement)
 
-        # 低能量 → 聚能
-        if s.energy <= style.gather_energy_threshold:
+        # 低能量 → 聚能（蓄力中除外，蓄力技能必须释放）
+        has_charging = getattr(s, '_charging', False)
+        if s.energy <= style.gather_energy_threshold and not has_charging:
             return Action(kind='gather')
+
+        # 蓄力中：强制释放蓄力技能（游弋/嫉妒 可任选）
+        if has_charging:
+            charged_idx = getattr(s, '_charged_skill_index', -1)
+            # 游弋/嫉妒 trait：蓄力期间可选任一技能
+            from .traits import get_trait
+            h = get_trait(s)
+            free_charge = h and h.name in ('游弋', '嫉妒')
+            if free_charge and charged_idx < 0:
+                pass  # fall through to normal skill selection
+            elif 0 <= charged_idx < len(s.skills) and not s.skills[charged_idx].sealed:
+                return Action(kind='skill', skill_index=charged_idx)
 
         opponent = battle.get_opponent(self.team).active
 
@@ -97,8 +110,10 @@ class RuleAgent:
         best_idx = -1
         best_score = -1.0
         for i, skill in enumerate(s.skills):
-            # 跳过冷却中的技能
+            # 跳过冷却中 / 被封印的技能
             if s.skills[i].cooldown > 0:
+                continue
+            if s.skills[i].sealed:
                 continue
             if skill.energy_cost > s.energy:
                 continue
@@ -237,10 +252,10 @@ class HumanAgent:
         pos, neg = battle.globals.get_marks(team)
         if pos or neg:
             parts = []
-            if pos:
-                parts.append(f'{pos.name}(+×{pos.stacks})')
-            if neg:
-                parts.append(f'{neg.name}(-×{neg.stacks})')
+            for m in pos:
+                parts.append(f'{m.name}(+×{m.stacks})')
+            for m in neg:
+                parts.append(f'{m.name}(-×{m.stacks})')
             print(f'  印记: {", ".join(parts)}')
 
     # ── 输入工具 ──

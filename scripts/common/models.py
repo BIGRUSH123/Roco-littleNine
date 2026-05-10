@@ -12,6 +12,7 @@ from typing import Optional
 class SpeciesStats:
     """精灵种族值（物种基础属性）。"""
     name: str
+    number: str = ""
     form: str = ""
     hp: int = 0
     atk: int = 0
@@ -20,6 +21,7 @@ class SpeciesStats:
     sp_def: int = 0
     speed: int = 0
     attributes: str = ""
+    bloodline: str = ""
     ability: str = ""
 
     def base_dict(self) -> dict[str, int]:

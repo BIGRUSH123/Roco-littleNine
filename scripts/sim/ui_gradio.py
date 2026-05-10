@@ -119,10 +119,10 @@ def _format_effects(sprite) -> str:
 def _format_marks(battle, team: str) -> str:
     pos, neg = battle.globals.get_marks(team)
     parts = []
-    if pos:
-        parts.append(f"+{pos.name}&times;{pos.stacks}")
-    if neg:
-        parts.append(f"-{neg.name}&times;{neg.stacks}")
+    for m in pos:
+        parts.append(f"+{m.name}&times;{m.stacks}")
+    for m in neg:
+        parts.append(f"-{m.name}&times;{m.stacks}")
     if parts:
         return f'<div style="font-size:11px;color:#fbbf24;margin-top:2px;">印记: {", ".join(parts)}</div>'
     return ""

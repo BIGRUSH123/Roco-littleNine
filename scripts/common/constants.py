@@ -61,3 +61,21 @@ PERSISTENT_ABNORMALS: frozenset[str] = frozenset(ABNORMAL_TYPES)
 def is_persistent_abnormal(effect: str) -> bool:
     """判断是否为换宠后依然持续的异常状态。"""
     return effect in PERSISTENT_ABNORMALS
+
+
+# ═══════════════════════════════════════════════
+# 血脉（18 系 + 首领 + 污染 + 奇异 = 21 种）
+# ═══════════════════════════════════════════════
+
+ELEMENTAL_BLOODLINES: list[str] = [
+    '普通', '火', '水', '草', '电', '冰', '地', '石',
+    '武', '虫', '翼', '萌', '毒', '幽', '恶', '幻',
+    '光', '龙', '机械',
+]
+
+SPECIAL_BLOODLINES: list[str] = ['首领', '污染', '奇异']
+
+BLOODLINES: list[str] = ELEMENTAL_BLOODLINES + SPECIAL_BLOODLINES
+
+# 不可变更的血脉
+LOCKED_BLOODLINES: frozenset[str] = frozenset(['污染', '奇异'])

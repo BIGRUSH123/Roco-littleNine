@@ -343,7 +343,16 @@ class SkillResolver:
 
     @staticmethod
     def _special_charge(user, _target, _effect, _g, _ctx, _use):
-        return [f'{user.name} 蓄力']
+        if getattr(user, '_charging', False):
+            # 蓄力释放：清空蓄力状态
+            user._charging = False
+            user._charged_skill_index = -1
+            return [f'{user.name} 蓄力释放']
+        else:
+            # 进入蓄力
+            user._charging = True
+            user._charged_skill_index = _use.skill_index if _use else -1
+            return [f'{user.name} 蓄力']
 
     @staticmethod
     def _special_escape(user, _target, _effect, _g, _ctx, _use):
@@ -660,6 +669,7 @@ class SkillResolver:
 
         base = round((37 / 41) * effective_power * atk_val / def_val)
         type_mult = SkillResolver._get_type_mult(bs, attacker, defender)
+        use.modifiers['type_mult'] = type_mult  # 供 trait (最好的伙伴等) 读取
         weather_mult = globals_.weather_damage_mult(bs.element or '')
         mark_mult = globals_.mark_damage_mult(attacker_team, use.is_first)
         stab_mult = SkillResolver._get_stab(bs, attacker)
@@ -671,6 +681,32 @@ class SkillResolver:
         damage = max(1, damage)
 
         return damage, events
+
+    @staticmethod
+    def resolve_starfall(user: 'Sprite', target: 'Sprite', skill: 'BattleSkill',
+                         globals_: 'GlobalEffects', defender_team: str) -> tuple[int, list[str]]:
+        """星陨结算：非幻系攻击技能消耗星陨印记，造成额外幻系伤害。
+        伤害公式：y = x² + 24x - 24，其中 x = 消耗前层数。
+        返回 (额外伤害, 事件列表)。"""
+        events: list[str] = []
+        if not skill.is_attack or skill.element == '幻':
+            return 0, events
+
+        _, neg = globals_.get_marks(defender_team)
+        starfall = next((m for m in neg if m.name == '星陨印记'), None)
+        if not starfall or starfall.stacks <= 0:
+            return 0, events
+
+        x = starfall.stacks
+        consumed = globals_.consume_starfall_stacks(defender_team, x, user)
+        if consumed <= 0:
+            return 0, events
+
+        # 用原始层数 x 计算伤害（守望星消耗一半但按全额算）
+        dmg = max(1, x * x + 24 * x - 24)
+        actual = target.take_damage(dmg)
+        events.append(f'{target.name} 星陨爆发 -{actual}HP(消耗{consumed}层)')
+        return actual, events
 
     @staticmethod
     def _get_type_mult(skill: 'Skill', attacker: 'Sprite', defender: 'Sprite') -> float:

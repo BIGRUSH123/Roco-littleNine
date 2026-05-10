@@ -53,6 +53,7 @@ class Sprite:
 
     # ── 静态 ──
     species: SpeciesStats
+    bloodline: str = ""
     skills: list['BattleSkill'] = field(default_factory=list)
 
     # ── 初始六维（nature + IV 后的最终值，mods 前） ──
@@ -240,8 +241,16 @@ class Sprite:
         self.current_hp += actual
         return actual
 
+    @property
+    def max_energy(self) -> int:
+        from .traits import get_trait
+        h = get_trait(self)
+        if h and h.name == '多人宿舍':
+            return 15
+        return 10
+
     def gain_energy(self, amount: int) -> int:
-        room = max(0, 10 - self.energy)
+        room = max(0, self.max_energy - self.energy)
         actual = min(room, amount)
         self.energy += actual
         return actual
@@ -257,8 +266,23 @@ class Sprite:
     def from_result(cls, result: StatsResult, energy: int = 10) -> 'Sprite':
         return cls(
             species=result.species,
+            bloodline=result.species.bloodline,
             initial_stats=dict(result.final_stats),
             current_hp=result.final_stats['hp'],
             max_hp=result.final_stats['hp'],
             energy=energy,
         )
+
+    def transform(self, new_species, new_skills: list) -> list[str]:
+        """形态变换：替换 species + skills，保留 HP 比例/能量/效果/计数器。"""
+        hp_ratio = self.current_hp / max(1, self.max_hp)
+        old_name = self.name
+        self.species = new_species
+        old_stats = dict(self.initial_stats)
+        self.initial_stats = new_species.base_dict()
+        self.max_hp = new_species.hp
+        self.current_hp = max(1, round(new_species.hp * hp_ratio))
+        if new_skills:
+            self.skills = new_skills
+        self.first_action = True  # 形态变换后首次行动触发迸发
+        return [f'{old_name} 形态变换 → {self.name}']

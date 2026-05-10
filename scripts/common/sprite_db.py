@@ -57,15 +57,19 @@ class SpriteDB:
             else:
                 base_name, form = name_full, ''
             try:
+                attr_str = data.get('attributes', '').strip().strip('[]')
+                bloodline = attr_str.split(',')[0].strip() if attr_str else ''
                 stats = SpeciesStats(
                     name=base_name, form=form,
+                    number=data.get('number', '').strip(),
                     hp=int(data.get('hp', '0')),
                     atk=int(data.get('atk', '0')),
                     sp_atk=int(data.get('sp_atk', '0')),
                     def_=int(data.get('def', '0')),
                     sp_def=int(data.get('sp_def', '0')),
                     speed=int(data.get('speed', '0')),
-                    attributes=data.get('attributes', ''),
+                    attributes=attr_str,
+                    bloodline=bloodline,
                 )
             except (ValueError, TypeError):
                 continue
@@ -90,15 +94,19 @@ class SpriteDB:
                     if not name:
                         continue
                     try:
+                        attr_str = row.get('attributes', '').strip()
+                        bloodline = attr_str.split(',')[0].strip() if attr_str else ''
                         stats = SpeciesStats(
                             name=name, form=form,
+                            number=row.get('no', '').strip(),
                             hp=int(row.get('hp', '0') or '0'),
                             atk=int(row.get('atk', '0') or '0'),
                             sp_atk=int(row.get('sp_atk', '0') or '0'),
                             def_=int(row.get('def', '0') or '0'),
                             sp_def=int(row.get('sp_def', '0') or '0'),
                             speed=int(row.get('spd', '0') or '0'),
-                            attributes=row.get('attributes', ''),
+                            attributes=attr_str,
+                            bloodline=bloodline,
                             ability=row.get('ability_name', ''),
                         )
                     except (ValueError, TypeError):
@@ -148,3 +156,13 @@ class SpriteDB:
     def list_forms(self, name: str) -> list[str]:
         """返回某个 base name 下的所有形态名。"""
         return [self._db[d].form for d in self._index.get(name, [])]
+
+    def get_alternate_species(self, species: SpeciesStats) -> Optional[SpeciesStats]:
+        """查找同一编号下的另一种形态（首领化目标）。返回 None 若无。"""
+        no = species.number
+        if not no:
+            return None
+        for display, ss in self._db.items():
+            if ss.number == no and ss.name != species.name:
+                return ss
+        return None
