@@ -670,8 +670,14 @@ class SkillResolver:
         atk_stage = atk_steps / _STEP_PCT
         def_stage = def_steps / _STEP_PCT
 
-        # 威力 = (技能威力 * 应对百分比加成 + 固定威力增益) * 百分比威力增益
-        counter_mult = 1.0  # 应对百分比加成（预留）
+        # 迸发
+        burst_mult = 1.5 if (
+            SpecialName.BURST in [e.name for e in bs.effects if getattr(e, 'kind', '') == 'special']
+            and attacker.first_action
+        ) else 1.0
+
+        # 应对百分比加成 = 迸发倍率 * 技能伤害倍率
+        counter_mult = burst_mult * use.damage_mult
         additive_power = (
             attacker.power_mod * 10
             + globals_.mark_power_bonus(attacker_team, bs)
@@ -685,22 +691,19 @@ class SkillResolver:
         type_mult = SkillResolver._get_type_mult(bs, attacker, defender)
         use.modifiers['type_mult'] = type_mult  # 供 trait 读取
         weather_mult = globals_.weather_damage_mult(bs.element or '')
+
+        # 印记加成归入 stat stage 项
         mark_mult = globals_.mark_damage_mult(attacker_team, use.is_first)
+        mark_bonus = mark_mult - 1.0
 
         # 本系加成 125%
         stab_mult = SkillResolver._get_stab(bs, attacker)
 
-        # 迸发
-        burst_mult = 1.5 if (
-            SpecialName.BURST in [e.name for e in bs.effects if getattr(e, 'kind', '') == 'special']
-            and attacker.first_action
-        ) else 1.0
-
         # 核心公式
         core = (37 / 41) * atk_base / def_base * power_term
         core *= stab_mult * type_mult * weather_mult * (1.0 - use.damage_reduction)
-        core *= (1.0 + atk_stage - def_stage)
-        core *= burst_mult * mark_mult * use.damage_mult * use.multi_hit
+        core *= (1.0 + atk_stage - def_stage + mark_bonus)
+        core *= use.multi_hit
 
         damage = max(1, round(core))
         return damage, events
