@@ -54,6 +54,8 @@ class BattleMechanicsMixin:
         # ── trait hooks ──
         events += dispatch_leave(old, self, team)
         events += dispatch_entry(new, self, team)
+        # team counter: enemy switch (搜刮 等 pre-entry accumulator)
+        self.inc_team_counter(opp_team, 'enemy_switch')
 
         self._check_faint_interrupt(team, events)
         return events

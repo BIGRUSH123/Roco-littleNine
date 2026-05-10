@@ -74,6 +74,8 @@ class Battle(BattleMechanicsMixin):
         self._agent_b: 'Agent | None' = None
         self.verbose = verbose
         self._borrowed_restore: dict[tuple[str, int], 'Skill'] = {}
+        self.team_counters: dict[str, dict[str, int]] = {'A': {}, 'B': {}}  # pre-entry accumulators
+        self.pending_effects: dict[str, list] = {'A': [], 'B': []}  # leave-buff → next entry
 
     @property
     def is_finished(self) -> bool:
@@ -84,6 +86,15 @@ class Battle(BattleMechanicsMixin):
 
     def get_opponent(self, team: str) -> 'Player':
         return self.player_b if team == 'A' else self.player_a
+
+    def inc_team_counter(self, team: str, key: str, amount: int = 1) -> None:
+        """增量队伍级事件计数器（供 pre-entry accumulator 特性使用）。"""
+        d = self.team_counters[team]
+        d[key] = d.get(key, 0) + amount
+
+    def get_team_counter(self, team: str, key: str) -> int:
+        """读取队伍级事件计数器。"""
+        return self.team_counters.get(team, {}).get(key, 0)
 
     def _get_agent(self, team: str) -> 'Agent':
         return self._agent_a if team == 'A' else self._agent_b  # type: ignore
@@ -241,8 +252,10 @@ class Battle(BattleMechanicsMixin):
                 )
             # trait: counter success hooks
             if counter_a:
+                self.inc_team_counter('A', 'counter_success')
                 events += dispatch_counter_success(s_a, countered_skill_a, self, 'A')
             if counter_b:
+                self.inc_team_counter('B', 'counter_success')
                 events += dispatch_counter_success(s_b, countered_skill_b, self, 'B')
             return events
 
@@ -317,6 +330,9 @@ class Battle(BattleMechanicsMixin):
             user.first_action = False
             user.inc_counter('times_gathered')
             events.append(f'{user.name} 聚能+{gained}E(→{user.energy})')
+            # team counter: enemy gather (搜刮 等 pre-entry accumulator)
+            opp_team = 'B' if team == 'A' else 'A'
+            self.inc_team_counter(opp_team, 'enemy_gather')
             return events
 
         # ── 技能 ──
@@ -500,6 +516,13 @@ class Battle(BattleMechanicsMixin):
         # ── trait: 技能执行完毕 ──
         if action.kind == 'skill':
             events += dispatch_skill_use(user, skill, self, team)
+            # team counters: pre-entry accumulators
+            if skill.element:
+                self.inc_team_counter(team, f'element:{skill.element}')
+            if skill.base.is_defense:
+                self.inc_team_counter(team, 'defense_skill')
+            elif not skill.base.is_attack:
+                self.inc_team_counter(team, 'status_skill')
 
         return events
 

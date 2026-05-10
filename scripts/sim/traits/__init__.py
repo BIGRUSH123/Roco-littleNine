@@ -139,8 +139,18 @@ def get_trait(sprite: Sprite) -> TraitHandler | None:
 # ═══════════════════════════════════════════════════════════════════
 
 def dispatch_entry(sprite: Sprite, battle: Battle, team: str) -> list[str]:
+    # 应用 pending effects（美拉德反应/吉利丁片等离场 buff）
+    pending = battle.pending_effects.get(team, [])
+    for e in pending:
+        sprite.add_effect(e)
+    if pending:
+        battle.pending_effects[team] = []
+
     h = get_trait(sprite)
-    return h.on_entry(sprite, battle, team) if h else []
+    events = h.on_entry(sprite, battle, team) if h else []
+    if pending:
+        events.append(f'{sprite.name} 继承{len(pending)}个离场效果')
+    return events
 
 
 def dispatch_leave(sprite: Sprite, battle: Battle, team: str,
