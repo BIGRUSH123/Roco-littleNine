@@ -1,0 +1,13 @@
+{
+  "name": "向心力",
+  "description": "1号位和2号位技能获得传动1和威力+30。",
+  "triggers": [
+    {
+      "on": "entry",
+      "battleskill_mut": [
+        {"filter": {"slot": [0, 1]}, "field": "_transmission", "op": "set", "value": 1},
+        {"filter": {"slot": [0, 1]}, "field": "power_mod", "op": "add", "value": 30}
+      ]
+    }
+  ]
+}

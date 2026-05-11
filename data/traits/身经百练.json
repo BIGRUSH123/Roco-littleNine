@@ -1,0 +1,24 @@
+{
+  "name": "身经百练",
+  "description": "入场时，根据己方队伍应对成功次数提升水系和武系技能威力。",
+  "triggers": [
+    {
+      "on": "entry",
+      "effects_mode": "replace",
+      "battleskill_mut": [
+        {
+          "filter": {"element": "水"},
+          "field": "power_mod",
+          "op": "add",
+          "value": "=@team_counters[counter_success]"
+        },
+        {
+          "filter": {"element": "武"},
+          "field": "power_mod",
+          "op": "add",
+          "value": "=@team_counters[counter_success]"
+        }
+      ]
+    }
+  ]
+}

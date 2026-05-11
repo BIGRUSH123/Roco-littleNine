@@ -1,0 +1,25 @@
+{
+  "name": "保守派",
+  "description": "总技能能耗<4时，双防+80%。",
+  "triggers": [
+    {
+      "on": "entry",
+      "condition": {"path": "enemy_total_energy_cost", "op": "lt", "value": 4},
+      "effects_mode": "conditional_replace",
+      "clear_condition": {"path": "enemy_total_energy_cost", "op": "lt", "value": 4},
+      "effects": [
+        {"kind": "stat", "stat": "def", "steps": 8, "scope": "persistent", "source": "保守派"},
+        {"kind": "stat", "stat": "sp_def", "steps": 8, "scope": "persistent", "source": "保守派"}
+      ]
+    },
+    {
+      "on": "skill_use",
+      "clear_condition": {"path": "self.energy_cost_total", "op": "lt", "value": 4},
+      "effects_mode": "conditional_replace",
+      "effects": [
+        {"kind": "stat", "stat": "def", "steps": 8, "scope": "persistent", "source": "保守派"},
+        {"kind": "stat", "stat": "sp_def", "steps": 8, "scope": "persistent", "source": "保守派"}
+      ]
+    }
+  ]
+}

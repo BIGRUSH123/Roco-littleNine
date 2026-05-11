@@ -1,0 +1,16 @@
+{
+  "name": "小偷小摸",
+  "description": "入场时偷取所有敌方精灵2能量。",
+  "triggers": [
+    {
+      "on": "entry",
+      "effects": [
+        {
+          "kind": "special",
+          "name": "steal_energy_all",
+          "amount": 2
+        }
+      ]
+    }
+  ]
+}

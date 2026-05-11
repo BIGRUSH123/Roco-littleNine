@@ -1,0 +1,19 @@
+{
+  "name": "观星",
+  "description": "敌方每有1层星陨印记，地系技能威力+15%。",
+  "triggers": [
+    {
+      "on": "modifier",
+      "condition": {
+        "kind": "and",
+        "conditions": [
+          {"path": "skill.is_attack", "op": "eq", "value": true},
+          {"path": "skill.element", "op": "eq", "value": "地"}
+        ]
+      },
+      "use_modifiers": {
+        "power_mult": {"op": "add", "value": "=@opp_starfall_stacks * 0.15"}
+      }
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "name": "虚假宝箱",
+  "description": "自己力竭时，敌方获得攻防+20%。",
+  "triggers": [
+    {
+      "on": "faint",
+      "condition": {"path": "killer", "op": "neq", "value": null},
+      "effects": [
+        {"kind": "stat", "stat": "atk", "steps": 2, "target": "killer", "scope": "battlefield", "source": "虚假宝箱"},
+        {"kind": "stat", "stat": "def", "steps": 2, "target": "killer", "scope": "battlefield", "source": "虚假宝箱"}
+      ]
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "name": "珊瑚骨",
+  "description": "敌方精灵离场时，自己获得全技能能耗-3。",
+  "triggers": [
+    {
+      "on": "enemy_leave",
+      "effects": [
+        {"kind": "stat", "stat": "energy_cost", "steps": -3, "scope": "permanent", "source": "珊瑚骨"}
+      ]
+    }
+  ]
+}

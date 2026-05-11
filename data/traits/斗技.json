@@ -1,0 +1,12 @@
+{
+  "name": "斗技",
+  "description": "应对成功后，全技能威力永久+20。",
+  "triggers": [
+    {
+      "on": "counter_success",
+      "battleskill_mut": [
+        {"field": "power_mod", "op": "add", "value": 20}
+      ]
+    }
+  ]
+}

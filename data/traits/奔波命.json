@@ -1,0 +1,11 @@
+{
+  "name": "奔波命",
+  "description": "使用防御技能后，回合结束时脱离。",
+  "triggers": [
+    {
+      "on": "skill_use",
+      "condition": {"path": "skill.is_defense", "op": "eq", "value": true},
+      "flags": {"_escape_pending": true}
+    }
+  ]
+}

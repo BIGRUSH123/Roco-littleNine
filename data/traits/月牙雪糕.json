@@ -1,0 +1,13 @@
+{
+  "name": "月牙雪糕",
+  "description": "使用攻击技能时，敌方每层冻结视为1层额外星陨印记。",
+  "triggers": [
+    {
+      "on": "modifier",
+      "condition": {"path": "skill.is_attack", "op": "eq", "value": true},
+      "effects": [
+        {"kind": "mark", "name": "星陨印记", "stacks": "=@target.effects[name=冻结].stacks", "mark_target": "opp_team"}
+      ]
+    }
+  ]
+}

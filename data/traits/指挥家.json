@@ -1,0 +1,13 @@
+{
+  "name": "指挥家",
+  "description": "应对成功后，永久获得双攻+20%。",
+  "triggers": [
+    {
+      "on": "counter_success",
+      "effects": [
+        {"kind": "stat", "stat": "atk", "steps": 2, "scope": "permanent", "source": "指挥家"},
+        {"kind": "stat", "stat": "sp_atk", "steps": 2, "scope": "permanent", "source": "指挥家"}
+      ]
+    }
+  ]
+}

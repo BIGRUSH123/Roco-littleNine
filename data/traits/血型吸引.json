@@ -1,0 +1,13 @@
+{
+  "name": "血型吸引",
+  "description": "敌方每携带1种系别的技能，攻击威力+10%。",
+  "triggers": [
+    {
+      "on": "modifier",
+      "condition": {"path": "skill.is_attack", "op": "eq", "value": true},
+      "use_modifiers": {
+        "power_mult": {"op": "add", "value": "=@enemy_unique_elements * 0.1"}
+      }
+    }
+  ]
+}

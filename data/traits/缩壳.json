@@ -1,0 +1,12 @@
+{
+  "name": "缩壳",
+  "description": "携带的防御技能能耗-2。",
+  "triggers": [
+    {
+      "on": "entry",
+      "battleskill_mut": [
+        {"filter": {"is_defense": true}, "field": "energy_cost", "op": "add", "value": -2}
+      ]
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "name": "扫拖一体",
+  "description": "回合结束时驱散敌方1层印记，己方队伍获得1次奉献。",
+  "triggers": [
+    {
+      "on": "turn_end",
+      "effects": [
+        {"kind": "special", "name": "dispel_mark", "count": 1, "mark_target_team": "opp"},
+        {"kind": "special", "name": "lives_add", "amount": 1}
+      ]
+    }
+  ]
+}

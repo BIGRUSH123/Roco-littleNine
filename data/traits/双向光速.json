@@ -1,0 +1,14 @@
+{
+  "name": "双向光速",
+  "description": "在场时，所有回合结束时触发次数+1。Layer 3b: 需注入 battle._light_speed_active flag。",
+  "triggers": [
+    {
+      "on": "entry",
+      "flags": {"_double_tick": true}
+    },
+    {
+      "on": "leave",
+      "flags": {"_double_tick": false}
+    }
+  ]
+}

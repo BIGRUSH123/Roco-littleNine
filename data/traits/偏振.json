@@ -1,0 +1,13 @@
+{
+  "name": "偏振",
+  "description": "受到自己携带技能系别的攻击伤害-40%。",
+  "triggers": [
+    {
+      "on": "defend",
+      "condition": {"path": "skill.element", "op": "in", "value": "=@defender_skill_elements"},
+      "use_modifiers": {
+        "damage_mult": {"op": "mult", "value": 0.6}
+      }
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "name": "专注力",
+  "description": "入场首回合，物攻+100%。",
+  "triggers": [
+    {
+      "on": "entry",
+      "effects": [
+        {
+          "kind": "stat",
+          "stat": "atk",
+          "steps": 10,
+          "scope": "battlefield",
+          "source": "专注力"
+        }
+      ]
+    }
+  ]
+}

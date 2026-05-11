@@ -1,0 +1,16 @@
+{
+  "name": "最好的伙伴",
+  "description": "造成克制伤害后，获得攻防速+20%并回复2能量。",
+  "triggers": [
+    {
+      "on": "damage",
+      "condition": {"path": "type_mult", "op": "gt", "value": 1.0},
+      "effects": [
+        {"kind": "stat", "stat": "atk", "steps": 2, "scope": "battlefield", "source": "最好的伙伴"},
+        {"kind": "stat", "stat": "def", "steps": 2, "scope": "battlefield", "source": "最好的伙伴"},
+        {"kind": "stat", "stat": "speed", "steps": 2, "scope": "battlefield", "source": "最好的伙伴"},
+        {"kind": "special", "name": "gain_energy", "amount": 2}
+      ]
+    }
+  ]
+}

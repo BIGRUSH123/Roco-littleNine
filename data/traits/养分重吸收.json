@@ -1,0 +1,16 @@
+{
+  "name": "养分重吸收",
+  "description": "回合结束时，回复3能量。",
+  "triggers": [
+    {
+      "on": "turn_end",
+      "effects": [
+        {
+          "kind": "special",
+          "name": "gain_energy",
+          "amount": 3
+        }
+      ]
+    }
+  ]
+}

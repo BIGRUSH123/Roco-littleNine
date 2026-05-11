@@ -1,0 +1,19 @@
+{
+  "name": "月光审判",
+  "description": "攻击时若敌方血脉是首领血脉，威力+100%。",
+  "triggers": [
+    {
+      "on": "modifier",
+      "condition": {
+        "kind": "and",
+        "conditions": [
+          {"path": "skill.is_attack", "op": "eq", "value": true},
+          {"path": "target_bloodline", "op": "eq", "value": "首领"}
+        ]
+      },
+      "use_modifiers": {
+        "power_mult": {"op": "add", "value": 1.0}
+      }
+    }
+  ]
+}

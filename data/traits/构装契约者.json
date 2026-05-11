@@ -1,0 +1,14 @@
+{
+  "name": "构装契约者",
+  "description": "入场时若敌方魔力值为1，获得双防+50%。",
+  "triggers": [
+    {
+      "on": "entry",
+      "condition": {"path": "opponent.lives", "op": "eq", "value": 1},
+      "effects": [
+        {"kind": "stat", "stat": "def", "steps": 5, "scope": "battlefield", "source": "构装契约者"},
+        {"kind": "stat", "stat": "sp_def", "steps": 5, "scope": "battlefield", "source": "构装契约者"}
+      ]
+    }
+  ]
+}

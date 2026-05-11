@@ -1,0 +1,12 @@
+{
+  "name": "无差别过滤",
+  "description": "在场时，所有精灵连击数固定为2。",
+  "triggers": [
+    {
+      "on": "modifier",
+      "use_modifiers": {
+        "multi_hit": {"op": "set", "value": 2}
+      }
+    }
+  ]
+}

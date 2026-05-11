@@ -1,0 +1,18 @@
+{
+  "name": "渴求",
+  "description": "入场时获得50%吸血。",
+  "triggers": [
+    {
+      "on": "entry",
+      "effects": [
+        {
+          "kind": "stat",
+          "stat": "life_drain",
+          "steps": 5,
+          "scope": "battlefield",
+          "source": "渴求"
+        }
+      ]
+    }
+  ]
+}

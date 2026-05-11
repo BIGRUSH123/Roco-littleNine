@@ -1,0 +1,12 @@
+{
+  "name": "威慑",
+  "description": "打断敌方时，被打断技能进入2回合冷却。",
+  "triggers": [
+    {
+      "on": "counter_success",
+      "battleskill_mut": [
+        {"target": "current", "field": "cooldown", "op": "set", "value": 2}
+      ]
+    }
+  ]
+}

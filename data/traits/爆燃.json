@@ -1,0 +1,14 @@
+{
+  "name": "爆燃",
+  "description": "使用火系技能后，获得双攻+30%。",
+  "triggers": [
+    {
+      "on": "skill_use",
+      "condition": {"path": "skill.element", "op": "eq", "value": "火"},
+      "effects": [
+        {"kind": "stat", "stat": "atk", "steps": 3, "scope": "battlefield", "source": "爆燃"},
+        {"kind": "stat", "stat": "sp_atk", "steps": 3, "scope": "battlefield", "source": "爆燃"}
+      ]
+    }
+  ]
+}

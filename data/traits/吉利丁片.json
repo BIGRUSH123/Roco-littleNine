@@ -1,0 +1,14 @@
+{
+  "name": "吉利丁片",
+  "description": "离场后，更换入场的精灵获得双防+20%且免疫冻结。",
+  "triggers": [
+    {
+      "on": "leave",
+      "pending_effects": [
+        {"kind": "stat", "name": "双防+20%", "stat": "def", "steps": 2, "scope": "battlefield", "source": "吉利丁片"},
+        {"kind": "stat", "name": "双防+20%", "stat": "sp_def", "steps": 2, "scope": "battlefield", "source": "吉利丁片"},
+        {"kind": "state", "name": "免疫冻结", "source": "吉利丁片"}
+      ]
+    }
+  ]
+}

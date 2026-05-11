@@ -37,3 +37,13 @@ from .factory import SimFactory
 
 # 导入 trait 子模块以触发 @register 装饰器（放在最后，避免循环导入）
 from .traits import _simple, _conditional, _complex  # noqa: E402, F401
+
+# 加载数据驱动特性（JSON → DataDrivenTrait），优先于 Python 类
+import os
+from .traits.trait_engine import register_data_traits
+_data_dir = os.path.join(os.path.dirname(__file__), '..', '..', 'data', 'traits')
+_data_dir = os.path.normpath(_data_dir)
+_loaded = register_data_traits(_data_dir)
+if _loaded:
+    import logging
+    logging.getLogger(__name__).debug(f'加载 {_loaded} 个数据驱动特性')

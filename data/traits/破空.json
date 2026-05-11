@@ -1,0 +1,19 @@
+{
+  "name": "破空",
+  "description": "先于敌方攻击时，威力+75%。",
+  "triggers": [
+    {
+      "on": "modifier",
+      "condition": {
+        "kind": "and",
+        "conditions": [
+          {"path": "skill.is_attack", "op": "eq", "value": true},
+          {"path": "use.is_first", "op": "eq", "value": true}
+        ]
+      },
+      "use_modifiers": {
+        "power_mult": {"op": "add", "value": 0.75}
+      }
+    }
+  ]
+}

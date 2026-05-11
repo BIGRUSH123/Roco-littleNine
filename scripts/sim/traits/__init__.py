@@ -134,14 +134,28 @@ def register(name: str):
 
 
 def get_trait(sprite: Sprite) -> TraitHandler | None:
-    """获取精灵的特性处理器（惰性缓存于 sprite._trait_handler）。"""
+    """获取精灵的特性处理器（惰性缓存于 sprite._trait_handler）。
+
+    优先级：数据驱动实例 > 注册的 Python 类。
+    """
     ability = sprite.species.ability
-    if not ability or ability not in TRAIT_REGISTRY:
+    if not ability:
         return None
 
     cached = getattr(sprite, '_trait_handler', None)
     if cached is not None:
         return cached
+
+    # 1. 检查数据驱动特性实例（JSON 加载的）
+    from . import trait_engine
+    instance = trait_engine.get_data_trait_instance(ability)
+    if instance is not None:
+        sprite._trait_handler = instance
+        return instance
+
+    # 2. 回退到注册的 Python 类
+    if ability not in TRAIT_REGISTRY:
+        return None
 
     cls = TRAIT_REGISTRY[ability]
     instance = cls()

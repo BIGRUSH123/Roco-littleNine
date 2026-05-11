@@ -1,0 +1,18 @@
+{
+  "name": "全神贯注",
+  "description": "入场时获得物攻+100%，每次行动后-20%。",
+  "triggers": [
+    {
+      "on": "entry",
+      "effects": [
+        {"kind": "stat", "stat": "atk", "steps": 10, "scope": "battlefield", "source": "全神贯注"}
+      ]
+    },
+    {
+      "on": "skill_use",
+      "effects": [
+        {"kind": "mutate_effect", "filter": {"stat_key": "atk", "source": "全神贯注"}, "target": "self", "delta_steps": -2}
+      ]
+    }
+  ]
+}

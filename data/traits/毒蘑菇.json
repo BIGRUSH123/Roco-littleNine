@@ -1,0 +1,16 @@
+{
+  "name": "毒蘑菇",
+  "description": "回合结束时，偷取敌方场上精灵1能量。",
+  "triggers": [
+    {
+      "on": "turn_end",
+      "effects": [
+        {
+          "kind": "special",
+          "name": "steal_energy",
+          "amount": 1
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "name": "圣火骑士",
+  "description": "应对成功后，下次攻击威力翻倍。",
+  "triggers": [
+    {
+      "on": "counter_success",
+      "battleskill_mut": [
+        {"filter": {"is_attack": true}, "field": "next_attack_mult", "op": "set", "value": 2.0}
+      ]
+    }
+  ]
+}

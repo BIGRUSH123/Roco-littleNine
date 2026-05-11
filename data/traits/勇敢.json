@@ -1,0 +1,17 @@
+{
+  "name": "勇敢",
+  "description": "能耗>3的技能威力+40%。",
+  "triggers": [
+    {
+      "on": "modifier",
+      "condition": {
+        "path": "skill.energy_cost",
+        "op": "gt",
+        "value": 3
+      },
+      "use_modifiers": {
+        "power_mult": {"op": "add", "value": 0.4}
+      }
+    }
+  ]
+}

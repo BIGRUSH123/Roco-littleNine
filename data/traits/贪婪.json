@@ -1,0 +1,12 @@
+{
+  "name": "贪婪",
+  "description": "敌方精灵离场后，其增益/减益被换上来的精灵继承。",
+  "triggers": [
+    {
+      "on": "enemy_leave",
+      "effects": [
+        {"kind": "special", "name": "inherit_effects", "source_sprite": "enemy_old", "inherit_target": "enemy_new", "scope": "battlefield"}
+      ]
+    }
+  ]
+}

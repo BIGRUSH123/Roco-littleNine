@@ -1,0 +1,24 @@
+{
+  "name": "拨浪鼓",
+  "description": "入场时，根据己方队伍状态技能使用次数提升毒系和萌系技能威力。",
+  "triggers": [
+    {
+      "on": "entry",
+      "effects_mode": "replace",
+      "battleskill_mut": [
+        {
+          "filter": {"element": "毒"},
+          "field": "power_mod",
+          "op": "add",
+          "value": "=@team_counters[status_skill]"
+        },
+        {
+          "filter": {"element": "萌"},
+          "field": "power_mod",
+          "op": "add",
+          "value": "=@team_counters[status_skill]"
+        }
+      ]
+    }
+  ]
+}

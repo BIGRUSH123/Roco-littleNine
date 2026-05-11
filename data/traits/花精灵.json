@@ -1,0 +1,16 @@
+{
+  "name": "花精灵",
+  "description": "回合结束时，己方队伍获得1次随机奉献。",
+  "triggers": [
+    {
+      "on": "turn_end",
+      "effects": [
+        {
+          "kind": "special",
+          "name": "lives_add",
+          "amount": 1
+        }
+      ]
+    }
+  ]
+}

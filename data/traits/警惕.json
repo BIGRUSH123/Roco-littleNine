@@ -1,0 +1,11 @@
+{
+  "name": "警惕",
+  "description": "回合结束时，若自己能量为0则脱离。",
+  "triggers": [
+    {
+      "on": "turn_end",
+      "condition": {"path": "self.energy", "op": "lte", "value": 0},
+      "flags": {"_escape_pending": true}
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "name": "生长",
+  "description": "回合结束时，回复12%生命。",
+  "triggers": [
+    {
+      "on": "turn_end",
+      "effects": [
+        {
+          "kind": "special",
+          "name": "heal",
+          "value": 0.12
+        }
+      ]
+    }
+  ]
+}

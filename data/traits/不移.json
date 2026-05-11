@@ -1,0 +1,23 @@
+{
+  "name": "不移",
+  "description": "携带的无额外效果攻击技能威力+30%。",
+  "triggers": [
+    {
+      "on": "modifier",
+      "condition": {
+        "kind": "not",
+        "condition": {
+          "path": "skill_has_extra",
+          "op": "eq",
+          "value": true
+        }
+      },
+      "use_modifiers": {
+        "power_mult": {
+          "op": "add",
+          "value": 0.3
+        }
+      }
+    }
+  ]
+}

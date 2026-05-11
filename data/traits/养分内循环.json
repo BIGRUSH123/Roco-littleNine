@@ -1,0 +1,16 @@
+{
+  "name": "养分内循环",
+  "description": "回合结束时，回复6能量。",
+  "triggers": [
+    {
+      "on": "turn_end",
+      "effects": [
+        {
+          "kind": "special",
+          "name": "gain_energy",
+          "amount": 6
+        }
+      ]
+    }
+  ]
+}

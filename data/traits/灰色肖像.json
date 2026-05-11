@@ -1,0 +1,13 @@
+{
+  "name": "灰色肖像",
+  "description": "攻击使敌方已有的减益层数+3。",
+  "triggers": [
+    {
+      "on": "skill_use",
+      "condition": {"path": "skill.is_attack", "op": "eq", "value": true},
+      "effects": [
+        {"kind": "mutate_effect", "filter": {"is_stat": true, "steps<0": true}, "target": "target", "delta_steps": -3}
+      ]
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "name": "快充",
+  "description": "离场时回复10能量。",
+  "triggers": [
+    {
+      "on": "leave",
+      "condition": {
+        "path": "is_faint",
+        "op": "eq",
+        "value": false
+      },
+      "effects": [
+        {
+          "kind": "special",
+          "name": "gain_energy",
+          "amount": 10
+        }
+      ]
+    }
+  ]
+}

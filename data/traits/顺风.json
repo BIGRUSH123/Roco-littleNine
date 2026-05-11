@@ -1,0 +1,19 @@
+{
+  "name": "顺风",
+  "description": "先于敌方攻击时，威力+50%。",
+  "triggers": [
+    {
+      "on": "modifier",
+      "condition": {
+        "kind": "and",
+        "conditions": [
+          {"path": "skill.is_attack", "op": "eq", "value": true},
+          {"path": "use.is_first", "op": "eq", "value": true}
+        ]
+      },
+      "use_modifiers": {
+        "power_mult": {"op": "add", "value": 0.5}
+      }
+    }
+  ]
+}

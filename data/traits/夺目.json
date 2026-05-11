@@ -1,0 +1,13 @@
+{
+  "name": "夺目",
+  "description": "额外获得三个未携带的随机技能，非光系技能威力+25%。",
+  "triggers": [
+    {
+      "on": "modifier",
+      "condition": {"path": "skill.element", "op": "neq", "value": "光"},
+      "use_modifiers": {
+        "power_mult": {"op": "add", "value": 0.25}
+      }
+    }
+  ]
+}

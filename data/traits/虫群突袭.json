@@ -1,0 +1,16 @@
+{
+  "name": "虫群突袭",
+  "description": "队伍中每有1只其他虫系精灵，入场时获得攻防速+15%。",
+  "triggers": [
+    {
+      "on": "entry",
+      "condition": {"path": "team_elements", "op": "contains", "value": "虫"},
+      "effects_mode": "replace",
+      "effects": [
+        {"kind": "stat", "stat": "atk", "steps": "=@player_unique_elements", "scope": "battlefield", "source": "虫群突袭"},
+        {"kind": "stat", "stat": "def", "steps": "=@player_unique_elements", "scope": "battlefield", "source": "虫群突袭"},
+        {"kind": "stat", "stat": "speed", "steps": "=@player_unique_elements", "scope": "battlefield", "source": "虫群突袭"}
+      ]
+    }
+  ]
+}

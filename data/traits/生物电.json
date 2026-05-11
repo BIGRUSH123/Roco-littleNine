@@ -1,0 +1,19 @@
+{
+  "name": "生物电",
+  "description": "携带的电系技能获得迸发：能耗-2。",
+  "triggers": [
+    {
+      "on": "modifier",
+      "condition": {
+        "kind": "and",
+        "conditions": [
+          {"path": "first_action", "op": "eq", "value": true},
+          {"path": "skill.element", "op": "eq", "value": "电"}
+        ]
+      },
+      "effects": [
+        {"kind": "special", "name": "gain_energy", "amount": 2}
+      ]
+    }
+  ]
+}

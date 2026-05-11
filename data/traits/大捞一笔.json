@@ -1,0 +1,16 @@
+{
+  "name": "大捞一笔",
+  "description": "回合结束时，偷取所有敌方精灵2能量。",
+  "triggers": [
+    {
+      "on": "turn_end",
+      "effects": [
+        {
+          "kind": "special",
+          "name": "steal_energy_all",
+          "amount": 2
+        }
+      ]
+    }
+  ]
+}
