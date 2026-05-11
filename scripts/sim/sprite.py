@@ -80,11 +80,18 @@ class Sprite:
     pending_return: bool = False
     extra_skill_use: bool = False
 
+    # 特性交互（禁用/复制/移除）
+    _trait_suppressed: bool = False     # 特性被压制时跳过所有 trait dispatch
+
     # ── 有效属性 ──
 
     @property
     def is_fainted(self) -> bool:
         return self.current_hp <= 0
+
+    @property
+    def hp_pct(self) -> float:
+        return self.current_hp / self.max_hp if self.max_hp > 0 else 0.0
 
     @property
     def name(self) -> str:
@@ -243,6 +250,10 @@ class Sprite:
 
     @property
     def max_energy(self) -> int:
+        from scripts.sim.traits.trait_engine import fire_hook_first
+        override = fire_hook_first('max_energy_override', self)
+        if override is not None:
+            return override
         from .traits import get_trait
         h = get_trait(self)
         if h and h.name == '多人宿舍':

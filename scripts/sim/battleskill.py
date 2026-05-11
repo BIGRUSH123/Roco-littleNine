@@ -26,6 +26,7 @@ class BattleSkill:
     sealed: bool = False            # 封印标记：此槽位不可选用（宝剑王牌/正位宝剑）
     _transmission: int = 0          # 传动等级（向心力/翼轴）
     _main_axis: bool = False        # 主轴技能：不参与传动
+    _element_override: str = ''     # 属性覆写（元素转换特性）
 
     @property
     def skill(self) -> 'Skill':
@@ -43,7 +44,7 @@ class BattleSkill:
 
     @property
     def element(self) -> str:
-        return self.skill.element
+        return self._element_override or self.skill.element
 
     @property
     def skill_type(self) -> str:

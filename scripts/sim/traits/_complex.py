@@ -304,3 +304,69 @@ class ThornSkin(TraitHandler):
         dealt = attacker.take_damage(raw)
         return [f'{target.name} 刺肤: 反伤{attacker.name}-{dealt}HP']
 
+
+# ═══════════════════════════════════════════════════════════════
+# Layer 3b: Hook 注册回调（替代硬编码 trait 名检查）
+# ═══════════════════════════════════════════════════════════════
+
+from scripts.sim.traits.trait_engine import register_hook
+
+
+def _bard_before_apply_mark(team, name, category, stacks, user):
+    """吟游之弦: 印记共存模式。"""
+    if user is None:
+        return None
+    from scripts.sim.traits import get_trait
+    h = get_trait(user)
+    return 'coexist' if (h and h.name == '吟游之弦') else None
+
+register_hook('before_apply_mark', _bard_before_apply_mark, '吟游之弦')
+
+
+def _dorm_max_energy(sprite):
+    """多人宿舍: 能量上限 10→15。"""
+    from scripts.sim.traits import get_trait
+    h = get_trait(sprite)
+    return 15 if (h and h.name == '多人宿舍') else None
+
+register_hook('max_energy_override', _dorm_max_energy, '多人宿舍')
+
+
+def _starguard_consume_starfall(team, amount, sprite, starfall_mark):
+    """守望星: 星陨消耗减半。"""
+    if sprite is None:
+        return None
+    from scripts.sim.traits import get_trait
+    h = get_trait(sprite)
+    return max(1, amount // 2) if (h and h.name == '守望星') else None
+
+register_hook('before_consume_starfall', _starguard_consume_starfall, '守望星')
+
+
+def _starground_bench_check(battle, team, active, player):
+    """星地善良: 己方能量=0时主动替换上场。"""
+    if active.is_fainted or active.energy > 0:
+        return None
+    for i, bench in enumerate(player.team):
+        if i == player.active_index or bench.is_fainted:
+            continue
+        from scripts.sim.traits import get_trait
+        h = get_trait(bench)
+        if h and h.name == '星地善良':
+            return (i, '星地善良')
+    return None
+
+register_hook('turn_end_bench_check', _starground_bench_check, '星地善良')
+
+
+def _mechvar_after_transmission(sprite, prev, battle, team):
+    """机械变式: 传动后技能位置变化 → 能耗-1。"""
+    events = []
+    for i, bs in enumerate(sprite.skills):
+        if i < len(prev) and bs.name != prev[i]:
+            bs.base.energy_cost = max(0, bs.base.energy_cost - 1)
+            events.append(f'{sprite.name} 机械变式: {bs.name} 能耗-1(传动位移)')
+    return events if events else None
+
+register_hook('after_transmission', _mechvar_after_transmission, '机械变式')
+

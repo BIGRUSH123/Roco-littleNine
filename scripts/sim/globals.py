@@ -279,9 +279,11 @@ class GlobalEffects:
         target_list = pos_list if category == 'positive' else neg_list
         events: list[str] = []
 
-        # 检查 user 是否有吟游之弦
-        has_bard = False
-        if user is not None:
+        # Hook: before_apply_mark — 返回 'coexist' 启用共存模式
+        from scripts.sim.traits.trait_engine import fire_hook_first
+        hook_mode = fire_hook_first('before_apply_mark', team, name, category, stacks, user)
+        has_bard = (hook_mode == 'coexist')
+        if not has_bard and user is not None:
             from .traits import get_trait
             h = get_trait(user)
             has_bard = h and h.name == '吟游之弦'
@@ -323,8 +325,12 @@ class GlobalEffects:
         total = starfall.stacks
         consume = amount
 
-        # 守望星：消耗一半，但按全额计算伤害
-        if sprite is not None:
+        # Hook: before_consume_starfall — 返回调整后的消耗量
+        from scripts.sim.traits.trait_engine import fire_hook_first
+        hook_consume = fire_hook_first('before_consume_starfall', team, amount, sprite, starfall)
+        if hook_consume is not None:
+            consume = hook_consume
+        elif sprite is not None:
             from .traits import get_trait
             h = get_trait(sprite)
             if h and h.name == '守望星':

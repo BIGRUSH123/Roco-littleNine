@@ -18,7 +18,8 @@ from .traits import (
     dispatch_modifier, dispatch_damage, dispatch_skill_use,
     dispatch_take_damage, dispatch_ko_enemy, dispatch_counter_success,
     dispatch_faint, dispatch_energy_short, dispatch_defend,
-    dispatch_abnormal_tick,
+    dispatch_abnormal_tick, dispatch_before_take_damage,
+    dispatch_before_action,
 )
 
 if TYPE_CHECKING:
@@ -77,6 +78,7 @@ class Battle(BattleMechanicsMixin):
         self._borrowed_restore: dict[tuple[str, int], 'Skill'] = {}
         self.team_counters: dict[str, dict[str, int]] = {'A': {}, 'B': {}}  # pre-entry accumulators
         self.pending_effects: dict[str, list] = {'A': [], 'B': []}  # leave-buff → next entry
+        self.scheduled_effects: list[dict] = []  # 延时效果队列 [{turn, phase, effects, ...}]
         self.species_db = None  # 由 SimFactory 注入，供形态变换查询
         self.skill_loader = None  # 由 SimFactory 注入，供形态变换加载技能
 
@@ -164,6 +166,8 @@ class Battle(BattleMechanicsMixin):
     def _phase_turn_start(self) -> list[str]:
         """回合开始效果（天气、场地、特性触发）。"""
         events: list[str] = []
+        # 延时效果结算（phase=start）
+        events += self._execute_scheduled_effects('start')
         # 杠杆置换（先于传动）— 预留钩子
         # 传动（回合开始自动执行）
         prev_a = [bs.name for bs in self.player_a.active.skills] if not self.player_a.active.is_fainted else []
@@ -172,17 +176,12 @@ class Battle(BattleMechanicsMixin):
             events += self._apply_transmission(self.player_a.active)
         if not self.player_b.active.is_fainted:
             events += self._apply_transmission(self.player_b.active)
-        # 机械变式：传动后技能位置变化 → 能耗-1
+        # 传动后 hook（机械变式 等）
         for team, sprite, prev in [('A', self.player_a.active, prev_a), ('B', self.player_b.active, prev_b)]:
             if sprite.is_fainted or not prev:
                 continue
-            from .traits import get_trait
-            h = get_trait(sprite)
-            if h and h.name == '机械变式':
-                for i, bs in enumerate(sprite.skills):
-                    if i < len(prev) and bs.name != prev[i]:
-                        bs.base.energy_cost = max(0, bs.base.energy_cost - 1)
-                        events.append(f'{sprite.name} 机械变式: {bs.name} 能耗-1(传动位移)')
+            from scripts.sim.traits.trait_engine import fire_hook
+            events += fire_hook('after_transmission', sprite, prev, self, team)
         # trait turn_start
         if not self.player_a.active.is_fainted:
             events += dispatch_turn_start(self.player_a.active, self, 'A')
@@ -227,6 +226,11 @@ class Battle(BattleMechanicsMixin):
         item_used = ''
         while True:
             action = agent.choose_action(self)
+            # before_action hook: 特性可修改/否决选技
+            sprite = self.get_player(team).active
+            modified = dispatch_before_action(sprite, action, self, team)
+            if modified is not None:
+                action = modified
             if action.kind == 'item':
                 item_used = self._resolve_item(team)
                 continue
@@ -519,7 +523,23 @@ class Battle(BattleMechanicsMixin):
                         user, target, use, self.globals,
                         attacker_team=team,
                     )
-                    target.take_damage(damage)
+                    # ── before_take_damage hook: 伤害拦截/免疫/吸收 ──
+                    target_team = 'B' if team == 'A' else 'A'
+                    modified = dispatch_before_take_damage(
+                        target, user, damage, skill.element or '', self, target_team)
+                    if modified is not None:
+                        if modified == 0:
+                            events.append(f'{target.name} 免疫 {skill.name} 伤害')
+                            damage = 0
+                        elif modified < 0:
+                            healed = target.heal(-modified)
+                            if healed:
+                                events.append(f'{target.name} 吸收+{healed}HP')
+                            damage = 0
+                        else:
+                            damage = modified
+                    if damage > 0:
+                        target.take_damage(damage)
                     target.inc_counter('times_hit')
                     user.inc_counter('times_dealt')
                     combo_label = f' ({hit_i+1}/{effective_combo})' if effective_combo > 1 else ''
@@ -630,12 +650,62 @@ class Battle(BattleMechanicsMixin):
         base = skill.priority if skill else 0
         return base + self.get_player(team).active.priority_mod
 
+    # ── 延时效果结算 ──
+
+    def _execute_scheduled_effects(self, phase: str) -> list[str]:
+        """执行到期延时效果。返回事件列表。"""
+        events: list[str] = []
+        due = [s for s in self.scheduled_effects
+               if s['turn'] <= self.turn and s['phase'] == phase]
+        for sched in due:
+            self.scheduled_effects.remove(sched)
+            snap = sched.get('ctx_snapshot', {})
+            team = snap.get('team', 'A')
+            sprite = snap.get('self') or self.get_player(team).active
+            if sprite is None:
+                continue
+            # DataDrivenTrait 延时 trigger
+            trait_name = sched.get('trait_name', '')
+            if trait_name:
+                from scripts.sim.traits.trait_engine import get_data_trait_instance
+                trait = get_data_trait_instance(trait_name)
+                if trait:
+                    # 通过 on_ 前缀调用对应 hook 方法
+                    hook = sched.get('hook', '')
+                    method_name = f'on_{hook}'
+                    method = getattr(trait, method_name, None)
+                    if method:
+                        result = method(sprite, self, team)
+                        if isinstance(result, list):
+                            events += result
+                    else:
+                        # 回退: 手动构建 ctx 调用 _fire
+                        ctx = {
+                            'self': sprite, 'battle': self, 'team': team,
+                            'target': snap.get('target'),
+                            'attacker': snap.get('attacker'),
+                        }
+                        events += trait._fire(hook, ctx)
+            else:
+                # 直接 effects 列表（schedule 特殊效果）
+                from scripts.sim.traits.trait_engine import DataDrivenTrait
+                ctx = {
+                    'self': sprite, 'battle': self, 'team': team,
+                    'target': snap.get('target'),
+                }
+                for eff in sched.get('effects', []):
+                    events += DataDrivenTrait._apply_effect(eff, ctx)
+        return events
+
     # ═══════════════════════════════════════════════════════════════
     # Phase 4: 回合结束
     # ═══════════════════════════════════════════════════════════════
 
     def _phase_turn_end(self) -> list[str]:
         events: list[str] = []
+
+        # 延时效果结算（phase=end）
+        events += self._execute_scheduled_effects('end')
 
         # 借用还原
         for (team, si), original in self._borrowed_restore.items():
@@ -685,25 +755,38 @@ class Battle(BattleMechanicsMixin):
         for team in ('A', 'B'):
             player = self.get_player(team)
             active = player.active
-            if active.is_fainted or active.energy > 0:
+            if active.is_fainted:
                 continue
-            for i, bench_sprite in enumerate(player.team):
-                if i == player.active_index or bench_sprite.is_fainted:
-                    continue
-                from .traits import get_trait
-                h = get_trait(bench_sprite)
-                if h and h.name == '星地善良':
-                    old = active
-                    player.active_index = i
-                    new = player.active
-                    new.clear_effects('battlefield')
-                    new.entry_turn = self.turn
-                    new.first_action = True
-                    new.inc_counter('times_entered')
-                    events.append(f'{old.name} 能量0↓ {new.name}↑(星地善良)')
-                    events += dispatch_leave(old, self, team)
-                    events += dispatch_entry(new, self, team)
-                    break
+            # Hook: turn_end_bench_check — bench 精灵回合末主动替换检查
+            from scripts.sim.traits.trait_engine import fire_hook_first
+            bench_result = fire_hook_first('turn_end_bench_check', self, team, active, player)
+            swap_index = bench_result[0] if isinstance(bench_result, tuple) else None
+            swap_reason = bench_result[1] if isinstance(bench_result, tuple) and len(bench_result) > 1 else ''
+            if swap_index is not None:
+                pass  # hook already determined the swap
+            elif active.energy > 0:
+                continue
+            if swap_index is None:
+                for i, bench_sprite in enumerate(player.team):
+                    if i == player.active_index or bench_sprite.is_fainted:
+                        continue
+                    from .traits import get_trait
+                    h = get_trait(bench_sprite)
+                    if h and h.name == '星地善良':
+                        swap_index = i
+                        swap_reason = '星地善良'
+                        break
+            if swap_index is not None and swap_index != player.active_index:
+                old = active
+                player.active_index = swap_index
+                new = player.active
+                new.clear_effects('battlefield')
+                new.entry_turn = self.turn
+                new.first_action = True
+                new.inc_counter('times_entered')
+                events.append(f'{old.name} 能量0↓ {new.name}↑({swap_reason})' if swap_reason else f'{old.name}↓ {new.name}↑')
+                events += dispatch_leave(old, self, team)
+                events += dispatch_entry(new, self, team)
 
         # 回合结束力竭检查
         for team in ('A', 'B'):

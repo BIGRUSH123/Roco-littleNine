@@ -97,6 +97,18 @@ def fire_hook_first(hook_name: str, *args, **kwargs):
 
 
 # ═══════════════════════════════════════════════════════════════════
+# 条件函数注册（方向: 条件函数回调）
+# ═══════════════════════════════════════════════════════════════════
+
+_CONDITION_FNS: dict[str, callable] = {}
+
+
+def register_condition_fn(name: str, fn):
+    """注册条件函数，供 condition DSL 的 fn 类型调用。"""
+    _CONDITION_FNS[name] = fn
+
+
+# ═══════════════════════════════════════════════════════════════════
 # 条件求值器
 # ═══════════════════════════════════════════════════════════════════
 
@@ -146,6 +158,12 @@ class ConditionEvaluator:
             return not ConditionEvaluator.evaluate(
                 condition.get('condition', {}), ctx,
             )
+        if kind == 'fn':
+            fn_name = condition.get('name', '')
+            fn = _CONDITION_FNS.get(fn_name)
+            if fn:
+                return bool(fn(ctx))
+            return True
 
         path: str = condition.get('path', '')
         op: str = condition.get('op', 'eq')
@@ -412,7 +430,8 @@ class RefResolver:
 
         expr = value[1:]  # 去掉 '=' 前缀
 
-        if re.search(r'[\+\-\*\/]', expr):
+        # 含运算符或函数调用的表达式 → 算术求值
+        if re.search(r'[\+\-\*\/\(]', expr):
             return RefResolver._eval_arithmetic(expr, ctx)
 
         return RefResolver._resolve_single(expr, ctx)
@@ -444,7 +463,7 @@ class RefResolver:
         )
 
         try:
-            return eval(resolved, {'__builtins__': {}}, {})
+            return eval(resolved, {'__builtins__': {}}, {'int': int, 'float': float, 'round': round, 'max': max, 'min': min})
         except Exception:
             return 0
 
@@ -675,6 +694,53 @@ class DataDrivenTrait(TraitHandler):
         result = fire_hook_first('on_fatal_damage', sprite, damage, battle, team)
         return result if result is not None else False
 
+    def on_before_take_damage(self, target, attacker, damage, element, battle, team):
+        """受到伤害前拦截。先查 hook，再查 JSON trigger。
+        返回 None=不修改, 0=免疫, <0=吸收, >0=修正伤害。"""
+        result = fire_hook_first('before_take_damage', target, attacker, damage, element, battle, team)
+        if result is not None:
+            return result
+        # JSON trigger: before_take_damage 返回第一个非 None 效果中的 value
+        ctx = {
+            'self': target, 'attacker': attacker, 'damage': damage,
+            'skill_element': element, 'battle': battle, 'team': team,
+        }
+        triggers = self._triggers.get('before_take_damage', [])
+        for trigger in triggers:
+            if not ConditionEvaluator.evaluate(trigger.get('condition'), ctx):
+                continue
+            effects = trigger.get('effects', [])
+            for eff in effects:
+                if eff.get('kind') == 'special' and eff.get('name') == 'modify_damage':
+                    val = eff.get('value', None)
+                    if val is not None:
+                        if isinstance(val, str):
+                            val = RefResolver.resolve(val, ctx)
+                        return int(val) if val is not None else None
+        return None
+
+    def on_before_action(self, sprite, action, battle, team):
+        """行动选择后修改/否决。返回 None=不修改, 否则返回替换的 action。"""
+        result = fire_hook_first('before_action', sprite, action, battle, team)
+        if result is not None:
+            return result
+        # JSON trigger: 检查条件，若匹配则应用 action_modifier
+        ctx = {'self': sprite, 'battle': battle, 'team': team, 'action': action}
+        triggers = self._triggers.get('before_action', [])
+        for trigger in triggers:
+            if not ConditionEvaluator.evaluate(trigger.get('condition'), ctx):
+                continue
+            effects = trigger.get('effects', [])
+            for eff in effects:
+                if eff.get('kind') == 'special':
+                    name = eff.get('name', '')
+                    if name == 'force_action':
+                        return DataDrivenTrait._apply_action_force(eff, action, ctx)
+                    elif name == 'forbid_action':
+                        if DataDrivenTrait._match_action(eff, action):
+                            return DataDrivenTrait._apply_action_force(eff, action, ctx)
+        return None
+
     # ═══════════════════════════════════════════════════════════════
     # 核心分派
     # ═══════════════════════════════════════════════════════════════
@@ -696,6 +762,59 @@ class DataDrivenTrait(TraitHandler):
             condition = trigger.get('condition')
             if not ConditionEvaluator.evaluate(condition, ctx):
                 continue
+
+            # ── 延时调度（方向: delayed effects）──
+            delay = trigger.get('delay', 0)
+            if delay and delay > 0:
+                battle = ctx.get('battle')
+                if battle:
+                    battle.scheduled_effects.append({
+                        'turn': battle.turn + delay,
+                        'phase': trigger.get('delay_phase', 'start'),
+                        'trait_name': self.name,
+                        'hook': hook,
+                        'trigger': trigger,
+                        'ctx_snapshot': {
+                            k: v for k, v in ctx.items()
+                            if k in ('team', 'self', 'target', 'attacker', 'battle')
+                        },
+                    })
+                continue
+
+            # ── Counter accumulation + threshold gate (方向: 跨触发器累积计数) ──
+            counter_key = trigger.get('counter')
+            counter_met = True
+            if counter_key:
+                sprite = ctx.get('self')
+                if sprite:
+                    cop = trigger.get('counter_op', 'inc')
+                    if cop == 'inc':
+                        sprite.inc_counter(counter_key)
+                    elif cop == 'dec':
+                        sprite.inc_counter(counter_key, -1)
+                    elif cop == 'set':
+                        cval = RefResolver.resolve(trigger.get('counter_value', 0), ctx) or 0
+                        sprite.counters[counter_key] = cval
+                    ctrigger = trigger.get('counter_trigger')
+                    if ctrigger:
+                        cur = sprite.get_counter(counter_key)
+                        counter_met = ConditionEvaluator._cmp(
+                            ctrigger.get('op', 'gte'), cur, ctrigger.get('value', 0))
+                    if not counter_met:
+                        continue
+
+            # ── Track / change detection gate (方向: 变化检测) ──
+            track = trigger.get('track')
+            if track:
+                sprite = ctx.get('self')
+                if sprite:
+                    new_val = RefResolver.resolve(track.get('expr', '=0'), ctx) or 0
+                    tkey = track.get('key', '_track')
+                    prev_val = sprite.get_counter(tkey)
+                    ctx['track_delta'] = new_val - prev_val
+                    if trigger.get('trigger_on_change') and new_val == prev_val:
+                        continue
+                    sprite.counters[tkey] = new_val
 
             events += self._apply_use_modifiers(
                 trigger.get('use_modifiers', {}), ctx,
@@ -728,6 +847,12 @@ class DataDrivenTrait(TraitHandler):
             if team_counters:
                 events += self._write_team_counters(team_counters, ctx)
 
+            # ── Counter reset (after effects, if threshold was met) ──
+            if counter_key and trigger.get('counter_reset') and counter_met:
+                sprite = ctx.get('self')
+                if sprite:
+                    sprite.counters[counter_key] = 0
+
         return events
 
     @staticmethod
@@ -758,7 +883,7 @@ class DataDrivenTrait(TraitHandler):
         if not battle:
             return []
         for key, delta in counters.items():
-            battle.add_team_counter(team, key, delta)
+            battle.inc_team_counter(team, key, delta)
         return []
 
     # ── Modifier 操作 ──
@@ -815,12 +940,15 @@ class DataDrivenTrait(TraitHandler):
             if target == 'current':
                 bs = ctx.get('skill')
                 if bs is not None:
-                    current = getattr(bs, field, 0)
-                    if op == 'set':
+                    if field == 'element':
+                        bs._element_override = val
+                    elif op == 'set':
                         setattr(bs, field, val)
                     elif op == 'mult':
+                        current = getattr(bs, field, 0)
                         setattr(bs, field, current * val)
                     else:
+                        current = getattr(bs, field, 0)
                         setattr(bs, field, current + val)
                 continue
 
@@ -828,12 +956,16 @@ class DataDrivenTrait(TraitHandler):
                 if not DataDrivenTrait._match_filter(bs, i, filt):
                     continue
 
-                current = getattr(bs, field, 0)
-                if op == 'set':
+                # 元素转换: 设置 _element_override (element 是只读 property)
+                if field == 'element':
+                    bs._element_override = val
+                elif op == 'set':
                     setattr(bs, field, val)
                 elif op == 'mult':
+                    current = getattr(bs, field, 0)
                     setattr(bs, field, current * val)
                 else:
+                    current = getattr(bs, field, 0)
                     setattr(bs, field, current + val)
 
         return []
@@ -846,6 +978,10 @@ class DataDrivenTrait(TraitHandler):
         if 'element' in filt and bs.element != filt['element']:
             return False
         if 'slot' in filt and idx not in filt['slot']:
+            return False
+        if 'slot_in' in filt and idx not in filt['slot_in']:
+            return False
+        if 'slot_not_in' in filt and idx in filt['slot_not_in']:
             return False
         if 'is_attack' in filt and bs.is_attack != filt['is_attack']:
             return False
@@ -866,6 +1002,45 @@ class DataDrivenTrait(TraitHandler):
             return False
         return True
 
+    # ── 目标解析（方向: 随机目标选择）──
+
+    @staticmethod
+    def _resolve_target(eff_dict: dict, ctx: dict, default_sprite):
+        """解析效果目标。支持 random_bench、target_filter。"""
+        import random
+
+        target_key = eff_dict.get('target', 'self')
+
+        if target_key == 'random_bench':
+            battle = ctx.get('battle')
+            team = ctx.get('team', 'A')
+            if battle:
+                player = battle.get_player(team)
+                bench = [s for i, s in enumerate(player.team)
+                        if i != player.active_index and not s.is_fainted]
+                tf = eff_dict.get('target_filter', {})
+                if tf:
+                    bench = [s for s in bench
+                            if DataDrivenTrait._match_target_filter(s, tf, ctx)]
+                if bench:
+                    return random.choice(bench)
+            return default_sprite
+
+        return ctx.get(target_key, default_sprite)
+
+    @staticmethod
+    def _match_target_filter(sprite, filt: dict, ctx: dict) -> bool:
+        """检查精灵是否匹配 target_filter。支持 not (排除)、is_fainted 等。"""
+        if 'not' in filt:
+            exclude = filt['not']
+            if exclude == 'self':
+                if sprite is ctx.get('self'):
+                    return False
+        if 'is_fainted' in filt:
+            if sprite.is_fainted != bool(filt['is_fainted']):
+                return False
+        return True
+
     # ── 效果应用 ──
 
     @staticmethod
@@ -882,8 +1057,7 @@ class DataDrivenTrait(TraitHandler):
         if not sprite:
             return []
 
-        target_key = eff_dict.get('target', 'self')
-        target_sprite = ctx.get(target_key, sprite)
+        target_sprite = DataDrivenTrait._resolve_target(eff_dict, ctx, sprite)
 
         # remove_effect: aura 离场清除
         if kind == 'remove_effect':
@@ -1158,6 +1332,25 @@ class DataDrivenTrait(TraitHandler):
                 actual = target.take_damage(int(dmg))
                 return [f'{target.name} -{actual}HP']
 
+        # ── 形态变换（方向: 复杂状态转换）──
+
+        if name == 'transform':
+            return DataDrivenTrait._apply_transform(eff_dict, sprite, ctx)
+
+        # ── 特性交互（方向: 特性禁用/复制/移除）──
+
+        if name == 'suppress_trait':
+            return DataDrivenTrait._apply_suppress_trait(eff_dict, ctx)
+        if name == 'remove_trait':
+            return DataDrivenTrait._apply_remove_trait(eff_dict, ctx)
+        if name == 'copy_trait':
+            return DataDrivenTrait._apply_copy_trait(eff_dict, ctx)
+
+        # ── 延时效果（方向: scheduled effects）──
+
+        if name == 'schedule':
+            return DataDrivenTrait._apply_schedule(eff_dict, ctx)
+
         # ── 印记操作（方向 6）──
 
         if name == 'dispel_mark':
@@ -1294,8 +1487,167 @@ class DataDrivenTrait(TraitHandler):
         delta = eff_dict.get('delta', 1)
         target_team = eff_dict.get('counter_team', 'own')
         t = ('B' if team == 'A' else 'A') if target_team == 'opp' else team
-        battle.add_team_counter(t, key, delta)
+        battle.inc_team_counter(t, key, delta)
         return []
+
+    # ── 形态变换实现（方向: 复杂状态转换）──
+
+    @staticmethod
+    def _apply_transform(eff_dict: dict, sprite, ctx: dict) -> list[str]:
+        """形态变换: 替换 species + skills，保留 HP 比例/能量/效果/计数器。"""
+        from scripts.common.models import SpeciesStats
+
+        battle = ctx.get('battle')
+        if not battle:
+            return []
+
+        species_name = eff_dict.get('species', '')
+        if not species_name:
+            return []
+
+        new_species = battle.lookup_species(species_name)
+        if new_species is None:
+            s = sprite.species
+            new_species = SpeciesStats(
+                name=species_name, form='',
+                hp=s.hp, atk=s.atk, sp_atk=s.sp_atk,
+                def_=s.def_, sp_def=s.sp_def, speed=s.speed,
+                attributes=s.attributes, ability=s.ability,
+            )
+
+        skill_names = eff_dict.get('skills', [])
+        new_skills = battle.build_skills(skill_names) if skill_names else []
+
+        if eff_dict.get('reset_hp'):
+            sprite.current_hp = sprite.max_hp
+        if eff_dict.get('reset_energy'):
+            sprite.energy = getattr(sprite, 'max_energy', 10)
+
+        events = sprite.transform(new_species, new_skills)
+        return events
+
+    # ── 特性交互实现 ──
+
+    @staticmethod
+    def _apply_suppress_trait(eff_dict: dict, ctx: dict) -> list[str]:
+        """压制目标精灵的特性直到离场。"""
+        target_key = eff_dict.get('target', 'target')
+        target = ctx.get(target_key)
+        if not target:
+            return []
+        target._trait_suppressed = True
+        # 清除缓存的 trait handler
+        target._trait_handler = None
+        return [f'{target.name} 特性被压制']
+
+    @staticmethod
+    def _apply_remove_trait(eff_dict: dict, ctx: dict) -> list[str]:
+        """移除目标精灵的特性（效果等同 suppress 但永久，可被替换）。"""
+        target_key = eff_dict.get('target', 'target')
+        target = ctx.get(target_key)
+        if not target:
+            return []
+        target._trait_suppressed = True
+        target._trait_handler = None
+        # 可选修改 species.ability 为空
+        new_ability = eff_dict.get('new_ability', '')
+        if new_ability:
+            target.species.ability = new_ability
+            target._trait_suppressed = False
+            target._trait_handler = None
+            return [f'{target.name} 特性变为 {new_ability}']
+        return [f'{target.name} 特性被移除']
+
+    @staticmethod
+    def _apply_copy_trait(eff_dict: dict, ctx: dict) -> list[str]:
+        """复制目标精灵的特性。"""
+        target_key = eff_dict.get('copy_from', 'target')
+        source = ctx.get(target_key)
+        sprite = ctx.get('self')
+        if not source or not sprite:
+            return []
+        if sprite is source:
+            return []
+        source_ability = source.species.ability
+        if not source_ability:
+            return []
+        sprite.species.ability = source_ability
+        sprite._trait_handler = None
+        sprite._trait_suppressed = False
+        return [f'{sprite.name} 复制特性 → {source_ability}']
+
+    # ── 延时效果实现 ──
+
+    @staticmethod
+    def _apply_schedule(eff_dict: dict, ctx: dict) -> list[str]:
+        """注册延时效果，在未来回合结算。"""
+        battle = ctx.get('battle')
+        if not battle:
+            return []
+        turns = eff_dict.get('turns', 1)
+        target_turn = battle.turn + turns
+        scheduled = {
+            'turn': target_turn,
+            'phase': eff_dict.get('phase', 'start'),
+            'effects': eff_dict.get('effects', []),
+            'source': ctx.get('self'),
+            'ctx_snapshot': {
+                'team': ctx.get('team', 'A'),
+                'target': eff_dict.get('target', 'self'),
+            },
+        }
+        battle.scheduled_effects.append(scheduled)
+        sprite = ctx.get('self')
+        label = getattr(sprite, 'name', '?') if sprite else '?'
+        return [f'{label}: 延时效果注册({turns}回合后)']
+
+    # ── 行动修改实现 ──
+
+    @staticmethod
+    def _match_action(eff_dict: dict, action) -> bool:
+        """检查 action 是否匹配 forbid 条件。"""
+        kind = eff_dict.get('action_kind', '')
+        if kind and getattr(action, 'kind', '') != kind:
+            return False
+        slot = eff_dict.get('slot', -1)
+        if slot >= 0 and getattr(action, 'skill_index', -1) != slot:
+            return False
+        return True
+
+    @staticmethod
+    def _apply_action_force(eff_dict: dict, action, ctx: dict):
+        """强制替换行动。支持 force_gather / force_skill:N / force_switch:N。"""
+        force = eff_dict.get('force', 'gather')
+        if force == 'gather':
+            from scripts.sim.action import Action
+            return Action(kind='gather')
+        if force.startswith('skill:'):
+            slot = int(force.split(':')[1])
+            from scripts.sim.action import Action
+            return Action(kind='skill', skill_index=slot)
+        if force.startswith('switch:'):
+            idx = int(force.split(':')[1])
+            from scripts.sim.action import Action
+            return Action(kind='switch', switch_index=idx)
+        return None
+
+    @staticmethod
+    def _apply_action_modifier(eff_dict: dict, available: list, ctx: dict) -> list:
+        """修改可选行动列表（用于 JSON 数据驱动特性）。"""
+        action = eff_dict.get('action', 'forbid_skill')
+        if action == 'forbid_skill':
+            slot = eff_dict.get('slot', -1)
+            if slot >= 0 and slot < len(available):
+                available = [a for i, a in enumerate(available) if i != slot]
+        elif action == 'forbid_gather':
+            available = [a for a in available if getattr(a, 'kind', '') != 'gather']
+        elif action == 'restrict_slots':
+            slots = eff_dict.get('slots', [])
+            available = [a for i, a in enumerate(available) if i in slots]
+        elif action == 'seal_all_but':
+            slot = eff_dict.get('slot', 0)
+            available = [a for i, a in enumerate(available) if i == slot]
+        return available
 
     @staticmethod
     def _handle_pending_effects(pending: list[dict], ctx: dict) -> list[str]:
@@ -1364,6 +1716,17 @@ _STEP_UNIT: dict[str, int] = {
     'power': 10, 'priority': 1, 'energy_cost': 1,
     'combo': 1, 'life_drain': 10, 'speed': 10,
 }
+
+
+# ═══════════════════════════════════════════════════════════════════
+# 内置条件函数注册
+# ═══════════════════════════════════════════════════════════════════
+
+def _builtin_is_weekend(ctx):
+    import datetime
+    return datetime.date.today().weekday() >= 5
+
+register_condition_fn('is_weekend', _builtin_is_weekend)
 
 
 # ═══════════════════════════════════════════════════════════════════

@@ -15,6 +15,8 @@ from .battle import Battle
 
 BASE = Path(__file__).resolve().parent.parent.parent
 
+MAX_SKILL_SLOTS = 10
+
 
 class SimFactory:
     """从 wiki 数据创建战斗对象。运行时技能从 JSON 加载。"""
@@ -51,6 +53,9 @@ class SimFactory:
     def _build_skill_list(self, skill_names: list[str]) -> list[BattleSkill]:
         skills: list[BattleSkill] = []
         for name in skill_names:
+            if len(skills) >= MAX_SKILL_SLOTS:
+                print(f'[SimFactory] 技能槽位已达上限({MAX_SKILL_SLOTS}), 跳过: {name!r}', file=sys.stderr)
+                break
             path = self._skills_dir / f'{name}.json'
             if path.exists():
                 data = json.loads(path.read_text(encoding='utf-8'))

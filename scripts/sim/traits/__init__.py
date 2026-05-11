@@ -116,6 +116,19 @@ class TraitHandler:
         """异常效果回合末扣血时触发（仁心/耐活王/煤渣草）。"""
         return []
 
+    # ── 伤害拦截 / 行动前 ──
+
+    def on_before_take_damage(self, target: Sprite, attacker: Sprite,
+                               damage: int, element: str,
+                               battle: Battle, team: str) -> int | None:
+        """受到伤害前拦截。返回 None=不修改, 0=免疫, <0=吸收(回血), >0=修正伤害。"""
+        return None
+
+    def on_before_action(self, sprite: Sprite, action,
+                          battle: Battle, team: str):
+        """行动选择后修改/否决。返回 None=不修改, 否则返回替换的 action。"""
+        return None
+
 
 # ═══════════════════════════════════════════════════════════════════
 # 注册表
@@ -137,7 +150,11 @@ def get_trait(sprite: Sprite) -> TraitHandler | None:
     """获取精灵的特性处理器（惰性缓存于 sprite._trait_handler）。
 
     优先级：数据驱动实例 > 注册的 Python 类。
+    若 sprite._trait_suppressed 为 True，跳过所有特性 dispatch。
     """
+    if getattr(sprite, '_trait_suppressed', False):
+        return None
+
     ability = sprite.species.ability
     if not ability:
         return None
@@ -301,6 +318,31 @@ def dispatch_abnormal_tick(sprite: Sprite, effect_name: str, damage: int,
     """异常效果回合末扣血时触发（仁心/耐活王/煤渣草）。"""
     h = get_trait(sprite)
     return h.on_abnormal_tick(sprite, effect_name, damage, battle, team) if h else []
+
+
+def dispatch_before_take_damage(target: Sprite, attacker: Sprite,
+                                 damage: int, element: str,
+                                 battle: Battle, team: str) -> int | None:
+    """受到伤害前拦截。返回 None=不修改, 0=免疫, <0=吸收, >0=修正伤害。"""
+    h = get_trait(target)
+    if h:
+        result = h.on_before_take_damage(target, attacker, damage, element, battle, team)
+        if result is not None:
+            return result
+    return None
+
+
+def dispatch_before_action(sprite: Sprite, action,
+                            battle: Battle, team: str):
+    """行动选择后修改/否决。返回 None=不修改, 否则返回替换的 action。"""
+    if sprite.is_fainted:
+        return None
+    h = get_trait(sprite)
+    if h:
+        result = h.on_before_action(sprite, action, battle, team)
+        if result is not None:
+            return result
+    return None
 
 
 def _opposite_team(team: str) -> str:
