@@ -7,9 +7,9 @@
       "condition": {"path": "team_elements", "op": "contains", "value": "虫"},
       "effects_mode": "replace",
       "effects": [
-        {"kind": "stat", "stat": "atk", "steps": "=@player_unique_elements", "scope": "battlefield", "source": "虫群鼓舞"},
-        {"kind": "stat", "stat": "def", "steps": "=@player_unique_elements", "scope": "battlefield", "source": "虫群鼓舞"},
-        {"kind": "stat", "stat": "speed", "steps": "=@player_unique_elements", "scope": "battlefield", "source": "虫群鼓舞"}
+        {"kind": "stat", "stat": "atk", "steps": "=@player_bug_count", "scope": "battlefield", "source": "虫群鼓舞"},
+        {"kind": "stat", "stat": "def", "steps": "=@player_bug_count", "scope": "battlefield", "source": "虫群鼓舞"},
+        {"kind": "stat", "stat": "speed", "steps": "=@player_bug_count", "scope": "battlefield", "source": "虫群鼓舞"}
       ]
     }
   ]

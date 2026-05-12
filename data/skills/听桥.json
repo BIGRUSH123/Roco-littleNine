@@ -12,6 +12,11 @@
       "kind": "special",
       "name": "damage_reduction",
       "value": 0.6
+    },
+    {
+      "kind": "special",
+      "name": "counter_damage",
+      "value": 0
     }
   ]
 }

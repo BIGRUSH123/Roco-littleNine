@@ -9,6 +9,11 @@
   "combo": 1,
   "effects": [
     {
+      "kind": "special",
+      "name": "counter_damage",
+      "value": 90.0
+    },
+    {
       "kind": "conditional",
       "when": {
         "kind": "counter_succeeded"
@@ -17,11 +22,6 @@
         {
           "kind": "special",
           "name": "interrupt"
-        },
-        {
-          "kind": "special",
-          "name": "counter_damage",
-          "value": 90.0
         }
       ]
     }

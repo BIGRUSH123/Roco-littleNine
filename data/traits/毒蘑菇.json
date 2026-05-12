@@ -7,7 +7,7 @@
       "effects": [
         {
           "kind": "special",
-          "name": "steal_energy",
+          "name": "steal_energy_all",
           "amount": 1
         }
       ]

@@ -23,7 +23,7 @@
       "then": [
         {
           "kind": "stat",
-          "target": "opp",
+          "target": "self",
           "stat": "atk",
           "steps": 10,
           "scope": "battlefield"

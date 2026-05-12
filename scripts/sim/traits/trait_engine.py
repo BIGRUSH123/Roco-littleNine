@@ -544,10 +544,26 @@ class DataDrivenTrait(TraitHandler):
             for s in player.team:
                 if not s.is_fainted:
                     team_elements.extend(s.species.elements)
+        self_total_energy_cost = sum(
+            bs.energy_cost for bs in sprite.skills
+        ) if sprite else 0
+        # 队伍中其他虫系精灵数量
+        player_bug_count = sum(
+            1 for s in player.team
+            if not s.is_fainted and s != sprite and '虫' in s.species.elements
+        ) if player else 0
+        # 其他队友萌化总层数
+        player_moe_stacks = sum(
+            s.get_stacks('萌化') for s in player.team
+            if not s.is_fainted and s != sprite
+        ) if player else 0
         return self._fire('entry', {
             'self': sprite, 'battle': battle, 'team': team,
             'player': player, 'opponent': opponent,
             'team_elements': team_elements,
+            'self_total_energy_cost': self_total_energy_cost,
+            'player_bug_count': player_bug_count,
+            'player_moe_stacks': player_moe_stacks,
         })
 
     def on_leave(self, sprite, battle, team, is_faint=False):
@@ -593,12 +609,16 @@ class DataDrivenTrait(TraitHandler):
             bs.element for bs in target.skills if bs.element
         ) if target else set()
         enemy_unique_elements = len(enemy_elements)
+        self_total_energy_cost = sum(
+            bs.energy_cost for bs in user.skills
+        ) if user else 0
         return self._fire('modifier', {
             'self': user, 'skill': use.battle_skill, 'use': use,
             'target': target, 'battle': battle, 'team': team,
             'skill_has_extra': has_extra,
             'opp_starfall_stacks': opp_starfall_stacks,
             'enemy_total_energy_cost': enemy_total_energy_cost,
+            'self_total_energy_cost': self_total_energy_cost,
             'enemy_unique_elements': enemy_unique_elements,
             'first_action': getattr(user, 'first_action', False),
             'target_bloodline': getattr(target, 'bloodline', '') if target else '',
@@ -623,9 +643,18 @@ class DataDrivenTrait(TraitHandler):
 
     def on_skill_use(self, user, skill, battle, team):
         target = battle.get_opponent(team).active if battle else None
+        self_total_energy_cost = sum(
+            bs.energy_cost for bs in user.skills
+        ) if user else 0
+        # 敌方中毒印记层数
+        opp_team = 'B' if team == 'A' else 'A'
+        opp_poison_mark = battle.globals.get_mark_by_name(opp_team, '中毒印记') if battle else None
+        opp_poison_mark_stacks = opp_poison_mark.stacks if opp_poison_mark else 0
         return self._fire('skill_use', {
             'self': user, 'skill': skill,
             'target': target, 'battle': battle, 'team': team,
+            'self_total_energy_cost': self_total_energy_cost,
+            'opp_poison_mark_stacks': opp_poison_mark_stacks,
         })
 
     def on_take_damage(self, target, attacker, damage, battle, team):
@@ -1461,19 +1490,23 @@ class DataDrivenTrait(TraitHandler):
         target_key = eff_dict.get('inherit_target', 'enemy_new')
         scope = eff_dict.get('scope', 'battlefield')
         source_sprite = ctx.get(source_key)
+        via_pending = eff_dict.get('via_pending', False)
         target_sprite = ctx.get(target_key)
-        if not source_sprite or not target_sprite:
+        if not source_sprite:
+            return []
+        if not via_pending and not target_sprite:
             return []
         inherited = [e for e in source_sprite.effects if getattr(e, 'scope', '') == scope]
         if not inherited:
             return []
-        if eff_dict.get('via_pending', False):
+        if via_pending:
             battle.pending_effects.setdefault(team, [])
             battle.pending_effects[team].extend(inherited)
+            return [f'{source_sprite.name}→next({team}) 继承{len(inherited)}个效果']
         else:
             for e in inherited:
                 target_sprite.add_effect(e)
-        return [f'{source_sprite.name}→{target_sprite.name} 继承{len(inherited)}个效果']
+            return [f'{source_sprite.name}→{target_sprite.name} 继承{len(inherited)}个效果']
 
     # ── 队伍计数器实现（方向 1）──
 

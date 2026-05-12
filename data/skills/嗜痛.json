@@ -21,14 +21,14 @@
       "then": [
         {
           "kind": "stat",
-          "target": "opp",
+          "target": "self",
           "stat": "atk",
           "steps": 4,
           "scope": "battlefield"
         },
         {
           "kind": "stat",
-          "target": "opp",
+          "target": "self",
           "stat": "sp_atk",
           "steps": 4,
           "scope": "battlefield"

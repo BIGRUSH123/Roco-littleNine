@@ -9,48 +9,6 @@
   "combo": 1,
   "effects": [
     {
-      "kind": "stat",
-      "target": "self",
-      "stat": "def",
-      "steps": -10,
-      "scope": "battlefield"
-    },
-    {
-      "kind": "stat",
-      "target": "self",
-      "stat": "sp_def",
-      "steps": -10,
-      "scope": "battlefield"
-    },
-    {
-      "kind": "stat",
-      "target": "self",
-      "stat": "atk",
-      "steps": -10,
-      "scope": "battlefield"
-    },
-    {
-      "kind": "stat",
-      "target": "self",
-      "stat": "sp_atk",
-      "steps": -10,
-      "scope": "battlefield"
-    },
-    {
-      "kind": "stat",
-      "target": "opp",
-      "stat": "atk",
-      "steps": -10,
-      "scope": "battlefield"
-    },
-    {
-      "kind": "stat",
-      "target": "opp",
-      "stat": "sp_atk",
-      "steps": -10,
-      "scope": "battlefield"
-    },
-    {
       "kind": "conditional",
       "when": {
         "kind": "counter_succeeded"
@@ -67,6 +25,50 @@
           "kind": "stat",
           "target": "opp",
           "stat": "sp_def",
+          "steps": -10,
+          "scope": "battlefield"
+        },
+        {
+          "kind": "stat",
+          "target": "opp",
+          "stat": "atk",
+          "steps": -10,
+          "scope": "battlefield"
+        },
+        {
+          "kind": "stat",
+          "target": "opp",
+          "stat": "sp_atk",
+          "steps": -10,
+          "scope": "battlefield"
+        }
+      ],
+      "otherwise": [
+        {
+          "kind": "stat",
+          "target": "self",
+          "stat": "def",
+          "steps": -10,
+          "scope": "battlefield"
+        },
+        {
+          "kind": "stat",
+          "target": "self",
+          "stat": "sp_def",
+          "steps": -10,
+          "scope": "battlefield"
+        },
+        {
+          "kind": "stat",
+          "target": "self",
+          "stat": "atk",
+          "steps": -10,
+          "scope": "battlefield"
+        },
+        {
+          "kind": "stat",
+          "target": "self",
+          "stat": "sp_atk",
           "steps": -10,
           "scope": "battlefield"
         }

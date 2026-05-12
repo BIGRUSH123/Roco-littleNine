@@ -9,7 +9,7 @@
           "kind": "stat",
           "stat": "atk",
           "steps": 10,
-          "scope": "battlefield",
+          "scope": "next_use",
           "source": "专注力"
         }
       ]

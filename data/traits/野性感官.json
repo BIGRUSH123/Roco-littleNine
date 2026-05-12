@@ -5,7 +5,7 @@
     {
       "on": "counter_success",
       "effects": [
-        {"kind": "stat", "stat": "priority", "steps": 1, "scope": "battlefield", "source": "野性感官"}
+        {"kind": "stat", "stat": "priority", "steps": 1, "scope": "next_use", "source": "野性感官"}
       ]
     }
   ]

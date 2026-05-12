@@ -217,6 +217,7 @@ class SpriteSelection(BaseModel):
 class InitRequest(BaseModel):
     team: List[SpriteSelection]
     opponent_team: Optional[List[SpriteSelection]] = None
+    lead_index: int = 0
 
 class ActionRequest(BaseModel):
     session_id: str
@@ -231,6 +232,11 @@ def serialize_battle_state(battle: Battle, session_id: str) -> dict:
     pb = battle.player_b
     
     def serialize_sprite(s):
+        charging = getattr(s, '_charging', False)
+        charged_idx = getattr(s, '_charged_skill_index', -1)
+        charged_name = ''
+        if charging and 0 <= charged_idx < len(s.skills):
+            charged_name = s.skills[charged_idx].name
         return {
             "name": s.name,
             "element": s.species.attributes,
@@ -238,6 +244,9 @@ def serialize_battle_state(battle: Battle, session_id: str) -> dict:
             "max_hp": s.max_hp,
             "energy": s.energy,
             "is_fainted": s.is_fainted,
+            "charging": charged_name if charging else '',
+            "trait": s.species.ability or '',
+            "energy_cost_mod": s.energy_cost_mod,
             "effects": [{"name": e.name, "category": e.category, "stacks": e.stacks, "steps": e.steps} for e in s.effects],
             "skills": [skill.name for skill in s.skills]
         }
@@ -300,11 +309,18 @@ def init_battle(req: InitRequest):
             
     player_a = FACTORY.build_player("玩家", team_a_specs)
     player_b = FACTORY.build_player("AI", team_b_specs, style=PlayStyle(aggression=0.7))
-    
+
+    # 设置首发
+    li = req.lead_index
+    if 0 <= li < len(player_a.team):
+        player_a.active_index = li
+
     battle = FACTORY.build_battle(player_a, player_b)
-    
+
     # Initialize RuleAgent for AI
     agent_b = RuleAgent("B", player_b)
+    # AI 首发选择
+    player_b.active_index = agent_b.choose_lead(battle)
     
     session_id = str(uuid.uuid4())
     sessions[session_id] = {

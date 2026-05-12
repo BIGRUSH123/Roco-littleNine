@@ -31,6 +31,12 @@ class BattleMechanicsMixin:
         if action.switch_index is None or action.switch_index >= len(player.team):
             return events
 
+        # 换宠打断蓄力
+        if getattr(old, '_charging', False):
+            old._charging = False
+            old._charged_skill_index = -1
+            events.append(f'{old.name} 蓄力中断（换宠）')
+
         player.active_index = action.switch_index
         new = player.active
 

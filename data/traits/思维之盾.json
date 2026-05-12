@@ -5,7 +5,7 @@
     {
       "on": "counter_success",
       "effects": [
-        {"kind": "stat", "stat": "energy_cost", "steps": -5, "scope": "battlefield", "source": "思维之盾"}
+        {"kind": "stat", "stat": "energy_cost", "steps": -5, "scope": "next_use", "source": "思维之盾"}
       ]
     }
   ]

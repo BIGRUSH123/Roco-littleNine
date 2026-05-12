@@ -21,7 +21,7 @@
       "then": [
         {
           "kind": "stat",
-          "target": "opp",
+          "target": "self",
           "stat": "life_drain",
           "steps": 5,
           "scope": "battlefield"

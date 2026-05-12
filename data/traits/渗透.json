@@ -9,14 +9,14 @@
         {
           "kind": "stat",
           "stat": "atk",
-          "steps": "=@team_counters[element:武] + @team_counters[element:地]",
+          "steps": "=@team_counters[element:武] * 0.5 + @team_counters[element:地] * 0.5",
           "scope": "battlefield",
           "source": "渗透"
         },
         {
           "kind": "stat",
           "stat": "def",
-          "steps": "=@team_counters[element:武] + @team_counters[element:地]",
+          "steps": "=@team_counters[element:武] * 0.5 + @team_counters[element:地] * 0.5",
           "scope": "battlefield",
           "source": "渗透"
         }

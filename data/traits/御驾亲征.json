@@ -15,7 +15,7 @@
     {
       "on": "faint",
       "effects": [
-        {"kind": "special", "name": "lives_delta", "amount": -3, "target_team": "own"}
+        {"kind": "special", "name": "lives_delta", "amount": -4, "target_team": "own"}
       ]
     }
   ]

@@ -361,16 +361,8 @@ class SkillResolver:
 
     @staticmethod
     def _special_charge(user, _target, _effect, _g, _ctx, _use):
-        if getattr(user, '_charging', False):
-            # 蓄力释放：清空蓄力状态
-            user._charging = False
-            user._charged_skill_index = -1
-            return [f'{user.name} 蓄力释放']
-        else:
-            # 进入蓄力
-            user._charging = True
-            user._charged_skill_index = _use.skill_index if _use else -1
-            return [f'{user.name} 蓄力']
+        # 蓄力状态机由 battle.py gate 层处理，此处仅做标记
+        return []
 
     @staticmethod
     def _special_escape(user, _target, _effect, _g, _ctx, _use):
@@ -504,7 +496,8 @@ class SkillResolver:
     def _special_counter_damage(user, target, effect, _g, ctx, use):
         if not (ctx and ctx.countered_skill):
             return []
-        power = int(effect.value)
+        raw = int(effect.value)
+        power = ctx.countered_skill.power if raw == 0 else raw
         atk_val = user.effective_stat('atk')
         def_val = target.effective_stat('def')
         base = round((37 / 41) * power * atk_val / def_val) if def_val > 0 else 0
@@ -584,9 +577,11 @@ class SkillResolver:
         team: str = 'A',
         use: 'SkillUse | None' = None,
     ) -> list[str]:
-        if SkillResolver._check_condition(effect.when, user, target, globals_, ctx):
+        cond_met = SkillResolver._check_condition(effect.when, user, target, globals_, ctx)
+        branches = effect.then if cond_met else getattr(effect, 'otherwise', None)
+        if branches:
             events: list[str] = []
-            for sub in (effect.then or []):
+            for sub in branches:
                 kind = sub.kind
                 if kind == 'stat':
                     events += SkillResolver._handle_stat(user, target, sub)

@@ -9,6 +9,10 @@
   "combo": 1,
   "effects": [
     {
+      "kind": "special",
+      "name": "charge"
+    },
+    {
       "kind": "stat",
       "target": "self",
       "stat": "atk",

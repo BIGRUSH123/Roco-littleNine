@@ -15,6 +15,20 @@ const player = computed(() => props.state.player_a)
 const opponent = computed(() => props.state.player_b)
 const active = computed(() => player.value.team[player.value.active_index])
 const activeOpp = computed(() => opponent.value.team[opponent.value.active_index])
+const isCharging = computed(() => !!active.value.charging)
+const hasJealousy = computed(() => active.value.trait === '嫉妒')
+
+function canUseSkill(skillName) {
+  if (!isCharging.value) {
+    const s = props.skillMap[skillName]
+    if (!s) return false
+    const energyCostMod = active.value.energy_cost_mod || 0
+    const effectiveCost = Math.max(0, s.energy_cost + energyCostMod)
+    return active.value.energy >= effectiveCost
+  }
+  if (hasJealousy.value) return true
+  return skillName === active.value.charging
+}
 
 function skillMeta(name) {
   return props.skillMap[name] || null
@@ -25,9 +39,23 @@ function skillBrief(name) {
   if (!s) return ''
   const parts = [`${s.element}`]
   if (s.power > 0) parts.push(`${s.power}威`)
-  parts.push(`${s.energy_cost}费`)
+  const energyCostMod = active.value.energy_cost_mod || 0
+  const effectiveCost = Math.max(0, s.energy_cost + energyCostMod)
+  const costDisplay = effectiveCost !== s.energy_cost
+    ? `${s.energy_cost}→${effectiveCost}费`
+    : `${s.energy_cost}费`
+  parts.push(costDisplay)
   if (s.priority > 0) parts.push(`+${s.priority}`)
   return parts.join('·')
+}
+
+function energyInsufficient(name) {
+  if (isCharging.value) return false
+  const s = props.skillMap[name]
+  if (!s) return true
+  const energyCostMod = active.value.energy_cost_mod || 0
+  const effectiveCost = Math.max(0, s.energy_cost + energyCostMod)
+  return active.value.energy < effectiveCost
 }
 
 function skillDesc(name) {
@@ -96,6 +124,7 @@ const handleAction = (type, payload = null) => {
             <div class="text-lg font-bold text-[#e0e0e0]">
               {{ active.name }}
               <span v-if="active.is_fainted" class="text-[#f44336] text-xs ml-1">(力竭)</span>
+              <span v-if="isCharging" class="text-[#ffc107] text-xs ml-1">蓄力-{{ active.charging }}</span>
             </div>
             <div class="text-[10px] text-[#6a6d75] mt-0.5">Lv.100</div>
           </div>
@@ -167,12 +196,18 @@ const handleAction = (type, payload = null) => {
                 v-for="skill in active.skills"
                 :key="skill"
                 @click="handleAction('skill', skill)"
-                :disabled="active.is_fainted"
-                class="group relative bg-[#252830] hover:bg-[#2e3640] disabled:opacity-40 border hover:border-[#4a90d9] text-[#e0e0e0] py-2.5 px-3 rounded text-left transition-colors"
-                :class="[effectivenessClass(skill) || 'border-[#3a3d42]']"
+                :disabled="active.is_fainted || !canUseSkill(skill)"
+                class="group relative bg-[#252830] hover:bg-[#2e3640] disabled:opacity-40 border text-[#e0e0e0] py-2.5 px-3 rounded text-left transition-colors"
+                :class="[
+                  effectivenessClass(skill) || 'border-[#3a3d42]',
+                  energyInsufficient(skill) ? 'border-[#f44336]/50' : 'hover:border-[#4a90d9]'
+                ]"
               >
                 <div class="text-sm font-medium leading-tight truncate">{{ skill }}</div>
-                <div class="text-[10px] text-[#6a6d75] leading-tight mt-0.5">{{ skillBrief(skill) }}</div>
+                <div class="text-[10px] leading-tight mt-0.5"
+                  :class="energyInsufficient(skill) ? 'text-[#f44336]' : 'text-[#6a6d75]'"
+                >{{ skillBrief(skill) }}</div>
+                <div v-if="energyInsufficient(skill)" class="mt-0.5 text-[9px] text-[#f44336] font-medium">能量不足</div>
                 <!-- Tooltip -->
                 <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-[#111318] border border-[#4a4d55] text-[#cdd6e0] text-xs rounded shadow-lg whitespace-nowrap max-w-xs truncate opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
                   {{ skillDesc(skill) }}
@@ -183,7 +218,7 @@ const handleAction = (type, payload = null) => {
             <div class="flex gap-1.5">
               <button
                 @click="handleAction('gather')"
-                :disabled="active.is_fainted"
+                :disabled="active.is_fainted || (isCharging && !hasJealousy)"
                 class="flex-1 bg-[#252830] hover:bg-[#2e3640] disabled:opacity-40 border border-[#3a3d42] hover:border-[#4a90d9] text-[#9a9da5] text-xs font-medium py-2 rounded transition-colors"
               >
                 聚能

@@ -21,8 +21,8 @@
       "then": [
         {
           "kind": "mark",
-          "target": "opp_team",
-          "name": "自己1湿润印记",
+          "target": "own_team",
+          "name": "润泽印记",
           "stacks": 1
         }
       ]

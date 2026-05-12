@@ -139,11 +139,14 @@ class SkillUse:
             elif kind == 'conditional':
                 when = getattr(effect, 'when', None)
                 then = getattr(effect, 'then', None)
-                if not when or not then:
+                otherwise = getattr(effect, 'otherwise', None)
+                if not when:
                     continue
-                if when.get('kind') == 'counter_succeeded' and self.countered_skill is None:
+                cond_met = not (when.get('kind') == 'counter_succeeded' and self.countered_skill is None)
+                branches = then if cond_met else otherwise
+                if not branches:
                     continue
-                for sub in then:
+                for sub in branches:
                     if getattr(sub, 'kind', '') != 'special':
                         continue
                     sub_name = getattr(sub, 'name', '')

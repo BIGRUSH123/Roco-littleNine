@@ -454,6 +454,42 @@ class Battle(BattleMechanicsMixin):
         user.inc_counter(f'skill_used:{skill.name}')
         user.inc_counter('skills_used')
 
+        # ═══ gate: 蓄力 ═══
+        has_charge = any(
+            e.name == SpecialName.CHARGE
+            for e in skill.effects if getattr(e, 'kind', '') == 'special'
+        )
+        is_charging = getattr(user, '_charging', False)
+        charged_idx = getattr(user, '_charged_skill_index', -1)
+
+        if is_charging and has_charge and action.skill_index == charged_idx:
+            # 蓄力释放：清空标记，正常执行技能
+            user._charging = False
+            user._charged_skill_index = -1
+            events.append(f'{user.name} 蓄力释放！')
+        elif is_charging:
+            # 检查嫉妒特性：蓄力中可使用任意技能
+            from .traits import get_trait as _get_trait
+            _trait = _get_trait(user)
+            if _trait and _trait.name == '嫉妒':
+                user._charging = False
+                user._charged_skill_index = -1
+                events.append(f'{user.name} 蓄力中断（嫉妒）')
+            elif action.kind == 'gather':
+                events.append(f'[蓄力中] {user.name} 只能使用蓄力技能或换宠')
+                return events
+            else:
+                # 蓄力中使用了其他技能 → 拒绝
+                charged_name = user.skills[charged_idx].name if 0 <= charged_idx < len(user.skills) else '?'
+                events.append(f'[蓄力中] {user.name} 只能使用{charged_name}或换宠')
+                return events
+        elif has_charge:
+            # 进入蓄力：消耗能量，跳过其他效果
+            user._charging = True
+            user._charged_skill_index = action.skill_index
+            events.append(f'{user.name} 蓄力({skill.name})')
+            return events
+
         # 迸发/初次行动标记：L0 modifier 和 L2 calc_damage 需要读取
         # 在 L2 伤害计算之后消费（见下方）
         is_burst = user.first_action and any(
@@ -616,13 +652,18 @@ class Battle(BattleMechanicsMixin):
             user, target, use, self.globals, ctx, team=team,
         )
 
-        # 非攻击技能连击：L3 已处理第1 hit，额外应用剩余 hit 的 heal/gain_energy
+        # 非攻击技能连击：L3 已处理第1 hit，额外应用剩余 hit
         if not skill.is_attack and effective_combo > 1:
             for hit_i in range(1, effective_combo):
                 for effect in skill.effects:
-                    if getattr(effect, 'kind', '') == 'special' and effect.name in _PER_HIT_SPECIALS:
+                    kind = getattr(effect, 'kind', '')
+                    if kind == 'special' and effect.name in _PER_HIT_SPECIALS:
                         events += self._resolver._handle_special(
                             user, target, effect, self.globals, ctx, use)
+                    elif kind == 'stat':
+                        events += SkillResolver._handle_stat(user, target, effect)
+                    elif kind == 'mark':
+                        events += SkillResolver._handle_mark(self.globals, effect, team)
 
         # ═══ 技能使用后永久增长（连击/威力/能耗递增）═══
         events += self._resolver.dispatch_post_use(user, target, use, self.globals, ctx)

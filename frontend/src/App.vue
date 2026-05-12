@@ -33,13 +33,20 @@ onMounted(async () => {
   }
 })
 
-const handleStartBattle = async (team) => {
+const TEST_OPPONENT = [
+  { name: '双灯鱼', skills: ['水炮', '求雨'] },
+  { name: '大头骨龙', skills: ['龙吟', '龙威'] },
+  { name: '嗜光嗡嗡', skills: ['毒针', '吹火'] },
+  { name: '黑羽夫人', skills: ['乘风', '恶意逃离'] },
+]
+
+const handleStartBattle = async ({ team, leadIndex }) => {
   try {
     isProcessing.value = true
     const res = await fetch(`${API_BASE}/battle/init`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ team })
+      body: JSON.stringify({ team, opponent_team: TEST_OPPONENT, lead_index: leadIndex })
     })
 
     if (!res.ok) throw new Error('战斗初始化失败')

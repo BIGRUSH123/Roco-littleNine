@@ -8,7 +8,7 @@
         "kind": "and",
         "conditions": [
           {"path": "skill.is_attack", "op": "eq", "value": true},
-          {"path": "self.effective_stat.speed", "op": "gte", "value": "=@target.effective_stat.speed"}
+          {"path": "self.effective_stat.speed", "op": "gt", "value": "=@target.effective_stat.speed"}
         ]
       },
       "effects": [

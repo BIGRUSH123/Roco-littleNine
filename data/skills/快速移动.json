@@ -23,9 +23,9 @@
       "then": [
         {
           "kind": "stat",
-          "target": "opp",
+          "target": "self",
           "stat": "speed",
-          "steps": 16,
+          "steps": 8,
           "scope": "battlefield"
         }
       ]
