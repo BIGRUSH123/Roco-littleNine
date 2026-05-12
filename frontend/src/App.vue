@@ -13,6 +13,7 @@ const isProcessing = ref(false)
 const battleError = ref('')
 const skillMap = ref({})
 const typeChart = ref({})
+const debugMode = ref(false)
 
 onMounted(async () => {
   try {
@@ -131,10 +132,63 @@ const handleAction = async ({ type, payload }) => {
   }
 }
 
+const handleDebugInit = async () => {
+  try {
+    isProcessing.value = true
+    const res = await fetch(`${API_BASE}/debug/init`, { method: 'POST' })
+    if (!res.ok) throw new Error('调试初始化失败')
+    const data = await res.json()
+    battleState.value = data
+    battleLogs.value = [`[调试模式] 双方准备就绪 | 我方 ${data.debug_skills_a?.length || 0} 技能 | 对方 ${data.debug_skills_b?.length || 0} 技能`]
+    currentPhase.value = 'battle'
+    debugMode.value = true
+  } catch (error) {
+    console.error('Debug init failed:', error)
+    alert('调试模式初始化失败，请确认后端已启动。')
+  } finally {
+    isProcessing.value = false
+  }
+}
+
+const handleDebugAction = async ({ actionA, actionB }) => {
+  if (isProcessing.value || battleState.value.is_finished) return
+
+  try {
+    isProcessing.value = true
+
+    const res = await fetch(`${API_BASE}/debug/action`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        session_id: battleState.value.session_id,
+        action_a: actionA,
+        action_b: actionB,
+      })
+    })
+
+    if (!res.ok) throw new Error('操作执行失败')
+
+    const data = await res.json()
+    battleState.value = data.state
+
+    if (data.log && data.log.length > 0) {
+      battleLogs.value.push(`[回合${data.state.turn}]`)
+      battleLogs.value.push(...data.log)
+    }
+  } catch (error) {
+    console.error('Debug action failed:', error)
+    battleError.value = error.message || '操作失败'
+    setTimeout(() => { battleError.value = '' }, 4000)
+  } finally {
+    isProcessing.value = false
+  }
+}
+
 const restartGame = () => {
   currentPhase.value = 'selection'
   battleState.value = null
   battleLogs.value = []
+  debugMode.value = false
 }
 </script>
 
@@ -154,6 +208,21 @@ const restartGame = () => {
         class="ml-auto px-3 py-1 bg-[#4caf50] hover:bg-[#5cbf60] disabled:opacity-40 text-white text-xs font-bold rounded transition-colors mr-3"
       >
         快速测试
+      </button>
+      <button
+        v-if="currentPhase === 'selection'"
+        @click="handleDebugInit"
+        :disabled="isProcessing"
+        class="px-3 py-1 bg-[#ff9800] hover:bg-[#ffa726] disabled:opacity-40 text-black text-xs font-bold rounded transition-colors mr-3"
+      >
+        调试模式
+      </button>
+      <button
+        v-if="debugMode"
+        @click="restartGame"
+        class="px-3 py-1 bg-[#f44336] hover:bg-[#ef5350] text-white text-xs font-bold rounded transition-colors mr-3"
+      >
+        退出调试
       </button>
       <span class="text-xs text-[#6a6d75]">v0.1</span>
     </header>
@@ -183,7 +252,9 @@ const restartGame = () => {
               :state="battleState"
               :skill-map="skillMap"
               :type-chart="typeChart"
+              :debug-mode="debugMode"
               @action="handleAction"
+              @debug-action="handleDebugAction"
               :class="{'opacity-50 pointer-events-none': isProcessing}"
             />
           </div>

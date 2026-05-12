@@ -19,8 +19,12 @@ from scripts.sim.factory import SimFactory
 from scripts.sim.agent import RuleAgent
 from scripts.sim.battle import Battle
 from scripts.sim.resolver import _TYPE_CHART
-from scripts.sim.player import PlayStyle
+from scripts.sim.player import Player, PlayStyle
 from scripts.sim.action import Action
+from scripts.sim.sprite import Sprite
+from scripts.sim.skill import Skill
+from scripts.sim.battleskill import BattleSkill
+from scripts.common.models import SpeciesStats
 
 app = FastAPI(title="Roco Battle API")
 
@@ -37,6 +41,7 @@ SKILLS_DIR = BASE / "data" / "skills"
 
 # In-memory session store
 sessions: Dict[str, dict] = {}
+debug_sessions: Dict[str, dict] = {}
 
 def load_sprite_skills() -> List[dict]:
     available = {p.stem for p in SKILLS_DIR.glob("*.json")}
@@ -100,16 +105,39 @@ FACTORY = SimFactory()
 
 # Cache for skill metadata
 _skill_cache: dict[str, dict] = {}
+_wiki_desc: dict[str, str] = {}
+
+def _load_wiki_descriptions() -> dict[str, str]:
+    """Scan wiki/技能图鉴 for hand-written skill descriptions."""
+    global _wiki_desc
+    if _wiki_desc:
+        return _wiki_desc
+    wiki_skill_dir = WIKI_ROOT / '技能图鉴'
+    if not wiki_skill_dir.is_dir():
+        return {}
+    for md in wiki_skill_dir.rglob('*.md'):
+        if md.name.startswith('_'):
+            continue
+        try:
+            text = md.read_text(encoding='utf-8', errors='ignore')
+            m = re.search(r'^description:\s*"(.+?)"', text, re.MULTILINE)
+            if m:
+                _wiki_desc[md.stem] = m.group(1)
+        except Exception:
+            continue
+    return _wiki_desc
+
 
 def load_skill_metadata() -> dict[str, dict]:
-    """Load all skill JSON metadata, keyed by skill name. Includes generated description."""
+    """Load all skill JSON metadata, keyed by skill name. Uses wiki description if available."""
     global _skill_cache
     if _skill_cache:
         return _skill_cache
+    wiki_desc = _load_wiki_descriptions()
     for path in SKILLS_DIR.glob("*.json"):
         try:
             data = json.loads(path.read_text(encoding="utf-8"))
-            data["description"] = _describe_skill(data)
+            data["description"] = wiki_desc.get(data["name"]) or _describe_skill(data)
             _skill_cache[data["name"]] = data
         except (json.JSONDecodeError, KeyError):
             continue
@@ -225,6 +253,11 @@ class ActionRequest(BaseModel):
     skill_name: Optional[str] = None
     switch_index: Optional[int] = None
 
+class DebugActionRequest(BaseModel):
+    session_id: str
+    action_a: dict  # {type: "skill"|"switch"|"gather", skill_name?: str, switch_index?: int}
+    action_b: dict  # same structure
+
 # --- Helper Functions ---
 
 def serialize_battle_state(battle: Battle, session_id: str) -> dict:
@@ -273,6 +306,8 @@ def serialize_battle_state(battle: Battle, session_id: str) -> dict:
         "player_b": serialize_player(pb),
         "marks_a": [{"name": m.name, "stacks": m.stacks, "type": "positive"} for m in marks_a_pos] + [{"name": m.name, "stacks": m.stacks, "type": "negative"} for m in marks_a_neg],
         "marks_b": [{"name": m.name, "stacks": m.stacks, "type": "positive"} for m in marks_b_pos] + [{"name": m.name, "stacks": m.stacks, "type": "negative"} for m in marks_b_neg],
+        "mark_energy_mod_a": battle.globals.mark_energy_mod("A"),
+        "mark_energy_mod_b": battle.globals.mark_energy_mod("B"),
     }
 
 # --- Endpoints ---
@@ -405,6 +440,148 @@ def battle_action(req: ActionRequest):
         "state": serialize_battle_state(battle, req.session_id),
         "log": turn_log
     }
+
+# ── Debug Mode Endpoints ───────────────────────────────────────────
+
+def _make_debug_sprite(name: str, skills: list[BattleSkill], team: str) -> Sprite:
+    """Create a tanky debug sprite with given skills."""
+    species = SpeciesStats(
+        name=name, number=999, hp=300, atk=60, sp_atk=60,
+        def_=250, sp_def=250, speed=50, attributes='普通', ability='',
+    )
+    stats = {'hp': 999, 'atk': 60, 'sp_atk': 60, 'def': 250, 'sp_def': 250, 'speed': 50}
+    s = Sprite(
+        species=species, bloodline='普通', initial_stats=stats,
+        current_hp=999, max_hp=999, energy=10,
+    )
+    s.skills = skills
+    return s
+
+
+def _make_dummy_agent(team: str, action: Action):
+    """Create an agent that returns a fixed action. Replacement picks first alive."""
+
+    class DummyAgent:
+        def __init__(self, t: str, a: Action):
+            self.team = t
+            self.action = a
+
+        def choose_lead(self, battle):
+            return 0
+
+        def choose_action(self, battle):
+            return self.action
+
+        def choose_replacement(self, battle):
+            for i, sp in enumerate(battle.get_player(self.team).team):
+                if not sp.is_fainted:
+                    return i
+            return 0
+
+        def on_game_end(self, winner):
+            pass
+
+    return DummyAgent(team, action)
+
+
+def _action_from_dict(action_data: dict, player, label: str) -> Action:
+    """Parse action dict into Action object."""
+    atype = action_data.get('type', 'gather')
+    if atype == 'skill':
+        skill_name = action_data.get('skill_name', '')
+        for i, skill in enumerate(player.active.skills):
+            if skill.name == skill_name:
+                return Action(kind='skill', skill_index=i)
+        raise HTTPException(status_code=400, detail=f'{label}: skill {skill_name} not found')
+    elif atype == 'switch':
+        idx = action_data.get('switch_index', 0)
+        return Action(kind='switch', switch_index=idx)
+    elif atype == 'gather':
+        return Action(kind='gather')
+    else:
+        raise HTTPException(status_code=400, detail=f'{label}: unknown action type {atype}')
+
+
+@app.post("/api/debug/init")
+def debug_init():
+    """Initialize a debug battle with two tanky sprites.
+    Player A: all skills with special effects.
+    Player B: 3 simple skills (attack, defense, status)."""
+
+    # Load all skills, classify by whether they have special effects
+    # Sort order: 物攻/魔攻 (0) < 防御 (1) < 状态 (2)
+    _TYPE_ORDER = {'物攻': 0, '魔攻': 0, '动态攻击': 0, '防御': 1, '状态': 2}
+    all_skills: list[BattleSkill] = []
+    special_skills: list[BattleSkill] = []
+    for path in sorted(SKILLS_DIR.glob("*.json")):
+        try:
+            data = json.loads(path.read_text(encoding='utf-8'))
+            bs = BattleSkill(base=Skill.load(data))
+            all_skills.append(bs)
+            has_special = any(
+                e.get('kind') == 'special'
+                for e in data.get('effects', [])
+            )
+            if has_special:
+                special_skills.append(bs)
+        except (json.JSONDecodeError, KeyError):
+            continue
+
+    special_skills.sort(key=lambda bs: _TYPE_ORDER.get(bs.base.skill_type, 9))
+
+    # Player B: 3 debug skills
+    b_skills = []
+    for name in ('debug_attack', 'debug_defense', 'debug_status'):
+        found = [bs for bs in all_skills if bs.name == name]
+        if found:
+            b_skills.append(found[0])
+
+    # Create sprites
+    sprite_a = _make_debug_sprite('测试员A', special_skills, 'A')
+    sprite_b = _make_debug_sprite('测试员B', b_skills, 'B')
+
+    player_a = Player(name='我方(调试)', team=[sprite_a], style=PlayStyle())
+    player_b = Player(name='对方(调试)', team=[sprite_b], style=PlayStyle())
+
+    battle = FACTORY.build_battle(player_a, player_b)
+
+    session_id = str(uuid.uuid4())
+    debug_sessions[session_id] = {'battle': battle}
+
+    result = serialize_battle_state(battle, session_id)
+    result['debug_skills_a'] = [bs.name for bs in special_skills]
+    result['debug_skills_b'] = [bs.name for bs in b_skills]
+    return result
+
+
+@app.post("/api/debug/action")
+def debug_action(req: DebugActionRequest):
+    if req.session_id not in debug_sessions:
+        raise HTTPException(status_code=404, detail='Debug session not found')
+
+    session = debug_sessions[req.session_id]
+    battle: Battle = session['battle']
+
+    if battle.is_finished:
+        return {'state': serialize_battle_state(battle, req.session_id), 'log': []}
+
+    action_a = _action_from_dict(req.action_a, battle.player_a, 'Player A')
+    action_b = _action_from_dict(req.action_b, battle.player_b, 'Player B')
+
+    agent_a = _make_dummy_agent('A', action_a)
+    agent_b = _make_dummy_agent('B', action_b)
+
+    battle.execute_turn(agent_a, agent_b)
+
+    turn_log = []
+    if battle.log:
+        turn_log = battle.log[-1].events
+
+    return {
+        'state': serialize_battle_state(battle, req.session_id),
+        'log': turn_log,
+    }
+
 
 if __name__ == "__main__":
     import uvicorn

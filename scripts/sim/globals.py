@@ -296,9 +296,13 @@ class GlobalEffects:
             else:
                 target_list.append(mark)
         else:
-            # 替换模式：同类别清空后新增
-            target_list.clear()
-            target_list.append(mark)
+            # 替换模式：同名叠加，异名替换（每类最多1种印记）
+            existing = next((m for m in target_list if m.name == name), None)
+            if existing:
+                existing.stacks += stacks
+            else:
+                target_list.clear()
+                target_list.append(mark)
 
         return events
 
