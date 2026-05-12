@@ -7,5 +7,11 @@
   "counter": "无",
   "priority": 0,
   "combo": 1,
-  "effects": []
+  "effects": [
+    {
+      "kind": "special",
+      "name": "combo_increment",
+      "amount": 2
+    }
+  ]
 }

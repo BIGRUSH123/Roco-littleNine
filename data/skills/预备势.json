@@ -17,13 +17,6 @@
     },
     {
       "kind": "stat",
-      "target": "self",
-      "stat": "atk",
-      "steps": 8,
-      "scope": "battlefield"
-    },
-    {
-      "kind": "stat",
       "target": "opp",
       "stat": "def",
       "steps": -8,

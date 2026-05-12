@@ -9,11 +9,9 @@
   "combo": 1,
   "effects": [
     {
-      "kind": "stat",
-      "target": "opp",
-      "stat": "energy_cost",
-      "steps": -1,
-      "scope": "persistent"
+      "kind": "special",
+      "name": "energy_cost_increment",
+      "amount": -1
     }
   ]
 }

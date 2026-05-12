@@ -18,6 +18,8 @@ class BattleSkill:
 
     # ── 可变状态 ──
     power_mod: int = 0              # 永久威力变化（联动装置等）
+    combo_mod: int = 0              # 永久连击数变化（聚盐/乘胜追击等）
+    energy_cost_mod: int = 0        # 永久能耗变化（水炮/重击等）
     power_override: int | None = None  # 动态威力（冰锋横扫/钢钻），覆盖 base.power
     replaced_by: 'Skill | None' = None  # 技能替换（镜像反射）
     cooldown: int = 0               # 剩余冷却回合（防御技能）
@@ -60,7 +62,7 @@ class BattleSkill:
 
     @property
     def combo(self) -> int:
-        return self.skill.combo
+        return self.skill.combo + self.combo_mod
 
     @property
     def effects(self) -> list:
@@ -92,7 +94,7 @@ class BattleSkill:
 
     @property
     def energy_cost(self) -> int:
-        return self.skill.energy_cost
+        return self.skill.energy_cost + self.energy_cost_mod
 
 
 @dataclass

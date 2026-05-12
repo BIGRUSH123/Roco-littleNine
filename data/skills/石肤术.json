@@ -18,13 +18,6 @@
     {
       "kind": "stat",
       "target": "self",
-      "stat": "def",
-      "steps": 16,
-      "scope": "battlefield"
-    },
-    {
-      "kind": "stat",
-      "target": "self",
       "stat": "sp_def",
       "steps": -6,
       "scope": "battlefield"

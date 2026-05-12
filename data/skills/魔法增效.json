@@ -14,13 +14,6 @@
       "stat": "sp_atk",
       "steps": 7,
       "scope": "battlefield"
-    },
-    {
-      "kind": "stat",
-      "target": "self",
-      "stat": "sp_atk",
-      "steps": 7,
-      "scope": "battlefield"
     }
   ]
 }

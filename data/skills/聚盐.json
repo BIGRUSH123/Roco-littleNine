@@ -6,12 +6,22 @@
   "energy_cost": 3,
   "counter": "无",
   "priority": 0,
-  "combo": 2,
+  "combo": 1,
   "effects": [
     {
       "kind": "special",
       "name": "heal",
       "value": 0.05
+    },
+    {
+      "kind": "special",
+      "name": "gain_energy",
+      "amount": 1
+    },
+    {
+      "kind": "special",
+      "name": "combo_increment",
+      "amount": 1
     }
   ]
 }

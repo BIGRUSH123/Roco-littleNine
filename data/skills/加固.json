@@ -14,13 +14,6 @@
       "stat": "def",
       "steps": 14,
       "scope": "battlefield"
-    },
-    {
-      "kind": "stat",
-      "target": "self",
-      "stat": "def",
-      "steps": 14,
-      "scope": "battlefield"
     }
   ]
 }

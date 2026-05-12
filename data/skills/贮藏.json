@@ -21,20 +21,6 @@
       "stat": "sp_atk",
       "steps": 5,
       "scope": "battlefield"
-    },
-    {
-      "kind": "stat",
-      "target": "self",
-      "stat": "atk",
-      "steps": 5,
-      "scope": "battlefield"
-    },
-    {
-      "kind": "stat",
-      "target": "self",
-      "stat": "sp_atk",
-      "steps": 5,
-      "scope": "battlefield"
     }
   ]
 }

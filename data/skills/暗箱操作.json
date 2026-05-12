@@ -38,20 +38,6 @@
     },
     {
       "kind": "stat",
-      "target": "self",
-      "stat": "def",
-      "steps": -10,
-      "scope": "battlefield"
-    },
-    {
-      "kind": "stat",
-      "target": "self",
-      "stat": "sp_def",
-      "steps": -10,
-      "scope": "battlefield"
-    },
-    {
-      "kind": "stat",
       "target": "opp",
       "stat": "atk",
       "steps": -10,

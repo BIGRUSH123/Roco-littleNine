@@ -9,11 +9,9 @@
   "combo": 1,
   "effects": [
     {
-      "kind": "stat",
-      "target": "opp",
-      "stat": "power",
-      "steps": 2,
-      "scope": "persistent"
+      "kind": "special",
+      "name": "power_increment",
+      "amount": 20
     }
   ]
 }

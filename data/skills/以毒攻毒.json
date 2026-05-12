@@ -23,13 +23,6 @@
       "scope": "battlefield"
     },
     {
-      "kind": "stat",
-      "target": "self",
-      "stat": "sp_atk",
-      "steps": 3,
-      "scope": "battlefield"
-    },
-    {
       "kind": "abnormal",
       "target": "opp",
       "name": "中毒",

@@ -21,13 +21,6 @@
       "stat": "power",
       "steps": 2,
       "scope": "battlefield"
-    },
-    {
-      "kind": "abnormal",
-      "target": "opp",
-      "name": "冻结",
-      "scope": "persistent",
-      "stacks": 1
     }
   ]
 }

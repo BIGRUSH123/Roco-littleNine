@@ -30,6 +30,10 @@ class SpeciesStats:
             'def': self.def_, 'sp_def': self.sp_def, 'speed': self.speed,
         }
 
+    @property
+    def elements(self) -> list[str]:
+        return [e.strip() for e in self.attributes.split(',') if e.strip()]
+
     def display_name(self) -> str:
         return f"{self.name}（{self.form}）" if self.form else self.name
 

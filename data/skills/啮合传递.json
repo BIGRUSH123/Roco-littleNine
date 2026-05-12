@@ -21,13 +21,6 @@
       "stat": "atk",
       "steps": 6,
       "scope": "battlefield"
-    },
-    {
-      "kind": "stat",
-      "target": "self",
-      "stat": "speed",
-      "steps": 8,
-      "scope": "battlefield"
     }
   ]
 }

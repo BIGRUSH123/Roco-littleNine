@@ -104,6 +104,9 @@ _SPECIAL_LAYER: dict[str, int] = {
     SpecialName.EXCHANGE_SKILLS: EffectLayer.STATE,
     SpecialName.RANDOM_DEVOTION: EffectLayer.STATE,
     SpecialName.PRIORITY_BONUS: EffectLayer.STATE,
+    SpecialName.COMBO_INCREMENT: EffectLayer.POST_USE,
+    SpecialName.POWER_INCREMENT: EffectLayer.POST_USE,
+    SpecialName.ENERGY_COST_INCREMENT: EffectLayer.POST_USE,
 
     # L4: 反击伤害（resolve_counter_damage 独立公式）
     SpecialName.COUNTER_DAMAGE: EffectLayer.COUNTER,
@@ -215,6 +218,21 @@ class SkillResolver:
     ) -> list[str]:
         """[兼容] 完整效果分派。等同于 dispatch_L3。"""
         return SkillResolver.dispatch_L3(user, target, use, globals_, ctx, team)
+
+    @staticmethod
+    def dispatch_post_use(
+        user: 'Sprite', target: 'Sprite', use: 'SkillUse',
+        globals_: 'GlobalEffects', ctx: 'TurnContext | None' = None,
+    ) -> list[str]:
+        """技能使用后永久增长（连击/威力/能耗递增）。在 L3+per-hit 循环之后调用。"""
+        events: list[str] = []
+        for effect in use.battle_skill.effects:
+            if getattr(effect, 'kind', '') != 'special':
+                continue
+            if _SPECIAL_LAYER.get(effect.name) != EffectLayer.POST_USE:
+                continue
+            events += SkillResolver._handle_special(user, target, effect, globals_, ctx, use)
+        return events
 
     # ── 效果分派 ──
 
@@ -400,6 +418,25 @@ class SkillResolver:
         if healed:
             return [f'{user.name} 回复+{healed}HP']
         return []
+
+    @staticmethod
+    def _special_combo_increment(user, _target, effect, _g, _ctx, use):
+        amount = int(effect.amount or effect.value or 1)
+        use.battle_skill.combo_mod += amount
+        return [f'{user.name} {use.battle_skill.name}连击+{amount}(→{use.battle_skill.combo})']
+
+    @staticmethod
+    def _special_power_increment(user, _target, effect, _g, _ctx, use):
+        amount = int(effect.amount or effect.value or 0)
+        use.battle_skill.power_mod += amount
+        return [f'{user.name} {use.battle_skill.name}威力+{amount}(→{use.battle_skill.power})']
+
+    @staticmethod
+    def _special_energy_cost_increment(user, _target, effect, _g, _ctx, use):
+        amount = int(effect.amount or effect.value or 0)
+        use.battle_skill.energy_cost_mod += amount
+        sign = '+' if amount >= 0 else ''
+        return [f'{user.name} {use.battle_skill.name}能耗{sign}{amount}(→{use.battle_skill.energy_cost})']
 
     @staticmethod
     def _special_dispel_positive(user, target, effect, _g, _ctx, _use):
@@ -827,6 +864,9 @@ def _build_special_registry() -> dict[str, _SpecialHandler]:
         SpecialName.GAIN_ENERGY:        R._special_gain_energy,
         SpecialName.GAIN_ENERGY_BY_ENEMY: R._special_gain_energy_by_enemy,
         SpecialName.HEAL:               R._special_heal,
+        SpecialName.COMBO_INCREMENT:    R._special_combo_increment,
+        SpecialName.POWER_INCREMENT:    R._special_power_increment,
+        SpecialName.ENERGY_COST_INCREMENT: R._special_energy_cost_increment,
         SpecialName.DISPEL_POSITIVE:    R._special_dispel_positive,
         SpecialName.DISPEL_NEGATIVE:    R._special_dispel_negative,
         SpecialName.DOUBLE_POSITIVE:    R._special_double_positive,

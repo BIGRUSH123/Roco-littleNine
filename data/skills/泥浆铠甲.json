@@ -23,13 +23,6 @@
       "scope": "battlefield"
     },
     {
-      "kind": "stat",
-      "target": "self",
-      "stat": "def",
-      "steps": 6,
-      "scope": "battlefield"
-    },
-    {
       "kind": "conditional",
       "when": {
         "kind": "counter_succeeded"

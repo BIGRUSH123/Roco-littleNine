@@ -25,6 +25,11 @@ class SpecialName:
     LIFE_DRAIN = 'life_drain'
     GAIN_ENERGY_BY_ENEMY = 'gain_energy_by_enemy'
 
+    # ── 技能永久成长 ──
+    COMBO_INCREMENT = 'combo_increment'
+    POWER_INCREMENT = 'power_increment'
+    ENERGY_COST_INCREMENT = 'energy_cost_increment'
+
     # ── 控制 ──
     BURST = 'burst'
     CHARGE = 'charge'
@@ -68,6 +73,7 @@ class SpecialName:
         EXCHANGE_HP_RATIO, EXCHANGE_EFFECTS, EXCHANGE_SKILLS,
         POWER_BY_ENEMY_ENERGY, POWER_BY_ADJACENT, ADJACENT_POWER_BONUS,
         PRIORITY_BONUS, IGNORE_MODS, RANDOM_DEVOTION, BORROW_SKILL,
+        COMBO_INCREMENT, POWER_INCREMENT, ENERGY_COST_INCREMENT,
     })
 
     # 伤害相关子集 — 由 _collect_modifiers / calc_damage 处理
@@ -86,6 +92,7 @@ class EffectLayer:
     COUNTER = 4    # L4: 反击伤害（独立公式）
     SWITCH = 5     # L5: 换宠/返场/借用
     TURN_END = 6   # L6: 回合末结算
+    POST_USE = 7   # L3.5: 技能使用后永久增长（连击/威力/能耗递增）
 
 
 @dataclass

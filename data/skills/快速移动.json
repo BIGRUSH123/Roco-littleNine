@@ -16,13 +16,6 @@
       "scope": "battlefield"
     },
     {
-      "kind": "stat",
-      "target": "self",
-      "stat": "speed",
-      "steps": 8,
-      "scope": "battlefield"
-    },
-    {
       "kind": "conditional",
       "when": {
         "kind": "counter_succeeded"

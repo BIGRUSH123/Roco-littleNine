@@ -16,13 +16,6 @@
       "stacks": 2
     },
     {
-      "kind": "abnormal",
-      "target": "opp",
-      "name": "冻结",
-      "scope": "persistent",
-      "stacks": 2
-    },
-    {
       "kind": "conditional",
       "when": {
         "kind": "counter_succeeded"

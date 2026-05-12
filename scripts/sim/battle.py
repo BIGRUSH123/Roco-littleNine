@@ -130,8 +130,14 @@ class Battle(BattleMechanicsMixin):
 
         record = TurnRecord(turn=self.turn, weather=self.globals.weather)
 
+        # 0. 首发入场（回合1触发 entry trait）
+        events: list[str] = []
+        if self.turn == 1:
+            events += dispatch_entry(self.player_a.active, self, 'A')
+            events += dispatch_entry(self.player_b.active, self, 'B')
+
         # 1. 回合开始阶段
-        events = self._phase_turn_start()
+        events += self._phase_turn_start()
 
         # 2. 行动选择阶段（道具不互见）
         action_a, item_a = self._select_action(agent_a, 'A')
@@ -146,6 +152,12 @@ class Battle(BattleMechanicsMixin):
 
         # 4. 回合结束阶段
         events += self._phase_turn_end()
+
+        # 回合标题（插入到事件列表头部）
+        a_short = self._action_short(record.action_a)
+        b_short = self._action_short(record.action_b)
+        header = f'[回合{self.turn}] {self.player_a.active.name}：{a_short} | {self.player_b.active.name}：{b_short}'
+        events.insert(0, header)
 
         # 填充记录（用回合结束时的实时精灵引用）
         record.events = events
@@ -181,7 +193,9 @@ class Battle(BattleMechanicsMixin):
             if sprite.is_fainted or not prev:
                 continue
             from scripts.sim.traits.trait_engine import fire_hook
-            events += fire_hook('after_transmission', sprite, prev, self, team)
+            res = fire_hook('after_transmission', sprite, prev, self, team)
+            if res:
+                events += res
         # trait turn_start
         if not self.player_a.active.is_fainted:
             events += dispatch_turn_start(self.player_a.active, self, 'A')
@@ -411,12 +425,19 @@ class Battle(BattleMechanicsMixin):
             events.append(f'[错误] {user.name} 无技能[{action.skill_index}]')
             return events
 
+        # 应对日志
+        if is_countered and countering_skill:
+            opp_sprite = opponent.active
+            events.append(f'{opp_sprite.name}应对{user.name}：{user.name}使用了{skill.name}，但被{opp_sprite.name}（{countering_skill.name}）应对了！')
+
         # ═══ gate: 能量支付 ═══
         # 能量不足 → 管线短路，L0-L6 全部跳过
         cost = skill.energy_cost
         cost += user.effective_stat('energy_cost')  # sprite 能耗修正（特性/效果）
         cost = round(cost * self.globals.weather_energy_mod(skill.element or ''))
         cost = max(0, cost - self.globals.mark_energy_mod(team))
+        # 一次性能耗修正消费（能量计算后立即消费，确保短路路径也生效）
+        user.clear_effects('next_use')
 
         if user.energy < cost:
             deficit = cost - user.energy
@@ -483,6 +504,9 @@ class Battle(BattleMechanicsMixin):
                         if 0 <= idx < len(user.skills):
                             adj_sum += user.skills[idx].power
                 skill.power_override = max(1, int(adj_sum * (e.value or 0.333)))
+
+        # 每 hit 生效的资源类特效 (heal/gain_energy 等)
+        _PER_HIT_SPECIALS = {'heal', 'direct_heal', 'gain_energy', 'steal_energy', 'gain_energy_by_enemy'}
 
         # 有效连击数：静态 combo + 精灵连击修正
         effective_combo = skill.combo
@@ -591,6 +615,17 @@ class Battle(BattleMechanicsMixin):
         events += self._resolver.dispatch_L3(
             user, target, use, self.globals, ctx, team=team,
         )
+
+        # 非攻击技能连击：L3 已处理第1 hit，额外应用剩余 hit 的 heal/gain_energy
+        if not skill.is_attack and effective_combo > 1:
+            for hit_i in range(1, effective_combo):
+                for effect in skill.effects:
+                    if getattr(effect, 'kind', '') == 'special' and effect.name in _PER_HIT_SPECIALS:
+                        events += self._resolver._handle_special(
+                            user, target, effect, self.globals, ctx, use)
+
+        # ═══ 技能使用后永久增长（连击/威力/能耗递增）═══
+        events += self._resolver.dispatch_post_use(user, target, use, self.globals, ctx)
 
         # ═══ L4: 反击层 [once] ═══
         # counter_damage — 独立简化公式，不走 L2 calc_damage
