@@ -1,0 +1,10 @@
+# adjacent_power_bonus
+# 特殊效果
+
+## 技能
+- test_l3_state
+- 联动装置
+
+## 特性
+(暂无)
+

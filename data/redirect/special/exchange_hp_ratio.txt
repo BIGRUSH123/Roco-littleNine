@@ -1,0 +1,10 @@
+# exchange_hp_ratio
+# 特殊效果
+
+## 技能
+- test_l3_exchange
+- 恶念交换
+
+## 特性
+(暂无)
+

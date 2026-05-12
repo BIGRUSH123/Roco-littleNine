@@ -16,11 +16,11 @@
       "stacks": 1
     },
     {
-      "kind": "stat",
-      "target": "opp",
-      "stat": "power",
-      "steps": 1,
-      "scope": "battlefield"
+      "kind": "special",
+      "name": "power_by_abnormal",
+      "abnormal_name": "中毒",
+      "value": 10,
+      "target": "opp"
     },
     {
       "kind": "conditional",
@@ -29,11 +29,11 @@
       },
       "then": [
         {
-          "kind": "stat",
-          "target": "opp",
-          "stat": "power",
-          "steps": 2,
-          "scope": "battlefield"
+          "kind": "special",
+          "name": "power_by_abnormal",
+          "abnormal_name": "中毒",
+          "value": 20,
+          "target": "opp"
         }
       ]
     }

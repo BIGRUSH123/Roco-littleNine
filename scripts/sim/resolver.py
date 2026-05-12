@@ -74,6 +74,8 @@ _SPECIAL_LAYER: dict[str, int] = {
     SpecialName.POWER_MULT: EffectLayer.MODIFIER,
     SpecialName.DAMAGE_MULT: EffectLayer.MODIFIER,
     SpecialName.DAMAGE_REDUCTION: EffectLayer.MODIFIER,
+    SpecialName.DAMAGE_REDUCTION_BY_ABNORMAL: EffectLayer.MODIFIER,
+    SpecialName.POWER_BY_ABNORMAL: EffectLayer.MODIFIER,
     SpecialName.MULTI_HIT: EffectLayer.MODIFIER,
     SpecialName.IGNORE_MODS: EffectLayer.MODIFIER,
     SpecialName.ADJACENT_POWER_BONUS: EffectLayer.MODIFIER,
@@ -97,6 +99,8 @@ _SPECIAL_LAYER: dict[str, int] = {
     SpecialName.DISPEL_NEGATIVE: EffectLayer.STATE,
     SpecialName.DOUBLE_POSITIVE: EffectLayer.STATE,
     SpecialName.DOUBLE_NEGATIVE: EffectLayer.STATE,
+    SpecialName.DOUBLE_ABNORMAL: EffectLayer.STATE,
+    SpecialName.ABNORMAL_TICK: EffectLayer.STATE,
     SpecialName.REFLECT_DAMAGE: EffectLayer.STATE,
     SpecialName.INTERRUPT: EffectLayer.STATE,
     SpecialName.EXCHANGE_HP_RATIO: EffectLayer.STATE,
@@ -426,6 +430,9 @@ class SkillResolver:
     @staticmethod
     def _special_energy_cost_increment(user, _target, effect, _g, _ctx, use):
         amount = int(effect.amount or effect.value or 0)
+        # 对流 特性: 能耗增减反转
+        if getattr(user.species, 'ability', '') == '对流':
+            amount = -amount
         use.battle_skill.energy_cost_mod += amount
         sign = '+' if amount >= 0 else ''
         return [f'{user.name} {use.battle_skill.name}能耗{sign}{amount}(→{use.battle_skill.energy_cost})']
@@ -461,6 +468,45 @@ class SkillResolver:
         if n:
             return [f'{sprite.name} {n}个负面效果翻倍']
         return []
+
+    @staticmethod
+    def _special_double_abnormal(user, target, effect, _g, _ctx, _use):
+        sprite = user if getattr(effect, 'target', 'opp') == 'self' else target
+        aname = getattr(effect, 'abnormal_name', '')
+        if not aname:
+            return []
+        for e in sprite.effects:
+            if getattr(e, 'name', '') == aname and not e.is_stat:
+                e.stacks *= 2
+                return [f'{sprite.name} {aname}层数翻倍→{e.stacks}层']
+        return []
+
+    @staticmethod
+    def _special_abnormal_tick(user, target, effect, _g, _ctx, _use):
+        """触发一次异常伤害（灼烧/中毒/寄生），与回合末公式一致。"""
+        sprite = user if getattr(effect, 'target', 'opp') == 'self' else target
+        aname = getattr(effect, 'abnormal_name', '')
+        if sprite.is_fainted or not aname:
+            return []
+        events: list[str] = []
+        stacks = sprite.get_stacks(aname)
+        if aname == '灼烧':
+            if stacks > 0:
+                dmg = max(1, round(sprite.max_hp * 0.02 * stacks))
+                sprite.take_damage(dmg)
+                new_stacks = (stacks + 1) // 2
+                sprite.update_stacks(aname, new_stacks)
+                events.append(f'{sprite.name} 灼烧-{dmg}HP(剩{new_stacks}层)')
+        elif aname == '中毒':
+            if stacks > 0:
+                dmg = max(1, round(sprite.max_hp * 0.03 * stacks))
+                sprite.take_damage(dmg)
+                events.append(f'{sprite.name} 中毒-{dmg}HP')
+        elif aname == '寄生':
+            dmg = max(1, round(sprite.max_hp * 0.06))
+            sprite.take_damage(dmg)
+            events.append(f'{sprite.name} 寄生-{dmg}HP')
+        return events
 
     @staticmethod
     def _special_reflect_damage(user, _target, _effect, _g, _ctx, use):
@@ -866,6 +912,8 @@ def _build_special_registry() -> dict[str, _SpecialHandler]:
         SpecialName.DISPEL_NEGATIVE:    R._special_dispel_negative,
         SpecialName.DOUBLE_POSITIVE:    R._special_double_positive,
         SpecialName.DOUBLE_NEGATIVE:    R._special_double_negative,
+        SpecialName.DOUBLE_ABNORMAL:   R._special_double_abnormal,
+        SpecialName.ABNORMAL_TICK:     R._special_abnormal_tick,
         SpecialName.REFLECT_DAMAGE:     R._special_reflect_damage,
         SpecialName.ADJACENT_POWER_BONUS: R._special_adjacent_power_bonus,
         SpecialName.PRIORITY_BONUS:     R._special_priority_bonus,

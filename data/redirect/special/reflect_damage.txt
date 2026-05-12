@@ -1,0 +1,10 @@
+# reflect_damage
+# 特殊效果
+
+## 技能
+- test_l3_l4_defense
+- 镜像反射
+
+## 特性
+(暂无)
+

@@ -1,0 +1,10 @@
+# double_negative
+# 特殊效果
+
+## 技能
+- test_l3_state
+- 落井下毒
+
+## 特性
+(暂无)
+

@@ -1,0 +1,9 @@
+# damage_reduction_by_abnormal
+# 特殊效果
+
+## 技能
+- 不可接触
+
+## 特性
+(暂无)
+

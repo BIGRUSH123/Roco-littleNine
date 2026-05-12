@@ -9,11 +9,9 @@
   "combo": 1,
   "effects": [
     {
-      "kind": "stat",
-      "target": "self",
-      "stat": "power",
-      "steps": 2,
-      "scope": "persistent"
+      "kind": "special",
+      "name": "adjacent_power_bonus",
+      "value": 20
     },
     {
       "kind": "conditional",
@@ -22,11 +20,9 @@
       },
       "then": [
         {
-          "kind": "stat",
-          "target": "opp",
-          "stat": "power",
-          "steps": 3,
-          "scope": "persistent"
+          "kind": "special",
+          "name": "adjacent_power_bonus",
+          "value": 10
         }
       ]
     }

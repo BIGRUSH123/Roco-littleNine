@@ -17,6 +17,14 @@ const active = computed(() => player.value.team[player.value.active_index])
 const activeOpp = computed(() => opponent.value.team[opponent.value.active_index])
 const isCharging = computed(() => !!active.value.charging)
 const hasJealousy = computed(() => active.value.trait === '嫉妒')
+const skillCount = computed(() => active.value.skills?.length || 0)
+const gridCols = computed(() => {
+  if (skillCount.value <= 4) return 'grid-cols-2'
+  if (skillCount.value <= 6) return 'grid-cols-3'
+  if (skillCount.value <= 8) return 'grid-cols-4'
+  return 'grid-cols-5'
+})
+const btnPad = computed(() => skillCount.value > 6 ? 'py-1.5 px-1.5' : 'py-2.5 px-3')
 
 function canUseSkill(skillName) {
   if (!isCharging.value) {
@@ -191,14 +199,15 @@ const handleAction = (type, payload = null) => {
         <div v-if="!state.is_finished" class="border-t border-[#3a3d42] p-3 bg-[#1e2128]">
           <template v-if="!showSwitchMenu">
             <!-- Skill Buttons -->
-            <div class="grid grid-cols-2 gap-1.5 mb-1.5">
+            <div :class="['grid gap-1.5 mb-1.5', gridCols]">
               <button
                 v-for="skill in active.skills"
                 :key="skill"
                 @click="handleAction('skill', skill)"
                 :disabled="active.is_fainted || !canUseSkill(skill)"
-                class="group relative bg-[#252830] hover:bg-[#2e3640] disabled:opacity-40 border text-[#e0e0e0] py-2.5 px-3 rounded text-left transition-colors"
+                class="group relative bg-[#252830] hover:bg-[#2e3640] disabled:opacity-40 border text-[#e0e0e0] rounded text-left transition-colors"
                 :class="[
+                  btnPad,
                   effectivenessClass(skill) || 'border-[#3a3d42]',
                   energyInsufficient(skill) ? 'border-[#f44336]/50' : 'hover:border-[#4a90d9]'
                 ]"

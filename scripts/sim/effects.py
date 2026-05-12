@@ -48,6 +48,10 @@ class SpecialName:
     DISPEL_NEGATIVE = 'dispel_negative'
     DOUBLE_POSITIVE = 'double_positive'
     DOUBLE_NEGATIVE = 'double_negative'
+    DOUBLE_ABNORMAL = 'double_abnormal'
+    ABNORMAL_TICK = 'abnormal_tick'
+    DAMAGE_REDUCTION_BY_ABNORMAL = 'damage_reduction_by_abnormal'
+    POWER_BY_ABNORMAL = 'power_by_abnormal'
 
     # ── 交换 ──
     EXCHANGE_HP_RATIO = 'exchange_hp_ratio'
@@ -70,6 +74,7 @@ class SpecialName:
         BURST, CHARGE, INTERRUPT, REFLECT_DAMAGE, COUNTER_DAMAGE,
         ESCAPE, ESCAPE_INHERIT, FORCE_RETURN, RETURN_SELF,
         DISPEL_POSITIVE, DISPEL_NEGATIVE, DOUBLE_POSITIVE, DOUBLE_NEGATIVE,
+        DOUBLE_ABNORMAL, ABNORMAL_TICK, DAMAGE_REDUCTION_BY_ABNORMAL, POWER_BY_ABNORMAL,
         EXCHANGE_HP_RATIO, EXCHANGE_EFFECTS, EXCHANGE_SKILLS,
         POWER_BY_ENEMY_ENERGY, POWER_BY_ADJACENT, ADJACENT_POWER_BONUS,
         PRIORITY_BONUS, IGNORE_MODS, RANDOM_DEVOTION, BORROW_SKILL,
@@ -140,9 +145,13 @@ class SpecialEffect:
                                 # life_drain|steal_energy|escape|burst|charge|multi_hit
                                 # direct_heal|heal|reflect_damage|priority_bonus
                                 # dispel_positive|dispel_negative|double_positive|double_negative
-    value: float = 0.0          # 数值（倍率/百分比/次数）
+                                # double_abnormal|abnormal_tick|damage_reduction_by_abnormal
+    value: float = 0.0          # 数值（倍率/百分比/次数 / base reduction）
     amount: int = 0             # 整数参数（偷能量点数、驱散数量等）
     target: str = "opp"         # 效果施加对象（self|opp）
+    abnormal_name: str = ""     # double_abnormal / abnormal_tick 的目标异常名
+    per_stack_value: float = 0.0  # damage_reduction_by_abnormal: 每层追加值
+    max_value: float = 1.0      # damage_reduction_by_abnormal: 上限
 
 
 @dataclass

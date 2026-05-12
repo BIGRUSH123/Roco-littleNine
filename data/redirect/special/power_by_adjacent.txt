@@ -1,0 +1,10 @@
+# power_by_adjacent
+# 特殊效果
+
+## 技能
+- test_l1_power
+- 钢钻
+
+## 特性
+(暂无)
+

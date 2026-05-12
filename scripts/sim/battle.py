@@ -433,7 +433,10 @@ class Battle(BattleMechanicsMixin):
         # ═══ gate: 能量支付 ═══
         # 能量不足 → 管线短路，L0-L6 全部跳过
         cost = skill.energy_cost
-        cost += user.effective_stat('energy_cost')  # sprite 能耗修正（特性/效果）
+        ecost = user.effective_stat('energy_cost')  # sprite 能耗修正（特性/效果）
+        if getattr(user.species, 'ability', '') == '对流':
+            ecost = -ecost  # 对流: 能耗增减反转
+        cost += ecost
         cost = round(cost * self.globals.weather_energy_mod(skill.element or ''))
         cost = max(0, cost - self.globals.mark_energy_mod(team))
         # 一次性能耗修正消费（能量计算后立即消费，确保短路路径也生效）
@@ -517,6 +520,46 @@ class Battle(BattleMechanicsMixin):
 
         # ── trait modifier hook（L0→L1 之间）──
         events += dispatch_modifier(user, use, self, team)
+
+        # ── 动态 damage_reduction（不可接触等：基于敌方异常层数追加减伤）──
+        if use.is_countered and use.countering_skill:
+            for e in use.countering_skill.effects:
+                if getattr(e, 'kind', '') != 'special':
+                    continue
+                if e.name == SpecialName.DAMAGE_REDUCTION_BY_ABNORMAL:
+                    aname = getattr(e, 'abnormal_name', '')
+                    base = getattr(e, 'value', 0.0) or 0.0
+                    per = getattr(e, 'per_stack_value', 0.0) or 0.0
+                    cap = getattr(e, 'max_value', 1.0) or 1.0
+                    stacks = user.get_stacks(aname)  # attacker's abnormal stacks
+                    dynamic = min(base + per * stacks, cap)
+                    old = use.modifiers.get('damage_reduction', 0)
+                    if dynamic > old:
+                        use.modifiers['damage_reduction'] = dynamic
+                        events.append(f'{target.name} 不可接触 减伤{old:.0%}→{dynamic:.0%}({aname}×{stacks})')
+
+        # ── 动态 power_bonus（鸩毒等：基于敌方异常层数追加威力）──
+        if skill.is_attack:
+            best_pba = None
+            for e in skill.effects:
+                if getattr(e, 'kind', '') == 'special' and getattr(e, 'name', '') == SpecialName.POWER_BY_ABNORMAL:
+                    best_pba = e
+                elif getattr(e, 'kind', '') == 'conditional':
+                    when = getattr(e, 'when', None) or {}
+                    then = getattr(e, 'then', None) or []
+                    if when.get('kind') == 'counter_succeeded' and is_countered:
+                        for sub in then:
+                            if getattr(sub, 'kind', '') == 'special' and getattr(sub, 'name', '') == SpecialName.POWER_BY_ABNORMAL:
+                                best_pba = sub
+            if best_pba:
+                aname = getattr(best_pba, 'abnormal_name', '')
+                per_stack = getattr(best_pba, 'value', 0) or 0
+                stacks = target.get_stacks(aname)
+                bonus = int(per_stack * stacks)
+                old = use.modifiers.get('power_bonus', 0)
+                if bonus > old:
+                    use.modifiers['power_bonus'] = bonus
+                    events.append(f'{user.name} {skill.name} 威力+{bonus}({aname}×{stacks})')
 
         # ═══ L1: 动态威力解算 ═══
         # 消费 next_attack_mult（热身等设置的下次攻击倍率）

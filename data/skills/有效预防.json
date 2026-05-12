@@ -21,7 +21,7 @@
       "then": [
         {
           "kind": "stat",
-          "target": "opp",
+          "target": "self",
           "stat": "priority",
           "steps": 1,
           "scope": "battlefield"

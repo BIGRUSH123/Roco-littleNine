@@ -304,7 +304,7 @@ def init_battle(req: InitRequest):
         pool = list(SPRITE_ENTRIES)
         random.shuffle(pool)
         for entry in pool[:len(team_a_specs)]:
-            chosen_skills = random.sample(entry["skills"], min(4, len(entry["skills"])))
+            chosen_skills = random.sample(entry["skills"], min(6, len(entry["skills"])))
             team_b_specs.append({"name": entry["name"], "skills": chosen_skills})
             
     player_a = FACTORY.build_player("玩家", team_a_specs)

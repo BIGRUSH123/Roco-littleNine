@@ -9,11 +9,16 @@
   "combo": 1,
   "effects": [
     {
-      "kind": "abnormal",
-      "target": "self",
-      "name": "灼烧",
-      "scope": "battlefield",
-      "stacks": 1
+      "kind": "special",
+      "name": "double_abnormal",
+      "target": "opp",
+      "abnormal_name": "灼烧"
+    },
+    {
+      "kind": "special",
+      "name": "abnormal_tick",
+      "target": "opp",
+      "abnormal_name": "灼烧"
     }
   ]
 }

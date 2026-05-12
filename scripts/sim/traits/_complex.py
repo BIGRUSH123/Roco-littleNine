@@ -100,21 +100,7 @@ class StargroundKind(TraitHandler):
 
 @register("对流")
 class Convection(TraitHandler):
-    """自己的能耗增加变为降低；降低变为增加。"""
-
-    def on_modifier(self, user: Sprite, use: SkillUse,
-                    battle: Battle, team: str) -> list[str]:
-        total = sum(e.steps for e in user.effects if e.category == 'stat'
-                    and e.stat_key == 'energy_cost')
-        if total == 0:
-            return []
-        correction = 2 * total
-        if correction > 0:
-            user.gain_energy(correction)
-            return [f'{user.name} 对流: 能耗反转, 返还{correction}E']
-        else:
-            user.lose_energy(-correction)
-            return [f'{user.name} 对流: 能耗反转, 额外消耗{-correction}E']
+    """自己的能耗增加变为降低；降低变为增加。（由 engine 在能量计算和 energy_cost_increment 处统一反转）"""
 
 
 @register("倾轧")

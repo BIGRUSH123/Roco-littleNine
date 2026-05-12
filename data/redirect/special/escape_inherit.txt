@@ -1,0 +1,10 @@
+# escape_inherit
+# 特殊效果
+
+## 技能
+- test_l5_inherit
+- 击鼓传花
+
+## 特性
+(暂无)
+

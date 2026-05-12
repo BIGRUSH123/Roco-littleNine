@@ -23,7 +23,7 @@
       "then": [
         {
           "kind": "stat",
-          "target": "opp",
+          "target": "self",
           "stat": "energy_cost",
           "steps": -3,
           "scope": "battlefield"

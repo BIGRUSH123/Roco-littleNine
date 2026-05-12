@@ -10,22 +10,11 @@
   "effects": [
     {
       "kind": "special",
-      "name": "damage_reduction",
-      "value": 0.5
-    },
-    {
-      "kind": "abnormal",
-      "target": "self",
-      "name": "中毒",
-      "scope": "battlefield",
-      "stacks": 1
-    },
-    {
-      "kind": "abnormal",
-      "target": "opp",
-      "name": "中毒",
-      "scope": "battlefield",
-      "stacks": 1
+      "name": "damage_reduction_by_abnormal",
+      "value": 0.5,
+      "per_stack_value": 0.1,
+      "max_value": 1.0,
+      "abnormal_name": "中毒"
     }
   ]
 }

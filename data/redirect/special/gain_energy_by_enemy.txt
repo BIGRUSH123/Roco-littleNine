@@ -1,0 +1,10 @@
+# gain_energy_by_enemy
+# 特殊效果
+
+## 技能
+- test_l3_state
+- 雾气环绕
+
+## 特性
+(暂无)
+

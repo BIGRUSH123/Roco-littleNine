@@ -126,9 +126,9 @@ def _pick_sprites(entries: list[tuple[int, str, list[str]]], player_name: str,
             print(f'    [{i:2d}] {s}')
 
         selected_skills: list[str] = []
-        while len(selected_skills) < 4:
+        while len(selected_skills) < 10:
             try:
-                raw = input(f'  选择技能 {len(selected_skills)+1}/4 (回车结束) > ').strip()
+                raw = input(f'  选择技能 {len(selected_skills)+1}/10 (回车结束) > ').strip()
             except EOFError:
                 break
             if raw == '':
@@ -144,7 +144,7 @@ def _pick_sprites(entries: list[tuple[int, str, list[str]]], player_name: str,
                         print(f'  已选过 {skill}')
                     else:
                         selected_skills.append(skill)
-                        print(f'  + {skill} ({len(selected_skills)}/4)')
+                        print(f'  + {skill} ({len(selected_skills)}/10)')
                 else:
                     print(f'  超出范围，输入 0-{len(skill_pool)-1}')
             except ValueError:

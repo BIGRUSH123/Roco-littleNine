@@ -33,12 +33,42 @@ onMounted(async () => {
   }
 })
 
-const TEST_OPPONENT = [
-  { name: '双灯鱼', skills: ['水炮', '求雨'] },
-  { name: '大头骨龙', skills: ['龙吟', '龙威'] },
-  { name: '嗜光嗡嗡', skills: ['毒针', '吹火'] },
-  { name: '黑羽夫人', skills: ['乘风', '恶意逃离'] },
+const TEST_TEAM = [
+  { name: '棋契陛下', skills: ['冰锋横扫', '钢钻', '回旋踢', '三连破', '丰饶', '虫群智慧', '不可接触', '充分燃烧'] },
+  { name: '迪莫', skills: ['闪击', '光球', '冥想', '主场优势', '晒太阳', '生日蛋糕', '龙吟'] },
+  { name: '卡洛儿', skills: ['勾魂', '假寐', '冬至', '冰冻光线', '击鼓传花', '远程访问', '借用', '加大功率'] },
+  { name: '游蛇魔使', skills: ['水炮', '听桥', '潮汐', '打湿', '休息回复', '冰墙', '力量增效', '丢冰块'] },
+  { name: '黑羽夫人', skills: ['恶意逃离', '恶念交换', '欺诈契约', '隐藏条款', '落井下毒', '以毒攻毒', '偷袭'] },
+  { name: '大头骨龙', skills: ['龙吟', '三鼓作气', '破绽', '硬门', '冰点', '羽毛舞', '杠杆置换', '根吸收'] },
 ]
+
+const TEST_OPPONENT = [
+  { name: '双灯鱼', skills: ['水炮', '求雨', '水刃', '潮汐', '休息回复', '冰冻光线'] },
+  { name: '大头骨龙', skills: ['龙吟', '龙威', '三鼓作气', '硬门', '崩拳', '破绽'] },
+  { name: '游蛇魔使', skills: ['听桥', '打湿', '冰墙', '力量增效', '暗箱操作', '等价交换'] },
+  { name: '黑羽夫人', skills: ['恶意逃离', '偷袭', '羽毛舞', '落井下毒', '乘风', '突袭'] },
+]
+
+const handleQuickTest = async () => {
+  try {
+    isProcessing.value = true
+    const res = await fetch(`${API_BASE}/battle/init`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ team: TEST_TEAM, opponent_team: TEST_OPPONENT, lead_index: 0 })
+    })
+    if (!res.ok) throw new Error('战斗初始化失败')
+    const data = await res.json()
+    battleState.value = data
+    battleLogs.value = ['快速测试开始！']
+    currentPhase.value = 'battle'
+  } catch (error) {
+    console.error('Error starting battle:', error)
+    alert('初始化战斗失败，请确认后端已启动。')
+  } finally {
+    isProcessing.value = false
+  }
+}
 
 const handleStartBattle = async ({ team, leadIndex }) => {
   try {
@@ -117,7 +147,15 @@ const restartGame = () => {
       <h1 class="text-base font-bold tracking-wide text-[#e0e0e0]">
         格斗小九
       </h1>
-      <span class="text-xs text-[#6a6d75] ml-auto">v0.1</span>
+      <button
+        v-if="currentPhase === 'selection'"
+        @click="handleQuickTest"
+        :disabled="isProcessing"
+        class="ml-auto px-3 py-1 bg-[#4caf50] hover:bg-[#5cbf60] disabled:opacity-40 text-white text-xs font-bold rounded transition-colors mr-3"
+      >
+        快速测试
+      </button>
+      <span class="text-xs text-[#6a6d75]">v0.1</span>
     </header>
 
     <!-- Main Content -->

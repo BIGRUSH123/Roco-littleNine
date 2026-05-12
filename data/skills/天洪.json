@@ -16,7 +16,7 @@
       "then": [
         {
           "kind": "stat",
-          "target": "opp",
+          "target": "self",
           "stat": "energy_cost",
           "steps": -6,
           "scope": "persistent"
