@@ -515,7 +515,8 @@ class Battle(BattleMechanicsMixin):
 
         ctx = TurnContext(turn=self.turn, is_first=is_first,
                           countered_skill=countered_skill,
-                          opponent_switched=opponent_switched)
+                          opponent_switched=opponent_switched,
+                          battle=self, team=team)
 
         # ═══ L0: modifier 预计算 ═══
         # SkillUse.__post_init__ → _collect_modifiers 已处理 DAMAGE_SPECIALS

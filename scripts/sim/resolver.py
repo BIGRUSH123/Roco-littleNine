@@ -26,6 +26,8 @@ class TurnContext:
     opponent_switched: bool = False
     opponent_gathered: bool = False
     countered_skill: 'BattleSkill | None' = None
+    battle: 'Battle | None' = None
+    team: str = 'A'
 
 
 # 系别克制表（18 系）
@@ -123,12 +125,19 @@ _SPECIAL_LAYER: dict[str, int] = {
     SpecialName.BORROW_SKILL: EffectLayer.SWITCH,
 }
 
-# 奉献池（虫系特有机制）：每次随机奉献从中选一
+# 奉献池（虫系特有机制）：五种奉献类型，可独立叠加
+# 类型 1-5：连击+1 / 能耗-2 / 敌方2层中毒 / 威力+20 / 10%吸血
 _DEVOTION_POOL: list[dict] = [
-    {'kind': 'stat', 'target': 'self', 'stat': 'power', 'steps': 2, 'scope': 'battlefield'},
-    {'kind': 'special', 'name': SpecialName.LIFE_DRAIN, 'value': 0.1, 'target': 'self'},
+    # 奉献1: 连击+1
     {'kind': 'stat', 'target': 'self', 'stat': 'combo', 'steps': 1, 'scope': 'battlefield'},
+    # 奉献2: 能耗-2
+    {'kind': 'stat', 'target': 'self', 'stat': 'energy_cost', 'steps': -2, 'scope': 'battlefield'},
+    # 奉献3: 敌方获得2层中毒
     {'kind': 'abnormal', 'target': 'opp', 'name': '中毒', 'stacks': 2},
+    # 奉献4: 威力+20
+    {'kind': 'stat', 'target': 'self', 'stat': 'power', 'steps': 2, 'scope': 'battlefield'},
+    # 奉献5: 10%吸血
+    {'kind': 'special', 'name': SpecialName.LIFE_DRAIN, 'value': 0.1, 'target': 'self'},
 ]
 
 # Special 效果 handler 签名
@@ -193,6 +202,14 @@ class SkillResolver:
     ) -> list[str]:
         """L3: 状态变更层。遍历 effects 数组顺序执行，跳过 L4/L5 层 special 效果。"""
         events: list[str] = []
+
+        # 奉献自动注入：虫群/啃咬使用时应用所有已激活的奉献效果
+        skill_name = use.battle_skill.name
+        if skill_name in ('虫群', '啃咬') and battle:
+            player = battle.get_player(team)
+            if any(v > 0 for v in player.devotion.values()):
+                events += SkillResolver._apply_devotion(user, target, player, ctx)
+
         for effect in use.battle_skill.effects:
             kind = effect.kind
             if kind == 'stat':
@@ -628,20 +645,51 @@ class SkillResolver:
         return []  # 由 SkillUse._collect_modifiers 注入
 
     @staticmethod
-    def _special_random_devotion(user, target, effect, _g, _ctx, _use):
+    def _special_random_devotion(user, target, effect, _g, ctx, _use):
         import random
-        from .effects import effect_from_dict
         events: list[str] = []
         amount = getattr(effect, 'amount', 1)
-        for _ in range(amount):
-            pick = random.choice(_DEVOTION_POOL)
-            sub = effect_from_dict(pick)
+        battle = ctx.battle if ctx else None
+        team = ctx.team if ctx else 'A'
+        if battle:
+            player = battle.get_player(team)
+            types_hit: list[int] = []
+            for _ in range(amount):
+                t = random.randint(1, 5)
+                player.devotion[t] += 1
+                types_hit.append(t)
+            events.append(f'{user.name} 奉献+{amount} (类型{types_hit})')
+        return events
+
+    @staticmethod
+    def _apply_devotion(user: 'Sprite', target: 'Sprite',
+                        player: 'Player', ctx: 'TurnContext | None') -> list[str]:
+        """应用所有已激活的奉献效果（虫群/啃咬使用时自动触发）。"""
+        from .effects import effect_from_dict
+        events: list[str] = []
+        active = False
+        for t in range(1, 6):
+            stacks = player.devotion.get(t, 0)
+            if stacks <= 0:
+                continue
+            active = True
+            base = _DEVOTION_POOL[t - 1]
+            sub = effect_from_dict(dict(base))  # copy 避免修改原模板
             kind = sub.kind
             if kind == 'stat':
+                sub.steps *= stacks  # 叠加：steps × stacks
                 events += SkillResolver._handle_stat(user, target, sub)
             elif kind == 'abnormal':
+                sub.stacks *= stacks  # 叠加：stacks × stacks
                 events += SkillResolver._handle_abnormal(user, target, sub, None)
-        events.append(f'{user.name} 随机奉献×{amount}')
+            elif kind == 'special':
+                # 吸血等 special 效果每个 stack 独立应用
+                handler = _SPECIAL_HANDLERS.get(sub.name)
+                if handler:
+                    for _ in range(stacks):
+                        events += handler(user, target, sub, None, ctx, None)
+        if active:
+            events.insert(0, f'{user.name} 奉献生效')
         return events
 
     @staticmethod

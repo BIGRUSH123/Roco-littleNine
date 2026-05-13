@@ -69,6 +69,7 @@ class Player:
     lives: int = 4
     active_index: int = 0
     item: Item | None = None
+    devotion: dict[int, int] = field(default_factory=lambda: {1: 0, 2: 0, 3: 0, 4: 0, 5: 0})
 
     @property
     def active(self) -> 'Sprite':
