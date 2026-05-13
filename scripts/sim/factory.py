@@ -95,7 +95,10 @@ class SimFactory:
         self, player_a: Player, player_b: Player,
         weather: str = '',
     ) -> Battle:
-        return Battle(player_a=player_a, player_b=player_b, weather=weather)
+        battle = Battle(player_a=player_a, player_b=player_b, weather=weather)
+        battle.species_db = self.sprite_db
+        battle.skill_loader = self._build_skill_list
+        return battle
 
     @classmethod
     def default_style(cls, archetype: str = 'balanced') -> PlayStyle:

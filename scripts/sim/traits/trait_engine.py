@@ -1132,6 +1132,11 @@ class DataDrivenTrait(TraitHandler):
             name = eff_dict.get('name', '')
             stacks_raw = eff_dict.get('stacks', 1)
             stacks = RefResolver.resolve(stacks_raw, ctx) if isinstance(stacks_raw, str) else stacks_raw
+            # 萌化：走形态退化专用路径
+            if name == '萌化':
+                battle = ctx.get('battle')
+                if battle and target_sprite:
+                    return target_sprite.apply_moe(int(stacks), battle)
             scope = eff_dict.get('scope', 'battlefield')
             source = eff_dict.get('source', '')
             se = StatusEffect(

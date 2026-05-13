@@ -87,6 +87,21 @@ class SpriteDB:
                 return s
         return None
 
+    def lookup_by_number(self, number: str, form: str = '') -> Optional[SpeciesStats]:
+        """按精灵编号查找基础形态（用于萌化退化查找 pre_species）。"""
+        if not number:
+            return None
+        candidates = self._by_number.get(number, [])
+        if not candidates:
+            return None
+        # 优先匹配 form（空字符串=基础形态）
+        for p in candidates:
+            s = self._read_one(p)
+            if s and s.form == form:
+                return s
+        # 回退：返回第一个
+        return self._read_one(candidates[0])
+
     # ── 写入 ──
 
     def save(self, species: SpeciesStats) -> None:

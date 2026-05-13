@@ -32,6 +32,7 @@ class Skill:
     priority: int = 0
     combo: int = 1             # 连击数：技能重复执行次数
     effects: list[Effect] = field(default_factory=list)
+    exclusive_to: str = ''     # 专属技能归属精灵名（萌化后不匹配则封印）
 
     @classmethod
     def load(cls, data: dict) -> 'Skill':
@@ -48,6 +49,7 @@ class Skill:
             priority=data.get('priority', 0),
             combo=data.get('combo', 1),
             effects=effects,
+            exclusive_to=data.get('exclusive_to', ''),
         )
 
     @classmethod

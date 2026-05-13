@@ -189,7 +189,7 @@ class SkillResolver:
     def dispatch_L3(
         user: 'Sprite', target: 'Sprite', use: 'SkillUse',
         globals_: 'GlobalEffects', ctx: 'TurnContext | None' = None,
-        team: str = 'A',
+        team: str = 'A', battle=None,
     ) -> list[str]:
         """L3: 状态变更层。遍历 effects 数组顺序执行，跳过 L4/L5 层 special 效果。"""
         events: list[str] = []
@@ -198,7 +198,7 @@ class SkillResolver:
             if kind == 'stat':
                 events += SkillResolver._handle_stat(user, target, effect)
             elif kind == 'abnormal':
-                events += SkillResolver._handle_abnormal(user, target, effect)
+                events += SkillResolver._handle_abnormal(user, target, effect, battle)
             elif kind == 'mark':
                 events += SkillResolver._handle_mark(globals_, effect, team)
             elif kind == 'weather':
@@ -210,7 +210,7 @@ class SkillResolver:
                 events += SkillResolver._handle_special(user, target, effect, globals_, ctx, use)
             elif kind == 'conditional':
                 events += SkillResolver._eval_conditional(
-                    user, target, effect, globals_, ctx, team, use,
+                    user, target, effect, globals_, ctx, team, use, battle,
                 )
         return events
 
@@ -218,10 +218,10 @@ class SkillResolver:
     def dispatch(
         user: 'Sprite', target: 'Sprite', use: 'SkillUse',
         globals_: 'GlobalEffects', ctx: 'TurnContext | None' = None,
-        team: str = 'A',
+        team: str = 'A', battle=None,
     ) -> list[str]:
         """[兼容] 完整效果分派。等同于 dispatch_L3。"""
-        return SkillResolver.dispatch_L3(user, target, use, globals_, ctx, team)
+        return SkillResolver.dispatch_L3(user, target, use, globals_, ctx, team, battle)
 
     @staticmethod
     def dispatch_post_use(
@@ -265,11 +265,26 @@ class SkillResolver:
         return [f'{sprite.name} {display}']
 
     @staticmethod
-    def _handle_abnormal(user: 'Sprite', target: 'Sprite', effect: 'Effect') -> list[str]:
+    def _handle_abnormal(user: 'Sprite', target: 'Sprite', effect: 'Effect',
+                         battle=None) -> list[str]:
         from .sprite import StatusEffect
 
         sprite = user if effect.target == 'self' else target
         stacks = getattr(effect, 'stacks', 1)
+
+        # 萌化：走形态退化专用路径
+        if effect.name == '萌化':
+            if battle is not None:
+                return sprite.apply_moe(stacks, battle)
+            # 无 battle 引用时回退为简单层数叠加
+            se = StatusEffect(
+                name=effect.name, category='abnormal',
+                scope=effect.scope, source='skill', stacks=stacks,
+            )
+            sprite.add_effect(se)
+            total = sprite.get_stacks(effect.name)
+            return [f'{sprite.name} {effect.name}+{stacks}(共{total}层)']
+
         se = StatusEffect(
             name=effect.name, category='abnormal',
             scope=effect.scope, source='skill', stacks=stacks,
@@ -606,7 +621,7 @@ class SkillResolver:
             if kind == 'stat':
                 events += SkillResolver._handle_stat(user, target, sub)
             elif kind == 'abnormal':
-                events += SkillResolver._handle_abnormal(user, target, sub)
+                events += SkillResolver._handle_abnormal(user, target, sub, None)
         events.append(f'{user.name} 随机奉献×{amount}')
         return events
 
@@ -622,6 +637,7 @@ class SkillResolver:
         globals_: 'GlobalEffects', ctx: 'TurnContext | None',
         team: str = 'A',
         use: 'SkillUse | None' = None,
+        battle=None,
     ) -> list[str]:
         cond_met = SkillResolver._check_condition(effect.when, user, target, globals_, ctx)
         branches = effect.then if cond_met else getattr(effect, 'otherwise', None)
@@ -632,7 +648,7 @@ class SkillResolver:
                 if kind == 'stat':
                     events += SkillResolver._handle_stat(user, target, sub)
                 elif kind == 'abnormal':
-                    events += SkillResolver._handle_abnormal(user, target, sub)
+                    events += SkillResolver._handle_abnormal(user, target, sub, battle)
                 elif kind == 'mark':
                     events += SkillResolver._handle_mark(globals_, sub, team)
                 elif kind == 'weather':
@@ -641,7 +657,7 @@ class SkillResolver:
                     events += SkillResolver._handle_special(user, target, sub, globals_, ctx, use)
                 elif kind == 'conditional':
                     events += SkillResolver._eval_conditional(
-                        user, target, sub, globals_, ctx, team, use,
+                        user, target, sub, globals_, ctx, team, use, battle,
                     )
             return events
         return []

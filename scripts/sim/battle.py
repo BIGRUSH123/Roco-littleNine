@@ -88,6 +88,12 @@ class Battle(BattleMechanicsMixin):
             return None
         return self.species_db.get(name, form)
 
+    def lookup_species_by_number(self, number: str, form: str = ''):
+        """按精灵编号查找形态（萌化退化用）。"""
+        if self.species_db is None:
+            return None
+        return self.species_db.lookup_by_number(number, form)
+
     def build_skills(self, skill_names: list[str]) -> list:
         """形态变换时构建技能列表。由 SimFactory 注入后可用。"""
         if self.skill_loader is None:
@@ -699,7 +705,7 @@ class Battle(BattleMechanicsMixin):
         # ═══ L3: 状态层 [once] ═══
         # stat/abnormal/mark/weather + L3 specials，按 effects 数组顺序执行
         events += self._resolver.dispatch_L3(
-            user, target, use, self.globals, ctx, team=team,
+            user, target, use, self.globals, ctx, team=team, battle=self,
         )
 
         # 非攻击技能连击：L3 已处理第1 hit，额外应用剩余 hit

@@ -83,6 +83,12 @@ class Sprite:
     # 特性交互（禁用/复制/移除）
     _trait_suppressed: bool = False     # 特性被压制时跳过所有 trait dispatch
 
+    # 萌化状态（形态退化）
+    _moe_chain: list = field(default_factory=list)       # 进化链快照 [highest, ..., lowest]
+    _moe_position: int = 0              # 当前在链中的位置（0=原始，≥1=已退化n阶）
+    _moe_origin: 'SpeciesStats | None' = None   # 萌化前的原始物种
+    _moe_origin_skills: list = field(default_factory=list)  # 萌化前的原始技能列表
+
     # ── 有效属性 ──
 
     @property
@@ -318,3 +324,122 @@ class Sprite:
             self.skills = new_skills
         self.first_action = True  # 形态变换后首次行动触发迸发
         return [f'{old_name} 形态变换 → {self.name}']
+
+    # ── 萌化（形态退化）──
+
+    def apply_moe(self, stacks: int, battle) -> list[str]:
+        """施加萌化：沿进化链向下退化。返回事件列表。"""
+        if stacks <= 0:
+            return []
+
+        # 首次萌化：构建进化链快照 + 保存原始形态
+        if not self._moe_chain:
+            self._moe_origin = self.species
+            self._moe_origin_skills = list(self.skills)
+            self._build_moe_chain(battle)
+            self._moe_position = 0
+
+        max_pos = len(self._moe_chain) - 1
+        new_pos = self._moe_position + stacks
+
+        # 已到最低形态 → 免疫
+        if self._moe_position >= max_pos:
+            # 无忧无虑：允许额外层数（仅计数，不变换）
+            from .traits import get_trait
+            h = get_trait(self)
+            if h and h.name == '无忧无虑':
+                self._moe_position = new_pos
+                self._sync_moe_status_effect()
+                return [f'{self.name} 萌化层数+{stacks}(共{self._moe_position}层，无忧无虑)']
+            return [f'{self.name} 已是最低形态，免疫萌化']
+
+        # 限制到最大退化深度
+        actual_new = min(new_pos, max_pos)
+        target_species = self._moe_chain[actual_new]
+
+        old_name = self.name
+        self.transform(target_species, [])
+        self._moe_position = actual_new
+        self._sync_moe_status_effect()
+
+        events = [f'{old_name} 萌化 → 变为{self.name}({self._moe_position}层)']
+        events += self._seal_exclusive_skills()
+
+        # 多余层数（无忧无虑溢出到最低形态以下）
+        if new_pos > max_pos:
+            from .traits import get_trait
+            h = get_trait(self)
+            if h and h.name == '无忧无虑':
+                self._moe_position = new_pos
+                self._sync_moe_status_effect()
+                events.append(f'{self.name} 萌化层数+{new_pos - max_pos}(共{self._moe_position}层，无忧无虑)')
+
+        return events
+
+    def remove_moe(self, stacks: int, battle) -> int:
+        """移除萌化层数：沿进化链向上恢复。返回实际移除层数。"""
+        if stacks <= 0 or self._moe_position <= 0:
+            return 0
+
+        removed = min(stacks, self._moe_position)
+        new_pos = self._moe_position - removed
+
+        if new_pos == 0:
+            # 完全恢复原始形态
+            target_species = self._moe_origin
+            target_skills = self._moe_origin_skills
+            self._moe_chain.clear()
+            self._moe_origin = None
+            self._moe_origin_skills = []
+        else:
+            target_species = self._moe_chain[new_pos]
+            target_skills = []
+
+        self.transform(target_species, target_skills)
+        self._moe_position = new_pos
+        self._sync_moe_status_effect()
+        self._unseal_exclusive_skills()
+
+        return removed
+
+    def _build_moe_chain(self, battle) -> None:
+        """从当前物种沿 pre_species 向下走到最低形态。"""
+        chain = [self.species]
+        current = self.species
+        while current.pre_species:
+            pre = battle.lookup_species_by_number(current.pre_species)
+            if pre is None:
+                break
+            chain.append(pre)
+            current = pre
+        self._moe_chain = chain
+
+    def _sync_moe_status_effect(self) -> None:
+        """同步 StatusEffect 层数与 _moe_position。"""
+        self.remove_effect('萌化', 'abnormal')
+        if self._moe_position > 0:
+            self.add_effect(StatusEffect(
+                name='萌化', category='abnormal',
+                stacks=self._moe_position,
+                scope='battlefield', source='萌化退化',
+            ))
+
+    def _seal_exclusive_skills(self) -> list[str]:
+        """封印不匹配当前形态的专属技能。"""
+        events = []
+        for bs in self.skills:
+            ex = bs.base.exclusive_to
+            if ex and ex != self.species.name and not bs.sealed:
+                bs.sealed = True
+                events.append(f'{bs.name} 专属技能锁定(需{ex})')
+        return events
+
+    def _unseal_exclusive_skills(self) -> list[str]:
+        """解除萌化造成的专属技能封印。"""
+        events = []
+        for bs in self.skills:
+            ex = bs.base.exclusive_to
+            if ex and bs.sealed:
+                bs.sealed = False
+                events.append(f'{bs.name} 专属技能解锁')
+        return events
