@@ -12,5 +12,6 @@
   "sp_def": 64,
   "speed": 48,
   "ability": "搜刮",
+  "ability_id": 20063,
   "pre_species": ""
 }

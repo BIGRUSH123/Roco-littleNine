@@ -1,12 +1,20 @@
 {
+  "id": 20042,
   "name": "完全偏振",
   "description": "抵抗自己携带技能系别的攻击伤害。",
   "triggers": [
     {
       "on": "defend",
-      "condition": {"path": "skill.element", "op": "in", "value": "=@defender_skill_elements"},
+      "condition": {
+        "path": "skill.element",
+        "op": "in",
+        "value": "=@defender_skill_elements"
+      },
       "use_modifiers": {
-        "damage_mult": {"op": "set", "value": 0.0}
+        "damage_mult": {
+          "op": "set",
+          "value": 0.0
+        }
       }
     }
   ]

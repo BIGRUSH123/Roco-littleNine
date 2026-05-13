@@ -13,5 +13,6 @@
   "sp_def": 139,
   "speed": 90,
   "ability": "木桶戏法",
+  "ability_id": 20071,
   "pre_species": "93"
 }

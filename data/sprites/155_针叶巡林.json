@@ -13,5 +13,6 @@
   "sp_def": 100,
   "speed": 105,
   "ability": "野性感官",
+  "ability_id": 20134,
   "pre_species": "154"
 }

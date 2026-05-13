@@ -13,5 +13,6 @@
   "sp_def": 77,
   "speed": 75,
   "ability": "保卫",
+  "ability_id": 20143,
   "pre_species": "188"
 }

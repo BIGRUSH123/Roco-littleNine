@@ -12,5 +12,6 @@
   "sp_def": 110,
   "speed": 115,
   "ability": "惊吓",
+  "ability_id": 20156,
   "pre_species": "55"
 }

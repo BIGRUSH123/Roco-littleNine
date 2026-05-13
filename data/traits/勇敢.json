@@ -1,4 +1,5 @@
 {
+  "id": 20020,
   "name": "勇敢",
   "description": "能耗>3的技能威力+40%。",
   "triggers": [
@@ -10,7 +11,10 @@
         "value": 3
       },
       "use_modifiers": {
-        "power_mult": {"op": "add", "value": 0.4}
+        "power_mult": {
+          "op": "add",
+          "value": 0.4
+        }
       }
     }
   ]

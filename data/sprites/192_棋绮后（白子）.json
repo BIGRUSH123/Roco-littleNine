@@ -13,5 +13,6 @@
   "sp_def": 75,
   "speed": 90,
   "ability": "渗透",
+  "ability_id": 20086,
   "pre_species": "188"
 }

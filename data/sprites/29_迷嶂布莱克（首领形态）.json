@@ -12,5 +12,6 @@
   "sp_def": 154,
   "speed": 70,
   "ability": "地脉馈赠",
+  "ability_id": 20031,
   "pre_species": "29"
 }

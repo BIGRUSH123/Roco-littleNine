@@ -12,5 +12,6 @@
   "sp_def": 95,
   "speed": 125,
   "ability": "快充",
+  "ability_id": 20047,
   "pre_species": "67"
 }

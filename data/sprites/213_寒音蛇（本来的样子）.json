@@ -13,5 +13,6 @@
   "sp_def": 114,
   "speed": 100,
   "ability": "拨浪鼓",
+  "ability_id": 20058,
   "pre_species": "212"
 }

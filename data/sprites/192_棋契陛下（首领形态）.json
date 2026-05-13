@@ -13,5 +13,6 @@
   "sp_def": 115,
   "speed": 125,
   "ability": "御驾亲征",
+  "ability_id": 20046,
   "pre_species": "192"
 }

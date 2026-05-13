@@ -12,5 +12,6 @@
   "sp_def": 150,
   "speed": 70,
   "ability": "地脉",
+  "ability_id": 20030,
   "pre_species": "28"
 }

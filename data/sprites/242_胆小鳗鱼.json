@@ -13,5 +13,6 @@
   "sp_def": 90,
   "speed": 92,
   "ability": "生物电",
+  "ability_id": 20097,
   "pre_species": ""
 }

@@ -1,4 +1,5 @@
 {
+  "id": 90011,
   "name": "test_l5_escape",
   "element": "普通",
   "skill_type": "状态",
@@ -8,6 +9,9 @@
   "priority": 0,
   "combo": 1,
   "effects": [
-    { "kind": "special", "name": "escape" }
+    {
+      "kind": "special",
+      "name": "escape"
+    }
   ]
 }

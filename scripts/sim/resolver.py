@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from scripts.common import STAT_KEYS
+from scripts.common.skill_trait_ids import TRAIT_对流
 from .effects import SpecialName, EffectLayer
 
 if TYPE_CHECKING:
@@ -482,7 +483,7 @@ class SkillResolver:
     def _special_energy_cost_increment(user, _target, effect, _g, _ctx, use):
         amount = int(effect.amount or effect.value or 0)
         # 对流 特性: 能耗增减反转
-        if getattr(user.species, 'ability', '') == '对流':
+        if getattr(user.species, 'ability_id', 0) == TRAIT_对流:
             amount = -amount
         use.battle_skill.energy_cost_mod += amount
         sign = '+' if amount >= 0 else ''

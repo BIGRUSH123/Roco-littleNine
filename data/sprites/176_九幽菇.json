@@ -13,5 +13,6 @@
   "sp_def": 95,
   "speed": 70,
   "ability": "多人宿舍",
+  "ability_id": 20147,
   "pre_species": "175"
 }

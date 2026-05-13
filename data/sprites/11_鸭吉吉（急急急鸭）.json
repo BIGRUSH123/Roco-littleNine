@@ -12,5 +12,6 @@
   "sp_def": 45,
   "speed": 110,
   "ability": "挺起胸脯",
+  "ability_id": 20061,
   "pre_species": ""
 }

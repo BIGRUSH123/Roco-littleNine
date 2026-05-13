@@ -12,5 +12,6 @@
   "sp_def": 66,
   "speed": 100,
   "ability": "飓风",
+  "ability_id": 20139,
   "pre_species": "150"
 }

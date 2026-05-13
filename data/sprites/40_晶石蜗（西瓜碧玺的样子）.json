@@ -13,5 +13,6 @@
   "sp_def": 94,
   "speed": 65,
   "ability": "偏振",
+  "ability_id": 20010,
   "pre_species": "39"
 }

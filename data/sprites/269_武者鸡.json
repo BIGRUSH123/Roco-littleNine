@@ -13,5 +13,6 @@
   "sp_def": 70,
   "speed": 95,
   "ability": "斗技",
+  "ability_id": 20065,
   "pre_species": "267"
 }

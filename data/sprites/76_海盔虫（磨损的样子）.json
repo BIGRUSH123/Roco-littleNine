@@ -13,5 +13,6 @@
   "sp_def": 64,
   "speed": 63,
   "ability": "溶解扩散",
+  "ability_id": 20089,
   "pre_species": ""
 }

@@ -1,4 +1,5 @@
 {
+  "id": 20022,
   "name": "变形活画",
   "description": "敌方每有1层增益，攻击威力+10%。",
   "triggers": [
@@ -7,12 +8,23 @@
       "condition": {
         "kind": "and",
         "conditions": [
-          {"path": "skill.is_attack", "op": "eq", "value": true},
-          {"path": "target.effects[type=stat,steps>0].count", "op": "gt", "value": 0}
+          {
+            "path": "skill.is_attack",
+            "op": "eq",
+            "value": true
+          },
+          {
+            "path": "target.effects[type=stat,steps>0].count",
+            "op": "gt",
+            "value": 0
+          }
         ]
       },
       "use_modifiers": {
-        "power_mult": {"op": "add", "value": "=@target.effects[type=stat,steps>0].count * 0.1"}
+        "power_mult": {
+          "op": "add",
+          "value": "=@target.effects[type=stat,steps>0].count * 0.1"
+        }
       }
     }
   ]

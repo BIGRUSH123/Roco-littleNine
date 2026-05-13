@@ -1,4 +1,5 @@
 {
+  "id": 20051,
   "name": "悲悯",
   "description": "己方队伍每有1只力竭精灵，双攻+30%。",
   "triggers": [
@@ -6,8 +7,20 @@
       "on": "entry",
       "effects_mode": "replace",
       "effects": [
-        {"kind": "stat", "stat": "atk", "steps": "=@player_fainted_count * 3", "scope": "battlefield", "source": "悲悯"},
-        {"kind": "stat", "stat": "sp_atk", "steps": "=@player_fainted_count * 3", "scope": "battlefield", "source": "悲悯"}
+        {
+          "kind": "stat",
+          "stat": "atk",
+          "steps": "=@player_fainted_count * 3",
+          "scope": "battlefield",
+          "source": "悲悯"
+        },
+        {
+          "kind": "stat",
+          "stat": "sp_atk",
+          "steps": "=@player_fainted_count * 3",
+          "scope": "battlefield",
+          "source": "悲悯"
+        }
       ]
     }
   ]

@@ -13,5 +13,6 @@
   "sp_def": 70,
   "speed": 55,
   "ability": "恶魔的晚宴",
+  "ability_id": 20050,
   "pre_species": "259"
 }

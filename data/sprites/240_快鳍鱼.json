@@ -13,5 +13,6 @@
   "sp_def": 93,
   "speed": 100,
   "ability": "洄游",
+  "ability_id": 20081,
   "pre_species": "239"
 }

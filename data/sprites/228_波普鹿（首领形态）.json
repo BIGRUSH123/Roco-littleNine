@@ -12,5 +12,6 @@
   "sp_def": 79,
   "speed": 120,
   "ability": "超级电池",
+  "ability_id": 20130,
   "pre_species": "228"
 }

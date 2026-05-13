@@ -13,5 +13,6 @@
   "sp_def": 112,
   "speed": 80,
   "ability": "生物碱",
+  "ability_id": 20098,
   "pre_species": "64"
 }

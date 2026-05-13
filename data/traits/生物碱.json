@@ -1,4 +1,5 @@
 {
+  "id": 20098,
   "name": "生物碱",
   "description": "使用草系技能时，敌方获得2层中毒。",
   "triggers": [
@@ -7,12 +8,26 @@
       "condition": {
         "kind": "and",
         "conditions": [
-          {"path": "skill.element", "op": "eq", "value": "草"},
-          {"path": "target.is_fainted", "op": "neq", "value": true}
+          {
+            "path": "skill.element",
+            "op": "eq",
+            "value": "草"
+          },
+          {
+            "path": "target.is_fainted",
+            "op": "neq",
+            "value": true
+          }
         ]
       },
       "effects": [
-        {"kind": "abnormal", "name": "中毒", "stacks": 2, "target": "target", "source": "生物碱"}
+        {
+          "kind": "abnormal",
+          "name": "中毒",
+          "stacks": 2,
+          "target": "target",
+          "source": "生物碱"
+        }
       ]
     }
   ]

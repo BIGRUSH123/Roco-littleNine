@@ -13,5 +13,6 @@
   "sp_def": 123,
   "speed": 80,
   "ability": "小偷小摸",
+  "ability_id": 20044,
   "pre_species": ""
 }

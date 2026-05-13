@@ -12,5 +12,6 @@
   "sp_def": 113,
   "speed": 110,
   "ability": "鼓气",
+  "ability_id": 20141,
   "pre_species": "199"
 }

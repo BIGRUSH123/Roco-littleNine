@@ -1,12 +1,21 @@
 {
+  "id": 20114,
   "name": "茶多酚",
   "description": "离场后，更换入场的精灵回复20%生命且免疫寄生。",
   "triggers": [
     {
       "on": "leave",
       "pending_effects": [
-        {"kind": "state", "name": "回复20%HP", "source": "茶多酚"},
-        {"kind": "state", "name": "免疫寄生", "source": "茶多酚"}
+        {
+          "kind": "state",
+          "name": "回复20%HP",
+          "source": "茶多酚"
+        },
+        {
+          "kind": "state",
+          "name": "免疫寄生",
+          "source": "茶多酚"
+        }
       ]
     }
   ]

@@ -1,19 +1,41 @@
 {
+  "id": 20057,
   "name": "抓到你了",
   "description": "入场时敌方获得2层冻结；使敌方冻结时也使其全技能能耗+1。",
   "triggers": [
     {
       "on": "entry",
-      "condition": {"path": "target.is_fainted", "op": "neq", "value": true},
+      "condition": {
+        "path": "target.is_fainted",
+        "op": "neq",
+        "value": true
+      },
       "effects": [
-        {"kind": "abnormal", "name": "冻结", "stacks": 2, "target": "target", "source": "抓到你了"}
+        {
+          "kind": "abnormal",
+          "name": "冻结",
+          "stacks": 2,
+          "target": "target",
+          "source": "抓到你了"
+        }
       ]
     },
     {
       "on": "inflict",
-      "condition": {"path": "effect_name", "op": "eq", "value": "冻结"},
+      "condition": {
+        "path": "effect_name",
+        "op": "eq",
+        "value": "冻结"
+      },
       "effects": [
-        {"kind": "stat", "stat": "energy_cost", "steps": 1, "target": "target", "scope": "battlefield", "source": "抓到你了"}
+        {
+          "kind": "stat",
+          "stat": "energy_cost",
+          "steps": 1,
+          "target": "target",
+          "scope": "battlefield",
+          "source": "抓到你了"
+        }
       ]
     }
   ]

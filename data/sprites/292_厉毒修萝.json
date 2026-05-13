@@ -13,5 +13,6 @@
   "sp_def": 74,
   "speed": 135,
   "ability": "侵蚀",
+  "ability_id": 20008,
   "pre_species": "291"
 }

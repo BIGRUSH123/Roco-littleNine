@@ -1,19 +1,40 @@
 {
+  "id": 20092,
   "name": "灵魂灼伤",
   "description": "冰系技能使敌方获得4层灼烧，火系技能使敌方获得2层冻结。",
   "triggers": [
     {
       "on": "skill_use",
-      "condition": {"path": "skill.element", "op": "eq", "value": "冰"},
+      "condition": {
+        "path": "skill.element",
+        "op": "eq",
+        "value": "冰"
+      },
       "effects": [
-        {"kind": "abnormal", "name": "灼烧", "stacks": 4, "target": "target", "source": "灵魂灼伤"}
+        {
+          "kind": "abnormal",
+          "name": "灼烧",
+          "stacks": 4,
+          "target": "target",
+          "source": "灵魂灼伤"
+        }
       ]
     },
     {
       "on": "skill_use",
-      "condition": {"path": "skill.element", "op": "eq", "value": "火"},
+      "condition": {
+        "path": "skill.element",
+        "op": "eq",
+        "value": "火"
+      },
       "effects": [
-        {"kind": "abnormal", "name": "冻结", "stacks": 2, "target": "target", "source": "灵魂灼伤"}
+        {
+          "kind": "abnormal",
+          "name": "冻结",
+          "stacks": 2,
+          "target": "target",
+          "source": "灵魂灼伤"
+        }
       ]
     }
   ]

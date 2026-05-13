@@ -1,4 +1,5 @@
 {
+  "id": 90010,
   "name": "test_l3_state",
   "element": "普通",
   "skill_type": "状态",
@@ -8,37 +9,131 @@
   "priority": 0,
   "combo": 1,
   "effects": [
-    { "kind": "special", "name": "heal",                  "value": 0.3 },
-    { "kind": "special", "name": "direct_heal",           "amount": 50 },
-    { "kind": "special", "name": "gain_energy",           "amount": 2 },
-    { "kind": "special", "name": "steal_energy",          "amount": 1 },
-    { "kind": "special", "name": "gain_energy_by_enemy",  "value": 0.5 },
-    { "kind": "stat",      "target": "self", "stat": "atk",     "steps": 1, "scope": "persistent" },
-    { "kind": "stat",      "target": "opp",  "stat": "def",     "steps": -1 },
-    { "kind": "abnormal",  "target": "opp",  "name": "中毒",    "stacks": 2 },
-    { "kind": "abnormal",  "target": "opp",  "name": "灼烧",    "stacks": 4 },
-    { "kind": "abnormal",  "target": "opp",  "name": "寄生" },
-    { "kind": "weather",   "weather": "rain", "turns": 5 },
-    { "kind": "mark",      "target": "own_team", "name": "光合印记" },
-    { "kind": "special",   "name": "dispel_positive",  "target": "opp" },
-    { "kind": "special",   "name": "dispel_negative",  "target": "self" },
-    { "kind": "special",   "name": "double_positive" },
-    { "kind": "special",   "name": "double_negative",  "target": "opp" },
-    { "kind": "special",   "name": "charge" },
-    { "kind": "special",   "name": "priority_bonus" },
-    { "kind": "special",   "name": "adjacent_power_bonus", "value": 10 },
+    {
+      "kind": "special",
+      "name": "heal",
+      "value": 0.3
+    },
+    {
+      "kind": "special",
+      "name": "direct_heal",
+      "amount": 50
+    },
+    {
+      "kind": "special",
+      "name": "gain_energy",
+      "amount": 2
+    },
+    {
+      "kind": "special",
+      "name": "steal_energy",
+      "amount": 1
+    },
+    {
+      "kind": "special",
+      "name": "gain_energy_by_enemy",
+      "value": 0.5
+    },
+    {
+      "kind": "stat",
+      "target": "self",
+      "stat": "atk",
+      "steps": 1,
+      "scope": "persistent"
+    },
+    {
+      "kind": "stat",
+      "target": "opp",
+      "stat": "def",
+      "steps": -1
+    },
+    {
+      "kind": "abnormal",
+      "target": "opp",
+      "name": "中毒",
+      "stacks": 2
+    },
+    {
+      "kind": "abnormal",
+      "target": "opp",
+      "name": "灼烧",
+      "stacks": 4
+    },
+    {
+      "kind": "abnormal",
+      "target": "opp",
+      "name": "寄生"
+    },
+    {
+      "kind": "weather",
+      "weather": "rain",
+      "turns": 5
+    },
+    {
+      "kind": "mark",
+      "target": "own_team",
+      "name": "光合印记"
+    },
+    {
+      "kind": "special",
+      "name": "dispel_positive",
+      "target": "opp"
+    },
+    {
+      "kind": "special",
+      "name": "dispel_negative",
+      "target": "self"
+    },
+    {
+      "kind": "special",
+      "name": "double_positive"
+    },
+    {
+      "kind": "special",
+      "name": "double_negative",
+      "target": "opp"
+    },
+    {
+      "kind": "special",
+      "name": "charge"
+    },
+    {
+      "kind": "special",
+      "name": "priority_bonus"
+    },
+    {
+      "kind": "special",
+      "name": "adjacent_power_bonus",
+      "value": 10
+    },
     {
       "kind": "conditional",
-      "when": { "kind": "hp_below", "ratio": 0.5 },
+      "when": {
+        "kind": "hp_below",
+        "ratio": 0.5
+      },
       "then": [
-        { "kind": "special", "name": "heal", "value": 0.2 }
+        {
+          "kind": "special",
+          "name": "heal",
+          "value": 0.2
+        }
       ]
     },
     {
       "kind": "conditional",
-      "when": { "kind": "weather_is", "weather": "rain" },
+      "when": {
+        "kind": "weather_is",
+        "weather": "rain"
+      },
       "then": [
-        { "kind": "stat", "target": "self", "stat": "sp_atk", "steps": 1, "scope": "battlefield" }
+        {
+          "kind": "stat",
+          "target": "self",
+          "stat": "sp_atk",
+          "steps": 1,
+          "scope": "battlefield"
+        }
       ]
     }
   ]

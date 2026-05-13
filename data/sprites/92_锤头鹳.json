@@ -13,5 +13,6 @@
   "sp_def": 72,
   "speed": 105,
   "ability": "快锤",
+  "ability_id": 20048,
   "pre_species": ""
 }

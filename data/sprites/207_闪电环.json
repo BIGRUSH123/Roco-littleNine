@@ -12,5 +12,6 @@
   "sp_def": 50,
   "speed": 72,
   "ability": "防过载保护",
+  "ability_id": 20136,
   "pre_species": ""
 }

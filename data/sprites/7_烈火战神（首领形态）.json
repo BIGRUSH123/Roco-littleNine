@@ -12,5 +12,6 @@
   "sp_def": 72,
   "speed": 130,
   "ability": "爆燃",
+  "ability_id": 20094,
   "pre_species": "7"
 }

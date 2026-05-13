@@ -13,5 +13,6 @@
   "sp_def": 104,
   "speed": 64,
   "ability": "圣火骑士",
+  "ability_id": 20029,
   "pre_species": "156"
 }

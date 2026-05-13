@@ -1,4 +1,5 @@
 {
+  "id": 20013,
   "name": "共鸣",
   "description": "【虫鸣】技能威力+20。",
   "triggers": [
@@ -10,7 +11,12 @@
         "value": "虫鸣"
       },
       "battleskill_mut": [
-        {"target": "current", "field": "power_mod", "op": "add", "value": 20}
+        {
+          "target": "current",
+          "field": "power_mod",
+          "op": "add",
+          "value": 20
+        }
       ]
     }
   ]

@@ -13,5 +13,6 @@
   "sp_def": 110,
   "speed": 75,
   "ability": "慢热型",
+  "ability_id": 20053,
   "pre_species": "74"
 }

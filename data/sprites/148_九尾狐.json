@@ -13,5 +13,6 @@
   "sp_def": 86,
   "speed": 80,
   "ability": "灵魂灼伤",
+  "ability_id": 20092,
   "pre_species": "147"
 }

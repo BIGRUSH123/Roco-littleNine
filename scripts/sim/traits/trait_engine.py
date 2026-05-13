@@ -481,8 +481,9 @@ class DataDrivenTrait(TraitHandler):
     on_energy_short / on_fatal_damage 委托给 hook 系统（Layer 3b）。
     """
 
-    def __init__(self, name: str, triggers: list[dict]):
+    def __init__(self, name: str, triggers: list[dict], trait_id: int = 0):
         self.name = name
+        self.trait_id = trait_id
         self._triggers: dict[str, list[dict]] = {}
         self._process_triggers(triggers)
 
@@ -1782,10 +1783,11 @@ def load_data_trait(filepath: str) -> DataDrivenTrait | None:
 
     name = data.get('name', '')
     triggers = data.get('triggers', [])
+    trait_id = data.get('id', 0)
     if not name or not triggers:
         return None
 
-    return DataDrivenTrait(name, triggers)
+    return DataDrivenTrait(name, triggers, trait_id=trait_id)
 
 
 def register_data_traits(data_dir: str) -> int:
@@ -1803,6 +1805,8 @@ def register_data_traits(data_dir: str) -> int:
         trait = load_data_trait(str(fpath))
         if trait is not None:
             _DATA_TRAIT_INSTANCES[trait.name] = trait
+            if trait.trait_id:
+                _DATA_TRAIT_INSTANCES_BY_ID[trait.trait_id] = trait
             count += 1
 
     return count
@@ -1810,8 +1814,11 @@ def register_data_traits(data_dir: str) -> int:
 
 # 数据驱动特性实例缓存
 _DATA_TRAIT_INSTANCES: dict[str, DataDrivenTrait] = {}
+_DATA_TRAIT_INSTANCES_BY_ID: dict[int, DataDrivenTrait] = {}
 
 
-def get_data_trait_instance(name: str) -> DataDrivenTrait | None:
-    """获取数据驱动特性的预构造实例。"""
-    return _DATA_TRAIT_INSTANCES.get(name)
+def get_data_trait_instance(name_or_id) -> DataDrivenTrait | None:
+    """获取数据驱动特性的预构造实例。支持名称(str)或ID(int)查找。"""
+    if isinstance(name_or_id, int):
+        return _DATA_TRAIT_INSTANCES_BY_ID.get(name_or_id)
+    return _DATA_TRAIT_INSTANCES.get(name_or_id)

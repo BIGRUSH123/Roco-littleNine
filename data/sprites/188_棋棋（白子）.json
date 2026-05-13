@@ -13,5 +13,6 @@
   "sp_def": 56,
   "speed": 100,
   "ability": "腾挪",
+  "ability_id": 20164,
   "pre_species": ""
 }

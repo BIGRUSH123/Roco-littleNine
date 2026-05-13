@@ -12,5 +12,6 @@
   "sp_def": 100,
   "speed": 115,
   "ability": "逐魂鸟",
+  "ability_id": 20165,
   "pre_species": "177"
 }

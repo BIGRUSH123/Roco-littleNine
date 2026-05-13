@@ -13,5 +13,6 @@
   "sp_def": 109,
   "speed": 125,
   "ability": "超负荷",
+  "ability_id": 20131,
   "pre_species": "132"
 }

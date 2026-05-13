@@ -13,5 +13,6 @@
   "sp_def": 97,
   "speed": 115,
   "ability": "特殊清洁场景",
+  "ability_id": 20095,
   "pre_species": "296"
 }

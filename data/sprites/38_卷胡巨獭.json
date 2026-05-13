@@ -13,5 +13,6 @@
   "sp_def": 101,
   "speed": 80,
   "ability": "保守派",
+  "ability_id": 20009,
   "pre_species": "37"
 }

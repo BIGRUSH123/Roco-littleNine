@@ -1,12 +1,23 @@
 {
+  "id": 20005,
   "name": "乘风连击",
   "description": "使用翼系技能后，连击数+1。",
   "triggers": [
     {
       "on": "skill_use",
-      "condition": {"path": "skill.element", "op": "eq", "value": "翼"},
+      "condition": {
+        "path": "skill.element",
+        "op": "eq",
+        "value": "翼"
+      },
       "effects": [
-        {"kind": "stat", "stat": "combo", "steps": 1, "scope": "battlefield", "source": "乘风连击"}
+        {
+          "kind": "stat",
+          "stat": "combo",
+          "steps": 1,
+          "scope": "battlefield",
+          "source": "乘风连击"
+        }
       ]
     }
   ]

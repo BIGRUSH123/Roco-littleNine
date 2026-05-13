@@ -12,5 +12,6 @@
   "sp_def": 145,
   "speed": 85,
   "ability": "浪潮",
+  "ability_id": 20082,
   "pre_species": "10"
 }

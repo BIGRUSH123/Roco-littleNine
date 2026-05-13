@@ -13,5 +13,6 @@
   "sp_def": 80,
   "speed": 84,
   "ability": "耐活王",
+  "ability_id": 20110,
   "pre_species": ""
 }

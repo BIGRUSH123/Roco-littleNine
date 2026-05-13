@@ -12,5 +12,6 @@
   "sp_def": 151,
   "speed": 55,
   "ability": "深层氧循环",
+  "ability_id": 20085,
   "pre_species": "4"
 }

@@ -13,5 +13,6 @@
   "sp_def": 99,
   "speed": 70,
   "ability": "涂鸦",
+  "ability_id": 20084,
   "pre_species": "280"
 }

@@ -12,5 +12,6 @@
   "sp_def": 74,
   "speed": 100,
   "ability": "刺肤",
+  "ability_id": 20145,
   "pre_species": "25"
 }

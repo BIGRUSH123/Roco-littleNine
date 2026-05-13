@@ -13,5 +13,6 @@
   "sp_def": 74,
   "speed": 115,
   "ability": "振奋虫心",
+  "ability_id": 20060,
   "pre_species": "214"
 }

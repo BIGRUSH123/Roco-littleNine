@@ -12,5 +12,6 @@
   "sp_def": 70,
   "speed": 88,
   "ability": "指挥家",
+  "ability_id": 20059,
   "pre_species": "266"
 }

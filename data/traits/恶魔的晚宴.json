@@ -1,12 +1,25 @@
 {
+  "id": 20050,
   "name": "恶魔的晚宴",
   "description": "主动击败敌方时，获得双攻+50%。",
   "triggers": [
     {
       "on": "ko_enemy",
       "effects": [
-        {"kind": "stat", "stat": "atk", "steps": 5, "scope": "battlefield", "source": "恶魔的晚宴"},
-        {"kind": "stat", "stat": "sp_atk", "steps": 5, "scope": "battlefield", "source": "恶魔的晚宴"}
+        {
+          "kind": "stat",
+          "stat": "atk",
+          "steps": 5,
+          "scope": "battlefield",
+          "source": "恶魔的晚宴"
+        },
+        {
+          "kind": "stat",
+          "stat": "sp_atk",
+          "steps": 5,
+          "scope": "battlefield",
+          "source": "恶魔的晚宴"
+        }
       ]
     }
   ]

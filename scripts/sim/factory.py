@@ -24,6 +24,42 @@ class SimFactory:
     def __init__(self):
         self.sprite_db = SpriteDB(BASE)
         self._skills_dir = BASE / 'data' / 'skills'
+        self._skills_by_id: dict[int, Skill] = {}
+        self._skills_by_name: dict[str, Skill] = {}
+
+    def get_skill_by_id(self, skill_id: int) -> Skill | None:
+        """按 ID 查找技能（惰性加载）。"""
+        if skill_id in self._skills_by_id:
+            return self._skills_by_id[skill_id]
+        # 尝试从索引查找名称
+        try:
+            from scripts.common.skill_trait_ids import SKILL_ID_TO_NAME
+            name = SKILL_ID_TO_NAME.get(skill_id)
+            if name:
+                path = self._skills_dir / f'{name}.json'
+                if path.exists():
+                    data = json.loads(path.read_text(encoding='utf-8'))
+                    skill = Skill.load(data)
+                    self._skills_by_id[skill_id] = skill
+                    self._skills_by_name[name] = skill
+                    return skill
+        except ImportError:
+            pass
+        return None
+
+    def get_skill_by_name(self, name: str) -> Skill | None:
+        """按名称查找技能（惰性加载）。"""
+        if name in self._skills_by_name:
+            return self._skills_by_name[name]
+        path = self._skills_dir / f'{name}.json'
+        if path.exists():
+            data = json.loads(path.read_text(encoding='utf-8'))
+            skill = Skill.load(data)
+            self._skills_by_name[name] = skill
+            if skill.id:
+                self._skills_by_id[skill.id] = skill
+            return skill
+        return None
 
     # ── 精灵 ──
 

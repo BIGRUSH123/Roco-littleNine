@@ -12,5 +12,6 @@
   "sp_def": 74,
   "speed": 115,
   "ability": "破空",
+  "ability_id": 20103,
   "pre_species": "20"
 }

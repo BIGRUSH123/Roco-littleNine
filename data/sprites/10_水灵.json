@@ -12,5 +12,6 @@
   "sp_def": 132,
   "speed": 85,
   "ability": "浸润",
+  "ability_id": 20083,
   "pre_species": "9"
 }

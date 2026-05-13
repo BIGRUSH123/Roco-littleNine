@@ -1,23 +1,56 @@
 {
+  "id": 20045,
   "name": "得寸进尺",
   "description": "天气为雨天或水系环境时，双攻+100%。天气不满足时效果消失。",
   "triggers": [
     {
       "on": "entry",
-      "clear_condition": {"path": "battle.globals.weather", "op": "eq", "value": "rain"},
+      "clear_condition": {
+        "path": "battle.globals.weather",
+        "op": "eq",
+        "value": "rain"
+      },
       "effects_mode": "conditional_replace",
       "effects": [
-        {"kind": "stat", "stat": "atk", "steps": 10, "scope": "battlefield", "source": "得寸进尺"},
-        {"kind": "stat", "stat": "sp_atk", "steps": 10, "scope": "battlefield", "source": "得寸进尺"}
+        {
+          "kind": "stat",
+          "stat": "atk",
+          "steps": 10,
+          "scope": "battlefield",
+          "source": "得寸进尺"
+        },
+        {
+          "kind": "stat",
+          "stat": "sp_atk",
+          "steps": 10,
+          "scope": "battlefield",
+          "source": "得寸进尺"
+        }
       ]
     },
     {
       "on": "turn_start",
-      "clear_condition": {"path": "battle.globals.weather", "op": "eq", "value": "rain"},
+      "clear_condition": {
+        "path": "battle.globals.weather",
+        "op": "eq",
+        "value": "rain"
+      },
       "effects_mode": "conditional_replace",
       "effects": [
-        {"kind": "stat", "stat": "atk", "steps": 10, "scope": "battlefield", "source": "得寸进尺"},
-        {"kind": "stat", "stat": "sp_atk", "steps": 10, "scope": "battlefield", "source": "得寸进尺"}
+        {
+          "kind": "stat",
+          "stat": "atk",
+          "steps": 10,
+          "scope": "battlefield",
+          "source": "得寸进尺"
+        },
+        {
+          "kind": "stat",
+          "stat": "sp_atk",
+          "steps": 10,
+          "scope": "battlefield",
+          "source": "得寸进尺"
+        }
       ]
     }
   ]

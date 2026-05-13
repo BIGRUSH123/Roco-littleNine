@@ -12,5 +12,6 @@
   "sp_def": 70,
   "speed": 64,
   "ability": "囤积",
+  "ability_id": 20027,
   "pre_species": "49"
 }

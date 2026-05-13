@@ -7,6 +7,9 @@ from . import register, TraitHandler
 from scripts.sim.sprite import StatusEffect, Sprite
 from scripts.sim.battle import Battle
 from scripts.sim.battleskill import BattleSkill, SkillUse
+from scripts.common.skill_trait_ids import (
+    TRAIT_吟游之弦, TRAIT_多人宿舍, TRAIT_守望星, TRAIT_星地善良,
+)
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -304,7 +307,7 @@ def _bard_before_apply_mark(team, name, category, stacks, user):
         return None
     from scripts.sim.traits import get_trait
     h = get_trait(user)
-    return 'coexist' if (h and h.name == '吟游之弦') else None
+    return 'coexist' if (h and h.trait_id == TRAIT_吟游之弦) else None
 
 register_hook('before_apply_mark', _bard_before_apply_mark, '吟游之弦')
 
@@ -313,7 +316,7 @@ def _dorm_max_energy(sprite):
     """多人宿舍: 能量上限 10→15。"""
     from scripts.sim.traits import get_trait
     h = get_trait(sprite)
-    return 15 if (h and h.name == '多人宿舍') else None
+    return 15 if (h and h.trait_id == TRAIT_多人宿舍) else None
 
 register_hook('max_energy_override', _dorm_max_energy, '多人宿舍')
 
@@ -324,7 +327,7 @@ def _starguard_consume_starfall(team, amount, sprite, starfall_mark):
         return None
     from scripts.sim.traits import get_trait
     h = get_trait(sprite)
-    return max(1, amount // 2) if (h and h.name == '守望星') else None
+    return max(1, amount // 2) if (h and h.trait_id == TRAIT_守望星) else None
 
 register_hook('before_consume_starfall', _starguard_consume_starfall, '守望星')
 
@@ -338,7 +341,7 @@ def _starground_bench_check(battle, team, active, player):
             continue
         from scripts.sim.traits import get_trait
         h = get_trait(bench)
-        if h and h.name == '星地善良':
+        if h and h.trait_id == TRAIT_星地善良:
             return (i, '星地善良')
     return None
 

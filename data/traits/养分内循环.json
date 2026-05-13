@@ -1,4 +1,5 @@
 {
+  "id": 20014,
   "name": "养分内循环",
   "description": "回合结束时，回复6能量。",
   "triggers": [

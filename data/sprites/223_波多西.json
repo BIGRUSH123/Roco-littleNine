@@ -13,5 +13,6 @@
   "sp_def": 116,
   "speed": 50,
   "ability": "定向精炼",
+  "ability_id": 20043,
   "pre_species": "222"
 }

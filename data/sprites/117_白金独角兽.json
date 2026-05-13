@@ -12,5 +12,6 @@
   "sp_def": 92,
   "speed": 105,
   "ability": "目空",
+  "ability_id": 20101,
   "pre_species": "116"
 }

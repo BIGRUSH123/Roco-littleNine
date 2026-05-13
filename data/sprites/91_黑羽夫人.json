@@ -13,5 +13,6 @@
   "sp_def": 90,
   "speed": 120,
   "ability": "贪婪",
+  "ability_id": 20127,
   "pre_species": "89"
 }

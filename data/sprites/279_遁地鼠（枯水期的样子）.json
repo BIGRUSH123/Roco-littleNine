@@ -12,5 +12,6 @@
   "sp_def": 70,
   "speed": 110,
   "ability": "警惕",
+  "ability_id": 20125,
   "pre_species": "278"
 }

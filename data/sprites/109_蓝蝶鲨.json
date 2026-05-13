@@ -13,5 +13,6 @@
   "sp_def": 84,
   "speed": 100,
   "ability": "水翼推进",
+  "ability_id": 20077,
   "pre_species": "108"
 }

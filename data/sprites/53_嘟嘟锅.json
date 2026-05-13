@@ -12,5 +12,6 @@
   "sp_def": 104,
   "speed": 105,
   "ability": "复方汤剂",
+  "ability_id": 20035,
   "pre_species": "52"
 }

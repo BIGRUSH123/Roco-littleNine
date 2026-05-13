@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 
 from scripts.common import STAT_KEYS
 from scripts.common.models import SpeciesStats, StatsResult
+from scripts.common.skill_trait_ids import TRAIT_多人宿舍, TRAIT_无忧无虑
 
 if TYPE_CHECKING:
     from .skill import Skill
@@ -283,7 +284,7 @@ class Sprite:
             return override
         from .traits import get_trait
         h = get_trait(self)
-        if h and h.name == '多人宿舍':
+        if h and h.trait_id == TRAIT_多人宿舍:
             return 15
         return 10
 
@@ -347,7 +348,7 @@ class Sprite:
             # 无忧无虑：允许额外层数（仅计数，不变换）
             from .traits import get_trait
             h = get_trait(self)
-            if h and h.name == '无忧无虑':
+            if h and h.trait_id == TRAIT_无忧无虑:
                 self._moe_position = new_pos
                 self._sync_moe_status_effect()
                 return [f'{self.name} 萌化层数+{stacks}(共{self._moe_position}层，无忧无虑)']
@@ -369,7 +370,7 @@ class Sprite:
         if new_pos > max_pos:
             from .traits import get_trait
             h = get_trait(self)
-            if h and h.name == '无忧无虑':
+            if h and h.trait_id == TRAIT_无忧无虑:
                 self._moe_position = new_pos
                 self._sync_moe_status_effect()
                 events.append(f'{self.name} 萌化层数+{new_pos - max_pos}(共{self._moe_position}层，无忧无虑)')

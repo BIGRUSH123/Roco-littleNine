@@ -13,5 +13,6 @@
   "sp_def": 105,
   "speed": 85,
   "ability": "高浓生物碱",
+  "ability_id": 20140,
   "pre_species": "65"
 }

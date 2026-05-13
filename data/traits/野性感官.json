@@ -1,11 +1,18 @@
 {
+  "id": 20134,
   "name": "野性感官",
   "description": "应对成功后，下次行动先手+1。",
   "triggers": [
     {
       "on": "counter_success",
       "effects": [
-        {"kind": "stat", "stat": "priority", "steps": 1, "scope": "next_use", "source": "野性感官"}
+        {
+          "kind": "stat",
+          "stat": "priority",
+          "steps": 1,
+          "scope": "next_use",
+          "source": "野性感官"
+        }
       ]
     }
   ]

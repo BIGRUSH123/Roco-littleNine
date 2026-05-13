@@ -12,5 +12,6 @@
   "sp_def": 70,
   "speed": 92,
   "ability": "起飞加速",
+  "ability_id": 20129,
   "pre_species": "231"
 }

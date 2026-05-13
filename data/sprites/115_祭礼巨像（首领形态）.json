@@ -13,5 +13,6 @@
   "sp_def": 119,
   "speed": 85,
   "ability": "坠星",
+  "ability_id": 20033,
   "pre_species": "115"
 }

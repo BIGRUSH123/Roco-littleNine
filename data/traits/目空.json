@@ -1,4 +1,5 @@
 {
+  "id": 20101,
   "name": "目空",
   "description": "非光系技能威力+25%。",
   "triggers": [
@@ -7,12 +8,23 @@
       "condition": {
         "kind": "and",
         "conditions": [
-          {"path": "skill.is_attack", "op": "eq", "value": true},
-          {"path": "skill.element", "op": "neq", "value": "光"}
+          {
+            "path": "skill.is_attack",
+            "op": "eq",
+            "value": true
+          },
+          {
+            "path": "skill.element",
+            "op": "neq",
+            "value": "光"
+          }
         ]
       },
       "use_modifiers": {
-        "power_mult": {"op": "add", "value": 0.25}
+        "power_mult": {
+          "op": "add",
+          "value": 0.25
+        }
       }
     }
   ]

@@ -12,5 +12,6 @@
   "sp_def": 112,
   "speed": 60,
   "ability": "生长",
+  "ability_id": 20099,
   "pre_species": "275"
 }

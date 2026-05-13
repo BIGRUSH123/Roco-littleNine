@@ -12,5 +12,6 @@
   "sp_def": 92,
   "speed": 90,
   "ability": "向心力",
+  "ability_id": 20024,
   "pre_species": "229"
 }

@@ -1,4 +1,5 @@
 {
+  "id": 20099,
   "name": "生长",
   "description": "回合结束时，回复12%生命。",
   "triggers": [

@@ -13,5 +13,6 @@
   "sp_def": 134,
   "speed": 80,
   "ability": "大捞一笔",
+  "ability_id": 20036,
   "pre_species": "35"
 }

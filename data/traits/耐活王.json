@@ -1,12 +1,21 @@
 {
+  "id": 20110,
   "name": "耐活王",
   "description": "敌方受到中毒伤害时，自己回复等量生命。",
   "triggers": [
     {
       "on": "abnormal_tick",
-      "condition": {"path": "effect_name", "op": "eq", "value": "中毒"},
+      "condition": {
+        "path": "effect_name",
+        "op": "eq",
+        "value": "中毒"
+      },
       "effects": [
-        {"kind": "special", "name": "direct_heal", "amount": "=@damage"}
+        {
+          "kind": "special",
+          "name": "direct_heal",
+          "amount": "=@damage"
+        }
       ]
     }
   ]

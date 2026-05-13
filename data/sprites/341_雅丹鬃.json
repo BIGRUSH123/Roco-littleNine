@@ -12,5 +12,6 @@
   "sp_def": 78,
   "speed": 125,
   "ability": "天通地明",
+  "ability_id": 20037,
   "pre_species": "340"
 }

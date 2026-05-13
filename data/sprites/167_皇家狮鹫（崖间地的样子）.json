@@ -12,5 +12,6 @@
   "sp_def": 55,
   "speed": 120,
   "ability": "乘风连击",
+  "ability_id": 20005,
   "pre_species": "166"
 }

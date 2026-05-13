@@ -13,5 +13,6 @@
   "sp_def": 84,
   "speed": 120,
   "ability": "美拉德反应",
+  "ability_id": 20108,
   "pre_species": "313"
 }

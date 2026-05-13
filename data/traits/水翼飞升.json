@@ -1,4 +1,5 @@
 {
+  "id": 20078,
   "name": "水翼飞升",
   "description": "入场时，根据己方队伍水系技能使用次数降低全技能能耗，0能耗技能威力+30%。",
   "triggers": [
@@ -16,7 +17,9 @@
       ],
       "battleskill_mut": [
         {
-          "filter": {"energy_cost_eq": 0},
+          "filter": {
+            "energy_cost_eq": 0
+          },
           "field": "power_mod",
           "op": "add",
           "value": 30

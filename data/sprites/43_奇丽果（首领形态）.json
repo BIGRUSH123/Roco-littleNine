@@ -12,5 +12,6 @@
   "sp_def": 105,
   "speed": 80,
   "ability": "养分内循环",
+  "ability_id": 20014,
   "pre_species": "43"
 }

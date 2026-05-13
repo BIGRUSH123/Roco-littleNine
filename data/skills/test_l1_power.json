@@ -1,4 +1,5 @@
 {
+  "id": 90006,
   "name": "test_l1_power",
   "element": "火",
   "skill_type": "魔攻",
@@ -8,7 +9,15 @@
   "priority": 0,
   "combo": 1,
   "effects": [
-    { "kind": "special", "name": "power_by_enemy_energy", "value": 10 },
-    { "kind": "special", "name": "power_by_adjacent",   "value": 0.333 }
+    {
+      "kind": "special",
+      "name": "power_by_enemy_energy",
+      "value": 10
+    },
+    {
+      "kind": "special",
+      "name": "power_by_adjacent",
+      "value": 0.333
+    }
   ]
 }

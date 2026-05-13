@@ -12,5 +12,6 @@
   "sp_def": 89,
   "speed": 48,
   "ability": "散热",
+  "ability_id": 20064,
   "pre_species": "249"
 }

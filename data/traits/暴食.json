@@ -1,11 +1,19 @@
 {
+  "id": 20067,
   "name": "暴食",
   "description": "携带的龙系技能获得迅捷（先手+1）。",
   "triggers": [
     {
       "on": "entry",
       "battleskill_mut": [
-        {"filter": {"element": "龙"}, "field": "priority", "op": "add", "value": 1}
+        {
+          "filter": {
+            "element": "龙"
+          },
+          "field": "priority",
+          "op": "add",
+          "value": 1
+        }
       ]
     }
   ]

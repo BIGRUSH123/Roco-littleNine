@@ -12,5 +12,6 @@
   "sp_def": 110,
   "speed": 135,
   "ability": "电流刺激",
+  "ability_id": 20100,
   "pre_species": "80"
 }

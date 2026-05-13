@@ -13,5 +13,6 @@
   "sp_def": 130,
   "speed": 90,
   "ability": "捉迷藏",
+  "ability_id": 20062,
   "pre_species": "143"
 }

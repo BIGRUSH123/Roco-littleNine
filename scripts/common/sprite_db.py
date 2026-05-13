@@ -166,6 +166,7 @@ class SpriteDB:
                 attributes=attr_str,
                 bloodline=bloodline,
                 ability=data.get('ability', '').strip(),
+                ability_id=int(data.get('ability_id', 0)),
                 pre_species=str(data.get('pre_species', '')).strip(),
             )
         except (ValueError, TypeError):

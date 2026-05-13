@@ -1,11 +1,18 @@
 {
+  "id": 20123,
   "name": "衡量",
   "description": "入场时复制敌方增益；在场时若敌方获得增益自己也会获得。",
   "triggers": [
     {
       "on": "entry",
       "effects": [
-        {"kind": "special", "name": "inherit_effects", "source_sprite": "target", "inherit_target": "self", "scope": "battlefield"}
+        {
+          "kind": "special",
+          "name": "inherit_effects",
+          "source_sprite": "target",
+          "inherit_target": "self",
+          "scope": "battlefield"
+        }
       ]
     }
   ]

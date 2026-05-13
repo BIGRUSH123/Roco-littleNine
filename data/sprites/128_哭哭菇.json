@@ -12,5 +12,6 @@
   "sp_def": 60,
   "speed": 36,
   "ability": "吸积盘",
+  "ability_id": 20025,
   "pre_species": ""
 }

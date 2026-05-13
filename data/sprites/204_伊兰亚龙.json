@@ -12,5 +12,6 @@
   "sp_def": 99,
   "speed": 90,
   "ability": "嫉妒",
+  "ability_id": 20151,
   "pre_species": "203"
 }

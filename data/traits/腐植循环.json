@@ -1,12 +1,21 @@
 {
+  "id": 20111,
   "name": "腐植循环",
   "description": "每回复1能量，同时回复5%生命。",
   "triggers": [
     {
       "on": "energy_change",
-      "condition": {"path": "delta", "op": "gt", "value": 0},
+      "condition": {
+        "path": "delta",
+        "op": "gt",
+        "value": 0
+      },
       "effects": [
-        {"kind": "special", "name": "direct_heal", "amount": "=@self.max_hp * 0.05 * delta"}
+        {
+          "kind": "special",
+          "name": "direct_heal",
+          "amount": "=@self.max_hp * 0.05 * delta"
+        }
       ]
     }
   ]

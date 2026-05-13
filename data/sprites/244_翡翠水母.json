@@ -13,5 +13,6 @@
   "sp_def": 109,
   "speed": 76,
   "ability": "扩散侵蚀",
+  "ability_id": 20055,
   "pre_species": ""
 }

@@ -1,18 +1,38 @@
 {
+  "id": 20128,
   "name": "贪心算法",
   "description": "1号位技能获得传动1，且使用后使敌方获得6层灼烧。",
   "triggers": [
     {
       "on": "entry",
       "battleskill_mut": [
-        {"filter": {"slot": [0]}, "field": "_transmission", "op": "set", "value": 1}
+        {
+          "filter": {
+            "slot": [
+              0
+            ]
+          },
+          "field": "_transmission",
+          "op": "set",
+          "value": 1
+        }
       ]
     },
     {
       "on": "skill_use",
-      "condition": {"path": "skill", "op": "eq", "value": "=@self.skills[0]"},
+      "condition": {
+        "path": "skill",
+        "op": "eq",
+        "value": "=@self.skills[0]"
+      },
       "effects": [
-        {"kind": "abnormal", "name": "灼烧", "stacks": 6, "target": "target", "source": "贪心算法"}
+        {
+          "kind": "abnormal",
+          "name": "灼烧",
+          "stacks": 6,
+          "target": "target",
+          "source": "贪心算法"
+        }
       ]
     }
   ]

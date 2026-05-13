@@ -1,18 +1,31 @@
 {
+  "id": 20129,
   "name": "起飞加速",
   "description": "本场战斗首次使用的技能获得迅捷（先手+1）。",
   "triggers": [
     {
       "on": "entry",
-      "flags": {"counters._first_skill_used": 0}
+      "flags": {
+        "counters._first_skill_used": 0
+      }
     },
     {
       "on": "modifier",
-      "condition": {"path": "self.counters[_first_skill_used]", "op": "eq", "value": 0},
-      "use_modifiers": {
-        "priority_mod": {"op": "add", "value": 1, "target": "battleskill"}
+      "condition": {
+        "path": "self.counters[_first_skill_used]",
+        "op": "eq",
+        "value": 0
       },
-      "flags": {"counters._first_skill_used": 1}
+      "use_modifiers": {
+        "priority_mod": {
+          "op": "add",
+          "value": 1,
+          "target": "battleskill"
+        }
+      },
+      "flags": {
+        "counters._first_skill_used": 1
+      }
     }
   ]
 }

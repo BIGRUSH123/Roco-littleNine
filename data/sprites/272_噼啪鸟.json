@@ -13,5 +13,6 @@
   "sp_def": 85,
   "speed": 145,
   "ability": "连续负荷",
+  "ability_id": 20133,
   "pre_species": ""
 }

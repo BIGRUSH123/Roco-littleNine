@@ -13,5 +13,6 @@
   "sp_def": 109,
   "speed": 60,
   "ability": "毒蘑菇",
+  "ability_id": 20075,
   "pre_species": "21"
 }

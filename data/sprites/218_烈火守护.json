@@ -12,5 +12,6 @@
   "sp_def": 93,
   "speed": 65,
   "ability": "蒸汽膨胀",
+  "ability_id": 20116,
   "pre_species": "217"
 }

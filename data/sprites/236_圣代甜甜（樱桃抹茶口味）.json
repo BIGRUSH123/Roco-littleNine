@@ -12,5 +12,6 @@
   "sp_def": 92,
   "speed": 105,
   "ability": "加个雪球",
+  "ability_id": 20018,
   "pre_species": "235"
 }

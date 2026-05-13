@@ -1,4 +1,5 @@
 {
+  "id": 20015,
   "name": "养分重吸收",
   "description": "回合结束时，回复3能量。",
   "triggers": [

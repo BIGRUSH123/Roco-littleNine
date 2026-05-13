@@ -12,5 +12,6 @@
   "sp_def": 42,
   "speed": 45,
   "ability": "石头大餐",
+  "ability_id": 20161,
   "pre_species": ""
 }

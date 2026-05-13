@@ -13,5 +13,6 @@
   "sp_def": 127,
   "speed": 90,
   "ability": "仁心",
+  "ability_id": 20006,
   "pre_species": "256"
 }

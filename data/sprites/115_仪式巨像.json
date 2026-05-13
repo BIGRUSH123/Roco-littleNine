@@ -13,5 +13,6 @@
   "sp_def": 119,
   "speed": 85,
   "ability": "观星",
+  "ability_id": 20124,
   "pre_species": "114"
 }

@@ -12,5 +12,6 @@
   "sp_def": 95,
   "speed": 90,
   "ability": "腐植循环",
+  "ability_id": 20111,
   "pre_species": "71"
 }

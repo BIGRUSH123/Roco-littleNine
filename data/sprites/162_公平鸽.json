@@ -12,5 +12,6 @@
   "sp_def": 125,
   "speed": 100,
   "ability": "衡量",
+  "ability_id": 20123,
   "pre_species": ""
 }

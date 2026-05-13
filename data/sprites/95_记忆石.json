@@ -12,5 +12,6 @@
   "sp_def": 79,
   "speed": 70,
   "ability": "不移",
+  "ability_id": 20003,
   "pre_species": ""
 }

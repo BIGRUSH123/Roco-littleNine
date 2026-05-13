@@ -1,12 +1,20 @@
 {
+  "id": 20008,
   "name": "侵蚀",
   "description": "敌方每有1层中毒，自己连击数+1。",
   "triggers": [
     {
       "on": "modifier",
-      "condition": {"path": "target.effects[name=中毒].stacks", "op": "gt", "value": 0},
+      "condition": {
+        "path": "target.effects[name=中毒].stacks",
+        "op": "gt",
+        "value": 0
+      },
       "use_modifiers": {
-        "multi_hit": {"op": "add", "value": "=@target.effects[name=中毒].stacks"}
+        "multi_hit": {
+          "op": "add",
+          "value": "=@target.effects[name=中毒].stacks"
+        }
       }
     }
   ]

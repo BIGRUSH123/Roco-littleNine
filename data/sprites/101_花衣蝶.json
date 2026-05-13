@@ -13,5 +13,6 @@
   "sp_def": 94,
   "speed": 100,
   "ability": "花精灵",
+  "ability_id": 20113,
   "pre_species": "100"
 }

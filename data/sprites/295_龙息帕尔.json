@@ -12,5 +12,6 @@
   "sp_def": 87,
   "speed": 100,
   "ability": "付给恶魔的赎价",
+  "ability_id": 20007,
   "pre_species": "294"
 }

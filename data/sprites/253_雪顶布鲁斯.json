@@ -12,5 +12,6 @@
   "sp_def": 70,
   "speed": 72,
   "ability": "冰钻",
+  "ability_id": 20017,
   "pre_species": "252"
 }

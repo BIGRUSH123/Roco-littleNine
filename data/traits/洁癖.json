@@ -1,11 +1,19 @@
 {
+  "id": 20080,
   "name": "洁癖",
   "description": "离场后，自己的增益/减益被换上来的精灵继承。",
   "triggers": [
     {
       "on": "leave",
       "effects": [
-        {"kind": "special", "name": "inherit_effects", "source_sprite": "self", "inherit_target": "enemy_new", "scope": "battlefield", "via_pending": true}
+        {
+          "kind": "special",
+          "name": "inherit_effects",
+          "source_sprite": "self",
+          "inherit_target": "enemy_new",
+          "scope": "battlefield",
+          "via_pending": true
+        }
       ]
     }
   ]

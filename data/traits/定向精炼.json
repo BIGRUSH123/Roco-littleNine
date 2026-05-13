@@ -1,4 +1,5 @@
 {
+  "id": 20043,
   "name": "定向精炼",
   "description": "入场时，根据己方队伍防御技能使用次数提升机械系和地系技能威力。",
   "triggers": [
@@ -7,13 +8,17 @@
       "effects_mode": "replace",
       "battleskill_mut": [
         {
-          "filter": {"element": "机械"},
+          "filter": {
+            "element": "机械"
+          },
           "field": "power_mod",
           "op": "add",
           "value": "=@team_counters[defense_skill]"
         },
         {
-          "filter": {"element": "地"},
+          "filter": {
+            "element": "地"
+          },
           "field": "power_mod",
           "op": "add",
           "value": "=@team_counters[defense_skill]"

@@ -1,21 +1,35 @@
 {
+  "id": 20133,
   "name": "连续负荷",
   "description": "技能的迸发效果延长1回合。",
   "triggers": [
     {
       "on": "entry",
-      "flags": {"_burst_extended_once": false}
+      "flags": {
+        "_burst_extended_once": false
+      }
     },
     {
       "on": "modifier",
       "condition": {
         "kind": "and",
         "conditions": [
-          {"path": "self.first_action", "op": "eq", "value": true},
-          {"path": "self._burst_extended_once", "op": "eq", "value": false}
+          {
+            "path": "self.first_action",
+            "op": "eq",
+            "value": true
+          },
+          {
+            "path": "self._burst_extended_once",
+            "op": "eq",
+            "value": false
+          }
         ]
       },
-      "flags": {"_burst_extended_once": true, "_burst_remaining": 1}
+      "flags": {
+        "_burst_extended_once": true,
+        "_burst_remaining": 1
+      }
     }
   ]
 }

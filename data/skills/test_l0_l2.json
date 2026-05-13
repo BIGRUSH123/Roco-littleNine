@@ -1,4 +1,5 @@
 {
+  "id": 90005,
   "name": "test_l0_l2",
   "element": "普通",
   "skill_type": "魔攻",
@@ -8,12 +9,38 @@
   "priority": 0,
   "combo": 1,
   "effects": [
-    { "kind": "special", "name": "power_bonus",  "value": 20 },
-    { "kind": "special", "name": "power_mult",   "value": 1.5 },
-    { "kind": "special", "name": "damage_mult",  "value": 1.3 },
-    { "kind": "special", "name": "multi_hit",    "value": 2 },
-    { "kind": "special", "name": "ignore_mods" },
-    { "kind": "special", "name": "burst" },
-    { "kind": "special", "name": "life_drain",   "value": 0.2 }
+    {
+      "kind": "special",
+      "name": "power_bonus",
+      "value": 20
+    },
+    {
+      "kind": "special",
+      "name": "power_mult",
+      "value": 1.5
+    },
+    {
+      "kind": "special",
+      "name": "damage_mult",
+      "value": 1.3
+    },
+    {
+      "kind": "special",
+      "name": "multi_hit",
+      "value": 2
+    },
+    {
+      "kind": "special",
+      "name": "ignore_mods"
+    },
+    {
+      "kind": "special",
+      "name": "burst"
+    },
+    {
+      "kind": "special",
+      "name": "life_drain",
+      "value": 0.2
+    }
   ]
 }

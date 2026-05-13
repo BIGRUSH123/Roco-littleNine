@@ -1,13 +1,27 @@
 {
+  "id": 20115,
   "name": "营养液泡",
   "description": "获得增益时，额外获得层数+2。",
   "triggers": [
     {
       "on": "gain_effect",
-      "condition": {"path": "effect.is_stat", "op": "eq", "value": true},
+      "condition": {
+        "path": "effect.is_stat",
+        "op": "eq",
+        "value": true
+      },
       "condition_op": "and",
       "effects": [
-        {"kind": "mutate_effect", "filter": {"is_stat": true, "steps>0": true}, "target": "self", "delta_steps": 2, "limit_to_effect": true}
+        {
+          "kind": "mutate_effect",
+          "filter": {
+            "is_stat": true,
+            "steps>0": true
+          },
+          "target": "self",
+          "delta_steps": 2,
+          "limit_to_effect": true
+        }
       ]
     }
   ]

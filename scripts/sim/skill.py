@@ -23,7 +23,8 @@ _ATTACK_TYPES: frozenset[str] = frozenset({'物攻', '魔攻', '动态攻击'})
 class Skill:
     """战斗技能。从 JSON 反序列化，不再依赖 wiki/SkillInfo。"""
 
-    name: str
+    id: int = 0
+    name: str = ''
     element: str = ''
     skill_type: str = ''       # 物攻|魔攻|动态攻击|防御|状态
     power: int = 0
@@ -40,6 +41,7 @@ class Skill:
         effects_raw = data.get('effects', [])
         effects = [effect_from_dict(e) for e in effects_raw]
         return cls(
+            id=data.get('id', 0),
             name=data['name'],
             element=data.get('element', ''),
             skill_type=data.get('skill_type', ''),

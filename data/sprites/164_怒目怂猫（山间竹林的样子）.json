@@ -12,5 +12,6 @@
   "sp_def": 0,
   "speed": 0,
   "ability": "威慑",
+  "ability_id": 20040,
   "pre_species": "163"
 }

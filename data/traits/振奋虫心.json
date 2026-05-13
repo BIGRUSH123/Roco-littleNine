@@ -1,11 +1,16 @@
 {
+  "id": 20060,
   "name": "振奋虫心",
   "description": "主动击败敌方后，己方队伍获得5次奉献。",
   "triggers": [
     {
       "on": "ko_enemy",
       "effects": [
-        {"kind": "special", "name": "lives_add", "amount": 5}
+        {
+          "kind": "special",
+          "name": "lives_add",
+          "amount": 5
+        }
       ]
     }
   ]

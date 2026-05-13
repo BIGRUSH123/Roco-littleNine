@@ -12,5 +12,6 @@
   "sp_def": 79,
   "speed": 64,
   "ability": "缩壳",
+  "ability_id": 20107,
   "pre_species": "12"
 }

@@ -13,6 +13,9 @@ from .resolver import SkillResolver, TurnContext
 from .battleskill import BattleSkill, SkillUse
 from .action import Action
 from .battle_mechanics import BattleMechanicsMixin
+from scripts.common.skill_trait_ids import (
+    TRAIT_对流, TRAIT_嫉妒, TRAIT_星地善良,
+)
 from .traits import (
     dispatch_entry, dispatch_leave, dispatch_turn_start, dispatch_turn_end,
     dispatch_modifier, dispatch_damage, dispatch_skill_use,
@@ -447,7 +450,7 @@ class Battle(BattleMechanicsMixin):
         # 能量不足 → 管线短路，L0-L6 全部跳过
         cost = skill.energy_cost
         ecost = user.effective_stat('energy_cost')  # sprite 能耗修正（特性/效果）
-        if getattr(user.species, 'ability', '') == '对流':
+        if getattr(user.species, 'ability_id', 0) == TRAIT_对流:
             ecost = -ecost  # 对流: 能耗增减反转
         cost += ecost
         cost = round(cost * self.globals.weather_energy_mod(skill.element or ''))
@@ -487,7 +490,7 @@ class Battle(BattleMechanicsMixin):
             # 检查嫉妒特性：蓄力中可使用任意技能
             from .traits import get_trait as _get_trait
             _trait = _get_trait(user)
-            if _trait and _trait.name == '嫉妒':
+            if _trait and _trait.trait_id == TRAIT_嫉妒:
                 user._charging = False
                 user._charged_skill_index = -1
                 events.append(f'{user.name} 蓄力中断（嫉妒）')
@@ -916,7 +919,7 @@ class Battle(BattleMechanicsMixin):
                         continue
                     from .traits import get_trait
                     h = get_trait(bench_sprite)
-                    if h and h.name == '星地善良':
+                    if h and h.trait_id == TRAIT_星地善良:
                         swap_index = i
                         swap_reason = '星地善良'
                         break

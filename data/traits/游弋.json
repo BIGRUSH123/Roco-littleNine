@@ -1,14 +1,31 @@
 {
+  "id": 20088,
   "name": "游弋",
   "description": "蓄力时可使用任一携带技能，且获得双防+100%。",
   "triggers": [
     {
       "on": "turn_start",
-      "condition": {"path": "self._charging", "op": "eq", "value": true},
+      "condition": {
+        "path": "self._charging",
+        "op": "eq",
+        "value": true
+      },
       "effects_mode": "replace",
       "effects": [
-        {"kind": "stat", "stat": "def", "steps": 10, "scope": "battlefield", "source": "游弋"},
-        {"kind": "stat", "stat": "sp_def", "steps": 10, "scope": "battlefield", "source": "游弋"}
+        {
+          "kind": "stat",
+          "stat": "def",
+          "steps": 10,
+          "scope": "battlefield",
+          "source": "游弋"
+        },
+        {
+          "kind": "stat",
+          "stat": "sp_def",
+          "steps": 10,
+          "scope": "battlefield",
+          "source": "游弋"
+        }
       ]
     }
   ]

@@ -12,5 +12,6 @@
   "sp_def": 63,
   "speed": 96,
   "ability": "蓄电池",
+  "ability_id": 20117,
   "pre_species": "226"
 }

@@ -1,12 +1,23 @@
 {
+  "id": 20140,
   "name": "高浓生物碱",
   "description": "使用技能时，敌方获得2层中毒。",
   "triggers": [
     {
       "on": "skill_use",
-      "condition": {"path": "target.is_fainted", "op": "neq", "value": true},
+      "condition": {
+        "path": "target.is_fainted",
+        "op": "neq",
+        "value": true
+      },
       "effects": [
-        {"kind": "abnormal", "name": "中毒", "stacks": 2, "target": "target", "source": "高浓生物碱"}
+        {
+          "kind": "abnormal",
+          "name": "中毒",
+          "stacks": 2,
+          "target": "target",
+          "source": "高浓生物碱"
+        }
       ]
     }
   ]

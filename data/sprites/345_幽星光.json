@@ -12,5 +12,6 @@
   "sp_def": 63,
   "speed": 75,
   "ability": "守望星",
+  "ability_id": 20152,
   "pre_species": ""
 }

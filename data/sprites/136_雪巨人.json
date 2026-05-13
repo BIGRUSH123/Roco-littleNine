@@ -12,5 +12,6 @@
   "sp_def": 104,
   "speed": 60,
   "ability": "打雪仗",
+  "ability_id": 20054,
   "pre_species": "135"
 }

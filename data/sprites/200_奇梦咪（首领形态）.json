@@ -12,5 +12,6 @@
   "sp_def": 123,
   "speed": 110,
   "ability": "三鼓作气",
+  "ability_id": 20001,
   "pre_species": "200"
 }

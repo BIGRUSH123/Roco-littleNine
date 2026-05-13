@@ -13,5 +13,6 @@
   "sp_def": 130,
   "speed": 90,
   "ability": "抓到你了",
+  "ability_id": 20057,
   "pre_species": "144"
 }

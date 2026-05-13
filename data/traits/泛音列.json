@@ -1,4 +1,5 @@
 {
+  "id": 20079,
   "name": "泛音列",
   "description": "使用状态技能后，敌方获得聒噪效果持续3回合。",
   "triggers": [
@@ -7,12 +8,27 @@
       "condition": {
         "kind": "and",
         "conditions": [
-          {"path": "skill.is_status", "op": "eq", "value": true},
-          {"path": "target.is_fainted", "op": "neq", "value": true}
+          {
+            "path": "skill.is_status",
+            "op": "eq",
+            "value": true
+          },
+          {
+            "path": "target.is_fainted",
+            "op": "neq",
+            "value": true
+          }
         ]
       },
       "effects": [
-        {"kind": "abnormal", "name": "聒噪", "stacks": 1, "target": "target", "scope": "battlefield", "source": "泛音列"}
+        {
+          "kind": "abnormal",
+          "name": "聒噪",
+          "stacks": 1,
+          "target": "target",
+          "scope": "battlefield",
+          "source": "泛音列"
+        }
       ]
     }
   ]

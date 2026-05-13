@@ -1,12 +1,20 @@
 {
+  "id": 20017,
   "name": "冰钻",
   "description": "敌方技能总能耗每1点 → 攻击威力+10%。",
   "triggers": [
     {
       "on": "modifier",
-      "condition": {"path": "skill.is_attack", "op": "eq", "value": true},
+      "condition": {
+        "path": "skill.is_attack",
+        "op": "eq",
+        "value": true
+      },
       "use_modifiers": {
-        "power_mult": {"op": "add", "value": "=@enemy_total_energy_cost * 0.1"}
+        "power_mult": {
+          "op": "add",
+          "value": "=@enemy_total_energy_cost * 0.1"
+        }
       }
     }
   ]

@@ -12,5 +12,6 @@
   "sp_def": 82,
   "speed": 120,
   "ability": "全神贯注",
+  "ability_id": 20012,
   "pre_species": "48"
 }

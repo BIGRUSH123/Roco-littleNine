@@ -1,12 +1,31 @@
 {
+  "id": 20109,
   "name": "翼轴",
   "description": "1号位技能获得迅捷和传动1。",
   "triggers": [
     {
       "on": "entry",
       "battleskill_mut": [
-        {"filter": {"slot": [0]}, "field": "_transmission", "op": "set", "value": 1},
-        {"filter": {"slot": [0]}, "field": "priority", "op": "add", "value": 1}
+        {
+          "filter": {
+            "slot": [
+              0
+            ]
+          },
+          "field": "_transmission",
+          "op": "set",
+          "value": 1
+        },
+        {
+          "filter": {
+            "slot": [
+              0
+            ]
+          },
+          "field": "priority",
+          "op": "add",
+          "value": 1
+        }
       ]
     }
   ]

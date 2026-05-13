@@ -13,5 +13,6 @@
   "sp_def": 88,
   "speed": 72,
   "ability": "毒牙",
+  "ability_id": 20073,
   "pre_species": "125"
 }

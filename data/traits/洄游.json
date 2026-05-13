@@ -1,4 +1,5 @@
 {
+  "id": 20081,
   "name": "洄游",
   "description": "每次进入蓄力状态，获得全技能能耗永久-1。",
   "triggers": [
@@ -7,14 +8,30 @@
       "condition": {
         "kind": "and",
         "conditions": [
-          {"path": "self._charging", "op": "eq", "value": true},
-          {"path": "self._migration_cycle", "op": "eq", "value": false}
+          {
+            "path": "self._charging",
+            "op": "eq",
+            "value": true
+          },
+          {
+            "path": "self._migration_cycle",
+            "op": "eq",
+            "value": false
+          }
         ]
       },
       "effects": [
-        {"kind": "stat", "stat": "energy_cost", "steps": -1, "scope": "permanent", "source": "洄游"}
+        {
+          "kind": "stat",
+          "stat": "energy_cost",
+          "steps": -1,
+          "scope": "permanent",
+          "source": "洄游"
+        }
       ],
-      "flags": {"_migration_cycle": true}
+      "flags": {
+        "_migration_cycle": true
+      }
     }
   ]
 }

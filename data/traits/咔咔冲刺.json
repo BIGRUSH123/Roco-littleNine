@@ -1,4 +1,5 @@
 {
+  "id": 20026,
   "name": "咔咔冲刺",
   "description": "先于敌方行动时，行动后连击数+1。",
   "triggers": [
@@ -7,12 +8,26 @@
       "condition": {
         "kind": "and",
         "conditions": [
-          {"path": "skill.is_attack", "op": "eq", "value": true},
-          {"path": "self.effective_stat.speed", "op": "gt", "value": "=@target.effective_stat.speed"}
+          {
+            "path": "skill.is_attack",
+            "op": "eq",
+            "value": true
+          },
+          {
+            "path": "self.effective_stat.speed",
+            "op": "gt",
+            "value": "=@target.effective_stat.speed"
+          }
         ]
       },
       "effects": [
-        {"kind": "stat", "stat": "combo", "steps": 1, "scope": "battlefield", "source": "咔咔冲刺"}
+        {
+          "kind": "stat",
+          "stat": "combo",
+          "steps": 1,
+          "scope": "battlefield",
+          "source": "咔咔冲刺"
+        }
       ]
     }
   ]

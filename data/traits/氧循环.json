@@ -1,12 +1,21 @@
 {
+  "id": 20076,
   "name": "氧循环",
   "description": "使用草系技能后回复10%生命。",
   "triggers": [
     {
       "on": "skill_use",
-      "condition": {"path": "skill.element", "op": "eq", "value": "草"},
+      "condition": {
+        "path": "skill.element",
+        "op": "eq",
+        "value": "草"
+      },
       "effects": [
-        {"kind": "special", "name": "heal", "value": 0.1}
+        {
+          "kind": "special",
+          "name": "heal",
+          "value": 0.1
+        }
       ]
     }
   ]

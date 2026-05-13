@@ -1,4 +1,5 @@
 {
+  "id": 20041,
   "name": "守护者",
   "description": "己方其他精灵每有1层萌化，自己入场时全技能能耗-1。",
   "triggers": [
@@ -6,7 +7,13 @@
       "on": "entry",
       "effects_mode": "replace",
       "effects": [
-        {"kind": "stat", "stat": "energy_cost", "steps": "=@player_moe_stacks * -1", "scope": "battlefield", "source": "守护者"}
+        {
+          "kind": "stat",
+          "stat": "energy_cost",
+          "steps": "=@player_moe_stacks * -1",
+          "scope": "battlefield",
+          "source": "守护者"
+        }
       ]
     }
   ]

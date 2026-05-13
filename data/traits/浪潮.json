@@ -1,12 +1,23 @@
 {
+  "id": 20082,
   "name": "浪潮",
   "description": "使用水系技能后，全技能能耗-2。",
   "triggers": [
     {
       "on": "skill_use",
-      "condition": {"path": "skill.element", "op": "eq", "value": "水"},
+      "condition": {
+        "path": "skill.element",
+        "op": "eq",
+        "value": "水"
+      },
       "effects": [
-        {"kind": "stat", "stat": "energy_cost", "steps": -2, "scope": "battlefield", "source": "浪潮"}
+        {
+          "kind": "stat",
+          "stat": "energy_cost",
+          "steps": -2,
+          "scope": "battlefield",
+          "source": "浪潮"
+        }
       ]
     }
   ]

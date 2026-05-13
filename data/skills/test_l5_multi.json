@@ -1,4 +1,5 @@
 {
+  "id": 90013,
   "name": "test_l5_multi",
   "element": "普通",
   "skill_type": "状态",
@@ -8,8 +9,17 @@
   "priority": 0,
   "combo": 1,
   "effects": [
-    { "kind": "special", "name": "force_return" },
-    { "kind": "special", "name": "return_self" },
-    { "kind": "special", "name": "borrow_skill" }
+    {
+      "kind": "special",
+      "name": "force_return"
+    },
+    {
+      "kind": "special",
+      "name": "return_self"
+    },
+    {
+      "kind": "special",
+      "name": "borrow_skill"
+    }
   ]
 }

@@ -1,11 +1,17 @@
 {
+  "id": 20071,
   "name": "木桶戏法",
   "description": "离场后，换上来的精灵以木桶状态登场。",
   "triggers": [
     {
       "on": "leave",
       "pending_effects": [
-        {"kind": "state", "name": "木桶状态", "scope": "battlefield", "source": "木桶戏法"}
+        {
+          "kind": "state",
+          "name": "木桶状态",
+          "scope": "battlefield",
+          "source": "木桶戏法"
+        }
       ]
     }
   ]

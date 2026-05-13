@@ -13,5 +13,6 @@
   "sp_def": 63,
   "speed": 115,
   "ability": "得寸进尺",
+  "ability_id": 20045,
   "pre_species": "179"
 }

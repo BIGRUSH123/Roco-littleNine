@@ -12,5 +12,6 @@
   "sp_def": 48,
   "speed": 75,
   "ability": "蚀刻",
+  "ability_id": 20121,
   "pre_species": ""
 }

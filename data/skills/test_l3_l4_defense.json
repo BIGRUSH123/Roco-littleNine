@@ -1,4 +1,5 @@
 {
+  "id": 90009,
   "name": "test_l3_l4_defense",
   "element": "普通",
   "skill_type": "防御",
@@ -8,15 +9,37 @@
   "priority": 0,
   "combo": 1,
   "effects": [
-    { "kind": "special", "name": "damage_reduction", "value": 0.5 },
-    { "kind": "special", "name": "interrupt" },
-    { "kind": "special", "name": "counter_damage",  "value": 80 },
-    { "kind": "special", "name": "reflect_damage" },
+    {
+      "kind": "special",
+      "name": "damage_reduction",
+      "value": 0.5
+    },
+    {
+      "kind": "special",
+      "name": "interrupt"
+    },
+    {
+      "kind": "special",
+      "name": "counter_damage",
+      "value": 80
+    },
+    {
+      "kind": "special",
+      "name": "reflect_damage"
+    },
     {
       "kind": "conditional",
-      "when": { "kind": "counter_succeeded" },
+      "when": {
+        "kind": "counter_succeeded"
+      },
       "then": [
-        { "kind": "stat", "target": "self", "stat": "atk", "steps": 1, "scope": "battlefield" }
+        {
+          "kind": "stat",
+          "target": "self",
+          "stat": "atk",
+          "steps": 1,
+          "scope": "battlefield"
+        }
       ]
     }
   ]

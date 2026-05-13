@@ -12,5 +12,6 @@
   "sp_def": 57,
   "speed": 48,
   "ability": "养分重吸收",
+  "ability_id": 20015,
   "pre_species": ""
 }

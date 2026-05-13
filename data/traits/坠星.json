@@ -1,12 +1,20 @@
 {
+  "id": 20033,
   "name": "坠星",
   "description": "敌方每有1层星陨印记，技能威力+15%。",
   "triggers": [
     {
       "on": "modifier",
-      "condition": {"path": "skill.is_attack", "op": "eq", "value": true},
+      "condition": {
+        "path": "skill.is_attack",
+        "op": "eq",
+        "value": true
+      },
       "use_modifiers": {
-        "power_mult": {"op": "add", "value": "=@opp_starfall_stacks * 0.15"}
+        "power_mult": {
+          "op": "add",
+          "value": "=@opp_starfall_stacks * 0.15"
+        }
       }
     }
   ]

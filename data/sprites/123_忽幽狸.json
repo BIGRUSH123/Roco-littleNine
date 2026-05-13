@@ -13,5 +13,6 @@
   "sp_def": 56,
   "speed": 104,
   "ability": "下黑手",
+  "ability_id": 20002,
   "pre_species": ""
 }

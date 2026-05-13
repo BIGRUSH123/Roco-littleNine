@@ -19,6 +19,7 @@ if TYPE_CHECKING:
 
 class TraitHandler:
     name: str = ""
+    trait_id: int = 0
 
     # ── 入场 / 离场 ──
 
@@ -138,9 +139,14 @@ TRAIT_REGISTRY: dict[str, type[TraitHandler]] = {}
 
 
 def register(name: str):
-    """装饰器：将特性类注册到 TRAIT_REGISTRY。"""
+    """装饰器：将特性类注册到 TRAIT_REGISTRY，并自动设置 trait_id。"""
     def decorator(cls: type[TraitHandler]) -> type[TraitHandler]:
         cls.name = name
+        try:
+            from scripts.common.skill_trait_ids import TRAIT_NAME_TO_ID
+            cls.trait_id = TRAIT_NAME_TO_ID.get(name, 0)
+        except ImportError:
+            pass
         TRAIT_REGISTRY[name] = cls
         return cls
     return decorator
@@ -150,28 +156,39 @@ def get_trait(sprite: Sprite) -> TraitHandler | None:
     """获取精灵的特性处理器（惰性缓存于 sprite._trait_handler）。
 
     优先级：数据驱动实例 > 注册的 Python 类。
+    支持 ability_id 或 ability name 查找。
     若 sprite._trait_suppressed 为 True，跳过所有特性 dispatch。
     """
     if getattr(sprite, '_trait_suppressed', False):
         return None
 
     ability = sprite.species.ability
-    if not ability:
+    ability_id = getattr(sprite.species, 'ability_id', 0)
+    if not ability and not ability_id:
         return None
 
     cached = getattr(sprite, '_trait_handler', None)
     if cached is not None:
         return cached
 
-    # 1. 检查数据驱动特性实例（JSON 加载的）
     from . import trait_engine
-    instance = trait_engine.get_data_trait_instance(ability)
-    if instance is not None:
-        sprite._trait_handler = instance
-        return instance
 
-    # 2. 回退到注册的 Python 类
-    if ability not in TRAIT_REGISTRY:
+    # 1. 优先按 ID 查找数据驱动实例
+    if ability_id:
+        instance = trait_engine.get_data_trait_instance(ability_id)
+        if instance is not None:
+            sprite._trait_handler = instance
+            return instance
+
+    # 2. 按名称查找数据驱动实例
+    if ability:
+        instance = trait_engine.get_data_trait_instance(ability)
+        if instance is not None:
+            sprite._trait_handler = instance
+            return instance
+
+    # 3. 回退到注册的 Python 类
+    if ability and ability in TRAIT_REGISTRY:
         return None
 
     cls = TRAIT_REGISTRY[ability]

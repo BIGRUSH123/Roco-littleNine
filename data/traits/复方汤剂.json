@@ -1,12 +1,22 @@
 {
+  "id": 20035,
   "name": "复方汤剂",
   "description": "回合结束时，敌方中毒效果额外触发一次伤害。",
   "triggers": [
     {
       "on": "turn_end",
-      "condition": {"path": "target.effects[name=中毒].exists", "op": "eq", "value": true},
+      "condition": {
+        "path": "target.effects[name=中毒].exists",
+        "op": "eq",
+        "value": true
+      },
       "effects": [
-        {"kind": "special", "name": "take_damage", "value": "=@target.max_hp * 0.08 * target.effects[name=中毒].stacks", "damage_target": "target"}
+        {
+          "kind": "special",
+          "name": "take_damage",
+          "value": "=@target.max_hp * 0.08 * target.effects[name=中毒].stacks",
+          "damage_target": "target"
+        }
       ]
     }
   ]

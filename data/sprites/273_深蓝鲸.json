@@ -12,5 +12,6 @@
   "sp_def": 135,
   "speed": 50,
   "ability": "倾轧",
+  "ability_id": 20144,
   "pre_species": ""
 }

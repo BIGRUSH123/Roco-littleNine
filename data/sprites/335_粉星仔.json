@@ -12,5 +12,6 @@
   "sp_def": 102,
   "speed": 92,
   "ability": "双向光速",
+  "ability_id": 20021,
   "pre_species": ""
 }

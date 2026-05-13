@@ -3,6 +3,8 @@
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
+from scripts.common.skill_trait_ids import TRAIT_吟游之弦, TRAIT_守望星
+
 if TYPE_CHECKING:
     from .sprite import Sprite
     from .skill import Skill
@@ -286,7 +288,7 @@ class GlobalEffects:
         if not has_bard and user is not None:
             from .traits import get_trait
             h = get_trait(user)
-            has_bard = h and h.name == '吟游之弦'
+            has_bard = h and h.trait_id == TRAIT_吟游之弦
 
         if has_bard:
             # 共存模式：同名叠加，异名新增
@@ -337,7 +339,7 @@ class GlobalEffects:
         elif sprite is not None:
             from .traits import get_trait
             h = get_trait(sprite)
-            if h and h.name == '守望星':
+            if h and h.trait_id == TRAIT_守望星:
                 consume = max(1, amount // 2)
 
         consumed = min(consume, total)

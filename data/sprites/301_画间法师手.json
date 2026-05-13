@@ -13,5 +13,6 @@
   "sp_def": 120,
   "speed": 120,
   "ability": "灰色肖像",
+  "ability_id": 20091,
   "pre_species": "300"
 }

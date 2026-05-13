@@ -13,5 +13,6 @@
   "sp_def": 45,
   "speed": 44,
   "ability": "虫群鼓舞",
+  "ability_id": 20120,
   "pre_species": "83"
 }

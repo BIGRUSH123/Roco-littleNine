@@ -13,5 +13,6 @@
   "sp_def": 91,
   "speed": 110,
   "ability": "毒腺",
+  "ability_id": 20074,
   "pre_species": "169"
 }
