@@ -14,25 +14,18 @@
       "value": 0.6
     },
     {
-      "kind": "stat",
-      "target": "self",
-      "stat": "atk",
-      "steps": 4,
-      "scope": "battlefield"
-    },
-    {
-      "kind": "stat",
-      "target": "self",
-      "stat": "sp_atk",
-      "steps": 4,
-      "scope": "battlefield"
-    },
-    {
       "kind": "conditional",
       "when": {
         "kind": "counter_succeeded"
       },
       "then": [
+        {
+          "kind": "stat",
+          "target": "self",
+          "stat": "atk",
+          "steps": 4,
+          "scope": "battlefield"
+        },
         {
           "kind": "stat",
           "target": "self",

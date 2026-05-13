@@ -22,15 +22,8 @@
         {
           "kind": "stat",
           "target": "self",
-          "stat": "atk",
-          "steps": 4,
-          "scope": "battlefield"
-        },
-        {
-          "kind": "stat",
-          "target": "self",
-          "stat": "sp_atk",
-          "steps": 4,
+          "stat": "energy_cost",
+          "steps": -2,
           "scope": "battlefield"
         }
       ]
