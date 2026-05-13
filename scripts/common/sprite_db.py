@@ -1,39 +1,36 @@
 """scripts/common/sprite_db.py — 精灵种族值数据库
 
-数据来源：data/sprites/*.json
-
-sim 和 calc 共用此模块。
+直接操作 data/sprites/*.json 文件，按需读取。
 """
 
 import json
 import re
-import sys
 from pathlib import Path
 from typing import Optional
 
 from .models import SpeciesStats
 
 
-def _err(msg: str) -> None:
-    print(msg, file=sys.stderr)
-
-
 class SpriteDB:
-    """精灵种族值数据库。从 data/sprites/ JSON 加载。"""
-
-    def __init__(self, project_root: Path):
-        self._db: dict[str, SpeciesStats] = {}
-        self._index: dict[str, list[str]] = {}
-        self._load_json(project_root / "data" / "sprites")
+    """精灵种族值数据库。直接读写 data/sprites/ JSON 文件。"""
 
     _RE_FORM_SUFFIX = re.compile(r'（([^）]+)）$')
 
-    def _load_json(self, sprite_dir: Path) -> None:
-        if not sprite_dir.is_dir():
-            _err(f"[SpriteDB] 未找到精灵目录: {sprite_dir}")
+    def __init__(self, project_root: Path):
+        self._dir = project_root / "data" / "sprites"
+        self._by_display: dict[str, Path] = {}   # "name（form）" → filepath
+        self._by_name: dict[str, list[Path]] = {} # name → [filepaths]
+        self._by_number: dict[str, list[Path]] = {} # number → [filepaths]
+        self._reload_index()
+
+    def _reload_index(self) -> None:
+        """扫描目录重建索引（轻量，不含文件内容）。"""
+        self._by_display.clear()
+        self._by_name.clear()
+        self._by_number.clear()
+        if not self._dir.is_dir():
             return
-        cnt = 0
-        for jf in sorted(sprite_dir.glob("*.json")):
+        for jf in self._dir.glob("*.json"):
             try:
                 data = json.loads(jf.read_text(encoding='utf-8'))
             except (OSError, json.JSONDecodeError):
@@ -42,40 +39,14 @@ class SpriteDB:
             if not name:
                 continue
             form = data.get('form', '').strip()
-            attr_list = data.get('attributes', [])
-            if isinstance(attr_list, list):
-                attr_str = ', '.join(attr_list)
-            else:
-                attr_str = str(attr_list)
-            bloodline = attr_list[0] if attr_list else ''
-            try:
-                stats = SpeciesStats(
-                    name=name, form=form,
-                    number=str(data.get('number', '')).strip(),
-                    hp=int(data.get('hp', 0)),
-                    atk=int(data.get('atk', 0)),
-                    sp_atk=int(data.get('sp_atk', 0)),
-                    def_=int(data.get('def', 0)),
-                    sp_def=int(data.get('sp_def', 0)),
-                    speed=int(data.get('speed', 0)),
-                    attributes=attr_str,
-                    bloodline=bloodline,
-                    ability=data.get('ability', '').strip(),
-                    pre_species=str(data.get('pre_species', '')).strip(),
-                )
-            except (ValueError, TypeError):
-                continue
-            display = stats.display_name()
-            if display in self._db:
-                if not self._db[display].ability and stats.ability:
-                    self._db[display].ability = stats.ability
-                if not self._db[display].pre_species and stats.pre_species:
-                    self._db[display].pre_species = stats.pre_species
-                continue
-            self._db[display] = stats
-            self._index.setdefault(name, []).append(display)
-            cnt += 1
-        _err(f"[SpriteDB] JSON 加载 {cnt} 个精灵")
+            number = str(data.get('number', '')).strip()
+            display = f'{name}（{form}）' if form else name
+            self._by_display[display] = jf
+            self._by_name.setdefault(name, []).append(jf)
+            if number:
+                self._by_number.setdefault(number, []).append(jf)
+
+    # ── 读取 ──
 
     def get(self, name: str, form: str = '') -> Optional[SpeciesStats]:
         """精确查询：按 (name, form) 找到唯一形态。"""
@@ -84,28 +55,103 @@ class SpriteDB:
             form = m.group(1)
             name = name[:m.start()].strip()
 
-        key = SpeciesStats(name=name, form=form).display_name()
-        if key in self._db:
-            return self._db[key]
-        candidates = self._index.get(name, [])
+        display = f'{name}（{form}）' if form else name
+        path = self._by_display.get(display)
+        if path:
+            return self._read_one(path)
+
+        candidates = self._by_name.get(name, [])
         if len(candidates) == 1:
-            return self._db[candidates[0]]
+            return self._read_one(candidates[0])
         if candidates and not form:
-            for d in candidates:
-                if self._db[d].form == '':
-                    return self._db[d]
+            for p in candidates:
+                s = self._read_one(p)
+                if s and s.form == '':
+                    return s
         return None
 
     def list_forms(self, name: str) -> list[str]:
-        """返回某个 base name 下的所有形态名。"""
-        return [self._db[d].form for d in self._index.get(name, [])]
+        """返回某个 base name 下的所有形态名（去重）。"""
+        return list(dict.fromkeys(
+            s.form for p in self._by_name.get(name, [])
+            if (s := self._read_one(p))
+        ))
 
     def get_alternate_species(self, species: SpeciesStats) -> Optional[SpeciesStats]:
-        """查找同一编号下的另一种形态（首领化目标）。返回 None 若无。"""
-        no = species.number
-        if not no:
+        """查找同一编号下的另一种形态（首领化目标）。"""
+        if not species.number:
             return None
-        for display, ss in self._db.items():
-            if ss.number == no and ss.name != species.name:
-                return ss
+        for p in self._by_number.get(species.number, []):
+            s = self._read_one(p)
+            if s and s.name != species.name:
+                return s
         return None
+
+    # ── 写入 ──
+
+    def save(self, species: SpeciesStats) -> None:
+        """将 SpeciesStats 写回 JSON 文件，并更新索引。"""
+        display = species.display_name()
+        path = self._by_display.get(display)
+        if not path:
+            # 新文件
+            filename = f'{species.number}_{species.name}'
+            if species.form:
+                filename += f'（{species.form}）'
+            filename += '.json'
+            path = self._dir / filename
+
+        attr_list = [a.strip() for a in species.attributes.split(',') if a.strip()]
+        data = {
+            'number': species.number,
+            'name': species.name,
+            'form': species.form,
+            'attributes': attr_list,
+            'hp': species.hp,
+            'atk': species.atk,
+            'sp_atk': species.sp_atk,
+            'def': species.def_,
+            'sp_def': species.sp_def,
+            'speed': species.speed,
+            'ability': species.ability,
+            'pre_species': species.pre_species,
+        }
+        path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+        self._by_display[display] = path
+        self._by_name.setdefault(species.name, []).append(path)
+        if species.number:
+            self._by_number.setdefault(species.number, []).append(path)
+
+    # ── 内部 ──
+
+    @staticmethod
+    def _read_one(path: Path) -> Optional[SpeciesStats]:
+        """从单个 JSON 文件读取 SpeciesStats。"""
+        try:
+            data = json.loads(path.read_text(encoding='utf-8'))
+        except (OSError, json.JSONDecodeError):
+            return None
+        name = data.get('name', '').strip()
+        if not name:
+            return None
+        form = data.get('form', '').strip()
+        attr_list = data.get('attributes', [])
+        attr_str = ', '.join(attr_list) if isinstance(attr_list, list) else str(attr_list)
+        bloodline = attr_list[0] if attr_list else ''
+        try:
+            return SpeciesStats(
+                name=name, form=form,
+                number=str(data.get('number', '')).strip(),
+                hp=int(data.get('hp', 0)),
+                atk=int(data.get('atk', 0)),
+                sp_atk=int(data.get('sp_atk', 0)),
+                def_=int(data.get('def', 0)),
+                sp_def=int(data.get('sp_def', 0)),
+                speed=int(data.get('speed', 0)),
+                attributes=attr_str,
+                bloodline=bloodline,
+                ability=data.get('ability', '').strip(),
+                pre_species=str(data.get('pre_species', '')).strip(),
+            )
+        except (ValueError, TypeError):
+            return None
