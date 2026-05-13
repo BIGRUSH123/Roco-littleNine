@@ -1,0 +1,16 @@
+{
+  "number": "134",
+  "name": "雪豆丁",
+  "form": "",
+  "attributes": [
+    "冰"
+  ],
+  "hp": 97,
+  "atk": 104,
+  "sp_atk": 47,
+  "def": 83,
+  "sp_def": 62,
+  "speed": 36,
+  "ability": "打雪仗",
+  "pre_species": ""
+}

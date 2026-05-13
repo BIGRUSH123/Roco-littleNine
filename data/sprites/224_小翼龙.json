@@ -1,0 +1,17 @@
+{
+  "number": "224",
+  "name": "小翼龙",
+  "form": "",
+  "attributes": [
+    "龙",
+    "翼"
+  ],
+  "hp": 66,
+  "atk": 91,
+  "sp_atk": 24,
+  "def": 73,
+  "sp_def": 63,
+  "speed": 92,
+  "ability": "暴食",
+  "pre_species": ""
+}

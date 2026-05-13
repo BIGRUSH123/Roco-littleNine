@@ -1,0 +1,16 @@
+{
+  "number": "229",
+  "name": "缇塔",
+  "form": "",
+  "attributes": [
+    "机械"
+  ],
+  "hp": 73,
+  "atk": 99,
+  "sp_atk": 38,
+  "def": 98,
+  "sp_def": 74,
+  "speed": 72,
+  "ability": "向心力",
+  "pre_species": ""
+}

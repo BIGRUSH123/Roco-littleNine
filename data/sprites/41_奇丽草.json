@@ -1,0 +1,16 @@
+{
+  "number": "41",
+  "name": "奇丽草",
+  "form": "",
+  "attributes": [
+    "草"
+  ],
+  "hp": 67,
+  "atk": 69,
+  "sp_atk": 69,
+  "def": 73,
+  "sp_def": 57,
+  "speed": 48,
+  "ability": "养分重吸收",
+  "pre_species": ""
+}

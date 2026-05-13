@@ -1,0 +1,17 @@
+{
+  "number": "144",
+  "name": "雪影娃娃",
+  "form": "",
+  "attributes": [
+    "冰",
+    "萌"
+  ],
+  "hp": 130,
+  "atk": 103,
+  "sp_atk": 98,
+  "def": 66,
+  "sp_def": 130,
+  "speed": 90,
+  "ability": "捉迷藏",
+  "pre_species": "143"
+}

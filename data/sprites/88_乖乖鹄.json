@@ -1,0 +1,17 @@
+{
+  "number": "88",
+  "name": "乖乖鹄",
+  "form": "",
+  "attributes": [
+    "翼",
+    "水"
+  ],
+  "hp": 75,
+  "atk": 57,
+  "sp_atk": 52,
+  "def": 83,
+  "sp_def": 58,
+  "speed": 69,
+  "ability": "洁癖",
+  "pre_species": ""
+}

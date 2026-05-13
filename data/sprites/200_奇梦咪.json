@@ -1,0 +1,16 @@
+{
+  "number": "200",
+  "name": "奇梦咪",
+  "form": "",
+  "attributes": [
+    "萌"
+  ],
+  "hp": 81,
+  "atk": 128,
+  "sp_atk": 119,
+  "def": 123,
+  "sp_def": 123,
+  "speed": 110,
+  "ability": "三鼓作气",
+  "pre_species": ""
+}

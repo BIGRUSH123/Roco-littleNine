@@ -1,0 +1,16 @@
+{
+  "number": "43",
+  "name": "奇丽果",
+  "form": "",
+  "attributes": [
+    "草"
+  ],
+  "hp": 112,
+  "atk": 128,
+  "sp_atk": 128,
+  "def": 133,
+  "sp_def": 105,
+  "speed": 80,
+  "ability": "养分内循环",
+  "pre_species": "42"
+}

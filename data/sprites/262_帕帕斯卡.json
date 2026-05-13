@@ -1,0 +1,17 @@
+{
+  "number": "262",
+  "name": "帕帕斯卡",
+  "form": "",
+  "attributes": [
+    "机械",
+    "翼"
+  ],
+  "hp": 110,
+  "atk": 68,
+  "sp_atk": 10,
+  "def": 99,
+  "sp_def": 84,
+  "speed": 100,
+  "ability": "翼轴",
+  "pre_species": "261"
+}

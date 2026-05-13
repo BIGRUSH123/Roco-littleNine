@@ -1,0 +1,16 @@
+{
+  "number": "80",
+  "name": "小星光",
+  "form": "星光能量的样子",
+  "attributes": [
+    "电"
+  ],
+  "hp": 60,
+  "atk": 81,
+  "sp_atk": 85,
+  "def": 72,
+  "sp_def": 88,
+  "speed": 108,
+  "ability": "电流刺激",
+  "pre_species": ""
+}

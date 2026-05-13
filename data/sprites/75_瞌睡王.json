@@ -1,0 +1,17 @@
+{
+  "number": "75",
+  "name": "瞌睡王",
+  "form": "",
+  "attributes": [
+    "普通",
+    "武"
+  ],
+  "hp": 144,
+  "atk": 157,
+  "sp_atk": 64,
+  "def": 135,
+  "sp_def": 110,
+  "speed": 75,
+  "ability": "慢热型",
+  "pre_species": "74"
+}

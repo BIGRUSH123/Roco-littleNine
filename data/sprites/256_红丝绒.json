@@ -1,0 +1,17 @@
+{
+  "number": "256",
+  "name": "红丝绒",
+  "form": "",
+  "attributes": [
+    "火",
+    "萌"
+  ],
+  "hp": 90,
+  "atk": 38,
+  "sp_atk": 98,
+  "def": 80,
+  "sp_def": 101,
+  "speed": 72,
+  "ability": "仁心",
+  "pre_species": ""
+}

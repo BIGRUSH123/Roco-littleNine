@@ -1,0 +1,17 @@
+{
+  "number": "202",
+  "name": "鳗尾兽",
+  "form": "",
+  "attributes": [
+    "地",
+    "草"
+  ],
+  "hp": 290,
+  "atk": 91,
+  "sp_atk": 91,
+  "def": 138,
+  "sp_def": 113,
+  "speed": 65,
+  "ability": "铃兰晚钟",
+  "pre_species": "201"
+}

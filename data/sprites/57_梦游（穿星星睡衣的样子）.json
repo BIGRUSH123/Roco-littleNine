@@ -1,0 +1,17 @@
+{
+  "number": "57",
+  "name": "梦游",
+  "form": "穿星星睡衣的样子",
+  "attributes": [
+    "幽",
+    "光"
+  ],
+  "hp": 0,
+  "atk": 0,
+  "sp_atk": 0,
+  "def": 0,
+  "sp_def": 0,
+  "speed": 0,
+  "ability": "做噩梦",
+  "pre_species": ""
+}

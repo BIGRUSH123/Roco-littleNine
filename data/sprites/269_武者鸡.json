@@ -1,0 +1,17 @@
+{
+  "number": "269",
+  "name": "武者鸡",
+  "form": "",
+  "attributes": [
+    "火",
+    "武"
+  ],
+  "hp": 121,
+  "atk": 144,
+  "sp_atk": 58,
+  "def": 92,
+  "sp_def": 70,
+  "speed": 95,
+  "ability": "斗技",
+  "pre_species": ""
+}

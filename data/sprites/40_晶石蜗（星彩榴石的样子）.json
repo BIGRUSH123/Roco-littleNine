@@ -1,0 +1,17 @@
+{
+  "number": "40",
+  "name": "晶石蜗",
+  "form": "星彩榴石的样子",
+  "attributes": [
+    "光",
+    "地"
+  ],
+  "hp": 97,
+  "atk": 101,
+  "sp_atk": 101,
+  "def": 128,
+  "sp_def": 91,
+  "speed": 65,
+  "ability": "偏振",
+  "pre_species": "39"
+}

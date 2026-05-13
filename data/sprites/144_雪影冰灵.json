@@ -1,0 +1,17 @@
+{
+  "number": "144",
+  "name": "雪影冰灵",
+  "form": "",
+  "attributes": [
+    "冰",
+    "萌"
+  ],
+  "hp": 130,
+  "atk": 120,
+  "sp_atk": 114,
+  "def": 66,
+  "sp_def": 130,
+  "speed": 90,
+  "ability": "抓到你了",
+  "pre_species": "143"
+}

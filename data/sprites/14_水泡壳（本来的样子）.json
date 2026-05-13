@@ -1,0 +1,16 @@
+{
+  "number": "14",
+  "name": "水泡壳",
+  "form": "本来的样子",
+  "attributes": [
+    "水"
+  ],
+  "hp": 112,
+  "atk": 46,
+  "sp_atk": 120,
+  "def": 107,
+  "sp_def": 134,
+  "speed": 75,
+  "ability": "缩壳",
+  "pre_species": "13"
+}

@@ -1,0 +1,16 @@
+{
+  "number": "128",
+  "name": "哭哭菇",
+  "form": "",
+  "attributes": [
+    "幻"
+  ],
+  "hp": 74,
+  "atk": 38,
+  "sp_atk": 41,
+  "def": 30,
+  "sp_def": 60,
+  "speed": 36,
+  "ability": "吸积盘",
+  "pre_species": ""
+}

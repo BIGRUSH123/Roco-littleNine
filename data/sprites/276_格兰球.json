@@ -1,0 +1,16 @@
+{
+  "number": "276",
+  "name": "格兰球",
+  "form": "",
+  "attributes": [
+    "草"
+  ],
+  "hp": 108,
+  "atk": 52,
+  "sp_atk": 124,
+  "def": 80,
+  "sp_def": 112,
+  "speed": 60,
+  "ability": "生长",
+  "pre_species": "275"
+}

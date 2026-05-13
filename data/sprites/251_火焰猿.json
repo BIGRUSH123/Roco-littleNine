@@ -1,0 +1,16 @@
+{
+  "number": "251",
+  "name": "火焰猿",
+  "form": "",
+  "attributes": [
+    "火"
+  ],
+  "hp": 167,
+  "atk": 162,
+  "sp_atk": 72,
+  "def": 143,
+  "sp_def": 111,
+  "speed": 60,
+  "ability": "散热",
+  "pre_species": "250"
+}

@@ -1,0 +1,17 @@
+{
+  "number": "323",
+  "name": "嗜光嗡嗡",
+  "form": "",
+  "attributes": [
+    "恶",
+    "光"
+  ],
+  "hp": 75,
+  "atk": 83,
+  "sp_atk": 83,
+  "def": 50,
+  "sp_def": 90,
+  "speed": 92,
+  "ability": "血型吸引",
+  "pre_species": ""
+}

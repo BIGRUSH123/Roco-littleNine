@@ -1,0 +1,16 @@
+{
+  "number": "274",
+  "name": "格兰种子",
+  "form": "",
+  "attributes": [
+    "草"
+  ],
+  "hp": 65,
+  "atk": 31,
+  "sp_atk": 74,
+  "def": 48,
+  "sp_def": 67,
+  "speed": 36,
+  "ability": "生长",
+  "pre_species": ""
+}

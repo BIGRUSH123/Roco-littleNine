@@ -1,0 +1,16 @@
+{
+  "number": "25",
+  "name": "石刺蜥",
+  "form": "球球尾巴的样子",
+  "attributes": [
+    "地"
+  ],
+  "hp": 91,
+  "atk": 72,
+  "sp_atk": 71,
+  "def": 85,
+  "sp_def": 59,
+  "speed": 80,
+  "ability": "刺肤",
+  "pre_species": "24"
+}

@@ -1,0 +1,17 @@
+{
+  "number": "180",
+  "name": "卷毛鸭",
+  "form": "",
+  "attributes": [
+    "草",
+    "武"
+  ],
+  "hp": 116,
+  "atk": 98,
+  "sp_atk": 29,
+  "def": 83,
+  "sp_def": 63,
+  "speed": 115,
+  "ability": "得寸进尺",
+  "pre_species": "179"
+}

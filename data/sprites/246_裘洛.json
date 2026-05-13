@@ -1,0 +1,16 @@
+{
+  "number": "246",
+  "name": "裘洛",
+  "form": "",
+  "attributes": [
+    "毒"
+  ],
+  "hp": 44,
+  "atk": 56,
+  "sp_atk": 50,
+  "def": 39,
+  "sp_def": 48,
+  "speed": 75,
+  "ability": "蚀刻",
+  "pre_species": ""
+}

@@ -43,42 +43,39 @@ const btnPadOpp = computed(() => skillCountOpp.value > 6 ? 'py-1.5 px-1.5' : 'py
 const markModA = computed(() => props.state.mark_energy_mod_a || 0)
 const markModB = computed(() => props.state.mark_energy_mod_b || 0)
 
-const canUseSkill = (sprite, skillName, markMod = 0) => {
+function getSpriteSkill(sprite, name) {
+  return (sprite?.skills || []).find(s => s.name === name)
+}
+
+const canUseSkill = (sprite, skillName) => {
   const charging = !!sprite.charging
   const jealousy = sprite.trait === '嫉妒'
   if (!charging) {
-    const s = props.skillMap[skillName]
-    if (!s) return false
-    const energyCostMod = sprite.energy_cost_mod || 0
-    const effectiveCost = Math.max(0, s.energy_cost + energyCostMod - markMod)
-    return sprite.energy >= effectiveCost
+    const ss = getSpriteSkill(sprite, skillName)
+    if (!ss) return false
+    if (ss.cooldown > 0) return false
+    return sprite.energy >= ss.effective_energy_cost
   }
   if (jealousy) return true
   return skillName === sprite.charging
 }
 
-function skillBrief(sprite, name, markMod = 0) {
-  const s = props.skillMap[name]
-  if (!s) return ''
-  const parts = [`${s.element}`]
-  if (s.power > 0) parts.push(`${s.power}威`)
-  const energyCostMod = sprite.energy_cost_mod || 0
-  const effectiveCost = Math.max(0, s.energy_cost + energyCostMod - markMod)
-  const costDisplay = effectiveCost !== s.energy_cost
-    ? `${s.energy_cost}→${effectiveCost}费`
-    : `${s.energy_cost}费`
-  parts.push(costDisplay)
-  if (s.priority > 0) parts.push(`+${s.priority}`)
+function skillBrief(sprite, name) {
+  const sm = props.skillMap[name]
+  if (!sm) return ''
+  const ss = getSpriteSkill(sprite, name)
+  const parts = [`${sm.element}`]
+  if (ss && ss.effective_power > 0) parts.push(`${ss.effective_power}威`)
+  parts.push(`${ss ? ss.effective_energy_cost : sm.energy_cost}费`)
+  if (sm.priority > 0) parts.push(`+${sm.priority}`)
   return parts.join('·')
 }
 
-function energyInsufficient(sprite, name, markMod = 0) {
+function energyInsufficient(sprite, name) {
   if (!!sprite.charging) return false
-  const s = props.skillMap[name]
-  if (!s) return true
-  const energyCostMod = sprite.energy_cost_mod || 0
-  const effectiveCost = Math.max(0, s.energy_cost + energyCostMod - markMod)
-  return sprite.energy < effectiveCost
+  const ss = getSpriteSkill(sprite, name)
+  if (!ss) return true
+  return sprite.energy < ss.effective_energy_cost
 }
 
 function skillDesc(name) {
@@ -121,7 +118,7 @@ const freezeStacks = (sprite) => {
 const freezePct = (sprite) => {
   if (!sprite.max_hp) return 0
   const stacks = freezeStacks(sprite)
-  return Math.min(100, stacks * 10)
+  return Math.min(100, stacks * 5)
 }
 
 const handleAction = (type, payload = null) => {
@@ -272,25 +269,26 @@ const debugActionLabel = (action) => {
             <!-- Skill Buttons -->
             <div :class="['grid gap-1.5 mb-1.5', gridCols]">
               <button
-                v-for="skill in active.skills"
-                :key="skill"
-                @click="handleAction('skill', skill)"
-                :disabled="active.is_fainted || !canUseSkill(active, skill, markModA)"
+                v-for="sk in active.skills"
+                :key="sk.name"
+                @click="handleAction('skill', sk.name)"
+                :disabled="active.is_fainted || !canUseSkill(active, sk.name)"
                 class="group relative bg-[#252830] hover:bg-[#2e3640] disabled:opacity-40 border text-[#e0e0e0] rounded text-left transition-colors"
                 :class="[
                   btnPad,
-                  debugMode && debugActionA?.payload === skill ? 'border-[#4a90d9] ring-1 ring-[#4a90d9]/50' : effectivenessClass(skill, activeOpp?.element) || 'border-[#3a3d42]',
-                  energyInsufficient(active, skill, markModA) ? 'border-[#f44336]/50' : 'hover:border-[#4a90d9]'
+                  debugMode && debugActionA?.payload === sk.name ? 'border-[#4a90d9] ring-1 ring-[#4a90d9]/50' : effectivenessClass(sk.name, activeOpp?.element) || 'border-[#3a3d42]',
+                  energyInsufficient(active, sk.name) ? 'border-[#f44336]/50' : 'hover:border-[#4a90d9]'
                 ]"
               >
-                <div class="text-sm font-medium leading-tight truncate">{{ skill }}</div>
+                <div class="text-sm font-medium leading-tight truncate">{{ sk.name }}</div>
                 <div class="text-[10px] leading-tight mt-0.5"
-                  :class="energyInsufficient(active, skill, markModA) ? 'text-[#f44336]' : 'text-[#6a6d75]'"
-                >{{ skillBrief(active, skill, markModA) }}</div>
-                <div v-if="energyInsufficient(active, skill, markModA)" class="mt-0.5 text-[9px] text-[#f44336] font-medium">能量不足</div>
+                  :class="energyInsufficient(active, sk.name) ? 'text-[#f44336]' : 'text-[#6a6d75]'"
+                >{{ skillBrief(active, sk.name) }}</div>
+                <div v-if="energyInsufficient(active, sk.name)" class="mt-0.5 text-[9px] text-[#f44336] font-medium">能量不足</div>
+                <div v-if="getSpriteSkill(active, sk.name)?.cooldown > 0" class="mt-0.5 text-[9px] text-[#ff9800] font-medium">冷却中</div>
                 <!-- Tooltip -->
                 <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-[#111318] border border-[#4a4d55] text-[#cdd6e0] text-xs rounded shadow-lg whitespace-nowrap max-w-xs truncate opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
-                  {{ skillDesc(skill) }}
+                  {{ skillDesc(sk.name) }}
                 </div>
               </button>
             </div>
@@ -434,23 +432,24 @@ const debugActionLabel = (action) => {
           <template v-if="!showSwitchMenuOpp">
             <div :class="['grid gap-1.5 mb-1.5', gridColsOpp]">
               <button
-                v-for="skill in activeOpp.skills"
-                :key="skill"
-                @click="selectDebugAction('B', 'skill', skill)"
-                :disabled="activeOpp.is_fainted || !canUseSkill(activeOpp, skill, markModB)"
+                v-for="sk in activeOpp.skills"
+                :key="sk.name"
+                @click="selectDebugAction('B', 'skill', sk.name)"
+                :disabled="activeOpp.is_fainted || !canUseSkill(activeOpp, sk.name)"
                 class="group relative bg-[#252830] hover:bg-[#2e3640] disabled:opacity-40 border text-[#e0e0e0] rounded text-left transition-colors"
                 :class="[
                   btnPadOpp,
-                  debugActionB?.payload === skill ? 'border-[#ff9800] ring-1 ring-[#ff9800]/50' : effectivenessClass(skill, active?.element) || 'border-[#3a3d42]',
-                  energyInsufficient(activeOpp, skill, markModB) ? 'border-[#f44336]/50' : 'hover:border-[#ff9800]'
+                  debugActionB?.payload === sk.name ? 'border-[#ff9800] ring-1 ring-[#ff9800]/50' : effectivenessClass(sk.name, active?.element) || 'border-[#3a3d42]',
+                  energyInsufficient(activeOpp, sk.name) ? 'border-[#f44336]/50' : 'hover:border-[#ff9800]'
                 ]"
               >
-                <div class="text-sm font-medium leading-tight truncate">{{ skill }}</div>
+                <div class="text-sm font-medium leading-tight truncate">{{ sk.name }}</div>
                 <div class="text-[10px] leading-tight mt-0.5"
-                  :class="energyInsufficient(activeOpp, skill, markModB) ? 'text-[#f44336]' : 'text-[#6a6d75]'"
-                >{{ skillBrief(activeOpp, skill, markModB) }}</div>
-                <div v-if="energyInsufficient(activeOpp, skill, markModB)" class="mt-0.5 text-[9px] text-[#f44336] font-medium">能量不足</div>
-              </button>
+                  :class="energyInsufficient(activeOpp, sk.name) ? 'text-[#f44336]' : 'text-[#6a6d75]'"
+                >{{ skillBrief(activeOpp, sk.name) }}</div>
+                <div v-if="energyInsufficient(activeOpp, sk.name)" class="mt-0.5 text-[9px] text-[#f44336] font-medium">能量不足</div>
+                <div v-if="getSpriteSkill(activeOpp, sk.name)?.cooldown > 0" class="mt-0.5 text-[9px] text-[#ff9800] font-medium">冷却中</div>
+</button>
             </div>
             <div class="flex gap-1.5">
               <button

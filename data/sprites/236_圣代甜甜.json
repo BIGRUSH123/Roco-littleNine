@@ -1,0 +1,16 @@
+{
+  "number": "236",
+  "name": "圣代甜甜",
+  "form": "",
+  "attributes": [
+    "冰"
+  ],
+  "hp": 119,
+  "atk": 112,
+  "sp_atk": 119,
+  "def": 70,
+  "sp_def": 92,
+  "speed": 100,
+  "ability": "加个雪球",
+  "pre_species": "235"
+}

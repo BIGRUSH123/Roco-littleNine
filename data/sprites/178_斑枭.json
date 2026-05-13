@@ -1,0 +1,16 @@
+{
+  "number": "178",
+  "name": "斑枭",
+  "form": "",
+  "attributes": [
+    "翼"
+  ],
+  "hp": 89,
+  "atk": 112,
+  "sp_atk": 112,
+  "def": 89,
+  "sp_def": 100,
+  "speed": 115,
+  "ability": "逐魂鸟",
+  "pre_species": "177"
+}

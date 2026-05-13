@@ -1,0 +1,16 @@
+{
+  "number": "73",
+  "name": "白发懒人",
+  "form": "",
+  "attributes": [
+    "普通"
+  ],
+  "hp": 86,
+  "atk": 94,
+  "sp_atk": 38,
+  "def": 81,
+  "sp_def": 66,
+  "speed": 45,
+  "ability": "慢热型",
+  "pre_species": ""
+}

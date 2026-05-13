@@ -1,0 +1,17 @@
+{
+  "number": "309",
+  "name": "绒仙子",
+  "form": "",
+  "attributes": [
+    "光",
+    "虫"
+  ],
+  "hp": 96,
+  "atk": 71,
+  "sp_atk": 73,
+  "def": 81,
+  "sp_def": 133,
+  "speed": 115,
+  "ability": "技能图标 脉冲光线",
+  "pre_species": "308"
+}

@@ -1,0 +1,17 @@
+{
+  "number": "215",
+  "name": "恶魔红钻",
+  "form": "",
+  "attributes": [
+    "虫",
+    "恶"
+  ],
+  "hp": 100,
+  "atk": 147,
+  "sp_atk": 137,
+  "def": 93,
+  "sp_def": 74,
+  "speed": 115,
+  "ability": "振奋虫心",
+  "pre_species": ""
+}

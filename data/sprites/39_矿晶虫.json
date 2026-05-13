@@ -1,0 +1,17 @@
+{
+  "number": "39",
+  "name": "矿晶虫",
+  "form": "",
+  "attributes": [
+    "光",
+    "地"
+  ],
+  "hp": 79,
+  "atk": 77,
+  "sp_atk": 81,
+  "def": 102,
+  "sp_def": 75,
+  "speed": 52,
+  "ability": "偏振",
+  "pre_species": ""
+}

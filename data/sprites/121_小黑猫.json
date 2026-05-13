@@ -1,0 +1,16 @@
+{
+  "number": "121",
+  "name": "小黑猫",
+  "form": "",
+  "attributes": [
+    "普通"
+  ],
+  "hp": 121,
+  "atk": 72,
+  "sp_atk": 130,
+  "def": 54,
+  "sp_def": 95,
+  "speed": 56,
+  "ability": "预警",
+  "pre_species": ""
+}

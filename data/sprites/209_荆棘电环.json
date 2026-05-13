@@ -1,0 +1,16 @@
+{
+  "number": "209",
+  "name": "荆棘电环",
+  "form": "",
+  "attributes": [
+    "电"
+  ],
+  "hp": 106,
+  "atk": 81,
+  "sp_atk": 81,
+  "def": 85,
+  "sp_def": 84,
+  "speed": 120,
+  "ability": "防过载保护",
+  "pre_species": "208"
+}

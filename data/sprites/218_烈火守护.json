@@ -1,0 +1,16 @@
+{
+  "number": "218",
+  "name": "烈火守护",
+  "form": "",
+  "attributes": [
+    "火"
+  ],
+  "hp": 113,
+  "atk": 90,
+  "sp_atk": 25,
+  "def": 118,
+  "sp_def": 93,
+  "speed": 65,
+  "ability": "蒸汽膨胀",
+  "pre_species": "217"
+}

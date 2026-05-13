@@ -1,0 +1,17 @@
+{
+  "number": "44",
+  "name": "丢丢",
+  "form": "沙地附近的样子",
+  "attributes": [
+    "草",
+    "地"
+  ],
+  "hp": 44,
+  "atk": 42,
+  "sp_atk": 12,
+  "def": 55,
+  "sp_def": 43,
+  "speed": 75,
+  "ability": "诈死",
+  "pre_species": ""
+}

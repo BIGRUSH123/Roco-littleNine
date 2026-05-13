@@ -1,0 +1,17 @@
+{
+  "number": "170",
+  "name": "芋香巨角蛛",
+  "form": "",
+  "attributes": [
+    "虫",
+    "毒"
+  ],
+  "hp": 92,
+  "atk": 61,
+  "sp_atk": 61,
+  "def": 91,
+  "sp_def": 91,
+  "speed": 110,
+  "ability": "毒腺",
+  "pre_species": "169"
+}

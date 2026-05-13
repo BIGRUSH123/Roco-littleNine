@@ -1,0 +1,16 @@
+{
+  "number": "329",
+  "name": "夜枭",
+  "form": "",
+  "attributes": [
+    "幽"
+  ],
+  "hp": 117,
+  "atk": 10,
+  "sp_atk": 61,
+  "def": 90,
+  "sp_def": 106,
+  "speed": 80,
+  "ability": "搜刮",
+  "pre_species": "328"
+}

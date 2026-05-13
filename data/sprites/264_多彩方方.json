@@ -1,0 +1,16 @@
+{
+  "number": "264",
+  "name": "多彩方方",
+  "form": "",
+  "attributes": [
+    "机械"
+  ],
+  "hp": 82,
+  "atk": 108,
+  "sp_atk": 43,
+  "def": 101,
+  "sp_def": 80,
+  "speed": 68,
+  "ability": "盲拧",
+  "pre_species": "263"
+}

@@ -1,0 +1,16 @@
+{
+  "number": "338",
+  "name": "布瓜蝌",
+  "form": "",
+  "attributes": [
+    "幻"
+  ],
+  "hp": 91,
+  "atk": 84,
+  "sp_atk": 35,
+  "def": 81,
+  "sp_def": 55,
+  "speed": 96,
+  "ability": "张弛有度",
+  "pre_species": ""
+}

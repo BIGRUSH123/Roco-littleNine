@@ -1,0 +1,16 @@
+{
+  "number": "203",
+  "name": "伊雷龙",
+  "form": "",
+  "attributes": [
+    "龙"
+  ],
+  "hp": 90,
+  "atk": 73,
+  "sp_atk": 152,
+  "def": 55,
+  "sp_def": 79,
+  "speed": 72,
+  "ability": "嫉妒",
+  "pre_species": ""
+}

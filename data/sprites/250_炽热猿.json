@@ -1,0 +1,16 @@
+{
+  "number": "250",
+  "name": "炽热猿",
+  "form": "",
+  "attributes": [
+    "火"
+  ],
+  "hp": 133,
+  "atk": 130,
+  "sp_atk": 57,
+  "def": 115,
+  "sp_def": 89,
+  "speed": 48,
+  "ability": "散热",
+  "pre_species": "249"
+}

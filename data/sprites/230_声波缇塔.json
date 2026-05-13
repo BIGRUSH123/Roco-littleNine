@@ -1,0 +1,16 @@
+{
+  "number": "230",
+  "name": "声波缇塔",
+  "form": "",
+  "attributes": [
+    "机械"
+  ],
+  "hp": 92,
+  "atk": 124,
+  "sp_atk": 48,
+  "def": 122,
+  "sp_def": 92,
+  "speed": 90,
+  "ability": "向心力",
+  "pre_species": "229"
+}

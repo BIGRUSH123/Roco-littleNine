@@ -1,0 +1,17 @@
+{
+  "number": "182",
+  "name": "海豹船长",
+  "form": "",
+  "attributes": [
+    "武",
+    "水"
+  ],
+  "hp": 90,
+  "atk": 113,
+  "sp_atk": 109,
+  "def": 111,
+  "sp_def": 77,
+  "speed": 100,
+  "ability": "身经百练",
+  "pre_species": "181"
+}

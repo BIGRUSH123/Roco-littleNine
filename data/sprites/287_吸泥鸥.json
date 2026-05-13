@@ -1,0 +1,17 @@
+{
+  "number": "287",
+  "name": "吸泥鸥",
+  "form": "",
+  "attributes": [
+    "地",
+    "翼"
+  ],
+  "hp": 99,
+  "atk": 89,
+  "sp_atk": 33,
+  "def": 87,
+  "sp_def": 71,
+  "speed": 76,
+  "ability": "无差别过滤",
+  "pre_species": ""
+}

@@ -1,0 +1,16 @@
+{
+  "number": "48",
+  "name": "音速犬",
+  "form": "",
+  "attributes": [
+    "火"
+  ],
+  "hp": 85,
+  "atk": 128,
+  "sp_atk": 46,
+  "def": 101,
+  "sp_def": 82,
+  "speed": 120,
+  "ability": "专注力",
+  "pre_species": "47"
+}

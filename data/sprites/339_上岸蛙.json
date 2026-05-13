@@ -1,0 +1,16 @@
+{
+  "number": "339",
+  "name": "上岸蛙",
+  "form": "",
+  "attributes": [
+    "幻"
+  ],
+  "hp": 114,
+  "atk": 106,
+  "sp_atk": 44,
+  "def": 101,
+  "sp_def": 69,
+  "speed": 120,
+  "ability": "张弛有度",
+  "pre_species": ""
+}

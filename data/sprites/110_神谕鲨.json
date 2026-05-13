@@ -1,0 +1,17 @@
+{
+  "number": "110",
+  "name": "神谕鲨",
+  "form": "",
+  "attributes": [
+    "水",
+    "翼"
+  ],
+  "hp": 90,
+  "atk": 77,
+  "sp_atk": 77,
+  "def": 105,
+  "sp_def": 105,
+  "speed": 125,
+  "ability": "水翼飞升",
+  "pre_species": "109"
+}

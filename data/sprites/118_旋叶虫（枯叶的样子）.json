@@ -1,0 +1,17 @@
+{
+  "number": "118",
+  "name": "旋叶虫",
+  "form": "枯叶的样子",
+  "attributes": [
+    "普通",
+    "虫"
+  ],
+  "hp": 57,
+  "atk": 15,
+  "sp_atk": 67,
+  "def": 61,
+  "sp_def": 52,
+  "speed": 72,
+  "ability": "共鸣",
+  "pre_species": ""
+}

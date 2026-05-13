@@ -1,0 +1,17 @@
+{
+  "number": "65",
+  "name": "蹦蹦果",
+  "form": "",
+  "attributes": [
+    "草",
+    "毒"
+  ],
+  "hp": 100,
+  "atk": 87,
+  "sp_atk": 90,
+  "def": 73,
+  "sp_def": 105,
+  "speed": 85,
+  "ability": "技能图标 根吸收",
+  "pre_species": "64"
+}

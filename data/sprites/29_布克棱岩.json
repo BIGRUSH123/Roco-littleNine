@@ -1,0 +1,16 @@
+{
+  "number": "29",
+  "name": "布克棱岩",
+  "form": "",
+  "attributes": [
+    "地"
+  ],
+  "hp": 120,
+  "atk": 135,
+  "sp_atk": 49,
+  "def": 159,
+  "sp_def": 150,
+  "speed": 70,
+  "ability": "地脉",
+  "pre_species": "28"
+}

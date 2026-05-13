@@ -1,0 +1,17 @@
+{
+  "number": "35",
+  "name": "幽影树",
+  "form": "",
+  "attributes": [
+    "幽",
+    "草"
+  ],
+  "hp": 111,
+  "atk": 96,
+  "sp_atk": 96,
+  "def": 65,
+  "sp_def": 123,
+  "speed": 80,
+  "ability": "小偷小摸",
+  "pre_species": ""
+}

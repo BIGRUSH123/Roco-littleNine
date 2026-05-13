@@ -1,0 +1,17 @@
+{
+  "number": "70",
+  "name": "蒲公英娃娃",
+  "form": "",
+  "attributes": [
+    "草",
+    "萌"
+  ],
+  "hp": 111,
+  "atk": 123,
+  "sp_atk": 117,
+  "def": 129,
+  "sp_def": 97,
+  "speed": 65,
+  "ability": "勇敢",
+  "pre_species": "69"
+}

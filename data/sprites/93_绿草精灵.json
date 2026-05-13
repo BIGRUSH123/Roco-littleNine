@@ -1,0 +1,17 @@
+{
+  "number": "93",
+  "name": "绿草精灵",
+  "form": "",
+  "attributes": [
+    "草",
+    "幻"
+  ],
+  "hp": 79,
+  "atk": 35,
+  "sp_atk": 89,
+  "def": 87,
+  "sp_def": 111,
+  "speed": 72,
+  "ability": "木桶戏法",
+  "pre_species": ""
+}

@@ -1,0 +1,16 @@
+{
+  "number": "342",
+  "name": "春团",
+  "form": "",
+  "attributes": [
+    "草"
+  ],
+  "hp": 48,
+  "atk": 51,
+  "sp_atk": 57,
+  "def": 65,
+  "sp_def": 57,
+  "speed": 63,
+  "ability": "系统发育",
+  "pre_species": ""
+}

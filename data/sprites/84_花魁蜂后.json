@@ -1,0 +1,17 @@
+{
+  "number": "84",
+  "name": "花魁蜂后",
+  "form": "",
+  "attributes": [
+    "虫",
+    "翼"
+  ],
+  "hp": 145,
+  "atk": 54,
+  "sp_atk": 49,
+  "def": 45,
+  "sp_def": 45,
+  "speed": 44,
+  "ability": "虫群鼓舞",
+  "pre_species": "83"
+}

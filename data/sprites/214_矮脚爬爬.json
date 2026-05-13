@@ -1,0 +1,16 @@
+{
+  "number": "214",
+  "name": "矮脚爬爬",
+  "form": "",
+  "attributes": [
+    "虫"
+  ],
+  "hp": 80,
+  "atk": 117,
+  "sp_atk": 110,
+  "def": 74,
+  "sp_def": 59,
+  "speed": 92,
+  "ability": "振奋虫心",
+  "pre_species": ""
+}

@@ -1,0 +1,16 @@
+{
+  "number": "194",
+  "name": "流浪鼠",
+  "form": "",
+  "attributes": [
+    "地"
+  ],
+  "hp": 90,
+  "atk": 46,
+  "sp_atk": 116,
+  "def": 84,
+  "sp_def": 112,
+  "speed": 115,
+  "ability": "奔波命",
+  "pre_species": "193"
+}

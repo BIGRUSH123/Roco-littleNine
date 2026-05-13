@@ -1,0 +1,17 @@
+{
+  "number": "189",
+  "name": "棋骑士",
+  "form": "白子",
+  "attributes": [
+    "武",
+    "地"
+  ],
+  "hp": 90,
+  "atk": 126,
+  "sp_atk": 45,
+  "def": 88,
+  "sp_def": 69,
+  "speed": 125,
+  "ability": "腾挪",
+  "pre_species": "188"
+}

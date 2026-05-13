@@ -1,0 +1,16 @@
+{
+  "number": "310",
+  "name": "犀角鸟",
+  "form": "",
+  "attributes": [
+    "光"
+  ],
+  "hp": 63,
+  "atk": 88,
+  "sp_atk": 40,
+  "def": 67,
+  "sp_def": 44,
+  "speed": 66,
+  "ability": "技能图标 力量增效",
+  "pre_species": ""
+}

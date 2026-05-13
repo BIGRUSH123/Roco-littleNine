@@ -1,0 +1,17 @@
+{
+  "number": "201",
+  "name": "花怨鳗",
+  "form": "",
+  "attributes": [
+    "地",
+    "草"
+  ],
+  "hp": 232,
+  "atk": 73,
+  "sp_atk": 73,
+  "def": 110,
+  "sp_def": 90,
+  "speed": 52,
+  "ability": "铃兰晚钟",
+  "pre_species": ""
+}

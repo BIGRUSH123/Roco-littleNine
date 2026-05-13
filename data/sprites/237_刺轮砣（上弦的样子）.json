@@ -1,0 +1,17 @@
+{
+  "number": "237",
+  "name": "刺轮砣",
+  "form": "上弦的样子",
+  "attributes": [
+    "毒",
+    "萌"
+  ],
+  "hp": 100,
+  "atk": 80,
+  "sp_atk": 78,
+  "def": 80,
+  "sp_def": 65,
+  "speed": 84,
+  "ability": "耐活王",
+  "pre_species": ""
+}

@@ -1,0 +1,17 @@
+{
+  "number": "346",
+  "name": "曜星光",
+  "form": "",
+  "attributes": [
+    "幻",
+    "翼"
+  ],
+  "hp": 65,
+  "atk": 28,
+  "sp_atk": 84,
+  "def": 68,
+  "sp_def": 84,
+  "speed": 100,
+  "ability": "守望星",
+  "pre_species": "345"
+}

@@ -1,0 +1,16 @@
+{
+  "number": "226",
+  "name": "电动长颈鹿",
+  "form": "",
+  "attributes": [
+    "电"
+  ],
+  "hp": 55,
+  "atk": 59,
+  "sp_atk": 20,
+  "def": 65,
+  "sp_def": 47,
+  "speed": 72,
+  "ability": "蓄电池",
+  "pre_species": ""
+}

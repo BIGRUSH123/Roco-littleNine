@@ -1,0 +1,17 @@
+{
+  "number": "104",
+  "name": "魔眷鸟",
+  "form": "",
+  "attributes": [
+    "萌",
+    "翼"
+  ],
+  "hp": 87,
+  "atk": 113,
+  "sp_atk": 34,
+  "def": 94,
+  "sp_def": 88,
+  "speed": 135,
+  "ability": "自由飘",
+  "pre_species": "103"
+}

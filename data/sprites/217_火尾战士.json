@@ -1,0 +1,16 @@
+{
+  "number": "217",
+  "name": "火尾战士",
+  "form": "",
+  "attributes": [
+    "火"
+  ],
+  "hp": 90,
+  "atk": 72,
+  "sp_atk": 20,
+  "def": 94,
+  "sp_def": 74,
+  "speed": 52,
+  "ability": "蒸汽膨胀",
+  "pre_species": "216"
+}

@@ -1,0 +1,17 @@
+{
+  "number": "301",
+  "name": "画间法师手",
+  "form": "",
+  "attributes": [
+    "普通",
+    "幻"
+  ],
+  "hp": 101,
+  "atk": 53,
+  "sp_atk": 131,
+  "def": 94,
+  "sp_def": 120,
+  "speed": 120,
+  "ability": "灰色肖像",
+  "pre_species": "300"
+}

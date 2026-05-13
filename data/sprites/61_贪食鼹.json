@@ -1,0 +1,16 @@
+{
+  "number": "61",
+  "name": "贪食鼹",
+  "form": "",
+  "attributes": [
+    "普通"
+  ],
+  "hp": 126,
+  "atk": 74,
+  "sp_atk": 33,
+  "def": 94,
+  "sp_def": 54,
+  "speed": 68,
+  "ability": "壮胆",
+  "pre_species": ""
+}

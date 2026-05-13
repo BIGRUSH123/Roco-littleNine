@@ -1,0 +1,17 @@
+{
+  "number": "143",
+  "name": "帽兜娃娃",
+  "form": "",
+  "attributes": [
+    "冰",
+    "萌"
+  ],
+  "hp": 104,
+  "atk": 83,
+  "sp_atk": 78,
+  "def": 52,
+  "sp_def": 104,
+  "speed": 72,
+  "ability": "捉迷藏",
+  "pre_species": "142"
+}

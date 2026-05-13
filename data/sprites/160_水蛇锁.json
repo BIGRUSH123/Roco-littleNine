@@ -1,0 +1,17 @@
+{
+  "number": "160",
+  "name": "水蛇锁",
+  "form": "",
+  "attributes": [
+    "水",
+    "武"
+  ],
+  "hp": 84,
+  "atk": 88,
+  "sp_atk": 83,
+  "def": 83,
+  "sp_def": 83,
+  "speed": 84,
+  "ability": "思维之盾",
+  "pre_species": "159"
+}

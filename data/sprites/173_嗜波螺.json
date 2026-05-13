@@ -1,0 +1,17 @@
+{
+  "number": "173",
+  "name": "嗜波螺",
+  "form": "",
+  "attributes": [
+    "地",
+    "水"
+  ],
+  "hp": 112,
+  "atk": 98,
+  "sp_atk": 98,
+  "def": 146,
+  "sp_def": 110,
+  "speed": 70,
+  "ability": "消波块",
+  "pre_species": "172"
+}

@@ -1,0 +1,16 @@
+{
+  "number": "254",
+  "name": "冰钻布鲁斯",
+  "form": "",
+  "attributes": [
+    "冰"
+  ],
+  "hp": 73,
+  "atk": 101,
+  "sp_atk": 27,
+  "def": 114,
+  "sp_def": 88,
+  "speed": 90,
+  "ability": "冰钻",
+  "pre_species": "253"
+}

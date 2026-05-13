@@ -1,0 +1,16 @@
+{
+  "number": "236",
+  "name": "圣代甜甜",
+  "form": "樱桃草莓口味",
+  "attributes": [
+    "冰"
+  ],
+  "hp": 107,
+  "atk": 120,
+  "sp_atk": 110,
+  "def": 81,
+  "sp_def": 96,
+  "speed": 100,
+  "ability": "加个雪球",
+  "pre_species": "235"
+}

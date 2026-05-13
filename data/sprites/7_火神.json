@@ -1,0 +1,16 @@
+{
+  "number": "7",
+  "name": "火神",
+  "form": "",
+  "attributes": [
+    "火"
+  ],
+  "hp": 117,
+  "atk": 139,
+  "sp_atk": 61,
+  "def": 94,
+  "sp_def": 72,
+  "speed": 130,
+  "ability": "助燃",
+  "pre_species": "6"
+}

@@ -1,0 +1,17 @@
+{
+  "number": "192",
+  "name": "棋绮后",
+  "form": "黑子",
+  "attributes": [
+    "武",
+    "地"
+  ],
+  "hp": 93,
+  "atk": 84,
+  "sp_atk": 84,
+  "def": 82,
+  "sp_def": 75,
+  "speed": 90,
+  "ability": "渗透",
+  "pre_species": "191"
+}

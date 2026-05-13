@@ -1,0 +1,17 @@
+{
+  "number": "270",
+  "name": "优优",
+  "form": "",
+  "attributes": [
+    "地",
+    "光"
+  ],
+  "hp": 81,
+  "atk": 35,
+  "sp_atk": 89,
+  "def": 84,
+  "sp_def": 104,
+  "speed": 92,
+  "ability": "哨兵",
+  "pre_species": ""
+}

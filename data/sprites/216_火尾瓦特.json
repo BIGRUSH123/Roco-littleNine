@@ -1,0 +1,16 @@
+{
+  "number": "216",
+  "name": "火尾瓦特",
+  "form": "",
+  "attributes": [
+    "火"
+  ],
+  "hp": 68,
+  "atk": 54,
+  "sp_atk": 15,
+  "def": 71,
+  "sp_def": 56,
+  "speed": 39,
+  "ability": "蒸汽膨胀",
+  "pre_species": ""
+}

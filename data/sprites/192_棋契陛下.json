@@ -1,0 +1,17 @@
+{
+  "number": "192",
+  "name": "棋契陛下",
+  "form": "",
+  "attributes": [
+    "武",
+    "地"
+  ],
+  "hp": 90,
+  "atk": 200,
+  "sp_atk": 91,
+  "def": 140,
+  "sp_def": 115,
+  "speed": 125,
+  "ability": "技能图标 寸拳",
+  "pre_species": "191"
+}

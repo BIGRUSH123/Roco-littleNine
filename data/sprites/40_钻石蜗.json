@@ -1,0 +1,17 @@
+{
+  "number": "40",
+  "name": "钻石蜗",
+  "form": "",
+  "attributes": [
+    "光",
+    "地"
+  ],
+  "hp": 93,
+  "atk": 96,
+  "sp_atk": 101,
+  "def": 124,
+  "sp_def": 91,
+  "speed": 65,
+  "ability": "技能图标 魔法增效",
+  "pre_species": "39"
+}

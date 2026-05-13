@@ -1,0 +1,16 @@
+{
+  "number": "86",
+  "name": "紫夜",
+  "form": "",
+  "attributes": [
+    "恶"
+  ],
+  "hp": 80,
+  "atk": 92,
+  "sp_atk": 84,
+  "def": 83,
+  "sp_def": 68,
+  "speed": 92,
+  "ability": "嫁祸",
+  "pre_species": "85"
+}

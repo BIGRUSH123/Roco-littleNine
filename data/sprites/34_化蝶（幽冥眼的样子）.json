@@ -1,0 +1,17 @@
+{
+  "number": "34",
+  "name": "化蝶",
+  "form": "幽冥眼的样子",
+  "attributes": [
+    "虫",
+    "萌"
+  ],
+  "hp": 43,
+  "atk": 42,
+  "sp_atk": 42,
+  "def": 67,
+  "sp_def": 70,
+  "speed": 105,
+  "ability": "化茧",
+  "pre_species": "33"
+}

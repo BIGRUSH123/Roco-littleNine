@@ -1,0 +1,16 @@
+{
+  "number": "111",
+  "name": "石石",
+  "form": "",
+  "attributes": [
+    "地"
+  ],
+  "hp": 76,
+  "atk": 79,
+  "sp_atk": 79,
+  "def": 101,
+  "sp_def": 56,
+  "speed": 76,
+  "ability": "石天平",
+  "pre_species": ""
+}

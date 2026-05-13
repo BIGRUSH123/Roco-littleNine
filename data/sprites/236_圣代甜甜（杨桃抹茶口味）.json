@@ -1,0 +1,16 @@
+{
+  "number": "236",
+  "name": "圣代甜甜",
+  "form": "杨桃抹茶口味",
+  "attributes": [
+    "冰"
+  ],
+  "hp": 110,
+  "atk": 107,
+  "sp_atk": 110,
+  "def": 82,
+  "sp_def": 96,
+  "speed": 105,
+  "ability": "加个雪球",
+  "pre_species": "235"
+}

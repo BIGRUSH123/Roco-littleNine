@@ -1,0 +1,16 @@
+{
+  "number": "5",
+  "name": "火花",
+  "form": "",
+  "attributes": [
+    "火"
+  ],
+  "hp": 70,
+  "atk": 84,
+  "sp_atk": 37,
+  "def": 56,
+  "sp_def": 43,
+  "speed": 78,
+  "ability": "助燃",
+  "pre_species": ""
+}

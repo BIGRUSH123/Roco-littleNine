@@ -1,0 +1,16 @@
+{
+  "number": "19",
+  "name": "冬羽雀",
+  "form": "夏天的样子",
+  "attributes": [
+    "翼"
+  ],
+  "hp": 79,
+  "atk": 107,
+  "sp_atk": 43,
+  "def": 77,
+  "sp_def": 55,
+  "speed": 92,
+  "ability": "顺风",
+  "pre_species": "18"
+}

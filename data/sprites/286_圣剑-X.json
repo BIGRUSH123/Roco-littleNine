@@ -1,0 +1,16 @@
+{
+  "number": "286",
+  "name": "圣剑-X",
+  "form": "",
+  "attributes": [
+    "机械"
+  ],
+  "hp": 174,
+  "atk": 144,
+  "sp_atk": 139,
+  "def": 173,
+  "sp_def": 173,
+  "speed": 65,
+  "ability": "正位宝剑",
+  "pre_species": "285"
+}

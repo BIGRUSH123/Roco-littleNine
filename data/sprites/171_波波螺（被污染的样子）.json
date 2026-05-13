@@ -1,0 +1,17 @@
+{
+  "number": "171",
+  "name": "波波螺",
+  "form": "被污染的样子",
+  "attributes": [
+    "地",
+    "水"
+  ],
+  "hp": 64,
+  "atk": 57,
+  "sp_atk": 57,
+  "def": 64,
+  "sp_def": 86,
+  "speed": 42,
+  "ability": "消波块",
+  "pre_species": ""
+}

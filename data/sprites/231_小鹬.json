@@ -1,0 +1,16 @@
+{
+  "number": "231",
+  "name": "小鹬",
+  "form": "",
+  "attributes": [
+    "翼"
+  ],
+  "hp": 56,
+  "atk": 38,
+  "sp_atk": 38,
+  "def": 67,
+  "sp_def": 52,
+  "speed": 69,
+  "ability": "起飞加速",
+  "pre_species": ""
+}

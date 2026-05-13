@@ -1,0 +1,16 @@
+{
+  "number": "344",
+  "name": "春花兔",
+  "form": "",
+  "attributes": [
+    "草"
+  ],
+  "hp": 79,
+  "atk": 85,
+  "sp_atk": 95,
+  "def": 103,
+  "sp_def": 90,
+  "speed": 105,
+  "ability": "系统发育",
+  "pre_species": "343"
+}

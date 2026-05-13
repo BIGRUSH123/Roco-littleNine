@@ -1,0 +1,17 @@
+{
+  "number": "331",
+  "name": "小皮球",
+  "form": "",
+  "attributes": [
+    "电",
+    "幻"
+  ],
+  "hp": 116,
+  "atk": 68,
+  "sp_atk": 127,
+  "def": 71,
+  "sp_def": 126,
+  "speed": 110,
+  "ability": "星地善良",
+  "pre_species": ""
+}

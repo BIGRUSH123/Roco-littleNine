@@ -1,0 +1,16 @@
+{
+  "number": "284",
+  "name": "铠甲虫",
+  "form": "",
+  "attributes": [
+    "虫"
+  ],
+  "hp": 122,
+  "atk": 88,
+  "sp_atk": 39,
+  "def": 121,
+  "sp_def": 77,
+  "speed": 75,
+  "ability": "坚韧铠甲",
+  "pre_species": "283"
+}

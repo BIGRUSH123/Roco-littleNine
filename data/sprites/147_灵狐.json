@@ -1,0 +1,17 @@
+{
+  "number": "147",
+  "name": "灵狐",
+  "form": "",
+  "attributes": [
+    "火",
+    "冰"
+  ],
+  "hp": 69,
+  "atk": 52,
+  "sp_atk": 52,
+  "def": 50,
+  "sp_def": 64,
+  "speed": 60,
+  "ability": "灵魂灼伤",
+  "pre_species": ""
+}

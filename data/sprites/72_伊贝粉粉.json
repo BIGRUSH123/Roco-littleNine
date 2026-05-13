@@ -1,0 +1,16 @@
+{
+  "number": "72",
+  "name": "伊贝粉粉",
+  "form": "",
+  "attributes": [
+    "草"
+  ],
+  "hp": 106,
+  "atk": 91,
+  "sp_atk": 89,
+  "def": 95,
+  "sp_def": 95,
+  "speed": 90,
+  "ability": "腐植循环",
+  "pre_species": "71"
+}

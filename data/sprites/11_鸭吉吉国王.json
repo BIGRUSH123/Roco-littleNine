@@ -1,0 +1,16 @@
+{
+  "number": "11",
+  "name": "鸭吉吉国王",
+  "form": "",
+  "attributes": [
+    "普通"
+  ],
+  "hp": 136,
+  "atk": 135,
+  "sp_atk": 50,
+  "def": 79,
+  "sp_def": 64,
+  "speed": 105,
+  "ability": "“国王”的威严",
+  "pre_species": ""
+}

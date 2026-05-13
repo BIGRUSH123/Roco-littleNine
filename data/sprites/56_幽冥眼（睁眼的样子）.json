@@ -1,0 +1,16 @@
+{
+  "number": "56",
+  "name": "幽冥眼",
+  "form": "睁眼的样子",
+  "attributes": [
+    "幽"
+  ],
+  "hp": 92,
+  "atk": 50,
+  "sp_atk": 120,
+  "def": 98,
+  "sp_def": 135,
+  "speed": 115,
+  "ability": "惊吓",
+  "pre_species": "55"
+}

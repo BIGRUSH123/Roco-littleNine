@@ -1,0 +1,17 @@
+{
+  "number": "282",
+  "name": "秩序鱿墨",
+  "form": "",
+  "attributes": [
+    "幽",
+    "萌"
+  ],
+  "hp": 78,
+  "atk": 120,
+  "sp_atk": 39,
+  "def": 124,
+  "sp_def": 113,
+  "speed": 130,
+  "ability": "绝对秩序",
+  "pre_species": "281"
+}

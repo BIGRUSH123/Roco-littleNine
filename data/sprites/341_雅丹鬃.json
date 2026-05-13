@@ -1,0 +1,16 @@
+{
+  "number": "341",
+  "name": "雅丹鬃",
+  "form": "",
+  "attributes": [
+    "火"
+  ],
+  "hp": 83,
+  "atk": 49,
+  "sp_atk": 113,
+  "def": 62,
+  "sp_def": 78,
+  "speed": 125,
+  "ability": "天通地明",
+  "pre_species": ""
+}

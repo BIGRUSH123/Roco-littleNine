@@ -1,0 +1,17 @@
+{
+  "number": "315",
+  "name": "椰浆布丁",
+  "form": "",
+  "attributes": [
+    "水",
+    "冰"
+  ],
+  "hp": 133,
+  "atk": 34,
+  "sp_atk": 89,
+  "def": 81,
+  "sp_def": 105,
+  "speed": 120,
+  "ability": "吉利丁片",
+  "pre_species": "314"
+}

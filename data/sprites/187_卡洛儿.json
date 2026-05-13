@@ -1,0 +1,17 @@
+{
+  "number": "187",
+  "name": "卡洛儿",
+  "form": "",
+  "attributes": [
+    "水",
+    "萌"
+  ],
+  "hp": 114,
+  "atk": 102,
+  "sp_atk": 107,
+  "def": 82,
+  "sp_def": 124,
+  "speed": 90,
+  "ability": "守护者",
+  "pre_species": ""
+}

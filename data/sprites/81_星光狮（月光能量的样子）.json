@@ -1,0 +1,17 @@
+{
+  "number": "81",
+  "name": "星光狮",
+  "form": "月光能量的样子",
+  "attributes": [
+    "电",
+    "光"
+  ],
+  "hp": 80,
+  "atk": 95,
+  "sp_atk": 107,
+  "def": 90,
+  "sp_def": 120,
+  "speed": 125,
+  "ability": "电流刺激",
+  "pre_species": "80"
+}

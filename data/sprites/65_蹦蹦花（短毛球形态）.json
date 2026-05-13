@@ -1,0 +1,17 @@
+{
+  "number": "65",
+  "name": "蹦蹦花",
+  "form": "短毛球形态",
+  "attributes": [
+    "草",
+    "毒"
+  ],
+  "hp": 95,
+  "atk": 103,
+  "sp_atk": 109,
+  "def": 80,
+  "sp_def": 112,
+  "speed": 80,
+  "ability": "生物碱",
+  "pre_species": "64"
+}

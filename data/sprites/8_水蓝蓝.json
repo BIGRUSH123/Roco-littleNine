@@ -1,0 +1,16 @@
+{
+  "number": "8",
+  "name": "水蓝蓝",
+  "form": "",
+  "attributes": [
+    "水"
+  ],
+  "hp": 75,
+  "atk": 35,
+  "sp_atk": 76,
+  "def": 56,
+  "sp_def": 79,
+  "speed": 51,
+  "ability": "浸润",
+  "pre_species": ""
+}

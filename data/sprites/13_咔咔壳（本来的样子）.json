@@ -1,0 +1,16 @@
+{
+  "number": "13",
+  "name": "咔咔壳",
+  "form": "本来的样子",
+  "attributes": [
+    "水"
+  ],
+  "hp": 90,
+  "atk": 37,
+  "sp_atk": 96,
+  "def": 85,
+  "sp_def": 107,
+  "speed": 60,
+  "ability": "缩壳",
+  "pre_species": "12"
+}

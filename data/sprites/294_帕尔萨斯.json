@@ -1,0 +1,16 @@
+{
+  "number": "294",
+  "name": "帕尔萨斯",
+  "form": "",
+  "attributes": [
+    "恶"
+  ],
+  "hp": 104,
+  "atk": 102,
+  "sp_atk": 46,
+  "def": 105,
+  "sp_def": 70,
+  "speed": 80,
+  "ability": "付给恶魔的赎价",
+  "pre_species": "293"
+}

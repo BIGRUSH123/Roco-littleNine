@@ -1,0 +1,16 @@
+{
+  "number": "168",
+  "name": "圆眼蜘蛛",
+  "form": "",
+  "attributes": [
+    "虫"
+  ],
+  "hp": 55,
+  "atk": 37,
+  "sp_atk": 37,
+  "def": 55,
+  "sp_def": 55,
+  "speed": 66,
+  "ability": "毒腺",
+  "pre_species": ""
+}

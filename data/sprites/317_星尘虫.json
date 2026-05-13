@@ -1,0 +1,16 @@
+{
+  "number": "317",
+  "name": "星尘虫",
+  "form": "",
+  "attributes": [
+    "虫"
+  ],
+  "hp": 49,
+  "atk": 47,
+  "sp_atk": 47,
+  "def": 46,
+  "sp_def": 58,
+  "speed": 60,
+  "ability": "契约的形状",
+  "pre_species": ""
+}

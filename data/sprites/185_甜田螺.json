@@ -1,0 +1,17 @@
+{
+  "number": "185",
+  "name": "甜田螺",
+  "form": "",
+  "attributes": [
+    "水",
+    "萌"
+  ],
+  "hp": 68,
+  "atk": 61,
+  "sp_atk": 64,
+  "def": 49,
+  "sp_def": 74,
+  "speed": 54,
+  "ability": "守护者",
+  "pre_species": ""
+}

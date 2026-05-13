@@ -1,0 +1,16 @@
+{
+  "number": "47",
+  "name": "护主犬",
+  "form": "",
+  "attributes": [
+    "火"
+  ],
+  "hp": 68,
+  "atk": 103,
+  "sp_atk": 37,
+  "def": 81,
+  "sp_def": 66,
+  "speed": 96,
+  "ability": "专注力",
+  "pre_species": ""
+}

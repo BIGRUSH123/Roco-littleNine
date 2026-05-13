@@ -1,0 +1,17 @@
+{
+  "number": "306",
+  "name": "古卷匣魔像",
+  "form": "",
+  "attributes": [
+    "普通",
+    "武"
+  ],
+  "hp": 114,
+  "atk": 109,
+  "sp_atk": 109,
+  "def": 134,
+  "sp_def": 89,
+  "speed": 95,
+  "ability": "构装契约者",
+  "pre_species": ""
+}

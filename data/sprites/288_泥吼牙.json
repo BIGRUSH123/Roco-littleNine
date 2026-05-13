@@ -1,0 +1,17 @@
+{
+  "number": "288",
+  "name": "泥吼牙",
+  "form": "",
+  "attributes": [
+    "地",
+    "翼"
+  ],
+  "hp": 124,
+  "atk": 112,
+  "sp_atk": 41,
+  "def": 109,
+  "sp_def": 88,
+  "speed": 95,
+  "ability": "无差别过滤",
+  "pre_species": "287"
+}

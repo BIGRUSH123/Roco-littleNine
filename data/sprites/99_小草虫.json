@@ -1,0 +1,17 @@
+{
+  "number": "99",
+  "name": "小草虫",
+  "form": "",
+  "attributes": [
+    "虫",
+    "草"
+  ],
+  "hp": 73,
+  "atk": 40,
+  "sp_atk": 43,
+  "def": 50,
+  "sp_def": 57,
+  "speed": 60,
+  "ability": "花精灵",
+  "pre_species": ""
+}

@@ -1,0 +1,16 @@
+{
+  "number": "129",
+  "name": "怖须菇",
+  "form": "",
+  "attributes": [
+    "幻"
+  ],
+  "hp": 99,
+  "atk": 50,
+  "sp_atk": 55,
+  "def": 40,
+  "sp_def": 80,
+  "speed": 48,
+  "ability": "吸积盘",
+  "pre_species": "128"
+}

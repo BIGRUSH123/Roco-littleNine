@@ -1,0 +1,17 @@
+{
+  "number": "153",
+  "name": "松仔",
+  "form": "",
+  "attributes": [
+    "草",
+    "武"
+  ],
+  "hp": 63,
+  "atk": 83,
+  "sp_atk": 34,
+  "def": 77,
+  "sp_def": 60,
+  "speed": 63,
+  "ability": "野性感官",
+  "pre_species": ""
+}

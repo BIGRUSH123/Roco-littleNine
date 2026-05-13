@@ -1,0 +1,16 @@
+{
+  "number": "11",
+  "name": "鸭吉吉",
+  "form": "蓬松的样子",
+  "attributes": [
+    "普通"
+  ],
+  "hp": 136,
+  "atk": 95,
+  "sp_atk": 35,
+  "def": 55,
+  "sp_def": 45,
+  "speed": 105,
+  "ability": "挺起胸脯",
+  "pre_species": ""
+}

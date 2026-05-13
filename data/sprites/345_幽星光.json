@@ -1,0 +1,16 @@
+{
+  "number": "345",
+  "name": "幽星光",
+  "form": "",
+  "attributes": [
+    "幻"
+  ],
+  "hp": 49,
+  "atk": 21,
+  "sp_atk": 63,
+  "def": 48,
+  "sp_def": 63,
+  "speed": 75,
+  "ability": "守望星",
+  "pre_species": ""
+}

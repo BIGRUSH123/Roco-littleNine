@@ -1,0 +1,17 @@
+{
+  "number": "109",
+  "name": "蓝蝶鲨",
+  "form": "",
+  "attributes": [
+    "水",
+    "翼"
+  ],
+  "hp": 72,
+  "atk": 61,
+  "sp_atk": 61,
+  "def": 84,
+  "sp_def": 84,
+  "speed": 100,
+  "ability": "水翼推进",
+  "pre_species": "108"
+}

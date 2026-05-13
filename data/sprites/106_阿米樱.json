@@ -1,0 +1,16 @@
+{
+  "number": "106",
+  "name": "阿米樱",
+  "form": "",
+  "attributes": [
+    "地"
+  ],
+  "hp": 86,
+  "atk": 127,
+  "sp_atk": 62,
+  "def": 89,
+  "sp_def": 56,
+  "speed": 60,
+  "ability": "石头大餐",
+  "pre_species": "105"
+}

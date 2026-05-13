@@ -1,0 +1,16 @@
+{
+  "number": "15",
+  "name": "锥尾羊",
+  "form": "",
+  "attributes": [
+    "幽"
+  ],
+  "hp": 67,
+  "atk": 66,
+  "sp_atk": 29,
+  "def": 72,
+  "sp_def": 49,
+  "speed": 66,
+  "ability": "碰瓷",
+  "pre_species": ""
+}

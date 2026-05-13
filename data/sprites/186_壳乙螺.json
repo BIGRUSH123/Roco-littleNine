@@ -1,0 +1,17 @@
+{
+  "number": "186",
+  "name": "壳乙螺",
+  "form": "",
+  "attributes": [
+    "水",
+    "萌"
+  ],
+  "hp": 91,
+  "atk": 81,
+  "sp_atk": 86,
+  "def": 66,
+  "sp_def": 99,
+  "speed": 72,
+  "ability": "守护者",
+  "pre_species": "185"
+}

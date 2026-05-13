@@ -1,0 +1,17 @@
+{
+  "number": "213",
+  "name": "寒音蛇",
+  "form": "本命年的样子",
+  "attributes": [
+    "萌",
+    "毒"
+  ],
+  "hp": 0,
+  "atk": 0,
+  "sp_atk": 0,
+  "def": 0,
+  "sp_def": 0,
+  "speed": 0,
+  "ability": "拨浪鼓",
+  "pre_species": "212"
+}

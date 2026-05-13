@@ -1,0 +1,17 @@
+{
+  "number": "77",
+  "name": "刺盔虫",
+  "form": "磨损的样子",
+  "attributes": [
+    "水",
+    "毒"
+  ],
+  "hp": 94,
+  "atk": 33,
+  "sp_atk": 80,
+  "def": 59,
+  "sp_def": 85,
+  "speed": 84,
+  "ability": "溶解扩散",
+  "pre_species": "76"
+}

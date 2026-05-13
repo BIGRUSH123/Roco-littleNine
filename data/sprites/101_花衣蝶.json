@@ -1,0 +1,17 @@
+{
+  "number": "101",
+  "name": "花衣蝶",
+  "form": "",
+  "attributes": [
+    "虫",
+    "草"
+  ],
+  "hp": 122,
+  "atk": 67,
+  "sp_atk": 72,
+  "def": 84,
+  "sp_def": 94,
+  "speed": 100,
+  "ability": "花精灵",
+  "pre_species": "100"
+}

@@ -1,0 +1,16 @@
+{
+  "number": "199",
+  "name": "气球猫",
+  "form": "",
+  "attributes": [
+    "萌"
+  ],
+  "hp": 64,
+  "atk": 93,
+  "sp_atk": 86,
+  "def": 90,
+  "sp_def": 90,
+  "speed": 88,
+  "ability": "鼓气",
+  "pre_species": ""
+}

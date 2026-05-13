@@ -1,0 +1,17 @@
+{
+  "number": "159",
+  "name": "水滴蛇",
+  "form": "",
+  "attributes": [
+    "水",
+    "武"
+  ],
+  "hp": 63,
+  "atk": 66,
+  "sp_atk": 62,
+  "def": 62,
+  "sp_def": 62,
+  "speed": 63,
+  "ability": "思维之盾",
+  "pre_species": ""
+}

@@ -1,0 +1,17 @@
+{
+  "number": "40",
+  "name": "晶石蜗",
+  "form": "蓝锥矿的样子",
+  "attributes": [
+    "光",
+    "地"
+  ],
+  "hp": 99,
+  "atk": 97,
+  "sp_atk": 107,
+  "def": 124,
+  "sp_def": 91,
+  "speed": 65,
+  "ability": "偏振",
+  "pre_species": "39"
+}

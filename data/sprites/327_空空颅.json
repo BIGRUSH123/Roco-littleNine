@@ -1,0 +1,16 @@
+{
+  "number": "327",
+  "name": "空空颅",
+  "form": "",
+  "attributes": [
+    "幽"
+  ],
+  "hp": 70,
+  "atk": 7,
+  "sp_atk": 37,
+  "def": 57,
+  "sp_def": 64,
+  "speed": 48,
+  "ability": "搜刮",
+  "pre_species": ""
+}

@@ -1,0 +1,17 @@
+{
+  "number": "40",
+  "name": "晶石蜗",
+  "form": "西瓜碧玺的样子",
+  "attributes": [
+    "光",
+    "地"
+  ],
+  "hp": 99,
+  "atk": 96,
+  "sp_atk": 101,
+  "def": 128,
+  "sp_def": 94,
+  "speed": 65,
+  "ability": "偏振",
+  "pre_species": "39"
+}

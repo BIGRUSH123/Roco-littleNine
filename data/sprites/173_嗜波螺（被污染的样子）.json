@@ -1,0 +1,17 @@
+{
+  "number": "173",
+  "name": "嗜波螺",
+  "form": "被污染的样子",
+  "attributes": [
+    "地",
+    "水"
+  ],
+  "hp": 107,
+  "atk": 95,
+  "sp_atk": 95,
+  "def": 106,
+  "sp_def": 144,
+  "speed": 70,
+  "ability": "消波块",
+  "pre_species": "172"
+}

@@ -66,6 +66,7 @@ class SpecialName:
     IGNORE_MODS = 'ignore_mods'
     RANDOM_DEVOTION = 'random_devotion'
     BORROW_SKILL = 'borrow_skill'
+    DEFENSE_COOLDOWN_REDUCE = 'defense_cooldown_reduce'
 
     # ── 聚合 ──
     ALL: frozenset[str] = frozenset({
@@ -79,6 +80,7 @@ class SpecialName:
         POWER_BY_ENEMY_ENERGY, POWER_BY_ADJACENT, ADJACENT_POWER_BONUS,
         PRIORITY_BONUS, IGNORE_MODS, RANDOM_DEVOTION, BORROW_SKILL,
         COMBO_INCREMENT, POWER_INCREMENT, ENERGY_COST_INCREMENT,
+        DEFENSE_COOLDOWN_REDUCE,
     })
 
     # 伤害相关子集 — 由 _collect_modifiers / calc_damage 处理

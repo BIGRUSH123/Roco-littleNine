@@ -1,0 +1,17 @@
+{
+  "number": "289",
+  "name": "大头骨龙",
+  "form": "",
+  "attributes": [
+    "龙",
+    "幽"
+  ],
+  "hp": 74,
+  "atk": 93,
+  "sp_atk": 33,
+  "def": 69,
+  "sp_def": 52,
+  "speed": 68,
+  "ability": "不朽",
+  "pre_species": ""
+}

@@ -1,0 +1,16 @@
+{
+  "number": "2",
+  "name": "喵喵",
+  "form": "",
+  "attributes": [
+    "草"
+  ],
+  "hp": 63,
+  "atk": 57,
+  "sp_atk": 57,
+  "def": 56,
+  "sp_def": 59,
+  "speed": 33,
+  "ability": "氧循环",
+  "pre_species": ""
+}

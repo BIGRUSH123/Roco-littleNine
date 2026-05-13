@@ -1,0 +1,17 @@
+{
+  "number": "174",
+  "name": "菇菇丁",
+  "form": "",
+  "attributes": [
+    "地",
+    "草"
+  ],
+  "hp": 89,
+  "atk": 61,
+  "sp_atk": 57,
+  "def": 70,
+  "sp_def": 57,
+  "speed": 42,
+  "ability": "多人宿舍",
+  "pre_species": ""
+}

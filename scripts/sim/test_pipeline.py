@@ -280,7 +280,7 @@ def test_l3_l4_defense():
 # ═══════════════════════════════════════════════════════════════════
 
 def test_l3_state():
-    sk_a = [load_bs('test_l3_state')]    # 状态: 全部 L3a+L3b 效果
+    sk_a = [load_bs('test_l3_state')]    # 状态: 全部 L3a+L3b 效果（含 charge）
     sk_b = [load_bs('test_basic_attack')]
     battle = _make_battle(sk_a, sk_b, hp_a=200)  # HP<50% 触发 hp_below 条件
 
@@ -292,7 +292,11 @@ def test_l3_state():
     s_b.add_effect(StatusEffect(name='物防-10%', category='stat', stat_key='def', steps=-1, scope='persistent', source='pre'))
     s_a.add_effect(StatusEffect(name='物防-10%', category='stat', stat_key='def', steps=-1, scope='persistent', source='pre'))
 
-    events = _run(battle, [('skill', 0)], [('gather', None)])[0]
+    # Turn 1 蓄力 → Turn 2 释放（L3 效果在 Turn 2 生效）
+    all_events = _run(battle,
+                      [('skill', 0), ('skill', 0)],
+                      [('gather', None), ('gather', None)], turns=2)
+    events = all_events[0] + all_events[1]
     s_a = battle.player_a.active
     s_b = battle.player_b.active
 
@@ -312,13 +316,13 @@ def test_l3_state():
 
     # L3b: stat(opp, def-1)
     # L3b: abnormal(中毒×2) + abnormal(灼烧×4) + abnormal(寄生)
-    # 注意：回合末 tick 已经触发一次，灼烧层数已减半
+    # 效果在 Turn2 应用，Turn2 末灼烧层数减半 4→2
     assert s_b.get_stacks('中毒') == 2, f'Expected poison×2, got {s_b.get_stacks("中毒")}'
     assert s_b.get_stacks('灼烧') == 2, \
-        f'Expected burn×2 after Turn1 end halving, got {s_b.get_stacks("灼烧")}'
+        f'Expected burn×2 after Turn2 end halving, got {s_b.get_stacks("灼烧")}'
     assert s_b.get_stacks('寄生') == 1, f'Expected parasite×1, got {s_b.get_stacks("寄生")}'
 
-    # L3b: weather(rain, 5) → Turn1 末已递减为 4
+    # L3b: weather(rain, 5) → Turn2 末已递减为 4
     assert battle.globals.weather == 'rain', \
         f'Expected rain, got {battle.globals.weather}'
     assert battle.globals.weather_turns == 4, \
@@ -490,23 +494,25 @@ def test_l5_multi():
 
 def test_l6_turn_end():
     """回合末: 中毒/灼烧/寄生 tick + 冷却递减 + 天气 + 印记回合末效果。
-    Turn1 应用异常后回合末即触发首次 tick → 灼烧层数已减半。Turn2 验证第二次 tick。"""
-    sk_a = [load_bs('test_l3_state')]   # 状态: 会挂中毒×2, 灼烧×4, 寄生 给 B
+    Turn1 蓄力 → Turn2 释放应用异常 → Turn2 末触发首次 tick → 灼烧 4→2。
+    Turn3 验证第二次 tick。"""
+    sk_a = [load_bs('test_l3_state')]   # 状态: 会挂中毒×2, 灼烧×4, 寄生 给 B（含 charge）
     sk_b = [load_bs('test_basic_attack')]
     battle = _make_battle(sk_a, sk_b)
     s_b = battle.player_b.active
 
-    # Turn 1: 施加异常状态 + weather rain + mark 光合印记
-    # Turn 1 回合末已经触发了一次 tick: 灼烧 4→2, 中毒/寄生各扣血
-    _run(battle, [('skill', 0)], [('gather', None)])
-    # Turn 1 end 已将灼烧层数减半
+    # Turn 1 蓄力 → Turn 2 释放（施加异常 + weather + mark）
+    _run(battle,
+         [('skill', 0), ('skill', 0)],
+         [('gather', None), ('gather', None)], turns=2)
+    # Turn 2 end 已将灼烧层数减半 4→2
     assert s_b.get_stacks('中毒') == 2, f'Poison should stay 2, got {s_b.get_stacks("中毒")}'
     assert s_b.get_stacks('灼烧') == 2, \
-        f'Burn should have halved to 2 after Turn1 end, got {s_b.get_stacks("灼烧")}'
+        f'Burn should have halved to 2 after Turn2 end, got {s_b.get_stacks("灼烧")}'
 
     hp_before = s_b.current_hp
 
-    # Turn 2: 双方聚能 (让回合正常推进), 回合末结算触发第二次 tick
+    # Turn 3: 双方聚能 (让回合正常推进), 回合末结算触发第二次 tick
     events = _run(battle, [('gather', None)], [('gather', None)])[0]
     s_b = battle.player_b.active
 
@@ -525,7 +531,7 @@ def test_l6_turn_end():
     assert s_b.current_hp < hp_before, \
         f'B should take tick damage: {hp_before} → {s_b.current_hp}'
 
-    # L6: 天气 tick → weather_turns 递减 (初始5, Turn1末→4, Turn2末→3)
+    # L6: 天气 tick → weather_turns 递减 (初始5, Turn2末→4, Turn3末→3)
     assert battle.globals.weather_turns < 4, \
         f'Weather turns should tick down from 4, got {battle.globals.weather_turns}'
 

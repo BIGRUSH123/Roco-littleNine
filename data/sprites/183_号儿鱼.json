@@ -1,0 +1,16 @@
+{
+  "number": "183",
+  "name": "号儿鱼",
+  "form": "",
+  "attributes": [
+    "水"
+  ],
+  "hp": 109,
+  "atk": 27,
+  "sp_atk": 76,
+  "def": 76,
+  "sp_def": 88,
+  "speed": 84,
+  "ability": "泛音列",
+  "pre_species": ""
+}

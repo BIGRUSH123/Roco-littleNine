@@ -1,0 +1,16 @@
+{
+  "number": "285",
+  "name": "圣剑侍从",
+  "form": "",
+  "attributes": [
+    "机械"
+  ],
+  "hp": 139,
+  "atk": 116,
+  "sp_atk": 111,
+  "def": 139,
+  "sp_def": 139,
+  "speed": 52,
+  "ability": "正位宝剑",
+  "pre_species": ""
+}

@@ -1,0 +1,16 @@
+{
+  "number": "16",
+  "name": "铃兰羊",
+  "form": "",
+  "attributes": [
+    "幽"
+  ],
+  "hp": 89,
+  "atk": 89,
+  "sp_atk": 39,
+  "def": 96,
+  "sp_def": 65,
+  "speed": 88,
+  "ability": "碰瓷",
+  "pre_species": "15"
+}

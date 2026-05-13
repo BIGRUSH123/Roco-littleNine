@@ -1,0 +1,16 @@
+{
+  "number": "24",
+  "name": "石肤蜥",
+  "form": "球球尾巴的样子",
+  "attributes": [
+    "地"
+  ],
+  "hp": 68,
+  "atk": 54,
+  "sp_atk": 53,
+  "def": 64,
+  "sp_def": 44,
+  "speed": 60,
+  "ability": "刺肤",
+  "pre_species": ""
+}

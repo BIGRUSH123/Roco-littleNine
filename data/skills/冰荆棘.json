@@ -20,11 +20,10 @@
       },
       "then": [
         {
-          "kind": "abnormal",
+          "kind": "special",
+          "name": "double_abnormal",
           "target": "opp",
-          "name": "冻结",
-          "scope": "persistent",
-          "stacks": 1
+          "abnormal_name": "冻结"
         }
       ]
     }

@@ -1,0 +1,16 @@
+{
+  "number": "235",
+  "name": "香草甜甜",
+  "form": "",
+  "attributes": [
+    "冰"
+  ],
+  "hp": 96,
+  "atk": 90,
+  "sp_atk": 95,
+  "def": 56,
+  "sp_def": 74,
+  "speed": 80,
+  "ability": "加个雪球",
+  "pre_species": "234"
+}

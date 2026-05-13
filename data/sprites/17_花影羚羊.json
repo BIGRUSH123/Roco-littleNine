@@ -1,0 +1,17 @@
+{
+  "number": "17",
+  "name": "花影羚羊",
+  "form": "",
+  "attributes": [
+    "幽",
+    "恶"
+  ],
+  "hp": 112,
+  "atk": 111,
+  "sp_atk": 48,
+  "def": 120,
+  "sp_def": 81,
+  "speed": 110,
+  "ability": "碰瓷",
+  "pre_species": "16"
+}

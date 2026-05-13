@@ -1,0 +1,17 @@
+{
+  "number": "35",
+  "name": "幻影荆棘",
+  "form": "",
+  "attributes": [
+    "幽",
+    "草"
+  ],
+  "hp": 125,
+  "atk": 96,
+  "sp_atk": 96,
+  "def": 72,
+  "sp_def": 134,
+  "speed": 80,
+  "ability": "大捞一笔",
+  "pre_species": ""
+}

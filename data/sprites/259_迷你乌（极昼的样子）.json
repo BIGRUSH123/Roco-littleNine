@@ -1,0 +1,17 @@
+{
+  "number": "259",
+  "name": "迷你乌",
+  "form": "极昼的样子",
+  "attributes": [
+    "恶",
+    "火"
+  ],
+  "hp": 107,
+  "atk": 126,
+  "sp_atk": 66,
+  "def": 93,
+  "sp_def": 56,
+  "speed": 44,
+  "ability": "恶魔的晚宴",
+  "pre_species": "258"
+}

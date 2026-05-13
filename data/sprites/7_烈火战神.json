@@ -1,0 +1,16 @@
+{
+  "number": "7",
+  "name": "烈火战神",
+  "form": "",
+  "attributes": [
+    "火"
+  ],
+  "hp": 117,
+  "atk": 175,
+  "sp_atk": 84,
+  "def": 94,
+  "sp_def": 72,
+  "speed": 130,
+  "ability": "爆燃",
+  "pre_species": "6"
+}

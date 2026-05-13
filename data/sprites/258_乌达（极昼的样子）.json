@@ -1,0 +1,17 @@
+{
+  "number": "258",
+  "name": "乌达",
+  "form": "极昼的样子",
+  "attributes": [
+    "恶",
+    "火"
+  ],
+  "hp": 80,
+  "atk": 95,
+  "sp_atk": 49,
+  "def": 70,
+  "sp_def": 42,
+  "speed": 33,
+  "ability": "恶魔的晚宴",
+  "pre_species": ""
+}

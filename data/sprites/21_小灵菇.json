@@ -1,0 +1,16 @@
+{
+  "number": "21",
+  "name": "小灵菇",
+  "form": "",
+  "attributes": [
+    "幽"
+  ],
+  "hp": 67,
+  "atk": 59,
+  "sp_atk": 59,
+  "def": 62,
+  "sp_def": 82,
+  "speed": 45,
+  "ability": "毒蘑菇",
+  "pre_species": ""
+}

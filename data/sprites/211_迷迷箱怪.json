@@ -1,0 +1,17 @@
+{
+  "number": "211",
+  "name": "迷迷箱怪",
+  "form": "",
+  "attributes": [
+    "机械",
+    "幻"
+  ],
+  "hp": 138,
+  "atk": 129,
+  "sp_atk": 129,
+  "def": 153,
+  "sp_def": 153,
+  "speed": 80,
+  "ability": "虚假宝箱",
+  "pre_species": "210"
+}

@@ -1,0 +1,16 @@
+{
+  "number": "179",
+  "name": "草头鸭",
+  "form": "",
+  "attributes": [
+    "草"
+  ],
+  "hp": 92,
+  "atk": 79,
+  "sp_atk": 24,
+  "def": 66,
+  "sp_def": 50,
+  "speed": 92,
+  "ability": "得寸进尺",
+  "pre_species": ""
+}

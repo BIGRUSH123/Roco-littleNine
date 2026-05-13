@@ -1,0 +1,17 @@
+{
+  "number": "221",
+  "name": "多西",
+  "form": "",
+  "attributes": [
+    "机械",
+    "地"
+  ],
+  "hp": 64,
+  "atk": 73,
+  "sp_atk": 26,
+  "def": 82,
+  "sp_def": 70,
+  "speed": 30,
+  "ability": "定向精炼",
+  "pre_species": ""
+}

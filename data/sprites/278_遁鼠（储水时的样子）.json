@@ -1,0 +1,16 @@
+{
+  "number": "278",
+  "name": "遁鼠",
+  "form": "储水时的样子",
+  "attributes": [
+    "地"
+  ],
+  "hp": 79,
+  "atk": 94,
+  "sp_atk": 30,
+  "def": 82,
+  "sp_def": 77,
+  "speed": 80,
+  "ability": "警惕",
+  "pre_species": "277"
+}

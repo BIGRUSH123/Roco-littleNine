@@ -1,0 +1,17 @@
+{
+  "number": "82",
+  "name": "一窝蜂",
+  "form": "",
+  "attributes": [
+    "虫",
+    "翼"
+  ],
+  "hp": 87,
+  "atk": 32,
+  "sp_atk": 29,
+  "def": 27,
+  "sp_def": 27,
+  "speed": 26,
+  "ability": "虫群鼓舞",
+  "pre_species": ""
+}

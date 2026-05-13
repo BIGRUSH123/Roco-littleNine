@@ -1,0 +1,17 @@
+{
+  "number": "108",
+  "name": "风铃鲨",
+  "form": "",
+  "attributes": [
+    "水",
+    "翼"
+  ],
+  "hp": 54,
+  "atk": 46,
+  "sp_atk": 46,
+  "def": 63,
+  "sp_def": 63,
+  "speed": 75,
+  "ability": "水翼推进",
+  "pre_species": ""
+}

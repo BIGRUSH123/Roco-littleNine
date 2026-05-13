@@ -1,0 +1,17 @@
+{
+  "number": "271",
+  "name": "绒光优优",
+  "form": "",
+  "attributes": [
+    "地",
+    "光"
+  ],
+  "hp": 101,
+  "atk": 43,
+  "sp_atk": 111,
+  "def": 105,
+  "sp_def": 130,
+  "speed": 115,
+  "ability": "哨兵",
+  "pre_species": "270"
+}

@@ -1,0 +1,17 @@
+{
+  "number": "30",
+  "name": "恶魔叮",
+  "form": "",
+  "attributes": [
+    "恶",
+    "翼"
+  ],
+  "hp": 86,
+  "atk": 112,
+  "sp_atk": 44,
+  "def": 58,
+  "sp_def": 43,
+  "speed": 84,
+  "ability": "渴求",
+  "pre_species": ""
+}

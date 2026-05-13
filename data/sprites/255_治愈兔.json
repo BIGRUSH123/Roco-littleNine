@@ -1,0 +1,17 @@
+{
+  "number": "255",
+  "name": "治愈兔",
+  "form": "",
+  "attributes": [
+    "火",
+    "萌"
+  ],
+  "hp": 67,
+  "atk": 28,
+  "sp_atk": 73,
+  "def": 60,
+  "sp_def": 76,
+  "speed": 54,
+  "ability": "仁心",
+  "pre_species": ""
+}

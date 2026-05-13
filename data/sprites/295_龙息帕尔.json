@@ -1,0 +1,16 @@
+{
+  "number": "295",
+  "name": "龙息帕尔",
+  "form": "",
+  "attributes": [
+    "恶"
+  ],
+  "hp": 130,
+  "atk": 127,
+  "sp_atk": 57,
+  "def": 131,
+  "sp_def": 87,
+  "speed": 100,
+  "ability": "付给恶魔的赎价",
+  "pre_species": "294"
+}

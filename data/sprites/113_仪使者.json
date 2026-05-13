@@ -1,0 +1,17 @@
+{
+  "number": "113",
+  "name": "仪使者",
+  "form": "",
+  "attributes": [
+    "地",
+    "幻"
+  ],
+  "hp": 64,
+  "atk": 54,
+  "sp_atk": 57,
+  "def": 69,
+  "sp_def": 71,
+  "speed": 51,
+  "ability": "技能图标 硬化",
+  "pre_species": ""
+}

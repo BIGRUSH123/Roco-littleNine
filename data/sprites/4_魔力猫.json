@@ -1,0 +1,16 @@
+{
+  "number": "4",
+  "name": "魔力猫",
+  "form": "",
+  "attributes": [
+    "草"
+  ],
+  "hp": 106,
+  "atk": 96,
+  "sp_atk": 96,
+  "def": 94,
+  "sp_def": 99,
+  "speed": 55,
+  "ability": "氧循环",
+  "pre_species": "3"
+}

@@ -1,0 +1,16 @@
+{
+  "number": "1",
+  "name": "迪莫",
+  "form": "",
+  "attributes": [
+    "光"
+  ],
+  "hp": 120,
+  "atk": 80,
+  "sp_atk": 80,
+  "def": 105,
+  "sp_def": 105,
+  "speed": 92,
+  "ability": "最好的伙伴",
+  "pre_species": ""
+}

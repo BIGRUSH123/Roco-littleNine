@@ -1,0 +1,17 @@
+{
+  "number": "23",
+  "name": "幻影灵菇",
+  "form": "",
+  "attributes": [
+    "幽",
+    "草"
+  ],
+  "hp": 111,
+  "atk": 98,
+  "sp_atk": 98,
+  "def": 103,
+  "sp_def": 136,
+  "speed": 75,
+  "ability": "毒蘑菇",
+  "pre_species": "22"
+}

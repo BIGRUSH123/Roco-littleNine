@@ -1,0 +1,16 @@
+{
+  "number": "163",
+  "name": "小怂猫",
+  "form": "",
+  "attributes": [
+    "武"
+  ],
+  "hp": 74,
+  "atk": 106,
+  "sp_atk": 101,
+  "def": 89,
+  "sp_def": 76,
+  "speed": 76,
+  "ability": "威慑",
+  "pre_species": ""
+}

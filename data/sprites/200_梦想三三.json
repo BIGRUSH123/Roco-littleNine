@@ -1,0 +1,16 @@
+{
+  "number": "200",
+  "name": "梦想三三",
+  "form": "",
+  "attributes": [
+    "萌"
+  ],
+  "hp": 81,
+  "atk": 117,
+  "sp_atk": 107,
+  "def": 113,
+  "sp_def": 113,
+  "speed": 110,
+  "ability": "鼓气",
+  "pre_species": ""
+}

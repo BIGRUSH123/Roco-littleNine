@@ -1,0 +1,16 @@
+{
+  "number": "6",
+  "name": "焰火",
+  "form": "",
+  "attributes": [
+    "火"
+  ],
+  "hp": 93,
+  "atk": 111,
+  "sp_atk": 49,
+  "def": 75,
+  "sp_def": 58,
+  "speed": 104,
+  "ability": "助燃",
+  "pre_species": "5"
+}

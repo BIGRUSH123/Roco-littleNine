@@ -1,0 +1,16 @@
+{
+  "number": "234",
+  "name": "脆筒甜甜",
+  "form": "",
+  "attributes": [
+    "冰"
+  ],
+  "hp": 72,
+  "atk": 67,
+  "sp_atk": 72,
+  "def": 42,
+  "sp_def": 55,
+  "speed": 60,
+  "ability": "加个雪球",
+  "pre_species": ""
+}

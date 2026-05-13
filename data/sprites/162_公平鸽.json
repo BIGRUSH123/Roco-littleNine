@@ -1,0 +1,16 @@
+{
+  "number": "162",
+  "name": "公平鸽",
+  "form": "",
+  "attributes": [
+    "普通"
+  ],
+  "hp": 113,
+  "atk": 93,
+  "sp_atk": 93,
+  "def": 125,
+  "sp_def": 125,
+  "speed": 100,
+  "ability": "衡量",
+  "pre_species": ""
+}

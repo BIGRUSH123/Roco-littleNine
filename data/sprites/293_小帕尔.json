@@ -1,0 +1,16 @@
+{
+  "number": "293",
+  "name": "小帕尔",
+  "form": "",
+  "attributes": [
+    "恶"
+  ],
+  "hp": 78,
+  "atk": 76,
+  "sp_atk": 34,
+  "def": 79,
+  "sp_def": 52,
+  "speed": 60,
+  "ability": "付给恶魔的赎价",
+  "pre_species": ""
+}

@@ -1,0 +1,17 @@
+{
+  "number": "69",
+  "name": "蒲公英",
+  "form": "",
+  "attributes": [
+    "草",
+    "萌"
+  ],
+  "hp": 89,
+  "atk": 99,
+  "sp_atk": 94,
+  "def": 103,
+  "sp_def": 78,
+  "speed": 52,
+  "ability": "勇敢",
+  "pre_species": ""
+}

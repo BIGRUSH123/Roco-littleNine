@@ -1,0 +1,17 @@
+{
+  "number": "297",
+  "name": "捕尘长绒",
+  "form": "",
+  "attributes": [
+    "虫",
+    "地"
+  ],
+  "hp": 106,
+  "atk": 100,
+  "sp_atk": 34,
+  "def": 116,
+  "sp_def": 99,
+  "speed": 110,
+  "ability": "扫拖一体",
+  "pre_species": ""
+}

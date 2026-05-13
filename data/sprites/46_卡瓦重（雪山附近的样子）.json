@@ -1,0 +1,17 @@
+{
+  "number": "46",
+  "name": "卡瓦重",
+  "form": "雪山附近的样子",
+  "attributes": [
+    "草",
+    "冰"
+  ],
+  "hp": 77,
+  "atk": 68,
+  "sp_atk": 14,
+  "def": 79,
+  "sp_def": 73,
+  "speed": 135,
+  "ability": "诈死",
+  "pre_species": "45"
+}

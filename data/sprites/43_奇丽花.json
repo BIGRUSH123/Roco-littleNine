@@ -1,0 +1,16 @@
+{
+  "number": "43",
+  "name": "奇丽花",
+  "form": "",
+  "attributes": [
+    "草"
+  ],
+  "hp": 112,
+  "atk": 115,
+  "sp_atk": 115,
+  "def": 121,
+  "sp_def": 95,
+  "speed": 80,
+  "ability": "养分重吸收",
+  "pre_species": "42"
+}

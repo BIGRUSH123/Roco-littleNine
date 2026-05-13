@@ -1,0 +1,16 @@
+{
+  "number": "228",
+  "name": "波普鹿",
+  "form": "",
+  "attributes": [
+    "电"
+  ],
+  "hp": 92,
+  "atk": 99,
+  "sp_atk": 34,
+  "def": 108,
+  "sp_def": 79,
+  "speed": 120,
+  "ability": "超级电池",
+  "pre_species": "227"
+}

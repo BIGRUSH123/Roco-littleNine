@@ -1,0 +1,16 @@
+{
+  "number": "11",
+  "name": "鸭吉吉",
+  "form": "急急急鸭",
+  "attributes": [
+    "普通"
+  ],
+  "hp": 130,
+  "atk": 95,
+  "sp_atk": 35,
+  "def": 55,
+  "sp_def": 45,
+  "speed": 110,
+  "ability": "挺起胸脯",
+  "pre_species": ""
+}

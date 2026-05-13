@@ -1,0 +1,16 @@
+{
+  "number": "249",
+  "name": "可爱猿",
+  "form": "",
+  "attributes": [
+    "火"
+  ],
+  "hp": 100,
+  "atk": 97,
+  "sp_atk": 43,
+  "def": 86,
+  "sp_def": 67,
+  "speed": 36,
+  "ability": "散热",
+  "pre_species": ""
+}

@@ -1,0 +1,17 @@
+{
+  "number": "175",
+  "name": "多菇丁",
+  "form": "",
+  "attributes": [
+    "地",
+    "草"
+  ],
+  "hp": 119,
+  "atk": 81,
+  "sp_atk": 76,
+  "def": 93,
+  "sp_def": 76,
+  "speed": 56,
+  "ability": "多人宿舍",
+  "pre_species": "174"
+}

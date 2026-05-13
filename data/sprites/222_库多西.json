@@ -1,0 +1,17 @@
+{
+  "number": "222",
+  "name": "库多西",
+  "form": "",
+  "attributes": [
+    "机械",
+    "地"
+  ],
+  "hp": 85,
+  "atk": 98,
+  "sp_atk": 34,
+  "def": 109,
+  "sp_def": 93,
+  "speed": 40,
+  "ability": "定向精炼",
+  "pre_species": "221"
+}

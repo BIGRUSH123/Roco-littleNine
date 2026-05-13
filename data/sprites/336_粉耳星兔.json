@@ -1,0 +1,16 @@
+{
+  "number": "336",
+  "name": "粉耳星兔",
+  "form": "",
+  "attributes": [
+    "幻"
+  ],
+  "hp": 100,
+  "atk": 79,
+  "sp_atk": 148,
+  "def": 73,
+  "sp_def": 127,
+  "speed": 115,
+  "ability": "双向光速",
+  "pre_species": "335"
+}

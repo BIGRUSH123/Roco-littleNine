@@ -1,0 +1,17 @@
+{
+  "number": "195",
+  "name": "呆小路",
+  "form": "",
+  "attributes": [
+    "草",
+    "萌"
+  ],
+  "hp": 52,
+  "atk": 60,
+  "sp_atk": 64,
+  "def": 68,
+  "sp_def": 79,
+  "speed": 57,
+  "ability": "营养液泡",
+  "pre_species": ""
+}

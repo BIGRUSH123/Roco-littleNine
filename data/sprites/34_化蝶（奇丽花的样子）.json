@@ -1,0 +1,17 @@
+{
+  "number": "34",
+  "name": "化蝶",
+  "form": "奇丽花的样子",
+  "attributes": [
+    "虫",
+    "萌"
+  ],
+  "hp": 55,
+  "atk": 46,
+  "sp_atk": 44,
+  "def": 62,
+  "sp_def": 65,
+  "speed": 90,
+  "ability": "化茧",
+  "pre_species": "33"
+}

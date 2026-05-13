@@ -1,0 +1,17 @@
+{
+  "number": "102",
+  "name": "绿翼鸟",
+  "form": "",
+  "attributes": [
+    "萌",
+    "翼"
+  ],
+  "hp": 52,
+  "atk": 68,
+  "sp_atk": 20,
+  "def": 56,
+  "sp_def": 53,
+  "speed": 81,
+  "ability": "自由飘",
+  "pre_species": ""
+}

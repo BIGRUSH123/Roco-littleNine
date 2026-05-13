@@ -1,0 +1,17 @@
+{
+  "number": "40",
+  "name": "晶石蜗",
+  "form": "火山琉璃的样子",
+  "attributes": [
+    "光",
+    "地"
+  ],
+  "hp": 97,
+  "atk": 97,
+  "sp_atk": 101,
+  "def": 132,
+  "sp_def": 91,
+  "speed": 65,
+  "ability": "偏振",
+  "pre_species": "39"
+}

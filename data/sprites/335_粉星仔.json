@@ -1,0 +1,16 @@
+{
+  "number": "335",
+  "name": "粉星仔",
+  "form": "",
+  "attributes": [
+    "幻"
+  ],
+  "hp": 80,
+  "atk": 63,
+  "sp_atk": 119,
+  "def": 58,
+  "sp_def": 102,
+  "speed": 92,
+  "ability": "双向光速",
+  "pre_species": ""
+}

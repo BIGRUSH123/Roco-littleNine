@@ -1,0 +1,17 @@
+{
+  "number": "91",
+  "name": "黑羽夫人",
+  "form": "",
+  "attributes": [
+    "翼",
+    "恶"
+  ],
+  "hp": 132,
+  "atk": 93,
+  "sp_atk": 87,
+  "def": 130,
+  "sp_def": 90,
+  "speed": 120,
+  "ability": "贪婪",
+  "pre_species": "90"
+}

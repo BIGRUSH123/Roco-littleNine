@@ -1,0 +1,17 @@
+{
+  "number": "238",
+  "name": "月亮砣",
+  "form": "下弦的样子",
+  "attributes": [
+    "毒",
+    "萌"
+  ],
+  "hp": 125,
+  "atk": 98,
+  "sp_atk": 100,
+  "def": 81,
+  "sp_def": 100,
+  "speed": 105,
+  "ability": "耐活王",
+  "pre_species": "237"
+}

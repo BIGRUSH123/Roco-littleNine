@@ -1,0 +1,16 @@
+{
+  "number": "66",
+  "name": "电咩咩",
+  "form": "",
+  "attributes": [
+    "电"
+  ],
+  "hp": 47,
+  "atk": 49,
+  "sp_atk": 49,
+  "def": 55,
+  "sp_def": 57,
+  "speed": 75,
+  "ability": "快充",
+  "pre_species": ""
+}

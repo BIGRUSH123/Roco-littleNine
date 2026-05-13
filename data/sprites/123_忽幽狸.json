@@ -1,0 +1,17 @@
+{
+  "number": "123",
+  "name": "忽幽狸",
+  "form": "",
+  "attributes": [
+    "幽",
+    "毒"
+  ],
+  "hp": 78,
+  "atk": 87,
+  "sp_atk": 84,
+  "def": 84,
+  "sp_def": 56,
+  "speed": 104,
+  "ability": "下黑手",
+  "pre_species": ""
+}

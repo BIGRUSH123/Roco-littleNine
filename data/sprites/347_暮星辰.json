@@ -1,0 +1,17 @@
+{
+  "number": "347",
+  "name": "暮星辰",
+  "form": "",
+  "attributes": [
+    "幻",
+    "翼"
+  ],
+  "hp": 81,
+  "atk": 35,
+  "sp_atk": 106,
+  "def": 80,
+  "sp_def": 105,
+  "speed": 125,
+  "ability": "守望星",
+  "pre_species": "346"
+}

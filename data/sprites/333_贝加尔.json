@@ -1,0 +1,17 @@
+{
+  "number": "333",
+  "name": "贝加尔",
+  "form": "",
+  "attributes": [
+    "机械",
+    "火"
+  ],
+  "hp": 105,
+  "atk": 61,
+  "sp_atk": 104,
+  "def": 68,
+  "sp_def": 130,
+  "speed": 44,
+  "ability": "贪心算法",
+  "pre_species": "332"
+}

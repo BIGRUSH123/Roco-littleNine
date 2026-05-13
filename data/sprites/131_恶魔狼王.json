@@ -1,0 +1,16 @@
+{
+  "number": "131",
+  "name": "恶魔狼王",
+  "form": "",
+  "attributes": [
+    "恶"
+  ],
+  "hp": 115,
+  "atk": 121,
+  "sp_atk": 50,
+  "def": 91,
+  "sp_def": 63,
+  "speed": 120,
+  "ability": "悼亡",
+  "pre_species": ""
+}

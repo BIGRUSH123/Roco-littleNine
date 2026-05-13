@@ -1,0 +1,16 @@
+{
+  "number": "313",
+  "name": "果冻",
+  "form": "",
+  "attributes": [
+    "水"
+  ],
+  "hp": 81,
+  "atk": 26,
+  "sp_atk": 81,
+  "def": 75,
+  "sp_def": 78,
+  "speed": 96,
+  "ability": "茶多酚",
+  "pre_species": ""
+}

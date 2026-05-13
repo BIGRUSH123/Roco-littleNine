@@ -1,0 +1,17 @@
+{
+  "number": "94",
+  "name": "魔草巫灵",
+  "form": "",
+  "attributes": [
+    "草",
+    "幻"
+  ],
+  "hp": 99,
+  "atk": 43,
+  "sp_atk": 112,
+  "def": 109,
+  "sp_def": 139,
+  "speed": 90,
+  "ability": "木桶戏法",
+  "pre_species": "93"
+}

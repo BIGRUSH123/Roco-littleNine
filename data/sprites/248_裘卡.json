@@ -1,0 +1,16 @@
+{
+  "number": "248",
+  "name": "裘卡",
+  "form": "",
+  "attributes": [
+    "毒"
+  ],
+  "hp": 73,
+  "atk": 93,
+  "sp_atk": 83,
+  "def": 65,
+  "sp_def": 81,
+  "speed": 125,
+  "ability": "蚀刻",
+  "pre_species": "247"
+}

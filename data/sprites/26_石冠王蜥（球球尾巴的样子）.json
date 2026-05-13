@@ -1,0 +1,16 @@
+{
+  "number": "26",
+  "name": "石冠王蜥",
+  "form": "球球尾巴的样子",
+  "attributes": [
+    "地"
+  ],
+  "hp": 113,
+  "atk": 90,
+  "sp_atk": 89,
+  "def": 106,
+  "sp_def": 74,
+  "speed": 100,
+  "ability": "刺肤",
+  "pre_species": "25"
+}

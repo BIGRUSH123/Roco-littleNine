@@ -1,0 +1,16 @@
+{
+  "number": "247",
+  "name": "裘力",
+  "form": "",
+  "attributes": [
+    "毒"
+  ],
+  "hp": 59,
+  "atk": 74,
+  "sp_atk": 67,
+  "def": 52,
+  "sp_def": 64,
+  "speed": 100,
+  "ability": "蚀刻",
+  "pre_species": "246"
+}

@@ -1,0 +1,17 @@
+{
+  "number": "125",
+  "name": "多多",
+  "form": "",
+  "attributes": [
+    "毒",
+    "地"
+  ],
+  "hp": 47,
+  "atk": 53,
+  "sp_atk": 53,
+  "def": 82,
+  "sp_def": 66,
+  "speed": 54,
+  "ability": "毒牙",
+  "pre_species": ""
+}

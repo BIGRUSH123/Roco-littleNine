@@ -1,0 +1,17 @@
+{
+  "number": "290",
+  "name": "寂灭骨龙",
+  "form": "",
+  "attributes": [
+    "龙",
+    "幽"
+  ],
+  "hp": 92,
+  "atk": 116,
+  "sp_atk": 41,
+  "def": 87,
+  "sp_def": 65,
+  "speed": 85,
+  "ability": "不朽",
+  "pre_species": "289"
+}

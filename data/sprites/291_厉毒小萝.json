@@ -1,0 +1,17 @@
+{
+  "number": "291",
+  "name": "厉毒小萝",
+  "form": "",
+  "attributes": [
+    "毒",
+    "恶"
+  ],
+  "hp": 67,
+  "atk": 64,
+  "sp_atk": 17,
+  "def": 81,
+  "sp_def": 59,
+  "speed": 108,
+  "ability": "侵蚀",
+  "pre_species": ""
+}

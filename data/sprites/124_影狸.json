@@ -1,0 +1,17 @@
+{
+  "number": "124",
+  "name": "影狸",
+  "form": "",
+  "attributes": [
+    "幽",
+    "毒"
+  ],
+  "hp": 97,
+  "atk": 109,
+  "sp_atk": 105,
+  "def": 105,
+  "sp_def": 70,
+  "speed": 130,
+  "ability": "下黑手",
+  "pre_species": "123"
+}

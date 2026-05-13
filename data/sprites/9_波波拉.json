@@ -1,0 +1,16 @@
+{
+  "number": "9",
+  "name": "波波拉",
+  "form": "",
+  "attributes": [
+    "水"
+  ],
+  "hp": 100,
+  "atk": 46,
+  "sp_atk": 102,
+  "def": 75,
+  "sp_def": 106,
+  "speed": 68,
+  "ability": "浸润",
+  "pre_species": "8"
+}

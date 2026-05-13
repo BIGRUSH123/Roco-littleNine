@@ -1,0 +1,17 @@
+{
+  "number": "40",
+  "name": "晶石蜗",
+  "form": "烧蓝黄金的样子",
+  "attributes": [
+    "光",
+    "地"
+  ],
+  "hp": 95,
+  "atk": 97,
+  "sp_atk": 102,
+  "def": 130,
+  "sp_def": 91,
+  "speed": 70,
+  "ability": "偏振",
+  "pre_species": "39"
+}

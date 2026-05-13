@@ -1,0 +1,17 @@
+{
+  "number": "74",
+  "name": "动力猿",
+  "form": "",
+  "attributes": [
+    "普通",
+    "武"
+  ],
+  "hp": 115,
+  "atk": 125,
+  "sp_atk": 51,
+  "def": 108,
+  "sp_def": 88,
+  "speed": 60,
+  "ability": "慢热型",
+  "pre_species": "73"
+}

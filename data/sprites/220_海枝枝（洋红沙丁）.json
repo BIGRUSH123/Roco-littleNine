@@ -1,0 +1,17 @@
+{
+  "number": "220",
+  "name": "海枝枝",
+  "form": "洋红沙丁",
+  "attributes": [
+    "水",
+    "幽"
+  ],
+  "hp": 97,
+  "atk": 62,
+  "sp_atk": 136,
+  "def": 84,
+  "sp_def": 121,
+  "speed": 110,
+  "ability": "珊瑚骨",
+  "pre_species": ""
+}

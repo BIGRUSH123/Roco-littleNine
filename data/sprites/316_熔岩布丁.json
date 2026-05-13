@@ -1,0 +1,17 @@
+{
+  "number": "316",
+  "name": "熔岩布丁",
+  "form": "",
+  "attributes": [
+    "水",
+    "火"
+  ],
+  "hp": 128,
+  "atk": 87,
+  "sp_atk": 33,
+  "def": 112,
+  "sp_def": 84,
+  "speed": 120,
+  "ability": "美拉德反应",
+  "pre_species": "315"
+}

@@ -1,0 +1,17 @@
+{
+  "number": "142",
+  "name": "大耳帽兜",
+  "form": "",
+  "attributes": [
+    "冰",
+    "萌"
+  ],
+  "hp": 78,
+  "atk": 62,
+  "sp_atk": 59,
+  "def": 39,
+  "sp_def": 78,
+  "speed": 54,
+  "ability": "捉迷藏",
+  "pre_species": ""
+}

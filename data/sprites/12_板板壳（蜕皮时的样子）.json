@@ -1,0 +1,16 @@
+{
+  "number": "12",
+  "name": "板板壳",
+  "form": "蜕皮时的样子",
+  "attributes": [
+    "水"
+  ],
+  "hp": 88,
+  "atk": 24,
+  "sp_atk": 72,
+  "def": 56,
+  "sp_def": 59,
+  "speed": 48,
+  "ability": "缩壳",
+  "pre_species": ""
+}

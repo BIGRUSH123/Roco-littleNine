@@ -22,8 +22,7 @@ class SimFactory:
     """从 wiki 数据创建战斗对象。运行时技能从 JSON 加载。"""
 
     def __init__(self):
-        wiki_root = BASE / 'wiki'
-        self.sprite_db = SpriteDB(wiki_root)
+        self.sprite_db = SpriteDB(BASE)
         self._skills_dir = BASE / 'data' / 'skills'
 
     # ── 精灵 ──

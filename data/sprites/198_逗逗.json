@@ -1,0 +1,16 @@
+{
+  "number": "198",
+  "name": "逗逗",
+  "form": "",
+  "attributes": [
+    "萌"
+  ],
+  "hp": 48,
+  "atk": 70,
+  "sp_atk": 64,
+  "def": 68,
+  "sp_def": 68,
+  "speed": 66,
+  "ability": "鼓气",
+  "pre_species": ""
+}

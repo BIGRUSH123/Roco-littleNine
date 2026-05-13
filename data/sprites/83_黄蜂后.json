@@ -1,0 +1,17 @@
+{
+  "number": "83",
+  "name": "黄蜂后",
+  "form": "",
+  "attributes": [
+    "虫",
+    "翼"
+  ],
+  "hp": 116,
+  "atk": 43,
+  "sp_atk": 39,
+  "def": 36,
+  "sp_def": 36,
+  "speed": 35,
+  "ability": "虫群鼓舞",
+  "pre_species": "82"
+}

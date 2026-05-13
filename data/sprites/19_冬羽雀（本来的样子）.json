@@ -1,0 +1,16 @@
+{
+  "number": "19",
+  "name": "冬羽雀",
+  "form": "本来的样子",
+  "attributes": [
+    "翼"
+  ],
+  "hp": 72,
+  "atk": 103,
+  "sp_atk": 44,
+  "def": 86,
+  "sp_def": 59,
+  "speed": 92,
+  "ability": "顺风",
+  "pre_species": "18"
+}

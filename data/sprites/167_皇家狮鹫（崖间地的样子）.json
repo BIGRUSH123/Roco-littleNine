@@ -1,0 +1,16 @@
+{
+  "number": "167",
+  "name": "皇家狮鹫",
+  "form": "崖间地的样子",
+  "attributes": [
+    "翼"
+  ],
+  "hp": 102,
+  "atk": 116,
+  "sp_atk": 64,
+  "def": 107,
+  "sp_def": 55,
+  "speed": 120,
+  "ability": "乘风连击",
+  "pre_species": "166"
+}

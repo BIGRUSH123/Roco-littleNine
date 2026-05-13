@@ -1,0 +1,16 @@
+{
+  "number": "318",
+  "name": "落星虫",
+  "form": "",
+  "attributes": [
+    "虫"
+  ],
+  "hp": 65,
+  "atk": 62,
+  "sp_atk": 62,
+  "def": 61,
+  "sp_def": 77,
+  "speed": 80,
+  "ability": "契约的形状",
+  "pre_species": "317"
+}

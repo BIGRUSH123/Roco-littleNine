@@ -1,0 +1,17 @@
+{
+  "number": "156",
+  "name": "小勇狮",
+  "form": "",
+  "attributes": [
+    "火",
+    "武"
+  ],
+  "hp": 82,
+  "atk": 31,
+  "sp_atk": 66,
+  "def": 53,
+  "sp_def": 78,
+  "speed": 48,
+  "ability": "圣火骑士",
+  "pre_species": ""
+}

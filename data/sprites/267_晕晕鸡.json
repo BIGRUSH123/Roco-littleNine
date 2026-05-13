@@ -1,0 +1,16 @@
+{
+  "number": "267",
+  "name": "晕晕鸡",
+  "form": "",
+  "attributes": [
+    "火"
+  ],
+  "hp": 86,
+  "atk": 106,
+  "sp_atk": 106,
+  "def": 74,
+  "sp_def": 70,
+  "speed": 88,
+  "ability": "指挥家",
+  "pre_species": "266"
+}

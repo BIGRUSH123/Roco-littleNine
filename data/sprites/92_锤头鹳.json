@@ -1,0 +1,17 @@
+{
+  "number": "92",
+  "name": "锤头鹳",
+  "form": "",
+  "attributes": [
+    "翼",
+    "水"
+  ],
+  "hp": 111,
+  "atk": 67,
+  "sp_atk": 65,
+  "def": 91,
+  "sp_def": 72,
+  "speed": 105,
+  "ability": "快锤",
+  "pre_species": ""
+}

@@ -1,0 +1,16 @@
+{
+  "number": "20",
+  "name": "岚鸟",
+  "form": "夏天的样子",
+  "attributes": [
+    "翼"
+  ],
+  "hp": 99,
+  "atk": 133,
+  "sp_atk": 54,
+  "def": 96,
+  "sp_def": 69,
+  "speed": 115,
+  "ability": "顺风",
+  "pre_species": "19"
+}

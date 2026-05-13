@@ -1,0 +1,16 @@
+{
+  "number": "343",
+  "name": "春兔",
+  "form": "",
+  "attributes": [
+    "草"
+  ],
+  "hp": 63,
+  "atk": 68,
+  "sp_atk": 76,
+  "def": 87,
+  "sp_def": 77,
+  "speed": 84,
+  "ability": "系统发育",
+  "pre_species": "342"
+}

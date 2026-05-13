@@ -1,0 +1,16 @@
+{
+  "number": "193",
+  "name": "奔波鼠",
+  "form": "",
+  "attributes": [
+    "地"
+  ],
+  "hp": 72,
+  "atk": 37,
+  "sp_atk": 93,
+  "def": 67,
+  "sp_def": 90,
+  "speed": 92,
+  "ability": "奔波命",
+  "pre_species": ""
+}

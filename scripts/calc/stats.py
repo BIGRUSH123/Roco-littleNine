@@ -171,7 +171,7 @@ def parse_args(argv: list[str]) -> dict:
 
 def main() -> None:
     opts = parse_args(sys.argv[1:])
-    db = SpriteDB(BASE / "wiki")
+    db = SpriteDB(BASE)
     species = db.get(opts['name'], opts['form'])
     if not species:
         forms = db.list_forms(opts['name'])

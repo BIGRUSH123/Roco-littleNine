@@ -1,0 +1,16 @@
+{
+  "number": "233",
+  "name": "高脚鹬",
+  "form": "",
+  "attributes": [
+    "翼"
+  ],
+  "hp": 94,
+  "atk": 63,
+  "sp_atk": 63,
+  "def": 112,
+  "sp_def": 87,
+  "speed": 115,
+  "ability": "起飞加速",
+  "pre_species": "232"
+}

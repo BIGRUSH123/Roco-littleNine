@@ -1,0 +1,16 @@
+{
+  "number": "27",
+  "name": "布是石",
+  "form": "",
+  "attributes": [
+    "地"
+  ],
+  "hp": 72,
+  "atk": 81,
+  "sp_atk": 29,
+  "def": 95,
+  "sp_def": 90,
+  "speed": 42,
+  "ability": "地脉",
+  "pre_species": ""
+}

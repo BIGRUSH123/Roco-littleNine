@@ -1,0 +1,17 @@
+{
+  "number": "38",
+  "name": "卷胡巨獭",
+  "form": "",
+  "attributes": [
+    "普通",
+    "水"
+  ],
+  "hp": 121,
+  "atk": 96,
+  "sp_atk": 96,
+  "def": 101,
+  "sp_def": 101,
+  "speed": 80,
+  "ability": "保守派",
+  "pre_species": "37"
+}

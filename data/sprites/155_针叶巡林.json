@@ -1,0 +1,17 @@
+{
+  "number": "155",
+  "name": "针叶巡林",
+  "form": "",
+  "attributes": [
+    "草",
+    "武"
+  ],
+  "hp": 105,
+  "atk": 139,
+  "sp_atk": 57,
+  "def": 128,
+  "sp_def": 100,
+  "speed": 105,
+  "ability": "野性感官",
+  "pre_species": "154"
+}

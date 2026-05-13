@@ -1,0 +1,17 @@
+{
+  "number": "307",
+  "name": "绒绒",
+  "form": "",
+  "attributes": [
+    "光",
+    "虫"
+  ],
+  "hp": 58,
+  "atk": 42,
+  "sp_atk": 44,
+  "def": 49,
+  "sp_def": 80,
+  "speed": 69,
+  "ability": "技能图标 脉冲光线",
+  "pre_species": ""
+}

@@ -1,0 +1,17 @@
+{
+  "number": "212",
+  "name": "古钟蛇",
+  "form": "本来的样子",
+  "attributes": [
+    "萌",
+    "毒"
+  ],
+  "hp": 85,
+  "atk": 63,
+  "sp_atk": 63,
+  "def": 64,
+  "sp_def": 91,
+  "speed": 80,
+  "ability": "拨浪鼓",
+  "pre_species": ""
+}

@@ -1,0 +1,17 @@
+{
+  "number": "37",
+  "name": "燕尾獭",
+  "form": "",
+  "attributes": [
+    "普通",
+    "水"
+  ],
+  "hp": 97,
+  "atk": 77,
+  "sp_atk": 77,
+  "def": 81,
+  "sp_def": 81,
+  "speed": 64,
+  "ability": "保守派",
+  "pre_species": "36"
+}

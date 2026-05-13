@@ -1,0 +1,17 @@
+{
+  "number": "126",
+  "name": "多啦多",
+  "form": "",
+  "attributes": [
+    "毒",
+    "地"
+  ],
+  "hp": 63,
+  "atk": 70,
+  "sp_atk": 70,
+  "def": 109,
+  "sp_def": 88,
+  "speed": 72,
+  "ability": "毒牙",
+  "pre_species": "125"
+}

@@ -1,0 +1,16 @@
+{
+  "number": "205",
+  "name": "拉特",
+  "form": "",
+  "attributes": [
+    "电"
+  ],
+  "hp": 67,
+  "atk": 80,
+  "sp_atk": 80,
+  "def": 62,
+  "sp_def": 78,
+  "speed": 100,
+  "ability": "技能图标 防御",
+  "pre_species": ""
+}

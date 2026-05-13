@@ -1,0 +1,17 @@
+{
+  "number": "103",
+  "name": "魔翼鸟",
+  "form": "",
+  "attributes": [
+    "萌",
+    "翼"
+  ],
+  "hp": 70,
+  "atk": 91,
+  "sp_atk": 27,
+  "def": 75,
+  "sp_def": 70,
+  "speed": 108,
+  "ability": "自由飘",
+  "pre_species": "102"
+}

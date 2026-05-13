@@ -1,0 +1,17 @@
+{
+  "number": "90",
+  "name": "翠顶夫人",
+  "form": "",
+  "attributes": [
+    "翼",
+    "水"
+  ],
+  "hp": 125,
+  "atk": 95,
+  "sp_atk": 86,
+  "def": 138,
+  "sp_def": 97,
+  "speed": 115,
+  "ability": "洁癖",
+  "pre_species": ""
+}

@@ -1,0 +1,17 @@
+{
+  "number": "127",
+  "name": "古啦多",
+  "form": "",
+  "attributes": [
+    "毒",
+    "地"
+  ],
+  "hp": 79,
+  "atk": 88,
+  "sp_atk": 88,
+  "def": 136,
+  "sp_def": 110,
+  "speed": 90,
+  "ability": "毒牙",
+  "pre_species": "126"
+}

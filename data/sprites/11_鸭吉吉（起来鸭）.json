@@ -1,0 +1,16 @@
+{
+  "number": "11",
+  "name": "鸭吉吉",
+  "form": "起来鸭",
+  "attributes": [
+    "普通"
+  ],
+  "hp": 107,
+  "atk": 53,
+  "sp_atk": 125,
+  "def": 80,
+  "sp_def": 113,
+  "speed": 100,
+  "ability": "挺起胸脯",
+  "pre_species": ""
+}

@@ -1,0 +1,17 @@
+{
+  "number": "298",
+  "name": "食尘短绒",
+  "form": "",
+  "attributes": [
+    "虫",
+    "地"
+  ],
+  "hp": 109,
+  "atk": 105,
+  "sp_atk": 37,
+  "def": 113,
+  "sp_def": 97,
+  "speed": 115,
+  "ability": "特殊清洁场景",
+  "pre_species": "297"
+}

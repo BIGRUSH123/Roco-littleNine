@@ -1,0 +1,16 @@
+{
+  "number": "10",
+  "name": "水灵",
+  "form": "",
+  "attributes": [
+    "水"
+  ],
+  "hp": 125,
+  "atk": 58,
+  "sp_atk": 127,
+  "def": 94,
+  "sp_def": 132,
+  "speed": 85,
+  "ability": "浸润",
+  "pre_species": "9"
+}

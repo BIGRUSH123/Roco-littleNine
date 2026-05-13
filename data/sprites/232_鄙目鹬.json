@@ -1,0 +1,16 @@
+{
+  "number": "232",
+  "name": "鄙目鹬",
+  "form": "",
+  "attributes": [
+    "翼"
+  ],
+  "hp": 75,
+  "atk": 51,
+  "sp_atk": 51,
+  "def": 90,
+  "sp_def": 70,
+  "speed": 92,
+  "ability": "起飞加速",
+  "pre_species": "231"
+}

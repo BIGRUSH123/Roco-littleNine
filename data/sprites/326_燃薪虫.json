@@ -1,0 +1,17 @@
+{
+  "number": "326",
+  "name": "燃薪虫",
+  "form": "",
+  "attributes": [
+    "火",
+    "草"
+  ],
+  "hp": 135,
+  "atk": 120,
+  "sp_atk": 48,
+  "def": 103,
+  "sp_def": 73,
+  "speed": 100,
+  "ability": "煤渣草",
+  "pre_species": "325"
+}

@@ -1,0 +1,16 @@
+{
+  "number": "166",
+  "name": "神圣狮鹫",
+  "form": "崖间地的样子",
+  "attributes": [
+    "翼"
+  ],
+  "hp": 82,
+  "atk": 92,
+  "sp_atk": 51,
+  "def": 86,
+  "sp_def": 44,
+  "speed": 96,
+  "ability": "乘风连击",
+  "pre_species": "165"
+}

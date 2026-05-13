@@ -1,0 +1,16 @@
+{
+  "number": "303",
+  "name": "书魔虫",
+  "form": "",
+  "attributes": [
+    "普通"
+  ],
+  "hp": 67,
+  "atk": 75,
+  "sp_atk": 75,
+  "def": 48,
+  "sp_def": 73,
+  "speed": 57,
+  "ability": "图书守卫者",
+  "pre_species": ""
+}

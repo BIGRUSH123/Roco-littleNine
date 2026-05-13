@@ -1,0 +1,16 @@
+{
+  "number": "164",
+  "name": "怒目怂猫",
+  "form": "山间竹林的样子",
+  "attributes": [
+    "武"
+  ],
+  "hp": 0,
+  "atk": 0,
+  "sp_atk": 0,
+  "def": 0,
+  "sp_def": 0,
+  "speed": 0,
+  "ability": "威慑",
+  "pre_species": "163"
+}

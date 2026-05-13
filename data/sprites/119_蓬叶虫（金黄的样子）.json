@@ -1,0 +1,17 @@
+{
+  "number": "119",
+  "name": "蓬叶虫",
+  "form": "金黄的样子",
+  "attributes": [
+    "普通",
+    "虫"
+  ],
+  "hp": 74,
+  "atk": 19,
+  "sp_atk": 87,
+  "def": 84,
+  "sp_def": 73,
+  "speed": 96,
+  "ability": "共鸣",
+  "pre_species": "118"
+}

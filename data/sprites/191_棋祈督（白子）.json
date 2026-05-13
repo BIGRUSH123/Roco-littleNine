@@ -1,0 +1,17 @@
+{
+  "number": "191",
+  "name": "棋祈督",
+  "form": "白子",
+  "attributes": [
+    "武",
+    "地"
+  ],
+  "hp": 126,
+  "atk": 87,
+  "sp_atk": 87,
+  "def": 90,
+  "sp_def": 72,
+  "speed": 85,
+  "ability": "好象坏象",
+  "pre_species": ""
+}

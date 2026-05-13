@@ -1,0 +1,16 @@
+{
+  "number": "29",
+  "name": "迷嶂布莱克",
+  "form": "",
+  "attributes": [
+    "地"
+  ],
+  "hp": 125,
+  "atk": 139,
+  "sp_atk": 52,
+  "def": 164,
+  "sp_def": 154,
+  "speed": 70,
+  "ability": "地脉馈赠",
+  "pre_species": "28"
+}

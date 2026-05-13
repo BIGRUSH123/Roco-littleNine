@@ -1,0 +1,16 @@
+{
+  "number": "67",
+  "name": "粉咩咩",
+  "form": "",
+  "attributes": [
+    "电"
+  ],
+  "hp": 62,
+  "atk": 66,
+  "sp_atk": 66,
+  "def": 73,
+  "sp_def": 76,
+  "speed": 100,
+  "ability": "快充",
+  "pre_species": "66"
+}

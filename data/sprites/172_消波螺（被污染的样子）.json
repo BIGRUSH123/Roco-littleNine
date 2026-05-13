@@ -1,0 +1,17 @@
+{
+  "number": "172",
+  "name": "消波螺",
+  "form": "被污染的样子",
+  "attributes": [
+    "地",
+    "水"
+  ],
+  "hp": 85,
+  "atk": 76,
+  "sp_atk": 76,
+  "def": 85,
+  "sp_def": 115,
+  "speed": 56,
+  "ability": "消波块",
+  "pre_species": "171"
+}

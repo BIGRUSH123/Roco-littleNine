@@ -1,0 +1,17 @@
+{
+  "number": "78",
+  "name": "千棘盔",
+  "form": "磨损的样子",
+  "attributes": [
+    "水",
+    "毒"
+  ],
+  "hp": 117,
+  "atk": 41,
+  "sp_atk": 100,
+  "def": 74,
+  "sp_def": 107,
+  "speed": 105,
+  "ability": "溶解扩散",
+  "pre_species": "77"
+}

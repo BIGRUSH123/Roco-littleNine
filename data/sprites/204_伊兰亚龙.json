@@ -1,0 +1,16 @@
+{
+  "number": "204",
+  "name": "伊兰亚龙",
+  "form": "",
+  "attributes": [
+    "龙"
+  ],
+  "hp": 112,
+  "atk": 91,
+  "sp_atk": 190,
+  "def": 69,
+  "sp_def": 99,
+  "speed": 90,
+  "ability": "嫉妒",
+  "pre_species": "203"
+}

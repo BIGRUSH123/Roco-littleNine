@@ -264,12 +264,29 @@ def serialize_battle_state(battle: Battle, session_id: str) -> dict:
     pa = battle.player_a
     pb = battle.player_b
     
-    def serialize_sprite(s):
+    def serialize_sprite(s, team='A'):
         charging = getattr(s, '_charging', False)
         charged_idx = getattr(s, '_charged_skill_index', -1)
         charged_name = ''
         if charging and 0 <= charged_idx < len(s.skills):
             charged_name = s.skills[charged_idx].name
+        ecost_mod = s.energy_cost_mod
+        mark_e_mod = battle.globals.mark_energy_mod(team)
+        skills_data = []
+        for sk in s.skills:
+            base_p = sk.base.power
+            base_e = sk.base.energy_cost
+            perm_p = base_p + sk.power_mod  # 永久威力成长
+            eff_p = perm_p + battle.globals.mark_power_bonus(team, sk.base)
+            eff_e = max(0, base_e + ecost_mod + sk.energy_cost_mod - mark_e_mod)
+            skills_data.append({
+                'name': sk.name,
+                'base_power': base_p,
+                'effective_power': eff_p,
+                'base_energy_cost': base_e,
+                'effective_energy_cost': eff_e,
+                'cooldown': sk.cooldown,
+            })
         return {
             "name": s.name,
             "element": s.species.attributes,
@@ -281,15 +298,15 @@ def serialize_battle_state(battle: Battle, session_id: str) -> dict:
             "trait": s.species.ability or '',
             "energy_cost_mod": s.energy_cost_mod,
             "effects": [{"name": e.name, "category": e.category, "stacks": e.stacks, "steps": e.steps} for e in s.effects],
-            "skills": [skill.name for skill in s.skills]
+            "skills": skills_data
         }
-        
-    def serialize_player(p):
+
+    def serialize_player(p, team='A'):
         return {
             "name": p.name,
             "active_index": p.active_index,
             "lives": p.lives,
-            "team": [serialize_sprite(s) for s in p.team]
+            "team": [serialize_sprite(s, team) for s in p.team]
         }
         
     marks_a_pos, marks_a_neg = battle.globals.get_marks("A")
@@ -302,8 +319,8 @@ def serialize_battle_state(battle: Battle, session_id: str) -> dict:
         "winner": battle.winner,
         "weather": battle.globals.weather,
         "weather_turns": battle.globals.weather_turns,
-        "player_a": serialize_player(pa),
-        "player_b": serialize_player(pb),
+        "player_a": serialize_player(pa, 'A'),
+        "player_b": serialize_player(pb, 'B'),
         "marks_a": [{"name": m.name, "stacks": m.stacks, "type": "positive"} for m in marks_a_pos] + [{"name": m.name, "stacks": m.stacks, "type": "negative"} for m in marks_a_neg],
         "marks_b": [{"name": m.name, "stacks": m.stacks, "type": "positive"} for m in marks_b_pos] + [{"name": m.name, "stacks": m.stacks, "type": "negative"} for m in marks_b_neg],
         "mark_energy_mod_a": battle.globals.mark_energy_mod("A"),

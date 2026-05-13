@@ -1,0 +1,16 @@
+{
+  "number": "141",
+  "name": "雪灵",
+  "form": "",
+  "attributes": [
+    "冰"
+  ],
+  "hp": 94,
+  "atk": 112,
+  "sp_atk": 112,
+  "def": 105,
+  "sp_def": 105,
+  "speed": 115,
+  "ability": "冰封",
+  "pre_species": "140"
+}

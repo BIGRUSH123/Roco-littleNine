@@ -1,0 +1,16 @@
+{
+  "number": "328",
+  "name": "夜宿颅",
+  "form": "",
+  "attributes": [
+    "幽"
+  ],
+  "hp": 94,
+  "atk": 9,
+  "sp_atk": 49,
+  "def": 72,
+  "sp_def": 85,
+  "speed": 64,
+  "ability": "搜刮",
+  "pre_species": "327"
+}

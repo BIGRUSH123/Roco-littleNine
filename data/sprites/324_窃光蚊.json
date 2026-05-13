@@ -1,0 +1,17 @@
+{
+  "number": "324",
+  "name": "窃光蚊",
+  "form": "",
+  "attributes": [
+    "恶",
+    "光"
+  ],
+  "hp": 93,
+  "atk": 104,
+  "sp_atk": 104,
+  "def": 63,
+  "sp_def": 113,
+  "speed": 115,
+  "ability": "血型吸引",
+  "pre_species": "323"
+}

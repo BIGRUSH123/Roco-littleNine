@@ -12,6 +12,18 @@
       "kind": "special",
       "name": "damage_reduction",
       "value": 0.9
+    },
+    {
+      "kind": "conditional",
+      "when": {
+        "kind": "counter_succeeded"
+      },
+      "then": [
+        {
+          "kind": "special",
+          "name": "defense_cooldown_reduce"
+        }
+      ]
     }
   ]
 }

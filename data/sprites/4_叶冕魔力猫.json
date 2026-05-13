@@ -1,0 +1,16 @@
+{
+  "number": "4",
+  "name": "叶冕魔力猫",
+  "form": "",
+  "attributes": [
+    "草"
+  ],
+  "hp": 108,
+  "atk": 127,
+  "sp_atk": 127,
+  "def": 81,
+  "sp_def": 151,
+  "speed": 55,
+  "ability": "深层氧循环",
+  "pre_species": "3"
+}

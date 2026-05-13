@@ -1,0 +1,16 @@
+{
+  "number": "312",
+  "name": "疾光千兽",
+  "form": "",
+  "attributes": [
+    "光"
+  ],
+  "hp": 104,
+  "atk": 146,
+  "sp_atk": 67,
+  "def": 112,
+  "sp_def": 73,
+  "speed": 110,
+  "ability": "技能图标 力量增效",
+  "pre_species": "311"
+}

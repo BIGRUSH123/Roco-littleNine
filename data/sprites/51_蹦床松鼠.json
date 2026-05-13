@@ -1,0 +1,16 @@
+{
+  "number": "51",
+  "name": "蹦床松鼠",
+  "form": "",
+  "attributes": [
+    "普通"
+  ],
+  "hp": 114,
+  "atk": 84,
+  "sp_atk": 79,
+  "def": 111,
+  "sp_def": 87,
+  "speed": 80,
+  "ability": "囤积",
+  "pre_species": "50"
+}

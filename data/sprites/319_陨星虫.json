@@ -1,0 +1,16 @@
+{
+  "number": "319",
+  "name": "陨星虫",
+  "form": "",
+  "attributes": [
+    "虫"
+  ],
+  "hp": 81,
+  "atk": 78,
+  "sp_atk": 78,
+  "def": 76,
+  "sp_def": 96,
+  "speed": 100,
+  "ability": "契约的形状",
+  "pre_species": "318"
+}

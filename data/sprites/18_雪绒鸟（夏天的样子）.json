@@ -1,0 +1,16 @@
+{
+  "number": "18",
+  "name": "雪绒鸟",
+  "form": "夏天的样子",
+  "attributes": [
+    "翼"
+  ],
+  "hp": 59,
+  "atk": 80,
+  "sp_atk": 32,
+  "def": 58,
+  "sp_def": 41,
+  "speed": 69,
+  "ability": "顺风",
+  "pre_species": ""
+}

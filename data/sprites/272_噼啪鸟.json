@@ -1,0 +1,17 @@
+{
+  "number": "272",
+  "name": "噼啪鸟",
+  "form": "",
+  "attributes": [
+    "电",
+    "翼"
+  ],
+  "hp": 78,
+  "atk": 116,
+  "sp_atk": 109,
+  "def": 85,
+  "sp_def": 85,
+  "speed": 145,
+  "ability": "连续负荷",
+  "pre_species": ""
+}

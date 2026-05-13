@@ -1,0 +1,17 @@
+{
+  "number": "240",
+  "name": "快鳍鱼",
+  "form": "",
+  "attributes": [
+    "水",
+    "龙"
+  ],
+  "hp": 60,
+  "atk": 93,
+  "sp_atk": 99,
+  "def": 89,
+  "sp_def": 93,
+  "speed": 100,
+  "ability": "洄游",
+  "pre_species": "239"
+}

@@ -1,0 +1,17 @@
+{
+  "number": "225",
+  "name": "翼龙",
+  "form": "",
+  "attributes": [
+    "龙",
+    "翼"
+  ],
+  "hp": 83,
+  "atk": 114,
+  "sp_atk": 31,
+  "def": 91,
+  "sp_def": 79,
+  "speed": 115,
+  "ability": "暴食",
+  "pre_species": "224"
+}

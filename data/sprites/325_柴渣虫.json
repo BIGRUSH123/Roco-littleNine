@@ -1,0 +1,17 @@
+{
+  "number": "325",
+  "name": "柴渣虫",
+  "form": "",
+  "attributes": [
+    "火",
+    "草"
+  ],
+  "hp": 108,
+  "atk": 96,
+  "sp_atk": 38,
+  "def": 82,
+  "sp_def": 58,
+  "speed": 80,
+  "ability": "煤渣草",
+  "pre_species": ""
+}

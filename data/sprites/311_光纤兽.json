@@ -1,0 +1,16 @@
+{
+  "number": "311",
+  "name": "光纤兽",
+  "form": "",
+  "attributes": [
+    "光"
+  ],
+  "hp": 83,
+  "atk": 117,
+  "sp_atk": 54,
+  "def": 90,
+  "sp_def": 58,
+  "speed": 88,
+  "ability": "技能图标 力量增效",
+  "pre_species": ""
+}

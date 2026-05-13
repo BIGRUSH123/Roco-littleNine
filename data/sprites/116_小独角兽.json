@@ -1,0 +1,16 @@
+{
+  "number": "116",
+  "name": "小独角兽",
+  "form": "",
+  "attributes": [
+    "光"
+  ],
+  "hp": 79,
+  "atk": 48,
+  "sp_atk": 129,
+  "def": 62,
+  "sp_def": 74,
+  "speed": 84,
+  "ability": "目空",
+  "pre_species": ""
+}

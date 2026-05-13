@@ -1,0 +1,17 @@
+{
+  "number": "78",
+  "name": "千棘海针",
+  "form": "",
+  "attributes": [
+    "水",
+    "毒"
+  ],
+  "hp": 118,
+  "atk": 32,
+  "sp_atk": 85,
+  "def": 94,
+  "sp_def": 133,
+  "speed": 100,
+  "ability": "技能图标 防御",
+  "pre_species": "77"
+}

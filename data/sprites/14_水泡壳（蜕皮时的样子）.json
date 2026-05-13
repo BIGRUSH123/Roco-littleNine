@@ -1,0 +1,16 @@
+{
+  "number": "14",
+  "name": "水泡壳",
+  "form": "蜕皮时的样子",
+  "attributes": [
+    "水"
+  ],
+  "hp": 146,
+  "atk": 39,
+  "sp_atk": 121,
+  "def": 93,
+  "sp_def": 98,
+  "speed": 80,
+  "ability": "缩壳",
+  "pre_species": "13"
+}

@@ -1,0 +1,17 @@
+{
+  "number": "96",
+  "name": "咔咔羽毛",
+  "form": "",
+  "attributes": [
+    "翼",
+    "普通"
+  ],
+  "hp": 58,
+  "atk": 68,
+  "sp_atk": 66,
+  "def": 61,
+  "sp_def": 53,
+  "speed": 72,
+  "ability": "咔咔冲刺",
+  "pre_species": ""
+}

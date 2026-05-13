@@ -1,0 +1,17 @@
+{
+  "number": "137",
+  "name": "呼呼猪",
+  "form": "",
+  "attributes": [
+    "冰",
+    "地"
+  ],
+  "hp": 98,
+  "atk": 95,
+  "sp_atk": 33,
+  "def": 88,
+  "sp_def": 81,
+  "speed": 68,
+  "ability": "冻土",
+  "pre_species": ""
+}

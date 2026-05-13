@@ -1,0 +1,16 @@
+{
+  "number": "136",
+  "name": "雪巨人",
+  "form": "",
+  "attributes": [
+    "冰"
+  ],
+  "hp": 162,
+  "atk": 174,
+  "sp_atk": 79,
+  "def": 139,
+  "sp_def": 104,
+  "speed": 60,
+  "ability": "打雪仗",
+  "pre_species": "135"
+}

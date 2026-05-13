@@ -1,0 +1,17 @@
+{
+  "number": "188",
+  "name": "棋棋",
+  "form": "黑子",
+  "attributes": [
+    "武",
+    "地"
+  ],
+  "hp": 66,
+  "atk": 97,
+  "sp_atk": 35,
+  "def": 67,
+  "sp_def": 53,
+  "speed": 100,
+  "ability": "腾挪",
+  "pre_species": ""
+}

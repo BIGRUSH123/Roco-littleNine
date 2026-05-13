@@ -1,0 +1,17 @@
+{
+  "number": "197",
+  "name": "白发路路",
+  "form": "",
+  "attributes": [
+    "草",
+    "萌"
+  ],
+  "hp": 86,
+  "atk": 100,
+  "sp_atk": 107,
+  "def": 113,
+  "sp_def": 132,
+  "speed": 95,
+  "ability": "营养液泡",
+  "pre_species": "196"
+}

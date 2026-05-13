@@ -1,0 +1,16 @@
+{
+  "number": "184",
+  "name": "圆号鱼",
+  "form": "",
+  "attributes": [
+    "水"
+  ],
+  "hp": 136,
+  "atk": 34,
+  "sp_atk": 95,
+  "def": 95,
+  "sp_def": 110,
+  "speed": 105,
+  "ability": "泛音列",
+  "pre_species": "183"
+}

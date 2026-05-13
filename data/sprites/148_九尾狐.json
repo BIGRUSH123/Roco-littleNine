@@ -1,0 +1,17 @@
+{
+  "number": "148",
+  "name": "九尾狐",
+  "form": "",
+  "attributes": [
+    "火",
+    "冰"
+  ],
+  "hp": 92,
+  "atk": 70,
+  "sp_atk": 70,
+  "def": 67,
+  "sp_def": 86,
+  "speed": 80,
+  "ability": "灵魂灼伤",
+  "pre_species": "147"
+}

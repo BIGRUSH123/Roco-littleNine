@@ -1,0 +1,17 @@
+{
+  "number": "133",
+  "name": "电企鹅",
+  "form": "",
+  "attributes": [
+    "冰",
+    "电"
+  ],
+  "hp": 94,
+  "atk": 56,
+  "sp_atk": 126,
+  "def": 73,
+  "sp_def": 109,
+  "speed": 125,
+  "ability": "超负荷",
+  "pre_species": "132"
+}

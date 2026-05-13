@@ -159,7 +159,7 @@ def main() -> None:
 
     # 初始化数据库
     wiki_root = BASE / 'wiki'
-    sprite_db = SpriteDB(wiki_root)
+    sprite_db = SpriteDB(BASE)
     skill_db = SkillDB(wiki_root)
 
     # 查找精灵

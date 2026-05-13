@@ -1,0 +1,16 @@
+{
+  "number": "263",
+  "name": "机械方方",
+  "form": "",
+  "attributes": [
+    "机械"
+  ],
+  "hp": 62,
+  "atk": 81,
+  "sp_atk": 32,
+  "def": 76,
+  "sp_def": 60,
+  "speed": 51,
+  "ability": "盲拧",
+  "pre_species": ""
+}

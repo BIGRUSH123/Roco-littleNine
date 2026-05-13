@@ -1,0 +1,17 @@
+{
+  "number": "115",
+  "name": "仪式巨像",
+  "form": "",
+  "attributes": [
+    "地",
+    "幻"
+  ],
+  "hp": 106,
+  "atk": 90,
+  "sp_atk": 95,
+  "def": 115,
+  "sp_def": 119,
+  "speed": 85,
+  "ability": "技能图标 硬化",
+  "pre_species": "114"
+}

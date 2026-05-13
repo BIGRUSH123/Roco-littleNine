@@ -1,0 +1,17 @@
+{
+  "number": "281",
+  "name": "混乱鱿彩",
+  "form": "",
+  "attributes": [
+    "幽",
+    "恶"
+  ],
+  "hp": 129,
+  "atk": 105,
+  "sp_atk": 42,
+  "def": 131,
+  "sp_def": 99,
+  "speed": 70,
+  "ability": "涂鸦",
+  "pre_species": "280"
+}

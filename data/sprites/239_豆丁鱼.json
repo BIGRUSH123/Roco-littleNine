@@ -1,0 +1,17 @@
+{
+  "number": "239",
+  "name": "豆丁鱼",
+  "form": "",
+  "attributes": [
+    "水",
+    "龙"
+  ],
+  "hp": 45,
+  "atk": 70,
+  "sp_atk": 74,
+  "def": 67,
+  "sp_def": 70,
+  "speed": 75,
+  "ability": "洄游",
+  "pre_species": ""
+}

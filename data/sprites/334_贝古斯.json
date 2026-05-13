@@ -1,0 +1,17 @@
+{
+  "number": "334",
+  "name": "贝古斯",
+  "form": "",
+  "attributes": [
+    "机械",
+    "火"
+  ],
+  "hp": 132,
+  "atk": 76,
+  "sp_atk": 130,
+  "def": 85,
+  "sp_def": 163,
+  "speed": 55,
+  "ability": "贪心算法",
+  "pre_species": "333"
+}

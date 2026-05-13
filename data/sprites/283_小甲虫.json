@@ -1,0 +1,16 @@
+{
+  "number": "283",
+  "name": "小甲虫",
+  "form": "",
+  "attributes": [
+    "虫"
+  ],
+  "hp": 98,
+  "atk": 71,
+  "sp_atk": 31,
+  "def": 97,
+  "sp_def": 61,
+  "speed": 60,
+  "ability": "坚韧铠甲",
+  "pre_species": ""
+}

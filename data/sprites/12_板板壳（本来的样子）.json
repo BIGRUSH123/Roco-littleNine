@@ -1,0 +1,16 @@
+{
+  "number": "12",
+  "name": "板板壳",
+  "form": "本来的样子",
+  "attributes": [
+    "水"
+  ],
+  "hp": 67,
+  "atk": 28,
+  "sp_atk": 72,
+  "def": 64,
+  "sp_def": 81,
+  "speed": 45,
+  "ability": "缩壳",
+  "pre_species": ""
+}

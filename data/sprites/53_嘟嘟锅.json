@@ -1,0 +1,16 @@
+{
+  "number": "53",
+  "name": "嘟嘟锅",
+  "form": "",
+  "attributes": [
+    "毒"
+  ],
+  "hp": 137,
+  "atk": 36,
+  "sp_atk": 102,
+  "def": 89,
+  "sp_def": 104,
+  "speed": 105,
+  "ability": "复方汤剂",
+  "pre_species": "52"
+}

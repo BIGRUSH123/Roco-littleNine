@@ -1,0 +1,16 @@
+{
+  "number": "95",
+  "name": "记忆石",
+  "form": "",
+  "attributes": [
+    "地"
+  ],
+  "hp": 112,
+  "atk": 108,
+  "sp_atk": 97,
+  "def": 141,
+  "sp_def": 79,
+  "speed": 70,
+  "ability": "不移",
+  "pre_species": ""
+}

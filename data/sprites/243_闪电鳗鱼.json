@@ -1,0 +1,17 @@
+{
+  "number": "243",
+  "name": "闪电鳗鱼",
+  "form": "",
+  "attributes": [
+    "电",
+    "水"
+  ],
+  "hp": 85,
+  "atk": 115,
+  "sp_atk": 115,
+  "def": 104,
+  "sp_def": 112,
+  "speed": 115,
+  "ability": "生物电",
+  "pre_species": "242"
+}

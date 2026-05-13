@@ -1,0 +1,17 @@
+{
+  "number": "223",
+  "name": "波多西",
+  "form": "",
+  "attributes": [
+    "机械",
+    "地"
+  ],
+  "hp": 106,
+  "atk": 122,
+  "sp_atk": 43,
+  "def": 136,
+  "sp_def": 116,
+  "speed": 50,
+  "ability": "定向精炼",
+  "pre_species": "222"
+}

@@ -1,0 +1,16 @@
+{
+  "number": "280",
+  "name": "墨鱿士",
+  "form": "",
+  "attributes": [
+    "幽"
+  ],
+  "hp": 103,
+  "atk": 84,
+  "sp_atk": 34,
+  "def": 105,
+  "sp_def": 79,
+  "speed": 56,
+  "ability": "涂鸦",
+  "pre_species": ""
+}

@@ -1,0 +1,16 @@
+{
+  "number": "150",
+  "name": "里奥",
+  "form": "",
+  "attributes": [
+    "翼"
+  ],
+  "hp": 79,
+  "atk": 65,
+  "sp_atk": 65,
+  "def": 77,
+  "sp_def": 50,
+  "speed": 75,
+  "ability": "飓风",
+  "pre_species": ""
+}

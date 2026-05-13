@@ -1,0 +1,17 @@
+{
+  "number": "138",
+  "name": "獠牙猪",
+  "form": "",
+  "attributes": [
+    "冰",
+    "地"
+  ],
+  "hp": 123,
+  "atk": 119,
+  "sp_atk": 41,
+  "def": 110,
+  "sp_def": 101,
+  "speed": 85,
+  "ability": "冻土",
+  "pre_species": "137"
+}

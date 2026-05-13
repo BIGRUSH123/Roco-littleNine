@@ -1,0 +1,16 @@
+{
+  "number": "105",
+  "name": "阿米亚特",
+  "form": "",
+  "attributes": [
+    "地"
+  ],
+  "hp": 64,
+  "atk": 95,
+  "sp_atk": 47,
+  "def": 67,
+  "sp_def": 42,
+  "speed": 45,
+  "ability": "石头大餐",
+  "pre_species": ""
+}

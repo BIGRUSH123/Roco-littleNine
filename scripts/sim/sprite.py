@@ -150,8 +150,11 @@ class Sprite:
         for existing in self.effects:
             if existing.category == effect.category and existing.name == effect.name:
                 existing.stacks += effect.stacks
+                self.check_freeze_death()
                 return
         self.effects.append(effect)
+        if effect.name == '冻结':
+            self.check_freeze_death()
 
     def remove_effect(self, name: str, category: str = '') -> None:
         self.effects = [
@@ -169,6 +172,22 @@ class Sprite:
             if e.name == name:
                 return e.stacks
         return 0
+
+    @property
+    def frozen_hp(self) -> int:
+        """冻结锁定的生命值：每层 5% 最大HP。"""
+        stacks = self.get_stacks('冻结')
+        return round(self.max_hp * 0.05 * stacks) if stacks > 0 else 0
+
+    def check_freeze_death(self) -> bool:
+        """冻结斩杀：当前HP ≤ 冻结生命值 → 死亡。返回是否触发了斩杀。"""
+        if self.is_fainted:
+            return False
+        fhp = self.frozen_hp
+        if fhp > 0 and self.current_hp <= fhp:
+            self.current_hp = 0
+            return True
+        return False
 
     def update_stacks(self, name: str, stacks: int) -> None:
         """直接设置异常状态层数（如灼烧衰减）。"""
@@ -241,6 +260,8 @@ class Sprite:
     def take_damage(self, amount: int) -> int:
         actual = min(self.current_hp, amount)
         self.current_hp -= actual
+        if self.current_hp > 0:
+            self.check_freeze_death()
         return actual
 
     def heal(self, amount: int) -> int:

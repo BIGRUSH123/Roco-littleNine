@@ -1,0 +1,16 @@
+{
+  "number": "275",
+  "name": "格兰花",
+  "form": "",
+  "attributes": [
+    "草"
+  ],
+  "hp": 86,
+  "atk": 42,
+  "sp_atk": 99,
+  "def": 64,
+  "sp_def": 90,
+  "speed": 48,
+  "ability": "生长",
+  "pre_species": "274"
+}

@@ -1,0 +1,17 @@
+{
+  "number": "308",
+  "name": "小绒茧",
+  "form": "",
+  "attributes": [
+    "光",
+    "虫"
+  ],
+  "hp": 77,
+  "atk": 56,
+  "sp_atk": 58,
+  "def": 65,
+  "sp_def": 106,
+  "speed": 92,
+  "ability": "技能图标 脉冲光线",
+  "pre_species": "307"
+}

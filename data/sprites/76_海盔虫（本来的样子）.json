@@ -1,0 +1,17 @@
+{
+  "number": "76",
+  "name": "海盔虫",
+  "form": "本来的样子",
+  "attributes": [
+    "水",
+    "毒"
+  ],
+  "hp": 71,
+  "atk": 25,
+  "sp_atk": 59,
+  "def": 46,
+  "sp_def": 66,
+  "speed": 60,
+  "ability": "溶解扩散",
+  "pre_species": ""
+}

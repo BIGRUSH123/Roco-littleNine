@@ -1,0 +1,16 @@
+{
+  "number": "85",
+  "name": "小夜",
+  "form": "",
+  "attributes": [
+    "恶"
+  ],
+  "hp": 60,
+  "atk": 69,
+  "sp_atk": 63,
+  "def": 62,
+  "sp_def": 51,
+  "speed": 69,
+  "ability": "嫁祸",
+  "pre_species": ""
+}

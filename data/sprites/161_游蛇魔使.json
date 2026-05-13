@@ -1,0 +1,17 @@
+{
+  "number": "161",
+  "name": "游蛇魔使",
+  "form": "",
+  "attributes": [
+    "水",
+    "武"
+  ],
+  "hp": 105,
+  "atk": 110,
+  "sp_atk": 104,
+  "def": 103,
+  "sp_def": 103,
+  "speed": 105,
+  "ability": "思维之盾",
+  "pre_species": "160"
+}

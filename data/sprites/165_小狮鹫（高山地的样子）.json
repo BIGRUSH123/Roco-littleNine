@@ -1,0 +1,16 @@
+{
+  "number": "165",
+  "name": "小狮鹫",
+  "form": "高山地的样子",
+  "attributes": [
+    "翼"
+  ],
+  "hp": 62,
+  "atk": 66,
+  "sp_atk": 32,
+  "def": 62,
+  "sp_def": 36,
+  "speed": 75,
+  "ability": "乘风连击",
+  "pre_species": ""
+}

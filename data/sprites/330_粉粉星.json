@@ -1,0 +1,17 @@
+{
+  "number": "330",
+  "name": "粉粉星",
+  "form": "",
+  "attributes": [
+    "电",
+    "幻"
+  ],
+  "hp": 93,
+  "atk": 54,
+  "sp_atk": 102,
+  "def": 57,
+  "sp_def": 101,
+  "speed": 88,
+  "ability": "星地善良",
+  "pre_species": ""
+}

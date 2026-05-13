@@ -1,0 +1,16 @@
+{
+  "number": "42",
+  "name": "奇丽叶",
+  "form": "",
+  "attributes": [
+    "草"
+  ],
+  "hp": 90,
+  "atk": 92,
+  "sp_atk": 92,
+  "def": 97,
+  "sp_def": 76,
+  "speed": 64,
+  "ability": "养分重吸收",
+  "pre_species": "41"
+}

@@ -301,12 +301,14 @@ class Battle(BattleMechanicsMixin):
         skill_a = self._get_skill('A', action_a)
         skill_b = self._get_skill('B', action_b)
 
-        # 应对判定（双向检查）
+        # 应对判定（双向检查，冷却中的技能视为未使用，不能应对）
         counter_a = False
         counter_b = False
         if skill_a and skill_b:
-            counter_a = SkillResolver.resolve_counter(skill_b, skill_a)
-            counter_b = SkillResolver.resolve_counter(skill_a, skill_b)
+            if skill_a.cooldown <= 0:
+                counter_a = SkillResolver.resolve_counter(skill_b, skill_a)
+            if skill_b.cooldown <= 0:
+                counter_b = SkillResolver.resolve_counter(skill_a, skill_b)
         countered = counter_a or counter_b
 
         # countered_skill:  被我方反击的对方技能（用于 reflect_damage / interrupt）
@@ -423,6 +425,11 @@ class Battle(BattleMechanicsMixin):
         skill = self._get_skill(team, action)
         if skill is None:
             events.append(f'[错误] {user.name} 无技能[{action.skill_index}]')
+            return events
+
+        # ═══ gate: 冷却 ═══
+        if skill.cooldown > 0:
+            events.append(f'[冷却中] {user.name} {skill.name} 还需{skill.cooldown}回合冷却')
             return events
 
         # 应对日志
@@ -722,6 +729,17 @@ class Battle(BattleMechanicsMixin):
         # 设为 2 而非 1：回合末冷却递减会立刻 -1，需要多 1 回合余量
         if skill.base.is_defense:
             skill.cooldown = 2
+            # 壁垒等：应对成功后防御技能冷却-1
+            if countered_skill is not None:
+                for e in skill.effects:
+                    if getattr(e, 'kind', '') == 'conditional':
+                        when = getattr(e, 'when', None) or {}
+                        if when.get('kind') == 'counter_succeeded':
+                            for sub in getattr(e, 'then', []):
+                                if getattr(sub, 'kind', '') == 'special' and getattr(sub, 'name', '') == SpecialName.DEFENSE_COOLDOWN_REDUCE:
+                                    if skill.cooldown > 0:
+                                        skill.cooldown -= 1
+                                        events.append(f'{user.name} {skill.name} 应对成功，冷却-1')
 
         # ═══ L5: 换宠层 [once] ═══
         special_names = {getattr(e, 'name', '') for e in skill.effects if getattr(e, 'kind', '') == 'special'}
@@ -906,6 +924,12 @@ class Battle(BattleMechanicsMixin):
                 events.append(f'{old.name} 能量0↓ {new.name}↑({swap_reason})' if swap_reason else f'{old.name}↓ {new.name}↑')
                 events += dispatch_leave(old, self, team)
                 events += dispatch_entry(new, self, team)
+
+        # 冻结斩杀检查
+        for team in ('A', 'B'):
+            sprite = self.get_player(team).active
+            if not sprite.is_fainted and sprite.check_freeze_death():
+                events.append(f'{sprite.name} 冻结斩杀(冻结{sprite.frozen_hp}HP)')
 
         # 回合结束力竭检查
         for team in ('A', 'B'):

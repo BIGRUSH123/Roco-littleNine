@@ -23,6 +23,7 @@ class SpeciesStats:
     attributes: str = ""
     bloodline: str = ""
     ability: str = ""
+    pre_species: str = ""
 
     def base_dict(self) -> dict[str, int]:
         return {

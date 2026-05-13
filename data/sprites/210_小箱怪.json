@@ -1,0 +1,17 @@
+{
+  "number": "210",
+  "name": "小箱怪",
+  "form": "",
+  "attributes": [
+    "机械",
+    "幻"
+  ],
+  "hp": 111,
+  "atk": 103,
+  "sp_atk": 103,
+  "def": 122,
+  "sp_def": 122,
+  "speed": 64,
+  "ability": "虚假宝箱",
+  "pre_species": ""
+}

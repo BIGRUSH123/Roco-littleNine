@@ -1,0 +1,17 @@
+{
+  "number": "196",
+  "name": "舞动路路",
+  "form": "",
+  "attributes": [
+    "草",
+    "萌"
+  ],
+  "hp": 69,
+  "atk": 80,
+  "sp_atk": 86,
+  "def": 91,
+  "sp_def": 105,
+  "speed": 76,
+  "ability": "营养液泡",
+  "pre_species": "195"
+}

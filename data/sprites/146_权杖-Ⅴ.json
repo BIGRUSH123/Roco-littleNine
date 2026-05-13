@@ -1,0 +1,16 @@
+{
+  "number": "146",
+  "name": "权杖-Ⅴ",
+  "form": "",
+  "attributes": [
+    "机械"
+  ],
+  "hp": 103,
+  "atk": 105,
+  "sp_atk": 97,
+  "def": 136,
+  "sp_def": 136,
+  "speed": 75,
+  "ability": "机械变式",
+  "pre_species": "145"
+}

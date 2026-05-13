@@ -1,0 +1,17 @@
+{
+  "number": "169",
+  "name": "尖角蜘蛛",
+  "form": "",
+  "attributes": [
+    "虫",
+    "毒"
+  ],
+  "hp": 74,
+  "atk": 49,
+  "sp_atk": 49,
+  "def": 73,
+  "sp_def": 73,
+  "speed": 88,
+  "ability": "毒腺",
+  "pre_species": "168"
+}

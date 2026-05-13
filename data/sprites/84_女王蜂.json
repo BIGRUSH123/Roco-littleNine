@@ -1,0 +1,17 @@
+{
+  "number": "84",
+  "name": "女王蜂",
+  "form": "",
+  "attributes": [
+    "虫",
+    "翼"
+  ],
+  "hp": 145,
+  "atk": 50,
+  "sp_atk": 45,
+  "def": 42,
+  "sp_def": 42,
+  "speed": 40,
+  "ability": "虫群鼓舞",
+  "pre_species": "83"
+}

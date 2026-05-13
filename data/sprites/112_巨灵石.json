@@ -1,0 +1,17 @@
+{
+  "number": "112",
+  "name": "巨灵石",
+  "form": "",
+  "attributes": [
+    "地",
+    "幽"
+  ],
+  "hp": 95,
+  "atk": 99,
+  "sp_atk": 99,
+  "def": 126,
+  "sp_def": 70,
+  "speed": 95,
+  "ability": "石天平",
+  "pre_species": "111"
+}

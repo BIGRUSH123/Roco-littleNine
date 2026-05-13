@@ -1,0 +1,16 @@
+{
+  "number": "122",
+  "name": "黑猫巫师",
+  "form": "",
+  "attributes": [
+    "普通"
+  ],
+  "hp": 152,
+  "atk": 91,
+  "sp_atk": 163,
+  "def": 67,
+  "sp_def": 119,
+  "speed": 70,
+  "ability": "预警",
+  "pre_species": "121"
+}

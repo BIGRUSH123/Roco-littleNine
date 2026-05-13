@@ -1,0 +1,16 @@
+{
+  "number": "164",
+  "name": "怒目怂猫",
+  "form": "",
+  "attributes": [
+    "武"
+  ],
+  "hp": 92,
+  "atk": 132,
+  "sp_atk": 126,
+  "def": 111,
+  "sp_def": 95,
+  "speed": 95,
+  "ability": "威慑",
+  "pre_species": "163"
+}

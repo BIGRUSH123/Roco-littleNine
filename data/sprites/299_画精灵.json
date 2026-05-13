@@ -1,0 +1,16 @@
+{
+  "number": "299",
+  "name": "画精灵",
+  "form": "",
+  "attributes": [
+    "普通"
+  ],
+  "hp": 61,
+  "atk": 32,
+  "sp_atk": 78,
+  "def": 56,
+  "sp_def": 72,
+  "speed": 72,
+  "ability": "灰色肖像",
+  "pre_species": ""
+}

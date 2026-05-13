@@ -1,0 +1,17 @@
+{
+  "number": "36",
+  "name": "小鼠獭",
+  "form": "",
+  "attributes": [
+    "普通",
+    "水"
+  ],
+  "hp": 73,
+  "atk": 57,
+  "sp_atk": 57,
+  "def": 60,
+  "sp_def": 60,
+  "speed": 48,
+  "ability": "保守派",
+  "pre_species": ""
+}

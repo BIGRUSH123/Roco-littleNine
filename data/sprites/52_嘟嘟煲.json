@@ -1,0 +1,16 @@
+{
+  "number": "52",
+  "name": "嘟嘟煲",
+  "form": "",
+  "attributes": [
+    "毒"
+  ],
+  "hp": 110,
+  "atk": 29,
+  "sp_atk": 82,
+  "def": 71,
+  "sp_def": 83,
+  "speed": 84,
+  "ability": "复方汤剂",
+  "pre_species": ""
+}

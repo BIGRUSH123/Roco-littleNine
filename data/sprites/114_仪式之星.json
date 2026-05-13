@@ -1,0 +1,17 @@
+{
+  "number": "114",
+  "name": "仪式之星",
+  "form": "",
+  "attributes": [
+    "地",
+    "幻"
+  ],
+  "hp": 85,
+  "atk": 72,
+  "sp_atk": 76,
+  "def": 92,
+  "sp_def": 95,
+  "speed": 68,
+  "ability": "技能图标 硬化",
+  "pre_species": "113"
+}

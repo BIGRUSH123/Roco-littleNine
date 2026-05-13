@@ -1,0 +1,17 @@
+{
+  "number": "296",
+  "name": "毛头小蛛",
+  "form": "",
+  "attributes": [
+    "虫",
+    "地"
+  ],
+  "hp": 85,
+  "atk": 80,
+  "sp_atk": 27,
+  "def": 93,
+  "sp_def": 79,
+  "speed": 88,
+  "ability": "扫拖一体",
+  "pre_species": ""
+}

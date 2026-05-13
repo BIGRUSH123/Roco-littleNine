@@ -1,0 +1,16 @@
+{
+  "number": "145",
+  "name": "权杖-Ⅱ",
+  "form": "",
+  "attributes": [
+    "机械"
+  ],
+  "hp": 82,
+  "atk": 84,
+  "sp_atk": 78,
+  "def": 109,
+  "sp_def": 109,
+  "speed": 60,
+  "ability": "机械变式",
+  "pre_species": ""
+}

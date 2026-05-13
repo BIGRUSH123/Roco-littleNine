@@ -1,0 +1,17 @@
+{
+  "number": "181",
+  "name": "海豹战士",
+  "form": "",
+  "attributes": [
+    "武",
+    "水"
+  ],
+  "hp": 72,
+  "atk": 91,
+  "sp_atk": 87,
+  "def": 89,
+  "sp_def": 62,
+  "speed": 80,
+  "ability": "身经百练",
+  "pre_species": ""
+}

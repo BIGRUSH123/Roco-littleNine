@@ -1,0 +1,17 @@
+{
+  "number": "176",
+  "name": "九幽菇",
+  "form": "",
+  "attributes": [
+    "地",
+    "草"
+  ],
+  "hp": 149,
+  "atk": 102,
+  "sp_atk": 95,
+  "def": 116,
+  "sp_def": 95,
+  "speed": 70,
+  "ability": "多人宿舍",
+  "pre_species": "175"
+}

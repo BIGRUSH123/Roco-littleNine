@@ -1,0 +1,16 @@
+{
+  "number": "20",
+  "name": "霜翼领主",
+  "form": "",
+  "attributes": [
+    "翼"
+  ],
+  "hp": 90,
+  "atk": 142,
+  "sp_atk": 63,
+  "def": 108,
+  "sp_def": 74,
+  "speed": 115,
+  "ability": "技能图标 啄击",
+  "pre_species": "19"
+}

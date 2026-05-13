@@ -1,0 +1,16 @@
+{
+  "number": "140",
+  "name": "冰封怨灵",
+  "form": "",
+  "attributes": [
+    "冰"
+  ],
+  "hp": 75,
+  "atk": 90,
+  "sp_atk": 90,
+  "def": 84,
+  "sp_def": 84,
+  "speed": 92,
+  "ability": "冰封",
+  "pre_species": ""
+}

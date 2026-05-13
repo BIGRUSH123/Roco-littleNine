@@ -1,0 +1,17 @@
+{
+  "number": "242",
+  "name": "胆小鳗鱼",
+  "form": "",
+  "attributes": [
+    "电",
+    "水"
+  ],
+  "hp": 68,
+  "atk": 92,
+  "sp_atk": 92,
+  "def": 83,
+  "sp_def": 90,
+  "speed": 92,
+  "ability": "生物电",
+  "pre_species": ""
+}

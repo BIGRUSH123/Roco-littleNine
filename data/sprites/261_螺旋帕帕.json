@@ -1,0 +1,17 @@
+{
+  "number": "261",
+  "name": "螺旋帕帕",
+  "form": "",
+  "attributes": [
+    "机械",
+    "翼"
+  ],
+  "hp": 88,
+  "atk": 55,
+  "sp_atk": 8,
+  "def": 79,
+  "sp_def": 67,
+  "speed": 80,
+  "ability": "翼轴",
+  "pre_species": ""
+}

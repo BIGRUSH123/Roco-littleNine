@@ -1,0 +1,16 @@
+{
+  "number": "151",
+  "name": "灵羽勇士",
+  "form": "",
+  "attributes": [
+    "翼"
+  ],
+  "hp": 105,
+  "atk": 87,
+  "sp_atk": 87,
+  "def": 102,
+  "sp_def": 66,
+  "speed": 100,
+  "ability": "飓风",
+  "pre_species": ""
+}

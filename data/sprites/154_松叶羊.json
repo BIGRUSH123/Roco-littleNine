@@ -1,0 +1,17 @@
+{
+  "number": "154",
+  "name": "松叶羊",
+  "form": "",
+  "attributes": [
+    "草",
+    "武"
+  ],
+  "hp": 84,
+  "atk": 111,
+  "sp_atk": 46,
+  "def": 102,
+  "sp_def": 80,
+  "speed": 84,
+  "ability": "野性感官",
+  "pre_species": "153"
+}

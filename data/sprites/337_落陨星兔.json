@@ -1,0 +1,17 @@
+{
+  "number": "337",
+  "name": "落陨星兔",
+  "form": "",
+  "attributes": [
+    "幻",
+    "幽"
+  ],
+  "hp": 93,
+  "atk": 61,
+  "sp_atk": 125,
+  "def": 87,
+  "sp_def": 141,
+  "speed": 130,
+  "ability": "陨落",
+  "pre_species": "336"
+}

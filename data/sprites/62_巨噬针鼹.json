@@ -1,0 +1,16 @@
+{
+  "number": "62",
+  "name": "巨噬针鼹",
+  "form": "",
+  "attributes": [
+    "普通"
+  ],
+  "hp": 158,
+  "atk": 93,
+  "sp_atk": 41,
+  "def": 117,
+  "sp_def": 68,
+  "speed": 85,
+  "ability": "壮胆",
+  "pre_species": "61"
+}

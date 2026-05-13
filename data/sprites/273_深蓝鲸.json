@@ -1,0 +1,16 @@
+{
+  "number": "273",
+  "name": "深蓝鲸",
+  "form": "",
+  "attributes": [
+    "水"
+  ],
+  "hp": 129,
+  "atk": 40,
+  "sp_atk": 115,
+  "def": 119,
+  "sp_def": 135,
+  "speed": 50,
+  "ability": "倾轧",
+  "pre_species": ""
+}

@@ -1,0 +1,16 @@
+{
+  "number": "252",
+  "name": "布鲁斯",
+  "form": "",
+  "attributes": [
+    "冰"
+  ],
+  "hp": 44,
+  "atk": 60,
+  "sp_atk": 16,
+  "def": 68,
+  "sp_def": 53,
+  "speed": 54,
+  "ability": "冰钻",
+  "pre_species": ""
+}

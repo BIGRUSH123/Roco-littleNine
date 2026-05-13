@@ -1,0 +1,16 @@
+{
+  "number": "277",
+  "name": "地鼠",
+  "form": "储水期的样子",
+  "attributes": [
+    "地"
+  ],
+  "hp": 59,
+  "atk": 71,
+  "sp_atk": 23,
+  "def": 61,
+  "sp_def": 57,
+  "speed": 60,
+  "ability": "警惕",
+  "pre_species": ""
+}

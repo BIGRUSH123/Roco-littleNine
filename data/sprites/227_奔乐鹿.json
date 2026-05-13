@@ -1,0 +1,16 @@
+{
+  "number": "227",
+  "name": "奔乐鹿",
+  "form": "",
+  "attributes": [
+    "电"
+  ],
+  "hp": 73,
+  "atk": 79,
+  "sp_atk": 27,
+  "def": 86,
+  "sp_def": 63,
+  "speed": 96,
+  "ability": "蓄电池",
+  "pre_species": "226"
+}

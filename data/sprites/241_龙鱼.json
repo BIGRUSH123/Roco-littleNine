@@ -1,0 +1,17 @@
+{
+  "number": "241",
+  "name": "龙鱼",
+  "form": "",
+  "attributes": [
+    "水",
+    "龙"
+  ],
+  "hp": 75,
+  "atk": 116,
+  "sp_atk": 123,
+  "def": 112,
+  "sp_def": 116,
+  "speed": 125,
+  "ability": "洄游",
+  "pre_species": "240"
+}

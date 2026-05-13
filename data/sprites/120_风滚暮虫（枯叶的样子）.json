@@ -1,0 +1,17 @@
+{
+  "number": "120",
+  "name": "风滚暮虫",
+  "form": "枯叶的样子",
+  "attributes": [
+    "普通",
+    "虫"
+  ],
+  "hp": 95,
+  "atk": 25,
+  "sp_atk": 111,
+  "def": 102,
+  "sp_def": 87,
+  "speed": 120,
+  "ability": "共鸣",
+  "pre_species": "119"
+}

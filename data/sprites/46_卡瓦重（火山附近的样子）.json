@@ -1,0 +1,17 @@
+{
+  "number": "46",
+  "name": "卡瓦重",
+  "form": "火山附近的样子",
+  "attributes": [
+    "草",
+    "火"
+  ],
+  "hp": 0,
+  "atk": 0,
+  "sp_atk": 0,
+  "def": 0,
+  "sp_def": 0,
+  "speed": 0,
+  "ability": "诈死",
+  "pre_species": "45"
+}

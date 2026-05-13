@@ -1,0 +1,17 @@
+{
+  "number": "314",
+  "name": "抹茶布丁",
+  "form": "",
+  "attributes": [
+    "水",
+    "草"
+  ],
+  "hp": 101,
+  "atk": 32,
+  "sp_atk": 101,
+  "def": 94,
+  "sp_def": 98,
+  "speed": 120,
+  "ability": "茶多酚",
+  "pre_species": ""
+}

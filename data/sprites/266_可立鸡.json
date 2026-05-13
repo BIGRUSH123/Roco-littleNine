@@ -1,0 +1,16 @@
+{
+  "number": "266",
+  "name": "可立鸡",
+  "form": "",
+  "attributes": [
+    "火"
+  ],
+  "hp": 65,
+  "atk": 79,
+  "sp_atk": 79,
+  "def": 55,
+  "sp_def": 52,
+  "speed": 66,
+  "ability": "指挥家",
+  "pre_species": ""
+}

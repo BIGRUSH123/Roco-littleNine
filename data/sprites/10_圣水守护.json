@@ -1,0 +1,16 @@
+{
+  "number": "10",
+  "name": "圣水守护",
+  "form": "",
+  "attributes": [
+    "水"
+  ],
+  "hp": 125,
+  "atk": 67,
+  "sp_atk": 141,
+  "def": 104,
+  "sp_def": 145,
+  "speed": 85,
+  "ability": "浪潮",
+  "pre_species": "9"
+}

@@ -1,0 +1,17 @@
+{
+  "number": "292",
+  "name": "厉毒修萝",
+  "form": "",
+  "attributes": [
+    "毒",
+    "恶"
+  ],
+  "hp": 84,
+  "atk": 80,
+  "sp_atk": 21,
+  "def": 101,
+  "sp_def": 74,
+  "speed": 135,
+  "ability": "侵蚀",
+  "pre_species": "291"
+}

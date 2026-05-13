@@ -1,0 +1,16 @@
+{
+  "number": "55",
+  "name": "暗影灵面",
+  "form": "闭眼的样子",
+  "attributes": [
+    "幽"
+  ],
+  "hp": 84,
+  "atk": 30,
+  "sp_atk": 96,
+  "def": 83,
+  "sp_def": 88,
+  "speed": 92,
+  "ability": "惊吓",
+  "pre_species": "54"
+}

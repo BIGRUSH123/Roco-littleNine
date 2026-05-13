@@ -1,0 +1,16 @@
+{
+  "number": "49",
+  "name": "绿耳松鼠",
+  "form": "",
+  "attributes": [
+    "普通"
+  ],
+  "hp": 69,
+  "atk": 50,
+  "sp_atk": 47,
+  "def": 67,
+  "sp_def": 52,
+  "speed": 48,
+  "ability": "囤积",
+  "pre_species": ""
+}

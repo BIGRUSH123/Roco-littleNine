@@ -1,0 +1,16 @@
+{
+  "number": "45",
+  "name": "卡卡虫",
+  "form": "草地附近的样子",
+  "attributes": [
+    "草"
+  ],
+  "hp": 59,
+  "atk": 60,
+  "sp_atk": 16,
+  "def": 65,
+  "sp_def": 53,
+  "speed": 104,
+  "ability": "诈死",
+  "pre_species": "44"
+}

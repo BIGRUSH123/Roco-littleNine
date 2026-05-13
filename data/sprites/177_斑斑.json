@@ -1,0 +1,16 @@
+{
+  "number": "177",
+  "name": "斑斑",
+  "form": "",
+  "attributes": [
+    "翼"
+  ],
+  "hp": 71,
+  "atk": 90,
+  "sp_atk": 90,
+  "def": 71,
+  "sp_def": 80,
+  "speed": 92,
+  "ability": "逐魂鸟",
+  "pre_species": ""
+}

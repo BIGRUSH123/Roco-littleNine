@@ -1,0 +1,17 @@
+{
+  "number": "33",
+  "name": "爬爬",
+  "form": "",
+  "attributes": [
+    "虫",
+    "萌"
+  ],
+  "hp": 42,
+  "atk": 37,
+  "sp_atk": 37,
+  "def": 53,
+  "sp_def": 53,
+  "speed": 80,
+  "ability": "化茧",
+  "pre_species": "32"
+}

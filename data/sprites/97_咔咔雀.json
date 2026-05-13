@@ -1,0 +1,17 @@
+{
+  "number": "97",
+  "name": "咔咔雀",
+  "form": "",
+  "attributes": [
+    "翼",
+    "普通"
+  ],
+  "hp": 78,
+  "atk": 91,
+  "sp_atk": 88,
+  "def": 81,
+  "sp_def": 71,
+  "speed": 96,
+  "ability": "咔咔冲刺",
+  "pre_species": "96"
+}

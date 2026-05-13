@@ -1,0 +1,16 @@
+{
+  "number": "152",
+  "name": "圣羽翼王",
+  "form": "",
+  "attributes": [
+    "翼"
+  ],
+  "hp": 132,
+  "atk": 109,
+  "sp_atk": 109,
+  "def": 128,
+  "sp_def": 83,
+  "speed": 125,
+  "ability": "飓风",
+  "pre_species": "151"
+}
