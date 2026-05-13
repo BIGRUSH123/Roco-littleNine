@@ -9,13 +9,6 @@
   "combo": 1,
   "effects": [
     {
-      "kind": "stat",
-      "target": "self",
-      "stat": "atk",
-      "steps": 10,
-      "scope": "battlefield"
-    },
-    {
       "kind": "conditional",
       "when": {
         "kind": "counter_succeeded"

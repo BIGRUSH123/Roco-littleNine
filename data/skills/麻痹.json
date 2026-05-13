@@ -10,23 +10,9 @@
   "effects": [
     {
       "kind": "stat",
-      "target": "self",
+      "target": "opp",
       "stat": "priority",
       "steps": -1,
-      "scope": "battlefield"
-    },
-    {
-      "kind": "stat",
-      "target": "opp",
-      "stat": "atk",
-      "steps": -7,
-      "scope": "battlefield"
-    },
-    {
-      "kind": "stat",
-      "target": "opp",
-      "stat": "sp_atk",
-      "steps": -7,
       "scope": "battlefield"
     },
     {
