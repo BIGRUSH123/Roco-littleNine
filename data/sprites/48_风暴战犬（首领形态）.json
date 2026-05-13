@@ -1,7 +1,7 @@
 {
   "number": "48",
   "name": "风暴战犬",
-  "form": "",
+  "form": "首领形态",
   "attributes": [
     "火"
   ],
@@ -12,5 +12,5 @@
   "sp_def": 82,
   "speed": 120,
   "ability": "全神贯注",
-  "pre_species": "47"
+  "pre_species": "48"
 }

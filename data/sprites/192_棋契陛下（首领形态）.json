@@ -1,7 +1,7 @@
 {
   "number": "192",
   "name": "棋契陛下",
-  "form": "",
+  "form": "首领形态",
   "attributes": [
     "武",
     "地"
@@ -12,6 +12,6 @@
   "def": 140,
   "sp_def": 115,
   "speed": 125,
-  "ability": "技能图标 寸拳",
-  "pre_species": "191"
+  "ability": "御驾亲征",
+  "pre_species": "192"
 }

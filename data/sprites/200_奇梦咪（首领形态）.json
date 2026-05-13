@@ -1,7 +1,7 @@
 {
   "number": "200",
   "name": "奇梦咪",
-  "form": "",
+  "form": "首领形态",
   "attributes": [
     "萌"
   ],
@@ -12,5 +12,5 @@
   "sp_def": 123,
   "speed": 110,
   "ability": "三鼓作气",
-  "pre_species": ""
+  "pre_species": "200"
 }

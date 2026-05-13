@@ -1,7 +1,7 @@
 {
   "number": "144",
   "name": "雪影冰灵",
-  "form": "",
+  "form": "首领形态",
   "attributes": [
     "冰",
     "萌"
@@ -13,5 +13,5 @@
   "sp_def": 130,
   "speed": 90,
   "ability": "抓到你了",
-  "pre_species": "143"
+  "pre_species": "144"
 }

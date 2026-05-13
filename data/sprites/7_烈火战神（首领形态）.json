@@ -1,7 +1,7 @@
 {
   "number": "7",
   "name": "烈火战神",
-  "form": "",
+  "form": "首领形态",
   "attributes": [
     "火"
   ],
@@ -12,5 +12,5 @@
   "sp_def": 72,
   "speed": 130,
   "ability": "爆燃",
-  "pre_species": "6"
+  "pre_species": "7"
 }

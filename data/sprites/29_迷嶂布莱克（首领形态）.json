@@ -1,7 +1,7 @@
 {
   "number": "29",
   "name": "迷嶂布莱克",
-  "form": "",
+  "form": "首领形态",
   "attributes": [
     "地"
   ],
@@ -12,5 +12,5 @@
   "sp_def": 154,
   "speed": 70,
   "ability": "地脉馈赠",
-  "pre_species": "28"
+  "pre_species": "29"
 }

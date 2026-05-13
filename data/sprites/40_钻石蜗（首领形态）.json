@@ -1,7 +1,7 @@
 {
   "number": "40",
   "name": "钻石蜗",
-  "form": "",
+  "form": "首领形态",
   "attributes": [
     "光",
     "地"
@@ -12,6 +12,6 @@
   "def": 124,
   "sp_def": 91,
   "speed": 65,
-  "ability": "技能图标 魔法增效",
-  "pre_species": "39"
+  "ability": "完全偏振",
+  "pre_species": "40"
 }

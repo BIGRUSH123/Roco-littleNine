@@ -1,7 +1,7 @@
 {
   "number": "4",
   "name": "叶冕魔力猫",
-  "form": "",
+  "form": "首领形态",
   "attributes": [
     "草"
   ],
@@ -12,5 +12,5 @@
   "sp_def": 151,
   "speed": 55,
   "ability": "深层氧循环",
-  "pre_species": "3"
+  "pre_species": "4"
 }

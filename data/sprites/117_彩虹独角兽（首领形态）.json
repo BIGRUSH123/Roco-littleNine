@@ -1,7 +1,7 @@
 {
   "number": "117",
   "name": "彩虹独角兽",
-  "form": "",
+  "form": "首领形态",
   "attributes": [
     "光"
   ],
@@ -12,5 +12,5 @@
   "sp_def": 92,
   "speed": 105,
   "ability": "夺目",
-  "pre_species": "116"
+  "pre_species": "117"
 }

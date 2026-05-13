@@ -1,7 +1,7 @@
 {
   "number": "115",
   "name": "祭礼巨像",
-  "form": "",
+  "form": "首领形态",
   "attributes": [
     "地",
     "幻"
@@ -13,5 +13,5 @@
   "sp_def": 119,
   "speed": 85,
   "ability": "坠星",
-  "pre_species": "114"
+  "pre_species": "115"
 }

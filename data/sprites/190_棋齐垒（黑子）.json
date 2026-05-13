@@ -1,7 +1,7 @@
 {
   "number": "190",
   "name": "棋齐垒",
-  "form": "黑子",
+  "form": "地区形态",
   "attributes": [
     "武",
     "地"
@@ -13,5 +13,5 @@
   "sp_def": 77,
   "speed": 75,
   "ability": "保卫",
-  "pre_species": "189"
+  "pre_species": "188"
 }

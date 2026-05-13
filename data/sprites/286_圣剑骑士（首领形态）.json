@@ -1,7 +1,7 @@
 {
   "number": "286",
   "name": "圣剑骑士",
-  "form": "",
+  "form": "首领形态",
   "attributes": [
     "机械"
   ],
@@ -12,5 +12,5 @@
   "sp_def": 183,
   "speed": 65,
   "ability": "宝剑王牌",
-  "pre_species": "285"
+  "pre_species": "286"
 }

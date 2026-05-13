@@ -1,7 +1,7 @@
 {
   "number": "84",
   "name": "女王蜂",
-  "form": "",
+  "form": "首领形态",
   "attributes": [
     "虫",
     "翼"
@@ -13,5 +13,5 @@
   "sp_def": 42,
   "speed": 40,
   "ability": "虫群鼓舞",
-  "pre_species": "83"
+  "pre_species": "84"
 }

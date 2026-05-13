@@ -1,7 +1,7 @@
 {
   "number": "65",
   "name": "蹦蹦果",
-  "form": "",
+  "form": "首领形态",
   "attributes": [
     "草",
     "毒"
@@ -12,6 +12,6 @@
   "def": 73,
   "sp_def": 105,
   "speed": 85,
-  "ability": "技能图标 根吸收",
-  "pre_species": "64"
+  "ability": "高浓生物碱",
+  "pre_species": "65"
 }

@@ -1,7 +1,7 @@
 {
   "number": "10",
   "name": "圣水守护",
-  "form": "",
+  "form": "首领形态",
   "attributes": [
     "水"
   ],
@@ -12,5 +12,5 @@
   "sp_def": 145,
   "speed": 85,
   "ability": "浪潮",
-  "pre_species": "9"
+  "pre_species": "10"
 }
