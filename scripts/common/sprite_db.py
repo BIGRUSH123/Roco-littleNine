@@ -1,8 +1,6 @@
 """scripts/common/sprite_db.py — 精灵种族值数据库
 
-数据来源：
-  1. data/sprites/*.json（主数据源，含 pre_species）
-  2. wiki/精灵图鉴/**/*.md frontmatter（补充/覆盖）
+数据来源：data/sprites/*.json
 
 sim 和 calc 共用此模块。
 """
@@ -21,65 +19,14 @@ def _err(msg: str) -> None:
 
 
 class SpriteDB:
-    """精灵种族值数据库。从 data/sprites/ JSON 加载，wiki 补充覆盖。"""
+    """精灵种族值数据库。从 data/sprites/ JSON 加载。"""
 
     def __init__(self, project_root: Path):
         self._db: dict[str, SpeciesStats] = {}
         self._index: dict[str, list[str]] = {}
         self._load_json(project_root / "data" / "sprites")
-        self._load_wiki(project_root / "wiki" / "精灵图鉴")
 
     _RE_FORM_SUFFIX = re.compile(r'（([^）]+)）$')
-
-    def _load_wiki(self, sprite_dir: Path) -> None:
-        if not sprite_dir.is_dir():
-            return
-        cnt = 0
-        for md in sprite_dir.rglob("*.md"):
-            if md.name.startswith('_') or md.stem == 'index':
-                continue
-            try:
-                text = md.read_text(encoding='utf-8', errors='ignore')
-            except OSError:
-                continue
-            if not text.startswith('---'):
-                continue
-            end = text.find('\n---', 3)
-            if end == -1:
-                continue
-            data = self._parse_fm(text[4:end])
-            name_full = data.get('name', '').strip().strip('"').strip("'")
-            if not name_full:
-                continue
-            m = self._RE_FORM_SUFFIX.search(name_full)
-            if m:
-                base_name, form = name_full[:m.start()].strip(), m.group(1).strip()
-            else:
-                base_name, form = name_full, ''
-            try:
-                attr_str = data.get('attributes', '').strip().strip('[]')
-                bloodline = attr_str.split(',')[0].strip() if attr_str else ''
-                stats = SpeciesStats(
-                    name=base_name, form=form,
-                    number=data.get('number', '').strip(),
-                    hp=int(data.get('hp', '0')),
-                    atk=int(data.get('atk', '0')),
-                    sp_atk=int(data.get('sp_atk', '0')),
-                    def_=int(data.get('def', '0')),
-                    sp_def=int(data.get('sp_def', '0')),
-                    speed=int(data.get('speed', '0')),
-                    attributes=attr_str,
-                    bloodline=bloodline,
-                )
-            except (ValueError, TypeError):
-                continue
-            display = stats.display_name()
-            if display in self._db:
-                continue
-            self._db[display] = stats
-            self._index.setdefault(base_name, []).append(display)
-            cnt += 1
-        _err(f"[SpriteDB] wiki 加载 {cnt} 个精灵")
 
     def _load_json(self, sprite_dir: Path) -> None:
         if not sprite_dir.is_dir():
@@ -129,16 +76,6 @@ class SpriteDB:
             self._index.setdefault(name, []).append(display)
             cnt += 1
         _err(f"[SpriteDB] JSON 加载 {cnt} 个精灵")
-
-    @staticmethod
-    def _parse_fm(raw: str) -> dict[str, str]:
-        d: dict[str, str] = {}
-        for line in raw.splitlines():
-            if ':' not in line:
-                continue
-            k, _, v = line.partition(':')
-            d[k.strip()] = v.strip().strip('"').strip("'")
-        return d
 
     def get(self, name: str, form: str = '') -> Optional[SpeciesStats]:
         """精确查询：按 (name, form) 找到唯一形态。"""

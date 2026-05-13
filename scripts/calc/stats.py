@@ -10,9 +10,7 @@ scripts/calc/stats.py — 精灵六维属性计算器 CLI
        [--mod "物攻+100%" "速度-30" ...]
        [--ability <特性名>] [--json]
 
-数据来源：
-  1. wiki/精灵图鉴/**/*.md 的 frontmatter（hp/atk/sp_atk/def/sp_def/speed）
-  2. wiki/meta/sprites.csv（CSV 字段名 spd→speed）
+数据来源：data/sprites/*.json
 
 退出码：
   0  正常
