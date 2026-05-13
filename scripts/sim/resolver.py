@@ -313,11 +313,30 @@ class SkillResolver:
     ) -> list[str]:
         """L3 special 效果分派。L0/L4/L5 效果由各自层方法处理，此处跳过。"""
         if effect.name in _DAMAGE_SPECIALS:
-            return []  # L0 — 已在 dispatch_modifiers 中处理
+            if use is not None:
+                # 条件触发路径：注入 use.modifiers（L0 无条件路径未覆盖）
+                SkillResolver._inject_damage_special(effect, use)
+            return []
         handler = _SPECIAL_HANDLERS.get(effect.name)
         if handler is not None:
             return handler(user, target, effect, globals_, ctx, use)
         return []
+
+    @staticmethod
+    def _inject_damage_special(effect: 'Effect', use: 'SkillUse') -> None:
+        """将条件触发的 DAMAGE_SPECIAL 合并到 use.modifiers。"""
+        key = effect.name
+        val = getattr(effect, 'value', 0) or getattr(effect, 'amount', 0)
+        if key == SpecialName.POWER_MULT:
+            use.modifiers[key] = use.modifiers.get(key, 1.0) * val
+        elif key == SpecialName.POWER_BONUS:
+            use.modifiers[key] = use.modifiers.get(key, 0) + int(val)
+        elif key == SpecialName.DAMAGE_MULT:
+            use.modifiers[key] = min(use.modifiers.get(key, 1.0), val or 1.0)
+        elif key == SpecialName.DAMAGE_REDUCTION:
+            use.modifiers[key] = max(use.modifiers.get(key, 0.0), val)
+        elif key == SpecialName.MULTI_HIT:
+            use.modifiers[key] = max(use.modifiers.get(key, 0), int(val))
 
     @staticmethod
     def _handle_non_attack_damage_special(

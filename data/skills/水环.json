@@ -14,13 +14,6 @@
       "value": 0.6
     },
     {
-      "kind": "stat",
-      "target": "self",
-      "stat": "energy_cost",
-      "steps": -2,
-      "scope": "battlefield"
-    },
-    {
       "kind": "conditional",
       "when": {
         "kind": "counter_succeeded"
