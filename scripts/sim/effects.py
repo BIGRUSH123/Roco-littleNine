@@ -58,6 +58,10 @@ class SpecialName:
     EXCHANGE_EFFECTS = 'exchange_effects'
     EXCHANGE_SKILLS = 'exchange_skills'
 
+    # ── 萌化相关 ──
+    TRANSFER_MOE = 'transfer_moe'
+    COMBO_BY_MOE = 'combo_by_moe'
+
     # ── 特殊计算 ──
     POWER_BY_ENEMY_ENERGY = 'power_by_enemy_energy'
     POWER_BY_ADJACENT = 'power_by_adjacent'
@@ -77,6 +81,7 @@ class SpecialName:
         DISPEL_POSITIVE, DISPEL_NEGATIVE, DOUBLE_POSITIVE, DOUBLE_NEGATIVE,
         DOUBLE_ABNORMAL, ABNORMAL_TICK, DAMAGE_REDUCTION_BY_ABNORMAL, POWER_BY_ABNORMAL,
         EXCHANGE_HP_RATIO, EXCHANGE_EFFECTS, EXCHANGE_SKILLS,
+        TRANSFER_MOE, COMBO_BY_MOE,
         POWER_BY_ENEMY_ENERGY, POWER_BY_ADJACENT, ADJACENT_POWER_BONUS,
         PRIORITY_BONUS, IGNORE_MODS, RANDOM_DEVOTION, BORROW_SKILL,
         COMBO_INCREMENT, POWER_INCREMENT, ENERGY_COST_INCREMENT,
@@ -120,6 +125,8 @@ class AbnormalEffect:
     name: str = ""              # 中毒|灼烧|冻结|寄生|眩晕|萌化
     scope: str = "battlefield"
     stacks: int = 1
+    heal_pct: float = 0.0       # 萌化成功后的生命回复比例
+    energy_gain: int = 0        # 萌化成功后的能量回复
 
 
 @dataclass

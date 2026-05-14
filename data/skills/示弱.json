@@ -15,6 +15,13 @@
       "name": "萌化",
       "scope": "persistent",
       "stacks": 1
+    },
+    {
+      "kind": "stat",
+      "target": "self",
+      "stat": "speed",
+      "steps": 15,
+      "scope": "permanent"
     }
   ],
   "description": "✦自己获得萌化：速度永久+150。"

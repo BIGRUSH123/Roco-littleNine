@@ -22,6 +22,12 @@
       "name": "萌化",
       "scope": "persistent",
       "stacks": 1
+    },
+    {
+      "kind": "special",
+      "name": "power_increment",
+      "amount": 20,
+      "target": "self"
     }
   ],
   "description": "✦造成魔伤，3连击。自己获得萌化：威力永久+20。"

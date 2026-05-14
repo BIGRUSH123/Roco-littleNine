@@ -14,14 +14,18 @@
       "target": "self",
       "name": "萌化",
       "scope": "persistent",
-      "stacks": 1
+      "stacks": 1,
+      "heal_pct": 0.4,
+      "energy_gain": 4
     },
     {
       "kind": "abnormal",
       "target": "opp",
       "name": "萌化",
       "scope": "persistent",
-      "stacks": 1
+      "stacks": 1,
+      "heal_pct": 0.4,
+      "energy_gain": 4
     }
   ],
   "description": "✦自己和敌方获得萌化：回复40%生命和4能量。"

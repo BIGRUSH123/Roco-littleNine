@@ -1137,7 +1137,20 @@ class DataDrivenTrait(TraitHandler):
             if name == '萌化':
                 battle = ctx.get('battle')
                 if battle and target_sprite:
-                    return target_sprite.apply_moe(int(stacks), battle)
+                    old_name = target_sprite.name
+                    events = target_sprite.apply_moe(int(stacks), battle)
+                    if target_sprite.name != old_name:
+                        heal_pct = eff_dict.get('heal_pct', 0.0)
+                        energy_gain = eff_dict.get('energy_gain', 0)
+                        if heal_pct > 0:
+                            healed = target_sprite.heal(round(target_sprite.max_hp * heal_pct))
+                            if healed:
+                                events.append(f'{target_sprite.name} 萌化回复+{healed}HP')
+                        if energy_gain > 0:
+                            gained = target_sprite.gain_energy(energy_gain)
+                            if gained:
+                                events.append(f'{target_sprite.name} 萌化回复+{gained}E')
+                    return events
             scope = eff_dict.get('scope', 'battlefield')
             source = eff_dict.get('source', '')
             se = StatusEffect(

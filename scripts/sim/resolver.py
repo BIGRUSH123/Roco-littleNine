@@ -111,7 +111,9 @@ _SPECIAL_LAYER: dict[str, int] = {
     SpecialName.EXCHANGE_SKILLS: EffectLayer.STATE,
     SpecialName.RANDOM_DEVOTION: EffectLayer.STATE,
     SpecialName.PRIORITY_BONUS: EffectLayer.STATE,
+    SpecialName.TRANSFER_MOE: EffectLayer.STATE,
     SpecialName.COMBO_INCREMENT: EffectLayer.POST_USE,
+    SpecialName.COMBO_BY_MOE: EffectLayer.POST_USE,
     SpecialName.POWER_INCREMENT: EffectLayer.POST_USE,
     SpecialName.ENERGY_COST_INCREMENT: EffectLayer.POST_USE,
 
@@ -293,7 +295,21 @@ class SkillResolver:
         # 萌化：走形态退化专用路径
         if effect.name == '萌化':
             if battle is not None:
-                return sprite.apply_moe(stacks, battle)
+                old_name = sprite.name
+                events = sprite.apply_moe(stacks, battle)
+                # 形态变换成功（名称改变）时，应用技能指定的回复效果
+                if sprite.name != old_name:
+                    heal_pct = getattr(effect, 'heal_pct', 0.0)
+                    energy_gain = getattr(effect, 'energy_gain', 0)
+                    if heal_pct > 0:
+                        healed = sprite.heal(round(sprite.max_hp * heal_pct))
+                        if healed:
+                            events.append(f'{sprite.name} 萌化回复+{healed}HP')
+                    if energy_gain > 0:
+                        gained = sprite.gain_energy(energy_gain)
+                        if gained:
+                            events.append(f'{sprite.name} 萌化回复+{gained}E')
+                return events
             # 无 battle 引用时回退为简单层数叠加
             se = StatusEffect(
                 name=effect.name, category='abnormal',
@@ -640,6 +656,36 @@ class SkillResolver:
     def _special_return_self(user, _target, _effect, _g, _ctx, _use):
         user.pending_return = True
         return [f'{user.name} 蓄力返场']
+
+    @staticmethod
+    def _special_transfer_moe(user, target, _effect, _g, ctx, _use):
+        """反弹：将自己的萌化全部转移给敌方。"""
+        moe_stacks = user.get_stacks('萌化')
+        if moe_stacks <= 0:
+            return [f'{user.name} 无萌化可转移']
+        events = []
+        battle = ctx.battle if ctx else None
+        if battle:
+            removed = user.remove_moe(moe_stacks, battle)
+            if removed > 0:
+                events.append(f'{user.name} 转移{removed}层萌化→{target.name}')
+                events += target.apply_moe(removed, battle)
+        return events
+
+    @staticmethod
+    def _special_combo_by_moe(user, _target, _effect, _g, ctx, use):
+        """月光合奏：双方所有精灵每有1层萌化，连击数+1。"""
+        battle = ctx.battle if ctx else None
+        if not battle or not use:
+            return []
+        total_moe = 0
+        for team in ('A', 'B'):
+            for sprite in battle.get_player(team).team:
+                total_moe += sprite.get_stacks('萌化')
+        if total_moe > 0:
+            use.battle_skill.combo_mod += total_moe
+            return [f'{user.name} {use.battle_skill.name}连击+{total_moe}(共{total_moe}层萌化,→{use.battle_skill.combo})']
+        return []
 
     @staticmethod
     def _special_ignore_mods(_user, _target, _effect, _g, _ctx, _use):
@@ -1012,6 +1058,8 @@ def _build_special_registry() -> dict[str, _SpecialHandler]:
         SpecialName.IGNORE_MODS:        R._special_ignore_mods,
         SpecialName.RANDOM_DEVOTION:    R._special_random_devotion,
         SpecialName.BORROW_SKILL:       R._special_borrow_skill,
+        SpecialName.TRANSFER_MOE:       R._special_transfer_moe,
+        SpecialName.COMBO_BY_MOE:       R._special_combo_by_moe,
     }
 
 

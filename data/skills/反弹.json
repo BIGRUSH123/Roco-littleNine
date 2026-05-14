@@ -15,6 +15,11 @@
       "name": "萌化",
       "scope": "persistent",
       "stacks": 1
+    },
+    {
+      "kind": "special",
+      "name": "transfer_moe",
+      "target": "opp"
     }
   ],
   "description": "✦将自己的萌化转移给敌方。"
