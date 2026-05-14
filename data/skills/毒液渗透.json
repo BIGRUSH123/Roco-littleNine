@@ -17,11 +17,12 @@
       "stacks": 1
     },
     {
-      "kind": "stat",
-      "target": "opp",
+      "kind": "special",
+      "name": "stat_by_abnormal",
       "stat": "energy_cost",
-      "steps": -1,
-      "scope": "battlefield"
+      "abnormal_name": "中毒",
+      "value": -1,
+      "target": "self"
     }
   ],
   "description": "✦造成魔伤，敌方每有1层中毒效果，本技能能耗-1，敌方获得1层中毒。"

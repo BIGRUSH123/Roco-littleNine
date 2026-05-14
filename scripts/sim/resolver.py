@@ -112,6 +112,7 @@ _SPECIAL_LAYER: dict[str, int] = {
     SpecialName.RANDOM_DEVOTION: EffectLayer.STATE,
     SpecialName.PRIORITY_BONUS: EffectLayer.STATE,
     SpecialName.TRANSFER_MOE: EffectLayer.STATE,
+    SpecialName.STAT_BY_ABNORMAL: EffectLayer.STATE,
     SpecialName.COMBO_INCREMENT: EffectLayer.POST_USE,
     SpecialName.COMBO_BY_MOE: EffectLayer.POST_USE,
     SpecialName.POWER_INCREMENT: EffectLayer.POST_USE,
@@ -673,6 +674,36 @@ class SkillResolver:
         return events
 
     @staticmethod
+    def _special_stat_by_abnormal(user, target, effect, _g, _ctx, _use):
+        """动态缩放：按敌方异常层数给指定方施加属性变化。"""
+        from .sprite import StatusEffect
+        aname = getattr(effect, 'abnormal_name', '')
+        stat = getattr(effect, 'stat', '')
+        per_stack = int(getattr(effect, 'value', 0) or 0)
+        # 总是统计敌方(target)的异常层数
+        stacks = target.get_stacks(aname)
+        if stacks <= 0 or not stat or not aname:
+            return []
+        # effect.target 决定谁获得属性变化
+        receiver = user if getattr(effect, 'target', 'self') == 'self' else target
+        total_steps = per_stack * stacks
+        step_unit = _STEP_UNIT.get(stat, _STEP_PCT)
+        raw_val = total_steps * step_unit
+        label = _STAT_LABEL_REV.get(stat, stat)
+        if stat in ('power', 'priority', 'energy_cost', 'speed', 'combo'):
+            sign = '+' if total_steps > 0 else ''
+            display = f'{label}{sign}{raw_val}'
+        else:
+            sign = '+' if total_steps > 0 else ''
+            display = f'{label}{sign}{raw_val}%'
+        se = StatusEffect(
+            name=display, category='stat', stat_key=stat,
+            steps=total_steps, scope='battlefield', source='skill',
+        )
+        receiver.add_effect(se)
+        return [f'{receiver.name} {display}({aname}×{stacks})']
+
+    @staticmethod
     def _special_combo_by_moe(user, _target, _effect, _g, ctx, use):
         """月光合奏：双方所有精灵每有1层萌化，连击数+1。"""
         battle = ctx.battle if ctx else None
@@ -1060,6 +1091,7 @@ def _build_special_registry() -> dict[str, _SpecialHandler]:
         SpecialName.BORROW_SKILL:       R._special_borrow_skill,
         SpecialName.TRANSFER_MOE:       R._special_transfer_moe,
         SpecialName.COMBO_BY_MOE:       R._special_combo_by_moe,
+        SpecialName.STAT_BY_ABNORMAL:   R._special_stat_by_abnormal,
     }
 
 

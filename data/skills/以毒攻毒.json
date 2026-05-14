@@ -17,11 +17,12 @@
       "stacks": 1
     },
     {
-      "kind": "stat",
-      "target": "self",
+      "kind": "special",
+      "name": "stat_by_abnormal",
       "stat": "sp_atk",
-      "steps": 3,
-      "scope": "battlefield"
+      "abnormal_name": "中毒",
+      "value": 3,
+      "target": "self"
     },
     {
       "kind": "abnormal",

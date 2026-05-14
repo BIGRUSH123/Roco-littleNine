@@ -10,6 +10,13 @@
   "combo": 1,
   "effects": [
     {
+      "kind": "stat",
+      "target": "self",
+      "stat": "life_drain",
+      "steps": 5,
+      "scope": "battlefield"
+    },
+    {
       "kind": "conditional",
       "when": {
         "kind": "counter_succeeded"

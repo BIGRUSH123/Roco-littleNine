@@ -17,11 +17,11 @@
       "stacks": 1
     },
     {
-      "kind": "stat",
-      "target": "opp",
-      "stat": "power",
-      "steps": 2,
-      "scope": "battlefield"
+      "kind": "special",
+      "name": "power_by_abnormal",
+      "abnormal_name": "冻结",
+      "value": 20,
+      "target": "opp"
     }
   ],
   "description": "✦造成魔伤，敌方每有1层冻结，本次技能威力+20。"

@@ -8,6 +8,14 @@
   "counter": "无",
   "priority": 0,
   "combo": 1,
-  "effects": [],
+  "effects": [
+    {
+      "kind": "stat",
+      "target": "self",
+      "stat": "life_drain",
+      "steps": 5,
+      "scope": "battlefield"
+    }
+  ],
   "description": "✦蓄力，造成物伤并吸血50%。"
 }

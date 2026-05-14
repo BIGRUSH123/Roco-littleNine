@@ -7,7 +7,7 @@
   "energy_cost": 3,
   "counter": "无",
   "priority": 0,
-  "combo": 1,
+  "combo": 2,
   "effects": [
     {
       "kind": "special",

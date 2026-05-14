@@ -22,6 +22,14 @@
       "name": "冻结",
       "scope": "persistent",
       "stacks": 1
+    },
+    {
+      "kind": "special",
+      "name": "stat_by_abnormal",
+      "stat": "energy_cost",
+      "abnormal_name": "冻结",
+      "value": 1,
+      "target": "opp"
     }
   ],
   "description": "✦敌方获得1层冻结，且每有1层冻结获得全技能能耗+1。"
