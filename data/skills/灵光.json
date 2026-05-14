@@ -8,6 +8,20 @@
   "counter": "无",
   "priority": 0,
   "combo": 3,
-  "effects": [],
+  "effects": [
+    {
+      "kind": "conditional",
+      "when": {
+        "kind": "opp_switched"
+      },
+      "then": [
+        {
+          "kind": "special",
+          "name": "multi_hit",
+          "value": 6
+        }
+      ]
+    }
+  ],
   "description": "✦造成魔伤，3连击，若敌方本回合更换精灵，本次技能连击数翻倍。"
 }

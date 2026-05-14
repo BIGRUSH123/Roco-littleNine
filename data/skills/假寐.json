@@ -17,7 +17,8 @@
     {
       "kind": "special",
       "name": "random_devotion",
-      "amount": 1
+      "amount": 1,
+      "abnormal_name": "2"
     }
   ],
   "description": "✦自己回复2能量，己方队伍获得1次奉献：能耗-2。"

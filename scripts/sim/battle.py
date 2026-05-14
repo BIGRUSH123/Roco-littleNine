@@ -442,10 +442,10 @@ class Battle(BattleMechanicsMixin):
             events.append(f'[冷却中] {user.name} {skill.name} 还需{skill.cooldown}回合冷却')
             return events
 
-        # ── 迸发 (first_action) 能耗效果（需在能量支付前处理）──
+        # ── 迸发 (burst / first_action) 能耗效果（需在能量支付前处理）──
         if user.first_action:
             for e in skill.effects:
-                if getattr(e, 'kind', '') == 'special' and getattr(e, 'name', '') == SpecialName.FIRST_ACTION:
+                if getattr(e, 'kind', '') == 'special' and getattr(e, 'name', '') in (SpecialName.BURST, SpecialName.FIRST_ACTION):
                     e_target = getattr(e, 'target', 'opp')
                     if e_target == 'burst_collect':
                         burst_history = getattr(user, '_burst_effects_used', set())
@@ -549,14 +549,14 @@ class Battle(BattleMechanicsMixin):
         # ── trait modifier hook（L0→L1 之间）──
         events += dispatch_modifier(user, use, self, team)
 
-        # ── 迸发 (first_action) 威力/额外使用效果 ──
+        # ── 迸发 (burst / first_action) 威力/额外使用效果 ──
         if user.first_action:
             for e in skill.effects:
-                if getattr(e, 'kind', '') != 'special' or getattr(e, 'name', '') != SpecialName.FIRST_ACTION:
+                if getattr(e, 'kind', '') != 'special' or getattr(e, 'name', '') not in (SpecialName.BURST, SpecialName.FIRST_ACTION):
                     continue
                 e_target = getattr(e, 'target', 'opp')
 
-                # 迸发收集 (雷暴): 统计已触发的迸发种类，每1种→能耗+1 威力+10
+                # 迸发收集 (雷暴): 统计已触发的 burst 种类，每1种→威力+10
                 if e_target == 'burst_collect':
                     burst_history = getattr(user, '_burst_effects_used', set())
                     collected = len(burst_history)
@@ -660,6 +660,35 @@ class Battle(BattleMechanicsMixin):
             combo_mult_steps = user.effective_stat('combo_mult')
             if combo_mult_steps > 0:
                 effective_combo = max(1, int(effective_combo * (1.0 + combo_mult_steps)))
+            # ── 动态 multi_hit（条件连击：应对/先手/后手/换宠触发）──
+            best_multi = 1
+            for e in skill.effects:
+                if getattr(e, 'kind', '') != 'conditional':
+                    continue
+                when = getattr(e, 'when', None) or {}
+                then = getattr(e, 'then', None) or []
+                wk = when.get('kind', '')
+                met = False
+                if wk == 'counter_succeeded' and is_countered:
+                    met = True
+                elif wk == 'is_first' and is_first:
+                    met = True
+                elif wk == 'is_second' and not is_first:
+                    met = True
+                elif wk == 'opp_switched' and opponent_switched:
+                    met = True
+                if met:
+                    for sub in then:
+                        if getattr(sub, 'kind', '') == 'special' and getattr(sub, 'name', '') == SpecialName.MULTI_HIT:
+                            val = int(getattr(sub, 'value', 0) or 0)
+                            if val > best_multi:
+                                best_multi = val
+            if best_multi > 1:
+                old = use.modifiers.get('multi_hit', 0)
+                if best_multi > old:
+                    use.modifiers['multi_hit'] = best_multi
+                    events.append(f'{user.name} {skill.name} 连击→{best_multi}')
+
             dynamic_combo = int(use.modifiers.get('multi_hit', 1.0))
             if dynamic_combo > 1:
                 effective_combo = max(effective_combo, dynamic_combo)

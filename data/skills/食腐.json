@@ -10,10 +10,10 @@
   "combo": 1,
   "effects": [
     {
-      "kind": "mark",
-      "target": "own_team",
-      "name": "驱散敌方印记",
-      "stacks": 1
+      "kind": "special",
+      "name": "dispel_mark",
+      "target": "opp_team",
+      "value": 0.1
     }
   ],
   "description": "✦驱散敌方印记，每层印记回复自己10%生命。"

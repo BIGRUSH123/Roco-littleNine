@@ -11,7 +11,7 @@
   "effects": [
     {
       "kind": "special",
-      "name": "first_action",
+      "name": "burst",
       "value": 20
     }
   ],

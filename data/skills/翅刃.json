@@ -10,24 +10,9 @@
   "combo": 1,
   "effects": [
     {
-      "kind": "mark",
-      "target": "opp_team",
-      "name": "驱散敌方所有印记",
-      "stacks": 1
-    },
-    {
-      "kind": "conditional",
-      "when": {
-        "kind": "counter_succeeded"
-      },
-      "then": [
-        {
-          "kind": "mark",
-          "target": "opp_team",
-          "name": "改为偷取印记",
-          "stacks": 1
-        }
-      ]
+      "kind": "special",
+      "name": "dispel_mark",
+      "target": "opp_team"
     }
   ],
   "description": "✦造成物伤，驱散敌方所有印记，应对状态：改为偷取印记。"

@@ -10,10 +10,9 @@
   "combo": 1,
   "effects": [
     {
-      "kind": "mark",
-      "target": "opp_team",
-      "name": "驱散敌方所有印记",
-      "stacks": 1
+      "kind": "special",
+      "name": "dispel_mark",
+      "target": "opp_team"
     }
   ],
   "description": "✦造成魔伤，驱散敌方所有印记。"

@@ -280,7 +280,7 @@ def _verify_special(effect, skill: Skill, attacker: Sprite, defender: Sprite,
     # 以下 special 效果在孤立测试中属于正常 no-op：
     # damage_reduction → 仅在 counter 时生效（由 _collect_modifiers 处理）
     # reflect_damage → 需要 countered_skill
-    # burst → 标记性效果，仅影响 calc_damage 的 burst_mult
+    # burst → 迸发效果，battle.py L0段处理（首次行动威力/能耗/收集）
     # charge → 仅记录事件
     # escape → 需要 bench sprite
     # multi_hit → 仅影响 calc_damage

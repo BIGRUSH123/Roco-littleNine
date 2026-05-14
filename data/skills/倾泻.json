@@ -10,10 +10,9 @@
   "combo": 1,
   "effects": [
     {
-      "kind": "mark",
-      "target": "opp_team",
-      "name": "则驱散双方所有印记",
-      "stacks": 1
+      "kind": "special",
+      "name": "dispel_mark",
+      "target": "both"
     }
   ],
   "description": "✦造成魔伤，若本次攻击未被防御技能应对，则驱散双方所有印记。"

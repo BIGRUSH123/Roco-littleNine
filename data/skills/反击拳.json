@@ -8,6 +8,20 @@
   "counter": "无",
   "priority": 0,
   "combo": 2,
-  "effects": [],
+  "effects": [
+    {
+      "kind": "conditional",
+      "when": {
+        "kind": "is_second"
+      },
+      "then": [
+        {
+          "kind": "special",
+          "name": "multi_hit",
+          "value": 3
+        }
+      ]
+    }
+  ],
   "description": "✦造成物伤，2连击，若后手攻击，改为3连击。"
 }

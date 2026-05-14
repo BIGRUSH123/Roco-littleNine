@@ -87,8 +87,7 @@ _SPECIAL_LAYER: dict[str, int] = {
     SpecialName.POWER_BY_ENEMY_ENERGY: EffectLayer.POWER,
     SpecialName.POWER_BY_ADJACENT: EffectLayer.POWER,
 
-    # L2: 伤害 per-hit（burst 在 calc_damage 消费，life_drain 在连击循环消费）
-    SpecialName.BURST: EffectLayer.DAMAGE,
+    # L2: 伤害 per-hit（life_drain 在连击循环消费）
     SpecialName.LIFE_DRAIN: EffectLayer.DAMAGE,
 
     # L3: 状态变更（dispatch_L3 分派）
@@ -100,6 +99,7 @@ _SPECIAL_LAYER: dict[str, int] = {
     SpecialName.CHARGE: EffectLayer.STATE,
     SpecialName.DISPEL_POSITIVE: EffectLayer.STATE,
     SpecialName.DISPEL_NEGATIVE: EffectLayer.STATE,
+    SpecialName.DISPEL_MARK: EffectLayer.STATE,
     SpecialName.DOUBLE_POSITIVE: EffectLayer.STATE,
     SpecialName.DOUBLE_NEGATIVE: EffectLayer.STATE,
     SpecialName.DOUBLE_ABNORMAL: EffectLayer.STATE,
@@ -427,12 +427,6 @@ class SkillResolver:
     # 新增效果：写一个 handler，在 _build_special_registry() 注册即可。
 
     @staticmethod
-    def _special_burst(user, _target, _effect, _g, _ctx, _use):
-        if user.first_action:
-            return [f'{user.name} 迸发']
-        return []
-
-    @staticmethod
     def _special_charge(user, _target, _effect, _g, _ctx, _use):
         # 蓄力状态机由 battle.py gate 层处理，此处仅做标记
         return []
@@ -521,6 +515,59 @@ class SkillResolver:
         if n:
             return [f'{sprite.name} 驱散{n}个负面效果']
         return []
+
+    @staticmethod
+    def _special_dispel_mark(user, target, effect, _g, ctx, _use):
+        battle = ctx.battle if ctx else None
+        team = ctx.team if ctx else 'A'
+        opp_team = 'B' if team == 'A' else 'A'
+        if not battle:
+            return []
+        e_target = getattr(effect, 'target', 'opp_team')
+        max_remove = getattr(effect, 'amount', 0) or 0  # 0 = 全部
+        heal_pct = getattr(effect, 'value', 0.0) or 0.0
+        ab_name = getattr(effect, 'abnormal_name', '')
+        ab_per_mark = int(getattr(effect, 'per_stack_value', 0) or 0)
+
+        total_removed = 0
+
+        def _clear_marks(t: str) -> int:
+            removed = 0
+            pos, neg = battle.globals.get_marks(t)
+            for mark_list in (pos, neg):
+                for m in list(mark_list):
+                    removed += m.stacks
+                    if max_remove > 0 and removed >= max_remove:
+                        mark_list.clear()
+                        return min(removed, max_remove)
+                mark_list.clear()
+            return removed
+
+        events: list[str] = []
+        if e_target in ('opp_team', 'both'):
+            total_removed += _clear_marks(opp_team)
+        if e_target in ('own_team', 'both'):
+            total_removed += _clear_marks(team)
+        if total_removed <= 0:
+            return []
+        label = '双方' if e_target == 'both' else ('敌方' if 'opp' in e_target else '我方')
+        events.append(f'{user.name} 驱散{label}{total_removed}层印记')
+
+        # Per-mark heal (食腐)
+        if heal_pct > 0:
+            healed = user.heal(round(user.max_hp * heal_pct * total_removed))
+            if healed:
+                events.append(f'{user.name} 食腐回复+{healed}HP({total_removed}层×{heal_pct*100:.0f}%)')
+
+        # Per-mark abnormal (焚烧烙印)
+        if ab_name and ab_per_mark > 0:
+            from .sprite import StatusEffect
+            stacks = ab_per_mark * total_removed
+            se = StatusEffect(name=ab_name, category='abnormal', stacks=stacks, scope='battlefield', source='skill')
+            target.apply_effect(se)
+            events.append(f'{target.name} {ab_name}+{stacks}({total_removed}层×{ab_per_mark})')
+
+        return events
 
     @staticmethod
     def _special_double_positive(user, target, effect, _g, _ctx, _use):
@@ -729,14 +776,20 @@ class SkillResolver:
         amount = getattr(effect, 'amount', 1)
         battle = ctx.battle if ctx else None
         team = ctx.team if ctx else 'A'
+        # 指定奉献类型（abnormal_name = "1"~"5"），否则随机
+        specific_type = getattr(effect, 'abnormal_name', '')
         if battle:
             player = battle.get_player(team)
             types_hit: list[int] = []
             for _ in range(amount):
-                t = random.randint(1, 5)
+                if specific_type and specific_type.isdigit():
+                    t = int(specific_type)
+                else:
+                    t = random.randint(1, 5)
                 player.devotion[t] += 1
                 types_hit.append(t)
-            events.append(f'{user.name} 奉献+{amount} (类型{types_hit})')
+            label = f'类型{specific_type}' if specific_type else f'类型{types_hit}'
+            events.append(f'{user.name} 奉献+{amount} ({label})')
         return events
 
     @staticmethod
@@ -824,6 +877,9 @@ class SkillResolver:
         if kind == 'is_first':
             return bool(ctx and ctx.is_first)
 
+        if kind == 'is_second':
+            return bool(ctx and not ctx.is_first)
+
         if kind == 'opp_switched':
             return bool(ctx and ctx.opponent_switched)
 
@@ -909,14 +965,8 @@ class SkillResolver:
         atk_stage = atk_steps / _STEP_PCT
         def_stage = def_steps / _STEP_PCT
 
-        # 迸发
-        burst_mult = 1.5 if (
-            SpecialName.BURST in [e.name for e in bs.effects if getattr(e, 'kind', '') == 'special']
-            and attacker.first_action
-        ) else 1.0
-
-        # 应对百分比加成 = 迸发倍率 * 技能伤害倍率
-        counter_mult = burst_mult * use.damage_mult
+        # 应对百分比加成
+        counter_mult = use.damage_mult
         additive_power = (
             attacker.power_mod * 10
             + globals_.mark_power_bonus(attacker_team, bs)
@@ -1057,7 +1107,6 @@ def _build_special_registry() -> dict[str, _SpecialHandler]:
     """
     R = SkillResolver
     return {
-        SpecialName.BURST:              R._special_burst,
         SpecialName.CHARGE:             R._special_charge,
         SpecialName.ESCAPE:             R._special_escape,
         SpecialName.STEAL_ENERGY:       R._special_steal_energy,
@@ -1071,6 +1120,7 @@ def _build_special_registry() -> dict[str, _SpecialHandler]:
         SpecialName.ENERGY_COST_INCREMENT: R._special_energy_cost_increment,
         SpecialName.DISPEL_POSITIVE:    R._special_dispel_positive,
         SpecialName.DISPEL_NEGATIVE:    R._special_dispel_negative,
+        SpecialName.DISPEL_MARK:       R._special_dispel_mark,
         SpecialName.DOUBLE_POSITIVE:    R._special_double_positive,
         SpecialName.DOUBLE_NEGATIVE:    R._special_double_negative,
         SpecialName.DOUBLE_ABNORMAL:   R._special_double_abnormal,

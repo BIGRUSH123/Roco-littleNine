@@ -10,24 +10,11 @@
   "combo": 1,
   "effects": [
     {
-      "kind": "mark",
-      "target": "own_team",
-      "name": "驱散双方所有印记",
-      "stacks": 1
-    },
-    {
-      "kind": "abnormal",
-      "target": "self",
-      "name": "灼烧",
-      "scope": "battlefield",
-      "stacks": 5
-    },
-    {
-      "kind": "abnormal",
-      "target": "opp",
-      "name": "灼烧",
-      "scope": "battlefield",
-      "stacks": 5
+      "kind": "special",
+      "name": "dispel_mark",
+      "target": "both",
+      "abnormal_name": "灼烧",
+      "per_stack_value": 5
     }
   ],
   "description": "✦驱散双方所有印记，每驱散1层，敌方获得5层灼烧。"

@@ -6,7 +6,7 @@
   "power": 0,
   "energy_cost": 2,
   "counter": "无",
-  "priority": 0,
+  "priority": 1,
   "combo": 1,
   "effects": [
     {
