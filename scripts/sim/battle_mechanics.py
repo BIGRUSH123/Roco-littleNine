@@ -174,7 +174,7 @@ class BattleMechanicsMixin:
             return '进化之力'
 
         elif item.name == '愿力':
-            # 愿力：用血脉对应的血脉技能替换一技能（技能槽0）
+            # 愿力：用血脉对应的血脉技能替换一技能（技能槽0），持续一回合
             bl_element = sprite.bloodline
             bl_skill_id = sprite.bloodline_skills.get(bl_element)
             if bl_skill_id is None:
@@ -187,6 +187,8 @@ class BattleMechanicsMixin:
                 new_skills = self.skill_loader([new_skill_name])
                 if new_skills and len(sprite.skills) > 0:
                     old_name = sprite.skills[0].name
+                    # 存入还原队列，回合结束时还原
+                    self._wish_restore[(team, 0)] = sprite.skills[0]
                     sprite.skills[0] = new_skills[0]
                     return f'愿力({old_name}→{new_skills[0].name})'
             return '愿力'

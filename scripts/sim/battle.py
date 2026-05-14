@@ -79,6 +79,7 @@ class Battle(BattleMechanicsMixin):
         self._agent_b: 'Agent | None' = None
         self.verbose = verbose
         self._borrowed_restore: dict[tuple[str, int], 'Skill'] = {}
+        self._wish_restore: dict[tuple[str, int], 'BattleSkill'] = {}   # 愿力一回合后还原
         self.team_counters: dict[str, dict[str, int]] = {'A': {}, 'B': {}}  # pre-entry accumulators
         self.pending_effects: dict[str, list] = {'A': [], 'B': []}  # leave-buff → next entry
         self.scheduled_effects: list[dict] = []  # 延时效果队列 [{turn, phase, effects, ...}]
@@ -863,6 +864,15 @@ class Battle(BattleMechanicsMixin):
                 bs.replaced_by = None
                 events.append(f'{sprite.name} 归还 {borrowed_name}')
         self._borrowed_restore.clear()
+
+        # 愿力还原（一回合后换回原技能）
+        for (team, si), original in self._wish_restore.items():
+            sprite = self.get_player(team).active
+            if not sprite.is_fainted and si < len(sprite.skills):
+                current_name = sprite.skills[si].name
+                sprite.skills[si] = original
+                events.append(f'{sprite.name} 愿力结束({current_name}→{original.name})')
+        self._wish_restore.clear()
 
         # 返场结算（过载回路）：清 battlefield 效果 + 下回合双倍
         for team in ('A', 'B'):

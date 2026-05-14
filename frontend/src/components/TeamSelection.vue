@@ -467,9 +467,6 @@ const startBattle = () => {
               ]"
             >
               {{ item.name }}
-              <span class="text-[10px] ml-1 text-[#6a6d75]">
-                ({{ item.cooldown_description }})
-              </span>
               <!-- 进化之力不可用的提示 -->
               <span v-if="item.name === '进化之力' && !evolutionEligible" class="block text-[10px] text-[#f4a236] mt-0.5">
                 队伍中无精灵可进化
