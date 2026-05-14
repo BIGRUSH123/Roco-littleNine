@@ -550,7 +550,7 @@ class Battle(BattleMechanicsMixin):
         events += dispatch_modifier(user, use, self, team)
 
         # ── 迸发 (first_action) 威力/额外使用效果 ──
-        if user.first_action and not is_countered:
+        if user.first_action:
             for e in skill.effects:
                 if getattr(e, 'kind', '') != 'special' or getattr(e, 'name', '') != SpecialName.FIRST_ACTION:
                     continue
