@@ -11,7 +11,7 @@ if TYPE_CHECKING:
 class Item:
     """玩家携带的道具。决定特殊操作类型与使用次数上限。"""
 
-    name: str                   # "进化之力" | "愿力强化"
+    name: str                   # "进化之力" | "愿力"
     max_uses: int               # 全场最大使用次数
     cooldown_turns: int = 0     # 两次使用间的最短回合间隔（0=无冷却）
     uses: int = 0               # 已使用次数
@@ -41,8 +41,8 @@ class Item:
 
     @classmethod
     def wish(cls) -> 'Item':
-        """愿力强化：全场 2 次，间隔≥4 回合。"""
-        return cls(name='愿力强化', max_uses=2, cooldown_turns=4)
+        """愿力：全场 2 次，间隔≥4 回合（含使用回合间隔3回合）。"""
+        return cls(name='愿力', max_uses=2, cooldown_turns=4)
 
 
 @dataclass

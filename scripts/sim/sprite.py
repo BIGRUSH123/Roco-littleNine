@@ -55,10 +55,13 @@ class Sprite:
     # ── 静态 ──
     species: SpeciesStats
     bloodline: str = ""
+    bloodline_skills: dict[str, int] = field(default_factory=dict)
     skills: list['BattleSkill'] = field(default_factory=list)
 
     # ── 初始六维（nature + IV 后的最终值，mods 前） ──
     initial_stats: dict[str, int] = field(default_factory=dict)
+    nature: str | None = None
+    iv: dict[str, int] = field(default_factory=dict)
 
     # ── 实时状态 ──
     current_hp: int = 0
@@ -306,10 +309,13 @@ class Sprite:
         return cls(
             species=result.species,
             bloodline=result.species.bloodline,
+            bloodline_skills=dict(result.species.bloodline_skills),
             initial_stats=dict(result.final_stats),
             current_hp=result.final_stats['hp'],
             max_hp=result.final_stats['hp'],
             energy=energy,
+            nature=result.nature,
+            iv=dict(result.iv),
         )
 
     def transform(self, new_species, new_skills: list) -> list[str]:

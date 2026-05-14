@@ -68,6 +68,7 @@ class SimFactory:
         nature: str | None = None,
         iv: dict[str, int] | None = None,
         form: str = '',
+        bloodline: str | None = None,
     ) -> Sprite:
         """从精灵名 + 技能列表构建 Sprite。"""
         species = self.sprite_db.get(name, form)
@@ -83,6 +84,8 @@ class SimFactory:
 
         sprite = Sprite.from_result(result)
         sprite.skills = self._build_skill_list(skills)
+        if bloodline:
+            sprite.bloodline = bloodline
         return sprite
 
     def _build_skill_list(self, skill_names: list[str]) -> list[BattleSkill]:
@@ -116,6 +119,7 @@ class SimFactory:
                 nature=spec.get('nature'),
                 iv=spec.get('iv'),
                 form=spec.get('form', ''),
+                bloodline=spec.get('bloodline'),
             )
             sprites.append(sprite)
 

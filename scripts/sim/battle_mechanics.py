@@ -141,15 +141,31 @@ class BattleMechanicsMixin:
         if not item or not item.can_use(self.turn):
             return ''
 
-        item.use(self.turn)
         sprite = player.active
 
         if item.name == '进化之力':
-            if sprite.bloodline != '首领':
+            # 进化之力：同编号有首领形态的精灵可进化为首领形态
+            if self.species_db is None:
                 return ''
-            boss_species = self.species_db.get_alternate_species(sprite.species) if self.species_db else None
-            if boss_species:
-                sprite.transform(boss_species, None)
+            boss_species = self._find_leader_form(sprite.species.number)
+            if boss_species is None:
+                return ''
+            item.use(self.turn)
+            # 用首领形态的种族值 + 原IV/性格重新计算六维
+            from scripts.common.formulas import StatsCalc
+            calc = StatsCalc()
+            result = calc.compute(
+                boss_species,
+                nature=sprite.nature,
+                iv=sprite.iv,
+            )
+            hp_ratio = sprite.current_hp / max(1, sprite.max_hp)
+            sprite.species = boss_species
+            sprite.initial_stats = dict(result.final_stats)
+            sprite.max_hp = result.final_stats['hp']
+            sprite.current_hp = max(1, round(result.final_stats['hp'] * hp_ratio))
+            sprite.bloodline_skills = dict(boss_species.bloodline_skills)
+            sprite.first_action = True
             for key in ['atk', 'sp_atk', 'def', 'sp_def', 'speed']:
                 sprite.add_effect(StatusEffect(
                     name='首领化', category='stat', stat_key=key, steps=2,
@@ -157,14 +173,43 @@ class BattleMechanicsMixin:
                 ))
             return '进化之力'
 
-        elif item.name == '愿力强化':
-            sprite.add_effect(StatusEffect(
-                name='愿力强化', category='stat', stat_key='power', steps=5,
-                scope='battlefield', source='愿力强化',
-            ))
-            return '愿力强化'
+        elif item.name == '愿力':
+            # 愿力：用血脉对应的血脉技能替换一技能（技能槽0）
+            bl_element = sprite.bloodline
+            bl_skill_id = sprite.bloodline_skills.get(bl_element)
+            if bl_skill_id is None:
+                return ''
+            if self.skill_loader is None:
+                return ''
+            item.use(self.turn)
+            new_skill_name = self._get_skill_name_by_id(bl_skill_id)
+            if new_skill_name:
+                new_skills = self.skill_loader([new_skill_name])
+                if new_skills and len(sprite.skills) > 0:
+                    old_name = sprite.skills[0].name
+                    sprite.skills[0] = new_skills[0]
+                    return f'愿力({old_name}→{new_skills[0].name})'
+            return '愿力'
 
         return item.name
+
+    def _find_leader_form(self, number: str):
+        """查找同编号的首领形态。"""
+        if self.species_db is None or not number:
+            return None
+        for p in self.species_db._by_number.get(number, []):
+            s = self.species_db._read_one(p)
+            if s and '首领' in s.form:
+                return s
+        return None
+
+    def _get_skill_name_by_id(self, skill_id: int) -> str | None:
+        """按技能ID反查名称。"""
+        try:
+            from scripts.common.skill_trait_ids import SKILL_ID_TO_NAME
+            return SKILL_ID_TO_NAME.get(skill_id)
+        except ImportError:
+            return None
 
     def _handle_escape(self, team: str, user: 'Sprite', events: list[str]) -> None:
         """处理脱离/折返：agent 选择换宠。"""

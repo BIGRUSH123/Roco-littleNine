@@ -75,7 +75,7 @@ class RuleAgent:
         if item and item.can_use(battle.turn):
             if item.name == '进化之力' and battle.turn <= 2:
                 return Action(kind='item')
-            if item.name == '愿力强化':
+            if item.name == '愿力':
                 hp_ratio = s.current_hp / s.max_hp if s.max_hp > 0 else 0
                 if hp_ratio < 0.5 and style.aggression > 0.4:
                     return Action(kind='item')

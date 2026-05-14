@@ -241,11 +241,14 @@ def _describe_skill(s: dict) -> str:
 class SpriteSelection(BaseModel):
     name: str
     skills: List[str]
+    bloodline: Optional[str] = None     # 血脉系别，默认取第一属性
+    form: str = ''                       # 形态
 
 class InitRequest(BaseModel):
     team: List[SpriteSelection]
     opponent_team: Optional[List[SpriteSelection]] = None
     lead_index: int = 0
+    item: Optional[str] = None           # "愿力" | "进化之力" | None
 
 class ActionRequest(BaseModel):
     session_id: str
@@ -290,6 +293,8 @@ def serialize_battle_state(battle: Battle, session_id: str) -> dict:
         return {
             "name": s.name,
             "element": s.species.attributes,
+            "bloodline": s.bloodline,
+            "bloodline_skills": s.bloodline_skills,
             "current_hp": s.current_hp,
             "max_hp": s.max_hp,
             "energy": s.energy,
@@ -302,10 +307,21 @@ def serialize_battle_state(battle: Battle, session_id: str) -> dict:
         }
 
     def serialize_player(p, team='A'):
+        item_info = None
+        if p.item:
+            item_info = {
+                "name": p.item.name,
+                "max_uses": p.item.max_uses,
+                "uses": p.item.uses,
+                "cooldown_turns": p.item.cooldown_turns,
+                "last_use_turn": p.item.last_use_turn,
+                "is_exhausted": p.item.is_exhausted,
+            }
         return {
             "name": p.name,
             "active_index": p.active_index,
             "lives": p.lives,
+            "item": item_info,
             "team": [serialize_sprite(s, team) for s in p.team]
         }
         
@@ -333,6 +349,73 @@ def serialize_battle_state(battle: Battle, session_id: str) -> dict:
 def get_sprites():
     return {"sprites": SPRITE_ENTRIES}
 
+@app.get("/api/sprites/{name}/evolution")
+def check_evolution(name: str):
+    """检查精灵是否可使用进化之力（同编号有首领形态）。"""
+    db = FACTORY.sprite_db
+    species = db.get(name, '')
+    if species is None:
+        raise HTTPException(status_code=404, detail=f'Sprite not found: {name!r}')
+    for p in db._by_number.get(species.number, []):
+        s = db._read_one(p)
+        if s and '首领' in (s.form or ''):
+            return {
+                "sprite": name,
+                "number": species.number,
+                "can_evolve": True,
+                "leader_form": s.display_name(),
+                "leader_species": {
+                    "name": s.name,
+                    "form": s.form,
+                    "hp": s.hp,
+                    "atk": s.atk,
+                    "sp_atk": s.sp_atk,
+                    "def": s.def_,
+                    "sp_def": s.sp_def,
+                    "speed": s.speed,
+                },
+            }
+    return {"sprite": name, "number": species.number, "can_evolve": False}
+
+@app.get("/api/sprites/{name}/bloodlines")
+def get_bloodlines(name: str):
+    """获取精灵可选血脉系别。"""
+    db = FACTORY.sprite_db
+    species = db.get(name, '')
+    if species is None:
+        raise HTTPException(status_code=404, detail=f'Sprite not found: {name!r}')
+    # 默认血脉=第一属性，可选=bloodline_skills的所有key
+    bl_skills = species.bloodline_skills or {}
+    return {
+        "sprite": name,
+        "default_bloodline": species.attributes[0] if species.attributes else '',
+        "available_bloodlines": list(bl_skills.keys()),
+        "bloodline_skills": bl_skills,
+    }
+
+@app.get("/api/items")
+def get_items():
+    """返回可用道具列表。"""
+    return {
+        "items": [
+            {
+                "name": "愿力",
+                "description": "用对应血脉的血脉技能替换一技能",
+                "max_uses": 2,
+                "cooldown_turns": 4,
+                "cooldown_description": "两次使用需间隔3回合",
+            },
+            {
+                "name": "进化之力",
+                "description": "进化为同编号的首领形态，全属性+2级",
+                "max_uses": 1,
+                "cooldown_turns": 0,
+                "cooldown_description": "全场仅可使用一次",
+                "requirement": "仅限与首领形态同编号的精灵使用",
+            },
+        ]
+    }
+
 @app.get("/api/skills")
 def get_skills():
     return {"skills": load_skill_metadata()}
@@ -346,10 +429,16 @@ def init_battle(req: InitRequest):
     if not req.team:
         raise HTTPException(status_code=400, detail="Team cannot be empty")
         
-    team_a_specs = [{"name": s.name, "skills": s.skills} for s in req.team]
-    
+    team_a_specs = [{
+        "name": s.name, "skills": s.skills,
+        "bloodline": s.bloodline, "form": s.form,
+    } for s in req.team]
+
     if req.opponent_team:
-        team_b_specs = [{"name": s.name, "skills": s.skills} for s in req.opponent_team]
+        team_b_specs = [{
+            "name": s.name, "skills": s.skills,
+            "bloodline": s.bloodline, "form": s.form,
+        } for s in req.opponent_team]
     else:
         # Generate random opponent team
         team_b_specs = []
@@ -357,9 +446,17 @@ def init_battle(req: InitRequest):
         random.shuffle(pool)
         for entry in pool[:len(team_a_specs)]:
             chosen_skills = random.sample(entry["skills"], min(6, len(entry["skills"])))
-            team_b_specs.append({"name": entry["name"], "skills": chosen_skills})
-            
-    player_a = FACTORY.build_player("玩家", team_a_specs)
+            team_b_specs.append({"name": entry["name"], "skills": chosen_skills, "bloodline": None, "form": ""})
+
+    # 道具
+    from scripts.sim.player import Item
+    item = None
+    if req.item == '愿力':
+        item = Item.wish()
+    elif req.item == '进化之力':
+        item = Item.leader()
+
+    player_a = FACTORY.build_player("玩家", team_a_specs, item=item)
     player_b = FACTORY.build_player("AI", team_b_specs, style=PlayStyle(aggression=0.7))
 
     # 设置首发

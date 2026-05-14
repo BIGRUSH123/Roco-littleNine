@@ -129,7 +129,9 @@ class SpriteDB:
             'sp_def': species.sp_def,
             'speed': species.speed,
             'ability': species.ability,
+            'ability_id': species.ability_id,
             'pre_species': species.pre_species,
+            'bloodline_skills': species.bloodline_skills,
         }
         path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
         self._by_display[display] = path
@@ -153,6 +155,9 @@ class SpriteDB:
         attr_list = data.get('attributes', [])
         attr_str = ', '.join(attr_list) if isinstance(attr_list, list) else str(attr_list)
         bloodline = attr_list[0] if attr_list else ''
+        bl_skills = data.get('bloodline_skills', {})
+        if not isinstance(bl_skills, dict):
+            bl_skills = {}
         try:
             return SpeciesStats(
                 name=name, form=form,
@@ -168,6 +173,7 @@ class SpriteDB:
                 ability=data.get('ability', '').strip(),
                 ability_id=int(data.get('ability_id', 0)),
                 pre_species=str(data.get('pre_species', '')).strip(),
+                bloodline_skills=bl_skills,
             )
         except (ValueError, TypeError):
             return None

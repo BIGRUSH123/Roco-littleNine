@@ -25,6 +25,11 @@ class SpeciesStats:
     ability: str = ""
     ability_id: int = 0
     pre_species: str = ""
+    bloodline_skills: dict[str, int] = None  # type: ignore
+
+    def __post_init__(self):
+        if self.bloodline_skills is None:
+            self.bloodline_skills = {}
 
     def base_dict(self) -> dict[str, int]:
         return {
