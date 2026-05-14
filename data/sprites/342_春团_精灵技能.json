@@ -1,0 +1,137 @@
+[
+  {
+    "level": "LV1",
+    "element": "草",
+    "name": "汲取",
+    "energy": "1",
+    "type": "魔攻",
+    "power": "30",
+    "description": "✦造成魔伤，并吸血100%。"
+  },
+  {
+    "level": "LV1",
+    "element": "普通",
+    "name": "晒太阳",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦驱散敌方所有增益。"
+  },
+  {
+    "level": "LV1",
+    "element": "普通",
+    "name": "防御",
+    "energy": "1",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤70%，应对攻击。"
+  },
+  {
+    "level": "LV2",
+    "element": "普通",
+    "name": "重击",
+    "energy": "2",
+    "type": "物攻",
+    "power": "110",
+    "description": "✦造成物伤，每次使用后，本技能能耗永久+1。"
+  },
+  {
+    "level": "LV5",
+    "element": "草",
+    "name": "根吸收",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己回复15%生命和4能量。"
+  },
+  {
+    "level": "LV12",
+    "element": "草",
+    "name": "种皮爆裂",
+    "energy": "1",
+    "type": "物攻",
+    "power": "25",
+    "description": "✦造成物伤，2连击。"
+  },
+  {
+    "level": "LV22",
+    "element": "普通",
+    "name": "休息回复",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己回复30%生命。"
+  },
+  {
+    "level": "LV25",
+    "element": "草",
+    "name": "酶浓度调整",
+    "energy": "3",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤80%，应对攻击：自己回复20%生命。"
+  },
+  {
+    "level": "LV31",
+    "element": "草",
+    "name": "棘突",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "100",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "LV35",
+    "element": "草",
+    "name": "移花接木",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己回复15%生命，随后脱离。"
+  },
+  {
+    "level": "LV38",
+    "element": "草",
+    "name": "筛管奔流",
+    "energy": "3",
+    "type": "物攻",
+    "power": "80",
+    "description": "✦造成物伤，自己生命大于80%时，本次技能威力+75。"
+  },
+  {
+    "level": "LV39",
+    "element": "草",
+    "name": "孢子",
+    "energy": "3",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方获得1层寄生。"
+  },
+  {
+    "level": "LV47",
+    "element": "草",
+    "name": "抽枝",
+    "energy": "4",
+    "type": "物攻",
+    "power": "90",
+    "description": "✦造成物伤，应对状态：自己回复50%生命和5能量。"
+  },
+  {
+    "level": "LV49",
+    "element": "草",
+    "name": "富养化",
+    "energy": "3",
+    "type": "状态",
+    "power": "0",
+    "description": "✦为场下每个精灵回复3能量。"
+  },
+  {
+    "level": "LV50",
+    "element": "草",
+    "name": "芳香诱引",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得连击数+3，应对防御：额外造成打断，且敌方下回合获得眩晕。"
+  }
+]

@@ -1,0 +1,119 @@
+[
+  {
+    "level": "LV1",
+    "element": "普通",
+    "name": "防御",
+    "energy": "1",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤70%，应对攻击。"
+  },
+  {
+    "level": "LV1",
+    "element": "武",
+    "name": "气波",
+    "energy": "0",
+    "type": "魔攻",
+    "power": "40",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "LV10",
+    "element": "火",
+    "name": "高温回火",
+    "energy": "2",
+    "type": "魔攻",
+    "power": "40",
+    "description": "✦造成魔伤，自己脱离。"
+  },
+  {
+    "level": "LV12",
+    "element": "火",
+    "name": "炎打",
+    "energy": "2",
+    "type": "魔攻",
+    "power": "95",
+    "description": "✦造成高额魔法伤害，自己获得物防-40%。"
+  },
+  {
+    "level": "LV17",
+    "element": "普通",
+    "name": "魔法增效",
+    "energy": "0",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得魔攻+70%。"
+  },
+  {
+    "level": "LV27",
+    "element": "火",
+    "name": "淬火",
+    "energy": "4",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤80%，应对攻击：下次攻击技能威力翻倍。"
+  },
+  {
+    "level": "LV28",
+    "element": "火",
+    "name": "持续高温",
+    "energy": "2",
+    "type": "魔攻",
+    "power": "70",
+    "description": "✦造成魔伤，应对状态：下次攻击技能威力翻倍。"
+  },
+  {
+    "level": "LV29",
+    "element": "火",
+    "name": "怒火",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得双攻+120%和双防-40%。"
+  },
+  {
+    "level": "LV35",
+    "element": "武",
+    "name": "斩断",
+    "energy": "2",
+    "type": "物攻",
+    "power": "75",
+    "description": "✦造成物伤，应对状态：额外打断被应对技能。"
+  },
+  {
+    "level": "LV36",
+    "element": "火",
+    "name": "焚毁",
+    "energy": "2",
+    "type": "魔攻",
+    "power": "60",
+    "description": "✦造成魔伤，驱散敌方所有印记。"
+  },
+  {
+    "level": "LV37",
+    "element": "武",
+    "name": "叠势",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "25",
+    "description": "✦造成魔伤，2连击，每成功应对1次，本技能连击数永久+2。"
+  },
+  {
+    "level": "LV38",
+    "element": "火",
+    "name": "爆裂飞弹",
+    "energy": "7",
+    "type": "魔攻",
+    "power": "160",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "LV48",
+    "element": "武",
+    "name": "听桥",
+    "energy": "4",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤60%，应对攻击：对敌方造成物理伤害，威力与被应对技能相等。"
+  }
+]

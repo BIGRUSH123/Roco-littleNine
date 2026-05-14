@@ -1,0 +1,128 @@
+[
+  {
+    "level": "",
+    "element": "普通",
+    "name": "休息回复",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己回复30%生命。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "伺机而动",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦下一次攻击时，技能威力+70。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "压扁",
+    "energy": "5",
+    "type": "物攻",
+    "power": "155",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "",
+    "element": "武",
+    "name": "反击拳",
+    "energy": "2",
+    "type": "物攻",
+    "power": "25",
+    "description": "✦造成物伤，2连击，若后手攻击，改为3连击。"
+  },
+  {
+    "level": "",
+    "element": "地",
+    "name": "地刺",
+    "energy": "3",
+    "type": "物攻",
+    "power": "95",
+    "description": "✦造成物伤，应对状态：额外打断被应对技能。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "复写",
+    "energy": "0",
+    "type": "状态",
+    "power": "0",
+    "description": "✦每回合随机变成自己未携带的技能，且该技能能耗-2。"
+  },
+  {
+    "level": "",
+    "element": "虫",
+    "name": "尾后针",
+    "energy": "2",
+    "type": "物攻",
+    "power": "80",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "有效预防",
+    "energy": "1",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤50%，应对攻击：下一次行动获得先手+1。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "精神扰乱",
+    "energy": "0",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方获得全技能能耗+1，应对防御：改为能耗+3。"
+  },
+  {
+    "level": "",
+    "element": "虫",
+    "name": "虫击",
+    "energy": "3",
+    "type": "物攻",
+    "power": "90",
+    "description": "✦造成物伤，应对状态：本次技能威力变为2倍，无视敌方系别抵抗。"
+  },
+  {
+    "level": "",
+    "element": "虫",
+    "name": "虫鸣",
+    "energy": "2",
+    "type": "魔攻",
+    "power": "15",
+    "description": "✦造成魔伤，队伍中的精灵每携带1个虫鸣，本次技能连击数+1。"
+  },
+  {
+    "level": "",
+    "element": "地",
+    "name": "震击",
+    "energy": "3",
+    "type": "物攻",
+    "power": "80",
+    "description": "✦造成伤害，敌方获得连击数-3。"
+  },
+  {
+    "level": "",
+    "element": "虫",
+    "name": "飞断",
+    "energy": "1",
+    "type": "物攻",
+    "power": "20",
+    "description": "✦造成物伤，己方队伍获得1次奉献：威力+20。"
+  },
+  {
+    "level": "",
+    "element": "虫",
+    "name": "食腐",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦驱散敌方印记，每层印记回复自己10%生命。"
+  }
+]

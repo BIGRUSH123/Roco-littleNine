@@ -1,0 +1,119 @@
+[
+  {
+    "level": "LV1",
+    "element": "普通",
+    "name": "魔法增效",
+    "energy": "0",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得魔攻+70%。"
+  },
+  {
+    "level": "LV1",
+    "element": "水",
+    "name": "甩水",
+    "energy": "0",
+    "type": "魔攻",
+    "power": "30",
+    "description": "✦造成魔伤，自己回复1能量。"
+  },
+  {
+    "level": "LV5",
+    "element": "水",
+    "name": "水花四溅",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "20",
+    "description": "✦造成魔伤，4连击。"
+  },
+  {
+    "level": "LV7",
+    "element": "翼",
+    "name": "风隐",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方和自己均脱离，先手-1。"
+  },
+  {
+    "level": "LV13",
+    "element": "翼",
+    "name": "回旋风暴",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "100",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "LV21",
+    "element": "水",
+    "name": "打湿",
+    "energy": "4",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得1层湿润印记。"
+  },
+  {
+    "level": "LV24",
+    "element": "普通",
+    "name": "能量炮",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "50",
+    "description": "✦造成魔伤，2连击。"
+  },
+  {
+    "level": "LV28",
+    "element": "普通",
+    "name": "借用",
+    "energy": "0",
+    "type": "状态",
+    "power": "0",
+    "description": "✦每回合随机变成己方队伍中其他精灵的技能。"
+  },
+  {
+    "level": "LV35",
+    "element": "翼",
+    "name": "翼击",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "50",
+    "description": "✦造成魔伤，迅捷。"
+  },
+  {
+    "level": "LV36",
+    "element": "水",
+    "name": "落雨",
+    "energy": "5",
+    "type": "状态",
+    "power": "0",
+    "description": "✦将天气改为雨天，持续8回合。"
+  },
+  {
+    "level": "LV41",
+    "element": "水",
+    "name": "水炮",
+    "energy": "5",
+    "type": "魔攻",
+    "power": "110",
+    "description": "✦造成魔伤，每次使用后，本技能能耗永久-1。"
+  },
+  {
+    "level": "LV47",
+    "element": "水",
+    "name": "盐水浴",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得全技能能耗-2，应对防御：改为技能能耗-3。"
+  },
+  {
+    "level": "LV49",
+    "element": "水",
+    "name": "天洪",
+    "energy": "7",
+    "type": "魔攻",
+    "power": "150",
+    "description": "✦造成魔伤，应对状态：本技能能耗永久-6。"
+  }
+]

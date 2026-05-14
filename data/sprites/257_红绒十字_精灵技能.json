@@ -1,0 +1,119 @@
+[
+  {
+    "level": "LV1",
+    "element": "火",
+    "name": "热气",
+    "energy": "0",
+    "type": "魔攻",
+    "power": "40",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "LV1",
+    "element": "火",
+    "name": "引燃",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方获得10层灼烧。"
+  },
+  {
+    "level": "LV1",
+    "element": "萌",
+    "name": "飞吻",
+    "energy": "2",
+    "type": "魔攻",
+    "power": "80",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "LV2",
+    "element": "火",
+    "name": "火爪",
+    "energy": "1",
+    "type": "魔攻",
+    "power": "60",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "LV10",
+    "element": "普通",
+    "name": "防御",
+    "energy": "1",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤70%，应对攻击。"
+  },
+  {
+    "level": "LV12",
+    "element": "萌",
+    "name": "示弱",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得萌化：速度永久+150。"
+  },
+  {
+    "level": "LV17",
+    "element": "萌",
+    "name": "撒娇",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "30",
+    "description": "✦造成魔伤，3连击。自己获得萌化：威力永久+20。"
+  },
+  {
+    "level": "LV23",
+    "element": "火",
+    "name": "焚烧烙印",
+    "energy": "3",
+    "type": "状态",
+    "power": "0",
+    "description": "✦驱散双方所有印记，每驱散1层，敌方获得5层灼烧。"
+  },
+  {
+    "level": "LV25",
+    "element": "萌",
+    "name": "赤子之心",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得萌化：全技能能耗永久-3。"
+  },
+  {
+    "level": "LV32",
+    "element": "萌",
+    "name": "破罐破摔",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "80",
+    "description": "✦造成魔伤，自己有减益时，本次技能威力+60。"
+  },
+  {
+    "level": "LV34",
+    "element": "火",
+    "name": "天火",
+    "energy": "3",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方获得10层灼烧，应对防御：改为获得30层。"
+  },
+  {
+    "level": "LV49",
+    "element": "火",
+    "name": "易燃物质",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "30",
+    "description": "✦造成魔伤，2连击，每次连击使敌方获得2层灼烧。"
+  },
+  {
+    "level": "LV50",
+    "element": "火",
+    "name": "爆裂飞弹",
+    "energy": "7",
+    "type": "魔攻",
+    "power": "160",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  }
+]

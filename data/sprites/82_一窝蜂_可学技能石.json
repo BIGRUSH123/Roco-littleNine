@@ -1,0 +1,155 @@
+[
+  {
+    "level": "",
+    "element": "普通",
+    "name": "借用",
+    "energy": "0",
+    "type": "状态",
+    "power": "0",
+    "description": "✦每回合随机变成己方队伍中其他精灵的技能。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "倾泻",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "70",
+    "description": "✦造成魔伤，若本次攻击未被防御技能应对，则驱散双方所有印记。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "加固",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得物防+140%。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "快速移动",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得速度+80，应对防御：改为速度+160。"
+  },
+  {
+    "level": "",
+    "element": "恶",
+    "name": "掠夺",
+    "energy": "1",
+    "type": "魔攻",
+    "power": "60",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "",
+    "element": "恶",
+    "name": "撕咬",
+    "energy": "3",
+    "type": "物攻",
+    "power": "30",
+    "description": "✦造成物伤，3连击，若自己的生命低于50%，本次技能连击数+2。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "有效预防",
+    "energy": "1",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤50%，应对攻击：下一次行动获得先手+1。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "热身运动",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得连击数+3。"
+  },
+  {
+    "level": "",
+    "element": "翼",
+    "name": "疾风刺",
+    "energy": "2",
+    "type": "物攻",
+    "power": "25",
+    "description": "✦造成物伤，1连击，若先于敌方攻击，改为3连击。"
+  },
+  {
+    "level": "",
+    "element": "毒",
+    "name": "瘴气喷射",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "100",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "精神扰乱",
+    "energy": "0",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方获得全技能能耗+1，应对防御：改为能耗+3。"
+  },
+  {
+    "level": "",
+    "element": "毒",
+    "name": "腐化",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方每有1层中毒效果，敌方获得双攻-30%。"
+  },
+  {
+    "level": "",
+    "element": "虫",
+    "name": "虫击",
+    "energy": "3",
+    "type": "物攻",
+    "power": "90",
+    "description": "✦造成物伤，应对状态：本次技能威力变为2倍，无视敌方系别抵抗。"
+  },
+  {
+    "level": "",
+    "element": "毒",
+    "name": "连续毒针",
+    "energy": "2",
+    "type": "物攻",
+    "power": "15",
+    "description": "✦造成物伤，2连击，每次连击使敌方获得1层中毒。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "追打",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "75",
+    "description": "✦造成魔伤，1连击，应对状态：本技能变为3连击。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "防御",
+    "energy": "1",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤70%，应对攻击。"
+  },
+  {
+    "level": "",
+    "element": "毒",
+    "name": "鸩毒",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "75",
+    "description": "✦造成魔伤，敌方每有1层中毒效果，本次技能威力+10，应对状态：改为本次威力+20。"
+  }
+]

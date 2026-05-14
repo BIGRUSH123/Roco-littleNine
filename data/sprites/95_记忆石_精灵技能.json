@@ -1,0 +1,137 @@
+[
+  {
+    "level": "LV1",
+    "element": "普通",
+    "name": "魔法增效",
+    "energy": "0",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得魔攻+70%。"
+  },
+  {
+    "level": "LV1",
+    "element": "普通",
+    "name": "防御",
+    "energy": "1",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤70%，应对攻击。"
+  },
+  {
+    "level": "LV1",
+    "element": "地",
+    "name": "扬沙",
+    "energy": "1",
+    "type": "物攻",
+    "power": "60",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "LV7",
+    "element": "地",
+    "name": "跺地",
+    "energy": "2",
+    "type": "物攻",
+    "power": "80",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "LV9",
+    "element": "普通",
+    "name": "力量增效",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得物攻+100%。"
+  },
+  {
+    "level": "LV13",
+    "element": "地",
+    "name": "陨石",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "100",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "LV20",
+    "element": "地",
+    "name": "钧势",
+    "energy": "3",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得物防+140%和速度-30。"
+  },
+  {
+    "level": "LV22",
+    "element": "普通",
+    "name": "践踏",
+    "energy": "4",
+    "type": "物攻",
+    "power": "130",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "LV26",
+    "element": "地",
+    "name": "蓄势待发",
+    "energy": "4",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得1层蓄势印记。"
+  },
+  {
+    "level": "LV32",
+    "element": "地",
+    "name": "地震",
+    "energy": "10",
+    "type": "物攻",
+    "power": "190",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "LV34",
+    "element": "地",
+    "name": "沙涌",
+    "energy": "7",
+    "type": "状态",
+    "power": "0",
+    "description": "✦将天气改为沙暴，持续8回合。"
+  },
+  {
+    "level": "LV35",
+    "element": "地",
+    "name": "抛石",
+    "energy": "30",
+    "type": "物攻",
+    "power": "140",
+    "description": "✦造成物伤，回合结束时，本技能能耗永久-5。"
+  },
+  {
+    "level": "LV48",
+    "element": "地",
+    "name": "泥浆铠甲",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得物攻和物防+60%，应对防御：额外使自己的增益翻倍。"
+  },
+  {
+    "level": "LV49",
+    "element": "地",
+    "name": "裂石",
+    "energy": "3",
+    "type": "物攻",
+    "power": "95",
+    "description": "✦造成物伤，应对状态：敌方获得物防-80%。"
+  },
+  {
+    "level": "LV50",
+    "element": "地",
+    "name": "地陷",
+    "energy": "5",
+    "type": "物攻",
+    "power": "80",
+    "description": "✦造成物伤，自己获得物防+70%，应对状态：本次技能威力翻倍，且物防额外+70%。"
+  }
+]

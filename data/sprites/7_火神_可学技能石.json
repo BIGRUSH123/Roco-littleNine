@@ -1,0 +1,119 @@
+[
+  {
+    "level": "",
+    "element": "翼",
+    "name": "乘风",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得速度+120。"
+  },
+  {
+    "level": "",
+    "element": "恶",
+    "name": "力量吞噬",
+    "energy": "4",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方获得全技能威力-20，自己获得全技能威力+20。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "压扁",
+    "energy": "5",
+    "type": "物攻",
+    "power": "155",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "复写",
+    "energy": "0",
+    "type": "状态",
+    "power": "0",
+    "description": "✦每回合随机变成自己未携带的技能，且该技能能耗-2。"
+  },
+  {
+    "level": "",
+    "element": "翼",
+    "name": "扇风",
+    "energy": "3",
+    "type": "物攻",
+    "power": "75",
+    "description": "✦造成物伤，若先于敌方攻击，本次技能威力+50%。"
+  },
+  {
+    "level": "",
+    "element": "恶",
+    "name": "暗突袭",
+    "energy": "4",
+    "type": "物攻",
+    "power": "70",
+    "description": "✦造成物伤，吸血50%，应对状态：本次技能威力翻倍。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "精神扰乱",
+    "energy": "0",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方获得全技能能耗+1，应对防御：改为能耗+3。"
+  },
+  {
+    "level": "",
+    "element": "恶",
+    "name": "诋毁",
+    "energy": "2",
+    "type": "物攻",
+    "power": "80",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "锐利眼神",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方获得物防和魔防-120%。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "阻断",
+    "energy": "2",
+    "type": "魔攻",
+    "power": "80",
+    "description": "✦造成魔伤，应对状态：额外打断被应对技能。"
+  },
+  {
+    "level": "",
+    "element": "翼",
+    "name": "风矢",
+    "energy": "2",
+    "type": "物攻",
+    "power": "80",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "",
+    "element": "龙",
+    "name": "龙之利爪",
+    "energy": "3",
+    "type": "物攻",
+    "power": "130",
+    "description": "✦蓄力，造成物伤并吸血50%。"
+  },
+  {
+    "level": "",
+    "element": "翼",
+    "name": "龙卷风",
+    "energy": "5",
+    "type": "物攻",
+    "power": "70",
+    "description": "✦造成物伤，迅捷，应对状态：本次技能威力变为1.5倍。"
+  }
+]

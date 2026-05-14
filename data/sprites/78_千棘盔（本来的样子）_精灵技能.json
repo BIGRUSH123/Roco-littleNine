@@ -1,0 +1,119 @@
+[
+  {
+    "level": "LV1",
+    "element": "普通",
+    "name": "防御",
+    "energy": "1",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤70%，应对攻击。"
+  },
+  {
+    "level": "LV1",
+    "element": "水",
+    "name": "甩水",
+    "energy": "0",
+    "type": "魔攻",
+    "power": "30",
+    "description": "✦造成魔伤，自己回复1能量。"
+  },
+  {
+    "level": "LV8",
+    "element": "水",
+    "name": "蓄水",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦下次使用的技能能耗-6。"
+  },
+  {
+    "level": "LV9",
+    "element": "毒",
+    "name": "腐蚀酸液",
+    "energy": "2",
+    "type": "魔攻",
+    "power": "35",
+    "description": "✦造成魔伤，敌方获得2层中毒。"
+  },
+  {
+    "level": "LV16",
+    "element": "毒",
+    "name": "腐化",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方每有1层中毒效果，敌方获得双攻-30%。"
+  },
+  {
+    "level": "LV28",
+    "element": "普通",
+    "name": "许愿星",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "110",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "LV35",
+    "element": "毒",
+    "name": "疫病吐息",
+    "energy": "3",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方获得1层中毒印记。"
+  },
+  {
+    "level": "LV36",
+    "element": "水",
+    "name": "泡沫幻影",
+    "energy": "2",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤80%，应对攻击：自己脱离。"
+  },
+  {
+    "level": "LV37",
+    "element": "毒",
+    "name": "毒液渗透",
+    "energy": "5",
+    "type": "魔攻",
+    "power": "120",
+    "description": "✦造成魔伤，敌方每有1层中毒效果，本技能能耗-1，敌方获得1层中毒。"
+  },
+  {
+    "level": "LV40",
+    "element": "毒",
+    "name": "毒雾",
+    "energy": "7",
+    "type": "状态",
+    "power": "0",
+    "description": "✦将敌方所有增益，转化成中毒。"
+  },
+  {
+    "level": "LV41",
+    "element": "水",
+    "name": "涌泉",
+    "energy": "6",
+    "type": "魔攻",
+    "power": "60",
+    "description": "✦造成魔伤，本技能能耗每-1，威力+10。"
+  },
+  {
+    "level": "LV49",
+    "element": "水",
+    "name": "盐水浴",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得全技能能耗-2，应对防御：改为技能能耗-3。"
+  },
+  {
+    "level": "LV50",
+    "element": "毒",
+    "name": "感染病",
+    "energy": "4",
+    "type": "魔攻",
+    "power": "85",
+    "description": "✦造成魔伤，若击败敌方则将中毒转化为中毒印记。"
+  }
+]

@@ -1,0 +1,146 @@
+[
+  {
+    "level": "",
+    "element": "幻",
+    "name": "二律背反",
+    "energy": "4",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方获得3层星陨印记，应对防御：额外使敌方星陨印记层数翻倍。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "借用",
+    "energy": "0",
+    "type": "状态",
+    "power": "0",
+    "description": "✦每回合随机变成己方队伍中其他精灵的技能。"
+  },
+  {
+    "level": "",
+    "element": "冰",
+    "name": "冰捆缚",
+    "energy": "3",
+    "type": "状态",
+    "power": "0",
+    "description": "✦2连击，每次连击敌方获得全技能能耗+1。"
+  },
+  {
+    "level": "",
+    "element": "冰",
+    "name": "冷风",
+    "energy": "1",
+    "type": "魔攻",
+    "power": "60",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "",
+    "element": "萌",
+    "name": "击鼓传花",
+    "energy": "3",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己脱离，下个入场精灵继承自己增益。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "力量增效",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得物攻+100%。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "加固",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得物防+140%。"
+  },
+  {
+    "level": "",
+    "element": "幻",
+    "name": "双星",
+    "energy": "3",
+    "type": "物攻",
+    "power": "100",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "",
+    "element": "幻",
+    "name": "坍缩",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "85",
+    "description": "✦造成魔伤，若击败敌方，自己获得魔攻+70%。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "应激反应",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己回复25%生命，应对防御：改为回复50%生命。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "无畏之心",
+    "energy": "5",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤100%，应对攻击：减免的伤害变为回复自己生命，且本技能能耗永久+2。"
+  },
+  {
+    "level": "",
+    "element": "幻",
+    "name": "星轨裂变",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方获得2层星陨印记。"
+  },
+  {
+    "level": "",
+    "element": "萌",
+    "name": "爆米花爆破",
+    "energy": "5",
+    "type": "物攻",
+    "power": "140",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "",
+    "element": "冰",
+    "name": "瞬间零度",
+    "energy": "0",
+    "type": "状态",
+    "power": "0",
+    "description": "✦本回合敌方使用的技能能耗+3，应对防御：改为全技能能耗+3。"
+  },
+  {
+    "level": "",
+    "element": "萌",
+    "name": "赤子之心",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得萌化：全技能能耗永久-3。"
+  },
+  {
+    "level": "",
+    "element": "冰",
+    "name": "霜天",
+    "energy": "4",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方获得1层冻结，且每有1层冻结获得全技能能耗+1。"
+  }
+]

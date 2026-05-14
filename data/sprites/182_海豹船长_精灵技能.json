@@ -1,0 +1,137 @@
+[
+  {
+    "level": "LV1",
+    "element": "武",
+    "name": "气波",
+    "energy": "0",
+    "type": "魔攻",
+    "power": "40",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "LV1",
+    "element": "普通",
+    "name": "魔法增效",
+    "energy": "0",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得魔攻+70%。"
+  },
+  {
+    "level": "LV1",
+    "element": "水",
+    "name": "水泡盾",
+    "energy": "2",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤80%，应对攻击：自己获得魔攻+70%。"
+  },
+  {
+    "level": "LV7",
+    "element": "水",
+    "name": "泡沫",
+    "energy": "1",
+    "type": "物攻",
+    "power": "60",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "LV9",
+    "element": "水",
+    "name": "蓄水",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦下次使用的技能能耗-6。"
+  },
+  {
+    "level": "LV13",
+    "element": "普通",
+    "name": "先发制人",
+    "energy": "2",
+    "type": "物攻",
+    "power": "55",
+    "description": "✦造成物理伤害，先手+1。"
+  },
+  {
+    "level": "LV17",
+    "element": "普通",
+    "name": "力量增效",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得物攻+100%。"
+  },
+  {
+    "level": "LV22",
+    "element": "武",
+    "name": "防御反击",
+    "energy": "3",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤80%，应对攻击：自己获得全技能威力+40。"
+  },
+  {
+    "level": "LV27",
+    "element": "水",
+    "name": "气泡",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "100",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "LV29",
+    "element": "武",
+    "name": "化劲",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得全技能威力+40。"
+  },
+  {
+    "level": "LV35",
+    "element": "水",
+    "name": "水幕冲击",
+    "energy": "3",
+    "type": "物攻",
+    "power": "100",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "LV36",
+    "element": "武",
+    "name": "听桥",
+    "energy": "4",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤60%，应对攻击：对敌方造成物理伤害，威力与被应对技能相等。"
+  },
+  {
+    "level": "LV37",
+    "element": "武",
+    "name": "一拳",
+    "energy": "5",
+    "type": "物攻",
+    "power": "140",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "LV40",
+    "element": "武",
+    "name": "斩断",
+    "energy": "2",
+    "type": "物攻",
+    "power": "75",
+    "description": "✦造成物伤，应对状态：额外打断被应对技能。"
+  },
+  {
+    "level": "LV50",
+    "element": "水",
+    "name": "水刃",
+    "energy": "4",
+    "type": "物攻",
+    "power": "115",
+    "description": "✦造成物伤，应对状态：本技能能耗永久-4。"
+  }
+]

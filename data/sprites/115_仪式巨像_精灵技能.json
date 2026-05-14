@@ -1,0 +1,146 @@
+[
+  {
+    "level": "LV1",
+    "element": "地",
+    "name": "硬化",
+    "energy": "2",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤90%，若上次使用攻击技则本技能能耗-2，应对攻击。"
+  },
+  {
+    "level": "LV1",
+    "element": "幻",
+    "name": "偷师",
+    "energy": "0",
+    "type": "物攻",
+    "power": "30",
+    "description": "✦造成物伤，自己回复1能量。"
+  },
+  {
+    "level": "LV1",
+    "element": "幻",
+    "name": "星轨裂变",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方获得2层星陨印记。"
+  },
+  {
+    "level": "LV4",
+    "element": "地",
+    "name": "热砂",
+    "energy": "2",
+    "type": "魔攻",
+    "power": "80",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "LV9",
+    "element": "普通",
+    "name": "魔法增效",
+    "energy": "0",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得魔攻+70%。"
+  },
+  {
+    "level": "LV11",
+    "element": "地",
+    "name": "落石",
+    "energy": "1",
+    "type": "物攻",
+    "power": "55",
+    "description": "✦造成物伤，1连击。"
+  },
+  {
+    "level": "LV16",
+    "element": "普通",
+    "name": "力量增效",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得物攻+100%。"
+  },
+  {
+    "level": "LV21",
+    "element": "地",
+    "name": "不动如山",
+    "energy": "2",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤90%，应对攻击。"
+  },
+  {
+    "level": "LV26",
+    "element": "地",
+    "name": "陨石",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "100",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "LV30",
+    "element": "幻",
+    "name": "超新星馈赠",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方获得2层星陨印记，每使用1次，赋予的星陨印记层数+1。"
+  },
+  {
+    "level": "LV35",
+    "element": "幻",
+    "name": "坍缩",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "85",
+    "description": "✦造成魔伤，若击败敌方，自己获得魔攻+70%。"
+  },
+  {
+    "level": "LV36",
+    "element": "地",
+    "name": "钧势",
+    "energy": "3",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得物防+140%和速度-30。"
+  },
+  {
+    "level": "LV39",
+    "element": "地",
+    "name": "沙涌",
+    "energy": "7",
+    "type": "状态",
+    "power": "0",
+    "description": "✦将天气改为沙暴，持续8回合。"
+  },
+  {
+    "level": "LV40",
+    "element": "地",
+    "name": "流沙",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方3回合无法更换精灵，应对防御：敌方获得双防-60%。"
+  },
+  {
+    "level": "LV42",
+    "element": "地",
+    "name": "抛石",
+    "energy": "30",
+    "type": "物攻",
+    "power": "140",
+    "description": "✦造成物伤，回合结束时，本技能能耗永久-5。"
+  },
+  {
+    "level": "LV44",
+    "element": "地",
+    "name": "泥浆铠甲",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得物攻和物防+60%，应对防御：额外使自己的增益翻倍。"
+  }
+]

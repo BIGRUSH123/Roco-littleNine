@@ -1,0 +1,128 @@
+[
+  {
+    "level": "LV1",
+    "element": "冰",
+    "name": "丢冰块",
+    "energy": "3",
+    "type": "物攻",
+    "power": "90",
+    "description": "✦造成物伤，敌方获得速度-30。"
+  },
+  {
+    "level": "LV1",
+    "element": "普通",
+    "name": "力量增效",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得物攻+100%。"
+  },
+  {
+    "level": "LV7",
+    "element": "冰",
+    "name": "暴风雪",
+    "energy": "3",
+    "type": "物攻",
+    "power": "85",
+    "description": "✦造成物伤，敌方获得1层冻结。"
+  },
+  {
+    "level": "LV12",
+    "element": "地",
+    "name": "岩脉崩毁",
+    "energy": "4",
+    "type": "物攻",
+    "power": "120",
+    "description": "✦造成物伤，本技能能耗固定为4。"
+  },
+  {
+    "level": "LV17",
+    "element": "普通",
+    "name": "防御",
+    "energy": "1",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤70%，应对攻击。"
+  },
+  {
+    "level": "LV25",
+    "element": "地",
+    "name": "地刺",
+    "energy": "3",
+    "type": "物攻",
+    "power": "95",
+    "description": "✦造成物伤，应对状态：额外打断被应对技能。"
+  },
+  {
+    "level": "LV32",
+    "element": "冰",
+    "name": "雪球",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方获得速度-90。"
+  },
+  {
+    "level": "LV33",
+    "element": "冰",
+    "name": "冰晶坠",
+    "energy": "4",
+    "type": "物攻",
+    "power": "90",
+    "description": "✦造成物伤，敌方获得全技能能耗+1。"
+  },
+  {
+    "level": "LV39",
+    "element": "地",
+    "name": "石肤术",
+    "energy": "3",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得物防+160%和魔防-60%。"
+  },
+  {
+    "level": "LV40",
+    "element": "地",
+    "name": "砂石冲撞",
+    "energy": "3",
+    "type": "物攻",
+    "power": "80",
+    "description": "✦造成物伤，若敌方本回合更换精灵，自己获得物防+100%。"
+  },
+  {
+    "level": "LV41",
+    "element": "地",
+    "name": "石锁",
+    "energy": "3",
+    "type": "物攻",
+    "power": "50",
+    "description": "✦造成物伤，敌方3回合无法更换精灵。"
+  },
+  {
+    "level": "LV42",
+    "element": "冰",
+    "name": "霜冻",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方获得魔防-100%。"
+  },
+  {
+    "level": "LV45",
+    "element": "冰",
+    "name": "冰雹",
+    "energy": "4",
+    "type": "物攻",
+    "power": "105",
+    "description": "✦造成物伤，应对状态：额外使敌方获得全技能能耗+3。"
+  },
+  {
+    "level": "LV50",
+    "element": "冰",
+    "name": "滚雪球",
+    "energy": "3",
+    "type": "物攻",
+    "power": "55",
+    "description": "✦造成物伤，敌方获得2层冻结，应对状态：额外获得2层，本次技能威力翻倍。"
+  }
+]

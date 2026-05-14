@@ -1,0 +1,128 @@
+[
+  {
+    "level": "",
+    "element": "冰",
+    "name": "冰点",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方获得5层冻结，应对防御：额外获得5层。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "取念",
+    "energy": "0",
+    "type": "状态",
+    "power": "0",
+    "description": "✦每回合随机变成敌方任意精灵的技能，且该技能能耗-2。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "埋伏",
+    "energy": "4",
+    "type": "魔攻",
+    "power": "30",
+    "description": "✦造成魔伤，3连击，若敌方本回合更换精灵，本次技能连击数+3。"
+  },
+  {
+    "level": "",
+    "element": "电",
+    "name": "强制重启",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "90",
+    "description": "✦造成魔伤，应对状态：回合结束时使敌方精灵返场。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "摇篮曲",
+    "energy": "5",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方获得全技能能耗+3，应对防御：额外造成打断，且敌方下回合获得眩晕。"
+  },
+  {
+    "level": "",
+    "element": "机械",
+    "name": "杠杆置换",
+    "energy": "0",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己回复2能量，交换两侧技能位置。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "突袭",
+    "energy": "2",
+    "type": "魔攻",
+    "power": "70",
+    "description": "✦造成魔伤，应对状态：本次技能威力变为3倍。"
+  },
+  {
+    "level": "",
+    "element": "水",
+    "name": "肥皂泡",
+    "energy": "1",
+    "type": "魔攻",
+    "power": "60",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "许愿星",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "110",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "",
+    "element": "电",
+    "name": "过载回路",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦回合结束自己返场，下回合所选技能使用次数+1。"
+  },
+  {
+    "level": "",
+    "element": "机械",
+    "name": "金属噪音",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "100",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "阻断",
+    "energy": "2",
+    "type": "魔攻",
+    "power": "80",
+    "description": "✦造成魔伤，应对状态：额外打断被应对技能。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "音爆",
+    "energy": "4",
+    "type": "魔攻",
+    "power": "130",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "魔法增效",
+    "energy": "0",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得魔攻+70%。"
+  }
+]

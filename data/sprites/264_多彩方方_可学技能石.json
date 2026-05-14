@@ -1,0 +1,119 @@
+[
+  {
+    "level": "",
+    "element": "普通",
+    "name": "复写",
+    "energy": "0",
+    "type": "状态",
+    "power": "0",
+    "description": "✦每回合随机变成自己未携带的技能，且该技能能耗-2。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "晒太阳",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦驱散敌方所有增益。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "有效预防",
+    "energy": "1",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤50%，应对攻击：下一次行动获得先手+1。"
+  },
+  {
+    "level": "",
+    "element": "萌",
+    "name": "甜心续航",
+    "energy": "3",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己和敌方获得萌化：回复40%生命和4能量。"
+  },
+  {
+    "level": "",
+    "element": "电",
+    "name": "电弧",
+    "energy": "3",
+    "type": "物攻",
+    "power": "80",
+    "description": "✦造成物伤，迸发：本次技能威力+40。"
+  },
+  {
+    "level": "",
+    "element": "电",
+    "name": "电磁偏转",
+    "energy": "3",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤70%，应对攻击：下回合所选技能使用次数+1。"
+  },
+  {
+    "level": "",
+    "element": "萌",
+    "name": "示弱",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得萌化：速度永久+150。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "精神扰乱",
+    "energy": "0",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方获得全技能能耗+1，应对防御：改为能耗+3。"
+  },
+  {
+    "level": "",
+    "element": "萌",
+    "name": "超级糖果",
+    "energy": "3",
+    "type": "物攻",
+    "power": "100",
+    "description": "✦造成物伤，自己获得萌化：本次技能威力+60。"
+  },
+  {
+    "level": "",
+    "element": "电",
+    "name": "过载回路",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦回合结束自己返场，下回合所选技能使用次数+1。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "防反",
+    "energy": "2",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤60%，应对攻击：自己获得物攻和魔攻+40%。"
+  },
+  {
+    "level": "",
+    "element": "萌",
+    "name": "鞭打",
+    "energy": "0",
+    "type": "物攻",
+    "power": "40",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "",
+    "element": "电",
+    "name": "麻痹",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方先手-1，应对防御：额外使敌方获得双攻-70%。"
+  }
+]

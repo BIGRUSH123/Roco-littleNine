@@ -1,0 +1,146 @@
+[
+  {
+    "level": "LV1",
+    "element": "普通",
+    "name": "防御",
+    "energy": "1",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤70%，应对攻击。"
+  },
+  {
+    "level": "LV1",
+    "element": "冰",
+    "name": "风吹雪",
+    "energy": "0",
+    "type": "魔攻",
+    "power": "30",
+    "description": "✦造成魔伤，自己回复1能量。"
+  },
+  {
+    "level": "LV1",
+    "element": "冰",
+    "name": "霜降",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方获得4层冻结。"
+  },
+  {
+    "level": "LV8",
+    "element": "冰",
+    "name": "寒风吹",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "70",
+    "description": "✦造成魔伤，敌方获得魔防-50%。"
+  },
+  {
+    "level": "LV9",
+    "element": "普通",
+    "name": "魔法增效",
+    "energy": "0",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得魔攻+70%。"
+  },
+  {
+    "level": "LV11",
+    "element": "冰",
+    "name": "暴风雪",
+    "energy": "3",
+    "type": "物攻",
+    "power": "85",
+    "description": "✦造成物伤，敌方获得1层冻结。"
+  },
+  {
+    "level": "LV17",
+    "element": "冰",
+    "name": "雾气环绕",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦回复能量，回复值等于敌方技能总能耗的一半。"
+  },
+  {
+    "level": "LV22",
+    "element": "冰",
+    "name": "冰晶坠",
+    "energy": "4",
+    "type": "物攻",
+    "power": "90",
+    "description": "✦造成物伤，敌方获得全技能能耗+1。"
+  },
+  {
+    "level": "LV26",
+    "element": "普通",
+    "name": "力量增效",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得物攻+100%。"
+  },
+  {
+    "level": "LV29",
+    "element": "普通",
+    "name": "旋转突击",
+    "energy": "3",
+    "type": "物攻",
+    "power": "35",
+    "description": "✦造成物伤，3连击。"
+  },
+  {
+    "level": "LV35",
+    "element": "冰",
+    "name": "霜天",
+    "energy": "4",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方获得1层冻结，且每有1层冻结获得全技能能耗+1。"
+  },
+  {
+    "level": "LV36",
+    "element": "冰",
+    "name": "碎冰冰",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "40",
+    "description": "✦造成魔伤，敌方每有1层冻结，本次技能威力+20。"
+  },
+  {
+    "level": "LV37",
+    "element": "冰",
+    "name": "冰点",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方获得5层冻结，应对防御：额外获得5层。"
+  },
+  {
+    "level": "LV40",
+    "element": "冰",
+    "name": "冰锋横扫",
+    "energy": "4",
+    "type": "魔攻",
+    "power": "0",
+    "description": "✦造成魔伤，本技能威力等于敌方精灵技能总能耗的10倍。"
+  },
+  {
+    "level": "LV45",
+    "element": "冰",
+    "name": "冰雹",
+    "energy": "4",
+    "type": "物攻",
+    "power": "105",
+    "description": "✦造成物伤，应对状态：额外使敌方获得全技能能耗+3。"
+  },
+  {
+    "level": "LV48",
+    "element": "冰",
+    "name": "极寒领域",
+    "energy": "6",
+    "type": "魔攻",
+    "power": "105",
+    "description": "✦造成魔伤，若敌方有冻结，本次技能威力+60，应对状态：使冻结翻倍。"
+  }
+]

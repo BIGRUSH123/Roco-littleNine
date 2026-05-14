@@ -1,0 +1,137 @@
+[
+  {
+    "level": "LV1",
+    "element": "普通",
+    "name": "防御",
+    "energy": "1",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤70%，应对攻击。"
+  },
+  {
+    "level": "LV1",
+    "element": "水",
+    "name": "水弹",
+    "energy": "0",
+    "type": "魔攻",
+    "power": "40",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "LV8",
+    "element": "水",
+    "name": "洗礼",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦驱散自己的减益，并获得全技能能耗-1。"
+  },
+  {
+    "level": "LV10",
+    "element": "水",
+    "name": "泡沫",
+    "energy": "1",
+    "type": "物攻",
+    "power": "60",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "LV12",
+    "element": "普通",
+    "name": "晒太阳",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦驱散敌方所有增益。"
+  },
+  {
+    "level": "LV16",
+    "element": "水",
+    "name": "水幕冲击",
+    "energy": "3",
+    "type": "物攻",
+    "power": "100",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "LV23",
+    "element": "水",
+    "name": "蓄水",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦下次使用的技能能耗-6。"
+  },
+  {
+    "level": "LV26",
+    "element": "水",
+    "name": "潮汐",
+    "energy": "4",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤60%，应对攻击：自己获得1层湿润印记。"
+  },
+  {
+    "level": "LV32",
+    "element": "普通",
+    "name": "消毒法",
+    "energy": "4",
+    "type": "魔攻",
+    "power": "115",
+    "description": "✦造成魔伤，驱散敌方5层增益。"
+  },
+  {
+    "level": "LV38",
+    "element": "普通",
+    "name": "休息回复",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己回复30%生命。"
+  },
+  {
+    "level": "LV41",
+    "element": "水",
+    "name": "水波术",
+    "energy": "6",
+    "type": "魔攻",
+    "power": "90",
+    "description": "✦造成魔伤，回合结束时，本技能威力永久+20。"
+  },
+  {
+    "level": "LV43",
+    "element": "普通",
+    "name": "棘刺",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方获得1层棘刺印记。"
+  },
+  {
+    "level": "LV47",
+    "element": "水",
+    "name": "打湿",
+    "energy": "4",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得1层湿润印记。"
+  },
+  {
+    "level": "LV48",
+    "element": "普通",
+    "name": "魔能爆",
+    "energy": "0",
+    "type": "魔攻",
+    "power": "1",
+    "description": "✦造成魔伤，使用时消耗所有能量，消耗越高，伤害越高。"
+  },
+  {
+    "level": "LV49",
+    "element": "水",
+    "name": "盐水浴",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得全技能能耗-2，应对防御：改为技能能耗-3。"
+  }
+]

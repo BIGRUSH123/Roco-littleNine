@@ -1,0 +1,146 @@
+[
+  {
+    "level": "",
+    "element": "普通",
+    "name": "借用",
+    "energy": "0",
+    "type": "状态",
+    "power": "0",
+    "description": "✦每回合随机变成己方队伍中其他精灵的技能。"
+  },
+  {
+    "level": "",
+    "element": "地",
+    "name": "刺盾",
+    "energy": "2",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤70%，应对攻击：敌方获得物攻-70%。"
+  },
+  {
+    "level": "",
+    "element": "草",
+    "name": "叶绿光束",
+    "energy": "4",
+    "type": "魔攻",
+    "power": "120",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "吓退",
+    "energy": "2",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤60%，应对攻击：敌方脱离。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "嗜痛",
+    "energy": "2",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤80%，应对攻击：期间自己每次受到伤害，获得双攻+40%。"
+  },
+  {
+    "level": "",
+    "element": "幽",
+    "name": "坟场搏击",
+    "energy": "4",
+    "type": "物攻",
+    "power": "180",
+    "description": "✦造成物伤，敌方每有1能量，本次技能威力-10%。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "埋伏",
+    "energy": "4",
+    "type": "魔攻",
+    "power": "30",
+    "description": "✦造成魔伤，3连击，若敌方本回合更换精灵，本次技能连击数+3。"
+  },
+  {
+    "level": "",
+    "element": "地",
+    "name": "岩土暴击",
+    "energy": "8",
+    "type": "物攻",
+    "power": "140",
+    "description": "✦造成物伤，每被攻击1次。本技能能耗永久-1。"
+  },
+  {
+    "level": "",
+    "element": "幽",
+    "name": "恐吓",
+    "energy": "2",
+    "type": "魔攻",
+    "power": "80",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "操控",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方本回合使用的技能能耗+7，持续3回合。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "棘刺",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方获得1层棘刺印记。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "热身运动",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得连击数+3。"
+  },
+  {
+    "level": "",
+    "element": "草",
+    "name": "纤维化",
+    "energy": "2",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤80%，应对攻击：自己获得物防+70%。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "蓄能轰击",
+    "energy": "6",
+    "type": "魔攻",
+    "power": "130",
+    "description": "✦造成魔伤，每使用1次普通系技能，本技能能耗永久-2。"
+  },
+  {
+    "level": "",
+    "element": "草",
+    "name": "藤绞",
+    "energy": "4",
+    "type": "物攻",
+    "power": "80",
+    "description": "✦造成物伤，自己回复5能量。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "血气",
+    "energy": "2",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤60%，应对攻击：本回合受到致命伤害时，保留1生命值。"
+  }
+]

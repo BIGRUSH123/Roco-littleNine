@@ -1,0 +1,128 @@
+[
+  {
+    "level": "",
+    "element": "普通",
+    "name": "倾泻",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "70",
+    "description": "✦造成魔伤，若本次攻击未被防御技能应对，则驱散双方所有印记。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "力量增效",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得物攻+100%。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "嗜痛",
+    "energy": "2",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤80%，应对攻击：期间自己每次受到伤害，获得双攻+40%。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "复写",
+    "energy": "0",
+    "type": "状态",
+    "power": "0",
+    "description": "✦每回合随机变成自己未携带的技能，且该技能能耗-2。"
+  },
+  {
+    "level": "",
+    "element": "火",
+    "name": "山火",
+    "energy": "3",
+    "type": "物攻",
+    "power": "15",
+    "description": "✦造成物伤，每使用1次其他火系技能，本技能威力永久翻倍。"
+  },
+  {
+    "level": "",
+    "element": "幽",
+    "name": "报复",
+    "energy": "2",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤70%，应对攻击：敌方失去3能量。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "无畏之心",
+    "energy": "5",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤100%，应对攻击：减免的伤害变为回复自己生命，且本技能能耗永久+2。"
+  },
+  {
+    "level": "",
+    "element": "火",
+    "name": "淬火",
+    "energy": "4",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤80%，应对攻击：下次攻击技能威力翻倍。"
+  },
+  {
+    "level": "",
+    "element": "草",
+    "name": "移花接木",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己回复15%生命，随后脱离。"
+  },
+  {
+    "level": "",
+    "element": "草",
+    "name": "蜡质膜",
+    "energy": "2",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤80%，应对攻击：回复3能量。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "血气",
+    "energy": "2",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤60%，应对攻击：本回合受到致命伤害时，保留1生命值。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "见招拆招",
+    "energy": "2",
+    "type": "物攻",
+    "power": "65",
+    "description": "✦造成物伤，若上回合使用状态技能，本次技能威力+55。"
+  },
+  {
+    "level": "",
+    "element": "幽",
+    "name": "诡刺",
+    "energy": "0",
+    "type": "物攻",
+    "power": "40",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "",
+    "element": "草",
+    "name": "顶端优势",
+    "energy": "3",
+    "type": "物攻",
+    "power": "100",
+    "description": "✦对敌方精灵造成物理伤害。"
+  }
+]

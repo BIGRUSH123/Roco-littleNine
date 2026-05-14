@@ -1,0 +1,119 @@
+[
+  {
+    "level": "LV1",
+    "element": "火",
+    "name": "热气",
+    "energy": "0",
+    "type": "魔攻",
+    "power": "40",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "LV1",
+    "element": "普通",
+    "name": "魔法增效",
+    "energy": "0",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得魔攻+70%。"
+  },
+  {
+    "level": "LV1",
+    "element": "火",
+    "name": "除厄",
+    "energy": "2",
+    "type": "魔攻",
+    "power": "60",
+    "description": "✦造成魔伤，驱散自己的减益。"
+  },
+  {
+    "level": "LV5",
+    "element": "普通",
+    "name": "防御",
+    "energy": "1",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤70%，应对攻击。"
+  },
+  {
+    "level": "LV8",
+    "element": "火",
+    "name": "炎枪",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "100",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "LV11",
+    "element": "火",
+    "name": "引燃",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方获得10层灼烧。"
+  },
+  {
+    "level": "LV16",
+    "element": "普通",
+    "name": "耀眼",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方获得连击数-4。"
+  },
+  {
+    "level": "LV21",
+    "element": "火",
+    "name": "炙热波动",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "55",
+    "description": "✦造成魔伤，敌方获得4层灼烧，应对状态：本次技能威力和赋予灼烧翻倍。"
+  },
+  {
+    "level": "LV29",
+    "element": "火",
+    "name": "充分燃烧",
+    "energy": "3",
+    "type": "状态",
+    "power": "0",
+    "description": "✦使敌方身上的灼烧翻倍，并触发1次灼烧伤害。"
+  },
+  {
+    "level": "LV31",
+    "element": "火",
+    "name": "阳火增辉",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "75",
+    "description": "✦造成魔伤，每次击败敌方，本技能威力永久翻倍。"
+  },
+  {
+    "level": "LV36",
+    "element": "火",
+    "name": "焚烧烙印",
+    "energy": "3",
+    "type": "状态",
+    "power": "0",
+    "description": "✦驱散双方所有印记，每驱散1层，敌方获得5层灼烧。"
+  },
+  {
+    "level": "LV43",
+    "element": "火",
+    "name": "持续高温",
+    "energy": "2",
+    "type": "魔攻",
+    "power": "70",
+    "description": "✦造成魔伤，应对状态：下次攻击技能威力翻倍。"
+  },
+  {
+    "level": "LV47",
+    "element": "火",
+    "name": "天火",
+    "energy": "3",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方获得10层灼烧，应对防御：改为获得30层。"
+  }
+]

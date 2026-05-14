@@ -1,0 +1,119 @@
+[
+  {
+    "level": "LV1",
+    "element": "普通",
+    "name": "魔法增效",
+    "energy": "0",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得魔攻+70%。"
+  },
+  {
+    "level": "LV1",
+    "element": "普通",
+    "name": "拍击",
+    "energy": "1",
+    "type": "魔攻",
+    "power": "65",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "LV1",
+    "element": "普通",
+    "name": "防御",
+    "energy": "1",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤70%，应对攻击。"
+  },
+  {
+    "level": "LV4",
+    "element": "普通",
+    "name": "许愿星",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "110",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "LV6",
+    "element": "普通",
+    "name": "伺机而动",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦下一次攻击时，技能威力+70。"
+  },
+  {
+    "level": "LV12",
+    "element": "普通",
+    "name": "音爆",
+    "energy": "4",
+    "type": "魔攻",
+    "power": "130",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "LV16",
+    "element": "普通",
+    "name": "聒噪",
+    "energy": "3",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方获得全攻击技能能耗+3，持续3回合。"
+  },
+  {
+    "level": "LV21",
+    "element": "普通",
+    "name": "嗜痛",
+    "energy": "2",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤80%，应对攻击：期间自己每次受到伤害，获得双攻+40%。"
+  },
+  {
+    "level": "LV22",
+    "element": "普通",
+    "name": "乱打",
+    "energy": "4",
+    "type": "魔攻",
+    "power": "25",
+    "description": "✦造成魔伤，5连击。"
+  },
+  {
+    "level": "LV29",
+    "element": "普通",
+    "name": "主场优势",
+    "energy": "3",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得1层攻击印记。"
+  },
+  {
+    "level": "LV36",
+    "element": "普通",
+    "name": "彗星",
+    "energy": "0",
+    "type": "魔攻",
+    "power": "240",
+    "description": "✦造成魔伤，每失去5%生命，本次技能威力-10，使用后消耗全部生命。"
+  },
+  {
+    "level": "LV37",
+    "element": "普通",
+    "name": "精神扰乱",
+    "energy": "0",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方获得全技能能耗+1，应对防御：改为能耗+3。"
+  },
+  {
+    "level": "LV38",
+    "element": "普通",
+    "name": "快速移动",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得速度+80，应对防御：改为速度+160。"
+  }
+]

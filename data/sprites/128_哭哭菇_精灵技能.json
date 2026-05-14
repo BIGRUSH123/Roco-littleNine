@@ -1,0 +1,137 @@
+[
+  {
+    "level": "LV1",
+    "element": "幻",
+    "name": "偷师",
+    "energy": "0",
+    "type": "物攻",
+    "power": "30",
+    "description": "✦造成物伤，自己回复1能量。"
+  },
+  {
+    "level": "LV1",
+    "element": "普通",
+    "name": "耀眼",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方获得连击数-4。"
+  },
+  {
+    "level": "LV1",
+    "element": "普通",
+    "name": "防御",
+    "energy": "1",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤70%，应对攻击。"
+  },
+  {
+    "level": "LV7",
+    "element": "幻",
+    "name": "星云漩涡",
+    "energy": "1",
+    "type": "物攻",
+    "power": "60",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "LV10",
+    "element": "幻",
+    "name": "星链",
+    "energy": "3",
+    "type": "状态",
+    "power": "0",
+    "description": "✦2连击，每次连击使敌方获得1层星陨印记。"
+  },
+  {
+    "level": "LV13",
+    "element": "幻",
+    "name": "针状物",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "30",
+    "description": "✦造成魔伤，3连击。"
+  },
+  {
+    "level": "LV19",
+    "element": "普通",
+    "name": "嗜痛",
+    "energy": "2",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤80%，应对攻击：期间自己每次受到伤害，获得双攻+40%。"
+  },
+  {
+    "level": "LV23",
+    "element": "普通",
+    "name": "当头棒喝",
+    "energy": "3",
+    "type": "物攻",
+    "power": "80",
+    "description": "✦造成物伤，若敌方本回合更换精灵，本次技能威力+100。"
+  },
+  {
+    "level": "LV29",
+    "element": "普通",
+    "name": "触底强击",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "65",
+    "description": "✦造成魔伤，使用后若能量耗尽，本次技能威力+110。"
+  },
+  {
+    "level": "LV30",
+    "element": "普通",
+    "name": "血气",
+    "energy": "2",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤60%，应对攻击：本回合受到致命伤害时，保留1生命值。"
+  },
+  {
+    "level": "LV35",
+    "element": "幻",
+    "name": "多维击打",
+    "energy": "4",
+    "type": "魔攻",
+    "power": "15",
+    "description": "✦造成魔伤，1连击，敌方每有1层星陨印记，本次技能连击数+1。"
+  },
+  {
+    "level": "LV36",
+    "element": "幻",
+    "name": "四维降解",
+    "energy": "7",
+    "type": "魔攻",
+    "power": "100",
+    "description": "✦造成魔伤，敌方每有1层印记，本技能能耗-1。"
+  },
+  {
+    "level": "LV38",
+    "element": "幻",
+    "name": "冥想",
+    "energy": "3",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤80%，应对攻击：敌方获得2层星陨印记。"
+  },
+  {
+    "level": "LV39",
+    "element": "幻",
+    "name": "错乱",
+    "energy": "2",
+    "type": "魔攻",
+    "power": "65",
+    "description": "✦造成魔伤，应对状态：敌方获得3层星陨印记。"
+  },
+  {
+    "level": "LV49",
+    "element": "普通",
+    "name": "突袭",
+    "energy": "2",
+    "type": "魔攻",
+    "power": "70",
+    "description": "✦造成魔伤，应对状态：本次技能威力变为3倍。"
+  }
+]

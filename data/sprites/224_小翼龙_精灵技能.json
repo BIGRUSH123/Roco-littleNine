@@ -1,0 +1,119 @@
+[
+  {
+    "level": "LV1",
+    "element": "普通",
+    "name": "抓挠",
+    "energy": "0",
+    "type": "物攻",
+    "power": "35",
+    "description": "✦造成物伤，自己回复1能量。"
+  },
+  {
+    "level": "LV1",
+    "element": "普通",
+    "name": "力量增效",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得物攻+100%。"
+  },
+  {
+    "level": "LV1",
+    "element": "翼",
+    "name": "鹰爪",
+    "energy": "1",
+    "type": "物攻",
+    "power": "60",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "LV3",
+    "element": "翼",
+    "name": "羽化加速",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得全技能威力+20，迅捷。"
+  },
+  {
+    "level": "LV8",
+    "element": "翼",
+    "name": "疾风刺",
+    "energy": "2",
+    "type": "物攻",
+    "power": "25",
+    "description": "✦造成物伤，1连击，若先于敌方攻击，改为3连击。"
+  },
+  {
+    "level": "LV13",
+    "element": "龙",
+    "name": "龙吟",
+    "energy": "3",
+    "type": "状态",
+    "power": "0",
+    "description": "✦蓄力，自己获得双攻+100%和速度+60。"
+  },
+  {
+    "level": "LV20",
+    "element": "龙",
+    "name": "龙炮",
+    "energy": "3",
+    "type": "物攻",
+    "power": "100",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "LV21",
+    "element": "龙",
+    "name": "龙威",
+    "energy": "3",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得1层龙噬印记 。"
+  },
+  {
+    "level": "LV28",
+    "element": "龙",
+    "name": "龙爪",
+    "energy": "4",
+    "type": "物攻",
+    "power": "120",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "LV29",
+    "element": "翼",
+    "name": "俯冲猛击",
+    "energy": "5",
+    "type": "物攻",
+    "power": "140",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "LV35",
+    "element": "龙",
+    "name": "龙之利爪",
+    "energy": "3",
+    "type": "物攻",
+    "power": "130",
+    "description": "✦蓄力，造成物伤并吸血50%。"
+  },
+  {
+    "level": "LV36",
+    "element": "龙",
+    "name": "龙息环爆",
+    "energy": "1",
+    "type": "魔攻",
+    "power": "55",
+    "description": "✦造成魔伤，应对状态：下次技能无需蓄力。"
+  },
+  {
+    "level": "LV38",
+    "element": "翼",
+    "name": "羽刃",
+    "energy": "2",
+    "type": "物攻",
+    "power": "75",
+    "description": "✦造成物伤，应对状态：回合结束使敌方紧急脱离。"
+  }
+]

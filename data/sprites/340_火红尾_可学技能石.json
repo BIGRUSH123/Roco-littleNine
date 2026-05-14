@@ -1,0 +1,119 @@
+[
+  {
+    "level": "",
+    "element": "普通",
+    "name": "借用",
+    "energy": "0",
+    "type": "状态",
+    "power": "0",
+    "description": "✦每回合随机变成己方队伍中其他精灵的技能。"
+  },
+  {
+    "level": "",
+    "element": "光",
+    "name": "光球",
+    "energy": "2",
+    "type": "魔攻",
+    "power": "80",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "",
+    "element": "电",
+    "name": "加大功率",
+    "energy": "4",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己脱离，替换入场的精灵回复8能量。"
+  },
+  {
+    "level": "",
+    "element": "光",
+    "name": "天光",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "95",
+    "description": "✦造成魔伤，本技能系别和天气系别相同。"
+  },
+  {
+    "level": "",
+    "element": "幽",
+    "name": "幽灵爆发",
+    "energy": "5",
+    "type": "魔攻",
+    "power": "140",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "",
+    "element": "电",
+    "name": "强制重启",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "90",
+    "description": "✦造成魔伤，应对状态：回合结束时使敌方精灵返场。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "快速移动",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得速度+80，应对防御：改为速度+160。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "晒太阳",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦驱散敌方所有增益。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "消毒法",
+    "energy": "4",
+    "type": "魔攻",
+    "power": "115",
+    "description": "✦造成魔伤，驱散敌方5层增益。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "突袭",
+    "energy": "2",
+    "type": "魔攻",
+    "power": "70",
+    "description": "✦造成魔伤，应对状态：本次技能威力变为3倍。"
+  },
+  {
+    "level": "",
+    "element": "电",
+    "name": "超导",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "95",
+    "description": "✦造成魔伤，迸发：本技能能耗-1。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "追打",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "75",
+    "description": "✦造成魔伤，1连击，应对状态：本技能变为3连击。"
+  },
+  {
+    "level": "",
+    "element": "光",
+    "name": "闪光",
+    "energy": "1",
+    "type": "魔攻",
+    "power": "60",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  }
+]

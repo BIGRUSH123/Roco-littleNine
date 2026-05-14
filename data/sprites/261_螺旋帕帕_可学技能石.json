@@ -1,0 +1,119 @@
+[
+  {
+    "level": "",
+    "element": "普通",
+    "name": "取念",
+    "energy": "0",
+    "type": "状态",
+    "power": "0",
+    "description": "✦每回合随机变成敌方任意精灵的技能，且该技能能耗-2。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "热身运动",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得连击数+3。"
+  },
+  {
+    "level": "",
+    "element": "电",
+    "name": "电弧",
+    "energy": "3",
+    "type": "物攻",
+    "power": "80",
+    "description": "✦造成物伤，迸发：本次技能威力+40。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "精神扰乱",
+    "energy": "0",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方获得全技能能耗+1，应对防御：改为能耗+3。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "能量刃",
+    "energy": "3",
+    "type": "物攻",
+    "power": "80",
+    "description": "✦造成物伤，每应对成功1次，本技能威力永久+90。"
+  },
+  {
+    "level": "",
+    "element": "萌",
+    "name": "超级糖果",
+    "energy": "3",
+    "type": "物攻",
+    "power": "100",
+    "description": "✦造成物伤，自己获得萌化：本次技能威力+60。"
+  },
+  {
+    "level": "",
+    "element": "电",
+    "name": "过载回路",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦回合结束自己返场，下回合所选技能使用次数+1。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "连续爪击",
+    "energy": "2",
+    "type": "物攻",
+    "power": "30",
+    "description": "✦造成物伤，2连击，应对状态：本次技能连击数翻倍。"
+  },
+  {
+    "level": "",
+    "element": "机械",
+    "name": "钢钻",
+    "energy": "4",
+    "type": "物攻",
+    "power": "0",
+    "description": "✦造成物伤，技能威力为两侧技能威力和的三分之一，传动1。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "防御",
+    "energy": "1",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤70%，应对攻击。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "阻断",
+    "energy": "2",
+    "type": "魔攻",
+    "power": "80",
+    "description": "✦造成魔伤，应对状态：额外打断被应对技能。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "鼓劲",
+    "energy": "3",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得魔防+170%。"
+  },
+  {
+    "level": "",
+    "element": "翼",
+    "name": "龙卷风",
+    "energy": "5",
+    "type": "物攻",
+    "power": "70",
+    "description": "✦造成物伤，迅捷，应对状态：本次技能威力变为1.5倍。"
+  }
+]

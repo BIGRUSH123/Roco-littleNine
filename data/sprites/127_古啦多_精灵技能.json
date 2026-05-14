@@ -1,0 +1,146 @@
+[
+  {
+    "level": "LV1",
+    "element": "毒",
+    "name": "以毒攻毒",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方每有1层中毒效果，自己获得魔攻+30%。"
+  },
+  {
+    "level": "LV1",
+    "element": "毒",
+    "name": "溃烂触碰",
+    "energy": "1",
+    "type": "物攻",
+    "power": "60",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "LV1",
+    "element": "毒",
+    "name": "不可接触",
+    "energy": "1",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤50%，敌方每有1层中毒效果，本技能减伤+10%，应对攻击。"
+  },
+  {
+    "level": "LV6",
+    "element": "地",
+    "name": "扬沙",
+    "energy": "1",
+    "type": "物攻",
+    "power": "60",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "LV9",
+    "element": "地",
+    "name": "石肤术",
+    "energy": "3",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得物防+160%和魔防-60%。"
+  },
+  {
+    "level": "LV13",
+    "element": "毒",
+    "name": "腐蚀酸液",
+    "energy": "2",
+    "type": "魔攻",
+    "power": "35",
+    "description": "✦造成魔伤，敌方获得2层中毒。"
+  },
+  {
+    "level": "LV17",
+    "element": "毒",
+    "name": "落井下毒",
+    "energy": "6",
+    "type": "状态",
+    "power": "0",
+    "description": "✦使敌方精灵减益的层数翻倍。"
+  },
+  {
+    "level": "LV22",
+    "element": "普通",
+    "name": "防御",
+    "energy": "1",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤70%，应对攻击。"
+  },
+  {
+    "level": "LV28",
+    "element": "普通",
+    "name": "旋转突击",
+    "energy": "3",
+    "type": "物攻",
+    "power": "35",
+    "description": "✦造成物伤，3连击。"
+  },
+  {
+    "level": "LV30",
+    "element": "毒",
+    "name": "毒沼",
+    "energy": "2",
+    "type": "物攻",
+    "power": "80",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "LV34",
+    "element": "地",
+    "name": "壁垒",
+    "energy": "2",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤90%，应对攻击：防御技能冷却-1。"
+  },
+  {
+    "level": "LV35",
+    "element": "地",
+    "name": "陨石",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "100",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "LV36",
+    "element": "地",
+    "name": "石锁",
+    "energy": "3",
+    "type": "物攻",
+    "power": "50",
+    "description": "✦造成物伤，敌方3回合无法更换精灵。"
+  },
+  {
+    "level": "LV40",
+    "element": "毒",
+    "name": "毒囊",
+    "energy": "2",
+    "type": "物攻",
+    "power": "25",
+    "description": "✦造成物伤，敌方获得2层中毒，应对状态：改为获得6层。"
+  },
+  {
+    "level": "LV49",
+    "element": "毒",
+    "name": "鸩毒",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "75",
+    "description": "✦造成魔伤，敌方每有1层中毒效果，本次技能威力+10，应对状态：改为本次威力+20。"
+  },
+  {
+    "level": "LV50",
+    "element": "地",
+    "name": "地陷",
+    "energy": "5",
+    "type": "物攻",
+    "power": "80",
+    "description": "✦造成物伤，自己获得物防+70%，应对状态：本次技能威力翻倍，且物防额外+70%。"
+  }
+]

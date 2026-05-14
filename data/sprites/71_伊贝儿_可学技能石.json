@@ -1,0 +1,146 @@
+[
+  {
+    "level": "",
+    "element": "毒",
+    "name": "不可接触",
+    "energy": "1",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤50%，敌方每有1层中毒效果，本技能减伤+10%，应对攻击。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "借用",
+    "energy": "0",
+    "type": "状态",
+    "power": "0",
+    "description": "✦每回合随机变成己方队伍中其他精灵的技能。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "冲撞",
+    "energy": "7",
+    "type": "物攻",
+    "power": "135",
+    "description": "✦造成物伤，回合结束时，本技能能耗永久-1。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "嗜痛",
+    "energy": "2",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤80%，应对攻击：期间自己每次受到伤害，获得双攻+40%。"
+  },
+  {
+    "level": "",
+    "element": "萌",
+    "name": "捧杀",
+    "energy": "4",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤90%，应对攻击：敌方获得1层萌化。"
+  },
+  {
+    "level": "",
+    "element": "萌",
+    "name": "爆米花爆破",
+    "energy": "5",
+    "type": "物攻",
+    "power": "140",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "",
+    "element": "萌",
+    "name": "甜心续航",
+    "energy": "3",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己和敌方获得萌化：回复40%生命和4能量。"
+  },
+  {
+    "level": "",
+    "element": "萌",
+    "name": "砂糖弹球",
+    "energy": "2",
+    "type": "物攻",
+    "power": "0",
+    "description": "✦造成物伤，双方体重差越大，本次技能威力越高。"
+  },
+  {
+    "level": "",
+    "element": "萌",
+    "name": "破罐破摔",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "80",
+    "description": "✦造成魔伤，自己有减益时，本次技能威力+60。"
+  },
+  {
+    "level": "",
+    "element": "毒",
+    "name": "腐蚀酸液",
+    "energy": "2",
+    "type": "魔攻",
+    "power": "35",
+    "description": "✦造成魔伤，敌方获得2层中毒。"
+  },
+  {
+    "level": "",
+    "element": "毒",
+    "name": "连续毒针",
+    "energy": "2",
+    "type": "物攻",
+    "power": "15",
+    "description": "✦造成物伤，2连击，每次连击使敌方获得1层中毒。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "连续爪击",
+    "energy": "2",
+    "type": "物攻",
+    "power": "30",
+    "description": "✦造成物伤，2连击，应对状态：本次技能连击数翻倍。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "退化",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方获得1层萌化。"
+  },
+  {
+    "level": "",
+    "element": "草",
+    "name": "酶浓度调整",
+    "energy": "3",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤80%，应对攻击：自己回复20%生命。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "防御",
+    "energy": "1",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤70%，应对攻击。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "音爆",
+    "energy": "4",
+    "type": "魔攻",
+    "power": "130",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  }
+]

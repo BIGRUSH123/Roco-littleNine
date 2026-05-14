@@ -1,0 +1,119 @@
+[
+  {
+    "level": "LV1",
+    "element": "幽",
+    "name": "诡刺",
+    "energy": "0",
+    "type": "物攻",
+    "power": "40",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "LV1",
+    "element": "幽",
+    "name": "勾魂",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦偷取敌方3能量。"
+  },
+  {
+    "level": "LV1",
+    "element": "萌",
+    "name": "鞭打",
+    "energy": "0",
+    "type": "物攻",
+    "power": "40",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "LV2",
+    "element": "萌",
+    "name": "甜心续航",
+    "energy": "3",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己和敌方获得萌化：回复40%生命和4能量。"
+  },
+  {
+    "level": "LV7",
+    "element": "恶",
+    "name": "诋毁",
+    "energy": "2",
+    "type": "物攻",
+    "power": "80",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "LV12",
+    "element": "普通",
+    "name": "防御",
+    "energy": "1",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤70%，应对攻击。"
+  },
+  {
+    "level": "LV17",
+    "element": "普通",
+    "name": "能量刃",
+    "energy": "3",
+    "type": "物攻",
+    "power": "80",
+    "description": "✦造成物伤，每应对成功1次，本技能威力永久+90。"
+  },
+  {
+    "level": "LV22",
+    "element": "幽",
+    "name": "幻象",
+    "energy": "1",
+    "type": "物攻",
+    "power": "60",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "LV24",
+    "element": "恶",
+    "name": "力量吞噬",
+    "energy": "4",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方获得全技能威力-20，自己获得全技能威力+20。"
+  },
+  {
+    "level": "LV30",
+    "element": "萌",
+    "name": "超级糖果",
+    "energy": "3",
+    "type": "物攻",
+    "power": "100",
+    "description": "✦造成物伤，自己获得萌化：本次技能威力+60。"
+  },
+  {
+    "level": "LV34",
+    "element": "幽",
+    "name": "虚化",
+    "energy": "2",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤80%，应对攻击：自己获得魔防+70%。"
+  },
+  {
+    "level": "LV35",
+    "element": "幽",
+    "name": "坟场搏击",
+    "energy": "4",
+    "type": "物攻",
+    "power": "180",
+    "description": "✦造成物伤，敌方每有1能量，本次技能威力-10%。"
+  },
+  {
+    "level": "LV36",
+    "element": "幽",
+    "name": "降灵",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方获得1层降灵印记。"
+  }
+]

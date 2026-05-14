@@ -1,0 +1,128 @@
+[
+  {
+    "level": "LV1",
+    "element": "普通",
+    "name": "防御",
+    "energy": "1",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤70%，应对攻击。"
+  },
+  {
+    "level": "LV1",
+    "element": "电",
+    "name": "球状闪电",
+    "energy": "1",
+    "type": "物攻",
+    "power": "60",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "LV3",
+    "element": "普通",
+    "name": "魔法增效",
+    "energy": "0",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得魔攻+70%。"
+  },
+  {
+    "level": "LV10",
+    "element": "电",
+    "name": "超导加速",
+    "energy": "2",
+    "type": "魔攻",
+    "power": "70",
+    "description": "✦造成魔伤，自己获得速度+30。"
+  },
+  {
+    "level": "LV12",
+    "element": "电",
+    "name": "过载回路",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦回合结束自己返场，下回合所选技能使用次数+1。"
+  },
+  {
+    "level": "LV22",
+    "element": "电",
+    "name": "超导",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "95",
+    "description": "✦造成魔伤，迸发：本技能能耗-1。"
+  },
+  {
+    "level": "LV27",
+    "element": "电",
+    "name": "增程电池",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得1层蓄电印记。"
+  },
+  {
+    "level": "LV28",
+    "element": "电",
+    "name": "电弧",
+    "energy": "3",
+    "type": "物攻",
+    "power": "80",
+    "description": "✦造成物伤，迸发：本次技能威力+40。"
+  },
+  {
+    "level": "LV33",
+    "element": "电",
+    "name": "麻痹",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方先手-1，应对防御：额外使敌方获得双攻-70%。"
+  },
+  {
+    "level": "LV35",
+    "element": "普通",
+    "name": "飞踢",
+    "energy": "3",
+    "type": "物攻",
+    "power": "110",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "LV37",
+    "element": "电",
+    "name": "闪击折返",
+    "energy": "5",
+    "type": "物攻",
+    "power": "45",
+    "description": "✦造成物伤，2连击，自己脱离。"
+  },
+  {
+    "level": "LV41",
+    "element": "电",
+    "name": "雷暴",
+    "energy": "1",
+    "type": "魔攻",
+    "power": "55",
+    "description": "✦造成魔伤，迸发：本技能获得所有生效过的迸发，每获得1种，本技能能耗+1，威力+10。"
+  },
+  {
+    "level": "LV44",
+    "element": "普通",
+    "name": "阻断",
+    "energy": "2",
+    "type": "魔攻",
+    "power": "80",
+    "description": "✦造成魔伤，应对状态：额外打断被应对技能。"
+  },
+  {
+    "level": "LV47",
+    "element": "电",
+    "name": "强制重启",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "90",
+    "description": "✦造成魔伤，应对状态：回合结束时使敌方精灵返场。"
+  }
+]

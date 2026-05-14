@@ -1,0 +1,119 @@
+[
+  {
+    "level": "",
+    "element": "普通",
+    "name": "三连破",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得物攻+30%，3连击。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "乘胜追击",
+    "energy": "2",
+    "type": "物攻",
+    "power": "40",
+    "description": "✦造成物伤，1连击，每次使用后，本技能连击数永久+1。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "伺机而动",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦下一次攻击时，技能威力+70。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "偷袭",
+    "energy": "3",
+    "type": "物攻",
+    "power": "85",
+    "description": "✦造成物伤，应对状态：本次技能威力变为3倍。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "取念",
+    "energy": "0",
+    "type": "状态",
+    "power": "0",
+    "description": "✦每回合随机变成敌方任意精灵的技能，且该技能能耗-2。"
+  },
+  {
+    "level": "",
+    "element": "龙",
+    "name": "吹炎",
+    "energy": "3",
+    "type": "物攻",
+    "power": "170",
+    "description": "✦蓄力，造成物伤，应对状态：本次技能威力翻倍。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "应激反应",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己回复25%生命，应对防御：改为回复50%生命。"
+  },
+  {
+    "level": "",
+    "element": "武",
+    "name": "影袭",
+    "energy": "3",
+    "type": "物攻",
+    "power": "100",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "快速移动",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得速度+80，应对防御：改为速度+160。"
+  },
+  {
+    "level": "",
+    "element": "水",
+    "name": "水花四溅",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "20",
+    "description": "✦造成魔伤，4连击。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "热身运动",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得连击数+3。"
+  },
+  {
+    "level": "",
+    "element": "武",
+    "name": "爆冲",
+    "energy": "3",
+    "type": "物攻",
+    "power": "65",
+    "description": "✦造成物伤，应对状态：本次技能威力变为5倍。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "防御",
+    "energy": "1",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤70%，应对攻击。"
+  }
+]

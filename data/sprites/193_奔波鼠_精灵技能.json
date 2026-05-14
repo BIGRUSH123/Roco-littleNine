@@ -1,0 +1,119 @@
+[
+  {
+    "level": "LV1",
+    "element": "普通",
+    "name": "防御",
+    "energy": "1",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤70%，应对攻击。"
+  },
+  {
+    "level": "LV1",
+    "element": "普通",
+    "name": "拍击",
+    "energy": "1",
+    "type": "魔攻",
+    "power": "65",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "LV1",
+    "element": "地",
+    "name": "泥浆",
+    "energy": "0",
+    "type": "魔攻",
+    "power": "40",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "LV5",
+    "element": "地",
+    "name": "泥巴喷射",
+    "energy": "1",
+    "type": "魔攻",
+    "power": "60",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "LV11",
+    "element": "普通",
+    "name": "魔法增效",
+    "energy": "0",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得魔攻+70%。"
+  },
+  {
+    "level": "LV27",
+    "element": "地",
+    "name": "硬化",
+    "energy": "2",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤90%，若上次使用攻击技则本技能能耗-2，应对攻击。"
+  },
+  {
+    "level": "LV34",
+    "element": "地",
+    "name": "热砂",
+    "energy": "2",
+    "type": "魔攻",
+    "power": "80",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "LV35",
+    "element": "地",
+    "name": "石肤术",
+    "energy": "3",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得物防+160%和魔防-60%。"
+  },
+  {
+    "level": "LV37",
+    "element": "地",
+    "name": "壁垒",
+    "energy": "2",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤90%，应对攻击：防御技能冷却-1。"
+  },
+  {
+    "level": "LV38",
+    "element": "地",
+    "name": "陨石",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "100",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "LV45",
+    "element": "普通",
+    "name": "突袭",
+    "energy": "2",
+    "type": "魔攻",
+    "power": "70",
+    "description": "✦造成魔伤，应对状态：本次技能威力变为3倍。"
+  },
+  {
+    "level": "LV49",
+    "element": "地",
+    "name": "沙涌",
+    "energy": "7",
+    "type": "状态",
+    "power": "0",
+    "description": "✦将天气改为沙暴，持续8回合。"
+  },
+  {
+    "level": "LV50",
+    "element": "地",
+    "name": "不动如山",
+    "energy": "2",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤90%，应对攻击。"
+  }
+]

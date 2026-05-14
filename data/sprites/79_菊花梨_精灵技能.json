@@ -1,0 +1,110 @@
+[
+  {
+    "level": "LV1",
+    "element": "萌",
+    "name": "碰爪",
+    "energy": "1",
+    "type": "物攻",
+    "power": "60",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "LV1",
+    "element": "普通",
+    "name": "魔法增效",
+    "energy": "0",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得魔攻+70%。"
+  },
+  {
+    "level": "LV10",
+    "element": "普通",
+    "name": "重击",
+    "energy": "2",
+    "type": "物攻",
+    "power": "110",
+    "description": "✦造成物伤，每次使用后，本技能能耗永久+1。"
+  },
+  {
+    "level": "LV13",
+    "element": "普通",
+    "name": "防御",
+    "energy": "1",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤70%，应对攻击。"
+  },
+  {
+    "level": "LV18",
+    "element": "萌",
+    "name": "反弹",
+    "energy": "4",
+    "type": "状态",
+    "power": "0",
+    "description": "✦将自己的萌化转移给敌方。"
+  },
+  {
+    "level": "LV27",
+    "element": "萌",
+    "name": "撒娇",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "30",
+    "description": "✦造成魔伤，3连击。自己获得萌化：威力永久+20。"
+  },
+  {
+    "level": "LV34",
+    "element": "普通",
+    "name": "晒太阳",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦驱散敌方所有增益。"
+  },
+  {
+    "level": "LV35",
+    "element": "萌",
+    "name": "破罐破摔",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "80",
+    "description": "✦造成魔伤，自己有减益时，本次技能威力+60。"
+  },
+  {
+    "level": "LV40",
+    "element": "萌",
+    "name": "示弱",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得萌化：速度永久+150。"
+  },
+  {
+    "level": "LV41",
+    "element": "萌",
+    "name": "月光合奏",
+    "energy": "3",
+    "type": "物攻",
+    "power": "30",
+    "description": "✦造成物伤，1连击，双方携带的所有精灵每有1层萌化，本次技能连击数+1。"
+  },
+  {
+    "level": "LV49",
+    "element": "萌",
+    "name": "击鼓传花",
+    "energy": "3",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己脱离，下个入场精灵继承自己增益。"
+  },
+  {
+    "level": "LV50",
+    "element": "普通",
+    "name": "阻断",
+    "energy": "2",
+    "type": "魔攻",
+    "power": "80",
+    "description": "✦造成魔伤，应对状态：额外打断被应对技能。"
+  }
+]

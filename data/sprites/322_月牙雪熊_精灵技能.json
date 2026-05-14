@@ -1,0 +1,119 @@
+[
+  {
+    "level": "LV1",
+    "element": "普通",
+    "name": "防御",
+    "energy": "1",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤70%，应对攻击。"
+  },
+  {
+    "level": "LV1",
+    "element": "冰",
+    "name": "冰锥",
+    "energy": "0",
+    "type": "物攻",
+    "power": "40",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "LV1",
+    "element": "幻",
+    "name": "粒子对撞",
+    "energy": "0",
+    "type": "物攻",
+    "power": "40",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "LV4",
+    "element": "冰",
+    "name": "丢冰块",
+    "energy": "3",
+    "type": "物攻",
+    "power": "90",
+    "description": "✦造成物伤，敌方获得速度-30。"
+  },
+  {
+    "level": "LV8",
+    "element": "冰",
+    "name": "霜降",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方获得4层冻结。"
+  },
+  {
+    "level": "LV12",
+    "element": "冰",
+    "name": "冰点",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方获得5层冻结，应对防御：额外获得5层。"
+  },
+  {
+    "level": "LV18",
+    "element": "冰",
+    "name": "暴风雪",
+    "energy": "3",
+    "type": "物攻",
+    "power": "85",
+    "description": "✦造成物伤，敌方获得1层冻结。"
+  },
+  {
+    "level": "LV21",
+    "element": "幻",
+    "name": "星链",
+    "energy": "3",
+    "type": "状态",
+    "power": "0",
+    "description": "✦2连击，每次连击使敌方获得1层星陨印记。"
+  },
+  {
+    "level": "LV22",
+    "element": "幻",
+    "name": "冥想",
+    "energy": "3",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤80%，应对攻击：敌方获得2层星陨印记。"
+  },
+  {
+    "level": "LV27",
+    "element": "幻",
+    "name": "空间压迫",
+    "energy": "3",
+    "type": "物攻",
+    "power": "70",
+    "description": "✦造成物伤，敌方获得1层星陨印记。"
+  },
+  {
+    "level": "LV34",
+    "element": "冰",
+    "name": "冰天雪地",
+    "energy": "2",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤80%，应对攻击：被应对技能能耗+3。"
+  },
+  {
+    "level": "LV35",
+    "element": "幻",
+    "name": "双星",
+    "energy": "3",
+    "type": "物攻",
+    "power": "100",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "LV37",
+    "element": "冰",
+    "name": "冰雹",
+    "energy": "4",
+    "type": "物攻",
+    "power": "105",
+    "description": "✦造成物伤，应对状态：额外使敌方获得全技能能耗+3。"
+  }
+]

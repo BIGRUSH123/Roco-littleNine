@@ -1,0 +1,119 @@
+[
+  {
+    "level": "",
+    "element": "普通",
+    "name": "偷袭",
+    "energy": "3",
+    "type": "物攻",
+    "power": "85",
+    "description": "✦造成物伤，应对状态：本次技能威力变为3倍。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "后发制人",
+    "energy": "3",
+    "type": "物攻",
+    "power": "155",
+    "description": "✦造成物理伤害，先手-1。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "嗜痛",
+    "energy": "2",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤80%，应对攻击：期间自己每次受到伤害，获得双攻+40%。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "复写",
+    "energy": "0",
+    "type": "状态",
+    "power": "0",
+    "description": "✦每回合随机变成自己未携带的技能，且该技能能耗-2。"
+  },
+  {
+    "level": "",
+    "element": "光",
+    "name": "天光",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "95",
+    "description": "✦造成魔伤，本技能系别和天气系别相同。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "耀眼",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方获得连击数-4。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "血气",
+    "energy": "2",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤60%，应对攻击：本回合受到致命伤害时，保留1生命值。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "逆袭",
+    "energy": "3",
+    "type": "物攻",
+    "power": "100",
+    "description": "✦造成物伤，本技能能耗每+1，威力+50。"
+  },
+  {
+    "level": "",
+    "element": "地",
+    "name": "遁地",
+    "energy": "3",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤50%并脱离，应对攻击。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "锐利眼神",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方获得物防和魔防-120%。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "防反",
+    "energy": "2",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤60%，应对攻击：自己获得物攻和魔攻+40%。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "防御",
+    "energy": "1",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤70%，应对攻击。"
+  },
+  {
+    "level": "",
+    "element": "地",
+    "name": "震击",
+    "energy": "3",
+    "type": "物攻",
+    "power": "80",
+    "description": "✦造成伤害，敌方获得连击数-3。"
+  }
+]

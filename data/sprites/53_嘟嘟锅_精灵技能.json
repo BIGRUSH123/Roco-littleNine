@@ -1,0 +1,119 @@
+[
+  {
+    "level": "LV1",
+    "element": "普通",
+    "name": "防御",
+    "energy": "1",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤70%，应对攻击。"
+  },
+  {
+    "level": "LV1",
+    "element": "毒",
+    "name": "毒泡泡",
+    "energy": "0",
+    "type": "魔攻",
+    "power": "40",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "LV5",
+    "element": "普通",
+    "name": "取念",
+    "energy": "0",
+    "type": "状态",
+    "power": "0",
+    "description": "✦每回合随机变成敌方任意精灵的技能，且该技能能耗-2。"
+  },
+  {
+    "level": "LV12",
+    "element": "普通",
+    "name": "拍击",
+    "energy": "1",
+    "type": "魔攻",
+    "power": "65",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "LV16",
+    "element": "毒",
+    "name": "毒孢子",
+    "energy": "3",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方获得5层中毒。"
+  },
+  {
+    "level": "LV23",
+    "element": "毒",
+    "name": "腐蚀酸液",
+    "energy": "2",
+    "type": "魔攻",
+    "power": "35",
+    "description": "✦造成魔伤，敌方获得2层中毒。"
+  },
+  {
+    "level": "LV27",
+    "element": "毒",
+    "name": "以毒攻毒",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方每有1层中毒效果，自己获得魔攻+30%。"
+  },
+  {
+    "level": "LV30",
+    "element": "毒",
+    "name": "瘴气喷射",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "100",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "LV34",
+    "element": "毒",
+    "name": "疫病吐息",
+    "energy": "3",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方获得1层中毒印记。"
+  },
+  {
+    "level": "LV35",
+    "element": "毒",
+    "name": "落井下毒",
+    "energy": "6",
+    "type": "状态",
+    "power": "0",
+    "description": "✦使敌方精灵减益的层数翻倍。"
+  },
+  {
+    "level": "LV38",
+    "element": "毒",
+    "name": "毒雾",
+    "energy": "7",
+    "type": "状态",
+    "power": "0",
+    "description": "✦将敌方所有增益，转化成中毒。"
+  },
+  {
+    "level": "LV39",
+    "element": "毒",
+    "name": "毒液渗透",
+    "energy": "5",
+    "type": "魔攻",
+    "power": "120",
+    "description": "✦造成魔伤，敌方每有1层中毒效果，本技能能耗-1，敌方获得1层中毒。"
+  },
+  {
+    "level": "LV49",
+    "element": "毒",
+    "name": "剧毒",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方获得3层中毒，应对防御：改为获得8层。"
+  }
+]

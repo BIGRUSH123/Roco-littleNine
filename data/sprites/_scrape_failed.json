@@ -1,0 +1,186 @@
+[
+  {
+    "scrape_name": "丢丢",
+    "targets": [
+      "45",
+      "46",
+      "44"
+    ],
+    "alt_names": [
+      "丢丢",
+      "卡卡虫",
+      "卡瓦重"
+    ],
+    "chain_root": "44"
+  },
+  {
+    "scrape_name": "乌达",
+    "targets": [
+      "260",
+      "259",
+      "258"
+    ],
+    "alt_names": [
+      "乌达",
+      "迷你乌",
+      "乌拉塔"
+    ],
+    "chain_root": "258"
+  },
+  {
+    "scrape_name": "刺轮砣",
+    "targets": [
+      "238",
+      "237"
+    ],
+    "alt_names": [
+      "刺轮砣",
+      "月亮砣"
+    ],
+    "chain_root": "237"
+  },
+  {
+    "scrape_name": "地鼠",
+    "targets": [
+      "278",
+      "279",
+      "277"
+    ],
+    "alt_names": [
+      "地鼠",
+      "遁鼠",
+      "遁地鼠"
+    ],
+    "chain_root": "277"
+  },
+  {
+    "scrape_name": "小星光",
+    "targets": [
+      "81",
+      "80"
+    ],
+    "alt_names": [
+      "小星光",
+      "星光狮"
+    ],
+    "chain_root": "80"
+  },
+  {
+    "scrape_name": "小狮鹫",
+    "targets": [
+      "167",
+      "165",
+      "166"
+    ],
+    "alt_names": [
+      "小狮鹫",
+      "神圣狮鹫",
+      "皇家狮鹫"
+    ],
+    "chain_root": "165"
+  },
+  {
+    "scrape_name": "旋叶虫",
+    "targets": [
+      "118",
+      "120",
+      "119"
+    ],
+    "alt_names": [
+      "旋叶虫",
+      "蓬叶虫",
+      "风滚暮虫"
+    ],
+    "chain_root": "118"
+  },
+  {
+    "scrape_name": "板板壳",
+    "targets": [
+      "12",
+      "14",
+      "13"
+    ],
+    "alt_names": [
+      "板板壳",
+      "咔咔壳",
+      "水泡壳"
+    ],
+    "chain_root": "12"
+  },
+  {
+    "scrape_name": "梦游",
+    "targets": [
+      "57",
+      "58"
+    ],
+    "alt_names": [
+      "梦游",
+      "梦悠悠"
+    ],
+    "chain_root": "57"
+  },
+  {
+    "scrape_name": "棋棋",
+    "targets": [
+      "190",
+      "191",
+      "189",
+      "188"
+    ],
+    "alt_names": [
+      "棋棋",
+      "棋骑士",
+      "棋齐垒",
+      "棋祈督"
+    ],
+    "chain_root": "188"
+  },
+  {
+    "scrape_name": "海枝枝",
+    "targets": [
+      "220"
+    ],
+    "alt_names": [
+      "海枝枝"
+    ],
+    "chain_root": "220"
+  },
+  {
+    "scrape_name": "海盔虫",
+    "targets": [
+      "76",
+      "77"
+    ],
+    "alt_names": [
+      "海盔虫",
+      "刺盔虫"
+    ],
+    "chain_root": "76"
+  },
+  {
+    "scrape_name": "石肤蜥",
+    "targets": [
+      "24",
+      "26",
+      "25"
+    ],
+    "alt_names": [
+      "石肤蜥",
+      "石刺蜥",
+      "石冠王蜥"
+    ],
+    "chain_root": "24"
+  },
+  {
+    "scrape_name": "蹦蹦种子",
+    "targets": [
+      "64",
+      "63"
+    ],
+    "alt_names": [
+      "蹦蹦种子",
+      "蹦蹦草"
+    ],
+    "chain_root": "63"
+  }
+]

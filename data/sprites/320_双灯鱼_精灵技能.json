@@ -1,0 +1,128 @@
+[
+  {
+    "level": "LV1",
+    "element": "普通",
+    "name": "魔法增效",
+    "energy": "0",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得魔攻+70%。"
+  },
+  {
+    "level": "LV1",
+    "element": "水",
+    "name": "水弹",
+    "energy": "0",
+    "type": "魔攻",
+    "power": "40",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "LV2",
+    "element": "电",
+    "name": "超导加速",
+    "energy": "2",
+    "type": "魔攻",
+    "power": "70",
+    "description": "✦造成魔伤，自己获得速度+30。"
+  },
+  {
+    "level": "LV10",
+    "element": "电",
+    "name": "加大功率",
+    "energy": "4",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己脱离，替换入场的精灵回复8能量。"
+  },
+  {
+    "level": "LV13",
+    "element": "普通",
+    "name": "能量炮",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "50",
+    "description": "✦造成魔伤，2连击。"
+  },
+  {
+    "level": "LV20",
+    "element": "水",
+    "name": "润泽",
+    "energy": "7",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得魔攻+190%。"
+  },
+  {
+    "level": "LV21",
+    "element": "普通",
+    "name": "倾泻",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "70",
+    "description": "✦造成魔伤，若本次攻击未被防御技能应对，则驱散双方所有印记。"
+  },
+  {
+    "level": "LV23",
+    "element": "水",
+    "name": "落雨",
+    "energy": "5",
+    "type": "状态",
+    "power": "0",
+    "description": "✦将天气改为雨天，持续8回合。"
+  },
+  {
+    "level": "LV24",
+    "element": "水",
+    "name": "激流",
+    "energy": "4",
+    "type": "魔攻",
+    "power": "120",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "LV32",
+    "element": "电",
+    "name": "双联脉冲",
+    "energy": "4",
+    "type": "魔攻",
+    "power": "50",
+    "description": "✦造成魔伤，迸发：本技能使用次数+1。"
+  },
+  {
+    "level": "LV33",
+    "element": "电",
+    "name": "落雷",
+    "energy": "4",
+    "type": "魔攻",
+    "power": "100",
+    "description": "✦造成魔伤，每次入场，本技能威力永久+20。"
+  },
+  {
+    "level": "LV40",
+    "element": "水",
+    "name": "水光冲击",
+    "energy": "5",
+    "type": "魔攻",
+    "power": "140",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "LV49",
+    "element": "电",
+    "name": "强制重启",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "90",
+    "description": "✦造成魔伤，应对状态：回合结束时使敌方精灵返场。"
+  },
+  {
+    "level": "LV50",
+    "element": "水",
+    "name": "水波术",
+    "energy": "6",
+    "type": "魔攻",
+    "power": "90",
+    "description": "✦造成魔伤，回合结束时，本技能威力永久+20。"
+  }
+]

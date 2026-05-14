@@ -1,0 +1,128 @@
+[
+  {
+    "level": "",
+    "element": "恶",
+    "name": "伪造账单",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦若敌方本回合回复生命，改为失去2倍。先手+1。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "倾泻",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "70",
+    "description": "✦造成魔伤，若本次攻击未被防御技能应对，则驱散双方所有印记。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "取念",
+    "energy": "0",
+    "type": "状态",
+    "power": "0",
+    "description": "✦每回合随机变成敌方任意精灵的技能，且该技能能耗-2。"
+  },
+  {
+    "level": "",
+    "element": "幻",
+    "name": "多维击打",
+    "energy": "4",
+    "type": "魔攻",
+    "power": "15",
+    "description": "✦造成魔伤，1连击，敌方每有1层星陨印记，本次技能连击数+1。"
+  },
+  {
+    "level": "",
+    "element": "火",
+    "name": "怒火",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得双攻+120%和双防-40%。"
+  },
+  {
+    "level": "",
+    "element": "火",
+    "name": "持续高温",
+    "energy": "2",
+    "type": "魔攻",
+    "power": "70",
+    "description": "✦造成魔伤，应对状态：下次攻击技能威力翻倍。"
+  },
+  {
+    "level": "",
+    "element": "恶",
+    "name": "掠夺",
+    "energy": "1",
+    "type": "魔攻",
+    "power": "60",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "",
+    "element": "火",
+    "name": "易燃物质",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "30",
+    "description": "✦造成魔伤，2连击，每次连击使敌方获得2层灼烧。"
+  },
+  {
+    "level": "",
+    "element": "火",
+    "name": "烈焰风暴",
+    "energy": "4",
+    "type": "魔攻",
+    "power": "75",
+    "description": "✦造成魔伤，敌方获得6层灼烧。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "突袭",
+    "energy": "2",
+    "type": "魔攻",
+    "power": "70",
+    "description": "✦造成魔伤，应对状态：本次技能威力变为3倍。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "精神扰乱",
+    "energy": "0",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方获得全技能能耗+1，应对防御：改为能耗+3。"
+  },
+  {
+    "level": "",
+    "element": "恶",
+    "name": "跌落",
+    "energy": "3",
+    "type": "物攻",
+    "power": "120",
+    "description": "✦造成大量物伤，自己获得物攻-50%，应对状态：改为获得物攻+50%。"
+  },
+  {
+    "level": "",
+    "element": "火",
+    "name": "阳火增辉",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "75",
+    "description": "✦造成魔伤，每次击败敌方，本技能威力永久翻倍。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "阻断",
+    "energy": "2",
+    "type": "魔攻",
+    "power": "80",
+    "description": "✦造成魔伤，应对状态：额外打断被应对技能。"
+  }
+]

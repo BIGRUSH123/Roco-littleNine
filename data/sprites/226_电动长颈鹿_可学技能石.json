@@ -1,0 +1,137 @@
+[
+  {
+    "level": "",
+    "element": "普通",
+    "name": "借用",
+    "energy": "0",
+    "type": "状态",
+    "power": "0",
+    "description": "✦每回合随机变成己方队伍中其他精灵的技能。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "倾泻",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "70",
+    "description": "✦造成魔伤，若本次攻击未被防御技能应对，则驱散双方所有印记。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "偷袭",
+    "energy": "3",
+    "type": "物攻",
+    "power": "85",
+    "description": "✦造成物伤，应对状态：本次技能威力变为3倍。"
+  },
+  {
+    "level": "",
+    "element": "光",
+    "name": "光刃",
+    "energy": "4",
+    "type": "物攻",
+    "power": "120",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "当头棒喝",
+    "energy": "3",
+    "type": "物攻",
+    "power": "80",
+    "description": "✦造成物伤，若敌方本回合更换精灵，本次技能威力+100。"
+  },
+  {
+    "level": "",
+    "element": "恶",
+    "name": "撕咬",
+    "energy": "3",
+    "type": "物攻",
+    "power": "30",
+    "description": "✦造成物伤，3连击，若自己的生命低于50%，本次技能连击数+2。"
+  },
+  {
+    "level": "",
+    "element": "恶",
+    "name": "暗突袭",
+    "energy": "4",
+    "type": "物攻",
+    "power": "70",
+    "description": "✦造成物伤，吸血50%，应对状态：本次技能威力翻倍。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "有效预防",
+    "energy": "1",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤50%，应对攻击：下一次行动获得先手+1。"
+  },
+  {
+    "level": "",
+    "element": "地",
+    "name": "泥浆铠甲",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得物攻和物防+60%，应对防御：额外使自己的增益翻倍。"
+  },
+  {
+    "level": "",
+    "element": "光",
+    "name": "漫反射",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦每种系别中的至多1个技能，威力+35。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "热身运动",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得连击数+3。"
+  },
+  {
+    "level": "",
+    "element": "地",
+    "name": "裂石",
+    "energy": "3",
+    "type": "物攻",
+    "power": "95",
+    "description": "✦造成物伤，应对状态：敌方获得物防-80%。"
+  },
+  {
+    "level": "",
+    "element": "恶",
+    "name": "贪婪",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得100%吸血。"
+  },
+  {
+    "level": "",
+    "element": "光",
+    "name": "透射",
+    "energy": "1",
+    "type": "物攻",
+    "power": "60",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "",
+    "element": "地",
+    "name": "震击",
+    "energy": "3",
+    "type": "物攻",
+    "power": "80",
+    "description": "✦造成伤害，敌方获得连击数-3。"
+  }
+]

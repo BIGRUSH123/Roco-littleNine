@@ -1,0 +1,146 @@
+[
+  {
+    "level": "",
+    "element": "普通",
+    "name": "嗜痛",
+    "energy": "2",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤80%，应对攻击：期间自己每次受到伤害，获得双攻+40%。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "复写",
+    "energy": "0",
+    "type": "状态",
+    "power": "0",
+    "description": "✦每回合随机变成自己未携带的技能，且该技能能耗-2。"
+  },
+  {
+    "level": "",
+    "element": "水",
+    "name": "水泡盾",
+    "energy": "2",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤80%，应对攻击：自己获得魔攻+70%。"
+  },
+  {
+    "level": "",
+    "element": "地",
+    "name": "泥巴喷射",
+    "energy": "1",
+    "type": "魔攻",
+    "power": "60",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "消毒法",
+    "energy": "4",
+    "type": "魔攻",
+    "power": "115",
+    "description": "✦造成魔伤，驱散敌方5层增益。"
+  },
+  {
+    "level": "",
+    "element": "水",
+    "name": "潮汐",
+    "energy": "4",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤60%，应对攻击：自己获得1层湿润印记。"
+  },
+  {
+    "level": "",
+    "element": "水",
+    "name": "潮涌",
+    "energy": "2",
+    "type": "物攻",
+    "power": "80",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "激怒",
+    "energy": "3",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方除本回合使用的技能，其他技能能耗+3，持续3回合。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "热身运动",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得连击数+3。"
+  },
+  {
+    "level": "",
+    "element": "地",
+    "name": "硬化",
+    "energy": "2",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤90%，若上次使用攻击技则本技能能耗-2，应对攻击。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "耀眼",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方获得连击数-4。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "血气",
+    "energy": "2",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤60%，应对攻击：本回合受到致命伤害时，保留1生命值。"
+  },
+  {
+    "level": "",
+    "element": "地",
+    "name": "跺地",
+    "energy": "2",
+    "type": "物攻",
+    "power": "80",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "",
+    "element": "电",
+    "name": "远程访问",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦使敌方精灵返场。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "追打",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "75",
+    "description": "✦造成魔伤，1连击，应对状态：本技能变为3连击。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "音爆",
+    "energy": "4",
+    "type": "魔攻",
+    "power": "130",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  }
+]

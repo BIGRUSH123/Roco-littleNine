@@ -1,0 +1,119 @@
+[
+  {
+    "level": "LV1",
+    "element": "恶",
+    "name": "魔爪",
+    "energy": "0",
+    "type": "物攻",
+    "power": "30",
+    "description": "✦造成物伤，自己回复1能量。"
+  },
+  {
+    "level": "LV1",
+    "element": "翼",
+    "name": "乘风",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得速度+120。"
+  },
+  {
+    "level": "LV6",
+    "element": "普通",
+    "name": "抓挠",
+    "energy": "0",
+    "type": "物攻",
+    "power": "35",
+    "description": "✦造成物伤，自己回复1能量。"
+  },
+  {
+    "level": "LV8",
+    "element": "普通",
+    "name": "防御",
+    "energy": "1",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤70%，应对攻击。"
+  },
+  {
+    "level": "LV10",
+    "element": "恶",
+    "name": "贪婪",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得100%吸血。"
+  },
+  {
+    "level": "LV13",
+    "element": "翼",
+    "name": "鹰爪",
+    "energy": "1",
+    "type": "物攻",
+    "power": "60",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "LV20",
+    "element": "恶",
+    "name": "撕咬",
+    "energy": "3",
+    "type": "物攻",
+    "power": "30",
+    "description": "✦造成物伤，3连击，若自己的生命低于50%，本次技能连击数+2。"
+  },
+  {
+    "level": "LV23",
+    "element": "恶",
+    "name": "暗箱操作",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得双攻和双防-100%，应对防御：改为敌方获得双攻和双防-100%。"
+  },
+  {
+    "level": "LV29",
+    "element": "翼",
+    "name": "疾风刺",
+    "energy": "2",
+    "type": "物攻",
+    "power": "25",
+    "description": "✦造成物伤，1连击，若先于敌方攻击，改为3连击。"
+  },
+  {
+    "level": "LV30",
+    "element": "翼",
+    "name": "扇风",
+    "energy": "3",
+    "type": "物攻",
+    "power": "75",
+    "description": "✦造成物伤，若先于敌方攻击，本次技能威力+50%。"
+  },
+  {
+    "level": "LV37",
+    "element": "恶",
+    "name": "趁火打劫",
+    "energy": "3",
+    "type": "物攻",
+    "power": "35",
+    "description": "✦造成物伤，2连击，若击败敌方，本技能连击数永久+2。"
+  },
+  {
+    "level": "LV38",
+    "element": "恶",
+    "name": "暗突袭",
+    "energy": "4",
+    "type": "物攻",
+    "power": "70",
+    "description": "✦造成物伤，吸血50%，应对状态：本次技能威力翻倍。"
+  },
+  {
+    "level": "LV40",
+    "element": "翼",
+    "name": "龙卷风",
+    "energy": "5",
+    "type": "物攻",
+    "power": "70",
+    "description": "✦造成物伤，迅捷，应对状态：本次技能威力变为1.5倍。"
+  }
+]

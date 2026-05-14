@@ -1,0 +1,128 @@
+[
+  {
+    "level": "",
+    "element": "普通",
+    "name": "借用",
+    "energy": "0",
+    "type": "状态",
+    "power": "0",
+    "description": "✦每回合随机变成己方队伍中其他精灵的技能。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "偷袭",
+    "energy": "3",
+    "type": "物攻",
+    "power": "85",
+    "description": "✦造成物伤，应对状态：本次技能威力变为3倍。"
+  },
+  {
+    "level": "",
+    "element": "草",
+    "name": "光合作用",
+    "energy": "4",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得1层光合印记。"
+  },
+  {
+    "level": "",
+    "element": "武",
+    "name": "化劲",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得全技能威力+40。"
+  },
+  {
+    "level": "",
+    "element": "地",
+    "name": "地刺",
+    "energy": "3",
+    "type": "物攻",
+    "power": "95",
+    "description": "✦造成物伤，应对状态：额外打断被应对技能。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "快速移动",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得速度+80，应对防御：改为速度+160。"
+  },
+  {
+    "level": "",
+    "element": "武",
+    "name": "截拳",
+    "energy": "3",
+    "type": "物攻",
+    "power": "90",
+    "description": "✦造成物伤，应对状态：额外造成打断，回复该技能能耗的能量。"
+  },
+  {
+    "level": "",
+    "element": "恶",
+    "name": "撕咬",
+    "energy": "3",
+    "type": "物攻",
+    "power": "30",
+    "description": "✦造成物伤，3连击，若自己的生命低于50%，本次技能连击数+2。"
+  },
+  {
+    "level": "",
+    "element": "武",
+    "name": "无影脚",
+    "energy": "3",
+    "type": "物攻",
+    "power": "85",
+    "description": "✦造成物伤，应对状态：本次技能威力变为2倍。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "晒太阳",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦驱散敌方所有增益。"
+  },
+  {
+    "level": "",
+    "element": "草",
+    "name": "移花接木",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己回复15%生命，随后脱离。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "能量刃",
+    "energy": "3",
+    "type": "物攻",
+    "power": "80",
+    "description": "✦造成物伤，每应对成功1次，本技能威力永久+90。"
+  },
+  {
+    "level": "",
+    "element": "地",
+    "name": "落石",
+    "energy": "1",
+    "type": "物攻",
+    "power": "55",
+    "description": "✦造成物伤，1连击。"
+  },
+  {
+    "level": "",
+    "element": "地",
+    "name": "钧势",
+    "energy": "3",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得物防+140%和速度-30。"
+  }
+]

@@ -1,0 +1,128 @@
+[
+  {
+    "level": "",
+    "element": "普通",
+    "name": "借用",
+    "energy": "0",
+    "type": "状态",
+    "power": "0",
+    "description": "✦每回合随机变成己方队伍中其他精灵的技能。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "埋伏",
+    "energy": "4",
+    "type": "魔攻",
+    "power": "30",
+    "description": "✦造成魔伤，3连击，若敌方本回合更换精灵，本次技能连击数+3。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "摇篮曲",
+    "energy": "5",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方获得全技能能耗+3，应对防御：额外造成打断，且敌方下回合获得眩晕。"
+  },
+  {
+    "level": "",
+    "element": "毒",
+    "name": "毒孢子",
+    "energy": "3",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方获得5层中毒。"
+  },
+  {
+    "level": "",
+    "element": "光",
+    "name": "漫反射",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦每种系别中的至多1个技能，威力+35。"
+  },
+  {
+    "level": "",
+    "element": "毒",
+    "name": "瘴气喷射",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "100",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "突袭",
+    "energy": "2",
+    "type": "魔攻",
+    "power": "70",
+    "description": "✦造成魔伤，应对状态：本次技能威力变为3倍。"
+  },
+  {
+    "level": "",
+    "element": "光",
+    "name": "脉冲光线",
+    "energy": "0",
+    "type": "魔攻",
+    "power": "40",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "",
+    "element": "毒",
+    "name": "腐蚀酸液",
+    "energy": "2",
+    "type": "魔攻",
+    "power": "35",
+    "description": "✦造成魔伤，敌方获得2层中毒。"
+  },
+  {
+    "level": "",
+    "element": "地",
+    "name": "跺地",
+    "energy": "2",
+    "type": "物攻",
+    "power": "80",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "追打",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "75",
+    "description": "✦造成魔伤，1连击，应对状态：本技能变为3连击。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "防御",
+    "energy": "1",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤70%，应对攻击。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "魔法增效",
+    "energy": "0",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得魔攻+70%。"
+  },
+  {
+    "level": "",
+    "element": "毒",
+    "name": "鸩毒",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "75",
+    "description": "✦造成魔伤，敌方每有1层中毒效果，本次技能威力+10，应对状态：改为本次威力+20。"
+  }
+]

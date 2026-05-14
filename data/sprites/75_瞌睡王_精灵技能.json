@@ -1,0 +1,128 @@
+[
+  {
+    "level": "LV1",
+    "element": "普通",
+    "name": "先发制人",
+    "energy": "2",
+    "type": "物攻",
+    "power": "55",
+    "description": "✦造成物理伤害，先手+1。"
+  },
+  {
+    "level": "LV1",
+    "element": "武",
+    "name": "寸拳",
+    "energy": "0",
+    "type": "物攻",
+    "power": "30",
+    "description": "✦造成物伤，自己回复1能量。"
+  },
+  {
+    "level": "LV8",
+    "element": "普通",
+    "name": "晒太阳",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦驱散敌方所有增益。"
+  },
+  {
+    "level": "LV13",
+    "element": "普通",
+    "name": "防御",
+    "energy": "1",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤70%，应对攻击。"
+  },
+  {
+    "level": "LV17",
+    "element": "普通",
+    "name": "力量增效",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得物攻+100%。"
+  },
+  {
+    "level": "LV24",
+    "element": "普通",
+    "name": "后发制人",
+    "energy": "3",
+    "type": "物攻",
+    "power": "155",
+    "description": "✦造成物理伤害，先手-1。"
+  },
+  {
+    "level": "LV30",
+    "element": "武",
+    "name": "化劲",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得全技能威力+40。"
+  },
+  {
+    "level": "LV35",
+    "element": "普通",
+    "name": "压扁",
+    "energy": "5",
+    "type": "物攻",
+    "power": "155",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "LV36",
+    "element": "武",
+    "name": "气沉丹田",
+    "energy": "10",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己回复60%生命，获得物攻+130%，每次应对后本技能能耗-3，使用后能耗重置。"
+  },
+  {
+    "level": "LV39",
+    "element": "武",
+    "name": "回旋踢",
+    "energy": "3",
+    "type": "物攻",
+    "power": "80",
+    "description": "✦造成物伤，若敌方本回合更换精灵，本次技能威力翻倍。"
+  },
+  {
+    "level": "LV40",
+    "element": "武",
+    "name": "斩断",
+    "energy": "2",
+    "type": "物攻",
+    "power": "75",
+    "description": "✦造成物伤，应对状态：额外打断被应对技能。"
+  },
+  {
+    "level": "LV41",
+    "element": "普通",
+    "name": "应激反应",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己回复25%生命，应对防御：改为回复50%生命。"
+  },
+  {
+    "level": "LV45",
+    "element": "武",
+    "name": "技巧打击",
+    "energy": "2",
+    "type": "物攻",
+    "power": "35",
+    "description": "✦造成物伤，应对状态：本次技能威力变为10倍。"
+  },
+  {
+    "level": "LV47",
+    "element": "普通",
+    "name": "偷袭",
+    "energy": "3",
+    "type": "物攻",
+    "power": "85",
+    "description": "✦造成物伤，应对状态：本次技能威力变为3倍。"
+  }
+]

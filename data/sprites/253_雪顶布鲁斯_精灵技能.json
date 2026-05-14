@@ -1,0 +1,119 @@
+[
+  {
+    "level": "LV1",
+    "element": "冰",
+    "name": "冰爪",
+    "energy": "2",
+    "type": "物攻",
+    "power": "80",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "LV1",
+    "element": "冰",
+    "name": "霜降",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方获得4层冻结。"
+  },
+  {
+    "level": "LV9",
+    "element": "普通",
+    "name": "先发制人",
+    "energy": "2",
+    "type": "物攻",
+    "power": "55",
+    "description": "✦造成物理伤害，先手+1。"
+  },
+  {
+    "level": "LV11",
+    "element": "普通",
+    "name": "防御",
+    "energy": "1",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤70%，应对攻击。"
+  },
+  {
+    "level": "LV21",
+    "element": "普通",
+    "name": "力量增效",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得物攻+100%。"
+  },
+  {
+    "level": "LV23",
+    "element": "冰",
+    "name": "丢冰块",
+    "energy": "3",
+    "type": "物攻",
+    "power": "90",
+    "description": "✦造成物伤，敌方获得速度-30。"
+  },
+  {
+    "level": "LV26",
+    "element": "冰",
+    "name": "冰捆缚",
+    "energy": "3",
+    "type": "状态",
+    "power": "0",
+    "description": "✦2连击，每次连击敌方获得全技能能耗+1。"
+  },
+  {
+    "level": "LV33",
+    "element": "冰",
+    "name": "暴风雪",
+    "energy": "3",
+    "type": "物攻",
+    "power": "85",
+    "description": "✦造成物伤，敌方获得1层冻结。"
+  },
+  {
+    "level": "LV35",
+    "element": "冰",
+    "name": "速冻",
+    "energy": "4",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方获得2层减速印记。"
+  },
+  {
+    "level": "LV38",
+    "element": "冰",
+    "name": "冰晶坠",
+    "energy": "4",
+    "type": "物攻",
+    "power": "90",
+    "description": "✦造成物伤，敌方获得全技能能耗+1。"
+  },
+  {
+    "level": "LV48",
+    "element": "冰",
+    "name": "瞬间零度",
+    "energy": "0",
+    "type": "状态",
+    "power": "0",
+    "description": "✦本回合敌方使用的技能能耗+3，应对防御：改为全技能能耗+3。"
+  },
+  {
+    "level": "LV49",
+    "element": "冰",
+    "name": "滚雪球",
+    "energy": "3",
+    "type": "物攻",
+    "power": "55",
+    "description": "✦造成物伤，敌方获得2层冻结，应对状态：额外获得2层，本次技能威力翻倍。"
+  },
+  {
+    "level": "LV50",
+    "element": "冰",
+    "name": "冰雹",
+    "energy": "4",
+    "type": "物攻",
+    "power": "105",
+    "description": "✦造成物伤，应对状态：额外使敌方获得全技能能耗+3。"
+  }
+]

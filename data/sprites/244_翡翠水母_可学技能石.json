@@ -1,0 +1,119 @@
+[
+  {
+    "level": "",
+    "element": "普通",
+    "name": "乱打",
+    "energy": "4",
+    "type": "魔攻",
+    "power": "25",
+    "description": "✦造成魔伤，5连击。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "吓退",
+    "energy": "2",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤60%，应对攻击：敌方脱离。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "复写",
+    "energy": "0",
+    "type": "状态",
+    "power": "0",
+    "description": "✦每回合随机变成自己未携带的技能，且该技能能耗-2。"
+  },
+  {
+    "level": "",
+    "element": "萌",
+    "name": "捧杀",
+    "energy": "4",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤90%，应对攻击：敌方获得1层萌化。"
+  },
+  {
+    "level": "",
+    "element": "水",
+    "name": "水炮",
+    "energy": "5",
+    "type": "魔攻",
+    "power": "110",
+    "description": "✦造成魔伤，每次使用后，本技能能耗永久-1。"
+  },
+  {
+    "level": "",
+    "element": "水",
+    "name": "水环",
+    "energy": "2",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤60%，应对攻击：自己获得全技能能耗-2。"
+  },
+  {
+    "level": "",
+    "element": "水",
+    "name": "润泽",
+    "energy": "7",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得魔攻+190%。"
+  },
+  {
+    "level": "",
+    "element": "水",
+    "name": "潮汐",
+    "energy": "4",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤60%，应对攻击：自己获得1层湿润印记。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "耀眼",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方获得连击数-4。"
+  },
+  {
+    "level": "",
+    "element": "水",
+    "name": "蓄水",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦下次使用的技能能耗-6。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "血气",
+    "energy": "2",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤60%，应对攻击：本回合受到致命伤害时，保留1生命值。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "防御",
+    "energy": "1",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤70%，应对攻击。"
+  },
+  {
+    "level": "",
+    "element": "萌",
+    "name": "飞吻",
+    "energy": "2",
+    "type": "魔攻",
+    "power": "80",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  }
+]

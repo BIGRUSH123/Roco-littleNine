@@ -1,0 +1,119 @@
+[
+  {
+    "level": "LV1",
+    "element": "水",
+    "name": "甩水",
+    "energy": "0",
+    "type": "魔攻",
+    "power": "30",
+    "description": "✦造成魔伤，自己回复1能量。"
+  },
+  {
+    "level": "LV1",
+    "element": "水",
+    "name": "洗礼",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦驱散自己的减益，并获得全技能能耗-1。"
+  },
+  {
+    "level": "LV5",
+    "element": "毒",
+    "name": "不可接触",
+    "energy": "1",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤50%，敌方每有1层中毒效果，本技能减伤+10%，应对攻击。"
+  },
+  {
+    "level": "LV11",
+    "element": "毒",
+    "name": "腐蚀酸液",
+    "energy": "2",
+    "type": "魔攻",
+    "power": "35",
+    "description": "✦造成魔伤，敌方获得2层中毒。"
+  },
+  {
+    "level": "LV16",
+    "element": "毒",
+    "name": "以毒攻毒",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方每有1层中毒效果，自己获得魔攻+30%。"
+  },
+  {
+    "level": "LV24",
+    "element": "毒",
+    "name": "瘴气喷射",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "100",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "LV26",
+    "element": "水",
+    "name": "泡沫幻影",
+    "energy": "2",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤80%，应对攻击：自己脱离。"
+  },
+  {
+    "level": "LV33",
+    "element": "水",
+    "name": "激流",
+    "energy": "4",
+    "type": "魔攻",
+    "power": "120",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "LV34",
+    "element": "毒",
+    "name": "疫病吐息",
+    "energy": "3",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方获得1层中毒印记。"
+  },
+  {
+    "level": "LV37",
+    "element": "普通",
+    "name": "湮灭",
+    "energy": "5",
+    "type": "魔攻",
+    "power": "155",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "LV41",
+    "element": "毒",
+    "name": "毒液渗透",
+    "energy": "5",
+    "type": "魔攻",
+    "power": "120",
+    "description": "✦造成魔伤，敌方每有1层中毒效果，本技能能耗-1，敌方获得1层中毒。"
+  },
+  {
+    "level": "LV45",
+    "element": "毒",
+    "name": "鸩毒",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "75",
+    "description": "✦造成魔伤，敌方每有1层中毒效果，本次技能威力+10，应对状态：改为本次威力+20。"
+  },
+  {
+    "level": "LV46",
+    "element": "水",
+    "name": "天洪",
+    "energy": "7",
+    "type": "魔攻",
+    "power": "150",
+    "description": "✦造成魔伤，应对状态：本技能能耗永久-6。"
+  }
+]

@@ -1,0 +1,119 @@
+[
+  {
+    "level": "LV1",
+    "element": "普通",
+    "name": "魔法增效",
+    "energy": "0",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得魔攻+70%。"
+  },
+  {
+    "level": "LV1",
+    "element": "翼",
+    "name": "鸣叫",
+    "energy": "0",
+    "type": "魔攻",
+    "power": "40",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "LV6",
+    "element": "幻",
+    "name": "针状物",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "30",
+    "description": "✦造成魔伤，3连击。"
+  },
+  {
+    "level": "LV8",
+    "element": "翼",
+    "name": "风隐",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方和自己均脱离，先手-1。"
+  },
+  {
+    "level": "LV13",
+    "element": "普通",
+    "name": "先发制人",
+    "energy": "2",
+    "type": "物攻",
+    "power": "55",
+    "description": "✦造成物理伤害，先手+1。"
+  },
+  {
+    "level": "LV17",
+    "element": "翼",
+    "name": "乘风",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得速度+120。"
+  },
+  {
+    "level": "LV21",
+    "element": "幻",
+    "name": "大爆炸",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "100",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "LV27",
+    "element": "幻",
+    "name": "超维投射",
+    "energy": "4",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方获得4层星陨印记。"
+  },
+  {
+    "level": "LV30",
+    "element": "翼",
+    "name": "回旋风暴",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "100",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "LV31",
+    "element": "幻",
+    "name": "二律背反",
+    "energy": "4",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方获得3层星陨印记，应对防御：额外使敌方星陨印记层数翻倍。"
+  },
+  {
+    "level": "LV34",
+    "element": "幻",
+    "name": "坍缩",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "85",
+    "description": "✦造成魔伤，若击败敌方，自己获得魔攻+70%。"
+  },
+  {
+    "level": "LV38",
+    "element": "翼",
+    "name": "翼击",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "50",
+    "description": "✦造成魔伤，迅捷。"
+  },
+  {
+    "level": "LV40",
+    "element": "幻",
+    "name": "错乱",
+    "energy": "2",
+    "type": "魔攻",
+    "power": "65",
+    "description": "✦造成魔伤，应对状态：敌方获得3层星陨印记。"
+  }
+]

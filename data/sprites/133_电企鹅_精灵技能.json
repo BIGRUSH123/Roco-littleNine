@@ -1,0 +1,119 @@
+[
+  {
+    "level": "LV1",
+    "element": "冰",
+    "name": "风吹雪",
+    "energy": "0",
+    "type": "魔攻",
+    "power": "30",
+    "description": "✦造成魔伤，自己回复1能量。"
+  },
+  {
+    "level": "LV1",
+    "element": "电",
+    "name": "超导加速",
+    "energy": "2",
+    "type": "魔攻",
+    "power": "70",
+    "description": "✦造成魔伤，自己获得速度+30。"
+  },
+  {
+    "level": "LV6",
+    "element": "普通",
+    "name": "聒噪",
+    "energy": "3",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方获得全攻击技能能耗+3，持续3回合。"
+  },
+  {
+    "level": "LV10",
+    "element": "冰",
+    "name": "寒风吹",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "70",
+    "description": "✦造成魔伤，敌方获得魔防-50%。"
+  },
+  {
+    "level": "LV11",
+    "element": "普通",
+    "name": "防御",
+    "energy": "1",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤70%，应对攻击。"
+  },
+  {
+    "level": "LV22",
+    "element": "电",
+    "name": "电流",
+    "energy": "0",
+    "type": "魔攻",
+    "power": "40",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "LV23",
+    "element": "冰",
+    "name": "霜冻",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方获得魔防-100%。"
+  },
+  {
+    "level": "LV28",
+    "element": "冰",
+    "name": "冰锋横扫",
+    "energy": "4",
+    "type": "魔攻",
+    "power": "0",
+    "description": "✦造成魔伤，本技能威力等于敌方精灵技能总能耗的10倍。"
+  },
+  {
+    "level": "LV35",
+    "element": "电",
+    "name": "增程电池",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得1层蓄电印记。"
+  },
+  {
+    "level": "LV42",
+    "element": "电",
+    "name": "感电",
+    "energy": "2",
+    "type": "魔攻",
+    "power": "60",
+    "description": "✦造成魔伤，每离场1次，本技能使用次数永久+1。"
+  },
+  {
+    "level": "LV47",
+    "element": "冰",
+    "name": "雾气环绕",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦回复能量，回复值等于敌方技能总能耗的一半。"
+  },
+  {
+    "level": "LV49",
+    "element": "电",
+    "name": "落雷",
+    "energy": "4",
+    "type": "魔攻",
+    "power": "100",
+    "description": "✦造成魔伤，每次入场，本技能威力永久+20。"
+  },
+  {
+    "level": "LV50",
+    "element": "冰",
+    "name": "极寒领域",
+    "energy": "6",
+    "type": "魔攻",
+    "power": "105",
+    "description": "✦造成魔伤，若敌方有冻结，本次技能威力+60，应对状态：使冻结翻倍。"
+  }
+]

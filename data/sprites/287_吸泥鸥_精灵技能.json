@@ -1,0 +1,119 @@
+[
+  {
+    "level": "LV1",
+    "element": "普通",
+    "name": "力量增效",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得物攻+100%。"
+  },
+  {
+    "level": "LV1",
+    "element": "地",
+    "name": "落石",
+    "energy": "1",
+    "type": "物攻",
+    "power": "55",
+    "description": "✦造成物伤，1连击。"
+  },
+  {
+    "level": "LV7",
+    "element": "翼",
+    "name": "啄击",
+    "energy": "0",
+    "type": "物攻",
+    "power": "15",
+    "description": "✦造成物伤，2连击。"
+  },
+  {
+    "level": "LV8",
+    "element": "翼",
+    "name": "乘风",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得速度+120。"
+  },
+  {
+    "level": "LV16",
+    "element": "普通",
+    "name": "先发制人",
+    "energy": "2",
+    "type": "物攻",
+    "power": "55",
+    "description": "✦造成物理伤害，先手+1。"
+  },
+  {
+    "level": "LV23",
+    "element": "地",
+    "name": "石肤术",
+    "energy": "3",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得物防+160%和魔防-60%。"
+  },
+  {
+    "level": "LV26",
+    "element": "翼",
+    "name": "疾风刺",
+    "energy": "2",
+    "type": "物攻",
+    "power": "25",
+    "description": "✦造成物伤，1连击，若先于敌方攻击，改为3连击。"
+  },
+  {
+    "level": "LV33",
+    "element": "地",
+    "name": "泥浆铠甲",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得物攻和物防+60%，应对防御：额外使自己的增益翻倍。"
+  },
+  {
+    "level": "LV34",
+    "element": "翼",
+    "name": "扇风",
+    "energy": "3",
+    "type": "物攻",
+    "power": "75",
+    "description": "✦造成物伤，若先于敌方攻击，本次技能威力+50%。"
+  },
+  {
+    "level": "LV38",
+    "element": "地",
+    "name": "鸣沙陷阱",
+    "energy": "4",
+    "type": "物攻",
+    "power": "60",
+    "description": "✦造成物伤，物防比敌方越高，本次技能威力越高。"
+  },
+  {
+    "level": "LV47",
+    "element": "地",
+    "name": "岩土暴击",
+    "energy": "8",
+    "type": "物攻",
+    "power": "140",
+    "description": "✦造成物伤，每被攻击1次。本技能能耗永久-1。"
+  },
+  {
+    "level": "LV49",
+    "element": "翼",
+    "name": "羽刃",
+    "energy": "2",
+    "type": "物攻",
+    "power": "75",
+    "description": "✦造成物伤，应对状态：回合结束使敌方紧急脱离。"
+  },
+  {
+    "level": "LV50",
+    "element": "地",
+    "name": "地刺",
+    "energy": "3",
+    "type": "物攻",
+    "power": "95",
+    "description": "✦造成物伤，应对状态：额外打断被应对技能。"
+  }
+]

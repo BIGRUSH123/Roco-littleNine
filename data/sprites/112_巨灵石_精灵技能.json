@@ -1,0 +1,137 @@
+[
+  {
+    "level": "LV1",
+    "element": "普通",
+    "name": "防御",
+    "energy": "1",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤70%，应对攻击。"
+  },
+  {
+    "level": "LV1",
+    "element": "幽",
+    "name": "鬼火",
+    "energy": "0",
+    "type": "魔攻",
+    "power": "30",
+    "description": "✦造成魔伤，自己回复1能量。"
+  },
+  {
+    "level": "LV1",
+    "element": "幽",
+    "name": "勾魂",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦偷取敌方3能量。"
+  },
+  {
+    "level": "LV5",
+    "element": "地",
+    "name": "泥巴喷射",
+    "energy": "1",
+    "type": "魔攻",
+    "power": "60",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "LV10",
+    "element": "幽",
+    "name": "嘲弄",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得魔攻+90%，若敌方本回合更换精灵，自己获得速度+70。"
+  },
+  {
+    "level": "LV11",
+    "element": "幽",
+    "name": "幻象",
+    "energy": "1",
+    "type": "物攻",
+    "power": "60",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "LV17",
+    "element": "地",
+    "name": "钧势",
+    "energy": "3",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得物防+140%和速度-30。"
+  },
+  {
+    "level": "LV22",
+    "element": "地",
+    "name": "不动如山",
+    "energy": "2",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤90%，应对攻击。"
+  },
+  {
+    "level": "LV29",
+    "element": "地",
+    "name": "陨石",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "100",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "LV35",
+    "element": "地",
+    "name": "沙涌",
+    "energy": "7",
+    "type": "状态",
+    "power": "0",
+    "description": "✦将天气改为沙暴，持续8回合。"
+  },
+  {
+    "level": "LV36",
+    "element": "普通",
+    "name": "穿膛",
+    "energy": "2",
+    "type": "物攻",
+    "power": "65",
+    "description": "✦造成物伤，若敌方能量小于等于2，造成5倍伤害。"
+  },
+  {
+    "level": "LV39",
+    "element": "幽",
+    "name": "恶作剧",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方失去3能量，应对防御：改为敌方失去6能量。"
+  },
+  {
+    "level": "LV40",
+    "element": "幽",
+    "name": "幽灵爆发",
+    "energy": "5",
+    "type": "魔攻",
+    "power": "140",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "LV41",
+    "element": "地",
+    "name": "流沙",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方3回合无法更换精灵，应对防御：敌方获得双防-60%。"
+  },
+  {
+    "level": "LV43",
+    "element": "地",
+    "name": "岩土暴击",
+    "energy": "8",
+    "type": "物攻",
+    "power": "140",
+    "description": "✦造成物伤，每被攻击1次。本技能能耗永久-1。"
+  }
+]

@@ -1,0 +1,119 @@
+[
+  {
+    "level": "LV1",
+    "element": "普通",
+    "name": "许愿星",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "110",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "LV1",
+    "element": "普通",
+    "name": "魔法增效",
+    "energy": "0",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得魔攻+70%。"
+  },
+  {
+    "level": "LV9",
+    "element": "光",
+    "name": "虹光冲击",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "100",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "LV13",
+    "element": "普通",
+    "name": "防御",
+    "energy": "1",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤70%，应对攻击。"
+  },
+  {
+    "level": "LV18",
+    "element": "普通",
+    "name": "晒太阳",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦驱散敌方所有增益。"
+  },
+  {
+    "level": "LV27",
+    "element": "光",
+    "name": "天光",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "95",
+    "description": "✦造成魔伤，本技能系别和天气系别相同。"
+  },
+  {
+    "level": "LV28",
+    "element": "普通",
+    "name": "伺机而动",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦下一次攻击时，技能威力+70。"
+  },
+  {
+    "level": "LV30",
+    "element": "光",
+    "name": "过曝",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "60",
+    "description": "✦造成魔伤，每使用过1个其他系别技能，本技能威力永久+30。"
+  },
+  {
+    "level": "LV36",
+    "element": "光",
+    "name": "漫反射",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦每种系别中的至多1个技能，威力+35。"
+  },
+  {
+    "level": "LV37",
+    "element": "光",
+    "name": "折射",
+    "energy": "4",
+    "type": "魔攻",
+    "power": "50",
+    "description": "✦造成魔伤，携带其他系别技能会给本技能带来不同效果。"
+  },
+  {
+    "level": "LV39",
+    "element": "普通",
+    "name": "快速移动",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得速度+80，应对防御：改为速度+160。"
+  },
+  {
+    "level": "LV40",
+    "element": "普通",
+    "name": "突袭",
+    "energy": "2",
+    "type": "魔攻",
+    "power": "70",
+    "description": "✦造成魔伤，应对状态：本次技能威力变为3倍。"
+  },
+  {
+    "level": "LV50",
+    "element": "普通",
+    "name": "阻断",
+    "energy": "2",
+    "type": "魔攻",
+    "power": "80",
+    "description": "✦造成魔伤，应对状态：额外打断被应对技能。"
+  }
+]

@@ -1,0 +1,119 @@
+[
+  {
+    "level": "",
+    "element": "普通",
+    "name": "三连破",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得物攻+30%，3连击。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "乘胜追击",
+    "energy": "2",
+    "type": "物攻",
+    "power": "40",
+    "description": "✦造成物伤，1连击，每次使用后，本技能连击数永久+1。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "偷袭",
+    "energy": "3",
+    "type": "物攻",
+    "power": "85",
+    "description": "✦造成物伤，应对状态：本次技能威力变为3倍。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "复写",
+    "energy": "0",
+    "type": "状态",
+    "power": "0",
+    "description": "✦每回合随机变成自己未携带的技能，且该技能能耗-2。"
+  },
+  {
+    "level": "",
+    "element": "幽",
+    "name": "幻象",
+    "energy": "1",
+    "type": "物攻",
+    "power": "60",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "",
+    "element": "恶",
+    "name": "彼岸之手",
+    "energy": "10",
+    "type": "物攻",
+    "power": "150",
+    "description": "✦造成物伤，自己每失去10%生命，本技能能耗-1。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "快速移动",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得速度+80，应对防御：改为速度+160。"
+  },
+  {
+    "level": "",
+    "element": "幽",
+    "name": "惊吓盒子",
+    "energy": "3",
+    "type": "物攻",
+    "power": "80",
+    "description": "✦造成物伤，应对状态：使敌方失去6能量。"
+  },
+  {
+    "level": "",
+    "element": "恶",
+    "name": "撕裂",
+    "energy": "3",
+    "type": "物攻",
+    "power": "85",
+    "description": "✦造成物伤，应对状态：本次攻击吸血100%。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "热身运动",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得连击数+3。"
+  },
+  {
+    "level": "",
+    "element": "翼",
+    "name": "羽化加速",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得全技能威力+20，迅捷。"
+  },
+  {
+    "level": "",
+    "element": "毒",
+    "name": "连续毒针",
+    "energy": "2",
+    "type": "物攻",
+    "power": "15",
+    "description": "✦造成物伤，2连击，每次连击使敌方获得1层中毒。"
+  },
+  {
+    "level": "",
+    "element": "幽",
+    "name": "降灵",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方获得1层降灵印记。"
+  }
+]

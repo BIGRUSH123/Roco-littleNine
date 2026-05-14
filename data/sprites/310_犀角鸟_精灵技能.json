@@ -1,0 +1,110 @@
+[
+  {
+    "level": "LV1",
+    "element": "普通",
+    "name": "力量增效",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得物攻+100%。"
+  },
+  {
+    "level": "LV1",
+    "element": "光",
+    "name": "透射",
+    "energy": "1",
+    "type": "物攻",
+    "power": "60",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "LV5",
+    "element": "普通",
+    "name": "先发制人",
+    "energy": "2",
+    "type": "物攻",
+    "power": "55",
+    "description": "✦造成物理伤害，先手+1。"
+  },
+  {
+    "level": "LV13",
+    "element": "普通",
+    "name": "防御",
+    "energy": "1",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤70%，应对攻击。"
+  },
+  {
+    "level": "LV22",
+    "element": "光",
+    "name": "漫反射",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦每种系别中的至多1个技能，威力+35。"
+  },
+  {
+    "level": "LV29",
+    "element": "光",
+    "name": "光之矛",
+    "energy": "3",
+    "type": "物攻",
+    "power": "30",
+    "description": "✦造成物伤，3连击。"
+  },
+  {
+    "level": "LV36",
+    "element": "普通",
+    "name": "三连破",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得物攻+30%，3连击。"
+  },
+  {
+    "level": "LV37",
+    "element": "光",
+    "name": "光刃",
+    "energy": "4",
+    "type": "物攻",
+    "power": "120",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "LV38",
+    "element": "普通",
+    "name": "热身运动",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得连击数+3。"
+  },
+  {
+    "level": "LV39",
+    "element": "光",
+    "name": "折射",
+    "energy": "4",
+    "type": "魔攻",
+    "power": "50",
+    "description": "✦造成魔伤，携带其他系别技能会给本技能带来不同效果。"
+  },
+  {
+    "level": "LV41",
+    "element": "普通",
+    "name": "快速移动",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得速度+80，应对防御：改为速度+160。"
+  },
+  {
+    "level": "LV48",
+    "element": "普通",
+    "name": "偷袭",
+    "energy": "3",
+    "type": "物攻",
+    "power": "85",
+    "description": "✦造成物伤，应对状态：本次技能威力变为3倍。"
+  }
+]

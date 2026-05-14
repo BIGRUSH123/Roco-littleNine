@@ -1,0 +1,146 @@
+[
+  {
+    "level": "",
+    "element": "普通",
+    "name": "倾泻",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "70",
+    "description": "✦造成魔伤，若本次攻击未被防御技能应对，则驱散双方所有印记。"
+  },
+  {
+    "level": "",
+    "element": "冰",
+    "name": "冰冻光线",
+    "energy": "7",
+    "type": "魔攻",
+    "power": "90",
+    "description": "✦造成魔伤，敌方获得全技能能耗+2。"
+  },
+  {
+    "level": "",
+    "element": "幽",
+    "name": "勾魂",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦偷取敌方3能量。"
+  },
+  {
+    "level": "",
+    "element": "幻",
+    "name": "双星",
+    "energy": "3",
+    "type": "物攻",
+    "power": "100",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "",
+    "element": "幻",
+    "name": "坍缩",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "85",
+    "description": "✦造成魔伤，若击败敌方，自己获得魔攻+70%。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "复写",
+    "energy": "0",
+    "type": "状态",
+    "power": "0",
+    "description": "✦每回合随机变成自己未携带的技能，且该技能能耗-2。"
+  },
+  {
+    "level": "",
+    "element": "幽",
+    "name": "幽灵爆发",
+    "energy": "5",
+    "type": "魔攻",
+    "power": "140",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "",
+    "element": "幽",
+    "name": "恐吓",
+    "energy": "2",
+    "type": "魔攻",
+    "power": "80",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "",
+    "element": "幽",
+    "name": "惊吓盒子",
+    "energy": "3",
+    "type": "物攻",
+    "power": "80",
+    "description": "✦造成物伤，应对状态：使敌方失去6能量。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "晒太阳",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦驱散敌方所有增益。"
+  },
+  {
+    "level": "",
+    "element": "萌",
+    "name": "生日蛋糕",
+    "energy": "4",
+    "type": "状态",
+    "power": "0",
+    "description": "✦驱散自己的减益，自己的增益翻倍。"
+  },
+  {
+    "level": "",
+    "element": "萌",
+    "name": "破罐破摔",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "80",
+    "description": "✦造成魔伤，自己有减益时，本次技能威力+60。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "精神扰乱",
+    "energy": "0",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方获得全技能能耗+1，应对防御：改为能耗+3。"
+  },
+  {
+    "level": "",
+    "element": "幽",
+    "name": "诡刺",
+    "energy": "0",
+    "type": "物攻",
+    "power": "40",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "",
+    "element": "萌",
+    "name": "超级糖果",
+    "energy": "3",
+    "type": "物攻",
+    "power": "100",
+    "description": "✦造成物伤，自己获得萌化：本次技能威力+60。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "阻断",
+    "energy": "2",
+    "type": "魔攻",
+    "power": "80",
+    "description": "✦造成魔伤，应对状态：额外打断被应对技能。"
+  }
+]

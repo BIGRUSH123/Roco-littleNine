@@ -1,0 +1,128 @@
+[
+  {
+    "level": "LV1",
+    "element": "草",
+    "name": "刺藤",
+    "energy": "3",
+    "type": "物攻",
+    "power": "45",
+    "description": "✦造成物伤，2连击。"
+  },
+  {
+    "level": "LV1",
+    "element": "草",
+    "name": "根吸收",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己回复15%生命和4能量。"
+  },
+  {
+    "level": "LV6",
+    "element": "武",
+    "name": "崩拳",
+    "energy": "2",
+    "type": "物攻",
+    "power": "65",
+    "description": "✦造成物伤，应对状态：自己获得物攻+100%。"
+  },
+  {
+    "level": "LV13",
+    "element": "普通",
+    "name": "力量增效",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得物攻+100%。"
+  },
+  {
+    "level": "LV21",
+    "element": "草",
+    "name": "顶端优势",
+    "energy": "3",
+    "type": "物攻",
+    "power": "100",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "LV28",
+    "element": "普通",
+    "name": "热身运动",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得连击数+3。"
+  },
+  {
+    "level": "LV30",
+    "element": "草",
+    "name": "藤绞",
+    "energy": "4",
+    "type": "物攻",
+    "power": "80",
+    "description": "✦造成物伤，自己回复5能量。"
+  },
+  {
+    "level": "LV35",
+    "element": "草",
+    "name": "盛开",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得全技能威力+30，应对防御：改为威力+60。"
+  },
+  {
+    "level": "LV36",
+    "element": "普通",
+    "name": "先发制人",
+    "energy": "2",
+    "type": "物攻",
+    "power": "55",
+    "description": "✦造成物理伤害，先手+1。"
+  },
+  {
+    "level": "LV37",
+    "element": "草",
+    "name": "针刺射击",
+    "energy": "3",
+    "type": "物攻",
+    "power": "80",
+    "description": "✦造成物伤，若敌方本回合更换精灵，自己回复7点能量。"
+  },
+  {
+    "level": "LV39",
+    "element": "武",
+    "name": "爆冲",
+    "energy": "3",
+    "type": "物攻",
+    "power": "65",
+    "description": "✦造成物伤，应对状态：本次技能威力变为5倍。"
+  },
+  {
+    "level": "LV44",
+    "element": "武",
+    "name": "一拳",
+    "energy": "5",
+    "type": "物攻",
+    "power": "140",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "LV49",
+    "element": "武",
+    "name": "散手",
+    "energy": "3",
+    "type": "物攻",
+    "power": "35",
+    "description": "✦造成物伤，2连击，应对状态：本技能改为6连击。"
+  },
+  {
+    "level": "LV50",
+    "element": "草",
+    "name": "抽枝",
+    "energy": "4",
+    "type": "物攻",
+    "power": "90",
+    "description": "✦造成物伤，应对状态：自己回复50%生命和5能量。"
+  }
+]

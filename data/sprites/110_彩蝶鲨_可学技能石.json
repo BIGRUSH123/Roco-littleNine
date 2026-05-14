@@ -1,0 +1,119 @@
+[
+  {
+    "level": "",
+    "element": "冰",
+    "name": "冰捆缚",
+    "energy": "3",
+    "type": "状态",
+    "power": "0",
+    "description": "✦2连击，每次连击敌方获得全技能能耗+1。"
+  },
+  {
+    "level": "",
+    "element": "冰",
+    "name": "寒风吹",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "70",
+    "description": "✦造成魔伤，敌方获得魔防-50%。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "快速移动",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得速度+80，应对防御：改为速度+160。"
+  },
+  {
+    "level": "",
+    "element": "冰",
+    "name": "极寒领域",
+    "energy": "6",
+    "type": "魔攻",
+    "power": "105",
+    "description": "✦造成魔伤，若敌方有冻结，本次技能威力+60，应对状态：使冻结翻倍。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "消毒法",
+    "energy": "4",
+    "type": "魔攻",
+    "power": "115",
+    "description": "✦造成魔伤，驱散敌方5层增益。"
+  },
+  {
+    "level": "",
+    "element": "水",
+    "name": "涌泉",
+    "energy": "6",
+    "type": "魔攻",
+    "power": "60",
+    "description": "✦造成魔伤，本技能能耗每-1，威力+10。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "热身运动",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得连击数+3。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "突袭",
+    "energy": "2",
+    "type": "魔攻",
+    "power": "70",
+    "description": "✦造成魔伤，应对状态：本次技能威力变为3倍。"
+  },
+  {
+    "level": "",
+    "element": "虫",
+    "name": "虫蛊",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "100",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "",
+    "element": "虫",
+    "name": "贮藏",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得双攻+50%，每携带1个0能耗技能，额外+50%。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "追打",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "75",
+    "description": "✦造成魔伤，1连击，应对状态：本技能变为3连击。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "防御",
+    "energy": "1",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤70%，应对攻击。"
+  },
+  {
+    "level": "",
+    "element": "翼",
+    "name": "风起",
+    "energy": "4",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得1层风起印记。"
+  }
+]

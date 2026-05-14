@@ -1,0 +1,128 @@
+[
+  {
+    "level": "LV1",
+    "element": "普通",
+    "name": "魔法增效",
+    "energy": "0",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得魔攻+70%。"
+  },
+  {
+    "level": "LV1",
+    "element": "光",
+    "name": "脉冲光线",
+    "energy": "0",
+    "type": "魔攻",
+    "power": "40",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "LV6",
+    "element": "地",
+    "name": "淤泥表皮",
+    "energy": "2",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤80%，应对攻击：敌方获得连击数-3。"
+  },
+  {
+    "level": "LV12",
+    "element": "地",
+    "name": "泥浆",
+    "energy": "0",
+    "type": "魔攻",
+    "power": "40",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "LV17",
+    "element": "光",
+    "name": "漫反射",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦每种系别中的至多1个技能，威力+35。"
+  },
+  {
+    "level": "LV25",
+    "element": "光",
+    "name": "透射",
+    "energy": "1",
+    "type": "物攻",
+    "power": "60",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "LV26",
+    "element": "地",
+    "name": "蓄势待发",
+    "energy": "4",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得1层蓄势印记。"
+  },
+  {
+    "level": "LV33",
+    "element": "地",
+    "name": "壁垒",
+    "energy": "2",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤90%，应对攻击：防御技能冷却-1。"
+  },
+  {
+    "level": "LV34",
+    "element": "地",
+    "name": "扬沙",
+    "energy": "1",
+    "type": "物攻",
+    "power": "60",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "LV38",
+    "element": "地",
+    "name": "跺地",
+    "energy": "2",
+    "type": "物攻",
+    "power": "80",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "LV40",
+    "element": "光",
+    "name": "镜像反射",
+    "energy": "1",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤70%，应对攻击：本技能变为被应对的技能。"
+  },
+  {
+    "level": "LV44",
+    "element": "普通",
+    "name": "音波弹",
+    "energy": "1",
+    "type": "魔攻",
+    "power": "60",
+    "description": "✦造成魔伤，1连击。"
+  },
+  {
+    "level": "LV48",
+    "element": "光",
+    "name": "闪光冲击",
+    "energy": "3",
+    "type": "物攻",
+    "power": "100",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "LV49",
+    "element": "地",
+    "name": "地刺",
+    "energy": "3",
+    "type": "物攻",
+    "power": "95",
+    "description": "✦造成物伤，应对状态：额外打断被应对技能。"
+  }
+]

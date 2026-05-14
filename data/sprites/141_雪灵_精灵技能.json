@@ -1,0 +1,146 @@
+[
+  {
+    "level": "LV1",
+    "element": "普通",
+    "name": "防御",
+    "energy": "1",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤70%，应对攻击。"
+  },
+  {
+    "level": "LV1",
+    "element": "冰",
+    "name": "冰锥",
+    "energy": "0",
+    "type": "物攻",
+    "power": "40",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "LV1",
+    "element": "冰",
+    "name": "雪球",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方获得速度-90。"
+  },
+  {
+    "level": "LV4",
+    "element": "普通",
+    "name": "旋转突击",
+    "energy": "3",
+    "type": "物攻",
+    "power": "35",
+    "description": "✦造成物伤，3连击。"
+  },
+  {
+    "level": "LV9",
+    "element": "普通",
+    "name": "激怒",
+    "energy": "3",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方除本回合使用的技能，其他技能能耗+3，持续3回合。"
+  },
+  {
+    "level": "LV12",
+    "element": "冰",
+    "name": "丢冰块",
+    "energy": "3",
+    "type": "物攻",
+    "power": "90",
+    "description": "✦造成物伤，敌方获得速度-30。"
+  },
+  {
+    "level": "LV26",
+    "element": "冰",
+    "name": "雾气环绕",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦回复能量，回复值等于敌方技能总能耗的一半。"
+  },
+  {
+    "level": "LV33",
+    "element": "冰",
+    "name": "雪替身",
+    "energy": "2",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤70%，应对攻击：回复能量，回复值等于被应对技能能耗的2倍。"
+  },
+  {
+    "level": "LV35",
+    "element": "普通",
+    "name": "能量炮",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "50",
+    "description": "✦造成魔伤，2连击。"
+  },
+  {
+    "level": "LV38",
+    "element": "普通",
+    "name": "聒噪",
+    "energy": "3",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方获得全攻击技能能耗+3，持续3回合。"
+  },
+  {
+    "level": "LV42",
+    "element": "冰",
+    "name": "冰锋横扫",
+    "energy": "4",
+    "type": "魔攻",
+    "power": "0",
+    "description": "✦造成魔伤，本技能威力等于敌方精灵技能总能耗的10倍。"
+  },
+  {
+    "level": "LV46",
+    "element": "冰",
+    "name": "冰捆缚",
+    "energy": "3",
+    "type": "状态",
+    "power": "0",
+    "description": "✦2连击，每次连击敌方获得全技能能耗+1。"
+  },
+  {
+    "level": "LV47",
+    "element": "冰",
+    "name": "速冻",
+    "energy": "4",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方获得2层减速印记。"
+  },
+  {
+    "level": "LV48",
+    "element": "冰",
+    "name": "冰冻光线",
+    "energy": "7",
+    "type": "魔攻",
+    "power": "90",
+    "description": "✦造成魔伤，敌方获得全技能能耗+2。"
+  },
+  {
+    "level": "LV49",
+    "element": "冰",
+    "name": "冬至",
+    "energy": "7",
+    "type": "状态",
+    "power": "0",
+    "description": "✦将天气改为暴风雪，持续8回合。"
+  },
+  {
+    "level": "LV50",
+    "element": "冰",
+    "name": "瞬间零度",
+    "energy": "0",
+    "type": "状态",
+    "power": "0",
+    "description": "✦本回合敌方使用的技能能耗+3，应对防御：改为全技能能耗+3。"
+  }
+]

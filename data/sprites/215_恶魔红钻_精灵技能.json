@@ -1,0 +1,128 @@
+[
+  {
+    "level": "LV1",
+    "element": "恶",
+    "name": "蝙蝠",
+    "energy": "2",
+    "type": "物攻",
+    "power": "65",
+    "description": "✦造成物伤，并吸血100%。"
+  },
+  {
+    "level": "LV1",
+    "element": "普通",
+    "name": "锐利眼神",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方获得物防和魔防-120%。"
+  },
+  {
+    "level": "LV1",
+    "element": "虫",
+    "name": "飞断",
+    "energy": "1",
+    "type": "物攻",
+    "power": "20",
+    "description": "✦造成物伤，己方队伍获得1次奉献：威力+20。"
+  },
+  {
+    "level": "LV4",
+    "element": "虫",
+    "name": "尾后针",
+    "energy": "2",
+    "type": "物攻",
+    "power": "80",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "LV8",
+    "element": "普通",
+    "name": "防御",
+    "energy": "1",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤70%，应对攻击。"
+  },
+  {
+    "level": "LV13",
+    "element": "虫",
+    "name": "网缚",
+    "energy": "2",
+    "type": "物攻",
+    "power": "60",
+    "description": "✦造成物伤，敌方获得物防-30%。"
+  },
+  {
+    "level": "LV16",
+    "element": "恶",
+    "name": "力量吞噬",
+    "energy": "4",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方获得全技能威力-20，自己获得全技能威力+20。"
+  },
+  {
+    "level": "LV23",
+    "element": "恶",
+    "name": "极限撕裂",
+    "energy": "4",
+    "type": "物攻",
+    "power": "135",
+    "description": "✦造成物伤，若生命高于50%，使用后自己获得双攻-50%。"
+  },
+  {
+    "level": "LV28",
+    "element": "普通",
+    "name": "以重制重",
+    "energy": "3",
+    "type": "物攻",
+    "power": "0",
+    "description": "✦造成物伤，敌方体重越高，本次技能威力越高。"
+  },
+  {
+    "level": "LV29",
+    "element": "虫",
+    "name": "草虫冲击",
+    "energy": "3",
+    "type": "物攻",
+    "power": "80",
+    "description": "✦造成物伤，若敌方本回合更换精灵，本次威力+50且无视敌方系别抵抗。"
+  },
+  {
+    "level": "LV30",
+    "element": "虫",
+    "name": "虫茧",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己回复20%生命，己方队伍获得1次奉献：获得10%吸血。"
+  },
+  {
+    "level": "LV33",
+    "element": "虫",
+    "name": "虫击",
+    "energy": "3",
+    "type": "物攻",
+    "power": "90",
+    "description": "✦造成物伤，应对状态：本次技能威力变为2倍，无视敌方系别抵抗。"
+  },
+  {
+    "level": "LV35",
+    "element": "恶",
+    "name": "等价交换",
+    "energy": "3",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤90%，应对攻击：自己获得50%吸血。"
+  },
+  {
+    "level": "LV38",
+    "element": "恶",
+    "name": "灾厄",
+    "energy": "1",
+    "type": "物攻",
+    "power": "150",
+    "description": "✦对自己造成物伤，应对状态：改为对敌方造成物伤。"
+  }
+]

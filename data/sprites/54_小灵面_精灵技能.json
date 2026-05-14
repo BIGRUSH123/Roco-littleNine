@@ -1,0 +1,119 @@
+[
+  {
+    "level": "LV1",
+    "element": "普通",
+    "name": "防御",
+    "energy": "1",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤70%，应对攻击。"
+  },
+  {
+    "level": "LV1",
+    "element": "幽",
+    "name": "鬼火",
+    "energy": "0",
+    "type": "魔攻",
+    "power": "30",
+    "description": "✦造成魔伤，自己回复1能量。"
+  },
+  {
+    "level": "LV5",
+    "element": "幽",
+    "name": "勾魂",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦偷取敌方3能量。"
+  },
+  {
+    "level": "LV10",
+    "element": "普通",
+    "name": "许愿星",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "110",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "LV11",
+    "element": "普通",
+    "name": "取念",
+    "energy": "0",
+    "type": "状态",
+    "power": "0",
+    "description": "✦每回合随机变成敌方任意精灵的技能，且该技能能耗-2。"
+  },
+  {
+    "level": "LV16",
+    "element": "幽",
+    "name": "幽灵爆发",
+    "energy": "5",
+    "type": "魔攻",
+    "power": "140",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "LV21",
+    "element": "普通",
+    "name": "聒噪",
+    "energy": "3",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方获得全攻击技能能耗+3，持续3回合。"
+  },
+  {
+    "level": "LV27",
+    "element": "幽",
+    "name": "报复",
+    "energy": "2",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤70%，应对攻击：敌方失去3能量。"
+  },
+  {
+    "level": "LV34",
+    "element": "幽",
+    "name": "背袭",
+    "energy": "2",
+    "type": "魔攻",
+    "power": "40",
+    "description": "✦造成魔伤，若敌方能量等于0，造成20倍伤害。"
+  },
+  {
+    "level": "LV35",
+    "element": "幽",
+    "name": "嘲弄",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得魔攻+90%，若敌方本回合更换精灵，自己获得速度+70。"
+  },
+  {
+    "level": "LV39",
+    "element": "幽",
+    "name": "恐吓",
+    "energy": "2",
+    "type": "魔攻",
+    "power": "80",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "LV40",
+    "element": "幽",
+    "name": "降灵",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方获得1层降灵印记。"
+  },
+  {
+    "level": "LV45",
+    "element": "幽",
+    "name": "恶作剧",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方失去3能量，应对防御：改为敌方失去6能量。"
+  }
+]

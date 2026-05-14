@@ -1,0 +1,119 @@
+[
+  {
+    "level": "LV1",
+    "element": "普通",
+    "name": "猛烈撞击",
+    "energy": "1",
+    "type": "物攻",
+    "power": "65",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "LV1",
+    "element": "火",
+    "name": "火苗",
+    "energy": "0",
+    "type": "物攻",
+    "power": "30",
+    "description": "✦造成物伤，自己回复1能量。"
+  },
+  {
+    "level": "LV6",
+    "element": "普通",
+    "name": "力量增效",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得物攻+100%。"
+  },
+  {
+    "level": "LV8",
+    "element": "火",
+    "name": "火焰切割",
+    "energy": "3",
+    "type": "物攻",
+    "power": "100",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "LV10",
+    "element": "普通",
+    "name": "防御",
+    "energy": "1",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤70%，应对攻击。"
+  },
+  {
+    "level": "LV12",
+    "element": "火",
+    "name": "吹火",
+    "energy": "1",
+    "type": "物攻",
+    "power": "50",
+    "description": "✦造成物伤，每次使用后，本技能威力永久+20。"
+  },
+  {
+    "level": "LV17",
+    "element": "普通",
+    "name": "晒太阳",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦驱散敌方所有增益。"
+  },
+  {
+    "level": "LV21",
+    "element": "火",
+    "name": "怒火",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得双攻+120%和双防-40%。"
+  },
+  {
+    "level": "LV29",
+    "element": "火",
+    "name": "持续高温",
+    "energy": "2",
+    "type": "魔攻",
+    "power": "70",
+    "description": "✦造成魔伤，应对状态：下次攻击技能威力翻倍。"
+  },
+  {
+    "level": "LV30",
+    "element": "火",
+    "name": "火云车",
+    "energy": "5",
+    "type": "物攻",
+    "power": "140",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "LV36",
+    "element": "火",
+    "name": "热身",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦下一次攻击时，技能威力翻倍，应对防御：改为威力变为4倍。"
+  },
+  {
+    "level": "LV42",
+    "element": "火",
+    "name": "闪燃",
+    "energy": "1",
+    "type": "物攻",
+    "power": "40",
+    "description": "✦造成物伤，应对状态：本次技能威力变为4倍。"
+  },
+  {
+    "level": "LV48",
+    "element": "火",
+    "name": "山火",
+    "energy": "3",
+    "type": "物攻",
+    "power": "15",
+    "description": "✦造成物伤，每使用1次其他火系技能，本技能威力永久翻倍。"
+  }
+]

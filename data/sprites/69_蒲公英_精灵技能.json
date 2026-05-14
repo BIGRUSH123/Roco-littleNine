@@ -1,0 +1,137 @@
+[
+  {
+    "level": "LV1",
+    "element": "萌",
+    "name": "超级糖果",
+    "energy": "3",
+    "type": "物攻",
+    "power": "100",
+    "description": "✦造成物伤，自己获得萌化：本次技能威力+60。"
+  },
+  {
+    "level": "LV1",
+    "element": "萌",
+    "name": "示弱",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得萌化：速度永久+150。"
+  },
+  {
+    "level": "LV1",
+    "element": "草",
+    "name": "顶端优势",
+    "energy": "3",
+    "type": "物攻",
+    "power": "100",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "LV7",
+    "element": "萌",
+    "name": "反弹",
+    "energy": "4",
+    "type": "状态",
+    "power": "0",
+    "description": "✦将自己的萌化转移给敌方。"
+  },
+  {
+    "level": "LV10",
+    "element": "普通",
+    "name": "倾泻",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "70",
+    "description": "✦造成魔伤，若本次攻击未被防御技能应对，则驱散双方所有印记。"
+  },
+  {
+    "level": "LV12",
+    "element": "草",
+    "name": "徒长",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己回复10能量。"
+  },
+  {
+    "level": "LV18",
+    "element": "草",
+    "name": "叶绿光束",
+    "energy": "4",
+    "type": "魔攻",
+    "power": "120",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "LV23",
+    "element": "草",
+    "name": "丰饶",
+    "energy": "3",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得物攻和魔攻+140%。"
+  },
+  {
+    "level": "LV24",
+    "element": "萌",
+    "name": "破罐破摔",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "80",
+    "description": "✦造成魔伤，自己有减益时，本次技能威力+60。"
+  },
+  {
+    "level": "LV25",
+    "element": "萌",
+    "name": "生日蛋糕",
+    "energy": "4",
+    "type": "状态",
+    "power": "0",
+    "description": "✦驱散自己的减益，自己的增益翻倍。"
+  },
+  {
+    "level": "LV31",
+    "element": "萌",
+    "name": "月光合奏",
+    "energy": "3",
+    "type": "物攻",
+    "power": "30",
+    "description": "✦造成物伤，1连击，双方携带的所有精灵每有1层萌化，本次技能连击数+1。"
+  },
+  {
+    "level": "LV34",
+    "element": "草",
+    "name": "光能聚集",
+    "energy": "7",
+    "type": "魔攻",
+    "power": "100",
+    "description": "✦造成魔伤，每次使用其他草系技能后，本技能威力永久+60。"
+  },
+  {
+    "level": "LV40",
+    "element": "草",
+    "name": "仙人掌刺击",
+    "energy": "6",
+    "type": "物攻",
+    "power": "150",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "LV43",
+    "element": "萌",
+    "name": "爆米花爆破",
+    "energy": "5",
+    "type": "物攻",
+    "power": "140",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "LV45",
+    "element": "草",
+    "name": "抽枝",
+    "energy": "4",
+    "type": "物攻",
+    "power": "90",
+    "description": "✦造成物伤，应对状态：自己回复50%生命和5能量。"
+  }
+]

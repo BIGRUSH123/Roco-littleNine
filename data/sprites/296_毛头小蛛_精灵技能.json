@@ -1,0 +1,119 @@
+[
+  {
+    "level": "LV1",
+    "element": "虫",
+    "name": "网缚",
+    "energy": "2",
+    "type": "物攻",
+    "power": "60",
+    "description": "✦造成物伤，敌方获得物防-30%。"
+  },
+  {
+    "level": "LV1",
+    "element": "虫",
+    "name": "贮藏",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得双攻+50%，每携带1个0能耗技能，额外+50%。"
+  },
+  {
+    "level": "LV1",
+    "element": "普通",
+    "name": "防御",
+    "energy": "1",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤70%，应对攻击。"
+  },
+  {
+    "level": "LV9",
+    "element": "虫",
+    "name": "尾后针",
+    "energy": "2",
+    "type": "物攻",
+    "power": "80",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "LV11",
+    "element": "虫",
+    "name": "食腐",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦驱散敌方印记，每层印记回复自己10%生命。"
+  },
+  {
+    "level": "LV23",
+    "element": "虫",
+    "name": "虫鸣",
+    "energy": "2",
+    "type": "魔攻",
+    "power": "15",
+    "description": "✦造成魔伤，队伍中的精灵每携带1个虫鸣，本次技能连击数+1。"
+  },
+  {
+    "level": "LV29",
+    "element": "地",
+    "name": "沙涌",
+    "energy": "7",
+    "type": "状态",
+    "power": "0",
+    "description": "✦将天气改为沙暴，持续8回合。"
+  },
+  {
+    "level": "LV30",
+    "element": "地",
+    "name": "壁垒",
+    "energy": "2",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤90%，应对攻击：防御技能冷却-1。"
+  },
+  {
+    "level": "LV36",
+    "element": "地",
+    "name": "石锁",
+    "energy": "3",
+    "type": "物攻",
+    "power": "50",
+    "description": "✦造成物伤，敌方3回合无法更换精灵。"
+  },
+  {
+    "level": "LV37",
+    "element": "虫",
+    "name": "虫群过境",
+    "energy": "5",
+    "type": "物攻",
+    "power": "45",
+    "description": "✦造成物伤，2连击。己方队伍获得1次奉献：获得连击数+1。"
+  },
+  {
+    "level": "LV39",
+    "element": "虫",
+    "name": "虫结阵",
+    "energy": "2",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤80%，应对攻击：己方队伍获得1次随机奉献。"
+  },
+  {
+    "level": "LV44",
+    "element": "地",
+    "name": "岩土暴击",
+    "energy": "8",
+    "type": "物攻",
+    "power": "140",
+    "description": "✦造成物伤，每被攻击1次。本技能能耗永久-1。"
+  },
+  {
+    "level": "LV50",
+    "element": "虫",
+    "name": "翅刃",
+    "energy": "4",
+    "type": "物攻",
+    "power": "95",
+    "description": "✦造成物伤，驱散敌方所有印记，应对状态：改为偷取印记。"
+  }
+]

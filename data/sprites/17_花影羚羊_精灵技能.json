@@ -1,0 +1,119 @@
+[
+  {
+    "level": "LV1",
+    "element": "恶",
+    "name": "恶能量",
+    "energy": "1",
+    "type": "物攻",
+    "power": "60",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "LV1",
+    "element": "普通",
+    "name": "力量增效",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得物攻+100%。"
+  },
+  {
+    "level": "LV6",
+    "element": "幽",
+    "name": "幻象",
+    "energy": "1",
+    "type": "物攻",
+    "power": "60",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "LV8",
+    "element": "幽",
+    "name": "勾魂",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦偷取敌方3能量。"
+  },
+  {
+    "level": "LV12",
+    "element": "恶",
+    "name": "虚假破产",
+    "energy": "2",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤80%，能量不足时，消耗5%生命代替1能量，应对攻击。"
+  },
+  {
+    "level": "LV23",
+    "element": "幽",
+    "name": "降灵",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方获得1层降灵印记。"
+  },
+  {
+    "level": "LV24",
+    "element": "恶",
+    "name": "撕咬",
+    "energy": "3",
+    "type": "物攻",
+    "power": "30",
+    "description": "✦造成物伤，3连击，若自己的生命低于50%，本次技能连击数+2。"
+  },
+  {
+    "level": "LV29",
+    "element": "恶",
+    "name": "力量吞噬",
+    "energy": "4",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方获得全技能威力-20，自己获得全技能威力+20。"
+  },
+  {
+    "level": "LV35",
+    "element": "普通",
+    "name": "见招拆招",
+    "energy": "2",
+    "type": "物攻",
+    "power": "65",
+    "description": "✦造成物伤，若上回合使用状态技能，本次技能威力+55。"
+  },
+  {
+    "level": "LV36",
+    "element": "幽",
+    "name": "恶作剧",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方失去3能量，应对防御：改为敌方失去6能量。"
+  },
+  {
+    "level": "LV38",
+    "element": "恶",
+    "name": "极限撕裂",
+    "energy": "4",
+    "type": "物攻",
+    "power": "135",
+    "description": "✦造成物伤，若生命高于50%，使用后自己获得双攻-50%。"
+  },
+  {
+    "level": "LV39",
+    "element": "恶",
+    "name": "恶意逃离",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦脱离，应对防御：额外使敌方攻击技能能耗+4。"
+  },
+  {
+    "level": "LV50",
+    "element": "幽",
+    "name": "坟场搏击",
+    "energy": "4",
+    "type": "物攻",
+    "power": "180",
+    "description": "✦造成物伤，敌方每有1能量，本次技能威力-10%。"
+  }
+]

@@ -1,0 +1,119 @@
+[
+  {
+    "level": "",
+    "element": "恶",
+    "name": "伪造账单",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦若敌方本回合回复生命，改为失去2倍。先手+1。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "借用",
+    "energy": "0",
+    "type": "状态",
+    "power": "0",
+    "description": "✦每回合随机变成己方队伍中其他精灵的技能。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "快速移动",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得速度+80，应对防御：改为速度+160。"
+  },
+  {
+    "level": "",
+    "element": "幽",
+    "name": "恐吓",
+    "energy": "2",
+    "type": "魔攻",
+    "power": "80",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "",
+    "element": "水",
+    "name": "打湿",
+    "energy": "4",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得1层湿润印记。"
+  },
+  {
+    "level": "",
+    "element": "恶",
+    "name": "掠夺",
+    "energy": "1",
+    "type": "魔攻",
+    "power": "60",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "摇篮曲",
+    "energy": "5",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方获得全技能能耗+3，应对防御：额外造成打断，且敌方下回合获得眩晕。"
+  },
+  {
+    "level": "",
+    "element": "水",
+    "name": "涌泉",
+    "energy": "6",
+    "type": "魔攻",
+    "power": "60",
+    "description": "✦造成魔伤，本技能能耗每-1，威力+10。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "耀眼",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方获得连击数-4。"
+  },
+  {
+    "level": "",
+    "element": "恶",
+    "name": "跌落",
+    "energy": "3",
+    "type": "物攻",
+    "power": "120",
+    "description": "✦造成大量物伤，自己获得物攻-50%，应对状态：改为获得物攻+50%。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "重击",
+    "energy": "2",
+    "type": "物攻",
+    "power": "110",
+    "description": "✦造成物伤，每次使用后，本技能能耗永久+1。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "防御",
+    "energy": "1",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤70%，应对攻击。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "阻断",
+    "energy": "2",
+    "type": "魔攻",
+    "power": "80",
+    "description": "✦造成魔伤，应对状态：额外打断被应对技能。"
+  }
+]

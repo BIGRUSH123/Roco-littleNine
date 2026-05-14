@@ -1,0 +1,128 @@
+[
+  {
+    "level": "",
+    "element": "普通",
+    "name": "借用",
+    "energy": "0",
+    "type": "状态",
+    "power": "0",
+    "description": "✦每回合随机变成己方队伍中其他精灵的技能。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "加固",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得物防+140%。"
+  },
+  {
+    "level": "",
+    "element": "武",
+    "name": "反击拳",
+    "energy": "2",
+    "type": "物攻",
+    "power": "25",
+    "description": "✦造成物伤，2连击，若后手攻击，改为3连击。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "后发制人",
+    "energy": "3",
+    "type": "物攻",
+    "power": "155",
+    "description": "✦造成物理伤害，先手-1。"
+  },
+  {
+    "level": "",
+    "element": "地",
+    "name": "地陷",
+    "energy": "5",
+    "type": "物攻",
+    "power": "80",
+    "description": "✦造成物伤，自己获得物防+70%，应对状态：本次技能威力翻倍，且物防额外+70%。"
+  },
+  {
+    "level": "",
+    "element": "恶",
+    "name": "彼岸之手",
+    "energy": "10",
+    "type": "物攻",
+    "power": "150",
+    "description": "✦造成物伤，自己每失去10%生命，本技能能耗-1。"
+  },
+  {
+    "level": "",
+    "element": "火",
+    "name": "怒火",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得双攻+120%和双防-40%。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "有效预防",
+    "energy": "1",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤50%，应对攻击：下一次行动获得先手+1。"
+  },
+  {
+    "level": "",
+    "element": "火",
+    "name": "火焰切割",
+    "energy": "3",
+    "type": "物攻",
+    "power": "100",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "",
+    "element": "地",
+    "name": "石肤术",
+    "energy": "3",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得物防+160%和魔防-60%。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "锐利眼神",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方获得物防和魔防-120%。"
+  },
+  {
+    "level": "",
+    "element": "火",
+    "name": "闪燃",
+    "energy": "1",
+    "type": "物攻",
+    "power": "40",
+    "description": "✦造成物伤，应对状态：本次技能威力变为4倍。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "防御",
+    "energy": "1",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤70%，应对攻击。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "鼓劲",
+    "energy": "3",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得魔防+170%。"
+  }
+]

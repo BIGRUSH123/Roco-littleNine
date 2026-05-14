@@ -1,0 +1,119 @@
+[
+  {
+    "level": "",
+    "element": "普通",
+    "name": "借用",
+    "energy": "0",
+    "type": "状态",
+    "power": "0",
+    "description": "✦每回合随机变成己方队伍中其他精灵的技能。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "偷袭",
+    "energy": "3",
+    "type": "物攻",
+    "power": "85",
+    "description": "✦造成物伤，应对状态：本次技能威力变为3倍。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "力量增效",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得物攻+100%。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "吓退",
+    "energy": "2",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤60%，应对攻击：敌方脱离。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "嗜痛",
+    "energy": "2",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤80%，应对攻击：期间自己每次受到伤害，获得双攻+40%。"
+  },
+  {
+    "level": "",
+    "element": "幽",
+    "name": "报复",
+    "energy": "2",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤70%，应对攻击：敌方失去3能量。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "无畏之心",
+    "energy": "5",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤100%，应对攻击：减免的伤害变为回复自己生命，且本技能能耗永久+2。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "有效预防",
+    "energy": "1",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤50%，应对攻击：下一次行动获得先手+1。"
+  },
+  {
+    "level": "",
+    "element": "电",
+    "name": "电弧",
+    "energy": "3",
+    "type": "物攻",
+    "power": "80",
+    "description": "✦造成物伤，迸发：本次技能威力+40。"
+  },
+  {
+    "level": "",
+    "element": "电",
+    "name": "电磁偏转",
+    "energy": "3",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤70%，应对攻击：下回合所选技能使用次数+1。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "穿膛",
+    "energy": "2",
+    "type": "物攻",
+    "power": "65",
+    "description": "✦造成物伤，若敌方能量小于等于2，造成5倍伤害。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "锐利眼神",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方获得物防和魔防-120%。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "防御",
+    "energy": "1",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤70%，应对攻击。"
+  }
+]

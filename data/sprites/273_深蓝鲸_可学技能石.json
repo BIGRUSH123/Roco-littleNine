@@ -1,0 +1,128 @@
+[
+  {
+    "level": "",
+    "element": "普通",
+    "name": "借用",
+    "energy": "0",
+    "type": "状态",
+    "power": "0",
+    "description": "✦每回合随机变成己方队伍中其他精灵的技能。"
+  },
+  {
+    "level": "",
+    "element": "冰",
+    "name": "冰墙",
+    "energy": "2",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤80%，应对攻击：敌方获得2层冻结。"
+  },
+  {
+    "level": "",
+    "element": "冰",
+    "name": "冷风",
+    "energy": "1",
+    "type": "魔攻",
+    "power": "60",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "",
+    "element": "武",
+    "name": "叠势",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "25",
+    "description": "✦造成魔伤，2连击，每成功应对1次，本技能连击数永久+2。"
+  },
+  {
+    "level": "",
+    "element": "冰",
+    "name": "寒风吹",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "70",
+    "description": "✦造成魔伤，敌方获得魔防-50%。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "有效预防",
+    "energy": "1",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤50%，应对攻击：下一次行动获得先手+1。"
+  },
+  {
+    "level": "",
+    "element": "水",
+    "name": "涌泉",
+    "energy": "6",
+    "type": "魔攻",
+    "power": "60",
+    "description": "✦造成魔伤，本技能能耗每-1，威力+10。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "突袭",
+    "energy": "2",
+    "type": "魔攻",
+    "power": "70",
+    "description": "✦造成魔伤，应对状态：本次技能威力变为3倍。"
+  },
+  {
+    "level": "",
+    "element": "水",
+    "name": "蓄水",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦下次使用的技能能耗-6。"
+  },
+  {
+    "level": "",
+    "element": "冰",
+    "name": "速冻",
+    "energy": "4",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方获得2层减速印记。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "防反",
+    "energy": "2",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤60%，应对攻击：自己获得物攻和魔攻+40%。"
+  },
+  {
+    "level": "",
+    "element": "武",
+    "name": "防御反击",
+    "energy": "3",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤80%，应对攻击：自己获得全技能威力+40。"
+  },
+  {
+    "level": "",
+    "element": "冰",
+    "name": "雪替身",
+    "energy": "2",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤70%，应对攻击：回复能量，回复值等于被应对技能能耗的2倍。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "魔能爆",
+    "energy": "0",
+    "type": "魔攻",
+    "power": "1",
+    "description": "✦造成魔伤，使用时消耗所有能量，消耗越高，伤害越高。"
+  }
+]

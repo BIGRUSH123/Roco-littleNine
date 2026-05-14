@@ -1,0 +1,119 @@
+[
+  {
+    "level": "",
+    "element": "普通",
+    "name": "借用",
+    "energy": "0",
+    "type": "状态",
+    "power": "0",
+    "description": "✦每回合随机变成己方队伍中其他精灵的技能。"
+  },
+  {
+    "level": "",
+    "element": "冰",
+    "name": "冰墙",
+    "energy": "2",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤80%，应对攻击：敌方获得2层冻结。"
+  },
+  {
+    "level": "",
+    "element": "冰",
+    "name": "冰天雪地",
+    "energy": "2",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤80%，应对攻击：被应对技能能耗+3。"
+  },
+  {
+    "level": "",
+    "element": "冰",
+    "name": "冷风",
+    "energy": "1",
+    "type": "魔攻",
+    "power": "60",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "吓退",
+    "energy": "2",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤60%，应对攻击：敌方脱离。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "嗜痛",
+    "energy": "2",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤80%，应对攻击：期间自己每次受到伤害，获得双攻+40%。"
+  },
+  {
+    "level": "",
+    "element": "幻",
+    "name": "多维击打",
+    "energy": "4",
+    "type": "魔攻",
+    "power": "15",
+    "description": "✦造成魔伤，1连击，敌方每有1层星陨印记，本次技能连击数+1。"
+  },
+  {
+    "level": "",
+    "element": "冰",
+    "name": "寒风吹",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "70",
+    "description": "✦造成魔伤，敌方获得魔防-50%。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "有效预防",
+    "energy": "1",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤50%，应对攻击：下一次行动获得先手+1。"
+  },
+  {
+    "level": "",
+    "element": "水",
+    "name": "水波术",
+    "energy": "6",
+    "type": "魔攻",
+    "power": "90",
+    "description": "✦造成魔伤，回合结束时，本技能威力永久+20。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "突袭",
+    "energy": "2",
+    "type": "魔攻",
+    "power": "70",
+    "description": "✦造成魔伤，应对状态：本次技能威力变为3倍。"
+  },
+  {
+    "level": "",
+    "element": "冰",
+    "name": "速冻",
+    "energy": "4",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方获得2层减速印记。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "魔能爆",
+    "energy": "0",
+    "type": "魔攻",
+    "power": "1",
+    "description": "✦造成魔伤，使用时消耗所有能量，消耗越高，伤害越高。"
+  }
+]

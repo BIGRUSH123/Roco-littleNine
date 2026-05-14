@@ -1,0 +1,146 @@
+[
+  {
+    "level": "LV1",
+    "element": "普通",
+    "name": "魔法增效",
+    "energy": "0",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得魔攻+70%。"
+  },
+  {
+    "level": "LV1",
+    "element": "普通",
+    "name": "防御",
+    "energy": "1",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤70%，应对攻击。"
+  },
+  {
+    "level": "LV1",
+    "element": "机械",
+    "name": "械斗",
+    "energy": "1",
+    "type": "物攻",
+    "power": "45",
+    "description": "✦造成物伤，本技能位于1号位时威力+60，传动1。"
+  },
+  {
+    "level": "LV7",
+    "element": "机械",
+    "name": "金属噪音",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "100",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "LV10",
+    "element": "机械",
+    "name": "啮合传递",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得速度+80，本技能位于1号或3号位时额外获得物攻+60%，传动1。"
+  },
+  {
+    "level": "LV12",
+    "element": "普通",
+    "name": "先发制人",
+    "energy": "2",
+    "type": "物攻",
+    "power": "55",
+    "description": "✦造成物理伤害，先手+1。"
+  },
+  {
+    "level": "LV18",
+    "element": "普通",
+    "name": "休息回复",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己回复30%生命。"
+  },
+  {
+    "level": "LV23",
+    "element": "机械",
+    "name": "齿轮扭矩",
+    "energy": "3",
+    "type": "物攻",
+    "power": "80",
+    "description": "✦造成物伤，每回合位置发生变化时，本技能威力永久+20。"
+  },
+  {
+    "level": "LV27",
+    "element": "普通",
+    "name": "力量增效",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得物攻+100%。"
+  },
+  {
+    "level": "LV29",
+    "element": "机械",
+    "name": "主轴",
+    "energy": "2",
+    "type": "物攻",
+    "power": "75",
+    "description": "✦造成物伤，此技能位置不会改变。"
+  },
+  {
+    "level": "LV35",
+    "element": "普通",
+    "name": "鼓劲",
+    "energy": "3",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得魔防+170%。"
+  },
+  {
+    "level": "LV36",
+    "element": "机械",
+    "name": "磁暴",
+    "energy": "2",
+    "type": "魔攻",
+    "power": "70",
+    "description": "✦造成魔伤，本技能位于1号或3号位时威力+30，传动1。"
+  },
+  {
+    "level": "LV38",
+    "element": "机械",
+    "name": "轴承支撑",
+    "energy": "3",
+    "type": "状态",
+    "power": "0",
+    "description": "✦主动：本技能被动额外-1能耗，被动：两侧技能能耗-1，传动1。"
+  },
+  {
+    "level": "LV40",
+    "element": "机械",
+    "name": "钢钻",
+    "energy": "4",
+    "type": "物攻",
+    "power": "0",
+    "description": "✦造成物伤，技能威力为两侧技能威力和的三分之一，传动1。"
+  },
+  {
+    "level": "LV49",
+    "element": "机械",
+    "name": "联动装置",
+    "energy": "0",
+    "type": "状态",
+    "power": "0",
+    "description": "✦使用后两侧技能的威力永久+20，应对防御：变为威力永久+30。"
+  },
+  {
+    "level": "LV50",
+    "element": "机械",
+    "name": "齿轮切开",
+    "energy": "5",
+    "type": "物攻",
+    "power": "130",
+    "description": "✦造成物伤，本技能位于1号或3号位时能耗-2，传动1。"
+  }
+]

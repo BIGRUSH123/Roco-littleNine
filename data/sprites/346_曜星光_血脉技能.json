@@ -1,0 +1,164 @@
+[
+  {
+    "level": "",
+    "element": "普通",
+    "name": "星星撞击",
+    "energy": "2",
+    "type": "魔攻",
+    "power": "90",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "",
+    "element": "恶",
+    "name": "黑手",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "45",
+    "description": "✦造成魔伤，2连击。"
+  },
+  {
+    "level": "",
+    "element": "龙",
+    "name": "升龙咆哮",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "200",
+    "description": "✦蓄力，对敌方造成魔法伤害。"
+  },
+  {
+    "level": "",
+    "element": "电",
+    "name": "磁干扰",
+    "energy": "1",
+    "type": "魔攻",
+    "power": "60",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "",
+    "element": "武",
+    "name": "贯手",
+    "energy": "2",
+    "type": "魔攻",
+    "power": "80",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "",
+    "element": "火",
+    "name": "火爪",
+    "energy": "1",
+    "type": "魔攻",
+    "power": "60",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "",
+    "element": "幽",
+    "name": "灵媒",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "100",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "",
+    "element": "草",
+    "name": "荆棘爪",
+    "energy": "2",
+    "type": "物攻",
+    "power": "80",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "",
+    "element": "冰",
+    "name": "冷风",
+    "energy": "1",
+    "type": "魔攻",
+    "power": "60",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "",
+    "element": "虫",
+    "name": "尾后针",
+    "energy": "2",
+    "type": "物攻",
+    "power": "80",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "",
+    "element": "光",
+    "name": "虹光冲击",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "100",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "",
+    "element": "机械",
+    "name": "离子震荡",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "90",
+    "description": "✦造成魔伤，本技能位于3号位时威力+40，传动1。"
+  },
+  {
+    "level": "",
+    "element": "萌",
+    "name": "魅惑",
+    "energy": "1",
+    "type": "魔攻",
+    "power": "60",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "",
+    "element": "幻",
+    "name": "念力膨胀",
+    "energy": "2",
+    "type": "物攻",
+    "power": "80",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "",
+    "element": "地",
+    "name": "跺地",
+    "energy": "2",
+    "type": "物攻",
+    "power": "80",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "",
+    "element": "毒",
+    "name": "毒沼",
+    "energy": "2",
+    "type": "物攻",
+    "power": "80",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "",
+    "element": "水",
+    "name": "肥皂泡",
+    "energy": "1",
+    "type": "魔攻",
+    "power": "60",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "",
+    "element": "翼",
+    "name": "风矢",
+    "energy": "2",
+    "type": "物攻",
+    "power": "80",
+    "description": "✦对敌方精灵造成物理伤害。"
+  }
+]

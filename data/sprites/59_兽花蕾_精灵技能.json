@@ -1,0 +1,146 @@
+[
+  {
+    "level": "LV1",
+    "element": "普通",
+    "name": "魔法增效",
+    "energy": "0",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得魔攻+70%。"
+  },
+  {
+    "level": "LV1",
+    "element": "草",
+    "name": "汲取",
+    "energy": "1",
+    "type": "魔攻",
+    "power": "30",
+    "description": "✦造成魔伤，并吸血100%。"
+  },
+  {
+    "level": "LV1",
+    "element": "光",
+    "name": "镜像反射",
+    "energy": "1",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤70%，应对攻击：本技能变为被应对的技能。"
+  },
+  {
+    "level": "LV4",
+    "element": "光",
+    "name": "透射",
+    "energy": "1",
+    "type": "物攻",
+    "power": "60",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "LV7",
+    "element": "草",
+    "name": "徒长",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己回复10能量。"
+  },
+  {
+    "level": "LV12",
+    "element": "光",
+    "name": "光之矛",
+    "energy": "3",
+    "type": "物攻",
+    "power": "30",
+    "description": "✦造成物伤，3连击。"
+  },
+  {
+    "level": "LV18",
+    "element": "草",
+    "name": "根吸收",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己回复15%生命和4能量。"
+  },
+  {
+    "level": "LV23",
+    "element": "草",
+    "name": "顶端优势",
+    "energy": "3",
+    "type": "物攻",
+    "power": "100",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "LV25",
+    "element": "普通",
+    "name": "退化",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方获得1层萌化。"
+  },
+  {
+    "level": "LV32",
+    "element": "光",
+    "name": "过曝",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "60",
+    "description": "✦造成魔伤，每使用过1个其他系别技能，本技能威力永久+30。"
+  },
+  {
+    "level": "LV35",
+    "element": "光",
+    "name": "漫反射",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦每种系别中的至多1个技能，威力+35。"
+  },
+  {
+    "level": "LV36",
+    "element": "普通",
+    "name": "迫近攻击",
+    "energy": "3",
+    "type": "物攻",
+    "power": "90",
+    "description": "✦造成物伤。每次使用后，本技能威力永久+45。"
+  },
+  {
+    "level": "LV41",
+    "element": "草",
+    "name": "移花接木",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己回复15%生命，随后脱离。"
+  },
+  {
+    "level": "LV43",
+    "element": "草",
+    "name": "叶绿光束",
+    "energy": "4",
+    "type": "魔攻",
+    "power": "120",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "LV44",
+    "element": "光",
+    "name": "放晴",
+    "energy": "0",
+    "type": "状态",
+    "power": "0",
+    "description": "✦光系技能威力永久+50%，应对防御：改为永久+100%。"
+  },
+  {
+    "level": "LV50",
+    "element": "草",
+    "name": "芳香诱引",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得连击数+3，应对防御：额外造成打断，且敌方下回合获得眩晕。"
+  }
+]

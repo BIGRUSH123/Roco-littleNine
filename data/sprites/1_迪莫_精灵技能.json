@@ -1,0 +1,173 @@
+[
+  {
+    "level": "LV1",
+    "element": "普通",
+    "name": "猛烈撞击",
+    "energy": "1",
+    "type": "物攻",
+    "power": "65",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "LV1",
+    "element": "光",
+    "name": "闪光",
+    "energy": "1",
+    "type": "魔攻",
+    "power": "60",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "LV1",
+    "element": "普通",
+    "name": "防御",
+    "energy": "1",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤70%，应对攻击。"
+  },
+  {
+    "level": "LV7",
+    "element": "普通",
+    "name": "魔法增效",
+    "energy": "0",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得魔攻+70%。"
+  },
+  {
+    "level": "LV9",
+    "element": "光",
+    "name": "光球",
+    "energy": "2",
+    "type": "魔攻",
+    "power": "80",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "LV11",
+    "element": "火",
+    "name": "火焰箭",
+    "energy": "2",
+    "type": "物攻",
+    "power": "80",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "LV13",
+    "element": "普通",
+    "name": "力量增效",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得物攻+100%。"
+  },
+  {
+    "level": "LV16",
+    "element": "草",
+    "name": "棘突",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "100",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "LV19",
+    "element": "水",
+    "name": "潮涌",
+    "energy": "2",
+    "type": "物攻",
+    "power": "80",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "LV22",
+    "element": "电",
+    "name": "超导",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "95",
+    "description": "✦造成魔伤，迸发：本技能能耗-1。"
+  },
+  {
+    "level": "LV27",
+    "element": "光",
+    "name": "闪光冲击",
+    "energy": "3",
+    "type": "物攻",
+    "power": "100",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "LV30",
+    "element": "光",
+    "name": "漫反射",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦每种系别中的至多1个技能，威力+35。"
+  },
+  {
+    "level": "LV32",
+    "element": "冰",
+    "name": "冰爪",
+    "energy": "2",
+    "type": "物攻",
+    "power": "80",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "LV34",
+    "element": "地",
+    "name": "热砂",
+    "energy": "2",
+    "type": "魔攻",
+    "power": "80",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "LV36",
+    "element": "幻",
+    "name": "念力膨胀",
+    "energy": "2",
+    "type": "物攻",
+    "power": "80",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "LV40",
+    "element": "光",
+    "name": "放晴",
+    "energy": "0",
+    "type": "状态",
+    "power": "0",
+    "description": "✦光系技能威力永久+50%，应对防御：改为永久+100%。"
+  },
+  {
+    "level": "LV42",
+    "element": "光",
+    "name": "过曝",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "60",
+    "description": "✦造成魔伤，每使用过1个其他系别技能，本技能威力永久+30。"
+  },
+  {
+    "level": "LV47",
+    "element": "光",
+    "name": "光刃",
+    "energy": "4",
+    "type": "物攻",
+    "power": "120",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "LV48",
+    "element": "光",
+    "name": "折射",
+    "energy": "4",
+    "type": "魔攻",
+    "power": "50",
+    "description": "✦造成魔伤，携带其他系别技能会给本技能带来不同效果。"
+  }
+]

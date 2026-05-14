@@ -1,0 +1,146 @@
+[
+  {
+    "level": "",
+    "element": "普通",
+    "name": "三连破",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得物攻+30%，3连击。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "借用",
+    "energy": "0",
+    "type": "状态",
+    "power": "0",
+    "description": "✦每回合随机变成己方队伍中其他精灵的技能。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "快速移动",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得速度+80，应对防御：改为速度+160。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "晒太阳",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦驱散敌方所有增益。"
+  },
+  {
+    "level": "",
+    "element": "草",
+    "name": "氧输送",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己回复4能量，并获得魔攻+70%。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "热身运动",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得连击数+3。"
+  },
+  {
+    "level": "",
+    "element": "萌",
+    "name": "生日蛋糕",
+    "energy": "4",
+    "type": "状态",
+    "power": "0",
+    "description": "✦驱散自己的减益，自己的增益翻倍。"
+  },
+  {
+    "level": "",
+    "element": "萌",
+    "name": "破罐破摔",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "80",
+    "description": "✦造成魔伤，自己有减益时，本次技能威力+60。"
+  },
+  {
+    "level": "",
+    "element": "草",
+    "name": "纤维化",
+    "energy": "2",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤80%，应对攻击：自己获得物防+70%。"
+  },
+  {
+    "level": "",
+    "element": "龙",
+    "name": "绵里藏针",
+    "energy": "2",
+    "type": "魔攻",
+    "power": "50",
+    "description": "✦造成魔伤，若敌方上回合没受到技能伤害，本技能威力永久+30。"
+  },
+  {
+    "level": "",
+    "element": "草",
+    "name": "芳香诱引",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得连击数+3，应对防御：额外造成打断，且敌方下回合获得眩晕。"
+  },
+  {
+    "level": "",
+    "element": "萌",
+    "name": "赤子之心",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得萌化：全技能能耗永久-3。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "防反",
+    "energy": "2",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤60%，应对攻击：自己获得物攻和魔攻+40%。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "鼓劲",
+    "energy": "3",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得魔防+170%。"
+  },
+  {
+    "level": "",
+    "element": "龙",
+    "name": "龙之利爪",
+    "energy": "3",
+    "type": "物攻",
+    "power": "130",
+    "description": "✦蓄力，造成物伤并吸血50%。"
+  },
+  {
+    "level": "",
+    "element": "龙",
+    "name": "龙吟",
+    "energy": "3",
+    "type": "状态",
+    "power": "0",
+    "description": "✦蓄力，自己获得双攻+100%和速度+60。"
+  }
+]

@@ -1,0 +1,119 @@
+[
+  {
+    "level": "LV1",
+    "element": "普通",
+    "name": "防御",
+    "energy": "1",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤70%，应对攻击。"
+  },
+  {
+    "level": "LV1",
+    "element": "火",
+    "name": "火焰冲锋",
+    "energy": "1",
+    "type": "物攻",
+    "power": "60",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "LV1",
+    "element": "火",
+    "name": "引燃",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方获得10层灼烧。"
+  },
+  {
+    "level": "LV6",
+    "element": "火",
+    "name": "双响炮",
+    "energy": "1",
+    "type": "物攻",
+    "power": "25",
+    "description": "✦造成物伤，2连击。"
+  },
+  {
+    "level": "LV7",
+    "element": "普通",
+    "name": "力量增效",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得物攻+100%。"
+  },
+  {
+    "level": "LV11",
+    "element": "普通",
+    "name": "旋转突击",
+    "energy": "3",
+    "type": "物攻",
+    "power": "35",
+    "description": "✦造成物伤，3连击。"
+  },
+  {
+    "level": "LV16",
+    "element": "火",
+    "name": "怒火",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得双攻+120%和双防-40%。"
+  },
+  {
+    "level": "LV23",
+    "element": "火",
+    "name": "山火",
+    "energy": "3",
+    "type": "物攻",
+    "power": "15",
+    "description": "✦造成物伤，每使用1次其他火系技能，本技能威力永久翻倍。"
+  },
+  {
+    "level": "LV24",
+    "element": "普通",
+    "name": "热身运动",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得连击数+3。"
+  },
+  {
+    "level": "LV31",
+    "element": "火",
+    "name": "火云车",
+    "energy": "5",
+    "type": "物攻",
+    "power": "140",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "LV33",
+    "element": "火",
+    "name": "热身",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦下一次攻击时，技能威力翻倍，应对防御：改为威力变为4倍。"
+  },
+  {
+    "level": "LV39",
+    "element": "火",
+    "name": "闪燃",
+    "energy": "1",
+    "type": "物攻",
+    "power": "40",
+    "description": "✦造成物伤，应对状态：本次技能威力变为4倍。"
+  },
+  {
+    "level": "LV46",
+    "element": "普通",
+    "name": "偷袭",
+    "energy": "3",
+    "type": "物攻",
+    "power": "85",
+    "description": "✦造成物伤，应对状态：本次技能威力变为3倍。"
+  }
+]

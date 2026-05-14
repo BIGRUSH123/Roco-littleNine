@@ -1,0 +1,119 @@
+[
+  {
+    "level": "LV1",
+    "element": "普通",
+    "name": "防御",
+    "energy": "1",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤70%，应对攻击。"
+  },
+  {
+    "level": "LV1",
+    "element": "普通",
+    "name": "拍击",
+    "energy": "1",
+    "type": "魔攻",
+    "power": "65",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "LV6",
+    "element": "水",
+    "name": "甩水",
+    "energy": "0",
+    "type": "魔攻",
+    "power": "30",
+    "description": "✦造成魔伤，自己回复1能量。"
+  },
+  {
+    "level": "LV8",
+    "element": "水",
+    "name": "气泡",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "100",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "LV10",
+    "element": "普通",
+    "name": "魔法增效",
+    "energy": "0",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得魔攻+70%。"
+  },
+  {
+    "level": "LV12",
+    "element": "水",
+    "name": "水泡盾",
+    "energy": "2",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤80%，应对攻击：自己获得魔攻+70%。"
+  },
+  {
+    "level": "LV17",
+    "element": "水",
+    "name": "水炮",
+    "energy": "5",
+    "type": "魔攻",
+    "power": "110",
+    "description": "✦造成魔伤，每次使用后，本技能能耗永久-1。"
+  },
+  {
+    "level": "LV21",
+    "element": "水",
+    "name": "洗礼",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦驱散自己的减益，并获得全技能能耗-1。"
+  },
+  {
+    "level": "LV29",
+    "element": "水",
+    "name": "泡沫幻影",
+    "energy": "2",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤80%，应对攻击：自己脱离。"
+  },
+  {
+    "level": "LV30",
+    "element": "水",
+    "name": "涌泉",
+    "energy": "6",
+    "type": "魔攻",
+    "power": "60",
+    "description": "✦造成魔伤，本技能能耗每-1，威力+10。"
+  },
+  {
+    "level": "LV36",
+    "element": "水",
+    "name": "落雨",
+    "energy": "5",
+    "type": "状态",
+    "power": "0",
+    "description": "✦将天气改为雨天，持续8回合。"
+  },
+  {
+    "level": "LV42",
+    "element": "水",
+    "name": "潮汐",
+    "energy": "4",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤60%，应对攻击：自己获得1层湿润印记。"
+  },
+  {
+    "level": "LV48",
+    "element": "水",
+    "name": "天洪",
+    "energy": "7",
+    "type": "魔攻",
+    "power": "150",
+    "description": "✦造成魔伤，应对状态：本技能能耗永久-6。"
+  }
+]

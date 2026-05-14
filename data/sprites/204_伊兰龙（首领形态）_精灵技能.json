@@ -1,0 +1,119 @@
+[
+  {
+    "level": "LV1",
+    "element": "龙",
+    "name": "绵里藏针",
+    "energy": "2",
+    "type": "魔攻",
+    "power": "50",
+    "description": "✦造成魔伤，若敌方上回合没受到技能伤害，本技能威力永久+30。"
+  },
+  {
+    "level": "LV1",
+    "element": "普通",
+    "name": "魔法增效",
+    "energy": "0",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得魔攻+70%。"
+  },
+  {
+    "level": "LV4",
+    "element": "龙",
+    "name": "角击",
+    "energy": "2",
+    "type": "魔攻",
+    "power": "80",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "LV11",
+    "element": "普通",
+    "name": "防御",
+    "energy": "1",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤70%，应对攻击。"
+  },
+  {
+    "level": "LV16",
+    "element": "龙",
+    "name": "架势",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己回复20%生命，下次技能无需蓄力。"
+  },
+  {
+    "level": "LV25",
+    "element": "龙",
+    "name": "升龙咆哮",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "200",
+    "description": "✦蓄力，对敌方造成魔法伤害。"
+  },
+  {
+    "level": "LV29",
+    "element": "龙",
+    "name": "龙吟",
+    "energy": "3",
+    "type": "状态",
+    "power": "0",
+    "description": "✦蓄力，自己获得双攻+100%和速度+60。"
+  },
+  {
+    "level": "LV35",
+    "element": "普通",
+    "name": "湮灭",
+    "energy": "5",
+    "type": "魔攻",
+    "power": "155",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "LV36",
+    "element": "龙",
+    "name": "龙威",
+    "energy": "3",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得1层龙噬印记 。"
+  },
+  {
+    "level": "LV39",
+    "element": "龙",
+    "name": "怨力打击",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "1",
+    "description": "✦蓄力，造成魔伤，若蓄力期间受到攻击，本技能威力变为敌方技能威力的3倍。"
+  },
+  {
+    "level": "LV40",
+    "element": "普通",
+    "name": "应激反应",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己回复25%生命，应对防御：改为回复50%生命。"
+  },
+  {
+    "level": "LV42",
+    "element": "龙",
+    "name": "龙息环爆",
+    "energy": "1",
+    "type": "魔攻",
+    "power": "55",
+    "description": "✦造成魔伤，应对状态：下次技能无需蓄力。"
+  },
+  {
+    "level": "LV43",
+    "element": "普通",
+    "name": "突袭",
+    "energy": "2",
+    "type": "魔攻",
+    "power": "70",
+    "description": "✦造成魔伤，应对状态：本次技能威力变为3倍。"
+  }
+]

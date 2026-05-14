@@ -1,0 +1,119 @@
+[
+  {
+    "level": "LV1",
+    "element": "普通",
+    "name": "激怒",
+    "energy": "3",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方除本回合使用的技能，其他技能能耗+3，持续3回合。"
+  },
+  {
+    "level": "LV1",
+    "element": "水",
+    "name": "甩水",
+    "energy": "0",
+    "type": "魔攻",
+    "power": "30",
+    "description": "✦造成魔伤，自己回复1能量。"
+  },
+  {
+    "level": "LV1",
+    "element": "普通",
+    "name": "防御",
+    "energy": "1",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤70%，应对攻击。"
+  },
+  {
+    "level": "LV4",
+    "element": "水",
+    "name": "肥皂泡",
+    "energy": "1",
+    "type": "魔攻",
+    "power": "60",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "LV8",
+    "element": "水",
+    "name": "洗礼",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦驱散自己的减益，并获得全技能能耗-1。"
+  },
+  {
+    "level": "LV12",
+    "element": "普通",
+    "name": "许愿星",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "110",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "LV16",
+    "element": "水",
+    "name": "打湿",
+    "energy": "4",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得1层湿润印记。"
+  },
+  {
+    "level": "LV21",
+    "element": "水",
+    "name": "泡沫幻影",
+    "energy": "2",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤80%，应对攻击：自己脱离。"
+  },
+  {
+    "level": "LV26",
+    "element": "水",
+    "name": "水炮",
+    "energy": "5",
+    "type": "魔攻",
+    "power": "110",
+    "description": "✦造成魔伤，每次使用后，本技能能耗永久-1。"
+  },
+  {
+    "level": "LV33",
+    "element": "水",
+    "name": "润泽",
+    "energy": "7",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得魔攻+190%。"
+  },
+  {
+    "level": "LV35",
+    "element": "水",
+    "name": "涌泉",
+    "energy": "6",
+    "type": "魔攻",
+    "power": "60",
+    "description": "✦造成魔伤，本技能能耗每-1，威力+10。"
+  },
+  {
+    "level": "LV40",
+    "element": "水",
+    "name": "落雨",
+    "energy": "5",
+    "type": "状态",
+    "power": "0",
+    "description": "✦将天气改为雨天，持续8回合。"
+  },
+  {
+    "level": "LV50",
+    "element": "水",
+    "name": "盐水浴",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得全技能能耗-2，应对防御：改为技能能耗-3。"
+  }
+]

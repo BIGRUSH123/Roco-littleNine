@@ -1,0 +1,92 @@
+[
+  {
+    "level": "",
+    "element": "普通",
+    "name": "倾泻",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "70",
+    "description": "✦造成魔伤，若本次攻击未被防御技能应对，则驱散双方所有印记。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "复写",
+    "energy": "0",
+    "type": "状态",
+    "power": "0",
+    "description": "✦每回合随机变成自己未携带的技能，且该技能能耗-2。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "快速移动",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得速度+80，应对防御：改为速度+160。"
+  },
+  {
+    "level": "",
+    "element": "火",
+    "name": "怒火",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得双攻+120%和双防-40%。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "晒太阳",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦驱散敌方所有增益。"
+  },
+  {
+    "level": "",
+    "element": "翼",
+    "name": "暴风眼",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦行动时连击数+100%。"
+  },
+  {
+    "level": "",
+    "element": "武",
+    "name": "爆冲",
+    "energy": "3",
+    "type": "物攻",
+    "power": "65",
+    "description": "✦造成物伤，应对状态：本次技能威力变为5倍。"
+  },
+  {
+    "level": "",
+    "element": "翼",
+    "name": "羽刃",
+    "energy": "2",
+    "type": "物攻",
+    "power": "75",
+    "description": "✦造成物伤，应对状态：回合结束使敌方紧急脱离。"
+  },
+  {
+    "level": "",
+    "element": "地",
+    "name": "落石",
+    "energy": "1",
+    "type": "物攻",
+    "power": "55",
+    "description": "✦造成物伤，1连击。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "防御",
+    "energy": "1",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤70%，应对攻击。"
+  }
+]

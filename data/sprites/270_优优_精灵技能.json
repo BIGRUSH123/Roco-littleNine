@@ -1,0 +1,119 @@
+[
+  {
+    "level": "LV1",
+    "element": "地",
+    "name": "泥浆",
+    "energy": "0",
+    "type": "魔攻",
+    "power": "40",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "LV1",
+    "element": "地",
+    "name": "石肤术",
+    "energy": "3",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得物防+160%和魔防-60%。"
+  },
+  {
+    "level": "LV1",
+    "element": "光",
+    "name": "闪光",
+    "energy": "1",
+    "type": "魔攻",
+    "power": "60",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "LV2",
+    "element": "地",
+    "name": "泥巴喷射",
+    "energy": "1",
+    "type": "魔攻",
+    "power": "60",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "LV8",
+    "element": "普通",
+    "name": "防御",
+    "energy": "1",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤70%，应对攻击。"
+  },
+  {
+    "level": "LV12",
+    "element": "地",
+    "name": "热砂",
+    "energy": "2",
+    "type": "魔攻",
+    "power": "80",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "LV26",
+    "element": "地",
+    "name": "钧势",
+    "energy": "3",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得物防+140%和速度-30。"
+  },
+  {
+    "level": "LV33",
+    "element": "地",
+    "name": "硬化",
+    "energy": "2",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤90%，若上次使用攻击技则本技能能耗-2，应对攻击。"
+  },
+  {
+    "level": "LV34",
+    "element": "光",
+    "name": "放晴",
+    "energy": "0",
+    "type": "状态",
+    "power": "0",
+    "description": "✦光系技能威力永久+50%，应对防御：改为永久+100%。"
+  },
+  {
+    "level": "LV36",
+    "element": "光",
+    "name": "漫反射",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦每种系别中的至多1个技能，威力+35。"
+  },
+  {
+    "level": "LV40",
+    "element": "光",
+    "name": "天光",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "95",
+    "description": "✦造成魔伤，本技能系别和天气系别相同。"
+  },
+  {
+    "level": "LV45",
+    "element": "地",
+    "name": "蓄势待发",
+    "energy": "4",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得1层蓄势印记。"
+  },
+  {
+    "level": "LV49",
+    "element": "地",
+    "name": "流沙",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方3回合无法更换精灵，应对防御：敌方获得双防-60%。"
+  }
+]

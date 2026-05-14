@@ -1,0 +1,119 @@
+[
+  {
+    "level": "LV1",
+    "element": "普通",
+    "name": "力量增效",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得物攻+100%。"
+  },
+  {
+    "level": "LV1",
+    "element": "毒",
+    "name": "毒针",
+    "energy": "0",
+    "type": "物攻",
+    "power": "20",
+    "description": "✦造成物伤，敌方获得1层中毒。"
+  },
+  {
+    "level": "LV1",
+    "element": "恶",
+    "name": "魔爪",
+    "energy": "0",
+    "type": "物攻",
+    "power": "30",
+    "description": "✦造成物伤，自己回复1能量。"
+  },
+  {
+    "level": "LV5",
+    "element": "毒",
+    "name": "腐化",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方每有1层中毒效果，敌方获得双攻-30%。"
+  },
+  {
+    "level": "LV7",
+    "element": "恶",
+    "name": "撕咬",
+    "energy": "3",
+    "type": "物攻",
+    "power": "30",
+    "description": "✦造成物伤，3连击，若自己的生命低于50%，本次技能连击数+2。"
+  },
+  {
+    "level": "LV12",
+    "element": "恶",
+    "name": "欺诈契约",
+    "energy": "3",
+    "type": "状态",
+    "power": "0",
+    "description": "✦与敌方交换增益和减益。"
+  },
+  {
+    "level": "LV23",
+    "element": "毒",
+    "name": "连续毒针",
+    "energy": "2",
+    "type": "物攻",
+    "power": "15",
+    "description": "✦造成物伤，2连击，每次连击使敌方获得1层中毒。"
+  },
+  {
+    "level": "LV27",
+    "element": "毒",
+    "name": "毒雾",
+    "energy": "7",
+    "type": "状态",
+    "power": "0",
+    "description": "✦将敌方所有增益，转化成中毒。"
+  },
+  {
+    "level": "LV34",
+    "element": "普通",
+    "name": "见招拆招",
+    "energy": "2",
+    "type": "物攻",
+    "power": "65",
+    "description": "✦造成物伤，若上回合使用状态技能，本次技能威力+55。"
+  },
+  {
+    "level": "LV35",
+    "element": "恶",
+    "name": "趁火打劫",
+    "energy": "3",
+    "type": "物攻",
+    "power": "35",
+    "description": "✦造成物伤，2连击，若击败敌方，本技能连击数永久+2。"
+  },
+  {
+    "level": "LV37",
+    "element": "毒",
+    "name": "感染病",
+    "energy": "4",
+    "type": "魔攻",
+    "power": "85",
+    "description": "✦造成魔伤，若击败敌方则将中毒转化为中毒印记。"
+  },
+  {
+    "level": "LV39",
+    "element": "毒",
+    "name": "毒囊",
+    "energy": "2",
+    "type": "物攻",
+    "power": "25",
+    "description": "✦造成物伤，敌方获得2层中毒，应对状态：改为获得6层。"
+  },
+  {
+    "level": "LV47",
+    "element": "恶",
+    "name": "跌落",
+    "energy": "3",
+    "type": "物攻",
+    "power": "120",
+    "description": "✦造成大量物伤，自己获得物攻-50%，应对状态：改为获得物攻+50%。"
+  }
+]

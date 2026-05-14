@@ -1,0 +1,137 @@
+[
+  {
+    "level": "LV1",
+    "element": "普通",
+    "name": "防御",
+    "energy": "1",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤70%，应对攻击。"
+  },
+  {
+    "level": "LV1",
+    "element": "草",
+    "name": "种子弹",
+    "energy": "0",
+    "type": "物攻",
+    "power": "30",
+    "description": "✦造成物伤，自己回复1能量。"
+  },
+  {
+    "level": "LV1",
+    "element": "萌",
+    "name": "示弱",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得萌化：速度永久+150。"
+  },
+  {
+    "level": "LV3",
+    "element": "草",
+    "name": "花香",
+    "energy": "1",
+    "type": "魔攻",
+    "power": "60",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "LV7",
+    "element": "萌",
+    "name": "击鼓传花",
+    "energy": "3",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己脱离，下个入场精灵继承自己增益。"
+  },
+  {
+    "level": "LV13",
+    "element": "萌",
+    "name": "魅惑",
+    "energy": "1",
+    "type": "魔攻",
+    "power": "60",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "LV17",
+    "element": "草",
+    "name": "花炮",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦2连击，每次连击自己获得魔攻+60%。"
+  },
+  {
+    "level": "LV23",
+    "element": "萌",
+    "name": "碰爪",
+    "energy": "1",
+    "type": "物攻",
+    "power": "60",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "LV29",
+    "element": "草",
+    "name": "孢子",
+    "energy": "3",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方获得1层寄生。"
+  },
+  {
+    "level": "LV30",
+    "element": "草",
+    "name": "孢子爆散",
+    "energy": "3",
+    "type": "物攻",
+    "power": "30",
+    "description": "✦造成物伤，1连击，每次使用后，本技能连击数永久+2。"
+  },
+  {
+    "level": "LV37",
+    "element": "草",
+    "name": "光合作用",
+    "energy": "4",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得1层光合印记。"
+  },
+  {
+    "level": "LV38",
+    "element": "普通",
+    "name": "践踏",
+    "energy": "4",
+    "type": "物攻",
+    "power": "130",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "LV39",
+    "element": "草",
+    "name": "盛开",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得全技能威力+30，应对防御：改为威力+60。"
+  },
+  {
+    "level": "LV49",
+    "element": "萌",
+    "name": "月光合奏",
+    "energy": "3",
+    "type": "物攻",
+    "power": "30",
+    "description": "✦造成物伤，1连击，双方携带的所有精灵每有1层萌化，本次技能连击数+1。"
+  },
+  {
+    "level": "LV50",
+    "element": "草",
+    "name": "光能聚集",
+    "energy": "7",
+    "type": "魔攻",
+    "power": "100",
+    "description": "✦造成魔伤，每次使用其他草系技能后，本技能威力永久+60。"
+  }
+]

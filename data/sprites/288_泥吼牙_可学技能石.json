@@ -1,0 +1,128 @@
+[
+  {
+    "level": "",
+    "element": "普通",
+    "name": "倾泻",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "70",
+    "description": "✦造成魔伤，若本次攻击未被防御技能应对，则驱散双方所有印记。"
+  },
+  {
+    "level": "",
+    "element": "地",
+    "name": "地陷",
+    "energy": "5",
+    "type": "物攻",
+    "power": "80",
+    "description": "✦造成物伤，自己获得物防+70%，应对状态：本次技能威力翻倍，且物防额外+70%。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "复写",
+    "energy": "0",
+    "type": "状态",
+    "power": "0",
+    "description": "✦每回合随机变成自己未携带的技能，且该技能能耗-2。"
+  },
+  {
+    "level": "",
+    "element": "幽",
+    "name": "恐吓",
+    "energy": "2",
+    "type": "魔攻",
+    "power": "80",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "摇篮曲",
+    "energy": "5",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方获得全技能能耗+3，应对防御：额外造成打断，且敌方下回合获得眩晕。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "晒太阳",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦驱散敌方所有增益。"
+  },
+  {
+    "level": "",
+    "element": "恶",
+    "name": "暗突袭",
+    "energy": "4",
+    "type": "物攻",
+    "power": "70",
+    "description": "✦造成物伤，吸血50%，应对状态：本次技能威力翻倍。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "有效预防",
+    "energy": "1",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤50%，应对攻击：下一次行动获得先手+1。"
+  },
+  {
+    "level": "",
+    "element": "恶",
+    "name": "欺诈契约",
+    "energy": "3",
+    "type": "状态",
+    "power": "0",
+    "description": "✦与敌方交换增益和减益。"
+  },
+  {
+    "level": "",
+    "element": "翼",
+    "name": "羽化加速",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得全技能威力+20，迅捷。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "连续爪击",
+    "energy": "2",
+    "type": "物攻",
+    "power": "30",
+    "description": "✦造成物伤，2连击，应对状态：本次技能连击数翻倍。"
+  },
+  {
+    "level": "",
+    "element": "恶",
+    "name": "迫害",
+    "energy": "0",
+    "type": "物攻",
+    "power": "40",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "",
+    "element": "地",
+    "name": "钧势",
+    "energy": "3",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得物防+140%和速度-30。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "防御",
+    "energy": "1",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤70%，应对攻击。"
+  }
+]

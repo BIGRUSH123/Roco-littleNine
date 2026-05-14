@@ -1,0 +1,119 @@
+[
+  {
+    "level": "LV1",
+    "element": "电",
+    "name": "超导",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "95",
+    "description": "✦造成魔伤，迸发：本技能能耗-1。"
+  },
+  {
+    "level": "LV1",
+    "element": "幻",
+    "name": "星轨裂变",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方获得2层星陨印记。"
+  },
+  {
+    "level": "LV4",
+    "element": "电",
+    "name": "电磁偏转",
+    "energy": "3",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤70%，应对攻击：下回合所选技能使用次数+1。"
+  },
+  {
+    "level": "LV8",
+    "element": "幻",
+    "name": "针状物",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "30",
+    "description": "✦造成魔伤，3连击。"
+  },
+  {
+    "level": "LV11",
+    "element": "普通",
+    "name": "魔法增效",
+    "energy": "0",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得魔攻+70%。"
+  },
+  {
+    "level": "LV21",
+    "element": "电",
+    "name": "感电",
+    "energy": "2",
+    "type": "魔攻",
+    "power": "60",
+    "description": "✦造成魔伤，每离场1次，本技能使用次数永久+1。"
+  },
+  {
+    "level": "LV23",
+    "element": "电",
+    "name": "过载回路",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦回合结束自己返场，下回合所选技能使用次数+1。"
+  },
+  {
+    "level": "LV25",
+    "element": "幻",
+    "name": "大爆炸",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "100",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "LV31",
+    "element": "电",
+    "name": "远程访问",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦使敌方精灵返场。"
+  },
+  {
+    "level": "LV35",
+    "element": "电",
+    "name": "落雷",
+    "energy": "4",
+    "type": "魔攻",
+    "power": "100",
+    "description": "✦造成魔伤，每次入场，本技能威力永久+20。"
+  },
+  {
+    "level": "LV39",
+    "element": "幻",
+    "name": "超维投射",
+    "energy": "4",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方获得4层星陨印记。"
+  },
+  {
+    "level": "LV47",
+    "element": "普通",
+    "name": "湮灭",
+    "energy": "5",
+    "type": "魔攻",
+    "power": "155",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "LV48",
+    "element": "电",
+    "name": "麻痹",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方先手-1，应对防御：额外使敌方获得双攻-70%。"
+  }
+]

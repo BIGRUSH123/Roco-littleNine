@@ -1,0 +1,137 @@
+[
+  {
+    "level": "LV1",
+    "element": "毒",
+    "name": "毒针",
+    "energy": "0",
+    "type": "物攻",
+    "power": "20",
+    "description": "✦造成物伤，敌方获得1层中毒。"
+  },
+  {
+    "level": "LV1",
+    "element": "幽",
+    "name": "鬼火",
+    "energy": "0",
+    "type": "魔攻",
+    "power": "30",
+    "description": "✦造成魔伤，自己回复1能量。"
+  },
+  {
+    "level": "LV6",
+    "element": "普通",
+    "name": "力量增效",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得物攻+100%。"
+  },
+  {
+    "level": "LV8",
+    "element": "普通",
+    "name": "抓挠",
+    "energy": "0",
+    "type": "物攻",
+    "power": "35",
+    "description": "✦造成物伤，自己回复1能量。"
+  },
+  {
+    "level": "LV10",
+    "element": "幽",
+    "name": "勾魂",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦偷取敌方3能量。"
+  },
+  {
+    "level": "LV11",
+    "element": "毒",
+    "name": "连续毒针",
+    "energy": "2",
+    "type": "物攻",
+    "power": "15",
+    "description": "✦造成物伤，2连击，每次连击使敌方获得1层中毒。"
+  },
+  {
+    "level": "LV17",
+    "element": "幽",
+    "name": "幻象",
+    "energy": "1",
+    "type": "物攻",
+    "power": "60",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "LV22",
+    "element": "毒",
+    "name": "毒液渗透",
+    "energy": "5",
+    "type": "魔攻",
+    "power": "120",
+    "description": "✦造成魔伤，敌方每有1层中毒效果，本技能能耗-1，敌方获得1层中毒。"
+  },
+  {
+    "level": "LV23",
+    "element": "幽",
+    "name": "降灵",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方获得1层降灵印记。"
+  },
+  {
+    "level": "LV27",
+    "element": "幽",
+    "name": "幽灵爆发",
+    "energy": "5",
+    "type": "魔攻",
+    "power": "140",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "LV34",
+    "element": "幽",
+    "name": "坟场搏击",
+    "energy": "4",
+    "type": "物攻",
+    "power": "180",
+    "description": "✦造成物伤，敌方每有1能量，本次技能威力-10%。"
+  },
+  {
+    "level": "LV35",
+    "element": "毒",
+    "name": "剧毒",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方获得3层中毒，应对防御：改为获得8层。"
+  },
+  {
+    "level": "LV39",
+    "element": "毒",
+    "name": "疫病吐息",
+    "energy": "3",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方获得1层中毒印记。"
+  },
+  {
+    "level": "LV40",
+    "element": "幽",
+    "name": "惊吓盒子",
+    "energy": "3",
+    "type": "物攻",
+    "power": "80",
+    "description": "✦造成物伤，应对状态：使敌方失去6能量。"
+  },
+  {
+    "level": "LV50",
+    "element": "毒",
+    "name": "毒囊",
+    "energy": "2",
+    "type": "物攻",
+    "power": "25",
+    "description": "✦造成物伤，敌方获得2层中毒，应对状态：改为获得6层。"
+  }
+]

@@ -1,0 +1,83 @@
+[
+  {
+    "level": "",
+    "element": "普通",
+    "name": "借用",
+    "energy": "0",
+    "type": "状态",
+    "power": "0",
+    "description": "✦每回合随机变成己方队伍中其他精灵的技能。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "吓退",
+    "energy": "2",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤60%，应对攻击：敌方脱离。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "嗜痛",
+    "energy": "2",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤80%，应对攻击：期间自己每次受到伤害，获得双攻+40%。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "操控",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方本回合使用的技能能耗+7，持续3回合。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "晒太阳",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦驱散敌方所有增益。"
+  },
+  {
+    "level": "",
+    "element": "火",
+    "name": "流火",
+    "energy": "1",
+    "type": "魔攻",
+    "power": "15",
+    "description": "✦造成魔伤，3连击。"
+  },
+  {
+    "level": "",
+    "element": "火",
+    "name": "炎打",
+    "energy": "2",
+    "type": "魔攻",
+    "power": "95",
+    "description": "✦造成高额魔法伤害，自己获得物防-40%。"
+  },
+  {
+    "level": "",
+    "element": "火",
+    "name": "热身",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦下一次攻击时，技能威力翻倍，应对防御：改为威力变为4倍。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "精神扰乱",
+    "energy": "0",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方获得全技能能耗+1，应对防御：改为能耗+3。"
+  }
+]

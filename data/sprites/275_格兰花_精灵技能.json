@@ -1,0 +1,110 @@
+[
+  {
+    "level": "LV1",
+    "element": "普通",
+    "name": "晒太阳",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦驱散敌方所有增益。"
+  },
+  {
+    "level": "LV1",
+    "element": "草",
+    "name": "藤绞",
+    "energy": "4",
+    "type": "物攻",
+    "power": "80",
+    "description": "✦造成物伤，自己回复5能量。"
+  },
+  {
+    "level": "LV5",
+    "element": "草",
+    "name": "棘突",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "100",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "LV12",
+    "element": "草",
+    "name": "根吸收",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己回复15%生命和4能量。"
+  },
+  {
+    "level": "LV28",
+    "element": "普通",
+    "name": "倾泻",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "70",
+    "description": "✦造成魔伤，若本次攻击未被防御技能应对，则驱散双方所有印记。"
+  },
+  {
+    "level": "LV33",
+    "element": "草",
+    "name": "孢子",
+    "energy": "3",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方获得1层寄生。"
+  },
+  {
+    "level": "LV34",
+    "element": "草",
+    "name": "叶绿光束",
+    "energy": "4",
+    "type": "魔攻",
+    "power": "120",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "LV37",
+    "element": "草",
+    "name": "花炮",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦2连击，每次连击自己获得魔攻+60%。"
+  },
+  {
+    "level": "LV41",
+    "element": "草",
+    "name": "光能聚集",
+    "energy": "7",
+    "type": "魔攻",
+    "power": "100",
+    "description": "✦造成魔伤，每次使用其他草系技能后，本技能威力永久+60。"
+  },
+  {
+    "level": "LV42",
+    "element": "草",
+    "name": "盛开",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得全技能威力+30，应对防御：改为威力+60。"
+  },
+  {
+    "level": "LV46",
+    "element": "普通",
+    "name": "阻断",
+    "energy": "2",
+    "type": "魔攻",
+    "power": "80",
+    "description": "✦造成魔伤，应对状态：额外打断被应对技能。"
+  },
+  {
+    "level": "LV48",
+    "element": "草",
+    "name": "抽枝",
+    "energy": "4",
+    "type": "物攻",
+    "power": "90",
+    "description": "✦造成物伤，应对状态：自己回复50%生命和5能量。"
+  }
+]

@@ -1,0 +1,146 @@
+[
+  {
+    "level": "LV1",
+    "element": "普通",
+    "name": "操控",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方本回合使用的技能能耗+7，持续3回合。"
+  },
+  {
+    "level": "LV1",
+    "element": "电",
+    "name": "电流",
+    "energy": "0",
+    "type": "魔攻",
+    "power": "40",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "LV1",
+    "element": "普通",
+    "name": "防御",
+    "energy": "1",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤70%，应对攻击。"
+  },
+  {
+    "level": "LV5",
+    "element": "电",
+    "name": "导电撞击",
+    "energy": "0",
+    "type": "物攻",
+    "power": "40",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "LV9",
+    "element": "普通",
+    "name": "晒太阳",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦驱散敌方所有增益。"
+  },
+  {
+    "level": "LV13",
+    "element": "电",
+    "name": "电弧",
+    "energy": "3",
+    "type": "物攻",
+    "power": "80",
+    "description": "✦造成物伤，迸发：本次技能威力+40。"
+  },
+  {
+    "level": "LV22",
+    "element": "电",
+    "name": "电离爆破",
+    "energy": "3",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方获得速度-40，3连击。"
+  },
+  {
+    "level": "LV28",
+    "element": "普通",
+    "name": "先发制人",
+    "energy": "2",
+    "type": "物攻",
+    "power": "55",
+    "description": "✦造成物理伤害，先手+1。"
+  },
+  {
+    "level": "LV33",
+    "element": "电",
+    "name": "增程电池",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得1层蓄电印记。"
+  },
+  {
+    "level": "LV35",
+    "element": "电",
+    "name": "引雷",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "35",
+    "description": "✦造成魔伤，2连击，迸发：本次技能威力+20。"
+  },
+  {
+    "level": "LV40",
+    "element": "电",
+    "name": "加大功率",
+    "energy": "4",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己脱离，替换入场的精灵回复8能量。"
+  },
+  {
+    "level": "LV45",
+    "element": "电",
+    "name": "交叉闪电",
+    "energy": "3",
+    "type": "物攻",
+    "power": "100",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "LV46",
+    "element": "电",
+    "name": "麻痹",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方先手-1，应对防御：额外使敌方获得双攻-70%。"
+  },
+  {
+    "level": "LV47",
+    "element": "电",
+    "name": "落雷",
+    "energy": "4",
+    "type": "魔攻",
+    "power": "100",
+    "description": "✦造成魔伤，每次入场，本技能威力永久+20。"
+  },
+  {
+    "level": "LV49",
+    "element": "普通",
+    "name": "阻断",
+    "energy": "2",
+    "type": "魔攻",
+    "power": "80",
+    "description": "✦造成魔伤，应对状态：额外打断被应对技能。"
+  },
+  {
+    "level": "LV50",
+    "element": "电",
+    "name": "强制重启",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "90",
+    "description": "✦造成魔伤，应对状态：回合结束时使敌方精灵返场。"
+  }
+]

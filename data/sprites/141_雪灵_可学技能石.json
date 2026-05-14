@@ -1,0 +1,146 @@
+[
+  {
+    "level": "",
+    "element": "幻",
+    "name": "二律背反",
+    "energy": "4",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方获得3层星陨印记，应对防御：额外使敌方星陨印记层数翻倍。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "借用",
+    "energy": "0",
+    "type": "状态",
+    "power": "0",
+    "description": "✦每回合随机变成己方队伍中其他精灵的技能。"
+  },
+  {
+    "level": "",
+    "element": "冰",
+    "name": "冰墙",
+    "energy": "2",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤80%，应对攻击：敌方获得2层冻结。"
+  },
+  {
+    "level": "",
+    "element": "幽",
+    "name": "勾魂",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦偷取敌方3能量。"
+  },
+  {
+    "level": "",
+    "element": "幽",
+    "name": "嘲弄",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得魔攻+90%，若敌方本回合更换精灵，自己获得速度+70。"
+  },
+  {
+    "level": "",
+    "element": "幻",
+    "name": "四维降解",
+    "energy": "7",
+    "type": "魔攻",
+    "power": "100",
+    "description": "✦造成魔伤，敌方每有1层印记，本技能能耗-1。"
+  },
+  {
+    "level": "",
+    "element": "幽",
+    "name": "恐吓",
+    "energy": "2",
+    "type": "魔攻",
+    "power": "80",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "",
+    "element": "幽",
+    "name": "恶作剧",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方失去3能量，应对防御：改为敌方失去6能量。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "摇篮曲",
+    "energy": "5",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方获得全技能能耗+3，应对防御：额外造成打断，且敌方下回合获得眩晕。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "操控",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方本回合使用的技能能耗+7，持续3回合。"
+  },
+  {
+    "level": "",
+    "element": "幻",
+    "name": "星轨裂变",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方获得2层星陨印记。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "有效预防",
+    "energy": "1",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤50%，应对攻击：下一次行动获得先手+1。"
+  },
+  {
+    "level": "",
+    "element": "幽",
+    "name": "灵光",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "25",
+    "description": "✦造成魔伤，3连击，若敌方本回合更换精灵，本次技能连击数翻倍。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "热身运动",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得连击数+3。"
+  },
+  {
+    "level": "",
+    "element": "幻",
+    "name": "粒子对撞",
+    "energy": "0",
+    "type": "物攻",
+    "power": "40",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "",
+    "element": "幽",
+    "name": "诡刺",
+    "energy": "0",
+    "type": "物攻",
+    "power": "40",
+    "description": "✦对敌方精灵造成物理伤害。"
+  }
+]

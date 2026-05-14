@@ -1,0 +1,128 @@
+[
+  {
+    "level": "",
+    "element": "普通",
+    "name": "三连破",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得物攻+30%，3连击。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "主场优势",
+    "energy": "3",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得1层攻击印记。"
+  },
+  {
+    "level": "",
+    "element": "翼",
+    "name": "乘风",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得速度+120。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "冲撞",
+    "energy": "7",
+    "type": "物攻",
+    "power": "135",
+    "description": "✦造成物伤，回合结束时，本技能能耗永久-1。"
+  },
+  {
+    "level": "",
+    "element": "武",
+    "name": "反击拳",
+    "energy": "2",
+    "type": "物攻",
+    "power": "25",
+    "description": "✦造成物伤，2连击，若后手攻击，改为3连击。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "复写",
+    "energy": "0",
+    "type": "状态",
+    "power": "0",
+    "description": "✦每回合随机变成自己未携带的技能，且该技能能耗-2。"
+  },
+  {
+    "level": "",
+    "element": "武",
+    "name": "提气",
+    "energy": "4",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得全技能威力+40，若敌方本回合更换精灵，额外获得威力+50。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "摇篮曲",
+    "energy": "5",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方获得全技能能耗+3，应对防御：额外造成打断，且敌方下回合获得眩晕。"
+  },
+  {
+    "level": "",
+    "element": "武",
+    "name": "破绽",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方获得双防-70%，应对防御：自己额外获得物攻+70%。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "精神扰乱",
+    "energy": "0",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方获得全技能能耗+1，应对防御：改为能耗+3。"
+  },
+  {
+    "level": "",
+    "element": "武",
+    "name": "缠丝劲",
+    "energy": "1",
+    "type": "物攻",
+    "power": "25",
+    "description": "✦造成物伤，2连击。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "防反",
+    "energy": "2",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤60%，应对攻击：自己获得物攻和魔攻+40%。"
+  },
+  {
+    "level": "",
+    "element": "翼",
+    "name": "风矢",
+    "energy": "2",
+    "type": "物攻",
+    "power": "80",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "",
+    "element": "翼",
+    "name": "飞羽",
+    "energy": "0",
+    "type": "状态",
+    "power": "0",
+    "description": "✦迅捷，驱散敌方1种增益。"
+  }
+]

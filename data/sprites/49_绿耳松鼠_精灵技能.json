@@ -1,0 +1,137 @@
+[
+  {
+    "level": "LV1",
+    "element": "普通",
+    "name": "防御",
+    "energy": "1",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤70%，应对攻击。"
+  },
+  {
+    "level": "LV1",
+    "element": "普通",
+    "name": "落星",
+    "energy": "0",
+    "type": "物攻",
+    "power": "45",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "LV6",
+    "element": "普通",
+    "name": "休息回复",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己回复30%生命。"
+  },
+  {
+    "level": "LV8",
+    "element": "普通",
+    "name": "拍击",
+    "energy": "1",
+    "type": "魔攻",
+    "power": "65",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "LV10",
+    "element": "普通",
+    "name": "耀眼",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方获得连击数-4。"
+  },
+  {
+    "level": "LV13",
+    "element": "普通",
+    "name": "音波弹",
+    "energy": "1",
+    "type": "魔攻",
+    "power": "60",
+    "description": "✦造成魔伤，1连击。"
+  },
+  {
+    "level": "LV20",
+    "element": "普通",
+    "name": "防反",
+    "energy": "2",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤60%，应对攻击：自己获得物攻和魔攻+40%。"
+  },
+  {
+    "level": "LV21",
+    "element": "普通",
+    "name": "旋转突击",
+    "energy": "3",
+    "type": "物攻",
+    "power": "35",
+    "description": "✦造成物伤，3连击。"
+  },
+  {
+    "level": "LV28",
+    "element": "普通",
+    "name": "气势一击",
+    "energy": "3",
+    "type": "物攻",
+    "power": "80",
+    "description": "✦造成物伤，若上回合应对成功，本次技能威力+180。"
+  },
+  {
+    "level": "LV30",
+    "element": "普通",
+    "name": "抓挠",
+    "energy": "0",
+    "type": "物攻",
+    "power": "35",
+    "description": "✦造成物伤，自己回复1能量。"
+  },
+  {
+    "level": "LV34",
+    "element": "普通",
+    "name": "蓄能轰击",
+    "energy": "6",
+    "type": "魔攻",
+    "power": "130",
+    "description": "✦造成魔伤，每使用1次普通系技能，本技能能耗永久-2。"
+  },
+  {
+    "level": "LV35",
+    "element": "普通",
+    "name": "冲撞",
+    "energy": "7",
+    "type": "物攻",
+    "power": "135",
+    "description": "✦造成物伤，回合结束时，本技能能耗永久-1。"
+  },
+  {
+    "level": "LV38",
+    "element": "普通",
+    "name": "吓退",
+    "energy": "2",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤60%，应对攻击：敌方脱离。"
+  },
+  {
+    "level": "LV40",
+    "element": "普通",
+    "name": "突袭",
+    "energy": "2",
+    "type": "魔攻",
+    "power": "70",
+    "description": "✦造成魔伤，应对状态：本次技能威力变为3倍。"
+  },
+  {
+    "level": "LV46",
+    "element": "普通",
+    "name": "无畏之心",
+    "energy": "5",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤100%，应对攻击：减免的伤害变为回复自己生命，且本技能能耗永久+2。"
+  }
+]

@@ -1,0 +1,83 @@
+[
+  {
+    "level": "LV1",
+    "element": "普通",
+    "name": "拍击",
+    "energy": "1",
+    "type": "魔攻",
+    "power": "65",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "LV1",
+    "element": "幻",
+    "name": "星轨裂变",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方获得2层星陨印记。"
+  },
+  {
+    "level": "LV1",
+    "element": "普通",
+    "name": "防御",
+    "energy": "1",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤70%，应对攻击。"
+  },
+  {
+    "level": "LV6",
+    "element": "幻",
+    "name": "大爆炸",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "100",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "LV8",
+    "element": "普通",
+    "name": "魔法增效",
+    "energy": "0",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得魔攻+70%。"
+  },
+  {
+    "level": "LV13",
+    "element": "幻",
+    "name": "坍缩",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "85",
+    "description": "✦造成魔伤，若击败敌方，自己获得魔攻+70%。"
+  },
+  {
+    "level": "LV17",
+    "element": "幻",
+    "name": "超维投射",
+    "energy": "4",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方获得4层星陨印记。"
+  },
+  {
+    "level": "LV25",
+    "element": "幻",
+    "name": "多维击打",
+    "energy": "4",
+    "type": "魔攻",
+    "power": "15",
+    "description": "✦造成魔伤，1连击，敌方每有1层星陨印记，本次技能连击数+1。"
+  },
+  {
+    "level": "LV32",
+    "element": "幻",
+    "name": "二律背反",
+    "energy": "4",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方获得3层星陨印记，应对防御：额外使敌方星陨印记层数翻倍。"
+  }
+]

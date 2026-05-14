@@ -1,0 +1,101 @@
+[
+  {
+    "level": "LV1",
+    "element": "翼",
+    "name": "鸣叫",
+    "energy": "0",
+    "type": "魔攻",
+    "power": "40",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "LV1",
+    "element": "翼",
+    "name": "飞羽",
+    "energy": "0",
+    "type": "状态",
+    "power": "0",
+    "description": "✦迅捷，驱散敌方1种增益。"
+  },
+  {
+    "level": "LV9",
+    "element": "普通",
+    "name": "防御",
+    "energy": "1",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤70%，应对攻击。"
+  },
+  {
+    "level": "LV16",
+    "element": "水",
+    "name": "潮涌",
+    "energy": "2",
+    "type": "物攻",
+    "power": "80",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "LV21",
+    "element": "普通",
+    "name": "力量增效",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得物攻+100%。"
+  },
+  {
+    "level": "LV28",
+    "element": "普通",
+    "name": "先发制人",
+    "energy": "2",
+    "type": "物攻",
+    "power": "55",
+    "description": "✦造成物理伤害，先手+1。"
+  },
+  {
+    "level": "LV36",
+    "element": "翼",
+    "name": "风矢",
+    "energy": "2",
+    "type": "物攻",
+    "power": "80",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "LV42",
+    "element": "翼",
+    "name": "风隐",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方和自己均脱离，先手-1。"
+  },
+  {
+    "level": "LV43",
+    "element": "翼",
+    "name": "翼击",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "50",
+    "description": "✦造成魔伤，迅捷。"
+  },
+  {
+    "level": "LV44",
+    "element": "翼",
+    "name": "风墙",
+    "energy": "2",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤50%，迅捷，应对攻击。"
+  },
+  {
+    "level": "LV45",
+    "element": "翼",
+    "name": "龙卷风",
+    "energy": "5",
+    "type": "物攻",
+    "power": "70",
+    "description": "✦造成物伤，迅捷，应对状态：本次技能威力变为1.5倍。"
+  }
+]

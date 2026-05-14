@@ -1,0 +1,119 @@
+[
+  {
+    "level": "LV1",
+    "element": "翼",
+    "name": "啄击",
+    "energy": "0",
+    "type": "物攻",
+    "power": "15",
+    "description": "✦造成物伤，2连击。"
+  },
+  {
+    "level": "LV1",
+    "element": "萌",
+    "name": "甜心续航",
+    "energy": "3",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己和敌方获得萌化：回复40%生命和4能量。"
+  },
+  {
+    "level": "LV6",
+    "element": "萌",
+    "name": "超级糖果",
+    "energy": "3",
+    "type": "物攻",
+    "power": "100",
+    "description": "✦造成物伤，自己获得萌化：本次技能威力+60。"
+  },
+  {
+    "level": "LV13",
+    "element": "普通",
+    "name": "防御",
+    "energy": "1",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤70%，应对攻击。"
+  },
+  {
+    "level": "LV17",
+    "element": "翼",
+    "name": "羽化加速",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得全技能威力+20，迅捷。"
+  },
+  {
+    "level": "LV22",
+    "element": "萌",
+    "name": "砂糖弹球",
+    "energy": "2",
+    "type": "物攻",
+    "power": "0",
+    "description": "✦造成物伤，双方体重差越大，本次技能威力越高。"
+  },
+  {
+    "level": "LV27",
+    "element": "萌",
+    "name": "生日蛋糕",
+    "energy": "4",
+    "type": "状态",
+    "power": "0",
+    "description": "✦驱散自己的减益，自己的增益翻倍。"
+  },
+  {
+    "level": "LV33",
+    "element": "翼",
+    "name": "疾风刺",
+    "energy": "2",
+    "type": "物攻",
+    "power": "25",
+    "description": "✦造成物伤，1连击，若先于敌方攻击，改为3连击。"
+  },
+  {
+    "level": "LV35",
+    "element": "翼",
+    "name": "风起",
+    "energy": "4",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得1层风起印记。"
+  },
+  {
+    "level": "LV37",
+    "element": "翼",
+    "name": "扇风",
+    "energy": "3",
+    "type": "物攻",
+    "power": "75",
+    "description": "✦造成物伤，若先于敌方攻击，本次技能威力+50%。"
+  },
+  {
+    "level": "LV41",
+    "element": "普通",
+    "name": "逆袭",
+    "energy": "3",
+    "type": "物攻",
+    "power": "100",
+    "description": "✦造成物伤，本技能能耗每+1，威力+50。"
+  },
+  {
+    "level": "LV48",
+    "element": "萌",
+    "name": "月光合奏",
+    "energy": "3",
+    "type": "物攻",
+    "power": "30",
+    "description": "✦造成物伤，1连击，双方携带的所有精灵每有1层萌化，本次技能连击数+1。"
+  },
+  {
+    "level": "LV50",
+    "element": "翼",
+    "name": "龙卷风",
+    "energy": "5",
+    "type": "物攻",
+    "power": "70",
+    "description": "✦造成物伤，迅捷，应对状态：本次技能威力变为1.5倍。"
+  }
+]

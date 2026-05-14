@@ -1,0 +1,146 @@
+[
+  {
+    "level": "LV1",
+    "element": "毒",
+    "name": "溃烂触碰",
+    "energy": "1",
+    "type": "物攻",
+    "power": "60",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "LV1",
+    "element": "萌",
+    "name": "示弱",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得萌化：速度永久+150。"
+  },
+  {
+    "level": "LV1",
+    "element": "萌",
+    "name": "魅惑",
+    "energy": "1",
+    "type": "魔攻",
+    "power": "60",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "LV5",
+    "element": "毒",
+    "name": "以毒攻毒",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方每有1层中毒效果，自己获得魔攻+30%。"
+  },
+  {
+    "level": "LV7",
+    "element": "普通",
+    "name": "旋转突击",
+    "energy": "3",
+    "type": "物攻",
+    "power": "35",
+    "description": "✦造成物伤，3连击。"
+  },
+  {
+    "level": "LV12",
+    "element": "毒",
+    "name": "毒孢子",
+    "energy": "3",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方获得5层中毒。"
+  },
+  {
+    "level": "LV17",
+    "element": "萌",
+    "name": "超级糖果",
+    "energy": "3",
+    "type": "物攻",
+    "power": "100",
+    "description": "✦造成物伤，自己获得萌化：本次技能威力+60。"
+  },
+  {
+    "level": "LV21",
+    "element": "普通",
+    "name": "力量增效",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得物攻+100%。"
+  },
+  {
+    "level": "LV26",
+    "element": "毒",
+    "name": "连续毒针",
+    "energy": "2",
+    "type": "物攻",
+    "power": "15",
+    "description": "✦造成物伤，2连击，每次连击使敌方获得1层中毒。"
+  },
+  {
+    "level": "LV27",
+    "element": "萌",
+    "name": "生日蛋糕",
+    "energy": "4",
+    "type": "状态",
+    "power": "0",
+    "description": "✦驱散自己的减益，自己的增益翻倍。"
+  },
+  {
+    "level": "LV34",
+    "element": "萌",
+    "name": "撒娇",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "30",
+    "description": "✦造成魔伤，3连击。自己获得萌化：威力永久+20。"
+  },
+  {
+    "level": "LV35",
+    "element": "萌",
+    "name": "赤子之心",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得萌化：全技能能耗永久-3。"
+  },
+  {
+    "level": "LV39",
+    "element": "萌",
+    "name": "月光合奏",
+    "energy": "3",
+    "type": "物攻",
+    "power": "30",
+    "description": "✦造成物伤，1连击，双方携带的所有精灵每有1层萌化，本次技能连击数+1。"
+  },
+  {
+    "level": "LV40",
+    "element": "毒",
+    "name": "剧毒",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方获得3层中毒，应对防御：改为获得8层。"
+  },
+  {
+    "level": "LV47",
+    "element": "毒",
+    "name": "毒液渗透",
+    "energy": "5",
+    "type": "魔攻",
+    "power": "120",
+    "description": "✦造成魔伤，敌方每有1层中毒效果，本技能能耗-1，敌方获得1层中毒。"
+  },
+  {
+    "level": "LV49",
+    "element": "毒",
+    "name": "毒囊",
+    "energy": "2",
+    "type": "物攻",
+    "power": "25",
+    "description": "✦造成物伤，敌方获得2层中毒，应对状态：改为获得6层。"
+  }
+]

@@ -1,0 +1,137 @@
+[
+  {
+    "level": "LV1",
+    "element": "普通",
+    "name": "魔法增效",
+    "energy": "0",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得魔攻+70%。"
+  },
+  {
+    "level": "LV1",
+    "element": "电",
+    "name": "电弧",
+    "energy": "3",
+    "type": "物攻",
+    "power": "80",
+    "description": "✦造成物伤，迸发：本次技能威力+40。"
+  },
+  {
+    "level": "LV1",
+    "element": "电",
+    "name": "交叉闪电",
+    "energy": "3",
+    "type": "物攻",
+    "power": "100",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "LV3",
+    "element": "电",
+    "name": "过载回路",
+    "energy": "1",
+    "type": "状态",
+    "power": "0",
+    "description": "✦回合结束自己返场，下回合所选技能使用次数+1。"
+  },
+  {
+    "level": "LV9",
+    "element": "翼",
+    "name": "扇风",
+    "energy": "3",
+    "type": "物攻",
+    "power": "75",
+    "description": "✦造成物伤，若先于敌方攻击，本次技能威力+50%。"
+  },
+  {
+    "level": "LV12",
+    "element": "电",
+    "name": "增程电池",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得1层蓄电印记。"
+  },
+  {
+    "level": "LV17",
+    "element": "翼",
+    "name": "回旋风暴",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "100",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "LV23",
+    "element": "翼",
+    "name": "暴风眼",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦行动时连击数+100%。"
+  },
+  {
+    "level": "LV25",
+    "element": "普通",
+    "name": "天旋地转",
+    "energy": "3",
+    "type": "物攻",
+    "power": "60",
+    "description": "✦造成物理伤害，先手+1，迸发：本次技能威力+30。"
+  },
+  {
+    "level": "LV28",
+    "element": "翼",
+    "name": "羽化加速",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得全技能威力+20，迅捷。"
+  },
+  {
+    "level": "LV34",
+    "element": "电",
+    "name": "引雷",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "35",
+    "description": "✦造成魔伤，2连击，迸发：本次技能威力+20。"
+  },
+  {
+    "level": "LV35",
+    "element": "翼",
+    "name": "翼击",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "50",
+    "description": "✦造成魔伤，迅捷。"
+  },
+  {
+    "level": "LV39",
+    "element": "翼",
+    "name": "羽刃",
+    "energy": "2",
+    "type": "物攻",
+    "power": "75",
+    "description": "✦造成物伤，应对状态：回合结束使敌方紧急脱离。"
+  },
+  {
+    "level": "LV40",
+    "element": "电",
+    "name": "强制重启",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "90",
+    "description": "✦造成魔伤，应对状态：回合结束时使敌方精灵返场。"
+  },
+  {
+    "level": "LV47",
+    "element": "翼",
+    "name": "龙卷风",
+    "energy": "5",
+    "type": "物攻",
+    "power": "70",
+    "description": "✦造成物伤，迅捷，应对状态：本次技能威力变为1.5倍。"
+  }
+]

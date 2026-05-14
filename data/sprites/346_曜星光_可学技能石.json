@@ -1,0 +1,119 @@
+[
+  {
+    "level": "",
+    "element": "普通",
+    "name": "借用",
+    "energy": "0",
+    "type": "状态",
+    "power": "0",
+    "description": "✦每回合随机变成己方队伍中其他精灵的技能。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "倾泻",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "70",
+    "description": "✦造成魔伤，若本次攻击未被防御技能应对，则驱散双方所有印记。"
+  },
+  {
+    "level": "",
+    "element": "幽",
+    "name": "嘲弄",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得魔攻+90%，若敌方本回合更换精灵，自己获得速度+70。"
+  },
+  {
+    "level": "",
+    "element": "幻",
+    "name": "四维降解",
+    "energy": "7",
+    "type": "魔攻",
+    "power": "100",
+    "description": "✦造成魔伤，敌方每有1层印记，本技能能耗-1。"
+  },
+  {
+    "level": "",
+    "element": "幻",
+    "name": "多维击打",
+    "energy": "4",
+    "type": "魔攻",
+    "power": "15",
+    "description": "✦造成魔伤，1连击，敌方每有1层星陨印记，本次技能连击数+1。"
+  },
+  {
+    "level": "",
+    "element": "光",
+    "name": "天光",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "95",
+    "description": "✦造成魔伤，本技能系别和天气系别相同。"
+  },
+  {
+    "level": "",
+    "element": "幻",
+    "name": "心灵洞悉",
+    "energy": "7",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方获得星陨印记，获得层数等于敌方印记层数。"
+  },
+  {
+    "level": "",
+    "element": "幽",
+    "name": "恐吓",
+    "energy": "2",
+    "type": "魔攻",
+    "power": "80",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "热身运动",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得连击数+3。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "追打",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "75",
+    "description": "✦造成魔伤，1连击，应对状态：本技能变为3连击。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "退化",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方获得1层萌化。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "防御",
+    "energy": "1",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤70%，应对攻击。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "阻断",
+    "energy": "2",
+    "type": "魔攻",
+    "power": "80",
+    "description": "✦造成魔伤，应对状态：额外打断被应对技能。"
+  }
+]

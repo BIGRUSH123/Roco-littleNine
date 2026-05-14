@@ -1,0 +1,146 @@
+[
+  {
+    "level": "",
+    "element": "普通",
+    "name": "主场优势",
+    "energy": "3",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得1层攻击印记。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "乱打",
+    "energy": "4",
+    "type": "魔攻",
+    "power": "25",
+    "description": "✦造成魔伤，5连击。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "借用",
+    "energy": "0",
+    "type": "状态",
+    "power": "0",
+    "description": "✦每回合随机变成己方队伍中其他精灵的技能。"
+  },
+  {
+    "level": "",
+    "element": "武",
+    "name": "化劲",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦自己获得全技能威力+40。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "嗜痛",
+    "energy": "2",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤80%，应对攻击：期间自己每次受到伤害，获得双攻+40%。"
+  },
+  {
+    "level": "",
+    "element": "光",
+    "name": "天光",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "95",
+    "description": "✦造成魔伤，本技能系别和天气系别相同。"
+  },
+  {
+    "level": "",
+    "element": "火",
+    "name": "引燃",
+    "energy": "2",
+    "type": "状态",
+    "power": "0",
+    "description": "✦敌方获得10层灼烧。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "有效预防",
+    "energy": "1",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤50%，应对攻击：下一次行动获得先手+1。"
+  },
+  {
+    "level": "",
+    "element": "火",
+    "name": "炙热波动",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "55",
+    "description": "✦造成魔伤，敌方获得4层灼烧，应对状态：本次技能威力和赋予灼烧翻倍。"
+  },
+  {
+    "level": "",
+    "element": "火",
+    "name": "燃尽",
+    "energy": "4",
+    "type": "魔攻",
+    "power": "155",
+    "description": "✦造成魔伤，敌方每失去5%生命，本次技能威力-5。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "血气",
+    "energy": "2",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤60%，应对攻击：本回合受到致命伤害时，保留1生命值。"
+  },
+  {
+    "level": "",
+    "element": "光",
+    "name": "镜像反射",
+    "energy": "1",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤70%，应对攻击：本技能变为被应对的技能。"
+  },
+  {
+    "level": "",
+    "element": "武",
+    "name": "防御反击",
+    "energy": "3",
+    "type": "防御",
+    "power": "0",
+    "description": "✦减伤80%，应对攻击：自己获得全技能威力+40。"
+  },
+  {
+    "level": "",
+    "element": "火",
+    "name": "阳火增辉",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "75",
+    "description": "✦造成魔伤，每次击败敌方，本技能威力永久翻倍。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "阻断",
+    "energy": "2",
+    "type": "魔攻",
+    "power": "80",
+    "description": "✦造成魔伤，应对状态：额外打断被应对技能。"
+  },
+  {
+    "level": "",
+    "element": "普通",
+    "name": "魔能爆",
+    "energy": "0",
+    "type": "魔攻",
+    "power": "1",
+    "description": "✦造成魔伤，使用时消耗所有能量，消耗越高，伤害越高。"
+  }
+]
