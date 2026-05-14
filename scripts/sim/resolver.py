@@ -96,6 +96,7 @@ _SPECIAL_LAYER: dict[str, int] = {
     SpecialName.HEAL: EffectLayer.STATE,
     SpecialName.DIRECT_HEAL: EffectLayer.STATE,
     SpecialName.GAIN_ENERGY: EffectLayer.STATE,
+    SpecialName.GAIN_ENERGY_ON_KO: EffectLayer.STATE,
     SpecialName.STEAL_ENERGY: EffectLayer.STATE,
     SpecialName.GAIN_ENERGY_BY_ENEMY: EffectLayer.STATE,
     SpecialName.CHARGE: EffectLayer.STATE,
@@ -119,6 +120,8 @@ _SPECIAL_LAYER: dict[str, int] = {
     SpecialName.COMBO_INCREMENT: EffectLayer.POST_USE,
     SpecialName.COMBO_BY_MOE: EffectLayer.POST_USE,
     SpecialName.POWER_INCREMENT: EffectLayer.POST_USE,
+    SpecialName.POWER_DOUBLE: EffectLayer.POST_USE,
+    SpecialName.POWER_DOUBLE_ON_KO: EffectLayer.POST_USE,
     SpecialName.ENERGY_COST_INCREMENT: EffectLayer.POST_USE,
 
     # L4: 反击伤害（resolve_counter_damage 独立公式）
@@ -465,6 +468,15 @@ class SkillResolver:
         return []
 
     @staticmethod
+    def _special_gain_energy_on_ko(user, target, effect, _g, _ctx, _use):
+        if not target.is_fainted:
+            return []
+        gained = user.gain_energy(effect.amount or 0)
+        if gained:
+            return [f'{user.name} 击败回复+{gained}E']
+        return []
+
+    @staticmethod
     def _special_gain_energy_by_enemy(user, target, effect, _g, _ctx, _use):
         total_e = sum(bs.energy_cost for bs in target.skills)
         amount = max(1, int(total_e * (effect.value or 0.5)))
@@ -492,6 +504,20 @@ class SkillResolver:
         amount = int(effect.amount or effect.value or 0)
         use.battle_skill.power_mod += amount
         return [f'{user.name} {use.battle_skill.name}威力+{amount}(→{use.battle_skill.power})']
+
+    @staticmethod
+    def _special_power_double(user, _target, effect, _g, _ctx, use):
+        current = use.battle_skill.power
+        use.battle_skill.power_mod += current
+        return [f'{user.name} {use.battle_skill.name}威力翻倍(→{use.battle_skill.power})']
+
+    @staticmethod
+    def _special_power_double_on_ko(user, target, effect, _g, _ctx, use):
+        if not target.is_fainted:
+            return []
+        current = use.battle_skill.power
+        use.battle_skill.power_mod += current
+        return [f'{user.name} {use.battle_skill.name}击败威力翻倍(→{use.battle_skill.power})']
 
     @staticmethod
     def _special_energy_cost_increment(user, _target, effect, _g, _ctx, use):
@@ -1148,10 +1174,13 @@ def _build_special_registry() -> dict[str, _SpecialHandler]:
         SpecialName.LIFE_DRAIN:         R._special_life_drain,
         SpecialName.DIRECT_HEAL:        R._special_direct_heal,
         SpecialName.GAIN_ENERGY:        R._special_gain_energy,
+        SpecialName.GAIN_ENERGY_ON_KO:  R._special_gain_energy_on_ko,
         SpecialName.GAIN_ENERGY_BY_ENEMY: R._special_gain_energy_by_enemy,
         SpecialName.HEAL:               R._special_heal,
         SpecialName.COMBO_INCREMENT:    R._special_combo_increment,
         SpecialName.POWER_INCREMENT:    R._special_power_increment,
+        SpecialName.POWER_DOUBLE:       R._special_power_double,
+        SpecialName.POWER_DOUBLE_ON_KO: R._special_power_double_on_ko,
         SpecialName.ENERGY_COST_INCREMENT: R._special_energy_cost_increment,
         SpecialName.DISPEL_POSITIVE:    R._special_dispel_positive,
         SpecialName.DISPEL_NEGATIVE:    R._special_dispel_negative,

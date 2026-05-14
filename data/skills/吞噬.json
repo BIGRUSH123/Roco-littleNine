@@ -11,7 +11,7 @@
   "effects": [
     {
       "kind": "special",
-      "name": "gain_energy",
+      "name": "gain_energy_on_ko",
       "amount": 6
     }
   ],

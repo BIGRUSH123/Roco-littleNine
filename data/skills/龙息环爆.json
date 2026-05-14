@@ -8,6 +8,19 @@
   "counter": "状态",
   "priority": 0,
   "combo": 1,
-  "effects": [],
+  "effects": [
+    {
+      "kind": "conditional",
+      "when": {
+        "kind": "counter_succeeded"
+      },
+      "then": [
+        {
+          "kind": "special",
+          "name": "skip_next_charge"
+        }
+      ]
+    }
+  ],
   "description": "✦造成魔伤，应对状态：下次技能无需蓄力。"
 }

@@ -8,6 +8,12 @@
   "counter": "无",
   "priority": 0,
   "combo": 1,
-  "effects": [],
+  "effects": [
+    {
+      "kind": "special",
+      "name": "consume_energy_for_power",
+      "value": 50
+    }
+  ],
   "description": "✦造成魔伤，使用时消耗所有能量，消耗越高，伤害越高。"
 }

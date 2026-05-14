@@ -80,6 +80,12 @@ class SpecialName:
     RANDOM_DEVOTION = 'random_devotion'
     BORROW_SKILL = 'borrow_skill'
     DEFENSE_COOLDOWN_REDUCE = 'defense_cooldown_reduce'
+    SKIP_NEXT_CHARGE = 'skip_next_charge'
+    POWER_DOUBLE = 'power_double'
+    POWER_DOUBLE_ON_KO = 'power_double_on_ko'
+    CONSUME_ENERGY_FOR_POWER = 'consume_energy_for_power'
+    POWER_BY_ENEMY_POWER = 'power_by_enemy_power'
+    GAIN_ENERGY_ON_KO = 'gain_energy_on_ko'
 
     # ── 聚合 ──
     ALL: frozenset[str] = frozenset({
@@ -97,7 +103,9 @@ class SpecialName:
         ADJACENT_POWER_BONUS,
         PRIORITY_BONUS, IGNORE_MODS, RANDOM_DEVOTION, BORROW_SKILL,
         COMBO_INCREMENT, POWER_INCREMENT, ENERGY_COST_INCREMENT,
-        DEFENSE_COOLDOWN_REDUCE,
+        DEFENSE_COOLDOWN_REDUCE, SKIP_NEXT_CHARGE,
+        POWER_DOUBLE, POWER_DOUBLE_ON_KO,
+        CONSUME_ENERGY_FOR_POWER, POWER_BY_ENEMY_POWER, GAIN_ENERGY_ON_KO,
     })
 
     # 伤害相关子集 — 由 _collect_modifiers / calc_damage 处理

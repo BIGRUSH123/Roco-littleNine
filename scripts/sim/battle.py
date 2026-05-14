@@ -499,7 +499,13 @@ class Battle(BattleMechanicsMixin):
         is_charging = getattr(user, '_charging', False)
         charged_idx = getattr(user, '_charged_skill_index', -1)
 
-        if is_charging and has_charge and action.skill_index == charged_idx:
+        # 龙息环爆等：下个技能无需蓄力
+        if has_charge and getattr(user, '_skip_charge_next', False):
+            user._skip_charge_next = False
+            events.append(f'{user.name} 跳过蓄力({skill.name})')
+            # 继续正常执行，不进入蓄力
+
+        elif is_charging and has_charge and action.skill_index == charged_idx:
             # 蓄力释放：清空标记，正常执行技能
             user._charging = False
             user._charged_skill_index = -1
@@ -669,6 +675,19 @@ class Battle(BattleMechanicsMixin):
                 if penalty > 0:
                     use.modifiers['power_bonus'] = use.modifiers.get('power_bonus', 0) - penalty
                     events.append(f'{user.name} {skill.name} 威力-{penalty}(敌方能量{enemy_energy})')
+            elif e.name == SpecialName.CONSUME_ENERGY_FOR_POWER:
+                consumed = user.energy
+                if consumed > 0:
+                    per_e = int(e.value or 50)
+                    bonus = consumed * per_e
+                    user.lose_energy(consumed)
+                    use.modifiers['power_bonus'] = use.modifiers.get('power_bonus', 0) + bonus
+                    events.append(f'{user.name} 消耗{consumed}E 威力+{bonus}')
+            elif e.name == SpecialName.POWER_BY_ENEMY_POWER:
+                mult = float(e.value or 1.0)
+                max_power = max((s.power for s in target.skills), default=0)
+                skill.power_override = max(1, int(max_power * mult))
+                events.append(f'{user.name} {skill.name} 威力={skill.power_override}(敌方威力{max_power}×{mult})')
 
         # 每 hit 生效的资源类特效 (heal/gain_energy 等)
         _PER_HIT_SPECIALS = {'heal', 'direct_heal', 'gain_energy', 'steal_energy', 'gain_energy_by_enemy'}
@@ -856,21 +875,26 @@ class Battle(BattleMechanicsMixin):
         )
 
         # 防御技能冷却（连击循环外）
-        # 使用 .base 而非 .skill，避免 reflect_damage 替换技能后误判类型
-        # 设为 2 而非 1：回合末冷却递减会立刻 -1，需要多 1 回合余量
         if skill.base.is_defense:
             skill.cooldown = 2
-            # 壁垒等：应对成功后防御技能冷却-1
-            if countered_skill is not None:
-                for e in skill.effects:
-                    if getattr(e, 'kind', '') == 'conditional':
-                        when = getattr(e, 'when', None) or {}
-                        if when.get('kind') == 'counter_succeeded':
-                            for sub in getattr(e, 'then', []):
-                                if getattr(sub, 'kind', '') == 'special' and getattr(sub, 'name', '') == SpecialName.DEFENSE_COOLDOWN_REDUCE:
-                                    if skill.cooldown > 0:
-                                        skill.cooldown -= 1
-                                        events.append(f'{user.name} {skill.name} 应对成功，冷却-1')
+
+        # 应对成功效果（防御 + 非防御应对技能均可触发）
+        if countered_skill is not None:
+            for e in skill.effects:
+                if getattr(e, 'kind', '') == 'conditional':
+                    when = getattr(e, 'when', None) or {}
+                    if when.get('kind') == 'counter_succeeded':
+                        for sub in getattr(e, 'then', []):
+                            if getattr(sub, 'kind', '') != 'special':
+                                continue
+                            name = getattr(sub, 'name', '')
+                            if name == SpecialName.DEFENSE_COOLDOWN_REDUCE:
+                                if skill.cooldown > 0:
+                                    skill.cooldown -= 1
+                                    events.append(f'{user.name} {skill.name} 应对成功，冷却-1')
+                            elif name == SpecialName.SKIP_NEXT_CHARGE:
+                                user._skip_charge_next = True
+                                events.append(f'{user.name} 下个技能无需蓄力')
 
         # ═══ L5: 换宠层 [once] ═══
         special_names = {getattr(e, 'name', '') for e in skill.effects if getattr(e, 'kind', '') == 'special'}
