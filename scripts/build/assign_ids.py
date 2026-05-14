@@ -202,19 +202,30 @@ def generate_constants(skill_map: dict[str, int],
     return '\n'.join(lines) + '\n'
 
 
-def main():
-    print('=== 技能/特性 ID 分配 ===')
+def main(check_only: bool = False):
+    tag = '[check]' if check_only else ''
+    if check_only:
+        print(f'=== 技能/特性 ID 一致性检查 ===')
+    else:
+        print(f'=== 技能/特性 ID 分配 ===')
     print()
 
     # ── 技能 ──
-    print('分配技能 ID...')
+    print(f'{tag} 分配技能 ID...')
     skill_map = assign_skill_ids()
-    print(f'  技能总数: {len(skill_map)}')
-    print(f'  范围: {min(skill_map.values())} ~ {max(skill_map.values())}')
+    print(f'{tag}   技能总数: {len(skill_map)}')
+    print(f'{tag}   范围: {min(skill_map.values())} ~ {max(skill_map.values())}')
 
     wiki_count = len([n for n in skill_map if not is_test_skill(n)])
     test_count = len([n for n in skill_map if is_test_skill(n)])
-    print(f'  正式: {wiki_count}, 测试: {test_count}')
+    print(f'{tag}   正式: {wiki_count}, 测试: {test_count}')
+
+    if check_only:
+        _check_skill_json_ids(skill_map)
+        _check_constants_file(skill_map, assign_trait_ids())
+        print()
+        print('=== 检查完成 ===')
+        return
 
     # 写入技能 JSON
     print('  写入技能 JSON...')
@@ -274,5 +285,44 @@ def main():
     print('=== 完成 ===')
 
 
+def _check_skill_json_ids(skill_map: dict[str, int]) -> None:
+    """验证所有技能 JSON 的 id 字段与分配一致。"""
+    mismatched = 0
+    for name, expected_id in skill_map.items():
+        path = SKILL_DIR / f'{name}.json'
+        if not path.exists():
+            continue
+        try:
+            with open(path, encoding='utf-8') as f:
+                data = json.load(f)
+            if data.get('id') != expected_id:
+                print(f'  [MISMATCH] {name}: JSON={data.get("id")}, expected={expected_id}')
+                mismatched += 1
+        except Exception as e:
+            print(f'  [ERROR] {name}: {e}')
+    if mismatched:
+        print(f'  技能 ID 不一致: {mismatched} 个')
+    else:
+        print(f'  技能 JSON ID 全部一致')
+
+
+def _check_constants_file(skill_map: dict[str, int],
+                           trait_map: dict[str, int]) -> None:
+    """验证 skill_trait_ids.py 与当前分配一致。"""
+    const_path = BASE / 'scripts' / 'common' / 'skill_trait_ids.py'
+    expected = generate_constants(skill_map, trait_map)
+    actual = const_path.read_text(encoding='utf-8')
+    if expected == actual:
+        print(f'  skill_trait_ids.py 内容一致')
+    else:
+        diff = len(expected.split('\n')) - len(actual.split('\n'))
+        print(f'  skill_trait_ids.py 内容不一致 (行数差异: {diff:+d})')
+
+
 if __name__ == '__main__':
-    main()
+    import argparse
+    parser = argparse.ArgumentParser(description='技能/特性 ID 分配')
+    parser.add_argument('--check', action='store_true', help='仅检查一致性，不写入文件')
+    args = parser.parse_args()
+    main(check_only=args.check)
+

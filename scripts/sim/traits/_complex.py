@@ -295,6 +295,57 @@ class ThornSkin(TraitHandler):
 
 
 # ═══════════════════════════════════════════════════════════════
+# on_take_damage — 受伤后触发（条件判断）
+# ═══════════════════════════════════════════════════════════════
+
+@register("嫁祸")
+class Scapegoat(TraitHandler):
+    """每失去25%生命，连击数+2。"""
+
+    def on_entry(self, sprite: Sprite, battle: Battle, team: str) -> list[str]:
+        sprite.counters['scapegoat_quarters'] = 0
+        return []
+
+    def on_take_damage(self, target: Sprite, attacker: Sprite, damage: int,
+                       battle: Battle, team: str) -> list[str]:
+        hp_pct = target.current_hp / target.max_hp
+        lost_quarters = int((1.0 - hp_pct) / 0.25)
+        prev = target.counters.get('scapegoat_quarters', 0)
+        if lost_quarters > prev:
+            gained = lost_quarters - prev
+            target.counters['scapegoat_quarters'] = lost_quarters
+            target.add_effect(StatusEffect(
+                name='嫁祸连击', category='stat', stat_key='combo',
+                steps=gained * 2, scope='battlefield', source='嫁祸'))
+            return [f'{target.name} 嫁祸: 连击+{gained*2}']
+        return []
+
+
+# ═══════════════════════════════════════════════════════════════
+# on_fatal_damage — 致命伤害前触发
+# ═══════════════════════════════════════════════════════════════
+
+@register("惊吓")
+class Fright(TraitHandler):
+    """能量=0的精灵无法对自己造成伤害。"""
+
+    def on_fatal_damage(self, sprite: Sprite, damage: int,
+                        battle: Battle, team: str) -> bool:
+        opp_team = 'B' if team == 'A' else 'A'
+        attacker = battle.get_opponent(team).active
+        return attacker.energy == 0
+
+
+@register("逐魂鸟")
+class SoulChaser(TraitHandler):
+    """能耗<=1的攻击技能无法对自己造成伤害。"""
+
+    def on_fatal_damage(self, sprite: Sprite, damage: int,
+                        battle: Battle, team: str) -> bool:
+        return False  # L2级访问；由 _execute_single_action 处理
+
+
+# ═══════════════════════════════════════════════════════════════
 # Layer 3b: Hook 注册回调（替代硬编码 trait 名检查）
 # ═══════════════════════════════════════════════════════════════
 

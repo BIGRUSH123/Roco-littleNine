@@ -13,6 +13,8 @@ scripts/sim/ — 格斗小九 PVP 对局模拟器
   TurnContext  — 回合快照（战场事实）
   TurnRecord  — 单回合记录
   Battle      — 对局
+  SkillPipeline — 单次技能执行管线 (L0-L5)
+  BattleContext — Battle 最小接口协议
   Agent       — 决策代理协议
   RuleAgent   — 基于 PlayStyle 的规则 AI
   HumanAgent  — 终端人机交互
@@ -31,12 +33,14 @@ from .player import Item, PlayStyle, Player
 from .globals import Mark, GlobalEffects
 from .resolver import SkillResolver, TurnContext
 from .battle_mechanics import BattleMechanicsMixin
+from .battle_context import BattleContext
 from .battle import TurnRecord, Battle
+from .pipeline import SkillPipeline
 from .agent import Agent, RuleAgent, HumanAgent
 from .factory import SimFactory
 
 # 导入 trait 子模块以触发 @register 装饰器（放在最后，避免循环导入）
-from .traits import _simple, _conditional, _complex  # noqa: E402, F401
+from .traits import _complex  # noqa: E402, F401
 
 # 加载数据驱动特性（JSON → DataDrivenTrait），优先于 Python 类
 import os

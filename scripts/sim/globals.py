@@ -1,9 +1,11 @@
 """scripts/sim/globals.py — 全局效果（天气 + 双方印记 + 场地）"""
 
+from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 from scripts.common.skill_trait_ids import TRAIT_吟游之弦, TRAIT_守望星
+from .traits.trait_engine import fire_hook_first
 
 if TYPE_CHECKING:
     from .sprite import Sprite
@@ -282,7 +284,6 @@ class GlobalEffects:
         events: list[str] = []
 
         # Hook: before_apply_mark — 返回 'coexist' 启用共存模式
-        from scripts.sim.traits.trait_engine import fire_hook_first
         hook_mode = fire_hook_first('before_apply_mark', team, name, category, stacks, user)
         has_bard = (hook_mode == 'coexist')
         if not has_bard and user is not None:
@@ -332,7 +333,6 @@ class GlobalEffects:
         consume = amount
 
         # Hook: before_consume_starfall — 返回调整后的消耗量
-        from scripts.sim.traits.trait_engine import fire_hook_first
         hook_consume = fire_hook_first('before_consume_starfall', team, amount, sprite, starfall)
         if hook_consume is not None:
             consume = hook_consume

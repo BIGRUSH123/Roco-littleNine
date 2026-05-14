@@ -3,11 +3,10 @@ import uuid
 import random
 import re
 from pathlib import Path
-from typing import List, Dict, Any, Optional
+from typing import Optional
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
 
 # Ensure we can import from scripts
 import sys
@@ -26,6 +25,8 @@ from scripts.sim.skill import Skill
 from scripts.sim.battleskill import BattleSkill
 from scripts.common.models import SpeciesStats
 
+from . import schemas
+
 app = FastAPI(title="Roco Battle API")
 
 app.add_middleware(
@@ -40,12 +41,12 @@ WIKI_ROOT = BASE / "wiki"
 SKILLS_DIR = BASE / "data" / "skills"
 
 # In-memory session store
-sessions: Dict[str, dict] = {}
-debug_sessions: Dict[str, dict] = {}
+sessions: dict[str, dict] = {}
+debug_sessions: dict[str, dict] = {}
 
-def load_sprite_skills() -> List[dict]:
+def load_sprite_skills() -> list[schemas.SpriteEntry]:
     available = {p.stem for p in SKILLS_DIR.glob("*.json")}
-    entries = []
+    entries: list[schemas.SpriteEntry] = []
 
     sprite_dir = WIKI_ROOT / "精灵图鉴"
     if not sprite_dir.is_dir():
@@ -68,7 +69,6 @@ def load_sprite_skills() -> List[dict]:
         name_m = re.search(r'^name:\s*"(.+?)"', text, re.MULTILINE)
         sprite_name = name_m.group(1) if name_m else md.stem
 
-        # Parse element from frontmatter attributes: [光] -> 光
         element = ""
         attrs_raw = frontmatter.get("attributes", "")
         attr_m = re.search(r'\[(\w+)', attrs_raw)
@@ -91,12 +91,12 @@ def load_sprite_skills() -> List[dict]:
                         skills.append(name)
 
         if skills:
-            entries.append({
-                "name": sprite_name,
-                "element": element,
-                "number": int(frontmatter.get("number", 0)),
-                "skills": skills,
-            })
+            entries.append(schemas.SpriteEntry(
+                name=sprite_name,
+                element=element,
+                number=int(frontmatter.get("number", 0)),
+                skills=skills,
+            ))
 
     return entries
 
@@ -236,112 +236,91 @@ def _describe_skill(s: dict) -> str:
 
     return '。'.join(parts) if '每次使用后' in (parts[-1] if parts else '') else '。'.join(filter(None, parts))
 
-# --- Pydantic Models ---
-
-class SpriteSelection(BaseModel):
-    name: str
-    skills: List[str]
-    bloodline: Optional[str] = None     # 血脉系别，默认取第一属性
-    form: str = ''                       # 形态
-
-class InitRequest(BaseModel):
-    team: List[SpriteSelection]
-    opponent_team: Optional[List[SpriteSelection]] = None
-    lead_index: int = 0
-    item: Optional[str] = None           # "愿力" | "进化之力" | None
-
-class ActionRequest(BaseModel):
-    session_id: str
-    action_type: str # "skill", "switch", "gather", "item"
-    skill_name: Optional[str] = None
-    switch_index: Optional[int] = None
-
-class DebugActionRequest(BaseModel):
-    session_id: str
-    action_a: dict  # {type: "skill"|"switch"|"gather", skill_name?: str, switch_index?: int}
-    action_b: dict  # same structure
-
 # --- Helper Functions ---
 
-def serialize_battle_state(battle: Battle, session_id: str) -> dict:
+def serialize_battle_state(battle: Battle, session_id: str) -> schemas.BattleState:
     pa = battle.player_a
     pb = battle.player_b
-    
-    def serialize_sprite(s, team='A'):
+
+    def _serialize_sprite(s, team='A') -> schemas.SpriteState:
         charging = getattr(s, '_charging', False)
         charged_idx = getattr(s, '_charged_skill_index', -1)
         charged_name = ''
         if charging and 0 <= charged_idx < len(s.skills):
             charged_name = s.skills[charged_idx].name
-        ecost_mod = s.energy_cost_mod
+
         mark_e_mod = battle.globals.mark_energy_mod(team)
         skills_data = []
         for sk in s.skills:
             base_p = sk.base.power
             base_e = sk.base.energy_cost
-            perm_p = base_p + sk.power_mod  # 永久威力成长
+            perm_p = base_p + sk.power_mod
             eff_p = perm_p + battle.globals.mark_power_bonus(team, sk.base)
-            eff_e = max(0, base_e + ecost_mod + sk.energy_cost_mod - mark_e_mod)
-            skills_data.append({
-                'name': sk.name,
-                'base_power': base_p,
-                'effective_power': eff_p,
-                'base_energy_cost': base_e,
-                'effective_energy_cost': eff_e,
-                'cooldown': sk.cooldown,
-            })
-        return {
-            "name": s.name,
-            "element": s.species.attributes,
-            "bloodline": s.bloodline,
-            "bloodline_skills": s.bloodline_skills,
-            "current_hp": s.current_hp,
-            "max_hp": s.max_hp,
-            "energy": s.energy,
-            "is_fainted": s.is_fainted,
-            "charging": charged_name if charging else '',
-            "trait": s.species.ability or '',
-            "energy_cost_mod": s.energy_cost_mod,
-            "effects": [{"name": e.name, "category": e.category, "stacks": e.stacks, "steps": e.steps} for e in s.effects],
-            "skills": skills_data
-        }
+            eff_e = max(0, base_e + s.energy_cost_mod + sk.energy_cost_mod - mark_e_mod)
+            skills_data.append(schemas.SkillSummary(
+                name=sk.name,
+                base_power=base_p,
+                effective_power=eff_p,
+                base_energy_cost=base_e,
+                effective_energy_cost=eff_e,
+                cooldown=sk.cooldown,
+            ))
+        return schemas.SpriteState(
+            name=s.name,
+            element=s.species.attributes,
+            bloodline=s.bloodline,
+            bloodline_skills=s.bloodline_skills,
+            current_hp=s.current_hp,
+            max_hp=s.max_hp,
+            energy=s.energy,
+            is_fainted=s.is_fainted,
+            charging=charged_name if charging else '',
+            trait=s.species.ability or '',
+            energy_cost_mod=s.energy_cost_mod,
+            effects=[schemas.EffectSummary(
+                name=e.name, category=e.category, stacks=e.stacks, steps=e.steps,
+            ) for e in s.effects],
+            skills=skills_data,
+        )
 
-    def serialize_player(p, team='A'):
+    def _serialize_player(p, team='A') -> schemas.PlayerState:
         item_info = None
         if p.item:
-            item_info = {
-                "name": p.item.name,
-                "max_uses": p.item.max_uses,
-                "uses": p.item.uses,
-                "cooldown_turns": p.item.cooldown_turns,
-                "last_use_turn": p.item.last_use_turn,
-                "is_exhausted": p.item.is_exhausted,
-            }
-        return {
-            "name": p.name,
-            "active_index": p.active_index,
-            "lives": p.lives,
-            "item": item_info,
-            "team": [serialize_sprite(s, team) for s in p.team]
-        }
-        
+            item_info = schemas.ItemState(
+                name=p.item.name,
+                max_uses=p.item.max_uses,
+                uses=p.item.uses,
+                cooldown_turns=p.item.cooldown_turns,
+                last_use_turn=p.item.last_use_turn,
+                is_exhausted=p.item.is_exhausted,
+            )
+        return schemas.PlayerState(
+            name=p.name,
+            active_index=p.active_index,
+            lives=p.lives,
+            item=item_info,
+            team=[_serialize_sprite(s, team) for s in p.team],
+        )
+
     marks_a_pos, marks_a_neg = battle.globals.get_marks("A")
     marks_b_pos, marks_b_neg = battle.globals.get_marks("B")
-    
-    return {
-        "session_id": session_id,
-        "turn": battle.turn,
-        "is_finished": battle.is_finished,
-        "winner": battle.winner,
-        "weather": battle.globals.weather,
-        "weather_turns": battle.globals.weather_turns,
-        "player_a": serialize_player(pa, 'A'),
-        "player_b": serialize_player(pb, 'B'),
-        "marks_a": [{"name": m.name, "stacks": m.stacks, "type": "positive"} for m in marks_a_pos] + [{"name": m.name, "stacks": m.stacks, "type": "negative"} for m in marks_a_neg],
-        "marks_b": [{"name": m.name, "stacks": m.stacks, "type": "positive"} for m in marks_b_pos] + [{"name": m.name, "stacks": m.stacks, "type": "negative"} for m in marks_b_neg],
-        "mark_energy_mod_a": battle.globals.mark_energy_mod("A"),
-        "mark_energy_mod_b": battle.globals.mark_energy_mod("B"),
-    }
+
+    return schemas.BattleState(
+        session_id=session_id,
+        turn=battle.turn,
+        is_finished=battle.is_finished,
+        winner=battle.winner,
+        weather=battle.globals.weather,
+        weather_turns=battle.globals.weather_turns,
+        player_a=_serialize_player(pa, 'A'),
+        player_b=_serialize_player(pb, 'B'),
+        marks_a=[schemas.MarkSummary(name=m.name, stacks=m.stacks, type='positive') for m in marks_a_pos]
+                + [schemas.MarkSummary(name=m.name, stacks=m.stacks, type='negative') for m in marks_a_neg],
+        marks_b=[schemas.MarkSummary(name=m.name, stacks=m.stacks, type='positive') for m in marks_b_pos]
+                + [schemas.MarkSummary(name=m.name, stacks=m.stacks, type='negative') for m in marks_b_neg],
+        mark_energy_mod_a=battle.globals.mark_energy_mod("A"),
+        mark_energy_mod_b=battle.globals.mark_energy_mod("B"),
+    )
 
 # --- Endpoints ---
 
@@ -425,7 +404,7 @@ def get_type_chart():
     return {"chart": _TYPE_CHART}
 
 @app.post("/api/battle/init")
-def init_battle(req: InitRequest):
+def init_battle(req: schemas.InitRequest):
     if not req.team:
         raise HTTPException(status_code=400, detail="Team cannot be empty")
         
@@ -480,7 +459,7 @@ def init_battle(req: InitRequest):
     return serialize_battle_state(battle, session_id)
 
 @app.post("/api/battle/action")
-def battle_action(req: ActionRequest):
+def battle_action(req: schemas.ActionRequest):
     if req.session_id not in sessions:
         raise HTTPException(status_code=404, detail="Session not found")
 
@@ -676,7 +655,7 @@ def debug_init():
 
 
 @app.post("/api/debug/action")
-def debug_action(req: DebugActionRequest):
+def debug_action(req: schemas.DebugActionRequest):
     if req.session_id not in debug_sessions:
         raise HTTPException(status_code=404, detail='Debug session not found')
 

@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 from scripts.common import STAT_KEYS
 from scripts.common.models import SpeciesStats, StatsResult
 from scripts.common.skill_trait_ids import TRAIT_多人宿舍, TRAIT_无忧无虑
+from .traits.trait_engine import fire_hook_first
 
 if TYPE_CHECKING:
     from .skill import Skill
@@ -281,7 +282,6 @@ class Sprite:
 
     @property
     def max_energy(self) -> int:
-        from scripts.sim.traits.trait_engine import fire_hook_first
         override = fire_hook_first('max_energy_override', self)
         if override is not None:
             return override

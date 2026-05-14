@@ -3,26 +3,24 @@
 回合 = 开始阶段 → 选择阶段 → 结算阶段 → 结束阶段
 """
 
+from __future__ import annotations
 import random
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 from .globals import GlobalEffects
-from .effects import SpecialName
 from .resolver import SkillResolver, TurnContext
-from .battleskill import BattleSkill, SkillUse
+from .battleskill import BattleSkill
 from .action import Action
 from .battle_mechanics import BattleMechanicsMixin
-from scripts.common.skill_trait_ids import (
-    TRAIT_对流, TRAIT_嫉妒, TRAIT_星地善良,
-)
+from scripts.common.skill_trait_ids import TRAIT_星地善良
 from .traits import (
     dispatch_entry, dispatch_leave, dispatch_turn_start, dispatch_turn_end,
-    dispatch_modifier, dispatch_damage, dispatch_skill_use,
-    dispatch_take_damage, dispatch_ko_enemy, dispatch_counter_success,
-    dispatch_faint, dispatch_energy_short, dispatch_defend,
-    dispatch_abnormal_tick, dispatch_before_take_damage,
-    dispatch_before_action,
+    dispatch_counter_success, dispatch_faint,
+    dispatch_abnormal_tick, dispatch_before_action,
+)
+from .traits.trait_engine import (
+    fire_hook, fire_hook_first, get_data_trait_instance, DataDrivenTrait,
 )
 
 if TYPE_CHECKING:
@@ -202,7 +200,6 @@ class Battle(BattleMechanicsMixin):
         for team, sprite, prev in [('A', self.player_a.active, prev_a), ('B', self.player_b.active, prev_b)]:
             if sprite.is_fainted or not prev:
                 continue
-            from scripts.sim.traits.trait_engine import fire_hook
             res = fire_hook('after_transmission', sprite, prev, self, team)
             if res:
                 events += res
@@ -407,522 +404,17 @@ class Battle(BattleMechanicsMixin):
         is_first: bool = False,
         opponent_switched: bool = False,
     ) -> list[str]:
-        """执行单个玩家的技能/聚能行动。返回事件列表。"""
-        player = self.get_player(team)
-        opponent = self.get_opponent(team)
-        user = player.active
-        target = opponent.active
-        events: list[str] = []
-
-        if user.is_fainted:
-            return events
-
-        # ── 聚能 ──
-        if action.kind == 'gather':
-            gained = user.gain_energy(5)
-            user.first_action = False
-            user.inc_counter('times_gathered')
-            events.append(f'{user.name} 聚能+{gained}E(→{user.energy})')
-            # team counter: enemy gather (搜刮 等 pre-entry accumulator)
-            opp_team = 'B' if team == 'A' else 'A'
-            self.inc_team_counter(opp_team, 'enemy_gather')
-            return events
-
-        # ── 技能 ──
-        if action.kind != 'skill' or action.skill_index is None:
-            return events
-
-        skill = self._get_skill(team, action)
-        if skill is None:
-            events.append(f'[错误] {user.name} 无技能[{action.skill_index}]')
-            return events
-
-        # ═══ gate: 冷却 ═══
-        if skill.cooldown > 0:
-            events.append(f'[冷却中] {user.name} {skill.name} 还需{skill.cooldown}回合冷却')
-            return events
-
-        # ── 迸发 (burst / first_action) 能耗效果（需在能量支付前处理）──
-        if user.first_action:
-            for e in skill.effects:
-                if getattr(e, 'kind', '') == 'special' and getattr(e, 'name', '') in (SpecialName.BURST, SpecialName.FIRST_ACTION):
-                    e_target = getattr(e, 'target', 'opp')
-                    if e_target == 'burst_collect':
-                        burst_history = getattr(user, '_burst_effects_used', set())
-                        collected = len(burst_history)
-                        if collected > 0:
-                            skill.energy_cost_mod += collected
-                            events.append(f'{user.name} 雷暴收集{collected}种迸发 能耗+{collected}')
-                    else:
-                        ec_change = int(getattr(e, 'amount', 0) or 0)
-                        if ec_change != 0:
-                            skill.energy_cost_mod += ec_change
-                            events.append(f'{user.name} 迸发 {skill.name}能耗{ec_change:+d}')
-
-        # 应对日志
-        if is_countered and countering_skill:
-            opp_sprite = opponent.active
-            events.append(f'{opp_sprite.name}应对{user.name}：{user.name}使用了{skill.name}，但被{opp_sprite.name}（{countering_skill.name}）应对了！')
-
-        # ═══ gate: 能量支付 ═══
-        # 能量不足 → 管线短路，L0-L6 全部跳过
-        cost = skill.energy_cost
-        ecost = user.effective_stat('energy_cost')  # sprite 能耗修正（特性/效果）
-        if getattr(user.species, 'ability_id', 0) == TRAIT_对流:
-            ecost = -ecost  # 对流: 能耗增减反转
-        cost += ecost
-        cost = round(cost * self.globals.weather_energy_mod(skill.element or ''))
-        cost = max(0, cost - self.globals.mark_energy_mod(team))
-        # 一次性能耗修正消费（能量计算后立即消费，确保短路路径也生效）
-        user.clear_effects('next_use')
-
-        if user.energy < cost:
-            deficit = cost - user.energy
-            hp_sub = dispatch_energy_short(user, deficit, self, team)
-            if hp_sub > 0:
-                user.take_damage(hp_sub)
-                user.lose_energy(user.energy)
-                events.append(f'{user.name} 消耗{hp_sub}HP代替{deficit}E')
-            else:
-                events.append(f'[能量不足] {user.name} E={user.energy} < {cost}')
-                return events
-
-        user.lose_energy(cost)
-        user.inc_counter(f'skill_used:{skill.name}')
-        user.inc_counter('skills_used')
-
-        # ═══ gate: 蓄力 ═══
-        has_charge = any(
-            e.name == SpecialName.CHARGE
-            for e in skill.effects if getattr(e, 'kind', '') == 'special'
-        )
-        is_charging = getattr(user, '_charging', False)
-        charged_idx = getattr(user, '_charged_skill_index', -1)
-
-        # 龙息环爆等：下个技能无需蓄力
-        if has_charge and getattr(user, '_skip_charge_next', False):
-            user._skip_charge_next = False
-            events.append(f'{user.name} 跳过蓄力({skill.name})')
-            # 继续正常执行，不进入蓄力
-
-        elif is_charging and has_charge and action.skill_index == charged_idx:
-            # 蓄力释放：清空标记，正常执行技能
-            user._charging = False
-            user._charged_skill_index = -1
-            events.append(f'{user.name} 蓄力释放！')
-        elif is_charging:
-            # 检查嫉妒特性：蓄力中可使用任意技能
-            from .traits import get_trait as _get_trait
-            _trait = _get_trait(user)
-            if _trait and _trait.trait_id == TRAIT_嫉妒:
-                user._charging = False
-                user._charged_skill_index = -1
-                events.append(f'{user.name} 蓄力中断（嫉妒）')
-            elif action.kind == 'gather':
-                events.append(f'[蓄力中] {user.name} 只能使用蓄力技能或换宠')
-                return events
-            else:
-                # 蓄力中使用了其他技能 → 拒绝
-                charged_name = user.skills[charged_idx].name if 0 <= charged_idx < len(user.skills) else '?'
-                events.append(f'[蓄力中] {user.name} 只能使用{charged_name}或换宠')
-                return events
-        elif has_charge:
-            # 进入蓄力：消耗能量，跳过其他效果
-            user._charging = True
-            user._charged_skill_index = action.skill_index
-            events.append(f'{user.name} 蓄力({skill.name})')
-            return events
-
-        ctx = TurnContext(turn=self.turn, is_first=is_first,
-                          countered_skill=countered_skill,
-                          opponent_switched=opponent_switched,
-                          battle=self, team=team)
-
-        # ═══ L0: modifier 预计算 ═══
-        # SkillUse.__post_init__ → _collect_modifiers 已处理 DAMAGE_SPECIALS
-        use = SkillUse(
-            battle_skill=skill,
+        """执行单个玩家的技能/聚能行动。委托给 SkillPipeline。"""
+        from .pipeline import SkillPipeline
+        pipeline = SkillPipeline(
+            battle=self, team=team, action=action,
             is_countered=is_countered,
-            is_first=is_first,
             countered_skill=countered_skill,
             countering_skill=countering_skill,
-            skill_index=action.skill_index or -1,
+            is_first=is_first,
+            opponent_switched=opponent_switched,
         )
-
-        # L0 扩展：需要 sprite 上下文的 modifier（adjacent_power_bonus / 非攻击 power 转换）
-        events += self._resolver.dispatch_modifiers(user, use)
-
-        # ── trait modifier hook（L0→L1 之间）──
-        events += dispatch_modifier(user, use, self, team)
-
-        # ── 迸发 (burst / first_action) 威力/额外使用效果 ──
-        if user.first_action:
-            for e in skill.effects:
-                if getattr(e, 'kind', '') != 'special' or getattr(e, 'name', '') not in (SpecialName.BURST, SpecialName.FIRST_ACTION):
-                    continue
-                e_target = getattr(e, 'target', 'opp')
-
-                # 迸发收集 (雷暴): 统计已触发的 burst 种类，每1种→威力+10
-                if e_target == 'burst_collect':
-                    burst_history = getattr(user, '_burst_effects_used', set())
-                    collected = len(burst_history)
-                    if collected > 0:
-                        use.modifiers['power_bonus'] = use.modifiers.get('power_bonus', 0) + collected * 10
-                        events.append(f'{user.name} 雷暴收集{collected}种迸发 威力+{collected * 10}')
-                    # 雷暴自身也计入迸发历史
-                    if not hasattr(user, '_burst_effects_used'):
-                        user._burst_effects_used = set()
-                    user._burst_effects_used.add(skill.base.name)
-                    continue
-
-                # 威力提升
-                power_bonus = int(getattr(e, 'value', 0) or 0)
-                if power_bonus > 0:
-                    use.modifiers['power_bonus'] = use.modifiers.get('power_bonus', 0) + power_bonus
-                    events.append(f'{user.name} 迸发 威力+{power_bonus}')
-
-                # 额外使用次数
-                if e_target == 'extra_use':
-                    user.extra_skill_use = True
-                    events.append(f'{user.name} 迸发 使用次数+1')
-
-                # 记录迸发使用 (供雷暴收集)
-                if not hasattr(user, '_burst_effects_used'):
-                    user._burst_effects_used = set()
-                user._burst_effects_used.add(skill.base.name)
-
-        # ── 动态 damage_reduction（不可接触等：基于敌方异常层数追加减伤）──
-        if use.is_countered and use.countering_skill:
-            for e in use.countering_skill.effects:
-                if getattr(e, 'kind', '') != 'special':
-                    continue
-                if e.name == SpecialName.DAMAGE_REDUCTION_BY_ABNORMAL:
-                    aname = getattr(e, 'abnormal_name', '')
-                    base = getattr(e, 'value', 0.0) or 0.0
-                    per = getattr(e, 'per_stack_value', 0.0) or 0.0
-                    cap = getattr(e, 'max_value', 1.0) or 1.0
-                    stacks = user.get_stacks(aname)  # attacker's abnormal stacks
-                    dynamic = min(base + per * stacks, cap)
-                    old = use.modifiers.get('damage_reduction', 0)
-                    if dynamic > old:
-                        use.modifiers['damage_reduction'] = dynamic
-                        events.append(f'{target.name} 不可接触 减伤{old:.0%}→{dynamic:.0%}({aname}×{stacks})')
-
-        # ── 动态 power_bonus（鸩毒等：基于敌方异常层数追加威力）──
-        if skill.is_attack:
-            best_pba = None
-            for e in skill.effects:
-                if getattr(e, 'kind', '') == 'special' and getattr(e, 'name', '') == SpecialName.POWER_BY_ABNORMAL:
-                    best_pba = e
-                elif getattr(e, 'kind', '') == 'conditional':
-                    when = getattr(e, 'when', None) or {}
-                    then = getattr(e, 'then', None) or []
-                    if when.get('kind') == 'counter_succeeded' and is_countered:
-                        for sub in then:
-                            if getattr(sub, 'kind', '') == 'special' and getattr(sub, 'name', '') == SpecialName.POWER_BY_ABNORMAL:
-                                best_pba = sub
-            if best_pba:
-                aname = getattr(best_pba, 'abnormal_name', '')
-                per_stack = getattr(best_pba, 'value', 0) or 0
-                stacks = target.get_stacks(aname)
-                bonus = int(per_stack * stacks)
-                old = use.modifiers.get('power_bonus', 0)
-                if bonus > old:
-                    use.modifiers['power_bonus'] = bonus
-                    events.append(f'{user.name} {skill.name} 威力+{bonus}({aname}×{stacks})')
-
-        # ═══ L1: 动态威力解算 ═══
-        # 消费 next_attack_mult（热身等设置的下次攻击倍率）
-        if skill.is_attack and skill.next_attack_mult != 1.0:
-            use.modifiers['power_mult'] = use.modifiers.get('power_mult', 1.0) * skill.next_attack_mult
-            skill.next_attack_mult = 1.0
-
-        # 动态威力（冰锋横扫/钢钻等）
-        for e in skill.effects:
-            if getattr(e, 'kind', '') != 'special':
-                continue
-            if e.name == SpecialName.POWER_BY_ENEMY_ENERGY:
-                total_e = sum(bs.energy_cost for bs in target.skills)
-                skill.power_override = int(total_e * (e.value or 10))
-            elif e.name == SpecialName.POWER_BY_ADJACENT:
-                adj_sum = 0
-                si = action.skill_index
-                if si is not None:
-                    for offset in (-1, 1):
-                        idx = si + offset
-                        if 0 <= idx < len(user.skills):
-                            adj_sum += user.skills[idx].power
-                skill.power_override = max(1, int(adj_sum * (e.value or 0.333)))
-            elif e.name == SpecialName.POWER_BY_FAINTED:
-                opp_player = self.get_player('B' if team == 'A' else 'A')
-                fainted = sum(1 for s in opp_player.team if s.is_fainted)
-                bonus = int(fainted * (e.value or 30))
-                if bonus > 0:
-                    use.modifiers['power_bonus'] = use.modifiers.get('power_bonus', 0) + bonus
-                    events.append(f'{user.name} {skill.name} 威力+{bonus}(力竭×{fainted})')
-            elif e.name == SpecialName.POWER_BY_MISSING_HP:
-                hp_pct_lost = max(0.0, 1.0 - user.current_hp / user.max_hp if user.max_hp else 0)
-                step = max(1.0, float(e.value or 5))      # 每 step% HP损失
-                per_step = int(e.amount or 5)              # 每 step% → 威力+per_step
-                chunks = int(hp_pct_lost * 100.0 / step)
-                bonus = chunks * per_step
-                if bonus > 0:
-                    use.modifiers['power_bonus'] = use.modifiers.get('power_bonus', 0) + bonus
-                    events.append(f'{user.name} {skill.name} 威力+{bonus}(损失{hp_pct_lost:.0%}HP)')
-            elif e.name == SpecialName.POWER_PENALTY_BY_ENERGY:
-                enemy_energy = target.energy
-                penalty = int(enemy_energy * (e.value or 10))
-                if penalty > 0:
-                    use.modifiers['power_bonus'] = use.modifiers.get('power_bonus', 0) - penalty
-                    events.append(f'{user.name} {skill.name} 威力-{penalty}(敌方能量{enemy_energy})')
-            elif e.name == SpecialName.CONSUME_ENERGY_FOR_POWER:
-                consumed = user.energy
-                if consumed > 0:
-                    per_e = int(e.value or 50)
-                    bonus = consumed * per_e
-                    user.lose_energy(consumed)
-                    use.modifiers['power_bonus'] = use.modifiers.get('power_bonus', 0) + bonus
-                    events.append(f'{user.name} 消耗{consumed}E 威力+{bonus}')
-            elif e.name == SpecialName.POWER_BY_ENEMY_POWER:
-                mult = float(e.value or 1.0)
-                max_power = max((s.power for s in target.skills), default=0)
-                skill.power_override = max(1, int(max_power * mult))
-                events.append(f'{user.name} {skill.name} 威力={skill.power_override}(敌方威力{max_power}×{mult})')
-
-        # 每 hit 生效的资源类特效 (heal/gain_energy 等)
-        _PER_HIT_SPECIALS = {'heal', 'direct_heal', 'gain_energy', 'steal_energy', 'gain_energy_by_enemy'}
-
-        # 有效连击数：静态 combo + 精灵连击修正
-        effective_combo = skill.combo
-        if skill.combo >= 1:
-            combo_mod = user.effective_stat('combo')
-            if combo_mod:
-                effective_combo = max(1, effective_combo + combo_mod)
-            combo_mult_steps = user.effective_stat('combo_mult')
-            if combo_mult_steps > 0:
-                effective_combo = max(1, int(effective_combo * (1.0 + combo_mult_steps)))
-            # ── 动态条件效果（应对/先手/后手/换宠/能量触发）──
-            best_multi = 1
-            best_power_mult = 1.0
-            best_damage_mult = 1.0
-            for e in skill.effects:
-                if getattr(e, 'kind', '') != 'conditional':
-                    continue
-                when = getattr(e, 'when', None) or {}
-                then = getattr(e, 'then', None) or []
-                wk = when.get('kind', '')
-                met = False
-                if wk == 'counter_succeeded' and is_countered:
-                    met = True
-                elif wk == 'is_first' and is_first:
-                    met = True
-                elif wk == 'is_second' and not is_first:
-                    met = True
-                elif wk == 'opp_switched' and opponent_switched:
-                    met = True
-                elif wk == 'energy_le':
-                    met = target.energy <= int(when.get('value', 0) or 0)
-                elif wk == 'energy_eq':
-                    met = target.energy == int(when.get('value', 0) or 0)
-                if met:
-                    for sub in then:
-                        if getattr(sub, 'kind', '') != 'special':
-                            continue
-                        name = getattr(sub, 'name', '')
-                        if name == SpecialName.MULTI_HIT:
-                            val = int(getattr(sub, 'value', 0) or 0)
-                            if val > best_multi:
-                                best_multi = val
-                        elif name == SpecialName.POWER_MULT:
-                            val = float(getattr(sub, 'value', 1.0) or 1.0)
-                            if val > best_power_mult:
-                                best_power_mult = val
-                        elif name == SpecialName.DAMAGE_MULT:
-                            val = float(getattr(sub, 'value', 1.0) or 1.0)
-                            if val > best_damage_mult:
-                                best_damage_mult = val
-            if best_multi > 1:
-                old = use.modifiers.get('multi_hit', 0)
-                if best_multi > old:
-                    use.modifiers['multi_hit'] = best_multi
-                    events.append(f'{user.name} {skill.name} 连击→{best_multi}')
-            if best_power_mult > 1.0:
-                use.modifiers['power_mult'] = use.modifiers.get('power_mult', 1.0) * best_power_mult
-                events.append(f'{user.name} {skill.name} 威力×{best_power_mult}')
-            if best_damage_mult > 1.0:
-                use.modifiers['damage_mult'] = use.modifiers.get('damage_mult', 1.0) * best_damage_mult
-                events.append(f'{user.name} {skill.name} 伤害×{best_damage_mult}')
-
-            dynamic_combo = int(use.modifiers.get('multi_hit', 1.0))
-            if dynamic_combo > 1:
-                effective_combo = max(effective_combo, dynamic_combo)
-                use.modifiers.pop('multi_hit', None)  # 防止 calc_damage 重复乘
-
-        # 额外使用次数（过载回路返场后：技能双倍执行，不耗能）
-        extra_uses = 2 if user.extra_skill_use else 1
-        user.extra_skill_use = False
-
-        # ── trait damage hook（L1→L2 之间）──
-        events += dispatch_damage(user, target, use, self, team)
-
-        # ═══ L2: 伤害层 [per-hit loop] ═══
-        for extra_i in range(extra_uses):
-            if extra_i > 0:
-                events.append(f'{user.name} {skill.name} 额外使用(不耗能)')
-
-            for hit_i in range(effective_combo):
-                if target.is_fainted:
-                    break
-
-                if skill.is_attack:
-                    # ── trait: 防御方伤害修正（偏振/绝对秩序等）──
-                    target_team_def = 'B' if team == 'A' else 'A'
-                    events += dispatch_defend(target, user, use, self, target_team_def)
-
-                    damage, dmg_events = self._resolver.calc_damage(
-                        user, target, use, self.globals,
-                        attacker_team=team,
-                    )
-                    # ── before_take_damage hook: 伤害拦截/免疫/吸收 ──
-                    target_team = 'B' if team == 'A' else 'A'
-                    modified = dispatch_before_take_damage(
-                        target, user, damage, skill.element or '', self, target_team)
-                    if modified is not None:
-                        if modified == 0:
-                            events.append(f'{target.name} 免疫 {skill.name} 伤害')
-                            damage = 0
-                        elif modified < 0:
-                            healed = target.heal(-modified)
-                            if healed:
-                                events.append(f'{target.name} 吸收+{healed}HP')
-                            damage = 0
-                        else:
-                            damage = modified
-                    if damage > 0:
-                        target.take_damage(damage)
-                    target.inc_counter('times_hit')
-                    user.inc_counter('times_dealt')
-                    combo_label = f' ({hit_i+1}/{effective_combo})' if effective_combo > 1 else ''
-                    events.append(f'{user.name} {skill.name} → {target.name} -{damage}HP{combo_label}')
-                    events.extend(dmg_events)
-
-                    # ── trait: 受到伤害 / 击败敌人 ──
-                    target_team = 'B' if team == 'A' else 'A'
-                    events += dispatch_take_damage(target, user, damage, self, target_team)
-                    if target.is_fainted:
-                        events += dispatch_ko_enemy(user, target, self, team)
-
-                    # 吸血（技能效果 + 精灵增益）
-                    drain_pct = 0.0
-                    life_drain_effects = [
-                        e for e in skill.effects
-                        if getattr(e, 'kind', '') == 'special' and e.name == SpecialName.LIFE_DRAIN
-                    ]
-                    for ld in life_drain_effects:
-                        pct = ld.value / 100.0 if ld.value > 1 else ld.value
-                        drain_pct = max(drain_pct, pct)
-                    sprite_drain = user.effective_stat('life_drain')
-                    if sprite_drain > 0:
-                        drain_pct = max(drain_pct, sprite_drain * 0.1)
-                    if drain_pct > 0:
-                        healed = user.heal(round(damage * drain_pct))
-                        if healed:
-                            events.append(f'{user.name} 吸血{drain_pct*100:.0f}%+{healed}HP')
-
-        # 迸发/初次行动标记消费（L2 之后，L3 之前）
-        # 连续负荷 可设置 _burst_remaining 延长迸发回合数
-        remaining = getattr(user, '_burst_remaining', 0)
-        if remaining > 0:
-            user._burst_remaining = remaining - 1
-        else:
-            user.first_action = False
-
-        # 星陨结算（非幻系攻击 → 消耗星陨印记 → 额外幻系伤害）
-        if skill.is_attack and not target.is_fainted:
-            defender_team_star = 'B' if team == 'A' else 'A'
-            star_dmg, star_events = self._resolver.resolve_starfall(
-                user, target, skill, self.globals, defender_team_star)
-            events += star_events
-            if target.is_fainted:
-                events += dispatch_ko_enemy(user, target, self, team)
-
-        # ═══ L3: 状态层 [once] ═══
-        # stat/abnormal/mark/weather + L3 specials，按 effects 数组顺序执行
-        events += self._resolver.dispatch_L3(
-            user, target, use, self.globals, ctx, team=team, battle=self,
-        )
-
-        # 非攻击技能连击：L3 已处理第1 hit，额外应用剩余 hit
-        if not skill.is_attack and effective_combo > 1:
-            for hit_i in range(1, effective_combo):
-                for effect in skill.effects:
-                    kind = getattr(effect, 'kind', '')
-                    if kind == 'special' and effect.name in _PER_HIT_SPECIALS:
-                        events += self._resolver._handle_special(
-                            user, target, effect, self.globals, ctx, use)
-                    elif kind == 'stat':
-                        events += SkillResolver._handle_stat(user, target, effect)
-                    elif kind == 'mark':
-                        events += SkillResolver._handle_mark(self.globals, effect, team)
-
-        # ═══ 技能使用后永久增长（连击/威力/能耗递增）═══
-        events += self._resolver.dispatch_post_use(user, target, use, self.globals, ctx)
-
-        # ═══ L4: 反击层 [once] ═══
-        # counter_damage — 独立简化公式，不走 L2 calc_damage
-        events += self._resolver.resolve_counter_damage(
-            user, target, use, self.globals, ctx,
-        )
-
-        # 防御技能冷却（连击循环外）
-        if skill.base.is_defense:
-            skill.cooldown = 2
-
-        # 应对成功效果（防御 + 非防御应对技能均可触发）
-        if countered_skill is not None:
-            for e in skill.effects:
-                if getattr(e, 'kind', '') == 'conditional':
-                    when = getattr(e, 'when', None) or {}
-                    if when.get('kind') == 'counter_succeeded':
-                        for sub in getattr(e, 'then', []):
-                            if getattr(sub, 'kind', '') != 'special':
-                                continue
-                            name = getattr(sub, 'name', '')
-                            if name == SpecialName.DEFENSE_COOLDOWN_REDUCE:
-                                if skill.cooldown > 0:
-                                    skill.cooldown -= 1
-                                    events.append(f'{user.name} {skill.name} 应对成功，冷却-1')
-                            elif name == SpecialName.SKIP_NEXT_CHARGE:
-                                user._skip_charge_next = True
-                                events.append(f'{user.name} 下个技能无需蓄力')
-
-        # ═══ L5: 换宠层 [once] ═══
-        special_names = {getattr(e, 'name', '') for e in skill.effects if getattr(e, 'kind', '') == 'special'}
-
-        if SpecialName.ESCAPE_INHERIT in special_names:
-            self._handle_escape_inherit(team, user, events)
-        elif SpecialName.ESCAPE in special_names:
-            self._handle_escape(team, user, events)
-
-        if SpecialName.FORCE_RETURN in special_names:
-            opp_team = 'B' if team == 'A' else 'A'
-            events += self._resolve_return(opp_team)
-
-        if SpecialName.BORROW_SKILL in special_names:
-            self._handle_borrow_skill(team, user, action.skill_index or 0, events)
-
-        # ── trait: 技能执行完毕 ──
-        if action.kind == 'skill':
-            events += dispatch_skill_use(user, skill, self, team)
-            # team counters: pre-entry accumulators
-            if skill.element:
-                self.inc_team_counter(team, f'element:{skill.element}')
-            if skill.base.is_defense:
-                self.inc_team_counter(team, 'defense_skill')
-            elif not skill.base.is_attack:
-                self.inc_team_counter(team, 'status_skill')
-
-        return events
+        return pipeline.execute()
 
     # ── 辅助 ──
 
@@ -959,7 +451,6 @@ class Battle(BattleMechanicsMixin):
             # DataDrivenTrait 延时 trigger
             trait_name = sched.get('trait_name', '')
             if trait_name:
-                from scripts.sim.traits.trait_engine import get_data_trait_instance
                 trait = get_data_trait_instance(trait_name)
                 if trait:
                     # 通过 on_ 前缀调用对应 hook 方法
@@ -980,7 +471,6 @@ class Battle(BattleMechanicsMixin):
                         events += trait._fire(hook, ctx)
             else:
                 # 直接 effects 列表（schedule 特殊效果）
-                from scripts.sim.traits.trait_engine import DataDrivenTrait
                 ctx = {
                     'self': sprite, 'battle': self, 'team': team,
                     'target': snap.get('target'),
@@ -1059,7 +549,6 @@ class Battle(BattleMechanicsMixin):
             if active.is_fainted:
                 continue
             # Hook: turn_end_bench_check — bench 精灵回合末主动替换检查
-            from scripts.sim.traits.trait_engine import fire_hook_first
             bench_result = fire_hook_first('turn_end_bench_check', self, team, active, player)
             swap_index = bench_result[0] if isinstance(bench_result, tuple) else None
             swap_reason = bench_result[1] if isinstance(bench_result, tuple) and len(bench_result) > 1 else ''
