@@ -10,11 +10,8 @@
   "combo": 1,
   "effects": [
     {
-      "kind": "stat",
-      "target": "opp",
-      "stat": "power",
-      "steps": 4,
-      "scope": "battlefield"
+      "kind": "special",
+      "name": "burst"
     }
   ],
   "description": "✦造成物伤，迸发：本次技能威力+40。"

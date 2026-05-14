@@ -10,11 +10,8 @@
   "combo": 1,
   "effects": [
     {
-      "kind": "stat",
-      "target": "opp",
-      "stat": "energy_cost",
-      "steps": -1,
-      "scope": "battlefield"
+      "kind": "special",
+      "name": "burst"
     }
   ],
   "description": "✦造成魔伤，迸发：本技能能耗-1。"

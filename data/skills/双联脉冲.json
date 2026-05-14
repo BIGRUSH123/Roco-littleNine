@@ -8,6 +8,11 @@
   "counter": "无",
   "priority": 0,
   "combo": 1,
-  "effects": [],
+  "effects": [
+    {
+      "kind": "special",
+      "name": "burst"
+    }
+  ],
   "description": "✦造成魔伤，迸发：本技能使用次数+1。"
 }

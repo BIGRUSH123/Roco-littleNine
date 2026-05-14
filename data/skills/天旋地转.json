@@ -11,17 +11,14 @@
   "effects": [
     {
       "kind": "stat",
-      "target": "opp",
+      "target": "self",
       "stat": "priority",
       "steps": 1,
       "scope": "battlefield"
     },
     {
-      "kind": "stat",
-      "target": "opp",
-      "stat": "power",
-      "steps": 3,
-      "scope": "battlefield"
+      "kind": "special",
+      "name": "burst"
     }
   ],
   "description": "✦造成物理伤害，先手+1，迸发：本次技能威力+30。"

@@ -10,11 +10,8 @@
   "combo": 2,
   "effects": [
     {
-      "kind": "stat",
-      "target": "opp",
-      "stat": "power",
-      "steps": 2,
-      "scope": "battlefield"
+      "kind": "special",
+      "name": "burst"
     }
   ],
   "description": "✦造成魔伤，2连击，迸发：本次技能威力+20。"
