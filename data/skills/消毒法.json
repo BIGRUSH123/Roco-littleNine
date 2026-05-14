@@ -8,6 +8,13 @@
   "counter": "无",
   "priority": 0,
   "combo": 1,
-  "effects": [],
+  "effects": [
+    {
+      "kind": "special",
+      "name": "dispel_positive",
+      "amount": 5,
+      "target": "opp"
+    }
+  ],
   "description": "✦造成魔伤，驱散敌方5层增益。"
 }

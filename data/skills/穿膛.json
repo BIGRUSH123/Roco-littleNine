@@ -8,6 +8,21 @@
   "counter": "无",
   "priority": 0,
   "combo": 1,
-  "effects": [],
+  "effects": [
+    {
+      "kind": "conditional",
+      "when": {
+        "kind": "energy_le",
+        "value": 2
+      },
+      "then": [
+        {
+          "kind": "special",
+          "name": "damage_mult",
+          "value": 5.0
+        }
+      ]
+    }
+  ],
   "description": "✦造成物伤，若敌方能量小于等于2，造成5倍伤害。"
 }

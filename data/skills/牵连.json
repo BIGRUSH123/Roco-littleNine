@@ -10,11 +10,9 @@
   "combo": 1,
   "effects": [
     {
-      "kind": "stat",
-      "target": "opp",
-      "stat": "power",
-      "steps": 3,
-      "scope": "battlefield"
+      "kind": "special",
+      "name": "power_by_fainted",
+      "value": 30
     }
   ],
   "description": "✦造成魔伤，敌方每有1只力竭精灵，本次技能威力+30。"

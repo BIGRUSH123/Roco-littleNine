@@ -181,34 +181,80 @@
 
 ## 统计
 
-| 类别 | 数量 | 严重度 |
-|------|------|--------|
-| 空 effects | 39 | **严重** |
-| 吸血缺失 | 5 | **严重** |
-| 驱散用 mark 假装 | 6 | **严重** |
-| 动态缩放写死 | 8 | 高 |
-| 条件机制缺失 | 5 | 高 |
-| 连击数不符 | 8 | 中 |
-| Target 写反 | 2 | 高 |
-| 迸发用错 | 6 | 中 |
-| 杂项 | 4 | 低 |
-| **合计** | **~83** | |
+| 类别 | 原始数量 | 已修复 | 引擎受限 |
+|------|---------|--------|---------|
+| 空 effects | 39 | 20 | 19 |
+| 吸血缺失 | 5 | 5 | 0 |
+| 驱散用 mark 假装 | 6 | 6 | 0 |
+| 动态缩放写死 | 8 | 8 | 0 |
+| 条件机制缺失 | 5 | 3 | 2 |
+| 连击数不符 | 8 | 6 | 2 |
+| Target 写反 | 2 | 2 | 0 |
+| 迸发用错 | 6 | 6 | 0 |
+| 杂项 | 4 | 4 | 0 |
+| **合计** | **~83** | **~60** | **~23** |
 
 ---
 
 ## 进度
 
-- [x] 萌化附赠效果补齐（7个） — 2026-05-14
-- [x] Target 写反（2个） — 2026-05-14
-- [x] 吸血缺失（5个） — 2026-05-14
-- [x] 动态缩放（6/8个） — 2026-05-14（剩牵连/坟场搏击需新机制）
-- [x] 迸发（6个） — 2026-05-14（burst字段重用，flexible参数，旧1.5x已清理）
-- [x] 杂项（4个） — 2026-05-14
-- [x] 驱散 mark（5/6个） — 2026-05-14（dispel_mark处理器+per-mark heal/abnormal）
-- [x] 连击数（5/8个） — 2026-05-14（+is_second条件+inline multi_hit处理）
-- [x] 条件机制（2/5个） — 2026-05-14（无畏之心能耗修正+虫群引擎已支持）
-- [ ] 空 effects 数组（39个）
-- [ ] 条件机制剩余（3个）: 吞噬(KO检测)/伪造账单(反疗)/感染病(KO转化)
-- [ ] 连击数剩余（3个）: 聚盐(已fix)/叠势(per-counter)/传感器(position)
-- [ ] Cat 4 剩余（2个）: 牵连(per-fainted)/坟场搏击(per-energy)
-- [ ] 驱散mark剩余（1个）: 翅刃(偷取印记替代驱散)
+### 已修复（~65 个技能）
+
+- [x] **萌化附赠效果补齐（7个）** — 2026-05-14
+- [x] **Target 写反（2个）** — 2026-05-14（无畏之心 energy_cost target=opp→self，摇篮曲 target=self→opp）
+- [x] **吸血缺失（5个）** — 2026-05-14（撕裂/暗突袭/汲取/蝙蝠/龙之利爪 补 life_drain）
+- [x] **动态缩放（8/8个）** — 2026-05-14（stat_by_abnormal + power_by_fainted + power_penalty_by_energy）
+- [x] **迸发（6个）** — 2026-05-14（burst字段重用为flexible参数，旧1.5x burst_mult已清理，新增burst_collect/extra_use/energy_cost_mod）
+- [x] **杂项（4个）** — 2026-05-14（假寐random_devotion+类型指定，水星水补description，4个迅捷技能priority=1，龙卷风priority+conditional power_mult）
+- [x] **驱散mark（6/6个）** — 2026-05-14（dispel_mark处理器 + steal_mark处理器 + per-mark heal/abnormal支持）
+- [x] **连击数（6/8个）** — 2026-05-14（聚盐combo=2+combo_increment，反击拳is_second→3，散手counter→6，连续爪击counter→4，疾风刺is_first→3，灵光opp_switched→6）
+- [x] **条件机制（3/5个）** — 2026-05-14（无畏之心energy_cost修正，虫群引擎已支持，假寐devotion类型指定）
+- [x] **空effects（20/39个）** — 2026-05-14：
+  - 蓄力: 升龙咆哮/龙之利爪 补charge
+  - 吸血: 撕裂/汲取/蝙蝠 补life_drain
+  - 驱散: 消毒法 补dispel_positive，翅刃 dispel_mark+steal_mark
+  - 动态威力: 穿膛(energy_le→5x) / 背袭(energy_eq→20x) / 垂死反击(power_by_missing_hp) / 牵连(power_by_fainted) / 坟场搏击(power_penalty_by_energy)
+  - 迸发: 双联脉冲burst extra_use
+  - 连击: 反击拳/散手/连续爪击/疾风刺/灵光 补conditional multi_hit
+  - 其他: 虫群(引擎支持) / 落石/音波弹(简单攻击OK) / 龙卷风(priority+conditional power_mult)
+
+### 引擎受限（~18 个，需新机制）
+
+| 技能 | 所需机制 |
+|------|---------|
+| 怨力打击 | 蓄力 + power = 敌方威力×3 |
+| 石锁 | 陷阱 (3回合禁止换宠) |
+| 魔能爆 | 消耗全部能量 → 伤害与消耗挂钩 |
+| 吨位压制/以重制重 | 体重相关威力计算 |
+| 砂糖弹球 | 体重差威力计算 |
+| 鸣沙陷阱 | 物防差威力计算 |
+| 闪击 | 速度差威力计算 |
+| 山火 | 每次使用火系技能威力永久翻倍 |
+| 阳火增辉 | 每击败1只精灵威力永久翻倍 |
+| 感电 | 每脱离1次使用次数永久+1 |
+| 天光 | 自身系别=当前天气元素时触发 |
+| 折射 | 不同系别技能不同效果 |
+| 主轴 | 本身位置不变（位置meta） |
+| 传感器 | 位置1/3连击+1 + 传动 |
+| 叠势 | 每次成功应对→连击永久+2 |
+| 龙息环爆 | 应对(防御)→下个技能无需蓄力 |
+| 灾厄 | 自伤→应对改为伤敌（目标切换） |
+| 吞噬 | KO检测 → 回复能量 |
+| 伪造账单 | 敌方回血拦截→改为失去2倍 |
+| 感染病 | KO时将中毒转化为中毒印记 |
+
+### 新增引擎特性
+
+| 特性 | 说明 |
+|------|------|
+| `dispel_mark` 处理器 | 驱散敌方/我方/双方印记，支持per-mark heal和per-mark异常施加 |
+| `steal_mark` 处理器 | 偷取敌方印记（清除敌方→转移到我方） |
+| `burst` 参数化 | value=威力加成, amount=能耗修正, target=extra_use/burst_collect |
+| `energy_le` / `energy_eq` 条件 | 检查敌方能量 ≤/= 指定值 |
+| `power_by_missing_hp` | 根据自身损失HP比例 → 威力加成 |
+| `power_by_fainted` | 根据敌方力竭精灵数 → 威力加成 |
+| `power_penalty_by_energy` | 根据敌方当前能量 → 威力减益 |
+| `is_second` 条件 | 后手触发（非先手） |
+| conditional `power_mult` / `damage_mult` | 条件满足时施加威力倍率/伤害倍率 |
+| `random_devotion` 类型指定 | abnormal_name 指定奉献类型（1-5） |
+| inline `multi_hit` 动态解算 | 应对/先手/后手/换宠/能量条件 → 动态连击数 |

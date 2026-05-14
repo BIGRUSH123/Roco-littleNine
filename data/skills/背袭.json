@@ -8,6 +8,21 @@
   "counter": "无",
   "priority": 0,
   "combo": 1,
-  "effects": [],
+  "effects": [
+    {
+      "kind": "conditional",
+      "when": {
+        "kind": "energy_eq",
+        "value": 0
+      },
+      "then": [
+        {
+          "kind": "special",
+          "name": "damage_mult",
+          "value": 20.0
+        }
+      ]
+    }
+  ],
   "description": "✦造成魔伤，若敌方能量等于0，造成20倍伤害。"
 }

@@ -8,6 +8,13 @@
   "counter": "无",
   "priority": 0,
   "combo": 1,
-  "effects": [],
+  "effects": [
+    {
+      "kind": "special",
+      "name": "power_by_missing_hp",
+      "value": 5,
+      "amount": 5
+    }
+  ],
   "description": "✦造成物伤，自己每失去5%生命，本次技能威力+5。"
 }

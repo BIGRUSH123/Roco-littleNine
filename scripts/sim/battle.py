@@ -647,6 +647,28 @@ class Battle(BattleMechanicsMixin):
                         if 0 <= idx < len(user.skills):
                             adj_sum += user.skills[idx].power
                 skill.power_override = max(1, int(adj_sum * (e.value or 0.333)))
+            elif e.name == SpecialName.POWER_BY_FAINTED:
+                opp_player = self.get_player('B' if team == 'A' else 'A')
+                fainted = sum(1 for s in opp_player.team if s.is_fainted)
+                bonus = int(fainted * (e.value or 30))
+                if bonus > 0:
+                    use.modifiers['power_bonus'] = use.modifiers.get('power_bonus', 0) + bonus
+                    events.append(f'{user.name} {skill.name} 威力+{bonus}(力竭×{fainted})')
+            elif e.name == SpecialName.POWER_BY_MISSING_HP:
+                hp_pct_lost = max(0.0, 1.0 - user.current_hp / user.max_hp if user.max_hp else 0)
+                step = max(1.0, float(e.value or 5))      # 每 step% HP损失
+                per_step = int(e.amount or 5)              # 每 step% → 威力+per_step
+                chunks = int(hp_pct_lost * 100.0 / step)
+                bonus = chunks * per_step
+                if bonus > 0:
+                    use.modifiers['power_bonus'] = use.modifiers.get('power_bonus', 0) + bonus
+                    events.append(f'{user.name} {skill.name} 威力+{bonus}(损失{hp_pct_lost:.0%}HP)')
+            elif e.name == SpecialName.POWER_PENALTY_BY_ENERGY:
+                enemy_energy = target.energy
+                penalty = int(enemy_energy * (e.value or 10))
+                if penalty > 0:
+                    use.modifiers['power_bonus'] = use.modifiers.get('power_bonus', 0) - penalty
+                    events.append(f'{user.name} {skill.name} 威力-{penalty}(敌方能量{enemy_energy})')
 
         # 每 hit 生效的资源类特效 (heal/gain_energy 等)
         _PER_HIT_SPECIALS = {'heal', 'direct_heal', 'gain_energy', 'steal_energy', 'gain_energy_by_enemy'}
@@ -660,8 +682,10 @@ class Battle(BattleMechanicsMixin):
             combo_mult_steps = user.effective_stat('combo_mult')
             if combo_mult_steps > 0:
                 effective_combo = max(1, int(effective_combo * (1.0 + combo_mult_steps)))
-            # ── 动态 multi_hit（条件连击：应对/先手/后手/换宠触发）──
+            # ── 动态条件效果（应对/先手/后手/换宠/能量触发）──
             best_multi = 1
+            best_power_mult = 1.0
+            best_damage_mult = 1.0
             for e in skill.effects:
                 if getattr(e, 'kind', '') != 'conditional':
                     continue
@@ -677,17 +701,38 @@ class Battle(BattleMechanicsMixin):
                     met = True
                 elif wk == 'opp_switched' and opponent_switched:
                     met = True
+                elif wk == 'energy_le':
+                    met = target.energy <= int(when.get('value', 0) or 0)
+                elif wk == 'energy_eq':
+                    met = target.energy == int(when.get('value', 0) or 0)
                 if met:
                     for sub in then:
-                        if getattr(sub, 'kind', '') == 'special' and getattr(sub, 'name', '') == SpecialName.MULTI_HIT:
+                        if getattr(sub, 'kind', '') != 'special':
+                            continue
+                        name = getattr(sub, 'name', '')
+                        if name == SpecialName.MULTI_HIT:
                             val = int(getattr(sub, 'value', 0) or 0)
                             if val > best_multi:
                                 best_multi = val
+                        elif name == SpecialName.POWER_MULT:
+                            val = float(getattr(sub, 'value', 1.0) or 1.0)
+                            if val > best_power_mult:
+                                best_power_mult = val
+                        elif name == SpecialName.DAMAGE_MULT:
+                            val = float(getattr(sub, 'value', 1.0) or 1.0)
+                            if val > best_damage_mult:
+                                best_damage_mult = val
             if best_multi > 1:
                 old = use.modifiers.get('multi_hit', 0)
                 if best_multi > old:
                     use.modifiers['multi_hit'] = best_multi
                     events.append(f'{user.name} {skill.name} 连击→{best_multi}')
+            if best_power_mult > 1.0:
+                use.modifiers['power_mult'] = use.modifiers.get('power_mult', 1.0) * best_power_mult
+                events.append(f'{user.name} {skill.name} 威力×{best_power_mult}')
+            if best_damage_mult > 1.0:
+                use.modifiers['damage_mult'] = use.modifiers.get('damage_mult', 1.0) * best_damage_mult
+                events.append(f'{user.name} {skill.name} 伤害×{best_damage_mult}')
 
             dynamic_combo = int(use.modifiers.get('multi_hit', 1.0))
             if dynamic_combo > 1:

@@ -86,6 +86,8 @@ _SPECIAL_LAYER: dict[str, int] = {
     # L1: 动态威力（battle.py 内联处理）
     SpecialName.POWER_BY_ENEMY_ENERGY: EffectLayer.POWER,
     SpecialName.POWER_BY_ADJACENT: EffectLayer.POWER,
+    SpecialName.POWER_BY_FAINTED: EffectLayer.POWER,
+    SpecialName.POWER_PENALTY_BY_ENERGY: EffectLayer.POWER,
 
     # L2: 伤害 per-hit（life_drain 在连击循环消费）
     SpecialName.LIFE_DRAIN: EffectLayer.DAMAGE,
@@ -100,6 +102,7 @@ _SPECIAL_LAYER: dict[str, int] = {
     SpecialName.DISPEL_POSITIVE: EffectLayer.STATE,
     SpecialName.DISPEL_NEGATIVE: EffectLayer.STATE,
     SpecialName.DISPEL_MARK: EffectLayer.STATE,
+    SpecialName.STEAL_MARK: EffectLayer.STATE,
     SpecialName.DOUBLE_POSITIVE: EffectLayer.STATE,
     SpecialName.DOUBLE_NEGATIVE: EffectLayer.STATE,
     SpecialName.DOUBLE_ABNORMAL: EffectLayer.STATE,
@@ -570,6 +573,30 @@ class SkillResolver:
         return events
 
     @staticmethod
+    def _special_steal_mark(user, target, effect, _g, ctx, _use):
+        """偷取敌方印记：清除敌方印记，转移到我方。"""
+        battle = ctx.battle if ctx else None
+        team = ctx.team if ctx else 'A'
+        opp_team = 'B' if team == 'A' else 'A'
+        if not battle:
+            return []
+        pos, neg = battle.globals.get_marks(opp_team)
+        collected: dict[str, int] = {}
+        total = 0
+        for mark_list in (pos, neg):
+            for m in list(mark_list):
+                collected[m.name] = collected.get(m.name, 0) + m.stacks
+                total += m.stacks
+            mark_list.clear()
+        if total <= 0:
+            return []
+        events = [f'{user.name} 偷取{total}层印记']
+        for name, stacks in collected.items():
+            category = battle.globals.classify_mark(name)
+            battle.globals.apply_mark(team, name, category, stacks, user)
+        return events
+
+    @staticmethod
     def _special_double_positive(user, target, effect, _g, _ctx, _use):
         sprite = user if getattr(effect, 'target', 'opp') == 'self' else target
         n = sprite.double_positive()
@@ -901,6 +928,14 @@ class SkillResolver:
             value = cond.get('value', 0)
             return user.get_counter(key) >= value
 
+        if kind == 'energy_le':
+            threshold = cond.get('value', 0)
+            return target.energy <= threshold
+
+        if kind == 'energy_eq':
+            threshold = cond.get('value', 0)
+            return target.energy == threshold
+
         if kind == 'and':
             return all(
                 SkillResolver._check_condition(c, user, target, globals_, ctx)
@@ -1121,6 +1156,7 @@ def _build_special_registry() -> dict[str, _SpecialHandler]:
         SpecialName.DISPEL_POSITIVE:    R._special_dispel_positive,
         SpecialName.DISPEL_NEGATIVE:    R._special_dispel_negative,
         SpecialName.DISPEL_MARK:       R._special_dispel_mark,
+        SpecialName.STEAL_MARK:        R._special_steal_mark,
         SpecialName.DOUBLE_POSITIVE:    R._special_double_positive,
         SpecialName.DOUBLE_NEGATIVE:    R._special_double_negative,
         SpecialName.DOUBLE_ABNORMAL:   R._special_double_abnormal,

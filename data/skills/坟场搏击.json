@@ -10,11 +10,9 @@
   "combo": 1,
   "effects": [
     {
-      "kind": "stat",
-      "target": "opp",
-      "stat": "power",
-      "steps": -1,
-      "scope": "battlefield"
+      "kind": "special",
+      "name": "power_penalty_by_energy",
+      "value": 10
     }
   ],
   "description": "✦造成物伤，敌方每有1能量，本次技能威力-10%。"
