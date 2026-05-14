@@ -43,6 +43,13 @@ const btnPadOpp = computed(() => skillCountOpp.value > 6 ? 'py-1.5 px-1.5' : 'py
 const markModA = computed(() => props.state.mark_energy_mod_a || 0)
 const markModB = computed(() => props.state.mark_energy_mod_b || 0)
 
+const canUseItem = computed(() => {
+  const item = player.value?.item
+  if (!item || item.is_exhausted) return false
+  if (item.last_use_turn > 0 && props.state.turn - item.last_use_turn < item.cooldown_turns) return false
+  return true
+})
+
 function getSpriteSkill(sprite, name) {
   return (sprite?.skills || []).find(s => s.name === name)
 }
@@ -163,6 +170,7 @@ const debugActionLabel = (action) => {
   if (action.type === 'skill') return `技能: ${action.payload}`
   if (action.type === 'switch') return `换宠[${action.payload}]`
   if (action.type === 'gather') return '聚能'
+  if (action.type === 'item') return '道具'
   return action.type
 }
 </script>
@@ -301,6 +309,31 @@ const debugActionLabel = (action) => {
                 :class="debugMode && debugActionA?.type === 'gather' ? '!border-[#4a90d9] ring-1 ring-[#4a90d9]/50' : ''"
               >
                 聚能
+              </button>
+              <button
+                v-if="player.item"
+                @click="handleAction('item')"
+                :disabled="active.is_fainted || player.item.is_exhausted || !canUseItem"
+                class="group relative flex-1 border text-xs font-medium py-2 rounded transition-colors disabled:opacity-40"
+                :class="[
+                  debugMode && debugActionA?.type === 'item' ? '!border-[#4a90d9] ring-1 ring-[#4a90d9]/50' : '',
+                  player.item.is_exhausted
+                    ? 'bg-[#252830] border-[#3a3d42] text-[#5a5d65] cursor-not-allowed'
+                    : 'bg-[#2a2010] border-[#ff9800]/40 hover:border-[#ff9800] text-[#ffa726]'
+                ]"
+              >
+                <div class="flex items-center justify-center gap-1">
+                  <span>{{ player.item.name }}</span>
+                  <span class="text-[10px] text-[#8a8d95]">({{ player.item.max_uses - player.item.uses }})</span>
+                </div>
+                <!-- Tooltip -->
+                <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-[#111318] border border-[#4a4d55] text-[#cdd6e0] text-xs rounded shadow-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+                  <template v-if="player.item.is_exhausted">已用完</template>
+                  <template v-else-if="player.item.last_use_turn > 0 && state.turn - player.item.last_use_turn < player.item.cooldown_turns">
+                    冷却中({{ player.item.cooldown_turns - (state.turn - player.item.last_use_turn) }}回合后可用)
+                  </template>
+                  <template v-else>使用道具</template>
+                </div>
               </button>
               <button
                 @click="showSwitchMenu = true"

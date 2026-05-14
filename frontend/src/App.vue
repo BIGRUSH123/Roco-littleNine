@@ -71,13 +71,13 @@ const handleQuickTest = async () => {
   }
 }
 
-const handleStartBattle = async ({ team, leadIndex }) => {
+const handleStartBattle = async ({ team, leadIndex, item }) => {
   try {
     isProcessing.value = true
     const res = await fetch(`${API_BASE}/battle/init`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ team, opponent_team: TEST_OPPONENT, lead_index: leadIndex })
+      body: JSON.stringify({ team, opponent_team: TEST_OPPONENT, lead_index: leadIndex, item: item || undefined })
     })
 
     if (!res.ok) throw new Error('战斗初始化失败')
