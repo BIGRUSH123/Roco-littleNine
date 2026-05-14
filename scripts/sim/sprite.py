@@ -375,6 +375,19 @@ class Sprite:
         self.remove_effect('首领化')
 
         events = [f'{old_name} 萌化 → 变为{self.name}({self._moe_position}层)']
+
+        # 萌化成功：回复40%最大生命 + 4能量
+        hp_heal = max(1, round(self.max_hp * 0.4))
+        hp_actual = self.heal(hp_heal)
+        energy_gain = self.gain_energy(4)
+        if hp_actual > 0 or energy_gain > 0:
+            parts = []
+            if hp_actual > 0:
+                parts.append(f'+{hp_actual}HP')
+            if energy_gain > 0:
+                parts.append(f'+{energy_gain}E')
+            events.append(f'{self.name} 萌化回复({" ".join(parts)})')
+
         events += self._seal_exclusive_skills()
 
         # 多余层数（无忧无虑溢出到最低形态以下）
