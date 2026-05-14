@@ -183,16 +183,16 @@
 
 | 类别 | 原始数量 | 已修复 | 引擎受限 |
 |------|---------|--------|---------|
-| 空 effects | 39 | 20 | 19 |
+| 空 effects | 39 | 24 | 15 |
 | 吸血缺失 | 5 | 5 | 0 |
-| 驱散用 mark 假装 | 6 | 6 | 0 |
+| 驱散用 mark 假装 | 6 | 5 | 1 |
 | 动态缩放写死 | 8 | 8 | 0 |
 | 条件机制缺失 | 5 | 3 | 2 |
 | 连击数不符 | 8 | 6 | 2 |
 | Target 写反 | 2 | 2 | 0 |
 | 迸发用错 | 6 | 6 | 0 |
 | 杂项 | 4 | 4 | 0 |
-| **合计** | **~83** | **~70** | **~13** |
+| **合计（去重）** | **~83** | **~68** | **~15** |
 
 ---
 
@@ -208,17 +208,18 @@
 - [x] **杂项（4个）** — 2026-05-14（假寐random_devotion+类型指定，水星水补description，4个迅捷技能priority=1，龙卷风priority+conditional power_mult）
 - [x] **驱散mark（6/6个）** — 2026-05-14（dispel_mark处理器 + steal_mark处理器 + per-mark heal/abnormal支持）
 - [x] **连击数（6/8个）** — 2026-05-14（聚盐combo=2+combo_increment，反击拳is_second→3，散手counter→6，连续爪击counter→4，疾风刺is_first→3，灵光opp_switched→6）
-- [x] **条件机制（3/5个）** — 2026-05-14（无畏之心energy_cost修正，虫群引擎已支持，假寐devotion类型指定）
-- [x] **空effects（20/39个）** — 2026-05-14：
-  - 蓄力: 升龙咆哮/龙之利爪 补charge
+- [x] **条件机制（3/5个）** — 2026-05-14（无畏之心energy_cost修正，虫群引擎已支持，吞噬gain_energy_on_ko）
+- [x] **空effects（24/39个）** — 2026-05-14：
+  - 蓄力: 升龙咆哮/龙之利爪/怨力打击 补charge
   - 吸血: 撕裂/汲取/蝙蝠 补life_drain
   - 驱散: 消毒法 补dispel_positive，翅刃 dispel_mark+steal_mark
-  - 动态威力: 穿膛(energy_le→5x) / 背袭(energy_eq→20x) / 垂死反击(power_by_missing_hp) / 牵连(power_by_fainted) / 坟场搏击(power_penalty_by_energy)
+  - 动态威力: 穿膛(energy_le→5x)/背袭(energy_eq→20x)/垂死反击(power_by_missing_hp)/魔能爆(consume_energy_for_power)/山火(power_double)/阳火增辉(power_double_on_ko)
+  - Cat 4 牵连(power_by_fainted)/坟场搏击(power_penalty_by_energy)
   - 迸发: 双联脉冲burst extra_use
   - 连击: 反击拳/散手/连续爪击/疾风刺/灵光 补conditional multi_hit
-  - 其他: 虫群(引擎支持) / 落石/音波弹(简单攻击OK) / 龙卷风(priority+conditional power_mult)
+  - 其他: 虫群(引擎支持)/落石/音波弹(简单攻击OK)/龙卷风(priority+conditional power_mult)/龙息环爆(skip_next_charge)
 
-### 引擎受限（~13 个，需新机制或新数据）
+### 引擎受限（~15 个，需新机制或新数据）
 
 | 技能 | 所需机制 |
 |------|---------|
