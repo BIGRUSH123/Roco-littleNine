@@ -483,14 +483,23 @@ def init_battle(req: InitRequest):
 def battle_action(req: ActionRequest):
     if req.session_id not in sessions:
         raise HTTPException(status_code=404, detail="Session not found")
-        
+
     session = sessions[req.session_id]
     battle: Battle = session["battle"]
     agent_b: RuleAgent = session["agent_b"]
-    
+
     if battle.is_finished:
         return {"state": serialize_battle_state(battle, req.session_id), "log": []}
-        
+
+    # 道具：只应用效果不执行回合，前端重新选择动作
+    if req.action_type == "item":
+        item_result = battle._resolve_item('A')
+        log_lines = [item_result] if item_result else ['道具使用失败']
+        return {
+            "state": serialize_battle_state(battle, req.session_id),
+            "log": log_lines,
+        }
+
     # Construct player action
     if req.action_type == "skill":
         if not req.skill_name:
@@ -512,8 +521,6 @@ def battle_action(req: ActionRequest):
         action_a = Action(kind="switch", switch_index=req.switch_index)
     elif req.action_type == "gather":
         action_a = Action(kind="gather")
-    elif req.action_type == "item":
-        action_a = Action(kind="item")
     else:
         raise HTTPException(status_code=400, detail=f"Unknown action type: {req.action_type}")
         
@@ -679,6 +686,19 @@ def debug_action(req: DebugActionRequest):
     if battle.is_finished:
         return {'state': serialize_battle_state(battle, req.session_id), 'log': []}
 
+    # 道具：先应用效果，然后用聚能替代执行回合
+    item_log = []
+    if req.action_a.get('type') == 'item':
+        result = battle._resolve_item('A')
+        if result:
+            item_log.append(f'[A] {result}')
+        req.action_a = dict(req.action_a, type='gather')
+    if req.action_b.get('type') == 'item':
+        result = battle._resolve_item('B')
+        if result:
+            item_log.append(f'[B] {result}')
+        req.action_b = dict(req.action_b, type='gather')
+
     action_a = _action_from_dict(req.action_a, battle.player_a, 'Player A')
     action_b = _action_from_dict(req.action_b, battle.player_b, 'Player B')
 
@@ -687,9 +707,9 @@ def debug_action(req: DebugActionRequest):
 
     battle.execute_turn(agent_a, agent_b)
 
-    turn_log = []
+    turn_log = item_log[:]
     if battle.log:
-        turn_log = battle.log[-1].events
+        turn_log += battle.log[-1].events
 
     return {
         'state': serialize_battle_state(battle, req.session_id),
