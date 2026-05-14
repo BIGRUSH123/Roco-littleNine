@@ -23,5 +23,6 @@
       "steps": 5,
       "scope": "battlefield"
     }
-  ]
+  ],
+  "description": "✦自己获得全技能威力+40，若敌方本回合更换精灵，额外获得威力+50。"
 }

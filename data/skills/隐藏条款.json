@@ -13,5 +13,6 @@
       "kind": "special",
       "name": "exchange_skills"
     }
-  ]
+  ],
+  "description": "✦与敌方交换携带的技能。"
 }

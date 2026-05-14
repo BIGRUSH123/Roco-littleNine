@@ -16,5 +16,6 @@
       "steps": 3,
       "scope": "battlefield"
     }
-  ]
+  ],
+  "description": "✦造成魔伤，3连击，若敌方本回合更换精灵，本次技能连击数+3。"
 }

@@ -20,5 +20,6 @@
       "steps": -2,
       "scope": "battlefield"
     }
-  ]
+  ],
+  "description": "✦每回合随机变成自己未携带的技能，且该技能能耗-2。"
 }

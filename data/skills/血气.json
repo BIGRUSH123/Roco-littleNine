@@ -14,5 +14,6 @@
       "name": "damage_reduction",
       "value": 0.6
     }
-  ]
+  ],
+  "description": "✦减伤60%，应对攻击：本回合受到致命伤害时，保留1生命值。"
 }

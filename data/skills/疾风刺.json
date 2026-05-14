@@ -8,5 +8,6 @@
   "counter": "无",
   "priority": 0,
   "combo": 1,
-  "effects": []
+  "effects": [],
+  "description": "✦造成物伤，1连击，若先于敌方攻击，改为3连击。"
 }

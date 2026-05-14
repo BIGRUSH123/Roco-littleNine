@@ -14,5 +14,6 @@
       "name": "steal_energy",
       "amount": 3
     }
-  ]
+  ],
+  "description": "✦偷取敌方3能量。"
 }

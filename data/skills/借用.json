@@ -13,5 +13,6 @@
       "kind": "special",
       "name": "borrow_skill"
     }
-  ]
+  ],
+  "description": "✦每回合随机变成己方队伍中其他精灵的技能。"
 }

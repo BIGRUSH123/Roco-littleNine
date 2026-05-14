@@ -16,5 +16,6 @@
       "steps": 3,
       "scope": "persistent"
     }
-  ]
+  ],
+  "description": "✦造成魔伤，若敌方上回合没受到技能伤害，本技能威力永久+30。"
 }

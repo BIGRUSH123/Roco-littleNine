@@ -23,5 +23,6 @@
       "scope": "persistent",
       "stacks": 4
     }
-  ]
+  ],
+  "description": "✦敌方获得4层冻结。"
 }

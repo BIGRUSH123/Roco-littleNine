@@ -13,5 +13,6 @@
       "kind": "special",
       "name": "exchange_effects"
     }
-  ]
+  ],
+  "description": "✦与敌方交换增益和减益。"
 }

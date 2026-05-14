@@ -14,5 +14,6 @@
       "weather": "snow",
       "turns": 8
     }
-  ]
+  ],
+  "description": "✦将天气改为暴风雪，持续8回合。"
 }

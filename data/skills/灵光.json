@@ -8,5 +8,6 @@
   "counter": "无",
   "priority": 0,
   "combo": 3,
-  "effects": []
+  "effects": [],
+  "description": "✦造成魔伤，3连击，若敌方本回合更换精灵，本次技能连击数翻倍。"
 }

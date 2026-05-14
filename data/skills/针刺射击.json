@@ -14,5 +14,6 @@
       "name": "gain_energy",
       "amount": 7
     }
-  ]
+  ],
+  "description": "✦造成物伤，若敌方本回合更换精灵，自己回复7点能量。"
 }

@@ -14,5 +14,6 @@
       "name": "heal",
       "value": 0.3
     }
-  ]
+  ],
+  "description": "✦自己回复30%生命。"
 }

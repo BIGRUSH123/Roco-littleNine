@@ -19,5 +19,6 @@
       "name": "counter_damage",
       "value": 0
     }
-  ]
+  ],
+  "description": "✦减伤60%，应对攻击：对敌方造成物理伤害，威力与被应对技能相等。"
 }

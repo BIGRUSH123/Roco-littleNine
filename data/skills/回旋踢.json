@@ -14,5 +14,6 @@
       "name": "power_mult",
       "value": 2.0
     }
-  ]
+  ],
+  "description": "✦造成物伤，若敌方本回合更换精灵，本次技能威力翻倍。"
 }

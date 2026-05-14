@@ -14,5 +14,6 @@
       "name": "power_by_enemy_energy",
       "value": 10.0
     }
-  ]
+  ],
+  "description": "✦造成魔伤，本技能威力等于敌方精灵技能总能耗的10倍。"
 }

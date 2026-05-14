@@ -22,5 +22,6 @@
       "steps": -1,
       "scope": "battlefield"
     }
-  ]
+  ],
+  "description": "✦造成魔伤，敌方每有1层印记，本技能能耗-1。"
 }

@@ -16,5 +16,6 @@
       "steps": 3,
       "scope": "persistent"
     }
-  ]
+  ],
+  "description": "✦造成魔伤，每使用过1个其他系别技能，本技能威力永久+30。"
 }

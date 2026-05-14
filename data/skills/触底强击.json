@@ -16,5 +16,6 @@
       "steps": 11,
       "scope": "battlefield"
     }
-  ]
+  ],
+  "description": "✦造成魔伤，使用后若能量耗尽，本次技能威力+110。"
 }

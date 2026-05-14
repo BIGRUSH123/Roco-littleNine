@@ -23,5 +23,6 @@
       "scope": "persistent",
       "stacks": 1
     }
-  ]
+  ],
+  "description": "✦敌方获得1层冻结，且每有1层冻结获得全技能能耗+1。"
 }

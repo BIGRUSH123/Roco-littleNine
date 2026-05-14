@@ -23,5 +23,6 @@
       "steps": 2,
       "scope": "battlefield"
     }
-  ]
+  ],
+  "description": "✦造成魔伤，敌方每有1层冻结，本次技能威力+20。"
 }

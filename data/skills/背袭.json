@@ -8,5 +8,6 @@
   "counter": "无",
   "priority": 0,
   "combo": 1,
-  "effects": []
+  "effects": [],
+  "description": "✦造成魔伤，若敌方能量等于0，造成20倍伤害。"
 }

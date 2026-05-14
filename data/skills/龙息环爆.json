@@ -8,5 +8,6 @@
   "counter": "状态",
   "priority": 0,
   "combo": 1,
-  "effects": []
+  "effects": [],
+  "description": "✦造成魔伤，应对状态：下次技能无需蓄力。"
 }

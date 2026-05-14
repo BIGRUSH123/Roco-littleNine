@@ -14,5 +14,6 @@
       "name": "energy_cost_increment",
       "amount": 1
     }
-  ]
+  ],
+  "description": "✦造成物伤，每次使用后，本技能能耗永久+1。"
 }

@@ -23,5 +23,6 @@
       "scope": "battlefield",
       "stacks": 10
     }
-  ]
+  ],
+  "description": "✦敌方获得10层灼烧，应对防御：改为获得30层。"
 }

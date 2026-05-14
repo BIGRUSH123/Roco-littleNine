@@ -13,5 +13,6 @@
       "kind": "special",
       "name": "exchange_hp_ratio"
     }
-  ]
+  ],
+  "description": "✦与敌方交换生命比例。"
 }

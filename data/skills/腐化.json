@@ -51,5 +51,6 @@
       "scope": "battlefield",
       "stacks": 1
     }
-  ]
+  ],
+  "description": "✦敌方每有1层中毒效果，敌方获得双攻-30%。"
 }

@@ -14,5 +14,6 @@
       "name": "damage_reduction",
       "value": 0.8
     }
-  ]
+  ],
+  "description": "✦减伤80%，能量不足时，消耗5%生命代替1能量，应对攻击。"
 }

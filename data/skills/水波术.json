@@ -16,5 +16,6 @@
       "steps": 2,
       "scope": "persistent"
     }
-  ]
+  ],
+  "description": "✦造成魔伤，回合结束时，本技能威力永久+20。"
 }

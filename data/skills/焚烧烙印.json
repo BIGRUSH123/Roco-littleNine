@@ -29,5 +29,6 @@
       "scope": "battlefield",
       "stacks": 5
     }
-  ]
+  ],
+  "description": "✦驱散双方所有印记，每驱散1层，敌方获得5层灼烧。"
 }

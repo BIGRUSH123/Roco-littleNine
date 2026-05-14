@@ -14,5 +14,6 @@
       "weather": "rain",
       "turns": 8
     }
-  ]
+  ],
+  "description": "✦将天气改为雨天，持续8回合。"
 }

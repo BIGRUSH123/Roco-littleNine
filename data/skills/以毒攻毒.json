@@ -30,5 +30,6 @@
       "scope": "battlefield",
       "stacks": 1
     }
-  ]
+  ],
+  "description": "✦敌方每有1层中毒效果，自己获得魔攻+30%。"
 }

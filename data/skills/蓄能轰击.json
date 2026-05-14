@@ -16,5 +16,6 @@
       "steps": -2,
       "scope": "persistent"
     }
-  ]
+  ],
+  "description": "✦造成魔伤，每使用1次普通系技能，本技能能耗永久-2。"
 }

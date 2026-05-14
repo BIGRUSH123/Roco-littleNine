@@ -14,5 +14,6 @@
       "name": "gain_energy",
       "amount": 6
     }
-  ]
+  ],
+  "description": "✦造成物伤，若使用本技能击败敌方，回复6能量。"
 }

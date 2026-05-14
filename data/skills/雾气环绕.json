@@ -14,5 +14,6 @@
       "name": "gain_energy_by_enemy",
       "value": 0.5
     }
-  ]
+  ],
+  "description": "✦回复能量，回复值等于敌方技能总能耗的一半。"
 }

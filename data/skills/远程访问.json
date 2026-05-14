@@ -13,5 +13,6 @@
       "kind": "special",
       "name": "force_return"
     }
-  ]
+  ],
+  "description": "✦使敌方精灵返场。"
 }

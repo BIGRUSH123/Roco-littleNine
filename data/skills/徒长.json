@@ -14,5 +14,6 @@
       "name": "gain_energy",
       "amount": 10
     }
-  ]
+  ],
+  "description": "✦自己回复10能量。"
 }

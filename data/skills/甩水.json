@@ -14,5 +14,6 @@
       "name": "gain_energy",
       "amount": 1
     }
-  ]
+  ],
+  "description": "✦造成魔伤，自己回复1能量。"
 }

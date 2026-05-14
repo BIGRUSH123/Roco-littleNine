@@ -18,5 +18,6 @@
       "name": "gain_energy",
       "amount": 8
     }
-  ]
+  ],
+  "description": "✦自己脱离，替换入场的精灵回复8能量。"
 }

@@ -21,5 +21,6 @@
       "steps": -2,
       "scope": "battlefield"
     }
-  ]
+  ],
+  "description": "✦减伤90%，若上次使用攻击技则本技能能耗-2，应对攻击。"
 }

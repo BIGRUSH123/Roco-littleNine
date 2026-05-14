@@ -16,5 +16,6 @@
       "steps": -3,
       "scope": "battlefield"
     }
-  ]
+  ],
+  "description": "✦造成伤害，敌方获得连击数-3。"
 }

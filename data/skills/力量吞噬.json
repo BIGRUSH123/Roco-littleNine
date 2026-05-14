@@ -23,5 +23,6 @@
       "steps": 2,
       "scope": "battlefield"
     }
-  ]
+  ],
+  "description": "✦敌方获得全技能威力-20，自己获得全技能威力+20。"
 }

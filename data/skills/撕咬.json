@@ -16,5 +16,6 @@
       "steps": 2,
       "scope": "battlefield"
     }
-  ]
+  ],
+  "description": "✦造成物伤，3连击，若自己的生命低于50%，本次技能连击数+2。"
 }

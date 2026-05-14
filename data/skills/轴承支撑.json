@@ -16,5 +16,6 @@
       "steps": -1,
       "scope": "battlefield"
     }
-  ]
+  ],
+  "description": "✦主动：本技能被动额外-1能耗，被动：两侧技能能耗-1，传动1。"
 }

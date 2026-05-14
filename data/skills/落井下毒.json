@@ -14,5 +14,6 @@
       "name": "double_negative",
       "target": "opp"
     }
-  ]
+  ],
+  "description": "✦使敌方精灵减益的层数翻倍。"
 }

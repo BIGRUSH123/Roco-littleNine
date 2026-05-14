@@ -16,5 +16,6 @@
       "steps": -1,
       "scope": "battlefield"
     }
-  ]
+  ],
+  "description": "✦造成魔伤，每失去5%生命，本次技能威力-10，使用后消耗全部生命。"
 }

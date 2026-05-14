@@ -14,5 +14,6 @@
       "name": "gain_energy",
       "amount": 3
     }
-  ]
+  ],
+  "description": "✦为场下每个精灵回复3能量。"
 }

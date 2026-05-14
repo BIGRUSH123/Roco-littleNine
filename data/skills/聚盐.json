@@ -24,5 +24,6 @@
       "name": "combo_increment",
       "amount": 1
     }
-  ]
+  ],
+  "description": "✦2连击，每次连击自己回复5%生命和1能量，使用后本技能连击数永久+1。"
 }

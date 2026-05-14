@@ -16,5 +16,6 @@
       "steps": 5,
       "scope": "persistent"
     }
-  ]
+  ],
+  "description": "✦光系技能威力永久+50%，应对防御：改为永久+100%。"
 }

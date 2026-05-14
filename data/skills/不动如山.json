@@ -14,5 +14,6 @@
       "name": "damage_reduction",
       "value": 0.9
     }
-  ]
+  ],
+  "description": "✦减伤90%，应对攻击。"
 }

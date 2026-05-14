@@ -16,5 +16,6 @@
       "steps": 6,
       "scope": "battlefield"
     }
-  ]
+  ],
+  "description": "✦造成魔伤，自己有减益时，本次技能威力+60。"
 }

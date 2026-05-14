@@ -16,5 +16,6 @@
       "steps": 3,
       "scope": "battlefield"
     }
-  ]
+  ],
+  "description": "✦敌方获得全攻击技能能耗+3，持续3回合。"
 }

@@ -16,5 +16,6 @@
       "steps": 1,
       "scope": "battlefield"
     }
-  ]
+  ],
+  "description": "✦若敌方本回合回复生命，改为失去2倍。先手+1。"
 }

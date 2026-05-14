@@ -16,5 +16,6 @@
       "steps": 6,
       "scope": "persistent"
     }
-  ]
+  ],
+  "description": "✦造成魔伤，每次使用其他草系技能后，本技能威力永久+60。"
 }

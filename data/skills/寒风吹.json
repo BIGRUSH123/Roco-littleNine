@@ -16,5 +16,6 @@
       "steps": -5,
       "scope": "battlefield"
     }
-  ]
+  ],
+  "description": "✦造成魔伤，敌方获得魔防-50%。"
 }

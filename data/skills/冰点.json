@@ -23,5 +23,6 @@
       "scope": "persistent",
       "stacks": 5
     }
-  ]
+  ],
+  "description": "✦敌方获得5层冻结，应对防御：额外获得5层。"
 }

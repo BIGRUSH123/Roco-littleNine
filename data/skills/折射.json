@@ -8,5 +8,6 @@
   "counter": "无",
   "priority": 0,
   "combo": 1,
-  "effects": []
+  "effects": [],
+  "description": "✦造成魔伤，携带其他系别技能会给本技能带来不同效果。"
 }

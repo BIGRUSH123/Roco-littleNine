@@ -14,5 +14,6 @@
       "name": "damage_reduction",
       "value": 0.7
     }
-  ]
+  ],
+  "description": "✦减伤70%，本技能可以在蓄力状态下使用，应对攻击：下次技能无需蓄力。"
 }

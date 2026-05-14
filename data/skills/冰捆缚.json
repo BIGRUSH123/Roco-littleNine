@@ -23,5 +23,6 @@
       "steps": 1,
       "scope": "battlefield"
     }
-  ]
+  ],
+  "description": "✦2连击，每次连击敌方获得全技能能耗+1。"
 }

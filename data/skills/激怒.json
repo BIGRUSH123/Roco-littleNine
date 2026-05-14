@@ -16,5 +16,6 @@
       "steps": 3,
       "scope": "battlefield"
     }
-  ]
+  ],
+  "description": "✦敌方除本回合使用的技能，其他技能能耗+3，持续3回合。"
 }

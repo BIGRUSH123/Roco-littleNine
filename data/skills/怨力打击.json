@@ -8,5 +8,6 @@
   "counter": "无",
   "priority": 0,
   "combo": 1,
-  "effects": []
+  "effects": [],
+  "description": "✦蓄力，造成魔伤，若蓄力期间受到攻击，本技能威力变为敌方技能威力的3倍。"
 }
