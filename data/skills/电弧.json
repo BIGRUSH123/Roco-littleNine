@@ -11,7 +11,8 @@
   "effects": [
     {
       "kind": "special",
-      "name": "burst"
+      "name": "first_action",
+      "value": 40
     }
   ],
   "description": "✦造成物伤，迸发：本次技能威力+40。"

@@ -11,7 +11,8 @@
   "effects": [
     {
       "kind": "special",
-      "name": "burst"
+      "name": "first_action",
+      "value": 20
     }
   ],
   "description": "✦造成魔伤，2连击，迸发：本次技能威力+20。"

@@ -442,6 +442,23 @@ class Battle(BattleMechanicsMixin):
             events.append(f'[冷却中] {user.name} {skill.name} 还需{skill.cooldown}回合冷却')
             return events
 
+        # ── 迸发 (first_action) 能耗效果（需在能量支付前处理）──
+        if user.first_action:
+            for e in skill.effects:
+                if getattr(e, 'kind', '') == 'special' and getattr(e, 'name', '') == SpecialName.FIRST_ACTION:
+                    e_target = getattr(e, 'target', 'opp')
+                    if e_target == 'burst_collect':
+                        burst_history = getattr(user, '_burst_effects_used', set())
+                        collected = len(burst_history)
+                        if collected > 0:
+                            skill.energy_cost_mod += collected
+                            events.append(f'{user.name} 雷暴收集{collected}种迸发 能耗+{collected}')
+                    else:
+                        ec_change = int(getattr(e, 'amount', 0) or 0)
+                        if ec_change != 0:
+                            skill.energy_cost_mod += ec_change
+                            events.append(f'{user.name} 迸发 {skill.name}能耗{ec_change:+d}')
+
         # 应对日志
         if is_countered and countering_skill:
             opp_sprite = opponent.active
@@ -510,13 +527,6 @@ class Battle(BattleMechanicsMixin):
             events.append(f'{user.name} 蓄力({skill.name})')
             return events
 
-        # 迸发/初次行动标记：L0 modifier 和 L2 calc_damage 需要读取
-        # 在 L2 伤害计算之后消费（见下方）
-        is_burst = user.first_action and any(
-            e.name == SpecialName.BURST
-            for e in skill.effects if getattr(e, 'kind', '') == 'special'
-        )
-
         ctx = TurnContext(turn=self.turn, is_first=is_first,
                           countered_skill=countered_skill,
                           opponent_switched=opponent_switched,
@@ -538,6 +548,42 @@ class Battle(BattleMechanicsMixin):
 
         # ── trait modifier hook（L0→L1 之间）──
         events += dispatch_modifier(user, use, self, team)
+
+        # ── 迸发 (first_action) 威力/额外使用效果 ──
+        if user.first_action and not is_countered:
+            for e in skill.effects:
+                if getattr(e, 'kind', '') != 'special' or getattr(e, 'name', '') != SpecialName.FIRST_ACTION:
+                    continue
+                e_target = getattr(e, 'target', 'opp')
+
+                # 迸发收集 (雷暴): 统计已触发的迸发种类，每1种→能耗+1 威力+10
+                if e_target == 'burst_collect':
+                    burst_history = getattr(user, '_burst_effects_used', set())
+                    collected = len(burst_history)
+                    if collected > 0:
+                        use.modifiers['power_bonus'] = use.modifiers.get('power_bonus', 0) + collected * 10
+                        events.append(f'{user.name} 雷暴收集{collected}种迸发 威力+{collected * 10}')
+                    # 雷暴自身也计入迸发历史
+                    if not hasattr(user, '_burst_effects_used'):
+                        user._burst_effects_used = set()
+                    user._burst_effects_used.add(skill.base.name)
+                    continue
+
+                # 威力提升
+                power_bonus = int(getattr(e, 'value', 0) or 0)
+                if power_bonus > 0:
+                    use.modifiers['power_bonus'] = use.modifiers.get('power_bonus', 0) + power_bonus
+                    events.append(f'{user.name} 迸发 威力+{power_bonus}')
+
+                # 额外使用次数
+                if e_target == 'extra_use':
+                    user.extra_skill_use = True
+                    events.append(f'{user.name} 迸发 使用次数+1')
+
+                # 记录迸发使用 (供雷暴收集)
+                if not hasattr(user, '_burst_effects_used'):
+                    user._burst_effects_used = set()
+                user._burst_effects_used.add(skill.base.name)
 
         # ── 动态 damage_reduction（不可接触等：基于敌方异常层数追加减伤）──
         if use.is_countered and use.countering_skill:

@@ -11,7 +11,8 @@
   "effects": [
     {
       "kind": "special",
-      "name": "burst"
+      "name": "first_action",
+      "amount": -1
     }
   ],
   "description": "✦造成魔伤，迸发：本技能能耗-1。"

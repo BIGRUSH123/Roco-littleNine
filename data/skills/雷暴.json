@@ -11,7 +11,8 @@
   "effects": [
     {
       "kind": "special",
-      "name": "burst"
+      "name": "first_action",
+      "target": "burst_collect"
     }
   ],
   "description": "✦造成魔伤，迸发：本技能获得所有生效过的迸发，每获得1种，本技能能耗+1，威力+10。"

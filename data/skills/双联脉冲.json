@@ -11,7 +11,8 @@
   "effects": [
     {
       "kind": "special",
-      "name": "burst"
+      "name": "first_action",
+      "target": "extra_use"
     }
   ],
   "description": "✦造成魔伤，迸发：本技能使用次数+1。"

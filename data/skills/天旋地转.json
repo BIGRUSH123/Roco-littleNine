@@ -18,7 +18,8 @@
     },
     {
       "kind": "special",
-      "name": "burst"
+      "name": "first_action",
+      "value": 30
     }
   ],
   "description": "✦造成物理伤害，先手+1，迸发：本次技能威力+30。"
