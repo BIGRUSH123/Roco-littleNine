@@ -323,10 +323,13 @@ class Sprite:
         hp_ratio = self.current_hp / max(1, self.max_hp)
         old_name = self.name
         self.species = new_species
-        old_stats = dict(self.initial_stats)
-        self.initial_stats = new_species.base_dict()
-        self.max_hp = new_species.hp
-        self.current_hp = max(1, round(new_species.hp * hp_ratio))
+        # 用 StatsCalc 重新计算六维（保留 IV/性格修正）
+        from scripts.common.formulas import StatsCalc
+        calc = StatsCalc()
+        result = calc.compute(new_species, nature=self.nature, iv=self.iv)
+        self.initial_stats = dict(result.final_stats)
+        self.max_hp = result.final_stats['hp']
+        self.current_hp = max(1, round(result.final_stats['hp'] * hp_ratio))
         if new_skills:
             self.skills = new_skills
         self.first_action = True  # 形态变换后首次行动触发迸发
@@ -368,6 +371,8 @@ class Sprite:
         self.transform(target_species, [])
         self._moe_position = actual_new
         self._sync_moe_status_effect()
+        # 萌化后清除进化之力的首领化增益（已非首领形态）
+        self.remove_effect('首领化')
 
         events = [f'{old_name} 萌化 → 变为{self.name}({self._moe_position}层)']
         events += self._seal_exclusive_skills()
