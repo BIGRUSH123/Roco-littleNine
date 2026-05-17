@@ -10,6 +10,7 @@ Public API:
 from .ctx import Ctx, ADDRESS_MAP
 from .resolve import resolve, QueryRef
 from .cond import eval_one, COND_EVAL, HAVE_EVAL
+from .damage import calc_damage
 from .journal import (
     StatChange, ModifierInjection, Damage, Heal, EnergyChange,
     MarkChange, AbnormalChange, WeatherSet, Dispel, Steal, Tick,
