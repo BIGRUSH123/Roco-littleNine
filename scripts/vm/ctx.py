@@ -42,6 +42,7 @@ class Ctx:
     skills_energy_sum_self: int = 0      # sum of all skill energy costs
     just_entered: bool = False           # entered this turn (for sprite_entered cond)
     skill_elements_self: frozenset = frozenset()  # elements of carried skills
+    stat_stages_self: dict[str, int] = field(default_factory=dict)  # {stat: stage} positive=boost
     energy_cost_sum_self: dict[str, int] = field(default_factory=dict)  # {type/element/tag: total energy}
     zero_cost_skill_count_self: int = 0  # number of 0-cost skills carried
 
@@ -61,11 +62,14 @@ class Ctx:
     positive_count_opp: int = 0
     charged_opp: bool = False
     skill_elements_opp: frozenset = frozenset()
+    stat_stages_opp: dict[str, int] = field(default_factory=dict)  # {stat: stage} positive=boost
     skills_energy_sum_opp: int = 0
 
     # ── 双方队伍 ──
     mark_count_own: int = 0              # total mark stacks on own team
+    mark_stacks_own: dict[str, int] = field(default_factory=dict)  # {name: stacks}
     mark_count_opp: int = 0              # total mark stacks on opponent team
+    mark_stacks_opp: dict[str, int] = field(default_factory=dict)  # {name: stacks}
     mark_count_both: int = 0             # own + opp
     skill_count_own: dict[str, int] = field(default_factory=dict)  # {skill_name: count}
     devotion_own: dict[str, int] = field(default_factory=dict)     # {name: stacks}
