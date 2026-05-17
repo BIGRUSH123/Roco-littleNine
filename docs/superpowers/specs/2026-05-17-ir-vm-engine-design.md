@@ -228,14 +228,17 @@ def resolve_skill(self, team, action) -> Journal:
     # 3. 使用 feeds/needs 排序效果（在加载时预计算）
     sorted_effects = action.skill.sorted_effects
     
-    # 4. 纯 VM 执行（含伤害公式）
-    #    VM 在 mult 阶段前触发 on_damage_taken 观察者，收集条件修正器
-    journal = vm.execute(ctx, sorted_effects, self.active_observers)
+    # 4. 触发计算前观察者（on_damage_taken 等），收集修正器注入 effects
+    pre_mutations = self.fire_pre_calc_observers(ctx)
+    augmented_effects = sorted_effects + pre_mutations
     
-    # 5. 重放 + 事件后观察者交织
+    # 5. 纯 VM 执行 — (Ctx, effects[]) → Journal[Mutation]
+    journal = vm.execute(ctx, augmented_effects)
+    
+    # 6. 重放 + 事件后观察者交织
     for mutation in journal:
         self.apply(mutation)
-        self.fire_observers(ctx, mutation)  # 事件后触发（skill_use、on_ko 等）
+        self.fire_post_action_observers(ctx, mutation)  # skill_use、on_ko 等
     
     return journal
 ```
