@@ -98,44 +98,88 @@ Count 效果注册跨回合保持但在 VM 内管理的计数器。状态作为 
 
 ---
 
-## 第 2 节：被动作为观察者
+## 第 2 节：特性与被动效果
 
-### 问题
+对 142 个特性描述的语义分析表明，特性分属两个正交维度：
 
-被动效果是**响应式**的 — 它们观察变化并在行动中触发，而不是在行动结束时触发。"当 HP 低于 50% 时，获得 atk+2" 不能等待日志完全重放。
+### 维度 A：触发时机
 
-### 解决方案：观察者模式
+| 时机 | 说明 | 典型条件 |
+|------|------|----------|
+| **计算前** | 在公式运行前注入修正器，影响当前计算 | `on_damage_taken`（偏振）、`have_skill_of`（不移） |
+| **事件后** | 在动作完成后执行效果，影响后续状态 | `skill_use`（助燃）、`on_ko`（付给恶魔的赎价） |
+| **回合边界** | 回合开始/结束、入场/离场时触发 | `turn_end`（养分内循环）、`sprite_entered`（全神贯注）、`opp_switched`（下黑手） |
+
+### 维度 B：效果形式
+
+| 形式 | IR 表达 | 示例 |
+|------|---------|------|
+| **持久修正器** | `mod` 无 `when`，或者 `mod` 条件始终为真 | 不移："无额外效果攻击技能威力+30%"，冰封："敌方全技能能耗+1" |
+| **事件触发效果** | `count` + `when` → `then` | 助燃："使用火系技能后双攻+20%"，下黑手："敌方离场后换入精灵获得中毒" |
+
+### 架构：两阶段集成
+
+特性不改变 VM 的纯函数性质。引擎在两个阶段集成特性：
 
 ```
-引擎重放日志，每次一个 mutation：
-  mutation → apply_to(sprite/team/battle)
-          → 触发观察者（被动）
-          → 如果观察者触发：
-              用 watcher.effects 调用 VM
-              重放子日志
-              递归（深度限制）
+阶段 1 — 修正器收集（计算前）
+  引擎遍历活跃特性，评估条件，收集该阶段相关的修正器
+    → ModifierInjection mutation 列表
+    → 输入到当前计算（威力确定、伤害公式等）
+
+阶段 2 — 事件触发效果（事件后）
+  引擎触发匹配条件的 count 观察者
+    → VM 执行 then 效果 → Journal[Mutation]
+    → 应用 mutations + 递归（深度限制）
 ```
+
+关键洞察：**`on_damage_taken` 条件在计算前触发，而非计算后。** 当特性偏振注册 `count(on_damage_taken) → mod(damage_reduction)` 时，引擎在伤害公式运行**之前**触发该观察者，因此修正器能够及时被采集到。这不同于"受到伤害后"的语义——后者用 `on_ko` 或 HP 变化后的观察者来处理。
+
+### 观察者模型（用于事件触发效果）
 
 ```python
 @dataclass
-class Watcher:
-    cond: dict         # 例如 {"cond": "hp_below", "ratio": 0.5}
-    effects: list      # 与技能效果相同的 IR 操作码
-    scope: str         # "battlefield" | "persistent" | "permanent"
-    cooldown: int = 0  # 触发之间的冷却时间
+class Observer:
+    """持久的条件监听器。挂载在精灵上，跨回合存活直到 scope 清除。"""
+    cond: dict          # 触发条件（共享 COND_EVAL 表）
+    then: list[dict]    # 触发时执行的 IR 效果
+    scope: str          # "battlefield" | "persistent" | "permanent"
+    cooldown: int = 0   # 冷却（回合数），0 = 无冷却
 ```
 
-### 与技能的统一
+观察者注册 = `count` 操作码。引擎在以下位置触发观察者：
 
-被动效果和技能效果共享同一个 `COND_EVAL` 表和 IR 操作码。添加新条件或操作码对两者都有益。没有重复代码。
+| 触发点 | 触发条件 | 时期 |
+|--------|---------|------|
+| 伤害公式前 | `on_damage_taken` | 计算前 — 注入 damage_reduction 等 |
+| 技能执行后 | `skill_use` | 事件后 — 获得 buff/层数 |
+| 换宠结算后 | `opp_switched` / `self_switched` | 事件后 |
+| 入场结算后 | `sprite_entered` | 事件后 |
+| 异常 tick 后 | `on_abnormal_tick` | 事件后 |
+| 异常层数变化后 | `on_abnormal_changed` / `on_abnormal_applied` | 事件后 |
+| KO 结算后 | `on_ko` / `on_self_ko` | 事件后 |
+| 能量变化后 | `on_energy_changed` | 事件后 |
+| 增益变化后 | `on_positive_changed` | 事件后 |
+| 技能能耗变化后 | `on_skills_energy_changed` | 事件后 |
+| 回合结束时 | `turn_end` | 回合边界 |
 
-### 观察者生命周期
+### 与技能的完全统一
 
-与效果作用域相同：`battlefield`（换宠时清除），`persistent`（力竭时清除），`permanent`（永不清除）。
+特性效果和技能效果共享：
+- 同一套 IR 操作码（mod、abnormal、mark、dispel、steal 等）
+- 同一个 `COND_EVAL` 条件调度表
+- 同一个 `resolve()` 查询解析器
+- 同一个 VM `execute()` 入口
 
-### 响应性模型
+添加新条件或新操作码会同时惠及技能和特性。没有重复代码路径。
 
-观察者在 mutation 之间触发，而不是在整个日志之后触发。因此，如果 mutation #3 将 HP 降至 50% 以下，观察者在 mutation #4 之前触发。这匹配了大多数回合制游戏的工作方式：效果按顺序解析，被动效果中断序列。
+### 递归与深度限制
+
+观察者可能触发新的观察者（例如：受到伤害 → 回复 HP → HP 变化触发另一个观察者）。引擎维护触发深度计数器，超过限制（默认为 5）时终止并记录警告。
+
+### 持久修正器收集
+
+对于无条件的 `mod` 特性（如不移），引擎在构建 Ctx 时直接将其注入寄存器的对应字段，无需经过观察者机制。这降低了运行时开销——不需要的观察者不会被遍历。
 
 ---
 
@@ -150,7 +194,8 @@ class Watcher:
   teams[2]: list[Sprite]    marks: dict
   weather: str              全局效果: GlobalEffects
   counters: dict            turn: int
-  watchers: list[Watcher]   日志: list[TurnRecord]
+  observers: list[Observer] 日志: list[TurnRecord]
+  trait_modifiers: list     特性持久修正器缓存
 ```
 
 ### 边界规则
@@ -162,7 +207,7 @@ class Watcher:
 - AI 选择（使用哪个技能、是否换宠）
 - 精灵对象管理
 - 日志 / 事件字符串
-- 被动分发（引擎触发观察者；被动就是观察者）
+- 特性/被动分发（引擎触发观察者；特性共享 IR 操作码和条件表）
 
 **引擎不负责处理的内容**（VM 负责处理）：
 - 解析查询表达式
@@ -177,16 +222,20 @@ def resolve_skill(self, team, action) -> Journal:
     # 1. 将当前世界快照到 Ctx 中
     ctx = Ctx.snapshot(self_=self.active(team), opp=self.active(opponent), ...)
     
-    # 2. 使用 feeds/needs 排序效果（在加载时预计算）
+    # 2. 收集特性持久修正器（无条件 mod），注入 Ctx
+    ctx = self.inject_trait_modifiers(ctx)
+    
+    # 3. 使用 feeds/needs 排序效果（在加载时预计算）
     sorted_effects = action.skill.sorted_effects
     
-    # 3. 纯 VM 执行
-    journal = vm.execute(ctx, sorted_effects)
+    # 4. 纯 VM 执行（含伤害公式）
+    #    VM 在 mult 阶段前触发 on_damage_taken 观察者，收集条件修正器
+    journal = vm.execute(ctx, sorted_effects, self.active_observers)
     
-    # 4. 重放 + 观察者
+    # 5. 重放 + 事件后观察者交织
     for mutation in journal:
         self.apply(mutation)
-        self.fire_watchers(ctx, mutation)  # 响应式被动效果
+        self.fire_observers(ctx, mutation)  # 事件后触发（skill_use、on_ko 等）
     
     return journal
 ```
@@ -202,7 +251,7 @@ def resolve_skill(self, team, action) -> Journal:
 
 ```
 回合开始
-  ├─ 构建回合前 Ctx，触发回合开始观察者
+  ├─ 构建回合前 Ctx，注入特性修正器，触发回合开始观察者
   ├─ 传动系统
   └─ 延迟效果结算（ttl 递减）
 
@@ -212,21 +261,21 @@ def resolve_skill(self, team, action) -> Journal:
 
 结算（按优先级排序）
   ├─ 对于每个技能（先手，然后是后手）：
-  │   ├─ 构建每次技能的 Ctx 快照
-  │   ├─ VM.execute() → Journal
-  │   ├─ 重放 Journal 并交错观察者
+  │   ├─ 构建每次技能的 Ctx 快照 + 注入特性修正器
+  │   ├─ VM.execute() → Journal（含计算前观察者触发）
+  │   ├─ 重放 Journal 并交织事件后观察者
   │   └─ 力竭中断检查
   └─ 应对钩子
 
 回合结束
-  ├─ 异常 tick（中毒/灼烧/寄生/冻结）
+  ├─ 异常 tick（中毒/灼烧/寄生/冻结）→ 触发 on_abnormal_tick 观察者
   ├─ 天气 tick + 效果
   ├─ 印记 tick 效果
   ├─ 冷却递减
   ├─ 延迟效果结算（phase=end）
   ├─ 返场结算
   ├─ 力竭检查 + 强制换宠
-  └─ 回合结束观察者
+  └─ 回合结束观察者（turn_end）
 ```
 
 ---
@@ -279,11 +328,32 @@ class QueryRef:
     per: float | None = None
 ```
 
+### 特性加载管道
+
+```
+磁盘上的 data/traits/*.json
+    │
+    ▼ （启动时一次性）
+TraitLoader.load(path)
+    ├─ validate()              ← 验证 IR 结构
+    ├─ normalize()             ← 填充默认值
+    ├─ classify()              ← 分类：持久修正器（无条件 mod）vs 观察者（count + when）
+    └─ pre_index_queries()     ← 与 SkillLoader 共享同一 ADDRESS_MAP
+    │
+    ▼
+TraitObject（内存中，不可变，在所有战斗中共享）
+    ├─ modifiers: list[Modifier]  ← 持久修正器，每次 Ctx 构建时注入
+    └─ observers: list[Observer]  ← 事件观察者，引擎在事件触发时执行
+```
+
+分类发生在加载时：无条件 `mod` → 直接进入修正器列表；`count` + `when` → 注册为观察者。
+
 ### 缓存属性
 
-由于 SkillObject 在加载后是不可变的：
-- 全局共享：10,000 场同时进行的战斗都引用同一个"回旋踢"的 SkillObject
+由于 SkillObject 和 TraitObject 在加载后是不可变的：
+- 全局共享：10,000 场同时进行的战斗都引用同一个"回旋踢"的 SkillObject 和"偏振"的 TraitObject
 - 拓扑排序是预计算的 — 技能效果的执行顺序在不同战斗之间不会改变
+- 特性分类是预计算的 — 无需每回合判断一个特性是修正器还是观察者
 - 加载后零分配 — 没有解析，没有验证，只是执行
 
 ---
@@ -348,9 +418,11 @@ def test_skill_matches_prototype(skill_name):
 - 全面战斗回归（1000 场随机战斗）
 - 删除旧的 effects.py、resolver.py 特殊调度
 
-**第 5 阶段：观察者 / 被动**
-- 将现有被动移植到观察者格式
-- 对原型被动行为进行 Golden test
+**第 5 阶段：特性系统**
+- 实现观察者注册/触发引擎（基于 IR count 操作码）
+- 实现特性修正器收集（加载时分类：持久修正器 vs 观察者）
+- 将已重构的 28 个特性 JSON 接入引擎
+- 对原型特性行为进行 Golden test
 - 删除旧的被动调度基础设施
 
 ### 为什么按这个顺序
@@ -403,9 +475,10 @@ scripts/
 ├── engine/                 # 新引擎包装器
 │   ├── __init__.py
 │   ├── battle.py           # 回合生命周期、优先级、应对规则
-│   ├── skill_loader.py     # 验证、规范化、预解析、预索引
-│   ├── replayer.py         # 日志重放 + 观察者交错
-│   ├── watcher.py          # 观察者数据类 + 注册表
+│   ├── skill_loader.py     # 技能验证、规范化、预解析、预索引
+│   ├── trait_loader.py     # 特性加载：分类为持久修正器/观察者
+│   ├── replayer.py         # 日志重放 + 观察者交织
+│   ├── observer.py         # Observer 数据类 + 注册/触发引擎
 │   └── snapshot.py         # Sprite + Battle → Ctx 构造函数
 │
 └── tests/
@@ -418,8 +491,9 @@ scripts/
     │   └── ...
     ├── engine/             # 引擎集成测试
     │   ├── test_battle.py
-    │   ├── test_watchers.py
-    │   └── test_golden.py  # 针对原型的 150 个技能回归测试
+    │   ├── test_observers.py
+    │   ├── test_traits.py
+    │   └── test_golden.py  # 针对原型的 ~150 技能 + 28 特性回归测试
     └── conftest.py         # 共享的 Ctx 和战斗装置
 ```
 
@@ -428,7 +502,7 @@ scripts/
 ## 总结
 
 1. **VM 是纯函数式的** — `(Ctx, effects[]) → Journal[Mutation]`。易于推理，易于测试。
-2. **被动就是观察者** — 与技能相同的 IR 原语和条件评估。没有重复的基础设施。
+2. **特性分两级集成** — 持久修正器在 Ctx 构建时注入，事件触发效果通过观察者在管道各阶段触发。特性与技能共享 IR 操作码和条件评估，没有重复基础设施。
 3. **引擎是命令式的** — 拥有可变状态，调用 VM，应用 mutation，触发观察者。
 4. **加载时预处理** — 验证、规范化、静态解析、查询索引、效果排序都在加载时完成。运行时快速且无分配。
 5. **迁移有黄金测试支持** — 原型产生正确的结果。新引擎必须针对它进行回归测试，直到 100% 匹配。
