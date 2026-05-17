@@ -144,8 +144,17 @@ ADDRESS_MAP: dict[tuple[str, str], str] = {
     ("sprite_self", "elements_used_count"):"elements_used_count_self",
     ("sprite_self", "positive_count"):     "positive_count_self",
     ("sprite_self", "zero_cost_skill_count"): "zero_cost_skill_count_self",
+    ("sprite_self", "atk"):               "atk_self",
+    ("sprite_self", "def"):               "def_self",
+    ("sprite_self", "sp_atk"):            "sp_atk_self",
+    ("sprite_self", "sp_def"):            "sp_def_self",
+    ("sprite_self", "speed"):             "speed_self",
+    ("sprite_self", "hp_max"):            "hp_self_max",
     ("sprite_self", "damage_reduced"):     "damage_reduced_self",
     ("sprite_self", "last_tick_damage"):   "last_tick_damage_self",
+    ("sprite_self", "charged"):            "charged_self",
+    ("sprite_self", "is_charging"):        "is_charging_self",
+    ("sprite_self", "first_action"):       "first_action_self",
     ("sprite_self", "energy_cost_sum"):    "energy_cost_sum_self",
 
     # sprite_opp
@@ -157,6 +166,13 @@ ADDRESS_MAP: dict[tuple[str, str], str] = {
     ("sprite_opp", "abnormal_stacks"):     "abnormal_stacks_opp",
     ("sprite_opp", "positive_count"):      "positive_count_opp",
     ("sprite_opp", "last_tick_damage"):    "last_tick_damage_opp",
+    ("sprite_opp", "atk"):                 "atk_opp",
+    ("sprite_opp", "def"):                 "def_opp",
+    ("sprite_opp", "sp_atk"):              "sp_atk_opp",
+    ("sprite_opp", "sp_def"):              "sp_def_opp",
+    ("sprite_opp", "speed"):              "speed_opp",
+    ("sprite_opp", "charged"):             "charged_opp",
+    ("sprite_opp", "hp_max"):             "hp_opp_max",
     ("sprite_opp", "skills_energy_sum"):   "skills_energy_sum_opp",
 
     # battle
@@ -180,6 +196,7 @@ ADDRESS_MAP: dict[tuple[str, str], str] = {
 
     # skill_off_0 (current attacking skill)
     ("skill_off_0", "power_base"):         "power_self",
+    ("skill_off_0", "element"):            "element_self",
     ("skill_off_0", "adjacent_power_sum"): "adjacent_power_sum",
     ("skill_off_0", "combo_current"):      "combo_self",
     ("skill_off_0", "energy_cost"):        "energy_cost_self",

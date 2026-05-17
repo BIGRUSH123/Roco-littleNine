@@ -8,6 +8,7 @@ Public API:
 """
 
 from .ctx import Ctx, ADDRESS_MAP
+from .resolve import resolve, QueryRef
 from .journal import (
     StatChange, ModifierInjection, Damage, Heal, EnergyChange,
     MarkChange, AbnormalChange, WeatherSet, Dispel, Steal, Tick,
