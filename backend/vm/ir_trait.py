@@ -8,7 +8,7 @@ from .ir_values import IRValue, Literal as _Literal
 
 @dataclass(frozen=True)
 class PathCond:
-    path: list[str]
+    path: list[str] = field(hash=False, compare=False)
     op: str
     value: IRValue
 
@@ -41,7 +41,7 @@ TraitCondition = PathCond | FnCond | AndCond | OrCond | NotCond
 @dataclass(frozen=True)
 class MutateEffectOp:
     target: str
-    filter: dict
+    filter: dict = field(hash=False, compare=False)
     delta_steps: int = 0
     delta_stacks: int = 0
 
@@ -56,7 +56,7 @@ class RemoveEffectOp:
 
 @dataclass(frozen=True)
 class BattleSkillMutOp:
-    filter: dict
+    filter: dict = field(hash=False, compare=False)
     field: str
     value: IRValue
     op: str = "set"
@@ -75,7 +75,7 @@ class UseModifierOp:
 class ActionModifierOp:
     action: str
     slot: int | None = None
-    slots: list[int] | None = None
+    slots: list[int] | None = field(default=None, hash=False, compare=False)
     force: str | None = None
 
 
@@ -106,7 +106,7 @@ class TeamCounterOp:
 @dataclass(frozen=True)
 class TransformOp:
     species: str
-    skills: list[str] | None = None
+    skills: list[str] | None = field(default=None, hash=False, compare=False)
     reset_hp: bool = False
     reset_energy: bool = False
 
@@ -195,15 +195,15 @@ class TraitTrigger:
     counter: str | None = None
     counter_op: str = "inc"
     counter_value: IRValue | None = None
-    counter_trigger: dict | None = None
+    counter_trigger: dict | None = field(default=None, hash=False, compare=False)
     counter_reset: bool = False
-    track: dict | None = None
-    use_modifiers: dict[str, dict] | None = None
+    track: dict | None = field(default=None, hash=False, compare=False)
+    use_modifiers: dict[str, dict] | None = field(default=None, hash=False, compare=False)
     battleskill_mut: tuple[BattleSkillMutOp, ...] = ()
     action_modifier: ActionModifierOp | None = None
     pending_effects: tuple[TraitEffect, ...] = ()
-    flags: dict | None = None
-    team_counters: dict | None = None
+    flags: dict | None = field(default=None, hash=False, compare=False)
+    team_counters: dict | None = field(default=None, hash=False, compare=False)
 
 
 @dataclass(frozen=True)

@@ -1,6 +1,6 @@
 """共享 IRValue 类型 — Literal | Query | RefExpr."""
 from __future__ import annotations
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 @dataclass(frozen=True)
@@ -24,7 +24,7 @@ class Query:
 class RefExpr:
     """编译期解析的路径表达式。用于特性 IR 的动态值。"""
     root: str
-    path: list[str]
+    path: list[str] = field(hash=False, compare=False)
     multiplier: float = 1.0
     offset: int = 0
 

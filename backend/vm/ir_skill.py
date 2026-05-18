@@ -60,7 +60,7 @@ class ModOp:
     on_next: bool = False
     per_hit: bool = False
     skill_filter: str | None = None
-    skill_where: dict | None = None
+    skill_where: dict | None = field(default=None, hash=False, compare=False)
     if_type: str | None = None
     element: str | None = None
     per_element: int | None = None
@@ -216,7 +216,7 @@ class RedirectOp:
 @dataclass(frozen=True)
 class ReplayOp:
     from_: str
-    skill_filter: dict | None = None
+    skill_filter: dict | None = field(default=None, hash=False, compare=False)
     what: str = ""
     feeds: str = ""
     needs: str = ""
