@@ -9,13 +9,13 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 from .globals import GlobalEffects
-from .resolver import SkillResolver, TurnContext
+from .resolver import SkillResolver
 from .battleskill import BattleSkill
 from .action import Action
 from .battle_mechanics import BattleMechanicsMixin
 from scripts.common.skill_trait_ids import TRAIT_星地善良
 from .traits import (
-    dispatch_entry, dispatch_leave, dispatch_turn_start, dispatch_turn_end,
+    dispatch_entry, dispatch_leave, dispatch_turn_end,
     dispatch_counter_success, dispatch_faint,
     dispatch_abnormal_tick, dispatch_before_action,
 )
@@ -28,6 +28,7 @@ if TYPE_CHECKING:
     from .sprite import Sprite
     from .skill import Skill
     from .agent import Agent
+    from scripts.engine.skill_loader import SkillRecord
 
 
 @dataclass
@@ -78,6 +79,13 @@ class Battle(BattleMechanicsMixin):
         self.verbose = verbose
         self._borrowed_restore: dict[tuple[str, int], 'Skill'] = {}
         self._wish_restore: dict[tuple[str, int], 'BattleSkill'] = {}   # 愿力一回合后还原
+        # VM engine + skill cache
+        from scripts.engine.battle import BattleVMEngine
+        from scripts.engine.skill_loader import SkillLoader
+        self._vm_engine = BattleVMEngine()
+        self._skill_loader = SkillLoader()
+        self._skill_cache: dict[str, 'SkillRecord'] = {}
+        self._use_vm = True  # toggle to switch between VM and legacy pipeline
         self.team_counters: dict[str, dict[str, int]] = {'A': {}, 'B': {}}  # pre-entry accumulators
         self.pending_effects: dict[str, list] = {'A': [], 'B': []}  # leave-buff → next entry
         self.scheduled_effects: list[dict] = []  # 延时效果队列 [{turn, phase, effects, ...}]
@@ -161,10 +169,10 @@ class Battle(BattleMechanicsMixin):
         # 4. 回合结束阶段
         events += self._phase_turn_end()
 
-        # 回合标题（插入到事件列表头部）
+        # 回合标题（用回合开始时快照的精灵名，避免力竭后显示替补名）
         a_short = self._action_short(record.action_a)
         b_short = self._action_short(record.action_b)
-        header = f'[回合{self.turn}] {self.player_a.active.name}：{a_short} | {self.player_b.active.name}：{b_short}'
+        header = f'[回合{self.turn}] {s_a.name}：{a_short} | {s_b.name}：{b_short}'
         events.insert(0, header)
 
         # 填充记录（用回合结束时的实时精灵引用）
@@ -184,59 +192,9 @@ class Battle(BattleMechanicsMixin):
     # ═══════════════════════════════════════════════════════════════
 
     def _phase_turn_start(self) -> list[str]:
-        """回合开始效果（天气、场地、特性触发）。"""
-        events: list[str] = []
-        # 延时效果结算（phase=start）
-        events += self._execute_scheduled_effects('start')
-        # 杠杆置换（先于传动）— 预留钩子
-        # 传动（回合开始自动执行）
-        prev_a = [bs.name for bs in self.player_a.active.skills] if not self.player_a.active.is_fainted else []
-        prev_b = [bs.name for bs in self.player_b.active.skills] if not self.player_b.active.is_fainted else []
-        if not self.player_a.active.is_fainted:
-            events += self._apply_transmission(self.player_a.active)
-        if not self.player_b.active.is_fainted:
-            events += self._apply_transmission(self.player_b.active)
-        # 传动后 hook（机械变式 等）
-        for team, sprite, prev in [('A', self.player_a.active, prev_a), ('B', self.player_b.active, prev_b)]:
-            if sprite.is_fainted or not prev:
-                continue
-            res = fire_hook('after_transmission', sprite, prev, self, team)
-            if res:
-                events += res
-        # trait turn_start
-        if not self.player_a.active.is_fainted:
-            events += dispatch_turn_start(self.player_a.active, self, 'A')
-        if not self.player_b.active.is_fainted:
-            events += dispatch_turn_start(self.player_b.active, self, 'B')
-
-        # 不朽：力竭后 3 回合复活（扫描 bench）
-        for team in ('A', 'B'):
-            player = self.get_player(team)
-            for i, s in enumerate(player.team):
-                if not s.is_fainted:
-                    continue
-                faint_turn = getattr(s, '_faint_turn', 0)
-                if faint_turn <= 0:
-                    continue
-                if self.turn - faint_turn < 3:
-                    continue
-                # 复活
-                s.current_hp = max(1, s.max_hp)
-                s.energy = min(5, s.energy + 3)
-                s._faint_turn = 0
-                events.append(f'{s.name} 不朽: 第{faint_turn}回合力竭 → 第{self.turn}回合复活')
-                # 如果该队无存活精灵，自动换上
-                if player.active.is_fainted and i != player.active_index:
-                    old_active = player.active
-                    player.active_index = i
-                    new = player.active
-                    new.clear_effects('battlefield')
-                    new.entry_turn = self.turn
-                    new.first_action = True
-                    new.inc_counter('times_entered')
-                    events.append(f'{old_active.name}↓ {new.name}↑(不朽复活)')
-
-        return events
+        """回合开始效果（委托给 TurnPipeline）。"""
+        from .pipeline import TurnPipeline
+        return TurnPipeline.execute_turn_start(self)
 
     # ═══════════════════════════════════════════════════════════════
     # Phase 2: 行动选择（含私有道具循环）
@@ -404,7 +362,16 @@ class Battle(BattleMechanicsMixin):
         is_first: bool = False,
         opponent_switched: bool = False,
     ) -> list[str]:
-        """执行单个玩家的技能/聚能行动。委托给 SkillPipeline。"""
+        """执行单个玩家的技能/聚能行动。"""
+        if self._use_vm:
+            return self._execute_skill_vm(
+                team, action,
+                is_countered=is_countered,
+                countered_skill=countered_skill,
+                countering_skill=countering_skill,
+                is_first=is_first,
+                opponent_switched=opponent_switched,
+            )
         from .pipeline import SkillPipeline
         pipeline = SkillPipeline(
             battle=self, team=team, action=action,
@@ -415,6 +382,183 @@ class Battle(BattleMechanicsMixin):
             opponent_switched=opponent_switched,
         )
         return pipeline.execute()
+
+    # ── VM 技能执行 ──
+
+    def _get_skill_record(self, skill_name: str) -> 'SkillRecord':
+        """Load and cache a SkillRecord from RISC IR JSON."""
+        import json, os
+        if skill_name in self._skill_cache:
+            return self._skill_cache[skill_name]
+        path = os.path.join('data', 'skills', f'{skill_name}.json')
+        if not os.path.exists(path):
+            raise FileNotFoundError(f'Skill JSON not found: {path}')
+        with open(path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        record = self._skill_loader.load(data)
+        self._skill_cache[skill_name] = record
+        return record
+
+    def _execute_skill_vm(
+        self, team: str, action: Action,
+        is_countered: bool = False,
+        countered_skill: 'BattleSkill | None' = None,
+        countering_skill: 'BattleSkill | None' = None,
+        is_first: bool = False,
+        opponent_switched: bool = False,
+    ) -> list[str]:
+        """VM-based skill execution — replaces SkillPipeline L0-L5."""
+        events: list[str] = []
+        player = self.get_player(team)
+        opponent = self.get_player('B' if team == 'A' else 'A')
+        user = player.active
+        target = opponent.active
+
+        if user.is_fainted:
+            return events
+
+        # ── 聚能 ──
+        if action.kind == 'gather':
+            gained = user.gain_energy(5)
+            user.first_action = False
+            user.inc_counter('times_gathered')
+            events.append(f'{user.name} 聚能+{gained}E(→{user.energy})')
+            opp_team = 'B' if team == 'A' else 'A'
+            self.inc_team_counter(opp_team, 'enemy_gather')
+            return events
+
+        if action.kind != 'skill' or action.skill_index is None:
+            return events
+
+        bs = self._get_skill(team, action)
+        if bs is None:
+            events.append(f'[错误] {user.name} 无技能[{action.skill_index}]')
+            return events
+
+        # ═══ Gate: 冷却 ═══
+        if bs.cooldown > 0:
+            events.append(f'[冷却中] {user.name} {bs.name} 还需{bs.cooldown}回合冷却')
+            return events
+
+        # ═══ Gate: 蓄力 ═══
+        charge_result = self._gate_charge_vm(user, bs, action)
+        if charge_result is True:
+            return events  # entering charge
+        if charge_result is False:
+            return events  # blocked
+
+        # ═══ 应对日志 ═══
+        if is_countered and countering_skill:
+            opp_sprite = opponent.active
+            events.append(
+                f'{opp_sprite.name}应对{user.name}：{user.name}使用了'
+                f'{bs.name}，但被{opp_sprite.name}（{countering_skill.name}）应对了！'
+            )
+
+        # ═══ Gate: 能量支付 ═══
+        cost = bs.energy_cost
+        # 轴承支撑被动
+        si = action.skill_index
+        if si is not None:
+            for offset in (-1, 1):
+                ni = si + offset
+                if 0 <= ni < len(user.skills):
+                    if user.skills[ni].name == '轴承支撑':
+                        cost -= 1
+                        break
+        cost = max(0, cost)
+        if cost > 0 and user.energy >= cost:
+            user.lose_energy(cost)
+        elif cost > 0 and user.energy < cost:
+            # Try HP substitution
+            deficit = cost - user.energy
+            hp_sub = min(deficit * 10, user.current_hp - 1)
+            if hp_sub > 0:
+                user.take_damage(hp_sub)
+                user.lose_energy(user.energy)
+                events.append(f'{user.name} 消耗{hp_sub}HP代替{deficit}E')
+            else:
+                events.append(f'[能量不足] {user.name} E={user.energy} < {cost}')
+                return events
+        else:
+            if cost > 0:
+                user.lose_energy(cost)
+
+        user.inc_counter(f'skill_used:{bs.name}')
+        user.inc_counter('skills_used')
+
+        # ═══ Load SkillRecord + execute VM ═══
+        try:
+            record = self._get_skill_record(bs.base.name)
+        except FileNotFoundError:
+            events.append(f'[错误] 技能JSON未找到: {bs.base.name}')
+            return events
+
+        result = self._vm_engine.execute_skill(
+            user, target,
+            record, None, self.globals,
+            turn=self.turn, is_first=is_first,
+            opp_switched=opponent_switched,
+            was_countered=is_countered,
+            counter_succeeded=is_countered and countered_skill is not None,
+            skill_index=action.skill_index or 0,
+        )
+        events.extend(result.events)
+
+        # ═══ Post-execution ═══
+        user.first_action = False
+
+        # Defense skill cooldown
+        if bs.base.is_defense:
+            bs.cooldown = 2
+
+        # Counters
+        if record.element:
+            self.inc_team_counter(team, f'element:{record.element}')
+        if record.skill_type == '防御':
+            self.inc_team_counter(team, 'defense_skill')
+        elif record.skill_type not in ('物攻', '魔攻', '动态攻击'):
+            self.inc_team_counter(team, 'status_skill')
+
+        # Trait dispatch
+        from .traits import dispatch_skill_use
+        events += dispatch_skill_use(user, bs, self, team)
+
+        return events
+
+    def _gate_charge_vm(self, user: 'Sprite', bs: 'BattleSkill', action: Action) -> bool | None:
+        """VM-compatible charge gate. Reads from RISC IR effects.
+        True=entering charge, False=blocked, None=pass through.
+        """
+        import json, os
+        # Load record to check for charge opcode
+        try:
+            record = self._get_skill_record(bs.base.name)
+        except FileNotFoundError:
+            return None
+        has_charge = any(e.get('op') == 'charge' for e in record.effects)
+
+        is_charging = getattr(user, '_charging', False)
+        charged_idx = getattr(user, '_charged_skill_index', -1)
+
+        if is_charging and has_charge and action.skill_index == charged_idx:
+            user._charging = False
+            user._charged_skill_index = -1
+            return None  # charge released
+
+        if is_charging:
+            charged_name = (
+                user.skills[charged_idx].name
+                if 0 <= charged_idx < len(user.skills) else '?'
+            )
+            return False  # blocked: must use charge skill
+
+        if has_charge:
+            user._charging = True
+            user._charged_skill_index = action.skill_index
+            return True  # entering charge
+
+        return None
 
     # ── 辅助 ──
 

@@ -26,7 +26,10 @@ def op_hit(ctx: Ctx, effect: dict) -> list[Mutation]:
         atk_base = ctx.sp_atk_self
         def_base = ctx.sp_def_opp
 
-    amount = calc_damage(power, atk_base, def_base)
+    amount = calc_damage(
+        power, atk_base, def_base,
+        damage_reduction=ctx.damage_reduction_opp,
+    )
 
     return [Damage(
         target="sprite_opp",

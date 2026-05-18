@@ -10,7 +10,7 @@ Accepts any object with the required attributes for skill parameters
 from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
-from vm.ctx import Ctx
+from scripts.vm.ctx import Ctx
 
 if TYPE_CHECKING:
     from sim.sprite import Sprite
@@ -151,6 +151,7 @@ def build_ctx(
         sp_atk_self=ss.effective_stat("sp_atk") if hasattr(ss, 'effective_stat') else ss.initial_stats.get("sp_atk", 100),
         sp_def_self=ss.effective_stat("sp_def") if hasattr(ss, 'effective_stat') else ss.initial_stats.get("sp_def", 100),
         speed_self=ss.effective_stat("speed") if hasattr(ss, 'effective_stat') else ss.initial_stats.get("speed", 100),
+        damage_reduction_self=ss._modifiers.get("damage_reduction", 0.0),
         abnormal_count_self=sum(abnormal_stacks_self.values()),
         abnormal_stacks_self=abnormal_stacks_self,
         positive_count_self=_count_positive(ss),
@@ -183,6 +184,7 @@ def build_ctx(
         sp_atk_opp=os.effective_stat("sp_atk") if hasattr(os, 'effective_stat') else os.initial_stats.get("sp_atk", 100),
         sp_def_opp=os.effective_stat("sp_def") if hasattr(os, 'effective_stat') else os.initial_stats.get("sp_def", 100),
         speed_opp=os.effective_stat("speed") if hasattr(os, 'effective_stat') else os.initial_stats.get("speed", 100),
+        damage_reduction_opp=os._modifiers.get("damage_reduction", 0.0),
         abnormal_count_opp=sum(abnormal_stacks_opp.values()),
         abnormal_stacks_opp=abnormal_stacks_opp,
         positive_count_opp=_count_positive(os),

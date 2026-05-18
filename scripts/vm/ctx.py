@@ -29,6 +29,7 @@ class Ctx:
     sp_atk_self: int = 100
     sp_def_self: int = 100
     speed_self: int = 100
+    damage_reduction_self: float = 0.0  # 0.0=no reduction, 1.0=immune
     abnormal_count_self: int = 0
     abnormal_stacks_self: dict[str, int] = field(default_factory=dict)
     positive_count_self: int = 0
@@ -57,6 +58,7 @@ class Ctx:
     sp_atk_opp: int = 100
     sp_def_opp: int = 100
     speed_opp: int = 100
+    damage_reduction_opp: float = 0.0
     abnormal_count_opp: int = 0
     abnormal_stacks_opp: dict[str, int] = field(default_factory=dict)
     positive_count_opp: int = 0
@@ -156,6 +158,7 @@ ADDRESS_MAP: dict[tuple[str, str], str] = {
     ("sprite_self", "hp_max"):            "hp_self_max",
     ("sprite_self", "adjacent_power_sum"): "adjacent_power_sum",
     ("sprite_self", "damage_reduced"):     "damage_reduced_self",
+    ("sprite_self", "damage_reduction"):   "damage_reduction_self",
     ("sprite_self", "last_tick_damage"):   "last_tick_damage_self",
     ("sprite_self", "charged"):            "charged_self",
     ("sprite_self", "is_charging"):        "is_charging_self",
@@ -177,6 +180,7 @@ ADDRESS_MAP: dict[tuple[str, str], str] = {
     ("sprite_opp", "sp_def"):              "sp_def_opp",
     ("sprite_opp", "speed"):              "speed_opp",
     ("sprite_opp", "charged"):             "charged_opp",
+    ("sprite_opp", "damage_reduction"):    "damage_reduction_opp",
     ("sprite_opp", "hp_max"):             "hp_opp_max",
     ("sprite_opp", "skills_energy_sum"):   "skills_energy_sum_opp",
 

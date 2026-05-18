@@ -8,7 +8,7 @@ and observer-triggering events.
 from __future__ import annotations
 from typing import TYPE_CHECKING
 
-from vm.journal import (
+from scripts.vm.journal import (
     StatChange, ModifierInjection, Damage, Heal, EnergyChange,
     MarkChange, AbnormalChange, WeatherSet, Dispel, Steal, Tick,
     Double, Charge, Escape, Return, Lock, Interrupt, Exchange,
@@ -127,10 +127,23 @@ class JournalReplayer:
         return f"{sprite.name} {m.stat} {m.steps:+d}步"
 
     def _apply_modifier(self, m: ModifierInjection) -> str:
-        # ModifierInjections are internal — engine collects them during
-        # power/mult phases and feeds them into the damage formula.
-        # They are NOT applied directly to sprite state.
-        return ""  # silent — handled by engine's modifier pipeline
+        """Store modifier on target sprite for later snapshot consumption.
+
+        ModifierInjections carry values like damage_reduction, power_mult,
+        combo, etc. They are stored on the sprite's _modifiers dict and
+        read by build_ctx when constructing Ctx for subsequent skills.
+        """
+        sprite = self._target_sprite(m.target)
+        cur = sprite._modifiers.get(m.stat, 0.0)
+        if m.mode == "set":
+            sprite._modifiers[m.stat] = m.value
+        elif m.mode == "add":
+            sprite._modifiers[m.stat] = cur + m.value
+        elif m.mode == "multiply":
+            sprite._modifiers[m.stat] = cur * m.value if cur else m.value
+        else:
+            sprite._modifiers[m.stat] = m.value
+        return f"{sprite.name} {m.stat}={sprite._modifiers[m.stat]:.0%}"
 
     def _apply_damage(self, m: Damage) -> str:
         sprite = self._target_sprite(m.target)

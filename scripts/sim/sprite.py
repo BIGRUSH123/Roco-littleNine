@@ -33,7 +33,7 @@ class StatusEffect:
     stat_key: str = ''                  # 六维键 / power / priority / energy_cost
     steps: int = 0                      # 步数（正=增益，负=减益）
     stacks: int = 1                     # 层数
-    scope: str = 'battlefield'          # "permanent" | "persistent" | "battlefield"
+    scope: str = 'battlefield'          # "battlefield" | "persistent" | "permanent" | "aura"
     source: str = ''                    # 来源技能/特性名
 
     @property
@@ -84,6 +84,10 @@ class Sprite:
     # 返场标记：回合结束时清 battlefield 效果 + 下回合技能双倍
     pending_return: bool = False
     extra_skill_use: bool = False
+
+    # 运行时 modifier 累积 (damage_reduction, power_mult, etc.)
+    # 由 JournalReplayer._apply_modifier 写入，snapshot 读取
+    _modifiers: dict[str, float] = field(default_factory=dict)
 
     # 特性交互（禁用/复制/移除）
     _trait_suppressed: bool = False     # 特性被压制时跳过所有 trait dispatch
@@ -210,17 +214,20 @@ class Sprite:
             ))
 
     def clear_effects(self, scope: str) -> None:
-        """清除指定 scope 的全部效果（换宠用）。"""
+        """清除指定 scope 的全部效果（换宠用）。battlefield 同步清除 aura。"""
+        scopes = {scope}
+        if scope == 'battlefield':
+            scopes.add('aura')
         self.effects = [
             e for e in self.effects
-            if e.scope != scope
+            if e.scope not in scopes
         ]
 
     # ── 驱散 / 翻倍 ──
 
     def dispel_positive(self, count: int = -1) -> int:
-        """移除正面的 stat 效果。count=-1 移除全部。返回移除数。"""
-        targets = [e for e in self.effects if e.is_stat and e.steps > 0]
+        """移除正面的 stat 效果。count=-1 移除全部。permanent 效果不可驱散。"""
+        targets = [e for e in self.effects if e.is_stat and e.steps > 0 and e.scope not in ('permanent', 'aura')]
         if count >= 0:
             targets = targets[:count]
         for e in targets:
@@ -228,8 +235,8 @@ class Sprite:
         return len(targets)
 
     def dispel_negative(self, count: int = -1) -> int:
-        """移除负面的 stat 效果。"""
-        targets = [e for e in self.effects if e.is_stat and e.steps < 0]
+        """移除负面的 stat 效果。permanent 效果不可驱散。"""
+        targets = [e for e in self.effects if e.is_stat and e.steps < 0 and e.scope not in ('permanent', 'aura')]
         if count >= 0:
             targets = targets[:count]
         for e in targets:

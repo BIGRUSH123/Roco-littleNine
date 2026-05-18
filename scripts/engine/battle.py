@@ -13,10 +13,10 @@ Can be used standalone or as a drop-in for Battle.execute_skill().
 from __future__ import annotations
 from typing import TYPE_CHECKING
 
-from vm.ctx import Ctx
-from vm.executor import execute as vm_execute, process_effects
-from vm.journal import Journal, Mutation, ModifierInjection, CounterRegister
-from vm.cond import eval_one
+from scripts.vm.ctx import Ctx
+from scripts.vm.executor import execute as vm_execute, process_effects
+from scripts.vm.journal import Journal, Mutation, ModifierInjection, CounterRegister
+from scripts.vm.cond import eval_one
 
 from .snapshot import build_ctx
 from .observer import ObserverRegistry

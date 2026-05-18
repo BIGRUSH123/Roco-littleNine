@@ -10,7 +10,7 @@ import json
 import os
 from typing import Any
 
-from vm.sort import sort_effects
+from scripts.vm.sort import sort_effects
 
 # Required fields every skill must have
 _REQUIRED = frozenset({"name", "element", "skill_type", "energy_cost"})

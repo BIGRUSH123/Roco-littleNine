@@ -97,7 +97,24 @@ class SimFactory:
             path = self._skills_dir / f'{name}.json'
             if path.exists():
                 data = json.loads(path.read_text(encoding='utf-8'))
-                skills.append(BattleSkill(base=Skill.load(data)))
+                # Build minimal Skill (metadata only, no effects) — RISC IR
+                # effects are served by SkillRecord, not Skill.effects
+                skill = Skill(
+                    id=data.get('id', 0),
+                    name=data['name'],
+                    element=data.get('element', ''),
+                    skill_type=data.get('skill_type', ''),
+                    power=data.get('power', 0),
+                    energy_cost=data.get('energy_cost', 0),
+                    counter=data.get('counter', '无'),
+                    priority=data.get('priority', 0),
+                    combo=data.get('combo', 1),
+                    effects=[],  # effects come from SkillRecord
+                    exclusive_to=data.get('exclusive_to', ''),
+                    transmission=data.get('transmission', 0),
+                    description=data.get('description', ''),
+                )
+                skills.append(BattleSkill(base=skill))
             else:
                 print(f'[SimFactory] 技能JSON未找到: {name!r}', file=sys.stderr)
         return skills
