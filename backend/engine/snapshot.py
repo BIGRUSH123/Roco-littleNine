@@ -1,16 +1,16 @@
-"""Snapshot — build Ctx from mutable battle state.
+﻿"""Snapshot — build Ctx from mutable battle state.
 
 The ONLY module in engine/ that depends on sim/ (prototype data structures).
 When the prototype is replaced, only this module needs updating.
 
 Accepts any object with the required attributes for skill parameters
-(SkillRecord, BattleSkill, Skill, or plain dict-like).
+(CompiledSkill, BattleSkill, Skill, or plain dict-like).
 """
 
 from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
-from scripts.vm.ctx import Ctx
+from backend.vm.ctx import Ctx
 
 if TYPE_CHECKING:
     from sim.sprite import Sprite

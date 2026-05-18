@@ -1,4 +1,4 @@
-"""Battle replay tests — key scenarios extracted from raw/记录.txt, 记录2.txt, 记录3.txt.
+﻿"""Battle replay tests — key scenarios extracted from raw/记录.txt, 记录2.txt, 记录3.txt.
 
 Each test replays a critical moment from a real battle through the VM engine.
 Since exact species stats are unavailable, we use reasonable mocked values and
@@ -8,13 +8,21 @@ focus on verifying engine behavior (damage, counters, stat changes, escape).
 from __future__ import annotations
 import sys
 sys.path.insert(0, ".")
-sys.path.insert(0, "scripts")
 
-from scripts.engine.skill_loader import SkillLoader
-from scripts.engine.battle import BattleVMEngine
-from scripts.sim.sprite import Sprite
-from scripts.sim.globals import GlobalEffects
-from scripts.common.models import SpeciesStats
+import json
+from pathlib import Path
+from backend.vm.compiler.skill_compiler import SkillCompiler
+from backend.engine.battle import BattleVMEngine
+
+_compiler = SkillCompiler()
+
+def _load_skill(path):
+    """Load and compile a skill from a JSON file path."""
+    data = json.loads(Path(path).read_text(encoding="utf-8"))
+    return _compiler.compile(data)
+from backend.sim.sprite import Sprite
+from backend.sim.globals import GlobalEffects
+from backend.common.models import SpeciesStats
 
 # Shared test species template
 def _make_species(name="测试精灵", hp=450, atk=130, def_=110, sp_atk=120, sp_def=105, speed=100):
@@ -43,14 +51,13 @@ def test_battle1_round1_counter_defense():
     Scenario: Status buff is countered by a defense skill.
     Verify: counter_succeeded flag is correctly set for the countering skill.
     """
-    loader = SkillLoader()
     engine = BattleVMEngine()
 
     cui = _make_sprite(_make_species("翠顶夫人", hp=434))
     bu = _make_sprite(_make_species("怖哭菇", hp=400))
 
     # 翠顶夫人: 力量增效 → self atk+100% (steps-based stat mod)
-    record_cui = loader.load_file("data/skills/力量增效.json")
+    record_cui = _load_skill("data/skills/力量增效.json")
     result_cui = engine.execute_skill(cui, bu, record_cui, None, GlobalEffects(), turn=1, is_first=True, team="A")
 
     # Verify stat buff was applied
@@ -59,7 +66,7 @@ def test_battle1_round1_counter_defense():
     print(f"  R1-A: 翠顶夫人 力量增效 → atk+{atk_stages*10}%")
 
     # 怖哭菇: 错乱 → counter defense
-    record_bu = loader.load_file("data/skills/错乱.json")
+    record_bu = _load_skill("data/skills/错乱.json")
     result_bu = engine.execute_skill(bu, cui, record_bu, record_cui, GlobalEffects(),
                                       turn=1, is_first=True, team="B",
                                       counter_succeeded=True)
@@ -79,14 +86,13 @@ def test_battle1_round6_switch_counter():
 
     Key test: 风墙 as counter defense against 蝙蝠 attack.
     """
-    loader = SkillLoader()
     engine = BattleVMEngine()
 
     longxi = _make_sprite(_make_species("龙息帕尔", hp=480, atk=140))
     cui = _make_sprite(_make_species("翠顶夫人", hp=501, def_=120))
 
     # 龙息帕尔 uses 蝙蝠 (attack)
-    record_bat = loader.load_file("data/skills/蝙蝠.json")
+    record_bat = _load_skill("data/skills/蝙蝠.json")
     result_atk = engine.execute_skill(longxi, cui, record_bat, None, GlobalEffects(),
                                        turn=8, is_first=True, team="A",
                                        was_countered=True)
@@ -94,7 +100,7 @@ def test_battle1_round6_switch_counter():
     print(f"  R8-A: 龙息帕尔 蝙蝠 → cui HP: {cui.current_hp} (-{dmg_to_cui})")
 
     # 翠顶夫人 uses 风墙 (defense, counter)
-    record_fq = loader.load_file("data/skills/风墙.json")
+    record_fq = _load_skill("data/skills/风墙.json")
     result_def = engine.execute_skill(cui, longxi, record_fq, record_bat, GlobalEffects(),
                                        turn=8, is_first=True, team="B",
                                        counter_succeeded=True)
@@ -119,7 +125,6 @@ def test_battle2_round1_poison_counter():
 
     Key test: Damage dealing and HP tracking for both sides.
     """
-    loader = SkillLoader()
     engine = BattleVMEngine()
 
     qian = _make_sprite(_make_species("千棘盔", hp=486, atk=135))
@@ -127,7 +132,7 @@ def test_battle2_round1_poison_counter():
 
     # Load skills — 愿力冲击 and 地陷 are RISC IR skills
     # 千棘盔 uses attack (愿力冲击 is modified by 愿力强化)
-    record_hit = loader.load_file("data/skills/地陷.json")
+    record_hit = _load_skill("data/skills/地陷.json")
     result = engine.execute_skill(shi, qian, record_hit, None, GlobalEffects(),
                                    turn=1, is_first=False, team="B")
     dmg = 486 - qian.current_hp
@@ -144,14 +149,13 @@ def test_battle2_round5_death_and_switch():
 
     Key test: Damage can kill a sprite (HP <= 0).
     """
-    loader = SkillLoader()
     engine = BattleVMEngine()
 
     # Low HP sprite to simulate an already weakened 棋齐垒
     qi = _make_sprite(_make_species("棋齐垒", hp=350, atk=110, def_=95), hp=100)
     li = _make_sprite(_make_species("利灯鱼", hp=439, sp_atk=140))
 
-    record_sg = loader.load_file("data/skills/水光冲击.json")
+    record_sg = _load_skill("data/skills/水光冲击.json")
     result = engine.execute_skill(li, qi, record_sg, None, GlobalEffects(),
                                    turn=5, is_first=True, team="B",
                                    was_countered=False)
@@ -168,14 +172,13 @@ def test_battle2_round7_counter_chain():
 
     Key test: Counter defense with damage, sprite states tracked.
     """
-    loader = SkillLoader()
     engine = BattleVMEngine()
 
     liuli = _make_sprite(_make_species("琉璃水母", hp=519, sp_def=110))
     li = _make_sprite(_make_species("利灯鱼", hp=439, sp_atk=140))
 
     # 利灯鱼 uses 落雷
-    record_ll = loader.load_file("data/skills/落雷.json")
+    record_ll = _load_skill("data/skills/落雷.json")
     result_atk = engine.execute_skill(li, liuli, record_ll, None, GlobalEffects(),
                                        turn=7, is_first=True, team="B",
                                        was_countered=True)
@@ -183,7 +186,7 @@ def test_battle2_round7_counter_chain():
     print(f"  R7-A: 利灯鱼 落雷 → 琉璃水母 HP: {liuli.current_hp}/{519} (-{dmg})")
 
     # 琉璃水母 uses 泡沫幻影 (defense, counter)
-    record_pm = loader.load_file("data/skills/泡沫幻影.json")
+    record_pm = _load_skill("data/skills/泡沫幻影.json")
     result_def = engine.execute_skill(liuli, li, record_pm, record_ll, GlobalEffects(),
                                        turn=7, is_first=True, team="A",
                                        counter_succeeded=True)
@@ -199,14 +202,13 @@ def test_battle2_round8_burst_ko():
 
     Key test: Mutual heavy damage, one sprite faints.
     """
-    loader = SkillLoader()
     engine = BattleVMEngine()
 
     qiu = _make_sprite(_make_species("裘卡", hp=380, def_=95), hp=200)
     pi = _make_sprite(_make_species("小皮球", hp=400, atk=150))
 
     # 小皮球 uses 大爆炸 (high power hit)
-    record_dbz = loader.load_file("data/skills/大爆炸.json")
+    record_dbz = _load_skill("data/skills/大爆炸.json")
     result = engine.execute_skill(pi, qiu, record_dbz, None, GlobalEffects(),
                                    turn=8, is_first=True, team="B")
     print(f"  R8: 小皮球 大爆炸 → 裘卡 HP: {qiu.current_hp}/{qiu.max_hp}")
@@ -226,13 +228,12 @@ def test_battle3_round6_burst_ko():
 
     Key test: Quick kill with priority skill (闪击 = 迅捷).
     """
-    loader = SkillLoader()
     engine = BattleVMEngine()
 
     lan = _make_sprite(_make_species("岚鸟", hp=420, atk=145))
     yu = _make_sprite(_make_species("圆号鱼", hp=380, def_=90), hp=120)
 
-    record_sj = loader.load_file("data/skills/闪击.json")
+    record_sj = _load_skill("data/skills/闪击.json")
     result = engine.execute_skill(lan, yu, record_sj, None, GlobalEffects(),
                                    turn=6, is_first=True, team="A")
     print(f"  R6: 岚鸟 闪击 → 圆号鱼 HP: {yu.current_hp}/{yu.max_hp}")
@@ -246,14 +247,13 @@ def test_battle3_round9_counter_exchange():
 
     Key test: Both sides deal damage, neither faints.
     """
-    loader = SkillLoader()
     engine = BattleVMEngine()
 
     lingyu = _make_sprite(_make_species("灵羽骑士", hp=400, atk=135, def_=110))
     papa = _make_sprite(_make_species("化蝶", hp=380, def_=100))
 
     # 灵羽骑士 uses 水刃
-    record_sr = loader.load_file("data/skills/水刃.json")
+    record_sr = _load_skill("data/skills/水刃.json")
     result_a = engine.execute_skill(lingyu, papa, record_sr, None, GlobalEffects(),
                                      turn=9, is_first=True, team="A")
     dmg_a = 380 - papa.current_hp
@@ -261,7 +261,7 @@ def test_battle3_round9_counter_exchange():
     assert dmg_a > 0, "水刃 should deal damage"
 
     # 化蝶 uses 破罐破摔
-    record_pg = loader.load_file("data/skills/破罐破摔.json")
+    record_pg = _load_skill("data/skills/破罐破摔.json")
     result_b = engine.execute_skill(papa, lingyu, record_pg, None, GlobalEffects(),
                                      turn=9, is_first=False, team="B")
     dmg_b = 400 - lingyu.current_hp
@@ -276,13 +276,12 @@ def test_battle3_round22_final_ko():
 
     Key test: Final killing blow ends the match.
     """
-    loader = SkillLoader()
     engine = BattleVMEngine()
 
     shengjian = _make_sprite(_make_species("圣剑X", hp=517, atk=145))
     maomao = _make_sprite(_make_species("化蝶", hp=320, def_=90), hp=80)
 
-    record_cl = loader.load_file("data/skills/齿轮切开.json")
+    record_cl = _load_skill("data/skills/齿轮切开.json")
     result = engine.execute_skill(shengjian, maomao, record_cl, None, GlobalEffects(),
                                    turn=22, is_first=True, team="A")
     print(f"  R22: 圣剑X 齿轮切开 → 化蝶 HP: {maomao.current_hp}/{maomao.max_hp}")

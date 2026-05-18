@@ -1,15 +1,24 @@
-"""Smoke test for engine snapshot + replayer with real sim objects."""
+﻿"""Smoke test for engine snapshot + replayer with real sim objects."""
 import sys
+import json
+from pathlib import Path
 sys.path.insert(0, ".")
-sys.path.insert(0, "scripts")
 
-from scripts.engine.snapshot import build_ctx
-from scripts.engine.replayer import JournalReplayer
-from scripts.sim.sprite import Sprite
-from scripts.sim.skill import Skill
-from scripts.sim.battleskill import BattleSkill
-from scripts.sim.globals import GlobalEffects
-from scripts.common.models import SpeciesStats
+from backend.vm.compiler.skill_compiler import SkillCompiler
+from backend.engine.snapshot import build_ctx
+
+_compiler = SkillCompiler()
+
+def _load_skill(path):
+    """Load and compile a skill from a JSON file path."""
+    data = json.loads(Path(path).read_text(encoding="utf-8"))
+    return _compiler.compile(data)
+from backend.engine.replayer import JournalReplayer
+from backend.sim.sprite import Sprite
+from backend.sim.skill import Skill
+from backend.sim.battleskill import BattleSkill
+from backend.sim.globals import GlobalEffects
+from backend.common.models import SpeciesStats
 
 
 def test_snapshot():
@@ -46,7 +55,7 @@ def test_snapshot():
 
 
 def test_replayer():
-    from scripts.vm.journal import Damage, Heal, EnergyChange, StatChange, MarkChange, WeatherSet
+    from backend.vm.journal import Damage, Heal, EnergyChange, StatChange, MarkChange, WeatherSet
 
     species = SpeciesStats(
         name="测试精灵", hp=200, atk=120, def_=100,
@@ -105,9 +114,9 @@ def test_replayer():
 
 def test_modifier_collection():
     """Test that ModifierInjections from journal are collected and applied to Damage."""
-    from scripts.vm.journal import Damage, ModifierInjection, Journal
-    from scripts.vm.ctx import Ctx
-    from scripts.engine.modifiers import collect_modifiers, adjust_damage
+    from backend.vm.journal import Damage, ModifierInjection, Journal
+    from backend.vm.ctx import Ctx
+    from backend.engine.modifiers import collect_modifiers, adjust_damage
 
     # Simulate: skill has an effect that produces power_mult=1.5, then hit deals damage
     ctx = Ctx(power_self=100, atk_self=120, def_opp=100, skill_type_self="物攻",
@@ -130,9 +139,9 @@ def test_modifier_collection():
 
 def test_modifier_chain():
     """Test multiple stacked modifiers."""
-    from scripts.vm.journal import Damage, ModifierInjection, Journal
-    from scripts.vm.ctx import Ctx
-    from scripts.engine.modifiers import collect_modifiers, adjust_damage
+    from backend.vm.journal import Damage, ModifierInjection, Journal
+    from backend.vm.ctx import Ctx
+    from backend.engine.modifiers import collect_modifiers, adjust_damage
 
     ctx = Ctx(power_self=80, atk_self=100, def_opp=100, skill_type_self="物攻",
               element_self="水", damage_reduction_opp=0.0, combo_self=1)
@@ -158,9 +167,9 @@ def test_modifier_chain():
 
 def test_modifier_collection_end_to_end():
     """Full pipeline: sprite with effects → Ctx → VM-like execution → modifier collection."""
-    from scripts.vm.journal import Damage, ModifierInjection, Journal
-    from scripts.vm.ctx import Ctx
-    from scripts.engine.modifiers import apply_modifiers_to_journal
+    from backend.vm.journal import Damage, ModifierInjection, Journal
+    from backend.vm.ctx import Ctx
+    from backend.engine.modifiers import apply_modifiers_to_journal
 
     # Simulate what the engine does: build ctx, run VM, get journal, apply modifiers
     ctx = Ctx(power_self=75, atk_self=130, def_opp=110, skill_type_self="物攻",
@@ -186,11 +195,11 @@ def test_modifier_collection_end_to_end():
 
 def test_life_drain():
     """Test that life drain modifier heals attacker when dealing damage."""
-    from scripts.vm.journal import Damage, ModifierInjection, Journal
-    from scripts.engine.replayer import JournalReplayer
-    from scripts.sim.sprite import Sprite
-    from scripts.sim.globals import GlobalEffects
-    from scripts.common.models import SpeciesStats
+    from backend.vm.journal import Damage, ModifierInjection, Journal
+    from backend.engine.replayer import JournalReplayer
+    from backend.sim.sprite import Sprite
+    from backend.sim.globals import GlobalEffects
+    from backend.common.models import SpeciesStats
 
     species = SpeciesStats(
         name="测试精灵", hp=200, atk=120, def_=100,
@@ -223,16 +232,16 @@ def test_life_drain():
 
 def test_counter_damage_flow():
     """Test that counter_succeeded hit effects deal damage to opponent."""
-    from scripts.vm.ctx import Ctx
-    from scripts.vm.executor import execute as vm_execute
-    from scripts.engine.snapshot import build_ctx
-    from scripts.engine.replayer import JournalReplayer
-    from scripts.engine.modifiers import apply_modifiers_to_journal
-    from scripts.sim.sprite import Sprite
-    from scripts.sim.skill import Skill
-    from scripts.sim.battleskill import BattleSkill
-    from scripts.sim.globals import GlobalEffects
-    from scripts.common.models import SpeciesStats
+    from backend.vm.ctx import Ctx
+    from backend.vm.executor import execute as vm_execute
+    from backend.engine.snapshot import build_ctx
+    from backend.engine.replayer import JournalReplayer
+    from backend.engine.modifiers import apply_modifiers_to_journal
+    from backend.sim.sprite import Sprite
+    from backend.sim.skill import Skill
+    from backend.sim.battleskill import BattleSkill
+    from backend.sim.globals import GlobalEffects
+    from backend.common.models import SpeciesStats
 
     species = SpeciesStats(
         name="测试精灵", hp=200, atk=120, def_=100,
@@ -287,15 +296,15 @@ def test_counter_damage_flow():
 
 def test_counter_succeeded_flag_flow():
     """Test that counter_succeeded flag correctly gates conditional effects."""
-    from scripts.vm.ctx import Ctx
-    from scripts.vm.executor import execute as vm_execute
-    from scripts.engine.snapshot import build_ctx
-    from scripts.engine.replayer import JournalReplayer
-    from scripts.engine.modifiers import apply_modifiers_to_journal
-    from scripts.sim.sprite import Sprite
-    from scripts.sim.skill import Skill
-    from scripts.sim.globals import GlobalEffects
-    from scripts.common.models import SpeciesStats
+    from backend.vm.ctx import Ctx
+    from backend.vm.executor import execute as vm_execute
+    from backend.engine.snapshot import build_ctx
+    from backend.engine.replayer import JournalReplayer
+    from backend.engine.modifiers import apply_modifiers_to_journal
+    from backend.sim.sprite import Sprite
+    from backend.sim.skill import Skill
+    from backend.sim.globals import GlobalEffects
+    from backend.common.models import SpeciesStats
 
     species = SpeciesStats(
         name="测试精灵", hp=200, atk=120, def_=100,
@@ -362,14 +371,14 @@ def test_counter_succeeded_flag_flow():
 
 def test_counter_refs_opp_power():
     """Test counter hit that references opponent's skill power (like 听桥)."""
-    from scripts.vm.executor import execute as vm_execute
-    from scripts.engine.snapshot import build_ctx
-    from scripts.engine.replayer import JournalReplayer
-    from scripts.engine.modifiers import apply_modifiers_to_journal
-    from scripts.sim.sprite import Sprite
-    from scripts.sim.skill import Skill
-    from scripts.sim.globals import GlobalEffects
-    from scripts.common.models import SpeciesStats
+    from backend.vm.executor import execute as vm_execute
+    from backend.engine.snapshot import build_ctx
+    from backend.engine.replayer import JournalReplayer
+    from backend.engine.modifiers import apply_modifiers_to_journal
+    from backend.sim.sprite import Sprite
+    from backend.sim.skill import Skill
+    from backend.sim.globals import GlobalEffects
+    from backend.common.models import SpeciesStats
 
     species_self = SpeciesStats(
         name="防御者", hp=200, atk=120, def_=120,
@@ -428,15 +437,15 @@ def test_counter_refs_opp_power():
 
 def test_escape_mutation_production():
     """Test that a skill with escape opcode produces an Escape mutation."""
-    from scripts.vm.ctx import Ctx
-    from scripts.vm.executor import execute as vm_execute
-    from scripts.vm.journal import Escape
-    from scripts.engine.snapshot import build_ctx
-    from scripts.engine.replayer import JournalReplayer
-    from scripts.sim.sprite import Sprite
-    from scripts.sim.skill import Skill
-    from scripts.sim.globals import GlobalEffects
-    from scripts.common.models import SpeciesStats
+    from backend.vm.ctx import Ctx
+    from backend.vm.executor import execute as vm_execute
+    from backend.vm.journal import Escape
+    from backend.engine.snapshot import build_ctx
+    from backend.engine.replayer import JournalReplayer
+    from backend.sim.sprite import Sprite
+    from backend.sim.skill import Skill
+    from backend.sim.globals import GlobalEffects
+    from backend.common.models import SpeciesStats
 
     species = SpeciesStats(
         name="测试精灵", hp=200, atk=120, def_=100,
@@ -478,15 +487,15 @@ def test_escape_mutation_production():
 
 def test_return_mutation_production():
     """Test that return opcode produces Return mutation and sets pending_return."""
-    from scripts.vm.ctx import Ctx
-    from scripts.vm.executor import execute as vm_execute
-    from scripts.vm.journal import Return
-    from scripts.engine.snapshot import build_ctx
-    from scripts.engine.replayer import JournalReplayer
-    from scripts.sim.sprite import Sprite
-    from scripts.sim.skill import Skill
-    from scripts.sim.globals import GlobalEffects
-    from scripts.common.models import SpeciesStats
+    from backend.vm.ctx import Ctx
+    from backend.vm.executor import execute as vm_execute
+    from backend.vm.journal import Return
+    from backend.engine.snapshot import build_ctx
+    from backend.engine.replayer import JournalReplayer
+    from backend.sim.sprite import Sprite
+    from backend.sim.skill import Skill
+    from backend.sim.globals import GlobalEffects
+    from backend.common.models import SpeciesStats
 
     species = SpeciesStats(
         name="测试精灵", hp=200, atk=120, def_=100,
@@ -523,14 +532,14 @@ def test_return_mutation_production():
 
 def test_e2e_attack_skill():
     """End-to-end: execute a real attack skill through VM engine."""
-    from scripts.engine.skill_loader import SkillLoader
-    from scripts.engine.battle import BattleVMEngine
-    from scripts.sim.sprite import Sprite
-    from scripts.sim.globals import GlobalEffects
-    from scripts.common.models import SpeciesStats
-    from scripts.vm.journal import Damage
+    # SkillCompiler now used via module-level _load_skill() helper
+    from backend.engine.battle import BattleVMEngine
+    from backend.sim.sprite import Sprite
+    from backend.sim.globals import GlobalEffects
+    from backend.common.models import SpeciesStats
+    from backend.vm.journal import Damage
 
-    loader = SkillLoader()
+
     engine = BattleVMEngine()
     species = SpeciesStats(name="测试精灵", hp=200, atk=120, def_=100, sp_atk=110, sp_def=95, speed=100)
     sprite = Sprite(species=species, current_hp=180, max_hp=200, energy=8,
@@ -538,7 +547,7 @@ def test_e2e_attack_skill():
     opp = Sprite(species=species, current_hp=150, max_hp=180, energy=5,
                  initial_stats={"atk": 115, "def": 90, "sp_atk": 105, "sp_def": 85, "speed": 95})
 
-    record = loader.load_file("data/skills/龙爪.json")
+    record = _load_skill("data/skills/龙爪.json")
     result = engine.execute_skill(sprite, opp, record, None, GlobalEffects(), turn=1, is_first=True, team="A")
 
     assert opp.current_hp < 150, f"Expected damage to opponent, HP={opp.current_hp}"
@@ -550,13 +559,13 @@ def test_e2e_attack_skill():
 
 def test_e2e_defense_counter():
     """End-to-end: defense skill with counter_succeeded conditional effects."""
-    from scripts.engine.skill_loader import SkillLoader
-    from scripts.engine.battle import BattleVMEngine
-    from scripts.sim.sprite import Sprite
-    from scripts.sim.globals import GlobalEffects
-    from scripts.common.models import SpeciesStats
+    # SkillCompiler now used via module-level _load_skill() helper
+    from backend.engine.battle import BattleVMEngine
+    from backend.sim.sprite import Sprite
+    from backend.sim.globals import GlobalEffects
+    from backend.common.models import SpeciesStats
 
-    loader = SkillLoader()
+
     engine = BattleVMEngine()
     species = SpeciesStats(name="测试精灵", hp=200, atk=120, def_=100, sp_atk=110, sp_def=95, speed=100)
     sprite = Sprite(species=species, current_hp=180, max_hp=200, energy=8,
@@ -564,7 +573,7 @@ def test_e2e_defense_counter():
     opp = Sprite(species=species, current_hp=150, max_hp=180, energy=5,
                  initial_stats={"atk": 115, "def": 90, "sp_atk": 105, "sp_def": 85, "speed": 95})
 
-    record = loader.load_file("data/skills/防反.json")
+    record = _load_skill("data/skills/防反.json")
     result = engine.execute_skill(sprite, opp, record, None, GlobalEffects(), turn=1, is_first=False, team="B",
                                    counter_succeeded=True)
 
@@ -578,14 +587,14 @@ def test_e2e_defense_counter():
 
 def test_e2e_escape_skill():
     """End-to-end: skill with escape opcode produces Escape mutation."""
-    from scripts.engine.skill_loader import SkillLoader
-    from scripts.engine.battle import BattleVMEngine
-    from scripts.sim.sprite import Sprite
-    from scripts.sim.globals import GlobalEffects
-    from scripts.common.models import SpeciesStats
-    from scripts.vm.journal import Escape
+    # SkillCompiler now used via module-level _load_skill() helper
+    from backend.engine.battle import BattleVMEngine
+    from backend.sim.sprite import Sprite
+    from backend.sim.globals import GlobalEffects
+    from backend.common.models import SpeciesStats
+    from backend.vm.journal import Escape
 
-    loader = SkillLoader()
+
     engine = BattleVMEngine()
     species = SpeciesStats(name="测试精灵", hp=200, atk=120, def_=100, sp_atk=110, sp_def=95, speed=100)
     sprite = Sprite(species=species, current_hp=180, max_hp=200, energy=8,
@@ -593,7 +602,7 @@ def test_e2e_escape_skill():
     opp = Sprite(species=species, current_hp=150, max_hp=180, energy=5,
                  initial_stats={"atk": 115, "def": 90, "sp_atk": 105, "sp_def": 85, "speed": 95})
 
-    record = loader.load_file("data/skills/恶意逃离.json")
+    record = _load_skill("data/skills/恶意逃离.json")
     result = engine.execute_skill(sprite, opp, record, None, GlobalEffects(), turn=1, is_first=True, team="A")
 
     escapes = [m for m in result.journal if isinstance(m, Escape)]
@@ -608,9 +617,9 @@ def test_e2e_escape_skill():
 
 def test_counter_register_production():
     """Test that a skill with count opcode produces CounterRegister mutation."""
-    from scripts.vm.ctx import Ctx
-    from scripts.vm.executor import execute as vm_execute
-    from scripts.vm.journal import CounterRegister
+    from backend.vm.ctx import Ctx
+    from backend.vm.executor import execute as vm_execute
+    from backend.vm.journal import CounterRegister
 
     ctx = Ctx(skill_type_self="物攻", element_self="虫")
     effects = [
@@ -634,14 +643,14 @@ def test_counter_register_production():
 
 def test_counter_register_engine_integration():
     """Test that execute_skill registers counters from journal into engine."""
-    from scripts.engine.skill_loader import SkillLoader
-    from scripts.engine.battle import BattleVMEngine
-    from scripts.sim.sprite import Sprite
-    from scripts.sim.globals import GlobalEffects
-    from scripts.common.models import SpeciesStats
-    from scripts.vm.journal import CounterRegister
+    # SkillCompiler now used via module-level _load_skill() helper
+    from backend.engine.battle import BattleVMEngine
+    from backend.sim.sprite import Sprite
+    from backend.sim.globals import GlobalEffects
+    from backend.common.models import SpeciesStats
+    from backend.vm.journal import CounterRegister
 
-    loader = SkillLoader()
+
     engine = BattleVMEngine()
     species = SpeciesStats(name="测试精灵", hp=200, atk=120, def_=100, sp_atk=110, sp_def=95, speed=100)
     sprite = Sprite(species=species, current_hp=180, max_hp=200, energy=8,
@@ -649,7 +658,7 @@ def test_counter_register_engine_integration():
     opp = Sprite(species=species, current_hp=150, max_hp=180, energy=5,
                  initial_stats={"atk": 115, "def": 90, "sp_atk": 105, "sp_def": 85, "speed": 95})
 
-    record = loader.load_file("data/skills/啃咬.json")
+    record = _load_skill("data/skills/啃咬.json")
     result = engine.execute_skill(sprite, opp, record, None, GlobalEffects(), turn=1, is_first=True, team="A")
 
     # Should have CounterRegister in journal
@@ -662,11 +671,11 @@ def test_counter_register_engine_integration():
 
 def test_counter_fires_on_condition():
     """Test that a registered counter fires when its condition becomes true."""
-    from scripts.vm.ctx import Ctx
-    from scripts.vm.executor import execute as vm_execute, process_effects
-    from scripts.vm.journal import CounterRegister, ModifierInjection
-    from scripts.engine.battle import BattleVMEngine
-    from scripts.engine.observer import ObserverRegistry, Observer
+    from backend.vm.ctx import Ctx
+    from backend.vm.executor import execute as vm_execute, process_effects
+    from backend.vm.journal import CounterRegister, ModifierInjection
+    from backend.engine.battle import BattleVMEngine
+    from backend.engine.observer import ObserverRegistry, Observer
 
     # Setup: register a counter that modifies energy_cost on devotion_triggered
     registry = ObserverRegistry()
@@ -698,10 +707,10 @@ def test_counter_fires_on_condition():
 
 def test_counter_does_not_fire_without_condition():
     """Test that a registered counter does NOT fire when condition is false."""
-    from scripts.vm.ctx import Ctx
-    from scripts.vm.journal import CounterRegister
-    from scripts.engine.battle import BattleVMEngine
-    from scripts.engine.observer import ObserverRegistry
+    from backend.vm.ctx import Ctx
+    from backend.vm.journal import CounterRegister
+    from backend.engine.battle import BattleVMEngine
+    from backend.engine.observer import ObserverRegistry
 
     registry = ObserverRegistry()
     engine = BattleVMEngine(registry)
@@ -723,10 +732,10 @@ def test_counter_does_not_fire_without_condition():
 
 def test_named_counter_value_tracking():
     """Test that named counters track their values and are queryable via counter_values."""
-    from scripts.vm.ctx import Ctx
-    from scripts.vm.journal import CounterRegister, Mutation
-    from scripts.engine.battle import BattleVMEngine
-    from scripts.engine.observer import ObserverRegistry
+    from backend.vm.ctx import Ctx
+    from backend.vm.journal import CounterRegister, Mutation
+    from backend.engine.battle import BattleVMEngine
+    from backend.engine.observer import ObserverRegistry
 
     registry = ObserverRegistry()
     engine = BattleVMEngine(registry)
@@ -762,9 +771,9 @@ def test_named_counter_value_tracking():
 
 def test_borrow_mutation_production():
     """Test that borrow opcode produces a Borrow mutation."""
-    from scripts.vm.ctx import Ctx
-    from scripts.vm.executor import execute as vm_execute
-    from scripts.vm.journal import Borrow
+    from backend.vm.ctx import Ctx
+    from backend.vm.executor import execute as vm_execute
+    from backend.vm.journal import Borrow
 
     ctx = Ctx(element_self="光", skill_type_self="防御")
     effects = [{"op": "borrow", "from": "skill_opp_current"}]
@@ -777,10 +786,10 @@ def test_borrow_mutation_production():
 
 def test_borrow_skill_substitution():
     """Test that borrow replaces skill properties with opponent's skill."""
-    from scripts.vm.ctx import Ctx
-    from scripts.vm.executor import execute as vm_execute
-    from scripts.vm.journal import Borrow, Damage
-    from scripts.engine.battle import BattleVMEngine
+    from backend.vm.ctx import Ctx
+    from backend.vm.executor import execute as vm_execute
+    from backend.vm.journal import Borrow, Damage
+    from backend.engine.battle import BattleVMEngine
 
     engine = BattleVMEngine()
 
@@ -813,14 +822,14 @@ def test_borrow_skill_substitution():
 
 def test_borrow_e2e_mirror():
     """End-to-end: counter defense that borrows attacker's skill (镜像反射 pattern)."""
-    from scripts.engine.skill_loader import SkillLoader
-    from scripts.engine.battle import BattleVMEngine
-    from scripts.sim.sprite import Sprite
-    from scripts.sim.globals import GlobalEffects
-    from scripts.common.models import SpeciesStats
-    from scripts.vm.journal import Damage, Borrow
+    # SkillCompiler now used via module-level _load_skill() helper
+    from backend.engine.battle import BattleVMEngine
+    from backend.sim.sprite import Sprite
+    from backend.sim.globals import GlobalEffects
+    from backend.common.models import SpeciesStats
+    from backend.vm.journal import Damage, Borrow
 
-    loader = SkillLoader()
+
     engine = BattleVMEngine()
     species_def = SpeciesStats(name="防御者", hp=200, atk=120, def_=120, sp_atk=110, sp_def=110, speed=100)
     species_atk = SpeciesStats(name="攻击者", hp=180, atk=130, def_=80, sp_atk=100, sp_def=80, speed=110)
@@ -830,9 +839,9 @@ def test_borrow_e2e_mirror():
     atk_sprite = Sprite(species=species_atk, current_hp=180, max_hp=180, energy=5,
                         initial_stats={"atk": 130, "def": 80, "sp_atk": 100, "sp_def": 80, "speed": 110})
 
-    record = loader.load_file("data/skills/镜像反射.json")
+    record = _load_skill("data/skills/镜像反射.json")
     # The opponent's skill (being countered): 龙爪 (物攻, power=80, element=龙)
-    opp_skill = loader.load_file("data/skills/龙爪.json")
+    opp_skill = _load_skill("data/skills/龙爪.json")
 
     result = engine.execute_skill(
         def_sprite, atk_sprite, record, opp_skill,
@@ -853,10 +862,10 @@ def test_borrow_e2e_mirror():
 
 def test_replay_team_burst():
     """Test that replay from team_burst replays registered burst effects."""
-    from scripts.vm.ctx import Ctx
-    from scripts.vm.executor import execute as vm_execute
-    from scripts.vm.journal import Replay
-    from scripts.engine.battle import BattleVMEngine
+    from backend.vm.ctx import Ctx
+    from backend.vm.executor import execute as vm_execute
+    from backend.vm.journal import Replay
+    from backend.engine.battle import BattleVMEngine
 
     engine = BattleVMEngine()
     # Register burst effects
@@ -877,7 +886,7 @@ def test_replay_team_burst():
     assert len(replays) == 0, "Replay mutations should be consumed by _handle_replay"
 
     # Should have the burst effects' mutations (atk+1, def-1 = 2 StatChanges)
-    from scripts.vm.journal import StatChange
+    from backend.vm.journal import StatChange
     stat_changes = [m for m in journal if isinstance(m, StatChange)]
     assert len(stat_changes) >= 2, f"Expected >=2 stat changes from burst replay, got {len(stat_changes)}"
     print(f"  Team burst replay: {len(stat_changes)} stat changes produced")
@@ -885,10 +894,10 @@ def test_replay_team_burst():
 
 def test_replay_sprite_self_basic():
     """Test replay from sprite_self replays matching historical skills."""
-    from scripts.vm.ctx import Ctx
-    from scripts.vm.executor import execute as vm_execute
-    from scripts.vm.journal import Replay
-    from scripts.engine.battle import BattleVMEngine
+    from backend.vm.ctx import Ctx
+    from backend.vm.executor import execute as vm_execute
+    from backend.vm.journal import Replay
+    from backend.engine.battle import BattleVMEngine
 
     engine = BattleVMEngine()
     # Track skill history for a sprite
@@ -906,7 +915,7 @@ def test_replay_sprite_self_basic():
     journal = engine._handle_replay_sprite_self(journal, "sprite_A", ctx)
 
     # Both historical skills' effects should execute
-    from scripts.vm.journal import StatChange
+    from backend.vm.journal import StatChange
     stat_changes = [m for m in journal if isinstance(m, StatChange)]
     assert len(stat_changes) == 2, f"Expected 2 stat changes from history replay, got {len(stat_changes)}"
     print(f"  Sprite self replay: {len(stat_changes)} stat changes from history")
@@ -914,10 +923,10 @@ def test_replay_sprite_self_basic():
 
 def test_replay_sprite_self_with_filter():
     """Test replay from sprite_self with skill_type filter."""
-    from scripts.vm.ctx import Ctx
-    from scripts.vm.executor import execute as vm_execute
-    from scripts.vm.journal import Replay, ModifierInjection
-    from scripts.engine.battle import BattleVMEngine
+    from backend.vm.ctx import Ctx
+    from backend.vm.executor import execute as vm_execute
+    from backend.vm.journal import Replay, ModifierInjection
+    from backend.engine.battle import BattleVMEngine
 
     engine = BattleVMEngine()
     engine._skill_history["sprite_A"] = [
@@ -940,7 +949,7 @@ def test_replay_sprite_self_with_filter():
     journal = engine._handle_replay_sprite_self(journal, "sprite_A", ctx)
 
     # Only 迅捷技能A should be replayed
-    from scripts.vm.journal import ModifierInjection
+    from backend.vm.journal import ModifierInjection
     mods = [m for m in journal if isinstance(m, ModifierInjection)]
     assert len(mods) == 1, f"Expected 1 mod from filtered replay, got {len(mods)}"
     assert mods[0].stat == "power", f"Expected power mod, got {mods[0].stat}"
@@ -953,9 +962,9 @@ def test_replay_sprite_self_with_filter():
 
 def test_interrupt_mutation_production():
     """Test that interrupt opcode produces Interrupt mutation."""
-    from scripts.vm.ctx import Ctx
-    from scripts.vm.executor import execute as vm_execute
-    from scripts.vm.journal import Interrupt
+    from backend.vm.ctx import Ctx
+    from backend.vm.executor import execute as vm_execute
+    from backend.vm.journal import Interrupt
 
     ctx = Ctx(element_self="武", skill_type_self="防御")
     effects = [{"op": "interrupt", "target": "sprite_opp"}]
@@ -968,11 +977,11 @@ def test_interrupt_mutation_production():
 
 def test_interrupt_sets_sprite_flag():
     """Test that replaying an Interrupt mutation sets the interrupted flag."""
-    from scripts.engine.replayer import JournalReplayer
-    from scripts.vm.journal import Interrupt
-    from scripts.sim.sprite import Sprite
-    from scripts.sim.globals import GlobalEffects
-    from scripts.common.models import SpeciesStats
+    from backend.engine.replayer import JournalReplayer
+    from backend.vm.journal import Interrupt
+    from backend.sim.sprite import Sprite
+    from backend.sim.globals import GlobalEffects
+    from backend.common.models import SpeciesStats
 
     species = SpeciesStats(name="test", hp=200, atk=120, def_=100,
                           sp_atk=110, sp_def=95, speed=100)
@@ -990,14 +999,14 @@ def test_interrupt_sets_sprite_flag():
 
 def test_interrupt_e2e_hard_gate():
     """E2E: 硬门 counters attack → interrupt + hit damage."""
-    from scripts.engine.skill_loader import SkillLoader
-    from scripts.engine.battle import BattleVMEngine
-    from scripts.sim.sprite import Sprite
-    from scripts.sim.globals import GlobalEffects
-    from scripts.common.models import SpeciesStats
-    from scripts.vm.journal import Interrupt, Damage
+    # SkillCompiler now used via module-level _load_skill() helper
+    from backend.engine.battle import BattleVMEngine
+    from backend.sim.sprite import Sprite
+    from backend.sim.globals import GlobalEffects
+    from backend.common.models import SpeciesStats
+    from backend.vm.journal import Interrupt, Damage
 
-    loader = SkillLoader()
+
     engine = BattleVMEngine()
     species_def = SpeciesStats(name="防御者", hp=200, atk=120, def_=120, sp_atk=110, sp_def=110, speed=100)
     species_atk = SpeciesStats(name="攻击者", hp=180, atk=130, def_=80, sp_atk=100, sp_def=80, speed=110)
@@ -1007,8 +1016,8 @@ def test_interrupt_e2e_hard_gate():
     atk_sprite = Sprite(species=species_atk, current_hp=180, max_hp=180, energy=5,
                         initial_stats={"atk": 130, "def": 80, "sp_atk": 100, "sp_def": 80, "speed": 110})
 
-    record = loader.load_file("data/skills/硬门.json")
-    opp_skill = loader.load_file("data/skills/龙爪.json")
+    record = _load_skill("data/skills/硬门.json")
+    opp_skill = _load_skill("data/skills/龙爪.json")
 
     result = engine.execute_skill(
         def_sprite, atk_sprite, record, opp_skill,
@@ -1032,9 +1041,9 @@ def test_interrupt_e2e_hard_gate():
 
 def test_lock_mutation_production():
     """Test that lock opcode produces Lock mutation."""
-    from scripts.vm.ctx import Ctx
-    from scripts.vm.executor import execute as vm_execute
-    from scripts.vm.journal import Lock
+    from backend.vm.ctx import Ctx
+    from backend.vm.executor import execute as vm_execute
+    from backend.vm.journal import Lock
 
     ctx = Ctx(element_self="地", skill_type_self="状态")
     effects = [{"op": "lock", "target": "sprite_opp", "turns": 3}]
@@ -1047,11 +1056,11 @@ def test_lock_mutation_production():
 
 def test_lock_sets_sprite_flag():
     """Test that replaying a Lock mutation prevents switching."""
-    from scripts.engine.replayer import JournalReplayer
-    from scripts.vm.journal import Lock
-    from scripts.sim.sprite import Sprite
-    from scripts.sim.globals import GlobalEffects
-    from scripts.common.models import SpeciesStats
+    from backend.engine.replayer import JournalReplayer
+    from backend.vm.journal import Lock
+    from backend.sim.sprite import Sprite
+    from backend.sim.globals import GlobalEffects
+    from backend.common.models import SpeciesStats
 
     species = SpeciesStats(name="test", hp=200, atk=120, def_=100,
                           sp_atk=110, sp_def=95, speed=100)
@@ -1069,14 +1078,14 @@ def test_lock_sets_sprite_flag():
 
 def test_lock_e2e_quicksand():
     """E2E: 流沙 locks enemy for 3 turns."""
-    from scripts.engine.skill_loader import SkillLoader
-    from scripts.engine.battle import BattleVMEngine
-    from scripts.sim.sprite import Sprite
-    from scripts.sim.globals import GlobalEffects
-    from scripts.common.models import SpeciesStats
-    from scripts.vm.journal import Lock
+    # SkillCompiler now used via module-level _load_skill() helper
+    from backend.engine.battle import BattleVMEngine
+    from backend.sim.sprite import Sprite
+    from backend.sim.globals import GlobalEffects
+    from backend.common.models import SpeciesStats
+    from backend.vm.journal import Lock
 
-    loader = SkillLoader()
+
     engine = BattleVMEngine()
     species = SpeciesStats(name="test", hp=200, atk=120, def_=100, sp_atk=110, sp_def=95, speed=100)
     sprite = Sprite(species=species, current_hp=180, max_hp=200, energy=8,
@@ -1084,7 +1093,7 @@ def test_lock_e2e_quicksand():
     opp = Sprite(species=species, current_hp=150, max_hp=180, energy=5,
                  initial_stats={"atk": 115, "def": 90, "sp_atk": 105, "sp_def": 85, "speed": 95})
 
-    record = loader.load_file("data/skills/流沙.json")
+    record = _load_skill("data/skills/流沙.json")
     result = engine.execute_skill(sprite, opp, record, None, GlobalEffects(), turn=1, is_first=True, team="A")
 
     locks = [m for m in result.journal if isinstance(m, Lock)]
@@ -1100,9 +1109,9 @@ def test_lock_e2e_quicksand():
 
 def test_redirect_mutation_production():
     """Test that redirect opcode produces Redirect mutation."""
-    from scripts.vm.ctx import Ctx
-    from scripts.vm.executor import execute as vm_execute
-    from scripts.vm.journal import Redirect
+    from backend.vm.ctx import Ctx
+    from backend.vm.executor import execute as vm_execute
+    from backend.vm.journal import Redirect
 
     ctx = Ctx(element_self="恶", skill_type_self="物攻")
     effects = [{"op": "redirect", "target": "sprite_self"}]
@@ -1115,9 +1124,9 @@ def test_redirect_mutation_production():
 
 def test_redirect_damage_target():
     """Test that redirect changes Damage target from opp to self."""
-    from scripts.vm.ctx import Ctx
-    from scripts.vm.journal import Damage, Redirect
-    from scripts.engine.battle import BattleVMEngine
+    from backend.vm.ctx import Ctx
+    from backend.vm.journal import Damage, Redirect
+    from backend.engine.battle import BattleVMEngine
 
     engine = BattleVMEngine()
     journal = [
@@ -1136,16 +1145,16 @@ def test_redirect_damage_target():
 
 def test_exchange_adjacent_skills():
     """Test that exchange(adjacent_skills) swaps skill positions."""
-    from scripts.vm.ctx import Ctx
-    from scripts.vm.executor import execute as vm_execute
-    from scripts.vm.journal import Exchange
-    from scripts.engine.skill_loader import SkillLoader
-    from scripts.engine.battle import BattleVMEngine
-    from scripts.sim.sprite import Sprite
-    from scripts.sim.globals import GlobalEffects
-    from scripts.common.models import SpeciesStats
+    from backend.vm.ctx import Ctx
+    from backend.vm.executor import execute as vm_execute
+    from backend.vm.journal import Exchange
+    # SkillCompiler now used via module-level _load_skill() helper
+    from backend.engine.battle import BattleVMEngine
+    from backend.sim.sprite import Sprite
+    from backend.sim.globals import GlobalEffects
+    from backend.common.models import SpeciesStats
 
-    loader = SkillLoader()
+
     engine = BattleVMEngine()
     species = SpeciesStats(name="test", hp=200, atk=120, def_=100, sp_atk=110, sp_def=95, speed=100)
     sprite = Sprite(species=species, current_hp=180, max_hp=200, energy=8,
@@ -1153,7 +1162,7 @@ def test_exchange_adjacent_skills():
     opp = Sprite(species=species, current_hp=150, max_hp=180, energy=5,
                  initial_stats={"atk": 115, "def": 90, "sp_atk": 105, "sp_def": 85, "speed": 95})
 
-    record = loader.load_file("data/skills/杠杆置换.json")
+    record = _load_skill("data/skills/杠杆置换.json")
     result = engine.execute_skill(sprite, opp, record, None, GlobalEffects(), turn=1, is_first=True, team="A")
 
     exchanges = [m for m in result.journal if isinstance(m, Exchange)]
@@ -1168,11 +1177,11 @@ def test_exchange_adjacent_skills():
 
 def test_steal_energy():
     """Test that steal(energy) transfers energy from target to self."""
-    from scripts.engine.replayer import JournalReplayer
-    from scripts.vm.journal import Steal
-    from scripts.sim.sprite import Sprite
-    from scripts.sim.globals import GlobalEffects
-    from scripts.common.models import SpeciesStats
+    from backend.engine.replayer import JournalReplayer
+    from backend.vm.journal import Steal
+    from backend.sim.sprite import Sprite
+    from backend.sim.globals import GlobalEffects
+    from backend.common.models import SpeciesStats
 
     species = SpeciesStats(name="test", hp=200, atk=120, def_=100,
                           sp_atk=110, sp_def=95, speed=100)
@@ -1195,25 +1204,25 @@ def test_steal_energy():
 
 def test_use_devotion_flag():
     """Test that use_devotion flag is read from skill JSON."""
-    from scripts.engine.skill_loader import SkillLoader
+    # SkillCompiler now used via module-level _load_skill() helper
 
-    loader = SkillLoader()
+
     # 啃咬 has use_devotion: true
-    record = loader.load_file("data/skills/啃咬.json")
+    record = _load_skill("data/skills/啃咬.json")
     assert record.use_devotion is True, f"啃咬 should have use_devotion=True, got {record.use_devotion}"
     print(f"  啃咬 use_devotion={record.use_devotion}")
 
 
 def test_use_devotion_e2e():
     """E2E: 啃咬 with use_devotion=true triggers devotion effects."""
-    from scripts.engine.skill_loader import SkillLoader
-    from scripts.engine.battle import BattleVMEngine
-    from scripts.sim.sprite import Sprite
-    from scripts.sim.globals import GlobalEffects
-    from scripts.common.models import SpeciesStats
-    from scripts.vm.journal import CounterRegister
+    # SkillCompiler now used via module-level _load_skill() helper
+    from backend.engine.battle import BattleVMEngine
+    from backend.sim.sprite import Sprite
+    from backend.sim.globals import GlobalEffects
+    from backend.common.models import SpeciesStats
+    from backend.vm.journal import CounterRegister
 
-    loader = SkillLoader()
+
     engine = BattleVMEngine()
     species = SpeciesStats(name="test", hp=200, atk=120, def_=100, sp_atk=110, sp_def=95, speed=100)
     sprite = Sprite(species=species, current_hp=180, max_hp=200, energy=8,
@@ -1221,7 +1230,7 @@ def test_use_devotion_e2e():
     opp = Sprite(species=species, current_hp=150, max_hp=180, energy=5,
                  initial_stats={"atk": 115, "def": 90, "sp_atk": 105, "sp_def": 85, "speed": 95})
 
-    record = loader.load_file("data/skills/啃咬.json")
+    record = _load_skill("data/skills/啃咬.json")
     result = engine.execute_skill(sprite, opp, record, None, GlobalEffects(),
                                    turn=1, is_first=True, team="A",
                                    devotion_triggered=True)
@@ -1232,6 +1241,1068 @@ def test_use_devotion_e2e():
     # Engine should have the counter registered
     assert len(engine.registry) >= 1
     print(f"  啃咬: use_devotion=True, devotion_triggered={result.ctx.devotion_triggered}")
+
+
+# ═══════════════════════════════════════════════════════════════
+# Effect lifecycle: priority, ttl, delay, cooldown
+# ═══════════════════════════════════════════════════════════════
+
+def test_priority_sort_within_phase():
+    """Effects in the same phase sort by priority descending (higher first)."""
+    from backend.vm.sort import sort_effects
+    effects = [
+        {"op": "mod", "feeds": "power", "stat": "atk", "steps": 1, "priority": 0},
+        {"op": "mod", "feeds": "power", "stat": "atk", "steps": 2, "priority": 10},
+        {"op": "mod", "feeds": "power", "stat": "atk", "steps": 3, "priority": 5},
+    ]
+    sorted_ = sort_effects(effects)
+    steps = [e["steps"] for e in sorted_]
+    # priority 10 → 5 → 0
+    assert steps == [2, 3, 1], f"Expected [2,3,1] (prio 10,5,0), got {steps}"
+
+
+def test_priority_sort_mixed_phases():
+    """Priority only affects ordering within the same phase bucket."""
+    from backend.vm.sort import sort_effects
+    effects = [
+        {"op": "mod", "feeds": "cost", "stat": "energy_cost", "value": -1, "priority": 0},
+        {"op": "mod", "feeds": "power", "stat": "power", "steps": 3, "priority": 100},
+        {"op": "mod", "feeds": "cost", "stat": "energy_cost", "value": -2, "priority": 10},
+        {"op": "mod", "feeds": "power", "stat": "power", "steps": 1, "priority": 0},
+    ]
+    sorted_ = sort_effects(effects)
+    # cost phase (0) comes before power phase (1), regardless of priority
+    # Within cost: priority 10 → 0 (value -2 → -1)
+    # Within power: priority 100 → 0 (steps 3 → 1)
+    phases = []
+    for e in sorted_:
+        from backend.vm.sort import _phase_of
+        phases.append((_phase_of(e), e.get("priority", 0)))
+    # Verify cost phase comes first
+    assert phases[0][0] == 0, f"Expected cost phase first, got phase {phases[0][0]}"
+    assert phases[1][0] == 0
+    assert phases[2][0] == 1
+    assert phases[3][0] == 1
+    # Within cost phase: higher priority first
+    assert phases[0][1] == 10
+    assert phases[1][1] == 0
+    # Within power phase: higher priority first
+    assert phases[2][1] == 100
+    assert phases[3][1] == 0
+
+
+def test_ttl_on_statuseffect():
+    """StatusEffect can carry a ttl field for turn-limited duration."""
+    from backend.sim.sprite import StatusEffect
+    eff = StatusEffect(name="攻击+20%", category="stat", stat_key="atk", steps=2, ttl=3)
+    assert eff.ttl == 3
+    # Default ttl = 0 means no expiry
+    eff2 = StatusEffect(name="防御+10%", category="stat", stat_key="def", steps=1)
+    assert eff2.ttl == 0
+
+
+def test_ttl_decrement_and_expiry():
+    """TTL decrements at turn end; effects with ttl=0 are removed."""
+    from backend.sim.sprite import Sprite, StatusEffect
+    from backend.common.models import SpeciesStats
+    species = SpeciesStats(name="test", hp=100, atk=100, def_=100, sp_atk=100, sp_def=100, speed=100)
+    sprite = Sprite(
+        species=species, current_hp=100, max_hp=100,
+        initial_stats={"atk": 100, "def": 100, "sp_atk": 100, "sp_def": 100, "speed": 100},
+    )
+    sprite.add_effect(StatusEffect(name="攻击+20%", category="stat", stat_key="atk", steps=2, ttl=3))
+    sprite.add_effect(StatusEffect(name="永久防御", category="stat", stat_key="def", steps=1, ttl=0))
+    assert len(sprite.effects) == 2
+
+    # Decrement TTL: effects with ttl>0 get decremented; ttl=0 (permanent) stay
+    removed = sprite.decrement_ttl()
+    assert len(removed) == 0  # ttl 3→2, still alive
+    assert sprite.effects[0].ttl == 2
+
+    removed = sprite.decrement_ttl()  # 2→1
+    removed = sprite.decrement_ttl()  # 1→0
+    assert len(removed) == 1  # ttl hit 0, removed
+    assert len(sprite.effects) == 1  # only permanent def remains
+    assert sprite.effects[0].name == "永久防御"
+
+
+def test_delay_stores_on_sprite():
+    """Effects with delay>0 are stored as pending, not applied immediately."""
+    from backend.sim.sprite import Sprite, StatusEffect
+    from backend.common.models import SpeciesStats
+    species = SpeciesStats(name="test", hp=100, atk=100, def_=100, sp_atk=100, sp_def=100, speed=100)
+    sprite = Sprite(
+        species=species, current_hp=100, max_hp=100,
+        initial_stats={"atk": 100, "def": 100, "sp_atk": 100, "sp_def": 100, "speed": 100},
+    )
+    # Store a delayed effect
+    pending = StatusEffect(name="攻击+20%", category="stat", stat_key="atk", steps=2, ttl=0)
+    sprite.add_pending_effect(pending, delay=2)
+    assert len(sprite.effects) == 0  # Not applied yet
+    assert len(sprite._pending_effects) == 1
+    assert sprite._pending_effects[0][0].name == "攻击+20%"
+    assert sprite._pending_effects[0][1] == 2  # delay counter
+
+
+def test_delay_decremented_at_turn_start():
+    """Pending effects decrement delay each turn; when delay=0, apply effect."""
+    from backend.sim.sprite import Sprite, StatusEffect
+    from backend.common.models import SpeciesStats
+    species = SpeciesStats(name="test", hp=100, atk=100, def_=100, sp_atk=100, sp_def=100, speed=100)
+    sprite = Sprite(
+        species=species, current_hp=100, max_hp=100,
+        initial_stats={"atk": 100, "def": 100, "sp_atk": 100, "sp_def": 100, "speed": 100},
+    )
+    pending = StatusEffect(name="攻击+20%", category="stat", stat_key="atk", steps=2)
+    sprite.add_pending_effect(pending, delay=2)
+
+    # Turn 1: delay 2→1, still pending
+    applied = sprite.process_pending_effects()
+    assert len(applied) == 0
+    assert len(sprite._pending_effects) == 1
+    assert sprite._pending_effects[0][1] == 1
+
+    # Turn 2: delay 1→0, effect applied
+    applied = sprite.process_pending_effects()
+    assert len(applied) == 1
+    assert len(sprite._pending_effects) == 0
+    assert len(sprite.effects) == 1
+    assert sprite.effects[0].name == "攻击+20%"
+
+
+def test_cooldown_on_statuseffect():
+    """StatusEffect can carry a cooldown field."""
+    from backend.sim.sprite import StatusEffect
+    eff = StatusEffect(name="灼烧", category="abnormal", stacks=1, cooldown=3)
+    assert eff.cooldown == 3
+    eff2 = StatusEffect(name="中毒", category="abnormal", stacks=1)
+    assert eff2.cooldown == 0
+
+
+def test_cooldown_decrement_on_use():
+    """Cooldown decrements when effect triggers; removed when cooldown hits 0."""
+    from backend.sim.sprite import Sprite, StatusEffect
+    from backend.common.models import SpeciesStats
+    species = SpeciesStats(name="test", hp=100, atk=100, def_=100, sp_atk=100, sp_def=100, speed=100)
+    sprite = Sprite(
+        species=species, current_hp=100, max_hp=100,
+        initial_stats={"atk": 100, "def": 100, "sp_atk": 100, "sp_def": 100, "speed": 100},
+    )
+    eff = StatusEffect(name="灼烧", category="abnormal", stacks=1, cooldown=2)
+    sprite.add_effect(eff)
+
+    # After first use: cooldown 2→1
+    assert sprite.use_cooldown("灼烧") == 1  # remaining cooldown
+    assert sprite.effects[0].cooldown == 1
+
+    # After second use: cooldown 1→0, effect removed
+    assert sprite.use_cooldown("灼烧") == 0
+    assert len(sprite.effects) == 0  # removed on cooldown expiry
+
+
+# ═══════════════════════════════════════════════════════════════
+# Advanced mod filters: on_next, skill_where, element:each
+# ═══════════════════════════════════════════════════════════════
+
+def test_on_next_modifier_not_applied_immediately():
+    """Modifier with on_next=true is stored as pending, not applied to sprite."""
+    from backend.sim.sprite import Sprite
+    from backend.common.models import SpeciesStats
+    from backend.vm.journal import ModifierInjection
+    from backend.engine.replayer import JournalReplayer
+    species = SpeciesStats(name="test", hp=100, atk=100, def_=100, sp_atk=100, sp_def=100, speed=100)
+    sprite = Sprite(
+        species=species, current_hp=100, max_hp=100,
+        initial_stats={"atk": 100, "def": 100, "sp_atk": 100, "sp_def": 100, "speed": 100},
+    )
+    opp = Sprite(
+        species=species, current_hp=100, max_hp=100,
+        initial_stats={"atk": 100, "def": 100, "sp_atk": 100, "sp_def": 100, "speed": 100},
+    )
+    globals_ = GlobalEffects()
+    replayer = JournalReplayer(sprite, opp, globals_)
+
+    # Modifier with on_next=True → not applied immediately
+    m = ModifierInjection(
+        target="sprite_self", stat="power_mult", value=2.0,
+        on_next=True, if_type="attack",
+    )
+    replayer._apply_modifier(m)
+    # Should NOT be in sprite._modifiers (on_next defers it)
+    assert "power_mult" not in sprite._modifiers or sprite._modifiers.get("power_mult") == 0.0
+    # Should be in sprite._pending_modifiers
+    assert len(sprite._pending_modifiers) == 1
+    assert sprite._pending_modifiers[0].stat == "power_mult"
+
+
+def test_on_next_modifier_applied_on_matching_skill():
+    """Pending on_next modifier is consumed when a matching skill type is used."""
+    from backend.sim.sprite import Sprite
+    from backend.common.models import SpeciesStats
+    from backend.vm.journal import ModifierInjection
+    from backend.engine.replayer import JournalReplayer
+    species = SpeciesStats(name="test", hp=100, atk=100, def_=100, sp_atk=100, sp_def=100, speed=100)
+    sprite = Sprite(
+        species=species, current_hp=100, max_hp=100,
+        initial_stats={"atk": 100, "def": 100, "sp_atk": 100, "sp_def": 100, "speed": 100},
+    )
+    opp = Sprite(
+        species=species, current_hp=100, max_hp=100,
+        initial_stats={"atk": 100, "def": 100, "sp_atk": 100, "sp_def": 100, "speed": 100},
+    )
+    globals_ = GlobalEffects()
+    replayer = JournalReplayer(sprite, opp, globals_)
+
+    # Store a pending on_next modifier
+    m = ModifierInjection(
+        target="sprite_self", stat="power_mult", value=2.0,
+        on_next=True, if_type="attack",
+    )
+    sprite._pending_modifiers.append(m)
+
+    # Consume pending modifiers for an attack skill
+    consumed = sprite.consume_pending_modifiers(skill_type="物攻")
+    assert len(consumed) == 1  # attack type matches
+    assert len(sprite._pending_modifiers) == 0
+    # Verify the modifier was applied
+    assert sprite._modifiers.get("power_mult") == 2.0
+
+    # Non-matching skill type does NOT consume
+    sprite._pending_modifiers.append(ModifierInjection(
+        target="sprite_self", stat="damage_mult", value=1.5,
+        on_next=True, if_type="defense",
+    ))
+    consumed = sprite.consume_pending_modifiers(skill_type="物攻")
+    assert len(consumed) == 0  # defense modifier not consumed by attack
+    assert len(sprite._pending_modifiers) == 1  # still pending
+
+
+def test_skill_where_filters_by_condition():
+    """skill_where evaluates a per-skill condition to decide if modifier applies."""
+    from backend.vm.journal import ModifierInjection
+    m = ModifierInjection(
+        target="sprite_self", stat="power", value=20, mode="add",
+        skill_filter="all",
+        skill_where={"q": "energy_cost", "op": "gt", "value": 3},
+    )
+    # skill_where is preserved in the mutation
+    assert m.skill_where is not None
+    assert m.skill_where["q"] == "energy_cost"
+    assert m.skill_where["op"] == "gt"
+    assert m.skill_where["value"] == 3
+
+    # Test: evaluate skill_where against skill properties
+    from backend.engine.modifiers import eval_skill_where
+    # energy_cost=5 > 3 → match
+    assert eval_skill_where(m.skill_where, {"energy_cost": 5}) is True
+    # energy_cost=2 > 3 → no match
+    assert eval_skill_where(m.skill_where, {"energy_cost": 2}) is False
+    # energy_cost=3 > 3 → no match (gt, not gte)
+    assert eval_skill_where(m.skill_where, {"energy_cost": 3}) is False
+
+
+def test_element_each_per_element_limits():
+    """element='each' with per_element limits skills per element group."""
+    from backend.vm.journal import ModifierInjection
+    m = ModifierInjection(
+        target="sprite_self", stat="power", value=35, mode="add",
+        element="each", per_element=1,
+    )
+    assert m.element == "each"
+    assert m.per_element == 1
+
+    # Test: group skills by element, take at most per_element per group
+    from backend.engine.modifiers import select_skills_by_element
+    skills = [
+        {"name": "火球", "element": "火", "energy_cost": 2},
+        {"name": "火焰喷射", "element": "火", "energy_cost": 4},
+        {"name": "水枪", "element": "水", "energy_cost": 2},
+        {"name": "水炮", "element": "水", "energy_cost": 5},
+    ]
+    selected = select_skills_by_element(skills, per_element=1)
+    # Should get at most 1 fire and 1 water
+    fire_count = sum(1 for s in selected if s["element"] == "火")
+    water_count = sum(1 for s in selected if s["element"] == "水")
+    assert fire_count == 1, f"Expected 1 fire skill, got {fire_count}"
+    assert water_count == 1, f"Expected 1 water skill, got {water_count}"
+    assert len(selected) == 2
+
+    # With per_element=2, both fire skills should be selected
+    selected2 = select_skills_by_element(skills, per_element=2)
+    assert len(selected2) == 4  # all skills selected
+
+
+# ═══════════════════════════════════════════════════════════════
+# Target coverage: all effect direction combinations
+# ═══════════════════════════════════════════════════════════════
+
+def test_modifier_on_opp_sprite():
+    """ModifierInjection(target='sprite_opp') stores modifier on opponent."""
+    from backend.sim.sprite import Sprite
+    from backend.common.models import SpeciesStats
+    from backend.vm.journal import ModifierInjection
+    from backend.engine.replayer import JournalReplayer
+    species = SpeciesStats(name="test", hp=100, atk=100, def_=100, sp_atk=100, sp_def=100, speed=100)
+    sprite = Sprite(
+        species=species, current_hp=100, max_hp=100,
+        initial_stats={"atk": 100, "def": 100, "sp_atk": 100, "sp_def": 100, "speed": 100},
+    )
+    opp = Sprite(
+        species=species, current_hp=100, max_hp=100,
+        initial_stats={"atk": 100, "def": 100, "sp_atk": 100, "sp_def": 100, "speed": 100},
+    )
+    globals_ = GlobalEffects()
+    replayer = JournalReplayer(sprite, opp, globals_)
+
+    # Reduce opponent's skill power via power_mult
+    m = ModifierInjection(
+        target="sprite_opp", stat="power_mult", value=0.5, mode="set", scope="battlefield",
+    )
+    replayer._apply_modifier(m)
+    assert opp._modifiers.get("power_mult") == 0.5
+    assert "power_mult" not in sprite._modifiers
+
+
+def test_modifier_on_opp_energy_cost():
+    """ModifierInjection raises opponent skill energy cost."""
+    from backend.sim.sprite import Sprite
+    from backend.common.models import SpeciesStats
+    from backend.vm.journal import ModifierInjection
+    from backend.engine.replayer import JournalReplayer
+    species = SpeciesStats(name="test", hp=100, atk=100, def_=100, sp_atk=100, sp_def=100, speed=100)
+    sprite = Sprite(
+        species=species, current_hp=100, max_hp=100,
+        initial_stats={"atk": 100, "def": 100, "sp_atk": 100, "sp_def": 100, "speed": 100},
+    )
+    opp = Sprite(
+        species=species, current_hp=100, max_hp=100,
+        initial_stats={"atk": 100, "def": 100, "sp_atk": 100, "sp_def": 100, "speed": 100},
+    )
+    globals_ = GlobalEffects()
+    replayer = JournalReplayer(sprite, opp, globals_)
+
+    m = ModifierInjection(
+        target="sprite_opp", stat="energy_cost", value=2, mode="add", scope="persistent",
+    )
+    replayer._apply_modifier(m)
+    assert opp._modifiers.get("energy_cost") == 2.0
+    assert "energy_cost" not in sprite._modifiers
+
+
+def test_mark_change_opp_team():
+    """MarkChange(target_team='opp') adds negative marks to opponent's team."""
+    from backend.sim.sprite import Sprite
+    from backend.common.models import SpeciesStats
+    from backend.vm.journal import MarkChange
+    from backend.engine.replayer import JournalReplayer
+    species = SpeciesStats(name="test", hp=100, atk=100, def_=100, sp_atk=100, sp_def=100, speed=100)
+    sprite = Sprite(
+        species=species, current_hp=100, max_hp=100,
+        initial_stats={"atk": 100, "def": 100, "sp_atk": 100, "sp_def": 100, "speed": 100},
+    )
+    opp = Sprite(
+        species=species, current_hp=100, max_hp=100,
+        initial_stats={"atk": 100, "def": 100, "sp_atk": 100, "sp_def": 100, "speed": 100},
+    )
+    globals_ = GlobalEffects()
+    # Team A (self), Team B (opp)
+    replayer = JournalReplayer(sprite, opp, globals_, team="A")
+
+    # Apply negative mark to opp team (team B)
+    m = MarkChange(target_team="opp", name="星陨印记", delta=2)
+    replayer._apply_mark_change(m)
+    _, neg_b = globals_.get_marks("B")
+    assert len(neg_b) == 1
+    assert neg_b[0].name == "星陨印记"
+    assert neg_b[0].stacks == 2
+
+
+def test_mark_change_own_and_opp():
+    """Both own and opp teams can receive marks independently."""
+    from backend.sim.sprite import Sprite
+    from backend.common.models import SpeciesStats
+    from backend.vm.journal import MarkChange
+    from backend.engine.replayer import JournalReplayer
+    species = SpeciesStats(name="test", hp=100, atk=100, def_=100, sp_atk=100, sp_def=100, speed=100)
+    sprite = Sprite(
+        species=species, current_hp=100, max_hp=100,
+        initial_stats={"atk": 100, "def": 100, "sp_atk": 100, "sp_def": 100, "speed": 100},
+    )
+    opp = Sprite(
+        species=species, current_hp=100, max_hp=100,
+        initial_stats={"atk": 100, "def": 100, "sp_atk": 100, "sp_def": 100, "speed": 100},
+    )
+    globals_ = GlobalEffects()
+    replayer = JournalReplayer(sprite, opp, globals_, team="A")
+
+    # Buff self team, debuff opp team
+    replayer._apply_mark_change(MarkChange(target_team="own", name="光合印记", delta=1))
+    replayer._apply_mark_change(MarkChange(target_team="opp", name="星陨印记", delta=1))
+
+    pos_a, neg_a = globals_.get_marks("A")
+    pos_b, neg_b = globals_.get_marks("B")
+    assert len(pos_a) == 1 and pos_a[0].name == "光合印记"
+    assert len(neg_b) == 1 and neg_b[0].name == "星陨印记"
+    assert len(pos_b) == 0
+    assert len(neg_a) == 0
+
+
+def test_abnormal_change_to_sprite_opp():
+    """AbnormalChange(target='sprite_opp') applies status to opponent."""
+    from backend.sim.sprite import Sprite
+    from backend.common.models import SpeciesStats
+    from backend.vm.journal import AbnormalChange
+    from backend.engine.replayer import JournalReplayer
+    species = SpeciesStats(name="test", hp=100, atk=100, def_=100, sp_atk=100, sp_def=100, speed=100)
+    sprite = Sprite(
+        species=species, current_hp=100, max_hp=100,
+        initial_stats={"atk": 100, "def": 100, "sp_atk": 100, "sp_def": 100, "speed": 100},
+    )
+    opp = Sprite(
+        species=species, current_hp=100, max_hp=100,
+        initial_stats={"atk": 100, "def": 100, "sp_atk": 100, "sp_def": 100, "speed": 100},
+    )
+    globals_ = GlobalEffects()
+    replayer = JournalReplayer(sprite, opp, globals_)
+
+    m = AbnormalChange(target="sprite_opp", name="中毒", delta=2)
+    replayer._apply_abnormal_change(m)
+    assert len(opp.effects) == 1
+    assert opp.effects[0].name == "中毒"
+    assert opp.effects[0].stacks == 2
+    assert len(sprite.effects) == 0
+
+
+def test_abnormal_change_to_sprite_self():
+    """AbnormalChange(target='sprite_self') can apply self-inflicted status."""
+    from backend.sim.sprite import Sprite
+    from backend.common.models import SpeciesStats
+    from backend.vm.journal import AbnormalChange
+    from backend.engine.replayer import JournalReplayer
+    species = SpeciesStats(name="test", hp=100, atk=100, def_=100, sp_atk=100, sp_def=100, speed=100)
+    sprite = Sprite(
+        species=species, current_hp=100, max_hp=100,
+        initial_stats={"atk": 100, "def": 100, "sp_atk": 100, "sp_def": 100, "speed": 100},
+    )
+    opp = Sprite(
+        species=species, current_hp=100, max_hp=100,
+        initial_stats={"atk": 100, "def": 100, "sp_atk": 100, "sp_def": 100, "speed": 100},
+    )
+    globals_ = GlobalEffects()
+    replayer = JournalReplayer(sprite, opp, globals_)
+
+    m = AbnormalChange(target="sprite_self", name="灼烧", delta=1)
+    replayer._apply_abnormal_change(m)
+    assert len(sprite.effects) == 1
+    assert sprite.effects[0].name == "灼烧"
+    assert len(opp.effects) == 0
+
+
+def test_dispel_opp_positive_buffs():
+    """Dispel(target='sprite_opp', what='positive') removes opponent buffs."""
+    from backend.sim.sprite import Sprite, StatusEffect
+    from backend.common.models import SpeciesStats
+    from backend.vm.journal import Dispel
+    from backend.engine.replayer import JournalReplayer
+    species = SpeciesStats(name="test", hp=100, atk=100, def_=100, sp_atk=100, sp_def=100, speed=100)
+    sprite = Sprite(
+        species=species, current_hp=100, max_hp=100,
+        initial_stats={"atk": 100, "def": 100, "sp_atk": 100, "sp_def": 100, "speed": 100},
+    )
+    opp = Sprite(
+        species=species, current_hp=100, max_hp=100,
+        initial_stats={"atk": 100, "def": 100, "sp_atk": 100, "sp_def": 100, "speed": 100},
+    )
+    globals_ = GlobalEffects()
+    replayer = JournalReplayer(sprite, opp, globals_)
+
+    # Give opp some buffs
+    opp.add_effect(StatusEffect(name="攻击+20%", category="stat", stat_key="atk", steps=2))
+    opp.add_effect(StatusEffect(name="速度+10%", category="stat", stat_key="speed", steps=1))
+    assert len(opp.effects) == 2
+
+    # Dispel opp buffs
+    m = Dispel(target="sprite_opp", what="positive", limit=2)
+    replayer._apply_dispel(m)
+    assert len(opp.effects) == 0
+    assert len(sprite.effects) == 0
+
+
+def test_dispel_self_negative_debuffs():
+    """Dispel(target='sprite_self', what='negative') clears own debuffs."""
+    from backend.sim.sprite import Sprite, StatusEffect
+    from backend.common.models import SpeciesStats
+    from backend.vm.journal import Dispel
+    from backend.engine.replayer import JournalReplayer
+    species = SpeciesStats(name="test", hp=100, atk=100, def_=100, sp_atk=100, sp_def=100, speed=100)
+    sprite = Sprite(
+        species=species, current_hp=100, max_hp=100,
+        initial_stats={"atk": 100, "def": 100, "sp_atk": 100, "sp_def": 100, "speed": 100},
+    )
+    opp = Sprite(
+        species=species, current_hp=100, max_hp=100,
+        initial_stats={"atk": 100, "def": 100, "sp_atk": 100, "sp_def": 100, "speed": 100},
+    )
+    globals_ = GlobalEffects()
+    replayer = JournalReplayer(sprite, opp, globals_)
+
+    # Give self some debuffs
+    sprite.add_effect(StatusEffect(name="防御-20%", category="stat", stat_key="def", steps=-2))
+    sprite.add_effect(StatusEffect(name="速度-10%", category="stat", stat_key="speed", steps=-1))
+    assert len(sprite.effects) == 2
+
+    m = Dispel(target="sprite_self", what="negative", limit=2)
+    replayer._apply_dispel(m)
+    assert len(sprite.effects) == 0
+
+
+def test_dispel_self_abnormal():
+    """Dispel(target='sprite_self', what='abnormal', name='中毒') removes specific abnormal."""
+    from backend.sim.sprite import Sprite, StatusEffect
+    from backend.common.models import SpeciesStats
+    from backend.vm.journal import Dispel
+    from backend.engine.replayer import JournalReplayer
+    species = SpeciesStats(name="test", hp=100, atk=100, def_=100, sp_atk=100, sp_def=100, speed=100)
+    sprite = Sprite(
+        species=species, current_hp=100, max_hp=100,
+        initial_stats={"atk": 100, "def": 100, "sp_atk": 100, "sp_def": 100, "speed": 100},
+    )
+    opp = Sprite(
+        species=species, current_hp=100, max_hp=100,
+        initial_stats={"atk": 100, "def": 100, "sp_atk": 100, "sp_def": 100, "speed": 100},
+    )
+    globals_ = GlobalEffects()
+    replayer = JournalReplayer(sprite, opp, globals_)
+
+    sprite.add_effect(StatusEffect(name="中毒", category="abnormal", stacks=3))
+    sprite.add_effect(StatusEffect(name="灼烧", category="abnormal", stacks=1))
+    assert len(sprite.effects) == 2
+
+    m = Dispel(target="sprite_self", what="abnormal", name="中毒")
+    replayer._apply_dispel(m)
+    assert len(sprite.effects) == 1
+    assert sprite.effects[0].name == "灼烧"
+
+
+def test_heal_to_sprite_self():
+    """Heal(target='sprite_self') heals the self sprite."""
+    from backend.sim.sprite import Sprite
+    from backend.common.models import SpeciesStats
+    from backend.vm.journal import Heal
+    from backend.engine.replayer import JournalReplayer
+    species = SpeciesStats(name="test", hp=100, atk=100, def_=100, sp_atk=100, sp_def=100, speed=100)
+    sprite = Sprite(
+        species=species, current_hp=60, max_hp=100,
+        initial_stats={"atk": 100, "def": 100, "sp_atk": 100, "sp_def": 100, "speed": 100},
+    )
+    opp = Sprite(
+        species=species, current_hp=80, max_hp=100,
+        initial_stats={"atk": 100, "def": 100, "sp_atk": 100, "sp_def": 100, "speed": 100},
+    )
+    globals_ = GlobalEffects()
+    replayer = JournalReplayer(sprite, opp, globals_)
+
+    m = Heal(target="sprite_self", amount=25)
+    replayer._apply_heal(m)
+    assert sprite.current_hp == 85
+    assert opp.current_hp == 80  # unchanged
+
+
+def test_heal_to_sprite_opp():
+    """Heal(target='sprite_opp') heals the opponent (e.g., life-giving skill)."""
+    from backend.sim.sprite import Sprite
+    from backend.common.models import SpeciesStats
+    from backend.vm.journal import Heal
+    from backend.engine.replayer import JournalReplayer
+    species = SpeciesStats(name="test", hp=100, atk=100, def_=100, sp_atk=100, sp_def=100, speed=100)
+    sprite = Sprite(
+        species=species, current_hp=60, max_hp=100,
+        initial_stats={"atk": 100, "def": 100, "sp_atk": 100, "sp_def": 100, "speed": 100},
+    )
+    opp = Sprite(
+        species=species, current_hp=80, max_hp=100,
+        initial_stats={"atk": 100, "def": 100, "sp_atk": 100, "sp_def": 100, "speed": 100},
+    )
+    globals_ = GlobalEffects()
+    replayer = JournalReplayer(sprite, opp, globals_)
+
+    m = Heal(target="sprite_opp", amount=20)
+    replayer._apply_heal(m)
+    assert opp.current_hp == 100  # capped at max_hp
+    assert sprite.current_hp == 60  # unchanged
+
+
+def test_energy_change_to_opp():
+    """EnergyChange(target='sprite_opp') removes opponent energy."""
+    from backend.sim.sprite import Sprite
+    from backend.common.models import SpeciesStats
+    from backend.vm.journal import EnergyChange
+    from backend.engine.replayer import JournalReplayer
+    species = SpeciesStats(name="test", hp=100, atk=100, def_=100, sp_atk=100, sp_def=100, speed=100)
+    sprite = Sprite(
+        species=species, current_hp=100, max_hp=100, energy=8,
+        initial_stats={"atk": 100, "def": 100, "sp_atk": 100, "sp_def": 100, "speed": 100},
+    )
+    opp = Sprite(
+        species=species, current_hp=100, max_hp=100, energy=10,
+        initial_stats={"atk": 100, "def": 100, "sp_atk": 100, "sp_def": 100, "speed": 100},
+    )
+    globals_ = GlobalEffects()
+    replayer = JournalReplayer(sprite, opp, globals_)
+
+    m = EnergyChange(target="sprite_opp", delta=-3)
+    replayer._apply_energy_change(m)
+    assert opp.energy == 7
+    assert sprite.energy == 8  # unchanged
+
+
+def test_energy_change_to_self():
+    """EnergyChange(target='sprite_self') restores self energy."""
+    from backend.sim.sprite import Sprite
+    from backend.common.models import SpeciesStats
+    from backend.vm.journal import EnergyChange
+    from backend.engine.replayer import JournalReplayer
+    species = SpeciesStats(name="test", hp=100, atk=100, def_=100, sp_atk=100, sp_def=100, speed=100)
+    sprite = Sprite(
+        species=species, current_hp=100, max_hp=100, energy=3,
+        initial_stats={"atk": 100, "def": 100, "sp_atk": 100, "sp_def": 100, "speed": 100},
+    )
+    opp = Sprite(
+        species=species, current_hp=100, max_hp=100, energy=5,
+        initial_stats={"atk": 100, "def": 100, "sp_atk": 100, "sp_def": 100, "speed": 100},
+    )
+    globals_ = GlobalEffects()
+    replayer = JournalReplayer(sprite, opp, globals_)
+
+    m = EnergyChange(target="sprite_self", delta=2)
+    replayer._apply_energy_change(m)
+    assert sprite.energy == 5
+    assert opp.energy == 5  # unchanged
+
+
+def test_stat_change_to_sprite_self():
+    """StatChange(target='sprite_self') applies stat buff to self."""
+    from backend.sim.sprite import Sprite
+    from backend.common.models import SpeciesStats
+    from backend.vm.journal import StatChange
+    from backend.engine.replayer import JournalReplayer
+    species = SpeciesStats(name="test", hp=100, atk=100, def_=100, sp_atk=100, sp_def=100, speed=100)
+    sprite = Sprite(
+        species=species, current_hp=100, max_hp=100,
+        initial_stats={"atk": 100, "def": 100, "sp_atk": 100, "sp_def": 100, "speed": 100},
+    )
+    opp = Sprite(
+        species=species, current_hp=100, max_hp=100,
+        initial_stats={"atk": 100, "def": 100, "sp_atk": 100, "sp_def": 100, "speed": 100},
+    )
+    globals_ = GlobalEffects()
+    replayer = JournalReplayer(sprite, opp, globals_)
+
+    m = StatChange(target="sprite_self", stat="atk", steps=2, scope="battlefield")
+    replayer._apply_stat_change(m)
+    assert len(sprite.effects) == 1
+    assert sprite.effects[0].stat_key == "atk"
+    assert sprite.effects[0].steps == 2
+    assert len(opp.effects) == 0
+
+
+def test_stat_change_to_sprite_opp():
+    """StatChange(target='sprite_opp') applies stat debuff to opponent."""
+    from backend.sim.sprite import Sprite
+    from backend.common.models import SpeciesStats
+    from backend.vm.journal import StatChange
+    from backend.engine.replayer import JournalReplayer
+    species = SpeciesStats(name="test", hp=100, atk=100, def_=100, sp_atk=100, sp_def=100, speed=100)
+    sprite = Sprite(
+        species=species, current_hp=100, max_hp=100,
+        initial_stats={"atk": 100, "def": 100, "sp_atk": 100, "sp_def": 100, "speed": 100},
+    )
+    opp = Sprite(
+        species=species, current_hp=100, max_hp=100,
+        initial_stats={"atk": 100, "def": 100, "sp_atk": 100, "sp_def": 100, "speed": 100},
+    )
+    globals_ = GlobalEffects()
+    replayer = JournalReplayer(sprite, opp, globals_)
+
+    m = StatChange(target="sprite_opp", stat="def", steps=-3, scope="battlefield")
+    replayer._apply_stat_change(m)
+    assert len(opp.effects) == 1
+    assert opp.effects[0].stat_key == "def"
+    assert opp.effects[0].steps == -3
+    assert len(sprite.effects) == 0
+
+
+def test_damage_to_sprite_self():
+    """Damage(target='sprite_self') deals self-damage (recoil)."""
+    from backend.sim.sprite import Sprite
+    from backend.common.models import SpeciesStats
+    from backend.vm.journal import Damage
+    from backend.engine.replayer import JournalReplayer
+    species = SpeciesStats(name="test", hp=100, atk=100, def_=100, sp_atk=100, sp_def=100, speed=100)
+    sprite = Sprite(
+        species=species, current_hp=100, max_hp=100,
+        initial_stats={"atk": 100, "def": 100, "sp_atk": 100, "sp_def": 100, "speed": 100},
+    )
+    opp = Sprite(
+        species=species, current_hp=100, max_hp=100,
+        initial_stats={"atk": 100, "def": 100, "sp_atk": 100, "sp_def": 100, "speed": 100},
+    )
+    globals_ = GlobalEffects()
+    replayer = JournalReplayer(sprite, opp, globals_)
+
+    m = Damage(target="sprite_self", amount=30, element="普通", type="物攻")
+    replayer._apply_damage(m)
+    assert sprite.current_hp == 70
+    assert opp.current_hp == 100
+
+
+def test_damage_to_sprite_opp():
+    """Damage(target='sprite_opp') deals damage to opponent."""
+    from backend.sim.sprite import Sprite
+    from backend.common.models import SpeciesStats
+    from backend.vm.journal import Damage
+    from backend.engine.replayer import JournalReplayer
+    species = SpeciesStats(name="test", hp=100, atk=100, def_=100, sp_atk=100, sp_def=100, speed=100)
+    sprite = Sprite(
+        species=species, current_hp=100, max_hp=100,
+        initial_stats={"atk": 100, "def": 100, "sp_atk": 100, "sp_def": 100, "speed": 100},
+    )
+    opp = Sprite(
+        species=species, current_hp=100, max_hp=100,
+        initial_stats={"atk": 100, "def": 100, "sp_atk": 100, "sp_def": 100, "speed": 100},
+    )
+    globals_ = GlobalEffects()
+    replayer = JournalReplayer(sprite, opp, globals_)
+
+    m = Damage(target="sprite_opp", amount=45, element="火", type="魔攻")
+    replayer._apply_damage(m)
+    assert opp.current_hp == 55
+    assert sprite.current_hp == 100
+
+
+def test_tick_to_sprite_opp():
+    """Tick(target='sprite_opp') triggers abnormal tick on opponent."""
+    from backend.sim.sprite import Sprite, StatusEffect
+    from backend.common.models import SpeciesStats
+    from backend.vm.journal import Tick
+    from backend.engine.replayer import JournalReplayer
+    species = SpeciesStats(name="test", hp=200, atk=100, def_=100, sp_atk=100, sp_def=100, speed=100)
+    sprite = Sprite(
+        species=species, current_hp=200, max_hp=200,
+        initial_stats={"atk": 100, "def": 100, "sp_atk": 100, "sp_def": 100, "speed": 100},
+    )
+    opp = Sprite(
+        species=species, current_hp=200, max_hp=200,
+        initial_stats={"atk": 100, "def": 100, "sp_atk": 100, "sp_def": 100, "speed": 100},
+    )
+    opp.add_effect(StatusEffect(name="中毒", category="abnormal", stacks=3))
+    globals_ = GlobalEffects()
+    replayer = JournalReplayer(sprite, opp, globals_)
+
+    m = Tick(target="sprite_opp", abnormal_name="中毒")
+    replayer._apply_tick(m)
+    # 3 stacks * 3% max HP = 9% of 200 = 18
+    assert opp.current_hp < 200
+
+
+def test_tick_to_sprite_self():
+    """Tick(target='sprite_self') triggers abnormal tick on self."""
+    from backend.sim.sprite import Sprite, StatusEffect
+    from backend.common.models import SpeciesStats
+    from backend.vm.journal import Tick
+    from backend.engine.replayer import JournalReplayer
+    species = SpeciesStats(name="test", hp=200, atk=100, def_=100, sp_atk=100, sp_def=100, speed=100)
+    sprite = Sprite(
+        species=species, current_hp=200, max_hp=200,
+        initial_stats={"atk": 100, "def": 100, "sp_atk": 100, "sp_def": 100, "speed": 100},
+    )
+    opp = Sprite(
+        species=species, current_hp=200, max_hp=200,
+        initial_stats={"atk": 100, "def": 100, "sp_atk": 100, "sp_def": 100, "speed": 100},
+    )
+    sprite.add_effect(StatusEffect(name="灼烧", category="abnormal", stacks=2))
+    globals_ = GlobalEffects()
+    replayer = JournalReplayer(sprite, opp, globals_)
+
+    m = Tick(target="sprite_self", abnormal_name="灼烧")
+    replayer._apply_tick(m)
+    assert sprite.current_hp < 200
+
+
+def test_double_on_opp():
+    """Double(target='sprite_opp', what='negative') doubles opponent's debuffs."""
+    from backend.sim.sprite import Sprite, StatusEffect
+    from backend.common.models import SpeciesStats
+    from backend.vm.journal import Double
+    from backend.engine.replayer import JournalReplayer
+    species = SpeciesStats(name="test", hp=100, atk=100, def_=100, sp_atk=100, sp_def=100, speed=100)
+    sprite = Sprite(
+        species=species, current_hp=100, max_hp=100,
+        initial_stats={"atk": 100, "def": 100, "sp_atk": 100, "sp_def": 100, "speed": 100},
+    )
+    opp = Sprite(
+        species=species, current_hp=100, max_hp=100,
+        initial_stats={"atk": 100, "def": 100, "sp_atk": 100, "sp_def": 100, "speed": 100},
+    )
+    opp.add_effect(StatusEffect(name="防御-20%", category="stat", stat_key="def", steps=-2))
+    globals_ = GlobalEffects()
+    replayer = JournalReplayer(sprite, opp, globals_)
+
+    m = Double(target="sprite_opp", what="negative")
+    replayer._apply_double(m)
+    assert opp.effects[0].steps == -4  # doubled
+
+
+def test_double_on_self():
+    """Double(target='sprite_self', what='positive') doubles own buffs."""
+    from backend.sim.sprite import Sprite, StatusEffect
+    from backend.common.models import SpeciesStats
+    from backend.vm.journal import Double
+    from backend.engine.replayer import JournalReplayer
+    species = SpeciesStats(name="test", hp=100, atk=100, def_=100, sp_atk=100, sp_def=100, speed=100)
+    sprite = Sprite(
+        species=species, current_hp=100, max_hp=100,
+        initial_stats={"atk": 100, "def": 100, "sp_atk": 100, "sp_def": 100, "speed": 100},
+    )
+    opp = Sprite(
+        species=species, current_hp=100, max_hp=100,
+        initial_stats={"atk": 100, "def": 100, "sp_atk": 100, "sp_def": 100, "speed": 100},
+    )
+    sprite.add_effect(StatusEffect(name="攻击+20%", category="stat", stat_key="atk", steps=2))
+    globals_ = GlobalEffects()
+    replayer = JournalReplayer(sprite, opp, globals_)
+
+    m = Double(target="sprite_self", what="positive")
+    replayer._apply_double(m)
+    assert sprite.effects[0].steps == 4  # doubled
+
+
+def test_steal_mark_from_opp():
+    """Steal(from_target='team_opp', what='mark') transfers marks from opp."""
+    from backend.sim.sprite import Sprite
+    from backend.common.models import SpeciesStats
+    from backend.vm.journal import Steal
+    from backend.engine.replayer import JournalReplayer
+    species = SpeciesStats(name="test", hp=100, atk=100, def_=100, sp_atk=100, sp_def=100, speed=100)
+    sprite = Sprite(
+        species=species, current_hp=100, max_hp=100,
+        initial_stats={"atk": 100, "def": 100, "sp_atk": 100, "sp_def": 100, "speed": 100},
+    )
+    opp = Sprite(
+        species=species, current_hp=100, max_hp=100,
+        initial_stats={"atk": 100, "def": 100, "sp_atk": 100, "sp_def": 100, "speed": 100},
+    )
+    globals_ = GlobalEffects()
+    # Give team B (opp) a positive mark, team A has none
+    globals_.apply_mark("B", "光合印记", "positive", 3)
+    replayer = JournalReplayer(sprite, opp, globals_, team="A")
+
+    m = Steal(from_target="team_opp", what="mark", name="光合印记")
+    replayer._apply_steal(m)
+    # Should now be on team A
+    pos_a, _ = globals_.get_marks("A")
+    assert len(pos_a) == 1
+    assert pos_a[0].name == "光合印记"
+    assert pos_a[0].stacks == 3
+
+
+def test_lock_on_sprite_opp():
+    """Lock(target='sprite_opp') sets locked_turns on opponent."""
+    from backend.sim.sprite import Sprite
+    from backend.common.models import SpeciesStats
+    from backend.vm.journal import Lock
+    from backend.engine.replayer import JournalReplayer
+    species = SpeciesStats(name="test", hp=100, atk=100, def_=100, sp_atk=100, sp_def=100, speed=100)
+    sprite = Sprite(
+        species=species, current_hp=100, max_hp=100,
+        initial_stats={"atk": 100, "def": 100, "sp_atk": 100, "sp_def": 100, "speed": 100},
+    )
+    opp = Sprite(
+        species=species, current_hp=100, max_hp=100,
+        initial_stats={"atk": 100, "def": 100, "sp_atk": 100, "sp_def": 100, "speed": 100},
+    )
+    globals_ = GlobalEffects()
+    replayer = JournalReplayer(sprite, opp, globals_)
+
+    m = Lock(target="sprite_opp", turns=2)
+    replayer._apply_lock(m)
+    assert opp.locked_turns == 2
+    assert sprite.locked_turns == 0
+
+
+def test_lock_on_sprite_self():
+    """Lock(target='sprite_self') sets locked_turns on self."""
+    from backend.sim.sprite import Sprite
+    from backend.common.models import SpeciesStats
+    from backend.vm.journal import Lock
+    from backend.engine.replayer import JournalReplayer
+    species = SpeciesStats(name="test", hp=100, atk=100, def_=100, sp_atk=100, sp_def=100, speed=100)
+    sprite = Sprite(
+        species=species, current_hp=100, max_hp=100,
+        initial_stats={"atk": 100, "def": 100, "sp_atk": 100, "sp_def": 100, "speed": 100},
+    )
+    opp = Sprite(
+        species=species, current_hp=100, max_hp=100,
+        initial_stats={"atk": 100, "def": 100, "sp_atk": 100, "sp_def": 100, "speed": 100},
+    )
+    globals_ = GlobalEffects()
+    replayer = JournalReplayer(sprite, opp, globals_)
+
+    m = Lock(target="sprite_self", turns=1)
+    replayer._apply_lock(m)
+    assert sprite.locked_turns == 1
+    assert opp.locked_turns == 0
+
+
+def test_redirect_borrow_combo():
+    """Borrow + Redirect chain: borrow opp skill, then redirect damage to self."""
+    from backend.sim.sprite import Sprite
+    from backend.common.models import SpeciesStats
+    from backend.vm.journal import Borrow, Redirect, Damage
+    from backend.engine.battle import BattleVMEngine
+    from backend.engine.replayer import JournalReplayer
+    species = SpeciesStats(name="test", hp=100, atk=100, def_=100, sp_atk=100, sp_def=100, speed=100)
+    sprite = Sprite(
+        species=species, current_hp=100, max_hp=100, energy=5,
+        initial_stats={"atk": 100, "def": 100, "sp_atk": 100, "sp_def": 100, "speed": 100},
+    )
+    opp = Sprite(
+        species=species, current_hp=100, max_hp=100, energy=5,
+        initial_stats={"atk": 120, "def": 90, "sp_atk": 120, "sp_def": 90, "speed": 105},
+    )
+    globals_ = GlobalEffects()
+    engine = BattleVMEngine()
+
+    # Build a journal: borrow opp's skill → redirect damage to self
+    # First, simulate that the engine would normally produce Damage→sprite_opp,
+    # but Borrow + Redirect change the flow
+    from backend.vm.ctx import Ctx
+    ctx = Ctx(
+        power_opp=80, skill_type_opp="物攻", element_opp="火",
+        atk_self=100, def_opp=90, sp_atk_self=100, sp_def_opp=90,
+        damage_reduction_opp=0.0, combo_self=1,
+    )
+    journal = [
+        Borrow(from_skill="skill_opp_current"),
+        Redirect(target="sprite_self"),
+    ]
+    # Process borrow → produces Damage
+    journal = engine._handle_borrow(journal, ctx)
+    assert len(journal) == 2  # Redirect + Damage
+
+    # Process redirect → changes Damage target
+    journal = engine._handle_redirect(journal)
+    assert len(journal) == 1
+    assert isinstance(journal[0], Damage)
+    assert journal[0].target == "sprite_self"  # redirected from sprite_opp
+
+    # Apply damage
+    replayer = JournalReplayer(sprite, opp, globals_)
+    replayer.replay(journal)
+    assert sprite.current_hp < 100  # took self-damage
+    assert opp.current_hp == 100  # not damaged
+
+
+def test_target_sprite_resolution_edge_cases():
+    """Covers all known target strings handled by _target_sprite."""
+    from backend.sim.sprite import Sprite
+    from backend.common.models import SpeciesStats
+    from backend.engine.replayer import JournalReplayer
+    species = SpeciesStats(name="test", hp=100, atk=100, def_=100, sp_atk=100, sp_def=100, speed=100)
+    sprite = Sprite(
+        species=species, current_hp=100, max_hp=100,
+        initial_stats={"atk": 100, "def": 100, "sp_atk": 100, "sp_def": 100, "speed": 100},
+    )
+    opp = Sprite(
+        species=species, current_hp=100, max_hp=100,
+        initial_stats={"atk": 100, "def": 100, "sp_atk": 100, "sp_def": 100, "speed": 100},
+    )
+    globals_ = GlobalEffects()
+    replayer = JournalReplayer(sprite, opp, globals_)
+
+    # Known self targets → resolve to self
+    assert replayer._target_sprite("sprite_self") is sprite
+    assert replayer._target_sprite("self") is sprite
+    assert replayer._target_sprite("team_own") is sprite
+    assert replayer._target_sprite("skill_off_0") is sprite
+
+    # Known opp targets + unrecognized → resolve to opp (default)
+    assert replayer._target_sprite("sprite_opp") is opp
+    assert replayer._target_sprite("skill_opp") is opp
+    assert replayer._target_sprite("skill_off_1") is opp
+    assert replayer._target_sprite("unknown_target") is opp
+    assert replayer._target_sprite("") is opp  # empty string → opp (default)
+
+
+def test_abnormal_change_e2e_through_vm():
+    """End-to-end: VM produces AbnormalChange mutation targeting sprite_opp."""
+    from backend.sim.sprite import Sprite
+    from backend.common.models import SpeciesStats
+    from backend.vm.ctx import Ctx
+    from backend.vm.executor import execute as vm_execute
+    from backend.engine.replayer import JournalReplayer
+    species = SpeciesStats(name="test", hp=100, atk=100, def_=100, sp_atk=100, sp_def=100, speed=100)
+    sprite = Sprite(
+        species=species, current_hp=100, max_hp=100,
+        initial_stats={"atk": 100, "def": 100, "sp_atk": 100, "sp_def": 100, "speed": 100},
+    )
+    opp = Sprite(
+        species=species, current_hp=100, max_hp=100,
+        initial_stats={"atk": 100, "def": 100, "sp_atk": 100, "sp_def": 100, "speed": 100},
+    )
+    globals_ = GlobalEffects()
+
+    effects = [
+        {"op": "abnormal", "target": "sprite_opp", "name": "中毒", "stacks": 2},
+        {"op": "abnormal", "target": "sprite_self", "name": "灼烧", "stacks": 1},
+    ]
+    ctx = Ctx()
+    journal = vm_execute(ctx, effects)
+    assert len(journal) == 2
+
+    replayer = JournalReplayer(sprite, opp, globals_)
+    events = replayer.replay(journal)
+    assert len(opp.effects) == 1
+    assert opp.effects[0].name == "中毒"
+    assert opp.effects[0].stacks == 2
+    assert len(sprite.effects) == 1
+    assert sprite.effects[0].name == "灼烧"
+
+
+def test_stat_change_e2e_both_directions():
+    """End-to-end: VM StatChange targets both self (buff) and opp (debuff)."""
+    from backend.sim.sprite import Sprite
+    from backend.common.models import SpeciesStats
+    from backend.vm.ctx import Ctx
+    from backend.vm.executor import execute as vm_execute
+    from backend.engine.replayer import JournalReplayer
+    species = SpeciesStats(name="test", hp=100, atk=100, def_=100, sp_atk=100, sp_def=100, speed=100)
+    sprite = Sprite(
+        species=species, current_hp=100, max_hp=100,
+        initial_stats={"atk": 100, "def": 100, "sp_atk": 100, "sp_def": 100, "speed": 100},
+    )
+    opp = Sprite(
+        species=species, current_hp=100, max_hp=100,
+        initial_stats={"atk": 100, "def": 100, "sp_atk": 100, "sp_def": 100, "speed": 100},
+    )
+    globals_ = GlobalEffects()
+
+    effects = [
+        {"op": "mod", "target": "sprite_self", "stat": "atk", "steps": 2},
+        {"op": "mod", "target": "sprite_opp", "stat": "def", "steps": -3},
+    ]
+    ctx = Ctx()
+    journal = vm_execute(ctx, effects)
+    assert len(journal) == 2
+
+    replayer = JournalReplayer(sprite, opp, globals_)
+    replayer.replay(journal)
+    assert len(sprite.effects) == 1
+    assert sprite.effects[0].stat_key == "atk"
+    assert sprite.effects[0].steps == 2
+    assert len(opp.effects) == 1
+    assert opp.effects[0].stat_key == "def"
+    assert opp.effects[0].steps == -3
 
 
 if __name__ == "__main__":
@@ -1281,4 +2352,47 @@ if __name__ == "__main__":
     # use_devotion
     test_use_devotion_flag()
     test_use_devotion_e2e()
+    # ── Effect lifecycle: priority, ttl, delay, cooldown ──
+    test_priority_sort_within_phase()
+    test_priority_sort_mixed_phases()
+    test_ttl_on_statuseffect()
+    test_ttl_decrement_and_expiry()
+    test_delay_stores_on_sprite()
+    test_delay_decremented_at_turn_start()
+    test_cooldown_on_statuseffect()
+    test_cooldown_decrement_on_use()
+    # ── Advanced mod filters: on_next, skill_where, element:each ──
+    test_on_next_modifier_not_applied_immediately()
+    test_on_next_modifier_applied_on_matching_skill()
+    test_skill_where_filters_by_condition()
+    test_element_each_per_element_limits()
+    # ── Target coverage: all effect directions ──
+    test_modifier_on_opp_sprite()
+    test_modifier_on_opp_energy_cost()
+    test_mark_change_opp_team()
+    test_mark_change_own_and_opp()
+    test_abnormal_change_to_sprite_opp()
+    test_abnormal_change_to_sprite_self()
+    test_dispel_opp_positive_buffs()
+    test_dispel_self_negative_debuffs()
+    test_dispel_self_abnormal()
+    test_heal_to_sprite_self()
+    test_heal_to_sprite_opp()
+    test_energy_change_to_opp()
+    test_energy_change_to_self()
+    test_stat_change_to_sprite_self()
+    test_stat_change_to_sprite_opp()
+    test_damage_to_sprite_self()
+    test_damage_to_sprite_opp()
+    test_tick_to_sprite_opp()
+    test_tick_to_sprite_self()
+    test_double_on_opp()
+    test_double_on_self()
+    test_steal_mark_from_opp()
+    test_lock_on_sprite_opp()
+    test_lock_on_sprite_self()
+    test_redirect_borrow_combo()
+    test_target_sprite_resolution_edge_cases()
+    test_abnormal_change_e2e_through_vm()
+    test_stat_change_e2e_both_directions()
     print("\nAll engine integration tests passed!")

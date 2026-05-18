@@ -48,10 +48,12 @@ def _resolve_value(ctx: Ctx, effect) -> int | float:
         if "steps" in effect:
             return resolve(ctx, effect["steps"])
         return resolve(ctx, effect.get("value", 0))
-    # Typed ModOp
+    # Typed ModOp: steps take priority (mirrors dict behavior)
+    if hasattr(effect, 'steps') and effect.steps:
+        return resolve(ctx, effect.steps)
     if effect.value is not None:
         return resolve(ctx, effect.value)
-    return resolve(ctx, effect.steps if hasattr(effect, 'steps') and effect.steps else 0)
+    return 0
 
 
 def _calc_heal_amount(value: float, hp_max: int) -> int:

@@ -1,4 +1,4 @@
-"""scripts/sim/battle.py — 对局引擎
+﻿"""scripts/sim/battle.py — 对局引擎
 
 回合 = 开始阶段 → 选择阶段 → 结算阶段 → 结束阶段
 """
@@ -13,7 +13,7 @@ from .resolver import SkillResolver
 from .battleskill import BattleSkill
 from .action import Action
 from .battle_mechanics import BattleMechanicsMixin
-from scripts.common.skill_trait_ids import TRAIT_星地善良
+from backend.common.skill_trait_ids import TRAIT_星地善良
 from .traits import (
     dispatch_entry, dispatch_leave, dispatch_turn_end,
     dispatch_counter_success, dispatch_faint,
@@ -28,7 +28,7 @@ if TYPE_CHECKING:
     from .sprite import Sprite
     from .skill import Skill
     from .agent import Agent
-    from scripts.engine.skill_loader import SkillRecord
+    from backend.vm.ir_skill import CompiledSkill
 
 
 @dataclass
@@ -80,11 +80,11 @@ class Battle(BattleMechanicsMixin):
         self._borrowed_restore: dict[tuple[str, int], 'Skill'] = {}
         self._wish_restore: dict[tuple[str, int], 'BattleSkill'] = {}   # 愿力一回合后还原
         # VM engine + skill cache
-        from scripts.engine.battle import BattleVMEngine
-        from scripts.engine.skill_loader import SkillLoader
+        from backend.engine.battle import BattleVMEngine
+        from backend.vm.compiler.skill_compiler import SkillCompiler
         self._vm_engine = BattleVMEngine()
-        self._skill_loader = SkillLoader()
-        self._skill_cache: dict[str, 'SkillRecord'] = {}
+        self._skill_compiler = SkillCompiler()
+        self._skill_cache: dict[str, 'CompiledSkill'] = {}
         self._use_vm = True  # toggle to switch between VM and legacy pipeline
         self.team_counters: dict[str, dict[str, int]] = {'A': {}, 'B': {}}  # pre-entry accumulators
         self.pending_effects: dict[str, list] = {'A': [], 'B': []}  # leave-buff → next entry
@@ -193,8 +193,19 @@ class Battle(BattleMechanicsMixin):
 
     def _phase_turn_start(self) -> list[str]:
         """回合开始效果（委托给 TurnPipeline）。"""
+        events: list[str] = []
+
+        # 延迟效果结算：双方精灵 process_pending_effects
+        for team in ('A', 'B'):
+            sprite = self.get_player(team).active
+            if not sprite.is_fainted:
+                activated = sprite.process_pending_effects()
+                for eff in activated:
+                    events.append(f'{sprite.name} 延迟效果生效: {eff.name}')
+
         from .pipeline import TurnPipeline
-        return TurnPipeline.execute_turn_start(self)
+        events += TurnPipeline.execute_turn_start(self)
+        return events
 
     # ═══════════════════════════════════════════════════════════════
     # Phase 2: 行动选择（含私有道具循环）
@@ -385,8 +396,8 @@ class Battle(BattleMechanicsMixin):
 
     # ── VM 技能执行 ──
 
-    def _get_skill_record(self, skill_name: str) -> 'SkillRecord':
-        """Load and cache a SkillRecord from RISC IR JSON."""
+    def _get_skill_record(self, skill_name: str) -> 'CompiledSkill':
+        """Load and cache a CompiledSkill from RISC IR JSON."""
         import json, os
         if skill_name in self._skill_cache:
             return self._skill_cache[skill_name]
@@ -395,7 +406,7 @@ class Battle(BattleMechanicsMixin):
             raise FileNotFoundError(f'Skill JSON not found: {path}')
         with open(path, 'r', encoding='utf-8') as f:
             data = json.load(f)
-        record = self._skill_loader.load(data)
+        record = self._skill_compiler.compile(data)
         self._skill_cache[skill_name] = record
         return record
 
@@ -498,7 +509,14 @@ class Battle(BattleMechanicsMixin):
         user.inc_counter(f'skill_used:{bs.name}')
         user.inc_counter('skills_used')
 
-        # ═══ Load SkillRecord + execute VM ═══
+        # ═══ Consume on_next pending modifiers ═══
+        if user._pending_modifiers:
+            skill_type = getattr(bs.base, 'skill_type', '')
+            consumed = user.consume_pending_modifiers(skill_type)
+            for m in consumed:
+                events.append(f'{user.name} 触发待机效果: {m.stat}={m.value}')
+
+        # ═══ Load CompiledSkill + execute VM ═══
         try:
             record = self._get_skill_record(bs.base.name)
         except FileNotFoundError:
@@ -519,7 +537,7 @@ class Battle(BattleMechanicsMixin):
         events.extend(result.events)
 
         # ═══ Escape / Return handling ═══
-        from scripts.vm.journal import Escape, Return
+        from backend.vm.journal import Escape, Return
         for mutation in result.journal:
             if isinstance(mutation, Escape):
                 if mutation.inherit:
@@ -712,6 +730,12 @@ class Battle(BattleMechanicsMixin):
                     opp = self.get_opponent(team).active
                     if not opp.is_fainted:
                         events += dispatch_abnormal_tick(opp, e.name, dmg, self, opp_team)
+
+        # ── TTL 衰减：双方精灵 decrement_ttl ──
+        for team, sprite in sprites.items():
+            expired = sprite.decrement_ttl()
+            for eff in expired:
+                events.append(f'{sprite.name} 效果到期: {eff.name}')
 
         # ── trait turn end hook ──
         for team, sprite in sprites.items():

@@ -1,4 +1,4 @@
-"""BattleVMEngine — VM-powered skill execution for turn-based battles.
+﻿"""BattleVMEngine — VM-powered skill execution for turn-based battles.
 
 Integrates the pure-function VM with mutable battle state:
     1. Build Ctx snapshot from battle state
@@ -13,10 +13,10 @@ Can be used standalone or as a drop-in for Battle.execute_skill().
 from __future__ import annotations
 from typing import TYPE_CHECKING
 
-from scripts.vm.ctx import Ctx
-from scripts.vm.executor import execute as vm_execute, process_effects
-from scripts.vm.journal import Journal, Mutation, ModifierInjection, CounterRegister, Replay
-from scripts.vm.cond import eval_one
+from backend.vm.ctx import Ctx
+from backend.vm.executor import execute as vm_execute, process_effects
+from backend.vm.journal import Journal, Mutation, ModifierInjection, CounterRegister, Replay
+from backend.vm.cond import eval_one
 
 from .snapshot import build_ctx
 from .observer import ObserverRegistry
@@ -26,7 +26,7 @@ from .modifiers import apply_modifiers_to_journal
 if TYPE_CHECKING:
     from sim.sprite import Sprite
     from sim.globals import GlobalEffects
-    from .skill_loader import SkillRecord
+    from backend.vm.ir_skill import CompiledSkill
 
 
 class SkillExecutionResult:
@@ -91,7 +91,7 @@ class BattleVMEngine:
         Args:
             self_sprite: The skill user
             opp_sprite: The opponent
-            self_skill: The skill being executed (SkillRecord, BattleSkill, or duck-typed)
+            self_skill: The skill being executed (CompiledSkill, BattleSkill, or duck-typed)
             opp_skill: Opponent's current skill (for counter context)
             globals_: Global battle effects (weather, marks)
             team: "A" or "B" — which team the sprite belongs to
@@ -205,19 +205,19 @@ class BattleVMEngine:
     # ── Helpers ──
 
     @staticmethod
-    def _get_effects(skill) -> list[dict]:
-        """Extract RISC IR effects from a skill object.
+    def _get_effects(skill) -> list:
+        """Extract effects from a skill object.
 
-        SkillRecord.effects are already list[dict] in op/when format.
-        BattleSkill/Skill.effects are prototype Effect objects — unsupported
-        (data/skills are now RISC IR format).
+        CompiledSkill.effects are tuple[SkillIROp, ...] (typed IR nodes).
+        SkillRecord/dict-based effects are list[dict] in op/when format.
+        The executor handles both formats.
         """
         if hasattr(skill, 'effects'):
             effs = skill.effects
             if callable(effs):
                 effs = effs()
             result = list(effs)
-            if result and isinstance(result[0], dict):
+            if result:
                 return result
         return []
 
@@ -250,8 +250,8 @@ class BattleVMEngine:
 
         The Borrow mutation itself is removed from the journal.
         """
-        from scripts.vm.journal import Borrow, Damage
-        from scripts.vm.damage import calc_damage
+        from backend.vm.journal import Borrow, Damage
+        from backend.vm.damage import calc_damage
 
         borrow_muts = [m for m in journal if isinstance(m, Borrow)]
         if not borrow_muts:
@@ -307,7 +307,7 @@ class BattleVMEngine:
         When a Redirect(target="sprite_self") is present, all Damage
         targeting sprite_opp is redirected to sprite_self (or vice versa).
         """
-        from scripts.vm.journal import Redirect, Damage
+        from backend.vm.journal import Redirect, Damage
 
         redirect_muts = [m for m in journal if isinstance(m, Redirect)]
         if not redirect_muts:
@@ -337,7 +337,7 @@ class BattleVMEngine:
         For sprite_self replays, finds matching skills in sprite history.
         The resulting mutations are prepended to the journal.
         """
-        from scripts.vm.journal import Replay
+        from backend.vm.journal import Replay
 
         replay_muts = [m for m in journal if isinstance(m, Replay)]
         if not replay_muts:
@@ -358,7 +358,7 @@ class BattleVMEngine:
 
     def _handle_replay_sprite_self(self, journal: Journal, sprite_id: str, ctx: Ctx) -> Journal:
         """Handle Replay from sprite_self (used by tests with explicit sprite_id)."""
-        from scripts.vm.journal import Replay
+        from backend.vm.journal import Replay
 
         replay_muts = [m for m in journal if isinstance(m, Replay)]
         if not replay_muts:

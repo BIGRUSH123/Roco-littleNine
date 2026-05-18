@@ -1,11 +1,11 @@
-"""scripts/sim/factory.py — 从 wiki 数据构建模拟对象"""
+﻿"""scripts/sim/factory.py — 从 wiki 数据构建模拟对象"""
 
 import json
 import sys
 from pathlib import Path
 from typing import Optional
 
-from scripts.common.sprite_db import SpriteDB
+from backend.common.sprite_db import SpriteDB
 
 from .sprite import Sprite
 from .skill import Skill
@@ -33,7 +33,7 @@ class SimFactory:
             return self._skills_by_id[skill_id]
         # 尝试从索引查找名称
         try:
-            from scripts.common.skill_trait_ids import SKILL_ID_TO_NAME
+            from backend.common.skill_trait_ids import SKILL_ID_TO_NAME
             name = SKILL_ID_TO_NAME.get(skill_id)
             if name:
                 path = self._skills_dir / f'{name}.json'
@@ -75,7 +75,7 @@ class SimFactory:
         if not species:
             raise ValueError(f'精灵未找到: {name!r}')
 
-        from scripts.common.formulas import StatsCalc
+        from backend.common.formulas import StatsCalc
         calc = StatsCalc()
         result = calc.compute(
             species, nature=nature,
@@ -98,7 +98,7 @@ class SimFactory:
             if path.exists():
                 data = json.loads(path.read_text(encoding='utf-8'))
                 # Build minimal Skill (metadata only, no effects) — RISC IR
-                # effects are served by SkillRecord, not Skill.effects
+                # effects are served by CompiledSkill, not Skill.effects
                 skill = Skill(
                     id=data.get('id', 0),
                     name=data['name'],
@@ -109,7 +109,7 @@ class SimFactory:
                     counter=data.get('counter', '无'),
                     priority=data.get('priority', 0),
                     combo=data.get('combo', 1),
-                    effects=[],  # effects come from SkillRecord
+                    effects=[],  # effects come from CompiledSkill
                     exclusive_to=data.get('exclusive_to', ''),
                     transmission=data.get('transmission', 0),
                     description=data.get('description', ''),
