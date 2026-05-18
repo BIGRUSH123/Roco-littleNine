@@ -509,6 +509,7 @@ class Battle(BattleMechanicsMixin):
             user, target,
             record, None, self.globals,
             turn=self.turn, is_first=is_first,
+            team=team,
             opp_switched=opponent_switched,
             was_countered=is_countered,
             counter_succeeded=is_countered and countered_skill is not None,

@@ -15,7 +15,7 @@ from typing import TYPE_CHECKING
 
 from scripts.vm.ctx import Ctx
 from scripts.vm.executor import execute as vm_execute, process_effects
-from scripts.vm.journal import Journal, Mutation, ModifierInjection, CounterRegister
+from scripts.vm.journal import Journal, Mutation, ModifierInjection, CounterRegister, Replay
 from scripts.vm.cond import eval_one
 
 from .snapshot import build_ctx
@@ -50,6 +50,14 @@ class BattleVMEngine:
 
     def __init__(self, registry: ObserverRegistry | None = None):
         self.registry = registry or ObserverRegistry()
+        # Burst tracking: team → list of (skill_name, effects)
+        self._burst_effects: dict[str, list[tuple[str, list[dict]]]] = {"A": [], "B": []}
+        # Distinct burst skill names per team (for burst_triggered_count)
+        self._burst_names: dict[str, set[str]] = {"A": set(), "B": set()}
+
+    def burst_triggered_count(self, team: str) -> int:
+        """Return the number of distinct burst skills triggered by this team."""
+        return len(self._burst_names.get(team, set()))
 
     # ── Main execution flow ──
 
@@ -63,6 +71,7 @@ class BattleVMEngine:
         *,
         turn: int = 0,
         is_first: bool = False,
+        team: str = "A",
         effects: list[dict] | None = None,
         **kwargs,
     ) -> SkillExecutionResult:
@@ -74,6 +83,7 @@ class BattleVMEngine:
             self_skill: The skill being executed (SkillRecord, BattleSkill, or duck-typed)
             opp_skill: Opponent's current skill (for counter context)
             globals_: Global battle effects (weather, marks)
+            team: "A" or "B" — which team the sprite belongs to
             effects: Explicit RISC IR effects (if None, read from self_skill.effects)
             **kwargs: Additional Ctx parameters (opp_switched, counter_succeeded, etc.)
 
@@ -84,7 +94,9 @@ class BattleVMEngine:
         ctx = build_ctx(
             self_sprite, opp_sprite,
             self_skill, opp_skill, globals_,
-            turn=turn, is_first=is_first, **kwargs,
+            turn=turn, is_first=is_first,
+            burst_triggered_count_own=self.burst_triggered_count(team),
+            **kwargs,
         )
 
         # 2. Fire pre-calc observers → collect modifier injections
@@ -97,6 +109,15 @@ class BattleVMEngine:
         # 4. Merge pre-calc modifiers into journal
         if pre_mods:
             journal = pre_mods + journal
+
+        # 4.5 Register burst effects (first action = burst)
+        if is_first and vm_effects:
+            skill_name = getattr(self_skill, 'name', '')
+            self._burst_effects[team].append((skill_name, vm_effects))
+            self._burst_names[team].add(skill_name)
+
+        # 4.6 Handle Replay mutations (burst replay)
+        journal = self._handle_replay(journal, team, ctx)
 
         # 5. Apply same-skill modifiers to Damage amounts
         journal = apply_modifiers_to_journal(journal, ctx)
@@ -170,6 +191,32 @@ class BattleVMEngine:
             if result and isinstance(result[0], dict):
                 return result
         return []
+
+    def _handle_replay(self, journal: Journal, team: str, ctx: Ctx) -> Journal:
+        """Handle Replay mutations by executing burst/self skill effects.
+
+        Scans journal for Replay mutations. For team_burst replays, finds
+        all registered burst effects and executes them through the VM.
+        The resulting mutations are prepended to the journal.
+        """
+        replay_muts = [m for m in journal if isinstance(m, Replay)]
+        if not replay_muts:
+            return journal
+
+        extra: Journal = []
+        for r in replay_muts:
+            if r.from_ == "team_burst":
+                for skill_name, effects in self._burst_effects.get(team, []):
+                    extra.extend(vm_execute(ctx, effects))
+            elif r.from_ == "sprite_self":
+                # Self replay: execute the current skill's effects again
+                pass  # Requires skill history tracking per sprite
+
+        if extra:
+            # Filter out Replay mutations, prepend extra effects
+            journal = [m for m in journal if not isinstance(m, Replay)]
+            journal = extra + journal
+        return journal
 
     def register_counter(self, mutation: CounterRegister) -> None:
         """Register a persistent counter from a CounterRegister mutation."""
