@@ -457,6 +457,14 @@ class Battle(BattleMechanicsMixin):
 
         # ═══ Gate: 能量支付 ═══
         cost = bs.energy_cost
+        # Energy cost modifier from VM pipeline (accumulated via ModifierInjection)
+        ec_mod = user._modifiers.get("energy_cost", 0)
+        if ec_mod:
+            cost += round(ec_mod)
+        # Energy cost multiplier from VM pipeline
+        ec_mult = user._modifiers.get("energy_cost_mult", 0)
+        if ec_mult:
+            cost = round(cost * (1.0 + ec_mult))
         # 轴承支撑被动
         si = action.skill_index
         if si is not None:
@@ -466,6 +474,9 @@ class Battle(BattleMechanicsMixin):
                     if user.skills[ni].name == '轴承支撑':
                         cost -= 1
                         break
+        # Weather energy cost modifier
+        if hasattr(bs.base, 'element') and bs.base.element and self.globals.weather:
+            cost = round(cost * self.globals.weather_energy_mod(bs.base.element))
         cost = max(0, cost)
         if cost > 0 and user.energy >= cost:
             user.lose_energy(cost)
@@ -507,6 +518,8 @@ class Battle(BattleMechanicsMixin):
 
         # ═══ Post-execution ═══
         user.first_action = False
+        # Clear "charged" state — consumed after the sprite acts
+        user.remove_effect("charged", "state")
 
         # Defense skill cooldown
         if bs.base.is_defense:
@@ -544,6 +557,12 @@ class Battle(BattleMechanicsMixin):
         if is_charging and has_charge and action.skill_index == charged_idx:
             user._charging = False
             user._charged_skill_index = -1
+            # Remove "charging" effect, add "charged" for condition checks
+            user.remove_effect("charging", "state")
+            from .sprite import StatusEffect
+            user.add_effect(StatusEffect(
+                name="charged", category="state", scope="battlefield", source="charge",
+            ))
             return None  # charge released
 
         if is_charging:
