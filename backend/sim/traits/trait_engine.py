@@ -1,4 +1,4 @@
-"""scripts/sim/traits/trait_engine.py — 通用特性引擎
+﻿"""scripts/sim/traits/trait_engine.py — 通用特性引擎
 
 DataDrivenTrait: 从 JSON 加载特性定义，实现 TraitHandler 接口。
 支持条件求值、动态 ref 表达式、modifier 操作、效果管线。
@@ -29,11 +29,13 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from . import TraitHandler
+from backend.vm.executor_trait import process_trigger
 
 if TYPE_CHECKING:
-    from scripts.sim.sprite import Sprite, StatusEffect
-    from scripts.sim.battle import Battle
-    from scripts.sim.battleskill import BattleSkill, SkillUse
+    from backend.sim.sprite import Sprite, StatusEffect
+    from backend.sim.battle import Battle
+    from backend.sim.battleskill import BattleSkill, SkillUse
+    from backend.vm.ir_trait import TraitTrigger, CompiledTrait
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -481,11 +483,16 @@ class DataDrivenTrait(TraitHandler):
     on_energy_short / on_fatal_damage 委托给 hook 系统（Layer 3b）。
     """
 
-    def __init__(self, name: str, triggers: list[dict], trait_id: int = 0):
+    def __init__(self, name: str, triggers: list[dict], trait_id: int = 0,
+                 compiled: "CompiledTrait | None" = None):
         self.name = name
         self.trait_id = trait_id
         self._triggers: dict[str, list[dict]] = {}
         self._process_triggers(triggers)
+        # Typed triggers from CompiledTrait (Task 8/9: typed execution path)
+        self._compiled_triggers: dict[str, list["TraitTrigger"]] = {}
+        if compiled is not None:
+            self._process_compiled_triggers(compiled)
 
     def _process_triggers(self, triggers: list[dict]) -> None:
         """处理 triggers 列表，展开 aura 定义（方向 2）。
@@ -501,6 +508,15 @@ class DataDrivenTrait(TraitHandler):
             hook = t.get('on', '')
             if hook:
                 self._triggers.setdefault(hook, []).append(t)
+
+    def _process_compiled_triggers(self, compiled: "CompiledTrait") -> None:
+        """组织 CompiledTrait 中的类型化 TraitTrigger 按 hook 分组。
+
+        CompiledTrait 的 triggers 已经过 AuraExpandPass 展开，
+        每个 TraitTrigger.on 即为 hook 名。
+        """
+        for t in compiled.triggers:
+            self._compiled_triggers.setdefault(t.on, []).append(t)
 
     def _expand_aura(self, aura: dict, parent: dict) -> None:
         """aura → entry + leave 触发器对。
@@ -782,11 +798,26 @@ class DataDrivenTrait(TraitHandler):
               battleskill_mut → effects → conditional_replace →
               replace → accumulate → pending_effects →
               flags → team_counters
+
+        优先执行 typed CompiledTrait triggers (通过 process_trigger()),
+        回退到原始 dict triggers 路径。
         """
         events: list[str] = []
-        triggers = self._triggers.get(hook, [])
 
         self._precompute_team_values(ctx)
+
+        # ── Typed path: CompiledTrait triggers via executor_trait ──
+        for trigger in self._compiled_triggers.get(hook, []):
+            events += process_trigger(trigger, ctx)
+
+        # ── Dict path: legacy JSON triggers ──
+        events += self._fire_dict_triggers(hook, self._triggers.get(hook, []), ctx)
+
+        return events
+
+    def _fire_dict_triggers(self, hook: str, triggers: list[dict], ctx: dict) -> list[str]:
+        """执行原始 dict 格式的 triggers（向后兼容路径）。"""
+        events: list[str] = []
 
         for trigger in triggers:
             condition = trigger.get('condition')
@@ -1080,7 +1111,7 @@ class DataDrivenTrait(TraitHandler):
         kind: stat, abnormal, mark, weather, special,
               mutate_effect, remove_effect
         """
-        from scripts.sim.sprite import StatusEffect
+        from backend.sim.sprite import StatusEffect
 
         kind = eff_dict.get('kind', 'stat')
         sprite = ctx.get('self')
@@ -1139,17 +1170,6 @@ class DataDrivenTrait(TraitHandler):
                 if battle and target_sprite:
                     old_name = target_sprite.name
                     events = target_sprite.apply_moe(int(stacks), battle)
-                    if target_sprite.name != old_name:
-                        heal_pct = eff_dict.get('heal_pct', 0.0)
-                        energy_gain = eff_dict.get('energy_gain', 0)
-                        if heal_pct > 0:
-                            healed = target_sprite.heal(round(target_sprite.max_hp * heal_pct))
-                            if healed:
-                                events.append(f'{target_sprite.name} 萌化回复+{healed}HP')
-                        if energy_gain > 0:
-                            gained = target_sprite.gain_energy(energy_gain)
-                            if gained:
-                                events.append(f'{target_sprite.name} 萌化回复+{gained}E')
                     return events
             scope = eff_dict.get('scope', 'battlefield')
             source = eff_dict.get('source', '')
@@ -1547,7 +1567,7 @@ class DataDrivenTrait(TraitHandler):
     @staticmethod
     def _apply_transform(eff_dict: dict, sprite, ctx: dict) -> list[str]:
         """形态变换: 替换 species + skills，保留 HP 比例/能量/效果/计数器。"""
-        from scripts.common.models import SpeciesStats
+        from backend.common.models import SpeciesStats
 
         battle = ctx.get('battle')
         if not battle:
@@ -1671,15 +1691,15 @@ class DataDrivenTrait(TraitHandler):
         """强制替换行动。支持 force_gather / force_skill:N / force_switch:N。"""
         force = eff_dict.get('force', 'gather')
         if force == 'gather':
-            from scripts.sim.action import Action
+            from backend.sim.action import Action
             return Action(kind='gather')
         if force.startswith('skill:'):
             slot = int(force.split(':')[1])
-            from scripts.sim.action import Action
+            from backend.sim.action import Action
             return Action(kind='skill', skill_index=slot)
         if force.startswith('switch:'):
             idx = int(force.split(':')[1])
-            from scripts.sim.action import Action
+            from backend.sim.action import Action
             return Action(kind='switch', switch_index=idx)
         return None
 
@@ -1703,7 +1723,7 @@ class DataDrivenTrait(TraitHandler):
 
     @staticmethod
     def _handle_pending_effects(pending: list[dict], ctx: dict) -> list[str]:
-        from scripts.sim.sprite import StatusEffect
+        from backend.sim.sprite import StatusEffect
 
         battle = ctx.get('battle')
         team = ctx.get('team', 'A')
