@@ -521,6 +521,87 @@ def test_return_mutation_production():
     print(f"  Return mutation: pending_return={sprite.pending_return}, events={events}")
 
 
+def test_e2e_attack_skill():
+    """End-to-end: execute a real attack skill through VM engine."""
+    from scripts.engine.skill_loader import SkillLoader
+    from scripts.engine.battle import BattleVMEngine
+    from scripts.sim.sprite import Sprite
+    from scripts.sim.globals import GlobalEffects
+    from scripts.common.models import SpeciesStats
+    from scripts.vm.journal import Damage
+
+    loader = SkillLoader()
+    engine = BattleVMEngine()
+    species = SpeciesStats(name="测试精灵", hp=200, atk=120, def_=100, sp_atk=110, sp_def=95, speed=100)
+    sprite = Sprite(species=species, current_hp=180, max_hp=200, energy=8,
+                    initial_stats={"atk": 120, "def": 100, "sp_atk": 110, "sp_def": 95, "speed": 100})
+    opp = Sprite(species=species, current_hp=150, max_hp=180, energy=5,
+                 initial_stats={"atk": 115, "def": 90, "sp_atk": 105, "sp_def": 85, "speed": 95})
+
+    record = loader.load_file("data/skills/龙爪.json")
+    result = engine.execute_skill(sprite, opp, record, None, GlobalEffects(), turn=1, is_first=True, team="A")
+
+    assert opp.current_hp < 150, f"Expected damage to opponent, HP={opp.current_hp}"
+    damages = [m for m in result.journal if isinstance(m, Damage)]
+    assert len(damages) == 1
+    assert damages[0].amount > 0
+    print(f"  龙爪 damage: {damages[0].amount}, opp HP: {opp.current_hp}")
+
+
+def test_e2e_defense_counter():
+    """End-to-end: defense skill with counter_succeeded conditional effects."""
+    from scripts.engine.skill_loader import SkillLoader
+    from scripts.engine.battle import BattleVMEngine
+    from scripts.sim.sprite import Sprite
+    from scripts.sim.globals import GlobalEffects
+    from scripts.common.models import SpeciesStats
+
+    loader = SkillLoader()
+    engine = BattleVMEngine()
+    species = SpeciesStats(name="测试精灵", hp=200, atk=120, def_=100, sp_atk=110, sp_def=95, speed=100)
+    sprite = Sprite(species=species, current_hp=180, max_hp=200, energy=8,
+                    initial_stats={"atk": 120, "def": 100, "sp_atk": 110, "sp_def": 95, "speed": 100})
+    opp = Sprite(species=species, current_hp=150, max_hp=180, energy=5,
+                 initial_stats={"atk": 115, "def": 90, "sp_atk": 105, "sp_def": 85, "speed": 95})
+
+    record = loader.load_file("data/skills/防反.json")
+    result = engine.execute_skill(sprite, opp, record, None, GlobalEffects(), turn=1, is_first=False, team="B",
+                                   counter_succeeded=True)
+
+    # Should have stat changes from counter_succeeded
+    atk_stages = sum(getattr(e, 'steps', 0) for e in sprite.effects if getattr(e, 'stat_key', '') == "atk")
+    sp_atk_stages = sum(getattr(e, 'steps', 0) for e in sprite.effects if getattr(e, 'stat_key', '') == "sp_atk")
+    assert atk_stages == 4, f"Expected atk+4 from counter_succeeded, got {atk_stages}"
+    assert sp_atk_stages == 4, f"Expected sp_atk+4 from counter_succeeded, got {sp_atk_stages}"
+    print(f"  防反 counter: atk+{atk_stages}, sp_atk+{sp_atk_stages}")
+
+
+def test_e2e_escape_skill():
+    """End-to-end: skill with escape opcode produces Escape mutation."""
+    from scripts.engine.skill_loader import SkillLoader
+    from scripts.engine.battle import BattleVMEngine
+    from scripts.sim.sprite import Sprite
+    from scripts.sim.globals import GlobalEffects
+    from scripts.common.models import SpeciesStats
+    from scripts.vm.journal import Escape
+
+    loader = SkillLoader()
+    engine = BattleVMEngine()
+    species = SpeciesStats(name="测试精灵", hp=200, atk=120, def_=100, sp_atk=110, sp_def=95, speed=100)
+    sprite = Sprite(species=species, current_hp=180, max_hp=200, energy=8,
+                    initial_stats={"atk": 120, "def": 100, "sp_atk": 110, "sp_def": 95, "speed": 100})
+    opp = Sprite(species=species, current_hp=150, max_hp=180, energy=5,
+                 initial_stats={"atk": 115, "def": 90, "sp_atk": 105, "sp_def": 85, "speed": 95})
+
+    record = loader.load_file("data/skills/恶意逃离.json")
+    result = engine.execute_skill(sprite, opp, record, None, GlobalEffects(), turn=1, is_first=True, team="A")
+
+    escapes = [m for m in result.journal if isinstance(m, Escape)]
+    assert len(escapes) == 1, f"Expected 1 Escape mutation, got {len(escapes)}"
+    assert escapes[0].inherit is False
+    print(f"  恶意逃离: Escape mutation produced, inherit={escapes[0].inherit}")
+
+
 if __name__ == "__main__":
     test_snapshot()
     test_replayer()
@@ -533,4 +614,7 @@ if __name__ == "__main__":
     test_counter_refs_opp_power()
     test_escape_mutation_production()
     test_return_mutation_production()
+    test_e2e_attack_skill()
+    test_e2e_defense_counter()
+    test_e2e_escape_skill()
     print("\nAll engine integration tests passed!")
