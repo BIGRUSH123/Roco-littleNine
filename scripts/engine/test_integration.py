@@ -221,6 +221,211 @@ def test_life_drain():
     print(f"  Life drain: {events}")
 
 
+def test_counter_damage_flow():
+    """Test that counter_succeeded hit effects deal damage to opponent."""
+    from scripts.vm.ctx import Ctx
+    from scripts.vm.executor import execute as vm_execute
+    from scripts.engine.snapshot import build_ctx
+    from scripts.engine.replayer import JournalReplayer
+    from scripts.engine.modifiers import apply_modifiers_to_journal
+    from scripts.sim.sprite import Sprite
+    from scripts.sim.skill import Skill
+    from scripts.sim.battleskill import BattleSkill
+    from scripts.sim.globals import GlobalEffects
+    from scripts.common.models import SpeciesStats
+
+    species = SpeciesStats(
+        name="测试精灵", hp=200, atk=120, def_=100,
+        sp_atk=110, sp_def=95, speed=100,
+    )
+    # Countering sprite (defense skill user)
+    counter_sprite = Sprite(
+        species=species, current_hp=180, max_hp=200, energy=8,
+        initial_stats={"atk": 120, "def": 100, "sp_atk": 110, "sp_def": 95, "speed": 100},
+    )
+    # Attacker (being countered)
+    attacker = Sprite(
+        species=species, current_hp=150, max_hp=180, energy=5,
+        initial_stats={"atk": 115, "def": 90, "sp_atk": 105, "sp_def": 85, "speed": 95},
+    )
+    globals_ = GlobalEffects()
+
+    # Build RISC IR effects for counter skill (like 硬门: counter_succeeded → hit 90 物攻)
+    effects = [
+        {
+            "when": {"cond": "counter_succeeded"},
+            "then": [
+                {"op": "hit", "power": 90, "type": "物攻"},
+            ],
+        },
+    ]
+
+    # Build ctx with counter_succeeded=True
+    ctx = build_ctx(
+        counter_sprite, attacker,
+        Skill.load({"name": "测试防御", "element": "武", "skill_type": "防御", "power": 0, "energy_cost": 2}),
+        Skill.load({"name": "测试攻击", "element": "火", "skill_type": "物攻", "power": 80, "energy_cost": 3}),
+        globals_,
+        turn=1, is_first=False,
+        counter_succeeded=True,
+    )
+
+    # VM execution
+    journal = vm_execute(ctx, effects)
+    # Apply same-skill modifiers
+    journal = apply_modifiers_to_journal(journal, ctx)
+
+    # Replay
+    replayer = JournalReplayer(counter_sprite, attacker, globals_)
+    events = replayer.replay(journal)
+
+    # Attacker should have taken damage from counter hit
+    assert attacker.current_hp < 150, f"Counter damage should reduce HP, got {attacker.current_hp}"
+    print(f"  Counter damage: {attacker.current_hp} HP remaining ({150 - attacker.current_hp} damage dealt)")
+    print(f"  Events: {events}")
+
+
+def test_counter_succeeded_flag_flow():
+    """Test that counter_succeeded flag correctly gates conditional effects."""
+    from scripts.vm.ctx import Ctx
+    from scripts.vm.executor import execute as vm_execute
+    from scripts.engine.snapshot import build_ctx
+    from scripts.engine.replayer import JournalReplayer
+    from scripts.engine.modifiers import apply_modifiers_to_journal
+    from scripts.sim.sprite import Sprite
+    from scripts.sim.skill import Skill
+    from scripts.sim.globals import GlobalEffects
+    from scripts.common.models import SpeciesStats
+
+    species = SpeciesStats(
+        name="测试精灵", hp=200, atk=120, def_=100,
+        sp_atk=110, sp_def=95, speed=100,
+    )
+    counter_sprite = Sprite(
+        species=species, current_hp=180, max_hp=200, energy=8,
+        initial_stats={"atk": 120, "def": 100, "sp_atk": 110, "sp_def": 95, "speed": 100},
+    )
+    attacker = Sprite(
+        species=species, current_hp=150, max_hp=180, energy=5,
+        initial_stats={"atk": 115, "def": 90, "sp_atk": 105, "sp_def": 85, "speed": 95},
+    )
+    globals_ = GlobalEffects()
+
+    effects = [
+        {
+            "when": {"cond": "counter_succeeded"},
+            "then": [
+                {"op": "hit", "power": 90, "type": "物攻"},
+            ],
+        },
+        # Unconditional mod that always applies
+        {
+            "op": "mod",
+            "target": "sprite_self",
+            "stat": "damage_reduction",
+            "value": 0.6,
+        },
+    ]
+
+    # Test 1: counter_succeeded=False → no hit damage, only mod
+    ctx_fail = build_ctx(
+        counter_sprite, attacker,
+        Skill.load({"name": "测试防御", "element": "武", "skill_type": "防御", "power": 0, "energy_cost": 2}),
+        None, globals_,
+        turn=1, is_first=False,
+        counter_succeeded=False,
+    )
+    hp_before = attacker.current_hp
+    journal_fail = vm_execute(ctx_fail, effects)
+    replayer = JournalReplayer(counter_sprite, attacker, globals_)
+    replayer.replay(journal_fail)
+    assert attacker.current_hp == hp_before, f"Without counter_succeeded, no damage expected, got HP={attacker.current_hp}"
+    print(f"  counter_succeeded=False: no damage (HP={attacker.current_hp}) ✓")
+
+    # Test 2: Reset, counter_succeeded=True → hit damage dealt
+    attacker.current_hp = 150
+    ctx_success = build_ctx(
+        counter_sprite, attacker,
+        Skill.load({"name": "测试防御", "element": "武", "skill_type": "防御", "power": 0, "energy_cost": 2}),
+        Skill.load({"name": "测试攻击", "element": "火", "skill_type": "物攻", "power": 80, "energy_cost": 3}),
+        globals_,
+        turn=1, is_first=False,
+        counter_succeeded=True,
+    )
+    journal_success = vm_execute(ctx_success, effects)
+    journal_success = apply_modifiers_to_journal(journal_success, ctx_success)
+    replayer2 = JournalReplayer(counter_sprite, attacker, globals_)
+    events = replayer2.replay(journal_success)
+    assert attacker.current_hp < 150, f"With counter_succeeded, damage expected, got HP={attacker.current_hp}"
+    print(f"  counter_succeeded=True: damage dealt (HP={attacker.current_hp}, events={events}) ✓")
+
+
+def test_counter_refs_opp_power():
+    """Test counter hit that references opponent's skill power (like 听桥)."""
+    from scripts.vm.executor import execute as vm_execute
+    from scripts.engine.snapshot import build_ctx
+    from scripts.engine.replayer import JournalReplayer
+    from scripts.engine.modifiers import apply_modifiers_to_journal
+    from scripts.sim.sprite import Sprite
+    from scripts.sim.skill import Skill
+    from scripts.sim.globals import GlobalEffects
+    from scripts.common.models import SpeciesStats
+
+    species_self = SpeciesStats(
+        name="防御者", hp=200, atk=120, def_=120,
+        sp_atk=110, sp_def=110, speed=100,
+    )
+    species_opp = SpeciesStats(
+        name="攻击者", hp=180, atk=130, def_=80,
+        sp_atk=100, sp_def=80, speed=110,
+    )
+    counter_sprite = Sprite(
+        species=species_self, current_hp=200, max_hp=200, energy=8,
+        initial_stats={"atk": 120, "def": 120, "sp_atk": 110, "sp_def": 110, "speed": 100},
+    )
+    attacker = Sprite(
+        species=species_opp, current_hp=180, max_hp=180, energy=5,
+        initial_stats={"atk": 130, "def": 80, "sp_atk": 100, "sp_def": 80, "speed": 110},
+    )
+    globals_ = GlobalEffects()
+
+    # 听桥-style: use countered skill's power (120) as hit power
+    effects = [
+        {
+            "when": {"cond": "counter_succeeded"},
+            "then": [{
+                "op": "hit",
+                "power": {"q": "power_base", "of": "skill_opp_current"},
+                "type": "物攻",
+            }],
+        },
+    ]
+
+    # Countered skill with power=120
+    opp_skill = Skill.load({"name": "强力攻击", "element": "火", "skill_type": "物攻", "power": 120, "energy_cost": 4})
+
+    ctx = build_ctx(
+        counter_sprite, attacker,
+        Skill.load({"name": "听桥式", "element": "武", "skill_type": "防御", "power": 0, "energy_cost": 4}),
+        opp_skill, globals_,
+        turn=1, is_first=False,
+        counter_succeeded=True,
+    )
+
+    journal = vm_execute(ctx, effects)
+    journal = apply_modifiers_to_journal(journal, ctx)
+
+    replayer = JournalReplayer(counter_sprite, attacker, globals_)
+    events = replayer.replay(journal)
+
+    # Damage should be based on countered skill's power=120
+    hp_lost = 180 - attacker.current_hp
+    print(f"  Counter with opp_power=120: dealt {hp_lost} damage, HP={attacker.current_hp}")
+    assert hp_lost > 0, "Should deal damage based on countered skill power"
+    # Power 120 should deal more than power 90 would
+    assert hp_lost >= 30, f"Expected meaningful damage with power 120, got {hp_lost}"
+
+
 if __name__ == "__main__":
     test_snapshot()
     test_replayer()
@@ -228,4 +433,7 @@ if __name__ == "__main__":
     test_modifier_chain()
     test_modifier_collection_end_to_end()
     test_life_drain()
+    test_counter_damage_flow()
+    test_counter_succeeded_flag_flow()
+    test_counter_refs_opp_power()
     print("\nAll engine integration tests passed!")

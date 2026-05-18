@@ -44,7 +44,6 @@ def op_hit(ctx: Ctx, effect: dict) -> list[Mutation]:
         def_stage=def_stage,
         damage_reduction=ctx.damage_reduction_opp,
         combo_count=ctx.combo_self,
-        counter_power_mult=1.5 if ctx.counter_succeeded else 1.0,
     )
 
     return [Damage(

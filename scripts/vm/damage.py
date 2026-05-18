@@ -53,6 +53,8 @@ def calc_damage(
     """
     if atk_base <= 0 or def_base <= 0:
         return 0
+    if combo_count < 1:
+        combo_count = 1
 
     power_term = round((power * counter_power_mult + additive_power) * power_mult)
     if power_term <= 0:

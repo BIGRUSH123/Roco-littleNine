@@ -505,14 +505,15 @@ class Battle(BattleMechanicsMixin):
             events.append(f'[错误] 技能JSON未找到: {bs.base.name}')
             return events
 
+        opp_skill = countered_skill or countering_skill
         result = self._vm_engine.execute_skill(
             user, target,
-            record, None, self.globals,
+            record, opp_skill, self.globals,
             turn=self.turn, is_first=is_first,
             team=team,
             opp_switched=opponent_switched,
             was_countered=is_countered,
-            counter_succeeded=is_countered and countered_skill is not None,
+            counter_succeeded=countered_skill is not None,
             skill_index=action.skill_index or 0,
         )
         events.extend(result.events)
