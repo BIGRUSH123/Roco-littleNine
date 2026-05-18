@@ -184,10 +184,48 @@ def test_modifier_collection_end_to_end():
     print(f"  E2E modifier pipeline: damage {80}→{adjusted_journal[1].amount} with power_mult×1.5")
 
 
+def test_life_drain():
+    """Test that life drain modifier heals attacker when dealing damage."""
+    from scripts.vm.journal import Damage, ModifierInjection, Journal
+    from scripts.engine.replayer import JournalReplayer
+    from scripts.sim.sprite import Sprite
+    from scripts.sim.globals import GlobalEffects
+    from scripts.common.models import SpeciesStats
+
+    species = SpeciesStats(
+        name="测试精灵", hp=200, atk=120, def_=100,
+        sp_atk=110, sp_def=95, speed=100,
+    )
+    attacker = Sprite(
+        species=species, current_hp=180, max_hp=200, energy=8,
+        initial_stats={"atk": 120, "def": 100, "sp_atk": 110, "sp_def": 95, "speed": 100},
+    )
+    defender = Sprite(
+        species=species, current_hp=150, max_hp=180, energy=5,
+        initial_stats={"atk": 115, "def": 90, "sp_atk": 105, "sp_def": 85, "speed": 95},
+    )
+    globals_ = GlobalEffects()
+    replayer = JournalReplayer(attacker, defender, globals_)
+
+    # Simulate: life_drain modifier applied first, then damage
+    journal: Journal = [
+        ModifierInjection(target="skill_off_0", stat="life_drain", value=0.5, mode="set", scope="battlefield"),
+        Damage(target="sprite_opp", amount=40, element="火", type="物攻"),
+    ]
+    events = replayer.replay(journal)
+
+    # Attacker should have drained 50% of 40 = 20 HP
+    assert attacker.current_hp == 200  # 180 + 20 = 200 (capped at max_hp)
+    assert defender.current_hp == 110  # 150 - 40 = 110
+    assert any("吸血+20HP" in e for e in events), f"Expected life drain event, got {events}"
+    print(f"  Life drain: {events}")
+
+
 if __name__ == "__main__":
     test_snapshot()
     test_replayer()
     test_modifier_collection()
     test_modifier_chain()
     test_modifier_collection_end_to_end()
+    test_life_drain()
     print("\nAll engine integration tests passed!")

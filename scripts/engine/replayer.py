@@ -134,13 +134,13 @@ class JournalReplayer:
         read by build_ctx when constructing Ctx for subsequent skills.
         """
         sprite = self._target_sprite(m.target)
-        cur = sprite._modifiers.get(m.stat, 0.0)
+        cur = sprite._modifiers.get(m.stat)  # None if never set (distinct from 0.0)
         if m.mode == "set":
             sprite._modifiers[m.stat] = m.value
         elif m.mode == "add":
-            sprite._modifiers[m.stat] = cur + m.value
+            sprite._modifiers[m.stat] = (cur or 0.0) + m.value
         elif m.mode == "multiply":
-            sprite._modifiers[m.stat] = cur * m.value if cur else m.value
+            sprite._modifiers[m.stat] = (cur or 1.0) * m.value if cur is not None else m.value
         else:
             sprite._modifiers[m.stat] = m.value
         return f"{sprite.name} {m.stat}={sprite._modifiers[m.stat]:.0%}"
@@ -148,9 +148,18 @@ class JournalReplayer:
     def _apply_damage(self, m: Damage) -> str:
         sprite = self._target_sprite(m.target)
         actual = sprite.take_damage(m.amount)
+        result = f"{sprite.name} -{actual}HP"
         if sprite.is_fainted:
-            return f"{sprite.name} -{actual}HP (fainted)"
-        return f"{sprite.name} -{actual}HP"
+            result += " (fainted)"
+
+        # Life drain: attacker heals by a percentage of damage dealt
+        if m.target != "sprite_self":
+            drain_pct = self.self._modifiers.get("life_drain", 0.0)
+            if drain_pct > 0:
+                healed = self.self.heal(round(actual * drain_pct))
+                if healed:
+                    result += f" [吸血+{healed}HP]"
+        return result
 
     def _apply_heal(self, m: Heal) -> str:
         sprite = self._target_sprite(m.target)
@@ -319,6 +328,6 @@ class JournalReplayer:
     # ── Helpers ──
 
     def _target_sprite(self, target: str) -> Sprite:
-        if target in ("sprite_self", "self", "team_own"):
+        if target in ("sprite_self", "self", "team_own", "skill_off_0"):
             return self.self
         return self.opp
