@@ -1,12 +1,14 @@
 """IR VM — pure-function skill execution core.
 
+V2: Typed match/case dispatch (OP_DISPATCH removed from ops).
+
 Public API:
     from vm import Ctx, ADDRESS_MAP, resolve, QueryRef
     from vm import eval_one, COND_EVAL
     from vm import calc_damage
-    from vm import process_effects, process_one
+    from vm import execute, process_effects, process_one
     from vm.journal import Mutation, Journal, StatChange, ModifierInjection, ...
-    from vm.ops import OP_DISPATCH, op_mod, ...
+    from vm.ops import op_mod, ...
 """
 
 from .ctx import Ctx, ADDRESS_MAP
@@ -20,6 +22,6 @@ from .journal import (
     Reset, Redirect, Replay, Borrow, CounterRegister,
     Mutation, Journal,
 )
-from .ops import OP_DISPATCH, op_mod
+from .ops import op_mod
 from .executor import execute, process_effects, process_one
 from .sort import sort_effects

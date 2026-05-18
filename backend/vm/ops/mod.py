@@ -2,6 +2,8 @@
 
 Produces StatChange (steps-based stage mods), ModifierInjection (value-based
 stat/skill mods), Heal (hp recovery), EnergyChange, or devotion registration.
+
+V2: Supports typed ModOp alongside backward-compat dict.
 """
 
 from ..ctx import Ctx
@@ -10,6 +12,7 @@ from ..journal import (
     StatChange, ModifierInjection, Heal, Damage, EnergyChange,
     Mutation,
 )
+from ..ir_skill import ModOp
 
 # Stats modified via stage steps (always produce StatChange when steps present)
 _STAT_STAGES = frozenset({"atk", "def", "sp_atk", "sp_def", "speed"})
@@ -38,13 +41,17 @@ _HP_MAX_MAP = {
 }
 
 
-def _resolve_value(ctx: Ctx, effect: dict) -> int | float:
+def _resolve_value(ctx: Ctx, effect) -> int | float:
     """Resolve the numeric value from steps, value literal, or value query."""
-    if "steps" in effect:
-        raw = effect["steps"]
-        return resolve(ctx, raw)
-    raw = effect.get("value", 0)
-    return resolve(ctx, raw)
+    # Support both dict and typed access
+    if isinstance(effect, dict):
+        if "steps" in effect:
+            return resolve(ctx, effect["steps"])
+        return resolve(ctx, effect.get("value", 0))
+    # Typed ModOp
+    if effect.value is not None:
+        return resolve(ctx, effect.value)
+    return resolve(ctx, effect.steps if hasattr(effect, 'steps') and effect.steps else 0)
 
 
 def _calc_heal_amount(value: float, hp_max: int) -> int:
@@ -58,18 +65,35 @@ def _calc_heal_amount(value: float, hp_max: int) -> int:
     return max(1, round(value))
 
 
-def _metadata(effect: dict) -> dict:
+def _metadata(effect) -> dict:
     """Extract optional engine-level metadata common to StatChange and ModifierInjection."""
     meta = {}
-    for key in ("name", "element", "per_element", "skill_filter", "skill_where",
-                 "on_next", "if_type"):
-        if key in effect:
-            meta[key] = effect[key]
+    if isinstance(effect, dict):
+        for key in ("name", "element", "per_element", "skill_filter", "skill_where",
+                     "on_next", "if_type"):
+            if key in effect:
+                meta[key] = effect[key]
+    else:
+        # Typed ModOp
+        for key in ("name", "element", "per_element", "skill_filter", "skill_where",
+                     "if_type"):
+            val = getattr(effect, key, None)
+            if val is not None:
+                meta[key] = val
     return meta
 
 
-def op_mod(ctx: Ctx, effect: dict) -> list[Mutation]:
+def _get_field(effect, key, default=None):
+    """Unified field access: dict .get() or object attribute."""
+    if isinstance(effect, dict):
+        return effect.get(key, default)
+    return getattr(effect, key, default)
+
+
+def op_mod(ctx: Ctx, effect) -> list[Mutation]:
     """Evaluate a 'mod' effect and produce zero or more Mutations.
+
+    Supports both typed ModOp (V2) and backward-compat dict.
 
     Dispatch:
         steps + stage stat → StatChange
@@ -80,13 +104,18 @@ def op_mod(ctx: Ctx, effect: dict) -> list[Mutation]:
         energy              → EnergyChange
         devotion            → ModifierInjection (with then block)
     """
-    target = effect.get("target", "sprite_self")
-    stat = effect["stat"]
-    mode = effect.get("mode", "set")
-    scope = effect.get("scope", "battlefield")
+    target = _get_field(effect, "target", "sprite_self")
+    stat = _get_field(effect, "stat")
+    mode = _get_field(effect, "mode", "set")
+    scope = _get_field(effect, "scope", "battlefield")
     meta = _metadata(effect)
 
-    is_steps = "steps" in effect
+    is_steps = False
+    if isinstance(effect, dict):
+        is_steps = "steps" in effect
+    else:
+        is_steps = effect.steps > 0 if hasattr(effect, 'steps') else False
+
     raw = _resolve_value(ctx, effect)
     value = float(raw)
 
@@ -129,8 +158,8 @@ def op_mod(ctx: Ctx, effect: dict) -> list[Mutation]:
             value=value,
             scope=scope,
             mode=mode,
-            name=effect.get("name"),
-            then=effect.get("then"),
+            name=_get_field(effect, "name"),
+            then=_get_field(effect, "then"),
         )]
 
     # ── Stage stat with value (multiplier mode) ──

@@ -2,12 +2,14 @@
 
 resolve(ctx, value) -> int | float | str
     Literals returned as-is. Query dicts resolved via ADDRESS_MAP -> getattr().
+    Typed IRValue (Literal, Query, RefExpr) also supported for V2 type dispatch.
 
 QueryRef is a pre-indexed query for O(1) runtime lookup (used by SkillLoader).
 """
 
 from dataclasses import dataclass
 from .ctx import Ctx, ADDRESS_MAP
+from .ir_values import Literal, Query, RefExpr, IRValue
 
 # Dict-type register queries that require a 'name' key for sub-indexing
 _NAMED_DICT_QUERIES = frozenset({
@@ -34,13 +36,15 @@ class QueryRef:
     sub_key_field: str = "name"
 
 
-def resolve(ctx: Ctx, value: int | float | str | dict | bool) -> int | float | str:
+def resolve(ctx: Ctx, value) -> int | float | str:
     """Resolve a value against the Ctx snapshot.
 
-    Literals (int, float, str, bool) are returned unchanged.
-    Query dicts ({"q": ..., "of": ...}) are resolved via ADDRESS_MAP.
+    Handles three formats:
+    1. Typed IRValue (Literal, Query, RefExpr) — V2 type dispatch
+    2. Raw dict queries ({"q": ..., "of": ...}) — backward compat
+    3. Primitive literals (int, float, str, bool) — pass through
 
-    Transform chain (applied in order):
+    Transform chain for Query/RefExpr (applied in order):
         1. per  — int(raw / per)
         2. scale — raw * scale
         3. offset — raw + offset
@@ -48,15 +52,38 @@ def resolve(ctx: Ctx, value: int | float | str | dict | bool) -> int | float | s
     Dict registers (abnormal_stacks, devotion, etc.) use the 'name' field
     for sub-indexing. energy_cost_sum uses 'skill_type'/'element'/'tag'.
     """
-    # Literal values — pass through (bool before int since bool is subclass of int)
+    # ── Typed IRValue dispatch (V2) ──
+    if isinstance(value, Literal):
+        return value.value
+    if isinstance(value, Query):
+        raw = getattr(ctx, value.field, value.default)
+        if raw is None:
+            raw = value.default or 0
+        result = raw
+        if value.per is not None and value.per != 0:
+            result = int(result / value.per) if isinstance(result, (int, float)) else result
+        if isinstance(result, (int, float)):
+            result = result * value.scale + value.offset
+        return result
+    if isinstance(value, RefExpr):
+        return _resolve_ref(ctx, value)
+
+    # ── Primitive literal pass-through ──
+    # bool before int since bool is subclass of int
     if isinstance(value, bool):
         return value
     if isinstance(value, (int, float, str)):
         return value
-    if not isinstance(value, dict):
-        return value
 
-    # Query expression
+    # ── Raw dict query (backward compat) ──
+    if isinstance(value, dict):
+        return _resolve_dict_query(ctx, value)
+
+    return value
+
+
+def _resolve_dict_query(ctx: Ctx, value: dict) -> int | float | str:
+    """Resolve a raw dict query ({"q": ..., "of": ...}) against Ctx."""
     q = value.get("q")
     if q is None:
         raise KeyError(f"Query dict missing 'q' key: {value}")
@@ -98,3 +125,27 @@ def resolve(ctx: Ctx, value: int | float | str | dict | bool) -> int | float | s
         raw = int(raw + value["offset"])
 
     return raw
+
+
+def _resolve_ref(ctx: Ctx, ref: RefExpr) -> int | float | str:
+    """Resolve a RefExpr by walking the path from root through ctx."""
+    root_obj = getattr(ctx, ref.root, None)
+    if root_obj is None:
+        return ref.offset  # default to offset when root not found
+
+    current = root_obj
+    for key in ref.path:
+        if current is None:
+            return ref.offset
+        if isinstance(current, dict):
+            current = current.get(key)
+        else:
+            current = getattr(current, key, None)
+
+    if current is None:
+        return ref.offset
+
+    if isinstance(current, (int, float)):
+        return float(current) * ref.multiplier + ref.offset
+
+    return current

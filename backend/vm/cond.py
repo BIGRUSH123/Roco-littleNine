@@ -5,10 +5,16 @@ recursive combinators. Adding a new condition = adding one row to the table.
 
 All conditions share the same signature regardless of where they're called
 (when block, count watcher, and/or/not compound).
+
+V2: Supports typed SkillCondition (CondExpr, AndCond, OrCond, NotCond) via
+match/case in eval_one, plus backward-compat dict path.
 """
 
 from .ctx import Ctx
 from .resolve import resolve
+from .ir_skill import (
+    SkillCondition, CondExpr, AndCond, OrCond, NotCond,
+)
 
 
 def compare_op(a, op: str, b) -> bool:
@@ -125,6 +131,11 @@ HAVE_EVAL = {
 
 
 # ── COND_EVAL dispatch table ──
+# Handlers receive (ctx, params) where params is a dict of the condition's
+# parameters (without the "cond" key). When called from the dict path,
+# params is the full dict (which includes "cond" — but that's harmless).
+#
+# V2: when called from CondExpr path, params = cond.params (clean params only).
 
 COND_EVAL = {
     # ── Counter / response ──
@@ -245,13 +256,42 @@ COND_EVAL = {
 }
 
 
-def eval_one(ctx: Ctx, cond: dict) -> bool:
-    """Evaluate a single condition dict against Ctx.
+def eval_one(ctx: Ctx, cond) -> bool:
+    """Evaluate a single condition against Ctx.
 
-    Dispatches to COND_EVAL by cond["cond"]. Logic gates (and/or/not)
-    recurse through this function.
+    Supports three input formats:
+    1. Typed CondExpr — dispatches by cond.cond, passes cond.params to handler
+    2. Typed AndCond/OrCond/NotCond — recursive evaluation
+    3. Raw dict — backward compat (dispatches by cond["cond"])
+
+    Logic gates (and/or/not) recurse through this function.
     """
-    key = cond["cond"]
-    if key not in COND_EVAL:
-        raise KeyError(f"Unknown condition: {key}")
-    return COND_EVAL[key](ctx, cond)
+    # ── V2: Typed SkillCondition ──
+    if isinstance(cond, CondExpr):
+        key = cond.cond
+        if key not in COND_EVAL:
+            raise KeyError(f"Unknown condition: {key}")
+        return COND_EVAL[key](ctx, cond.params)
+
+    if isinstance(cond, AndCond):
+        return all(eval_one(ctx, c) for c in cond.conditions)
+
+    if isinstance(cond, OrCond):
+        return any(eval_one(ctx, c) for c in cond.conditions)
+
+    if isinstance(cond, NotCond):
+        return not eval_one(ctx, cond.condition)
+
+    # ── Backward compat: raw dict ──
+    if isinstance(cond, dict):
+        key = cond["cond"]
+        if key not in COND_EVAL:
+            raise KeyError(f"Unknown condition: {key}")
+        return COND_EVAL[key](ctx, cond)
+
+    return False
+
+
+def _eval_dict(ctx: Ctx, cond: dict) -> bool:
+    """Backward compat alias: evaluate a raw dict condition."""
+    return eval_one(ctx, cond)

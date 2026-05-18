@@ -3,16 +3,25 @@
 Unlike other opcodes, count does not execute immediately. It registers a
 Counter that fires when future events match the condition. The engine
 evaluates counters after each relevant event (skill use, damage, KO, etc.).
+
+V2: Supports typed CountOp alongside backward-compat dict.
 """
 
 from ..ctx import Ctx
 from ..journal import CounterRegister, Mutation
+from ..ir_skill import CountOp
 
 
-def op_count(ctx: Ctx, effect: dict) -> list[Mutation]:
+def _get(effect, key, default=None):
+    if isinstance(effect, dict):
+        return effect.get(key, default)
+    return getattr(effect, key, default)
+
+
+def op_count(ctx: Ctx, effect) -> list[Mutation]:
     """Register a persistent counter that fires on matching events.
 
-    condition: the trigger condition dict (shared COND_EVAL table)
+    condition: the trigger condition dict/SkillCondition
     then: effects to execute when the counter fires
     scope: "battlefield" | "persistent" | "permanent"
     name: optional name for counter_value queries
@@ -20,10 +29,10 @@ def op_count(ctx: Ctx, effect: dict) -> list[Mutation]:
     The engine calls eval_one(ctx, cond) after each event; if true,
     the then effects are executed as if they were part of the current skill.
     """
-    cond = effect["when"]
-    then = effect.get("then", [])
-    scope = effect.get("scope", "persistent")
-    name = effect.get("name")
+    cond = _get(effect, "when")
+    then = _get(effect, "then", [])
+    scope = _get(effect, "scope", "persistent")
+    name = _get(effect, "name")
 
     return [CounterRegister(
         name=name,

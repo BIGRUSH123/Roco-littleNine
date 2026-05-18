@@ -1,10 +1,20 @@
-"""dispel opcode — remove effects from a target."""
+"""dispel opcode — remove effects from a target.
+
+V2: Supports typed DispelOp alongside backward-compat dict.
+"""
 
 from ..ctx import Ctx
 from ..journal import Dispel, Mutation
+from ..ir_skill import DispelOp
 
 
-def op_dispel(ctx: Ctx, effect: dict) -> list[Mutation]:
+def _get(effect, key, default=None):
+    if isinstance(effect, dict):
+        return effect.get(key, default)
+    return getattr(effect, key, default)
+
+
+def op_dispel(ctx: Ctx, effect) -> list[Mutation]:
     """Remove positive/negative/abnormal/mark effects from a target.
 
     what: "positive" | "negative" | "abnormal" | "mark"
@@ -12,12 +22,12 @@ def op_dispel(ctx: Ctx, effect: dict) -> list[Mutation]:
     limit: optional, max total stacks to remove (randomly distributed)
     type_limit: optional, max types to remove (each fully cleared)
     """
-    target = effect["target"]
-    what = effect["what"]
+    target = _get(effect, "target")
+    what = _get(effect, "what")
     return [Dispel(
         target=target,
         what=what,
-        name=effect.get("name"),
-        limit=effect.get("limit"),
-        type_limit=effect.get("type_limit"),
+        name=_get(effect, "name"),
+        limit=_get(effect, "limit"),
+        type_limit=_get(effect, "type_limit"),
     )]
