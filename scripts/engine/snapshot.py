@@ -2,24 +2,26 @@
 
 The ONLY module in engine/ that depends on sim/ (prototype data structures).
 When the prototype is replaced, only this module needs updating.
+
+Accepts any object with the required attributes for skill parameters
+(SkillRecord, BattleSkill, Skill, or plain dict-like).
 """
 
 from __future__ import annotations
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from vm.ctx import Ctx
 
 if TYPE_CHECKING:
     from sim.sprite import Sprite
-    from sim.battleskill import BattleSkill
     from sim.globals import GlobalEffects
 
 
 def build_ctx(
     self_sprite: Sprite,
     opp_sprite: Sprite,
-    self_skill: BattleSkill,
-    opp_skill: BattleSkill | None = None,
+    self_skill: Any,
+    opp_skill: Any = None,
     globals_: GlobalEffects | None = None,
     *,
     turn: int = 0,

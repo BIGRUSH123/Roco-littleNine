@@ -24,8 +24,8 @@ from .replayer import JournalReplayer
 
 if TYPE_CHECKING:
     from sim.sprite import Sprite
-    from sim.battleskill import BattleSkill
     from sim.globals import GlobalEffects
+    from .skill_loader import SkillRecord
 
 
 class SkillExecutionResult:
@@ -56,12 +56,13 @@ class BattleVMEngine:
         self,
         self_sprite: Sprite,
         opp_sprite: Sprite,
-        self_skill: BattleSkill,
-        opp_skill: BattleSkill | None = None,
+        self_skill,
+        opp_skill = None,
         globals_: GlobalEffects | None = None,
         *,
         turn: int = 0,
         is_first: bool = False,
+        effects: list[dict] | None = None,
         **kwargs,
     ) -> SkillExecutionResult:
         """Execute one skill through the full VM pipeline.
@@ -69,9 +70,10 @@ class BattleVMEngine:
         Args:
             self_sprite: The skill user
             opp_sprite: The opponent
-            self_skill: The skill being executed
+            self_skill: The skill being executed (SkillRecord, BattleSkill, or duck-typed)
             opp_skill: Opponent's current skill (for counter context)
             globals_: Global battle effects (weather, marks)
+            effects: Explicit RISC IR effects (if None, read from self_skill.effects)
             **kwargs: Additional Ctx parameters (opp_switched, counter_succeeded, etc.)
 
         Returns:
@@ -88,8 +90,8 @@ class BattleVMEngine:
         pre_mods = self._fire_pre_calc(ctx)
 
         # 3. Execute VM on the skill's effects
-        effects = self._get_effects(self_skill)
-        journal = vm_execute(ctx, effects)
+        vm_effects = effects if effects is not None else self._get_effects(self_skill)
+        journal = vm_execute(ctx, vm_effects)
 
         # 4. Merge pre-calc modifiers into journal
         if pre_mods:
@@ -149,17 +151,20 @@ class BattleVMEngine:
     # ── Helpers ──
 
     @staticmethod
-    def _get_effects(skill: BattleSkill) -> list[dict]:
-        """Extract effects from a BattleSkill.
+    def _get_effects(skill) -> list[dict]:
+        """Extract RISC IR effects from a skill object.
 
-        Uses the skill's underlying effect list. For RISC IR skills, these
-        are already in op/when format.
+        SkillRecord.effects are already list[dict] in op/when format.
+        BattleSkill/Skill.effects are prototype Effect objects — unsupported
+        (data/skills are now RISC IR format).
         """
         if hasattr(skill, 'effects'):
             effs = skill.effects
             if callable(effs):
                 effs = effs()
-            return list(effs)
+            result = list(effs)
+            if result and isinstance(result[0], dict):
+                return result
         return []
 
     def register_counter(self, mutation: CounterRegister) -> None:

@@ -5,14 +5,11 @@
   "skill_type": "魔攻",
   "power": 60,
   "energy_cost": 2,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "special",
-      "name": "dispel_mark",
-      "target": "opp_team"
+      "op": "dispel",
+      "what": "mark",
+      "target": "team_opp"
     }
   ],
   "description": "✦造成魔伤，驱散敌方所有印记。"

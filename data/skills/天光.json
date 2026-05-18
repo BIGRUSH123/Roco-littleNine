@@ -5,9 +5,6 @@
   "skill_type": "魔攻",
   "power": 95,
   "energy_cost": 3,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
   "effects": [],
   "description": "✦造成魔伤，本技能系别和天气系别相同。"
 }
