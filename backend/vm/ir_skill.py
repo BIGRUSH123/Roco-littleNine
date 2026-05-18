@@ -247,3 +247,25 @@ SkillIROp = (
     ExchangeOp | ResetOp | RedirectOp | ReplayOp |
     BorrowOp | CountOp | WhenBlock
 )
+
+
+# ── Compiled skill (frozen output of SkillCompiler) ──
+
+@dataclass(frozen=True)
+class CompiledSkill:
+    """Frozen, validated skill produced by the SkillCompiler pipeline."""
+    id: int
+    name: str
+    element: str
+    skill_type: str
+    power: int
+    energy_cost: int
+    priority: int = 0
+    combo: int = 1
+    counter: str = ""
+    effects: tuple[SkillIROp, ...] = ()
+    description: str = ""
+    tag: str = ""
+    use_devotion: bool = False
+    usable_while_charging: bool = False
+    position_locked: bool = False
