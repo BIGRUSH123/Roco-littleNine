@@ -154,6 +154,7 @@ ADDRESS_MAP: dict[tuple[str, str], str] = {
     ("sprite_self", "sp_def"):            "sp_def_self",
     ("sprite_self", "speed"):             "speed_self",
     ("sprite_self", "hp_max"):            "hp_self_max",
+    ("sprite_self", "adjacent_power_sum"): "adjacent_power_sum",
     ("sprite_self", "damage_reduced"):     "damage_reduced_self",
     ("sprite_self", "last_tick_damage"):   "last_tick_damage_self",
     ("sprite_self", "charged"):            "charged_self",

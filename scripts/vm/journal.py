@@ -14,7 +14,15 @@ class StatChange:
     target: str       # "sprite_self" | "sprite_opp"
     stat: str         # "atk" | "def" | "sp_atk" | "sp_def" | "speed" | ...
     steps: int        # positive = buff, negative = debuff
-    scope: str        # "battlefield" | "persistent" | "permanent"
+    scope: str = "battlefield"  # "battlefield" | "persistent" | "permanent"
+    # Optional metadata for engine-side resolution
+    name: str | None = None           # exact skill name filter
+    element: str | None = None        # element filter ("火", "each", etc.)
+    per_element: int | None = None    # max per element when element="each"
+    on_next: bool = False             # defer to next matching skill use
+    if_type: str | None = None        # "attack" | "defense" | "status"
+    skill_filter: str | None = None   # "attack" | "defense" | "status" | "all" | "others" | "adjacent" | "bare_*"
+    skill_where: dict | None = None   # per-skill conditional {"q": ..., "op": ..., "value": ...}
 
 
 @dataclass(frozen=True)
@@ -28,8 +36,17 @@ class ModifierInjection:
     target: str       # "skill_off_0" | "sprite_self" | ...
     stat: str         # "power_mult" | "damage_mult" | "damage_reduction" | "energy_cost" | ...
     value: float
-    scope: str        # "battlefield" | "persistent" | "permanent"
+    scope: str = "battlefield"  # "battlefield" | "persistent" | "permanent"
     mode: str = "set" # "set" | "add" | "multiply"
+    # Optional metadata for engine-side resolution
+    name: str | None = None           # exact skill name or devotion name
+    element: str | None = None        # element filter ("火", "each", etc.)
+    per_element: int | None = None    # max per element when element="each"
+    on_next: bool = False             # defer to next matching skill use
+    if_type: str | None = None        # "attack" | "defense" | "status"
+    skill_filter: str | None = None   # "attack" | "defense" | "status" | "all" | "others" | "adjacent" | "bare_*"
+    skill_where: dict | None = None   # per-skill conditional {"q": ..., "op": ..., "value": ...}
+    then: list | None = None          # chained effects (devotion then-block)
 
 
 @dataclass(frozen=True)

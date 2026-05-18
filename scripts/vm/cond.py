@@ -118,6 +118,9 @@ HAVE_EVAL = {
     "any_stat_negative": lambda ctx, cond: any(
         v < 0 for v in _sprite_of(ctx, cond["of"])["stat_stages"].values()
     ),
+    "counter": lambda ctx, cond: (
+        ctx.counter_values.get(cond.get("name", ""), 0) > 0
+    ),
 }
 
 
