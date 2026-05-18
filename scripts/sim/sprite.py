@@ -83,6 +83,8 @@ class Sprite:
 
     # 返场标记：回合结束时清 battlefield 效果 + 下回合技能双倍
     pending_return: bool = False
+    interrupted: bool = False      # interrupted this turn (by interrupt opcode)
+    locked_turns: int = 0          # turns remaining before switch allowed
     extra_skill_use: bool = False
 
     # 运行时 modifier 累积 (damage_reduction, power_mult, etc.)

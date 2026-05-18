@@ -134,6 +134,9 @@ class BattleVMEngine:
         # 4.7 Handle Borrow mutations (skill property substitution)
         journal = self._handle_borrow(journal, ctx)
 
+        # 4.8 Handle Redirect mutations (change damage target)
+        journal = self._handle_redirect(journal)
+
         # 5. Apply same-skill modifiers to Damage amounts
         journal = apply_modifiers_to_journal(journal, ctx)
 
@@ -297,6 +300,34 @@ class BattleVMEngine:
         return journal
 
     _apply_borrow = _handle_borrow  # alias for test
+
+    def _handle_redirect(self, journal: Journal) -> Journal:
+        """Handle Redirect mutations by changing Damage target.
+
+        When a Redirect(target="sprite_self") is present, all Damage
+        targeting sprite_opp is redirected to sprite_self (or vice versa).
+        """
+        from scripts.vm.journal import Redirect, Damage
+
+        redirect_muts = [m for m in journal if isinstance(m, Redirect)]
+        if not redirect_muts:
+            return journal
+
+        target = redirect_muts[0].target  # use first redirect
+        result: Journal = []
+        for m in journal:
+            if isinstance(m, Damage) and m.target != target:
+                result.append(Damage(
+                    target=target,
+                    amount=m.amount,
+                    element=m.element,
+                    type=m.type,
+                ))
+            elif isinstance(m, Redirect):
+                continue  # consume redirect
+            else:
+                result.append(m)
+        return result
 
     def _handle_replay(self, journal: Journal, team: str, ctx: Ctx) -> Journal:
         """Handle Replay mutations by executing burst/self skill effects.

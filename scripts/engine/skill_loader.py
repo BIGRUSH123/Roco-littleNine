@@ -28,7 +28,7 @@ class SkillRecord:
     __slots__ = (
         "id", "name", "element", "skill_type", "power", "energy_cost",
         "priority", "combo", "counter", "effects", "description",
-        "transmission", "exclusive_to",
+        "transmission", "exclusive_to", "tag", "use_devotion",
     )
 
     def __init__(self, data: dict, effects: list[dict]):
@@ -45,6 +45,8 @@ class SkillRecord:
         self.description: str = data.get("description", "")
         self.transmission: int = data.get("transmission", 0)
         self.exclusive_to: str = data.get("exclusive_to", "")
+        self.tag: str = data.get("tag", "")
+        self.use_devotion: bool = data.get("use_devotion", False)
 
     def __repr__(self):
         return f"SkillRecord({self.name}, {self.skill_type}, effects={len(self.effects)})"

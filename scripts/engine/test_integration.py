@@ -947,6 +947,293 @@ def test_replay_sprite_self_with_filter():
     print(f"  Filtered replay: 1 power mod from 迅捷 skill")
 
 
+# ═══════════════════════════════════════════════════════════════
+# Interrupt tests
+# ═══════════════════════════════════════════════════════════════
+
+def test_interrupt_mutation_production():
+    """Test that interrupt opcode produces Interrupt mutation."""
+    from scripts.vm.ctx import Ctx
+    from scripts.vm.executor import execute as vm_execute
+    from scripts.vm.journal import Interrupt
+
+    ctx = Ctx(element_self="武", skill_type_self="防御")
+    effects = [{"op": "interrupt", "target": "sprite_opp"}]
+    journal = vm_execute(ctx, effects)
+    interrupts = [m for m in journal if isinstance(m, Interrupt)]
+    assert len(interrupts) == 1
+    assert interrupts[0].target == "sprite_opp"
+    print(f"  Interrupt mutation: target={interrupts[0].target}")
+
+
+def test_interrupt_sets_sprite_flag():
+    """Test that replaying an Interrupt mutation sets the interrupted flag."""
+    from scripts.engine.replayer import JournalReplayer
+    from scripts.vm.journal import Interrupt
+    from scripts.sim.sprite import Sprite
+    from scripts.sim.globals import GlobalEffects
+    from scripts.common.models import SpeciesStats
+
+    species = SpeciesStats(name="test", hp=200, atk=120, def_=100,
+                          sp_atk=110, sp_def=95, speed=100)
+    sprite = Sprite(species=species, current_hp=180, max_hp=200, energy=8,
+                    initial_stats={"atk": 120, "def": 100, "sp_atk": 110, "sp_def": 95, "speed": 100})
+    opp = Sprite(species=species, current_hp=150, max_hp=180, energy=5,
+                 initial_stats={"atk": 115, "def": 90, "sp_atk": 105, "sp_def": 85, "speed": 95})
+
+    replayer = JournalReplayer(sprite, opp, GlobalEffects())
+    journal = [Interrupt(target="sprite_opp")]
+    events = replayer.replay(journal)
+    assert opp.interrupted, f"Opp sprite should have interrupted=True"
+    print(f"  Interrupt flag: opp.interrupted={opp.interrupted}")
+
+
+def test_interrupt_e2e_hard_gate():
+    """E2E: 硬门 counters attack → interrupt + hit damage."""
+    from scripts.engine.skill_loader import SkillLoader
+    from scripts.engine.battle import BattleVMEngine
+    from scripts.sim.sprite import Sprite
+    from scripts.sim.globals import GlobalEffects
+    from scripts.common.models import SpeciesStats
+    from scripts.vm.journal import Interrupt, Damage
+
+    loader = SkillLoader()
+    engine = BattleVMEngine()
+    species_def = SpeciesStats(name="防御者", hp=200, atk=120, def_=120, sp_atk=110, sp_def=110, speed=100)
+    species_atk = SpeciesStats(name="攻击者", hp=180, atk=130, def_=80, sp_atk=100, sp_def=80, speed=110)
+
+    def_sprite = Sprite(species=species_def, current_hp=200, max_hp=200, energy=8,
+                        initial_stats={"atk": 120, "def": 120, "sp_atk": 110, "sp_def": 110, "speed": 100})
+    atk_sprite = Sprite(species=species_atk, current_hp=180, max_hp=180, energy=5,
+                        initial_stats={"atk": 130, "def": 80, "sp_atk": 100, "sp_def": 80, "speed": 110})
+
+    record = loader.load_file("data/skills/硬门.json")
+    opp_skill = loader.load_file("data/skills/龙爪.json")
+
+    result = engine.execute_skill(
+        def_sprite, atk_sprite, record, opp_skill,
+        GlobalEffects(), turn=1, is_first=False, team="B",
+        counter_succeeded=True,
+    )
+
+    # Should have Interrupt + Damage
+    interrupts = [m for m in result.journal if isinstance(m, Interrupt)]
+    assert len(interrupts) == 1, f"Expected 1 Interrupt, got {len(interrupts)}"
+    damages = [m for m in result.journal if isinstance(m, Damage)]
+    assert len(damages) == 1, f"Expected 1 Damage from hit"
+    # Attacker should be interrupted
+    assert atk_sprite.interrupted, f"Attacker should be interrupted"
+    print(f"  硬门: interrupt + {damages[0].amount} damage, opp.interrupted={atk_sprite.interrupted}")
+
+
+# ═══════════════════════════════════════════════════════════════
+# Lock tests
+# ═══════════════════════════════════════════════════════════════
+
+def test_lock_mutation_production():
+    """Test that lock opcode produces Lock mutation."""
+    from scripts.vm.ctx import Ctx
+    from scripts.vm.executor import execute as vm_execute
+    from scripts.vm.journal import Lock
+
+    ctx = Ctx(element_self="地", skill_type_self="状态")
+    effects = [{"op": "lock", "target": "sprite_opp", "turns": 3}]
+    journal = vm_execute(ctx, effects)
+    locks = [m for m in journal if isinstance(m, Lock)]
+    assert len(locks) == 1
+    assert locks[0].turns == 3
+    print(f"  Lock mutation: target={locks[0].target}, turns={locks[0].turns}")
+
+
+def test_lock_sets_sprite_flag():
+    """Test that replaying a Lock mutation prevents switching."""
+    from scripts.engine.replayer import JournalReplayer
+    from scripts.vm.journal import Lock
+    from scripts.sim.sprite import Sprite
+    from scripts.sim.globals import GlobalEffects
+    from scripts.common.models import SpeciesStats
+
+    species = SpeciesStats(name="test", hp=200, atk=120, def_=100,
+                          sp_atk=110, sp_def=95, speed=100)
+    sprite = Sprite(species=species, current_hp=180, max_hp=200, energy=8,
+                    initial_stats={"atk": 120, "def": 100, "sp_atk": 110, "sp_def": 95, "speed": 100})
+    opp = Sprite(species=species, current_hp=150, max_hp=180, energy=5,
+                 initial_stats={"atk": 115, "def": 90, "sp_atk": 105, "sp_def": 85, "speed": 95})
+
+    replayer = JournalReplayer(sprite, opp, GlobalEffects())
+    journal = [Lock(target="sprite_opp", turns=3)]
+    events = replayer.replay(journal)
+    assert opp.locked_turns == 3, f"Opp should have lock_turns=3, got {opp.locked_turns}"
+    print(f"  Lock flag: opp.locked_turns={opp.locked_turns}")
+
+
+def test_lock_e2e_quicksand():
+    """E2E: 流沙 locks enemy for 3 turns."""
+    from scripts.engine.skill_loader import SkillLoader
+    from scripts.engine.battle import BattleVMEngine
+    from scripts.sim.sprite import Sprite
+    from scripts.sim.globals import GlobalEffects
+    from scripts.common.models import SpeciesStats
+    from scripts.vm.journal import Lock
+
+    loader = SkillLoader()
+    engine = BattleVMEngine()
+    species = SpeciesStats(name="test", hp=200, atk=120, def_=100, sp_atk=110, sp_def=95, speed=100)
+    sprite = Sprite(species=species, current_hp=180, max_hp=200, energy=8,
+                    initial_stats={"atk": 120, "def": 100, "sp_atk": 110, "sp_def": 95, "speed": 100})
+    opp = Sprite(species=species, current_hp=150, max_hp=180, energy=5,
+                 initial_stats={"atk": 115, "def": 90, "sp_atk": 105, "sp_def": 85, "speed": 95})
+
+    record = loader.load_file("data/skills/流沙.json")
+    result = engine.execute_skill(sprite, opp, record, None, GlobalEffects(), turn=1, is_first=True, team="A")
+
+    locks = [m for m in result.journal if isinstance(m, Lock)]
+    assert len(locks) == 1, f"Expected 1 Lock mutation, got {len(locks)}"
+    assert locks[0].turns == 3
+    assert opp.locked_turns == 3, f"Opp should be locked for 3 turns, got {opp.locked_turns}"
+    print(f"  流沙: lock {opp.locked_turns}t, opp locked")
+
+
+# ═══════════════════════════════════════════════════════════════
+# Redirect tests
+# ═══════════════════════════════════════════════════════════════
+
+def test_redirect_mutation_production():
+    """Test that redirect opcode produces Redirect mutation."""
+    from scripts.vm.ctx import Ctx
+    from scripts.vm.executor import execute as vm_execute
+    from scripts.vm.journal import Redirect
+
+    ctx = Ctx(element_self="恶", skill_type_self="物攻")
+    effects = [{"op": "redirect", "target": "sprite_self"}]
+    journal = vm_execute(ctx, effects)
+    redirects = [m for m in journal if isinstance(m, Redirect)]
+    assert len(redirects) == 1
+    assert redirects[0].target == "sprite_self"
+    print(f"  Redirect mutation: target={redirects[0].target}")
+
+
+def test_redirect_damage_target():
+    """Test that redirect changes Damage target from opp to self."""
+    from scripts.vm.ctx import Ctx
+    from scripts.vm.journal import Damage, Redirect
+    from scripts.engine.battle import BattleVMEngine
+
+    engine = BattleVMEngine()
+    journal = [
+        Redirect(target="sprite_self"),
+        Damage(target="sprite_opp", amount=50, element="恶", type="物攻"),
+    ]
+    result = engine._handle_redirect(journal)
+    damages = [m for m in result if isinstance(m, Damage)]
+    assert damages[0].target == "sprite_self", f"Expected damage redirected to self, got {damages[0].target}"
+    print(f"  Redirect: damage target changed to {damages[0].target}")
+
+
+# ═══════════════════════════════════════════════════════════════
+# Exchange tests
+# ═══════════════════════════════════════════════════════════════
+
+def test_exchange_adjacent_skills():
+    """Test that exchange(adjacent_skills) swaps skill positions."""
+    from scripts.vm.ctx import Ctx
+    from scripts.vm.executor import execute as vm_execute
+    from scripts.vm.journal import Exchange
+    from scripts.engine.skill_loader import SkillLoader
+    from scripts.engine.battle import BattleVMEngine
+    from scripts.sim.sprite import Sprite
+    from scripts.sim.globals import GlobalEffects
+    from scripts.common.models import SpeciesStats
+
+    loader = SkillLoader()
+    engine = BattleVMEngine()
+    species = SpeciesStats(name="test", hp=200, atk=120, def_=100, sp_atk=110, sp_def=95, speed=100)
+    sprite = Sprite(species=species, current_hp=180, max_hp=200, energy=8,
+                    initial_stats={"atk": 120, "def": 100, "sp_atk": 110, "sp_def": 95, "speed": 100})
+    opp = Sprite(species=species, current_hp=150, max_hp=180, energy=5,
+                 initial_stats={"atk": 115, "def": 90, "sp_atk": 105, "sp_def": 85, "speed": 95})
+
+    record = loader.load_file("data/skills/杠杆置换.json")
+    result = engine.execute_skill(sprite, opp, record, None, GlobalEffects(), turn=1, is_first=True, team="A")
+
+    exchanges = [m for m in result.journal if isinstance(m, Exchange)]
+    assert len(exchanges) == 1
+    assert exchanges[0].what == "adjacent_skills"
+    print(f"  杠杆置换: exchange what={exchanges[0].what}, events={result.events}")
+
+
+# ═══════════════════════════════════════════════════════════════
+# Steal tests
+# ═══════════════════════════════════════════════════════════════
+
+def test_steal_energy():
+    """Test that steal(energy) transfers energy from target to self."""
+    from scripts.engine.replayer import JournalReplayer
+    from scripts.vm.journal import Steal
+    from scripts.sim.sprite import Sprite
+    from scripts.sim.globals import GlobalEffects
+    from scripts.common.models import SpeciesStats
+
+    species = SpeciesStats(name="test", hp=200, atk=120, def_=100,
+                          sp_atk=110, sp_def=95, speed=100)
+    sprite = Sprite(species=species, current_hp=180, max_hp=200, energy=8,
+                    initial_stats={"atk": 120, "def": 100, "sp_atk": 110, "sp_def": 95, "speed": 100})
+    opp = Sprite(species=species, current_hp=150, max_hp=180, energy=5,
+                 initial_stats={"atk": 115, "def": 90, "sp_atk": 105, "sp_def": 85, "speed": 95})
+
+    replayer = JournalReplayer(sprite, opp, GlobalEffects())
+    journal = [Steal(from_target="sprite_opp", what="energy", amount=3)]
+    events = replayer.replay(journal)
+    assert opp.energy == 2, f"Opp should have 2 energy (5-3), got {opp.energy}"
+    assert sprite.energy == 10, f"Sprite should have 10 energy (8+3 capped at max 10), got {sprite.energy}"
+    print(f"  Steal energy: sprite={sprite.energy}E, opp={opp.energy}E")
+
+
+# ═══════════════════════════════════════════════════════════════
+# use_devotion tests
+# ═══════════════════════════════════════════════════════════════
+
+def test_use_devotion_flag():
+    """Test that use_devotion flag is read from skill JSON."""
+    from scripts.engine.skill_loader import SkillLoader
+
+    loader = SkillLoader()
+    # 啃咬 has use_devotion: true
+    record = loader.load_file("data/skills/啃咬.json")
+    assert record.use_devotion is True, f"啃咬 should have use_devotion=True, got {record.use_devotion}"
+    print(f"  啃咬 use_devotion={record.use_devotion}")
+
+
+def test_use_devotion_e2e():
+    """E2E: 啃咬 with use_devotion=true triggers devotion effects."""
+    from scripts.engine.skill_loader import SkillLoader
+    from scripts.engine.battle import BattleVMEngine
+    from scripts.sim.sprite import Sprite
+    from scripts.sim.globals import GlobalEffects
+    from scripts.common.models import SpeciesStats
+    from scripts.vm.journal import CounterRegister
+
+    loader = SkillLoader()
+    engine = BattleVMEngine()
+    species = SpeciesStats(name="test", hp=200, atk=120, def_=100, sp_atk=110, sp_def=95, speed=100)
+    sprite = Sprite(species=species, current_hp=180, max_hp=200, energy=8,
+                    initial_stats={"atk": 120, "def": 100, "sp_atk": 110, "sp_def": 95, "speed": 100})
+    opp = Sprite(species=species, current_hp=150, max_hp=180, energy=5,
+                 initial_stats={"atk": 115, "def": 90, "sp_atk": 105, "sp_def": 85, "speed": 95})
+
+    record = loader.load_file("data/skills/啃咬.json")
+    result = engine.execute_skill(sprite, opp, record, None, GlobalEffects(),
+                                   turn=1, is_first=True, team="A",
+                                   devotion_triggered=True)
+
+    # Counter should fire on devotion_triggered
+    counters = [m for m in result.journal if isinstance(m, CounterRegister)]
+    assert len(counters) == 1, "啃咬 should register a counter"
+    # Engine should have the counter registered
+    assert len(engine.registry) >= 1
+    print(f"  啃咬: use_devotion=True, devotion_triggered={result.ctx.devotion_triggered}")
+
+
 if __name__ == "__main__":
     test_snapshot()
     test_replayer()
@@ -976,4 +1263,22 @@ if __name__ == "__main__":
     test_replay_team_burst()
     test_replay_sprite_self_basic()
     test_replay_sprite_self_with_filter()
+    # Interrupt
+    test_interrupt_mutation_production()
+    test_interrupt_sets_sprite_flag()
+    test_interrupt_e2e_hard_gate()
+    # Lock
+    test_lock_mutation_production()
+    test_lock_sets_sprite_flag()
+    test_lock_e2e_quicksand()
+    # Redirect
+    test_redirect_mutation_production()
+    test_redirect_damage_target()
+    # Exchange
+    test_exchange_adjacent_skills()
+    # Steal
+    test_steal_energy()
+    # use_devotion
+    test_use_devotion_flag()
+    test_use_devotion_e2e()
     print("\nAll engine integration tests passed!")

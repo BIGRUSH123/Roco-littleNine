@@ -217,7 +217,7 @@ def build_ctx(
         skill_type_opp=getattr(osk, 'skill_type', "") if osk else "",
         element_self=getattr(sk, 'element', ""),
         element_opp=getattr(osk, 'element', "") if osk else "",
-        skill_tag_self="",
+        skill_tag_self=getattr(sk, 'tag', ""),
         combo_self=combo_self,
         energy_cost_self=energy_cost_self,
         energy_cost_reduction_self=energy_cost_reduction_self,

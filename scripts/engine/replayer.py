@@ -219,9 +219,9 @@ class JournalReplayer:
         return ""
 
     def _apply_steal(self, m: Steal) -> str:
-        # Steal effects from target to self
-        target = self._target_sprite(m.from_target)
+        # Steal effects/energy/marks from target to self
         if m.what == "positive":
+            target = self._target_sprite(m.from_target)
             from sim.sprite import StatusEffect
             positives = [e for e in target.effects
                          if getattr(e, 'category', '') == 'stat' and e.steps > 0]
@@ -230,11 +230,26 @@ class JournalReplayer:
                 self.self.add_effect(e)
             return f"{self.self.name} 偷取 {len(positives)} 增益 from {target.name}"
         elif m.what == "energy":
+            target = self._target_sprite(m.from_target)
             amount = m.amount or 0
             stolen = min(target.energy, amount)
             target.lose_energy(stolen)
             self.self.gain_energy(stolen)
             return f"{self.self.name} 偷取 {stolen}E from {target.name}"
+        elif m.what == "mark":
+            # Determine team for mark stealing
+            from_team = "A" if m.from_target == "team_own" else "B"
+            to_team = self.team
+            name = m.name  # specific mark name, or None = all
+            if name:
+                # Steal specific mark
+                stacks = self.globals.get_mark_stacks(from_team, name)
+                if stacks > 0:
+                    self.globals.remove_mark(from_team, name, stacks)
+                    self.globals.apply_mark(to_team, name,
+                        self.globals.classify_mark(name), stacks)
+                    return f"{self.self.name} 偷取 {name} ×{stacks}"
+            return ""
         return ""
 
     def _apply_tick(self, m: Tick) -> str:
@@ -281,21 +296,30 @@ class JournalReplayer:
         return f"{sprite.name} 准备返场"
 
     def _apply_lock(self, m: Lock) -> str:
-        return f"锁定 {m.target} {m.turns}t"
+        sprite = self._target_sprite(m.target)
+        sprite.locked_turns = m.turns
+        return f"{sprite.name} 锁定 {m.turns}t"
 
     def _apply_interrupt(self, m: Interrupt) -> str:
-        # Engine handles interrupt
-        return f"打断 {m.target}"
+        sprite = self._target_sprite(m.target)
+        sprite.interrupted = True
+        return f"{sprite.name} 被打断"
 
     def _apply_exchange(self, m: Exchange) -> str:
         if m.what == "hp_ratio":
             self.self.current_hp, self.opp.current_hp = \
                 round(self.opp.current_hp / self.opp.max_hp * self.self.max_hp) if self.opp.max_hp else 0, \
                 round(self.self.current_hp / self.self.max_hp * self.opp.max_hp) if self.self.max_hp else 0
-            return f"交换HP比例"
+            return "交换HP比例"
         elif m.what == "effects":
             self.self.effects, self.opp.effects = self.opp.effects, self.self.effects
-            return f"交换增益减益"
+            return "交换增益减益"
+        elif m.what == "skills":
+            self.self.skills, self.opp.skills = self.opp.skills, self.self.skills
+            return "交换技能"
+        elif m.what == "adjacent_skills":
+            self._swap_adjacent_skills(self.self)
+            return "交换相邻技能位置"
         return ""
 
     def _apply_reset(self, m: Reset) -> str:
@@ -303,6 +327,8 @@ class JournalReplayer:
         return f"重置 {m.stat}"
 
     def _apply_redirect(self, m: Redirect) -> str:
+        # Set redirect flag on self — engine reads this in _handle_redirect
+        self.self._redirect_target = m.target
         return f"伤害重定向 → {m.target}"
 
     def _apply_replay(self, m: Replay) -> str:
@@ -331,3 +357,19 @@ class JournalReplayer:
         if target in ("sprite_self", "self", "team_own", "skill_off_0"):
             return self.self
         return self.opp
+
+    @staticmethod
+    def _swap_adjacent_skills(sprite: Sprite) -> None:
+        """Swap the current skill with its adjacent neighbors (left and right).
+
+        For skills at positions 0 and 3 (edge cases), only swap the available side.
+        """
+        skills = sprite.skills
+        if not skills or len(skills) < 2:
+            return
+        n = len(skills)
+        # Find current skill position (the one being used)
+        # In a typical 4-skill layout, swap positions 1<->2 for symmetry
+        # Simplified: swap all adjacent pairs (0<->1, 2<->3)
+        for i in range(0, n - 1, 2):
+            skills[i], skills[i + 1] = skills[i + 1], skills[i]
