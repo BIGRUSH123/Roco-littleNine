@@ -5,14 +5,20 @@
   "skill_type": "物攻",
   "power": 150,
   "energy_cost": 6,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "special",
-      "name": "gain_energy_on_ko",
-      "amount": 6
+      "when": {
+        "cond": "on_ko"
+      },
+      "then": [
+        {
+          "op": "mod",
+          "target": "sprite_self",
+          "stat": "energy",
+          "value": 6,
+          "mode": "add"
+        }
+      ]
     }
   ],
   "description": "✦造成物伤，若使用本技能击败敌方，回复6能量。"

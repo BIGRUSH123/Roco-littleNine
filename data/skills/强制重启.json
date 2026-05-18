@@ -6,19 +6,11 @@
   "power": 90,
   "energy_cost": 3,
   "counter": "状态",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "conditional",
-      "when": {
-        "kind": "counter_succeeded"
-      },
+      "when": { "cond": "counter_succeeded" },
       "then": [
-        {
-          "kind": "special",
-          "name": "force_return"
-        }
+        { "op": "return", "target": "sprite_opp" }
       ]
     }
   ],
