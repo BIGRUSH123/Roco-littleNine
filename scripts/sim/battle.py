@@ -518,6 +518,16 @@ class Battle(BattleMechanicsMixin):
         )
         events.extend(result.events)
 
+        # ═══ Escape / Return handling ═══
+        from scripts.vm.journal import Escape, Return
+        for mutation in result.journal:
+            if isinstance(mutation, Escape):
+                if mutation.inherit:
+                    self._handle_escape_inherit(team, user, events)
+                else:
+                    self._handle_escape(team, user, events)
+                break  # Only first escape matters
+
         # ═══ Post-execution ═══
         user.first_action = False
         # Clear "charged" state — consumed after the sprite acts

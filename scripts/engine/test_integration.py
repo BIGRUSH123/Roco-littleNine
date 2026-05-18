@@ -426,6 +426,101 @@ def test_counter_refs_opp_power():
     assert hp_lost >= 30, f"Expected meaningful damage with power 120, got {hp_lost}"
 
 
+def test_escape_mutation_production():
+    """Test that a skill with escape opcode produces an Escape mutation."""
+    from scripts.vm.ctx import Ctx
+    from scripts.vm.executor import execute as vm_execute
+    from scripts.vm.journal import Escape
+    from scripts.engine.snapshot import build_ctx
+    from scripts.engine.replayer import JournalReplayer
+    from scripts.sim.sprite import Sprite
+    from scripts.sim.skill import Skill
+    from scripts.sim.globals import GlobalEffects
+    from scripts.common.models import SpeciesStats
+
+    species = SpeciesStats(
+        name="测试精灵", hp=200, atk=120, def_=100,
+        sp_atk=110, sp_def=95, speed=100,
+    )
+    sprite = Sprite(
+        species=species, current_hp=180, max_hp=200, energy=8,
+        initial_stats={"atk": 120, "def": 100, "sp_atk": 110, "sp_def": 95, "speed": 100},
+    )
+    opp = Sprite(
+        species=species, current_hp=150, max_hp=180, energy=5,
+        initial_stats={"atk": 115, "def": 90, "sp_atk": 105, "sp_def": 85, "speed": 95},
+    )
+    globals_ = GlobalEffects()
+
+    # Escape skill like 恶意逃离: escape without inherit
+    effects = [{"target": "sprite_self", "op": "escape"}]
+    ctx = build_ctx(
+        sprite, opp,
+        Skill.load({"name": "测试脱离", "element": "恶", "skill_type": "状态", "power": 0, "energy_cost": 1}),
+        None, globals_,
+        turn=1, is_first=False,
+    )
+    journal = vm_execute(ctx, effects)
+    escape_muts = [m for m in journal if isinstance(m, Escape)]
+    assert len(escape_muts) == 1, f"Expected 1 Escape mutation, got {len(escape_muts)}"
+    assert escape_muts[0].inherit is False
+    assert escape_muts[0].target == "sprite_self"
+    print(f"  Escape mutation: target={escape_muts[0].target}, inherit={escape_muts[0].inherit}")
+
+    # Escape with inherit (like 击鼓传花)
+    effects2 = [{"target": "sprite_self", "op": "escape", "inherit": True}]
+    journal2 = vm_execute(ctx, effects2)
+    escape_muts2 = [m for m in journal2 if isinstance(m, Escape)]
+    assert len(escape_muts2) == 1
+    assert escape_muts2[0].inherit is True
+    print(f"  Escape+inherit mutation: inherit={escape_muts2[0].inherit}")
+
+
+def test_return_mutation_production():
+    """Test that return opcode produces Return mutation and sets pending_return."""
+    from scripts.vm.ctx import Ctx
+    from scripts.vm.executor import execute as vm_execute
+    from scripts.vm.journal import Return
+    from scripts.engine.snapshot import build_ctx
+    from scripts.engine.replayer import JournalReplayer
+    from scripts.sim.sprite import Sprite
+    from scripts.sim.skill import Skill
+    from scripts.sim.globals import GlobalEffects
+    from scripts.common.models import SpeciesStats
+
+    species = SpeciesStats(
+        name="测试精灵", hp=200, atk=120, def_=100,
+        sp_atk=110, sp_def=95, speed=100,
+    )
+    sprite = Sprite(
+        species=species, current_hp=180, max_hp=200, energy=8,
+        initial_stats={"atk": 120, "def": 100, "sp_atk": 110, "sp_def": 95, "speed": 100},
+    )
+    opp = Sprite(
+        species=species, current_hp=150, max_hp=180, energy=5,
+        initial_stats={"atk": 115, "def": 90, "sp_atk": 105, "sp_def": 85, "speed": 95},
+    )
+    globals_ = GlobalEffects()
+
+    effects = [{"target": "sprite_self", "op": "return"}]
+    ctx = build_ctx(
+        sprite, opp,
+        Skill.load({"name": "测试返场", "element": "电", "skill_type": "状态", "power": 0, "energy_cost": 1}),
+        None, globals_,
+        turn=1, is_first=False,
+    )
+
+    journal = vm_execute(ctx, effects)
+    return_muts = [m for m in journal if isinstance(m, Return)]
+    assert len(return_muts) == 1, f"Expected 1 Return mutation, got {len(return_muts)}"
+
+    # Replay: should set pending_return on sprite
+    replayer = JournalReplayer(sprite, opp, globals_)
+    events = replayer.replay(journal)
+    assert sprite.pending_return is True, f"Expected pending_return=True, got {sprite.pending_return}"
+    print(f"  Return mutation: pending_return={sprite.pending_return}, events={events}")
+
+
 if __name__ == "__main__":
     test_snapshot()
     test_replayer()
@@ -436,4 +531,6 @@ if __name__ == "__main__":
     test_counter_damage_flow()
     test_counter_succeeded_flag_flow()
     test_counter_refs_opp_power()
+    test_escape_mutation_production()
+    test_return_mutation_production()
     print("\nAll engine integration tests passed!")
