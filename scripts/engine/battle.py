@@ -21,6 +21,7 @@ from scripts.vm.cond import eval_one
 from .snapshot import build_ctx
 from .observer import ObserverRegistry
 from .replayer import JournalReplayer
+from .modifiers import apply_modifiers_to_journal
 
 if TYPE_CHECKING:
     from sim.sprite import Sprite
@@ -97,13 +98,16 @@ class BattleVMEngine:
         if pre_mods:
             journal = pre_mods + journal
 
-        # 5. Replay journal against mutable state
+        # 5. Apply same-skill modifiers to Damage amounts
+        journal = apply_modifiers_to_journal(journal, ctx)
+
+        # 6. Replay journal against mutable state
         replayer = JournalReplayer(
             self_sprite, opp_sprite, globals_, self.registry,
         )
         events = replayer.replay(journal)
 
-        # 6. Fire post-skill observers
+        # 7. Fire post-skill observers
         post_ev = self._fire_post_event("post_skill", ctx, replayer)
         events.extend(post_ev)
 

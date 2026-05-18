@@ -103,7 +103,91 @@ def test_replayer():
     print("Replayer: OK")
 
 
+def test_modifier_collection():
+    """Test that ModifierInjections from journal are collected and applied to Damage."""
+    from scripts.vm.journal import Damage, ModifierInjection, Journal
+    from scripts.vm.ctx import Ctx
+    from scripts.engine.modifiers import collect_modifiers, adjust_damage
+
+    # Simulate: skill has an effect that produces power_mult=1.5, then hit deals damage
+    ctx = Ctx(power_self=100, atk_self=120, def_opp=100, skill_type_self="物攻",
+              element_self="火", damage_reduction_opp=0.0, combo_self=1)
+
+    journal: Journal = [
+        ModifierInjection(target="skill_off_0", stat="power_mult", value=1.5, mode="multiply", scope="battlefield"),
+        Damage(target="sprite_opp", amount=108, element="火", type="物攻"),
+    ]
+
+    mods = collect_modifiers(journal, ctx)
+    assert mods["power_mult"] == 1.5, f"Expected power_mult=1.5, got {mods['power_mult']}"
+    assert mods["damage_mult"] == 1.0, f"Expected damage_mult=1.0, got {mods['damage_mult']}"
+
+    # Adjust the damage
+    adjusted = adjust_damage(journal[1], mods)
+    assert adjusted.amount == round(108 * 1.5), f"Expected {round(108*1.5)}, got {adjusted.amount}"
+    print(f"  Modifier collection: power_mult={mods['power_mult']}, damage={108}→{adjusted.amount}")
+
+
+def test_modifier_chain():
+    """Test multiple stacked modifiers."""
+    from scripts.vm.journal import Damage, ModifierInjection, Journal
+    from scripts.vm.ctx import Ctx
+    from scripts.engine.modifiers import collect_modifiers, adjust_damage
+
+    ctx = Ctx(power_self=80, atk_self=100, def_opp=100, skill_type_self="物攻",
+              element_self="水", damage_reduction_opp=0.0, combo_self=1)
+
+    journal: Journal = [
+        ModifierInjection(target="skill_off_0", stat="power_mult", value=2.0, mode="multiply", scope="battlefield"),
+        ModifierInjection(target="skill_off_0", stat="damage_mult", value=1.3, mode="multiply", scope="battlefield"),
+        ModifierInjection(target="skill_off_0", stat="combo", value=2, mode="add", scope="battlefield"),
+        Damage(target="sprite_opp", amount=72, element="水", type="魔攻"),
+    ]
+
+    mods = collect_modifiers(journal, ctx)
+    assert mods["power_mult"] == 2.0
+    assert mods["damage_mult"] == 1.3
+    assert mods["combo_add"] == 2
+
+    # (72 * power_mult * damage_mult * (1 + combo_add))
+    adjusted = adjust_damage(journal[3], mods)
+    expected = round(round(72 * 2.0 * 1.3) * 3)  # intermediate rounding
+    assert adjusted.amount == expected, f"Expected {expected}, got {adjusted.amount}"
+    print(f"  Modifier chain: power_mult×2.0 + damage_mult×1.3 + combo+2, damage={72}→{adjusted.amount}")
+
+
+def test_modifier_collection_end_to_end():
+    """Full pipeline: sprite with effects → Ctx → VM-like execution → modifier collection."""
+    from scripts.vm.journal import Damage, ModifierInjection, Journal
+    from scripts.vm.ctx import Ctx
+    from scripts.engine.modifiers import apply_modifiers_to_journal
+
+    # Simulate what the engine does: build ctx, run VM, get journal, apply modifiers
+    ctx = Ctx(power_self=75, atk_self=130, def_opp=110, skill_type_self="物攻",
+              element_self="火", damage_reduction_opp=0.15, combo_self=1,
+              stat_stages_self={"atk": 2}, stat_stages_opp={"def": -1})
+
+    # Journal from VM: modifier + damage
+    journal: Journal = [
+        ModifierInjection(target="skill_off_0", stat="power_mult", value=1.5, mode="multiply", scope="battlefield"),
+        Damage(target="sprite_opp", amount=80, element="火", type="物攻"),
+    ]
+
+    adjusted_journal = apply_modifiers_to_journal(journal, ctx)
+
+    # The damage should now be higher due to power_mult=1.5
+    assert len(adjusted_journal) == 2
+    assert isinstance(adjusted_journal[1], Damage)
+    assert adjusted_journal[1].amount > 80, f"Expected damage > 80, got {adjusted_journal[1].amount}"
+    # power_mult 1.5 should increase damage by ~50%
+    assert adjusted_journal[1].amount == round(80 * 1.5)
+    print(f"  E2E modifier pipeline: damage {80}→{adjusted_journal[1].amount} with power_mult×1.5")
+
+
 if __name__ == "__main__":
     test_snapshot()
     test_replayer()
+    test_modifier_collection()
+    test_modifier_chain()
+    test_modifier_collection_end_to_end()
     print("\nAll engine integration tests passed!")
