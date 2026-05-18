@@ -602,6 +602,351 @@ def test_e2e_escape_skill():
     print(f"  恶意逃离: Escape mutation produced, inherit={escapes[0].inherit}")
 
 
+# ═══════════════════════════════════════════════════════════════
+# Counter firing tests
+# ═══════════════════════════════════════════════════════════════
+
+def test_counter_register_production():
+    """Test that a skill with count opcode produces CounterRegister mutation."""
+    from scripts.vm.ctx import Ctx
+    from scripts.vm.executor import execute as vm_execute
+    from scripts.vm.journal import CounterRegister
+
+    ctx = Ctx(skill_type_self="物攻", element_self="虫")
+    effects = [
+        {"op": "mod", "target": "skill_off_0", "stat": "combo", "value": 1},
+        {
+            "op": "count",
+            "when": {"cond": "devotion_triggered"},
+            "then": [
+                {"op": "mod", "target": "skill_off_0", "stat": "energy_cost",
+                 "value": 1, "mode": "add", "scope": "permanent"}
+            ]
+        },
+    ]
+    journal = vm_execute(ctx, effects)
+    counters = [m for m in journal if isinstance(m, CounterRegister)]
+    assert len(counters) == 1, f"Expected 1 CounterRegister, got {len(counters)}"
+    assert counters[0].cond == {"cond": "devotion_triggered"}
+    assert len(counters[0].then) == 1
+    print(f"  CounterRegister: cond={counters[0].cond}, then={counters[0].then}")
+
+
+def test_counter_register_engine_integration():
+    """Test that execute_skill registers counters from journal into engine."""
+    from scripts.engine.skill_loader import SkillLoader
+    from scripts.engine.battle import BattleVMEngine
+    from scripts.sim.sprite import Sprite
+    from scripts.sim.globals import GlobalEffects
+    from scripts.common.models import SpeciesStats
+    from scripts.vm.journal import CounterRegister
+
+    loader = SkillLoader()
+    engine = BattleVMEngine()
+    species = SpeciesStats(name="测试精灵", hp=200, atk=120, def_=100, sp_atk=110, sp_def=95, speed=100)
+    sprite = Sprite(species=species, current_hp=180, max_hp=200, energy=8,
+                    initial_stats={"atk": 120, "def": 100, "sp_atk": 110, "sp_def": 95, "speed": 100})
+    opp = Sprite(species=species, current_hp=150, max_hp=180, energy=5,
+                 initial_stats={"atk": 115, "def": 90, "sp_atk": 105, "sp_def": 85, "speed": 95})
+
+    record = loader.load_file("data/skills/啃咬.json")
+    result = engine.execute_skill(sprite, opp, record, None, GlobalEffects(), turn=1, is_first=True, team="A")
+
+    # Should have CounterRegister in journal
+    counters = [m for m in result.journal if isinstance(m, CounterRegister)]
+    assert len(counters) == 1, f"Expected 1 CounterRegister in journal, got {len(counters)}"
+    # Should be registered in the engine's observer registry
+    assert len(engine.registry) >= 1, f"Expected >=1 observers registered, got {len(engine.registry)}"
+    print(f"  Engine registry has {len(engine.registry)} observers after executing 啃咬")
+
+
+def test_counter_fires_on_condition():
+    """Test that a registered counter fires when its condition becomes true."""
+    from scripts.vm.ctx import Ctx
+    from scripts.vm.executor import execute as vm_execute, process_effects
+    from scripts.vm.journal import CounterRegister, ModifierInjection
+    from scripts.engine.battle import BattleVMEngine
+    from scripts.engine.observer import ObserverRegistry, Observer
+
+    # Setup: register a counter that modifies energy_cost on devotion_triggered
+    registry = ObserverRegistry()
+    engine = BattleVMEngine(registry)
+
+    # Register counter manually (simulating what execute_skill does)
+    engine.register_counter(CounterRegister(
+        name="test_counter",
+        cond={"cond": "devotion_triggered"},
+        then=[{"op": "mod", "target": "skill_off_0", "stat": "energy_cost",
+               "value": 2, "mode": "add", "scope": "permanent"}],
+        scope="persistent",
+    ))
+    assert len(registry) == 1
+
+    # Now fire with a ctx where devotion_triggered=True
+    ctx = Ctx(
+        element_self="虫", skill_type_self="物攻",
+        devotion_triggered=True,
+    )
+    mutations = registry.fire("post_skill", ctx)
+    assert len(mutations) > 0, f"Counter should fire when condition is met"
+    mods = [m for m in mutations if isinstance(m, ModifierInjection)]
+    assert len(mods) == 1
+    assert mods[0].stat == "energy_cost"
+    assert mods[0].value == 2
+    print(f"  Counter fired: stat={mods[0].stat}, value={mods[0].value}")
+
+
+def test_counter_does_not_fire_without_condition():
+    """Test that a registered counter does NOT fire when condition is false."""
+    from scripts.vm.ctx import Ctx
+    from scripts.vm.journal import CounterRegister
+    from scripts.engine.battle import BattleVMEngine
+    from scripts.engine.observer import ObserverRegistry
+
+    registry = ObserverRegistry()
+    engine = BattleVMEngine(registry)
+
+    engine.register_counter(CounterRegister(
+        name="test_counter",
+        cond={"cond": "devotion_triggered"},
+        then=[{"op": "mod", "target": "skill_off_0", "stat": "energy_cost",
+               "value": 2, "mode": "add", "scope": "permanent"}],
+        scope="persistent",
+    ))
+
+    # Fire with devotion_triggered=False
+    ctx = Ctx(element_self="虫", skill_type_self="物攻", devotion_triggered=False)
+    mutations = registry.fire("post_skill", ctx)
+    assert len(mutations) == 0, f"Counter should NOT fire when condition false, got {len(mutations)}"
+    print(f"  Counter correctly stayed silent when condition false")
+
+
+def test_named_counter_value_tracking():
+    """Test that named counters track their values and are queryable via counter_values."""
+    from scripts.vm.ctx import Ctx
+    from scripts.vm.journal import CounterRegister, Mutation
+    from scripts.engine.battle import BattleVMEngine
+    from scripts.engine.observer import ObserverRegistry
+
+    registry = ObserverRegistry()
+    engine = BattleVMEngine(registry)
+    # Initialize counter_values dict on engine
+    engine._counter_values = {}
+
+    engine.register_counter(CounterRegister(
+        name="星陨",
+        cond={"cond": "skill_use"},
+        then=[],
+        scope="persistent",
+    ))
+
+    # Simulate counter firing twice
+    engine._increment_counter("星陨")
+    engine._increment_counter("星陨")
+    assert engine._counter_values["星陨"] == 2
+
+    # Also test unnamed counter
+    engine.register_counter(CounterRegister(
+        name=None,
+        cond={"cond": "on_damage_taken"},
+        then=[{"op": "mod", "stat": "atk", "steps": 1}],
+        scope="battlefield",
+    ))
+    engine._increment_counter(None)  # should not crash
+    print(f"  Counter values: {engine._counter_values}")
+
+
+# ═══════════════════════════════════════════════════════════════
+# Borrow tests
+# ═══════════════════════════════════════════════════════════════
+
+def test_borrow_mutation_production():
+    """Test that borrow opcode produces a Borrow mutation."""
+    from scripts.vm.ctx import Ctx
+    from scripts.vm.executor import execute as vm_execute
+    from scripts.vm.journal import Borrow
+
+    ctx = Ctx(element_self="光", skill_type_self="防御")
+    effects = [{"op": "borrow", "from": "skill_opp_current"}]
+    journal = vm_execute(ctx, effects)
+    borrows = [m for m in journal if isinstance(m, Borrow)]
+    assert len(borrows) == 1
+    assert borrows[0].from_skill == "skill_opp_current"
+    print(f"  Borrow mutation: from={borrows[0].from_skill}")
+
+
+def test_borrow_skill_substitution():
+    """Test that borrow replaces skill properties with opponent's skill."""
+    from scripts.vm.ctx import Ctx
+    from scripts.vm.executor import execute as vm_execute
+    from scripts.vm.journal import Borrow, Damage
+    from scripts.engine.battle import BattleVMEngine
+
+    engine = BattleVMEngine()
+
+    # Simulate: defense skill counters attack, borrows opponent's skill
+    # Self skill: 防御, power=0, element=光
+    # Opp skill:  物攻, power=120, element=火
+    ctx = Ctx(
+        power_self=0, element_self="光", skill_type_self="防御",
+        power_opp=120, element_opp="火", skill_type_opp="物攻",
+        energy_cost_self=1, atk_self=120, def_opp=100,
+        atk_opp=100, def_self=100, sp_atk_self=100, sp_def_opp=100,
+        sp_atk_opp=100, sp_def_self=100,
+        combo_self=1, damage_reduction_opp=0.0,
+        stat_stages_self={}, stat_stages_opp={},
+    )
+    effects = [{"op": "borrow", "from": "skill_opp_current"}]
+    journal = vm_execute(ctx, effects)
+
+    # Apply borrow substitution — returns journal with Damage
+    new_journal = engine._apply_borrow(journal, ctx)
+    damages = [m for m in new_journal if isinstance(m, Damage)]
+    assert len(damages) == 1, f"Expected 1 Damage from borrowed skill, got {len(damages)}"
+    dmg = damages[0]
+    assert dmg.element == "火", f"Borrow should use opp element 火, got {dmg.element}"
+    assert dmg.type == "物攻", f"Borrow should use opp type 物攻, got {dmg.type}"
+    assert dmg.amount > 0, f"Borrow should deal damage with borrowed power 120"
+    print(f"  Borrow: damage={dmg.amount}, type={dmg.type}, element={dmg.element}")
+    print(f"  Borrow damage dealt: {dmg.amount}")
+
+
+def test_borrow_e2e_mirror():
+    """End-to-end: counter defense that borrows attacker's skill (镜像反射 pattern)."""
+    from scripts.engine.skill_loader import SkillLoader
+    from scripts.engine.battle import BattleVMEngine
+    from scripts.sim.sprite import Sprite
+    from scripts.sim.globals import GlobalEffects
+    from scripts.common.models import SpeciesStats
+    from scripts.vm.journal import Damage, Borrow
+
+    loader = SkillLoader()
+    engine = BattleVMEngine()
+    species_def = SpeciesStats(name="防御者", hp=200, atk=120, def_=120, sp_atk=110, sp_def=110, speed=100)
+    species_atk = SpeciesStats(name="攻击者", hp=180, atk=130, def_=80, sp_atk=100, sp_def=80, speed=110)
+
+    def_sprite = Sprite(species=species_def, current_hp=200, max_hp=200, energy=8,
+                        initial_stats={"atk": 120, "def": 120, "sp_atk": 110, "sp_def": 110, "speed": 100})
+    atk_sprite = Sprite(species=species_atk, current_hp=180, max_hp=180, energy=5,
+                        initial_stats={"atk": 130, "def": 80, "sp_atk": 100, "sp_def": 80, "speed": 110})
+
+    record = loader.load_file("data/skills/镜像反射.json")
+    # The opponent's skill (being countered): 龙爪 (物攻, power=80, element=龙)
+    opp_skill = loader.load_file("data/skills/龙爪.json")
+
+    result = engine.execute_skill(
+        def_sprite, atk_sprite, record, opp_skill,
+        GlobalEffects(), turn=1, is_first=False, team="B",
+        counter_succeeded=True,
+    )
+
+    # After _handle_borrow, Borrow is consumed and replaced with Damage
+    damages = [m for m in result.journal if isinstance(m, Damage)]
+    assert len(damages) >= 1, f"Expected damage from borrowed skill, got {len(damages)} damages, journal={[(type(m).__name__) for m in result.journal]}"
+    assert damages[0].element == "龙", f"Borrow should use opp element 龙, got {damages[0].element}"
+    print(f"  镜像反射: borrow + {damages[0].amount} damage dealt, opp HP={atk_sprite.current_hp}")
+
+
+# ═══════════════════════════════════════════════════════════════
+# Replay (sprite_self) tests
+# ═══════════════════════════════════════════════════════════════
+
+def test_replay_team_burst():
+    """Test that replay from team_burst replays registered burst effects."""
+    from scripts.vm.ctx import Ctx
+    from scripts.vm.executor import execute as vm_execute
+    from scripts.vm.journal import Replay
+    from scripts.engine.battle import BattleVMEngine
+
+    engine = BattleVMEngine()
+    # Register burst effects
+    engine._burst_effects["A"] = [
+        ("龙爪", [{"op": "mod", "target": "sprite_self", "stat": "atk", "steps": 1}]),
+        ("火球", [{"op": "mod", "target": "sprite_opp", "stat": "def", "steps": -1}]),
+    ]
+
+    ctx = Ctx(element_self="电", skill_type_self="魔攻", atk_self=100, def_self=100,
+              sp_atk_self=100, sp_def_self=100, atk_opp=100, def_opp=100,
+              sp_atk_opp=100, sp_def_opp=100, stat_stages_self={}, stat_stages_opp={})
+
+    effects = [{"op": "replay", "from": "team_burst", "what": "burst"}]
+    journal = vm_execute(ctx, effects)
+    journal = engine._handle_replay(journal, "A", ctx)
+
+    replays = [m for m in journal if isinstance(m, Replay)]
+    assert len(replays) == 0, "Replay mutations should be consumed by _handle_replay"
+
+    # Should have the burst effects' mutations (atk+1, def-1 = 2 StatChanges)
+    from scripts.vm.journal import StatChange
+    stat_changes = [m for m in journal if isinstance(m, StatChange)]
+    assert len(stat_changes) >= 2, f"Expected >=2 stat changes from burst replay, got {len(stat_changes)}"
+    print(f"  Team burst replay: {len(stat_changes)} stat changes produced")
+
+
+def test_replay_sprite_self_basic():
+    """Test replay from sprite_self replays matching historical skills."""
+    from scripts.vm.ctx import Ctx
+    from scripts.vm.executor import execute as vm_execute
+    from scripts.vm.journal import Replay
+    from scripts.engine.battle import BattleVMEngine
+
+    engine = BattleVMEngine()
+    # Track skill history for a sprite
+    engine._skill_history["sprite_A"] = [
+        ("迅捷攻击", [{"op": "mod", "target": "sprite_self", "stat": "atk", "steps": 1}], {"tag": ""}),
+        ("普通防御", [{"op": "mod", "target": "sprite_self", "stat": "def", "steps": 1}], {"tag": ""}),
+    ]
+
+    ctx = Ctx(element_self="翼", skill_type_self="状态", atk_self=100, def_self=100,
+              sp_atk_self=100, sp_def_self=100, atk_opp=100, def_opp=100,
+              sp_atk_opp=100, sp_def_opp=100, stat_stages_self={}, stat_stages_opp={})
+
+    effects = [{"op": "replay", "from": "sprite_self"}]
+    journal = vm_execute(ctx, effects)
+    journal = engine._handle_replay_sprite_self(journal, "sprite_A", ctx)
+
+    # Both historical skills' effects should execute
+    from scripts.vm.journal import StatChange
+    stat_changes = [m for m in journal if isinstance(m, StatChange)]
+    assert len(stat_changes) == 2, f"Expected 2 stat changes from history replay, got {len(stat_changes)}"
+    print(f"  Sprite self replay: {len(stat_changes)} stat changes from history")
+
+
+def test_replay_sprite_self_with_filter():
+    """Test replay from sprite_self with skill_type filter."""
+    from scripts.vm.ctx import Ctx
+    from scripts.vm.executor import execute as vm_execute
+    from scripts.vm.journal import Replay, ModifierInjection
+    from scripts.engine.battle import BattleVMEngine
+
+    engine = BattleVMEngine()
+    engine._skill_history["sprite_A"] = [
+        ("迅捷技能A", [{"op": "mod", "target": "skill_off_0", "stat": "power", "value": 10, "mode": "add"}], {"tag": "迅捷"}),
+        ("普通技能", [{"op": "mod", "target": "skill_off_0", "stat": "energy_cost", "value": -1, "mode": "add"}], {"tag": ""}),
+    ]
+    # Tag each skill in the history lookup
+    engine._skill_tags["sprite_A"] = {
+        "迅捷技能A": "迅捷",
+        "普通技能": "",
+    }
+
+    ctx = Ctx(element_self="翼", skill_type_self="状态", skill_tag_self="",
+              atk_self=100, def_self=100, sp_atk_self=100, sp_def_self=100,
+              atk_opp=100, def_opp=100, sp_atk_opp=100, sp_def_opp=100,
+              stat_stages_self={}, stat_stages_opp={})
+
+    effects = [{"op": "replay", "from": "sprite_self", "skill_filter": {"tag": "迅捷"}}]
+    journal = vm_execute(ctx, effects)
+    journal = engine._handle_replay_sprite_self(journal, "sprite_A", ctx)
+
+    # Only 迅捷技能A should be replayed
+    from scripts.vm.journal import ModifierInjection
+    mods = [m for m in journal if isinstance(m, ModifierInjection)]
+    assert len(mods) == 1, f"Expected 1 mod from filtered replay, got {len(mods)}"
+    assert mods[0].stat == "power", f"Expected power mod, got {mods[0].stat}"
+    print(f"  Filtered replay: 1 power mod from 迅捷 skill")
+
+
 if __name__ == "__main__":
     test_snapshot()
     test_replayer()
@@ -617,4 +962,18 @@ if __name__ == "__main__":
     test_e2e_attack_skill()
     test_e2e_defense_counter()
     test_e2e_escape_skill()
+    # Counter firing
+    test_counter_register_production()
+    test_counter_register_engine_integration()
+    test_counter_fires_on_condition()
+    test_counter_does_not_fire_without_condition()
+    test_named_counter_value_tracking()
+    # Borrow
+    test_borrow_mutation_production()
+    test_borrow_skill_substitution()
+    test_borrow_e2e_mirror()
+    # Replay
+    test_replay_team_burst()
+    test_replay_sprite_self_basic()
+    test_replay_sprite_self_with_filter()
     print("\nAll engine integration tests passed!")
