@@ -1,8 +1,11 @@
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useBattleStore } from './stores/battle.js'
 import TeamSelection from './components/TeamSelection.vue'
 import BattleArena from './components/BattleArena.vue'
 import BattleLog from './components/BattleLog.vue'
+
+const battleStore = useBattleStore()
 
 const API_BASE = 'http://localhost:8000/api'
 
@@ -61,6 +64,7 @@ const handleQuickTest = async () => {
     if (!res.ok) throw new Error('战斗初始化失败')
     const data = await res.json()
     battleState.value = data
+    battleStore.updateFromResponse(data)
     battleLogs.value = ['快速测试开始！']
     currentPhase.value = 'battle'
   } catch (error) {
@@ -84,6 +88,7 @@ const handleStartBattle = async ({ team, leadIndex, item }) => {
 
     const data = await res.json()
     battleState.value = data
+    battleStore.updateFromResponse(data)
     battleLogs.value = ['战斗开始！']
     currentPhase.value = 'battle'
   } catch (error) {
@@ -118,6 +123,7 @@ const handleAction = async ({ type, payload }) => {
 
     const data = await res.json()
     battleState.value = data.state
+    battleStore.updateFromResponse(data.state)
 
     if (data.log && data.log.length > 0) {
       battleLogs.value.push(...data.log)
@@ -139,6 +145,7 @@ const handleDebugInit = async () => {
     if (!res.ok) throw new Error('调试初始化失败')
     const data = await res.json()
     battleState.value = data
+    battleStore.updateFromResponse(data)
     battleLogs.value = [`[调试模式] 双方准备就绪 | 我方 ${data.debug_skills_a?.length || 0} 技能 | 对方 ${data.debug_skills_b?.length || 0} 技能`]
     currentPhase.value = 'battle'
     debugMode.value = true
@@ -170,6 +177,7 @@ const handleDebugAction = async ({ actionA, actionB }) => {
 
     const data = await res.json()
     battleState.value = data.state
+    battleStore.updateFromResponse(data.state)
 
     if (data.log && data.log.length > 0) {
       battleLogs.value.push(`[回合${data.state.turn}]`)
@@ -189,6 +197,7 @@ const restartGame = () => {
   battleState.value = null
   battleLogs.value = []
   debugMode.value = false
+  battleStore.resetBattle()
 }
 </script>
 
@@ -249,7 +258,6 @@ const restartGame = () => {
           <!-- Battle Arena (left) -->
           <div class="flex-1 min-w-0">
             <BattleArena
-              :state="battleState"
               :skill-map="skillMap"
               :type-chart="typeChart"
               :debug-mode="debugMode"

@@ -1,8 +1,12 @@
 <script setup>
 import { ref, computed } from 'vue'
+import { useBattleStore } from '../stores/battle.js'
+import { useSpriteAssetStore } from '../stores/spriteAssets.js'
+import SpriteCard from './SpriteCard.vue'
+import EffectCard from './EffectCard.vue'
+import SkillButton from './SkillButton.vue'
 
 const props = defineProps({
-  state: { type: Object, required: true },
   skillMap: { type: Object, default: () => ({}) },
   typeChart: { type: Object, default: () => ({}) },
   debugMode: { type: Boolean, default: false },
@@ -10,21 +14,31 @@ const props = defineProps({
 
 const emit = defineEmits(['action', 'debug-action'])
 
+const store = useBattleStore()
+const _spriteAssets = useSpriteAssetStore()
+
 const showSwitchMenu = ref(false)
 const showSwitchMenuOpp = ref(false)
 const debugActionA = ref(null)
 const debugActionB = ref(null)
 
-const player = computed(() => props.state.player_a)
-const opponent = computed(() => props.state.player_b)
-const active = computed(() => player.value.team[player.value.active_index])
-const activeOpp = computed(() => opponent.value.team[opponent.value.active_index])
-const isCharging = computed(() => !!active.value.charging)
-const hasJealousy = computed(() => active.value.trait === '嫉妒')
-const isChargingOpp = computed(() => !!activeOpp.value.charging)
-const hasJealousyOpp = computed(() => activeOpp.value.trait === '嫉妒')
-const skillCount = computed(() => active.value.skills?.length || 0)
-const skillCountOpp = computed(() => activeOpp.value.skills?.length || 0)
+const player = computed(() => ({
+  team: store.selfTeam,
+  active_index: store.activeIndexA,
+  item: store.selfItem,
+}))
+const opponent = computed(() => ({
+  team: store.oppTeam,
+  active_index: store.activeIndexB,
+}))
+const active = computed(() => store.selfSprite)
+const activeOpp = computed(() => store.oppSprite)
+const isCharging = computed(() => !!active.value?.charging)
+const hasJealousy = computed(() => active.value?.trait === '嫉妒')
+const isChargingOpp = computed(() => !!activeOpp.value?.charging)
+const hasJealousyOpp = computed(() => activeOpp.value?.trait === '嫉妒')
+const skillCount = computed(() => active.value?.skills?.length || 0)
+const skillCountOpp = computed(() => activeOpp.value?.skills?.length || 0)
 const gridCols = computed(() => {
   if (skillCount.value <= 4) return 'grid-cols-2'
   if (skillCount.value <= 6) return 'grid-cols-3'
@@ -40,13 +54,13 @@ const gridColsOpp = computed(() => {
 const btnPad = computed(() => skillCount.value > 6 ? 'py-1.5 px-1.5' : 'py-2.5 px-3')
 const btnPadOpp = computed(() => skillCountOpp.value > 6 ? 'py-1.5 px-1.5' : 'py-2.5 px-3')
 
-const markModA = computed(() => props.state.mark_energy_mod_a || 0)
-const markModB = computed(() => props.state.mark_energy_mod_b || 0)
+const markModA = computed(() => store.markEnergyModA || 0)
+const markModB = computed(() => store.markEnergyModB || 0)
 
 const canUseItem = computed(() => {
   const item = player.value?.item
   if (!item || item.is_exhausted) return false
-  if (item.last_use_turn > 0 && props.state.turn - item.last_use_turn < item.cooldown_turns) return false
+  if (item.last_use_turn > 0 && store.turn - item.last_use_turn < item.cooldown_turns) return false
   return true
 })
 
@@ -55,13 +69,13 @@ function getSpriteSkill(sprite, name) {
 }
 
 const canUseSkill = (sprite, skillName) => {
-  const charging = !!sprite.charging
-  const jealousy = sprite.trait === '嫉妒'
+  const charging = !!sprite?.charging
+  const jealousy = sprite?.trait === '嫉妒'
   if (!charging) {
     const ss = getSpriteSkill(sprite, skillName)
     if (!ss) return false
     if (ss.cooldown > 0) return false
-    return sprite.energy >= ss.effective_energy_cost
+    return (sprite?.energy ?? 0) >= ss.effective_energy_cost
   }
   if (jealousy) return true
   return skillName === sprite.charging
@@ -72,17 +86,36 @@ function skillBrief(sprite, name) {
   if (!sm) return ''
   const ss = getSpriteSkill(sprite, name)
   const parts = [`${sm.element}`]
-  if (ss && ss.effective_power > 0) parts.push(`${ss.effective_power}威`)
-  parts.push(`${ss ? ss.effective_energy_cost : sm.energy_cost}费`)
+  if (ss && ss.effective_power > 0) {
+    const p = ss.effective_power
+    const bonus = ss.position_power_bonus || 0
+    parts.push(bonus > 0 ? `${p}威(+${bonus})` : `${p}威`)
+  }
+  if (ss && ss.base_energy_cost > 0 && ss.effective_energy_cost < ss.base_energy_cost) {
+    const saving = ss.base_energy_cost - ss.effective_energy_cost
+    parts.push(`${ss.effective_energy_cost}费(-${saving})`)
+  } else {
+    parts.push(`${ss ? ss.effective_energy_cost : sm.energy_cost}费`)
+  }
   if (sm.priority > 0) parts.push(`+${sm.priority}`)
   return parts.join('·')
 }
 
+function skillBadges(sprite, name) {
+  const ss = getSpriteSkill(sprite, name)
+  if (!ss) return []
+  const badges = []
+  const tx = ss.transmission || 0
+  if (ss.main_axis) badges.push('主轴')
+  else if (tx > 0) badges.push(`传${tx}`)
+  return badges
+}
+
 function energyInsufficient(sprite, name) {
-  if (!!sprite.charging) return false
+  if (!!sprite?.charging) return false
   const ss = getSpriteSkill(sprite, name)
   if (!ss) return true
-  return sprite.energy < ss.effective_energy_cost
+  return (sprite?.energy ?? 0) < ss.effective_energy_cost
 }
 
 function skillDesc(name) {
@@ -102,28 +135,28 @@ function typeEffectiveness(skillName, targetElem) {
 
 function effectivenessClass(skillName, targetElem) {
   const m = typeEffectiveness(skillName, targetElem)
-  if (m >= 2.0) return 'border-[#4caf50] bg-[#1a2a1a]'
-  if (m <= 0.5 && m > 0) return 'border-[#f4a236] bg-[#2a2010]'
-  if (m === 0) return 'border-[#f44336] bg-[#2a1a1a]'
+  if (m >= 2.0) return 'border-[#6DBF7C] bg-[#E8F5E9]'
+  if (m <= 0.5 && m > 0) return 'border-[#EF6C00] bg-[#FFF3E0]'
+  if (m === 0) return 'border-[#D4534A] bg-[#FFEBEE]'
   return ''
 }
 
 const hpPct = (current, max) => max === 0 ? 0 : Math.max(0, Math.min(100, (current / max) * 100))
 const hpColorClass = (current, max) => {
-  if (max === 0) return 'bg-[#4a4d55]'
+  if (max === 0) return 'bg-[#D4C8B8]'
   const pct = current / max
-  if (pct > 0.5) return 'bg-[#4caf50]'
-  if (pct > 0.25) return 'bg-[#ffc107]'
-  return 'bg-[#f44336]'
+  if (pct > 0.5) return 'bg-[#6DBF7C]'
+  if (pct > 0.25) return 'bg-[#C9A96E]'
+  return 'bg-[#D4534A]'
 }
 
 const freezeStacks = (sprite) => {
-  if (!sprite.effects) return 0
+  if (!sprite?.effects) return 0
   const f = sprite.effects.find(e => e.name === '冻结')
   return f ? f.stacks : 0
 }
 const freezePct = (sprite) => {
-  if (!sprite.max_hp) return 0
+  if (!sprite?.max_hp) return 0
   const stacks = freezeStacks(sprite)
   return Math.min(100, stacks * 5)
 }
@@ -179,49 +212,55 @@ const debugActionLabel = (action) => {
   <div class="flex flex-col" style="min-height: calc(100vh - 49px)">
 
     <!-- Top Bar -->
-    <div class="bg-[#252830] border-b border-[#3a3d42] px-4 py-1.5 flex items-center gap-4 text-xs">
-      <span class="font-bold text-[#e0e0e0]">回合 {{ state.turn }}</span>
-      <span class="text-[#8a8d95]">|</span>
-      <span class="text-[#8a8d95]">
-        {{ state.weather ? `天气: ${state.weather} (${state.weather_turns}t)` : '无天气' }}
+    <div class="bg-white border-b border-[#D4C8B8] px-4 py-1.5 flex items-center gap-4 text-xs">
+      <span class="font-bold text-[#3D2B1F]">回合 {{ store.turn }}</span>
+      <span class="text-[#6B5E4F]">|</span>
+      <span class="text-[#6B5E4F]">
+        {{ store.weather ? `天气: ${store.weather} (${store.weatherTurns}t)` : '无天气' }}
       </span>
-      <span v-if="state.is_finished" class="ml-auto font-bold text-[#f44336]">
-        已结束 &mdash; {{ state.winner }} 获胜
+      <span v-if="store.isFinished" class="ml-auto font-bold text-[#D4534A]">
+        已结束 &mdash; {{ store.winner }} 获胜
       </span>
-      <span v-else class="ml-auto text-[#6a6d75]">进行中</span>
+      <span v-else class="ml-auto text-[#6B5E4F]">进行中</span>
     </div>
 
     <!-- Battle Field -->
     <div class="flex-1 flex flex-col lg:flex-row">
 
       <!-- Player Side -->
-      <div class="flex-1 flex flex-col border-b lg:border-b-0 lg:border-r border-[#3a3d42]">
+      <div class="flex-1 flex flex-col border-b lg:border-b-0 lg:border-r border-[#D4C8B8]">
         <!-- Active Sprite -->
         <div class="flex-1 flex flex-col items-center justify-center p-6">
           <div class="text-center mb-4">
-            <div class="text-lg font-bold text-[#e0e0e0]">
-              {{ active.name }}
-              <span v-if="active.is_fainted" class="text-[#f44336] text-xs ml-1">(力竭)</span>
-              <span v-if="isCharging" class="text-[#ffc107] text-xs ml-1">蓄力-{{ active.charging }}</span>
+            <div class="text-lg font-bold text-[#3D2B1F]">
+              {{ active?.name }}
+              <span v-if="active?.is_fainted" class="text-[#D4534A] text-xs ml-1">(力竭)</span>
+              <span v-if="isCharging" class="text-[#C9A96E] text-xs ml-1">蓄力-{{ active?.charging }}</span>
             </div>
-            <div class="text-[10px] text-[#6a6d75] mt-0.5">Lv.100</div>
+            <div class="text-[10px] text-[#6B5E4F] mt-0.5">Lv.100</div>
           </div>
+
+          <!-- SpriteCard -->
+          <SpriteCard
+            :sprite="active || {}"
+            :is-fainted="active?.is_fainted ?? false"
+          />
 
           <!-- HP Bar -->
           <div class="w-64 mb-3">
-            <div class="flex justify-between text-[10px] text-[#8a8d95] mb-0.5">
+            <div class="flex justify-between text-[10px] text-[#6B5E4F] mb-0.5">
               <span>HP</span>
-              <span>{{ active.current_hp }} / {{ active.max_hp }}</span>
+              <span>{{ active?.current_hp ?? 0 }} / {{ active?.max_hp ?? 0 }}</span>
             </div>
-            <div class="w-full h-3.5 bg-[#3a1a1a] rounded-sm overflow-hidden border border-[#4a3a3a] relative">
+            <div class="w-full h-3.5 bg-[#F5E6D3] rounded-sm overflow-hidden border border-[#D4C8B8] relative">
               <div
                 class="h-full transition-all duration-400"
-                :class="hpColorClass(active.current_hp, active.max_hp)"
-                :style="{ width: hpPct(active.current_hp, active.max_hp) + '%' }"
+                :class="active ? hpColorClass(active.current_hp, active.max_hp) : ''"
+                :style="{ width: hpPct(active?.current_hp ?? 0, active?.max_hp ?? 0) + '%' }"
               ></div>
               <!-- Freeze overlay -->
               <div
-                v-if="freezeStacks(active) > 0"
+                v-if="active && freezeStacks(active) > 0"
                 class="absolute top-0 left-0 h-full bg-gradient-to-r from-[#7ec8e3]/80 via-[#a0d8ef]/60 to-[#c8e8f8]/30 transition-all duration-400 rounded-sm"
                 :style="{ width: Math.min(freezePct(active), hpPct(active.current_hp, active.max_hp)) + '%' }"
               ></div>
@@ -230,125 +269,111 @@ const debugActionLabel = (action) => {
 
           <!-- Energy -->
           <div class="flex items-center gap-1 mb-3">
-            <span class="text-[10px] text-[#6a6d75] mr-1">能量</span>
+            <span class="text-[10px] text-[#6B5E4F] mr-1">能量</span>
             <div class="flex gap-0.5">
               <div
                 v-for="i in 10"
                 :key="i"
-                class="w-2 h-3 rounded-sm"
-                :class="i <= active.energy ? 'bg-[#4a90d9]' : 'bg-[#2a2d35]'"
+                class="w-2.5 h-4 rounded-sm transition-colors duration-300"
+                :class="i <= (active?.energy ?? 0) ? 'bg-gradient-to-b from-[#C9A96E] to-[#A08050]' : 'bg-[#D4C8B8]'"
               ></div>
             </div>
-            <span class="text-[10px] text-[#6a6d75] ml-1">{{ active.energy }}/10</span>
+            <span class="text-[10px] text-[#6B5E4F] ml-1">{{ active?.energy ?? 0 }}/10</span>
           </div>
 
           <!-- Effects -->
-          <div v-if="active.effects && active.effects.length > 0" class="flex flex-wrap gap-1 justify-center">
-            <span
+          <div v-if="active?.effects && active.effects.length > 0" class="flex flex-wrap gap-1 justify-center">
+            <EffectCard
               v-for="(eff, effIdx) in active.effects"
               :key="effIdx"
-              class="px-1.5 py-0.5 text-[10px] rounded border"
-              :class="eff.category === 'abnormal'
-                ? 'bg-[#3a1a1a] border-[#5a2a2a] text-[#f44336]'
-                : 'bg-[#1a2a1a] border-[#2a3a2a] text-[#4caf50]'"
-            >
-              {{ eff.name }}<template v-if="eff.stacks > 1"> &times;{{ eff.stacks }}</template>
-            </span>
+              :effect="eff"
+            />
           </div>
         </div>
 
         <!-- Marks Bar -->
-        <div v-if="props.state.marks_a && props.state.marks_a.length > 0" class="px-4 pb-2 flex flex-wrap gap-1">
+        <div v-if="store.marksA && store.marksA.length > 0" class="px-4 pb-2 flex flex-wrap gap-1">
           <span
-            v-for="(m, mi) in props.state.marks_a"
+            v-for="(m, mi) in store.marksA"
             :key="mi"
             class="px-1.5 py-0.5 text-[10px] rounded border"
             :class="m.type === 'positive'
-              ? 'bg-[#1a2a1a] border-[#2a3a2a] text-[#4caf50]'
-              : 'bg-[#2a1a2a] border-[#3a2a3a] text-[#ce93d8]'"
+              ? 'bg-[#E8F5E9] border-[#A5D6A7] text-[#5C8D6E]'
+              : 'bg-[#EDE7F6] border-[#B39DDB] text-[#7B4F9D]'"
           >
             [{{ m.name }}<template v-if="m.stacks > 1"> &times;{{ m.stacks }}</template>]
           </span>
         </div>
 
         <!-- Action Panel -->
-        <div v-if="!state.is_finished" class="border-t border-[#3a3d42] p-3 bg-[#1e2128]">
+        <div v-if="!store.isFinished" class="border-t border-[#D4C8B8] p-3 bg-[#F5F2EC]">
           <template v-if="!showSwitchMenu">
             <!-- Skill Buttons -->
             <div :class="['grid gap-1.5 mb-1.5', gridCols]">
-              <button
-                v-for="sk in active.skills"
+              <SkillButton
+                v-for="sk in active?.skills || []"
                 :key="sk.name"
-                @click="handleAction('skill', sk.name)"
-                :disabled="active.is_fainted || !canUseSkill(active, sk.name)"
-                class="group relative bg-[#252830] hover:bg-[#2e3640] disabled:opacity-40 border text-[#e0e0e0] rounded text-left transition-colors"
-                :class="[
-                  btnPad,
-                  debugMode && debugActionA?.payload === sk.name ? 'border-[#4a90d9] ring-1 ring-[#4a90d9]/50' : effectivenessClass(sk.name, activeOpp?.element) || 'border-[#3a3d42]',
-                  energyInsufficient(active, sk.name) ? 'border-[#f44336]/50' : 'hover:border-[#4a90d9]'
-                ]"
-              >
-                <div class="text-sm font-medium leading-tight truncate">{{ sk.name }}</div>
-                <div class="text-[10px] leading-tight mt-0.5"
-                  :class="energyInsufficient(active, sk.name) ? 'text-[#f44336]' : 'text-[#6a6d75]'"
-                >{{ skillBrief(active, sk.name) }}</div>
-                <div v-if="energyInsufficient(active, sk.name)" class="mt-0.5 text-[9px] text-[#f44336] font-medium">能量不足</div>
-                <div v-if="getSpriteSkill(active, sk.name)?.cooldown > 0" class="mt-0.5 text-[9px] text-[#ff9800] font-medium">冷却中</div>
-                <!-- Tooltip -->
-                <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-[#111318] border border-[#4a4d55] text-[#cdd6e0] text-xs rounded shadow-lg whitespace-nowrap max-w-xs truncate opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
-                  {{ skillDesc(sk.name) }}
-                </div>
-              </button>
+                :skill="sk"
+                :skill-meta="props.skillMap[sk.name]"
+                :disabled="(active?.is_fainted ?? true) || !canUseSkill(active, sk.name)"
+                :energy-insufficient="energyInsufficient(active, sk.name)"
+                :selected="debugMode && debugActionA?.payload === sk.name"
+                @select="(name) => handleAction('skill', name)"
+              />
             </div>
             <!-- Utility Buttons -->
             <div class="flex gap-1.5">
               <button
                 @click="handleAction('gather')"
-                :disabled="active.is_fainted || (isCharging && !hasJealousy)"
-                class="flex-1 bg-[#252830] hover:bg-[#2e3640] disabled:opacity-40 border border-[#3a3d42] hover:border-[#4a90d9] text-[#9a9da5] text-xs font-medium py-2 rounded transition-colors"
-                :class="debugMode && debugActionA?.type === 'gather' ? '!border-[#4a90d9] ring-1 ring-[#4a90d9]/50' : ''"
+                :disabled="(active?.is_fainted ?? true) || (isCharging && !hasJealousy)"
+                class="flex-1 bg-white hover:bg-[#F5F2EC] disabled:opacity-40 border text-xs font-medium py-2 rounded transition-colors"
+                :class="[
+                  debugMode && debugActionA?.type === 'gather'
+                    ? 'border-[#5C8D6E] text-[#5C8D6E] ring-1 ring-[#5C8D6E]/30'
+                    : 'border-[#D4C8B8] text-[#6B5E4F] hover:border-[#C9A96E]'
+                ]"
               >
                 聚能
               </button>
               <button
                 v-if="player.item"
                 @click="handleAction('item')"
-                :disabled="active.is_fainted || player.item.is_exhausted || !canUseItem"
+                :disabled="(active?.is_fainted ?? true) || player.item.is_exhausted || !canUseItem"
                 class="group relative flex-1 border text-xs font-medium py-2 rounded transition-colors disabled:opacity-40"
                 :class="[
-                  debugMode && debugActionA?.type === 'item' ? '!border-[#4a90d9] ring-1 ring-[#4a90d9]/50' : '',
+                  debugMode && debugActionA?.type === 'item' ? '!border-[#5C8D6E] ring-1 ring-[#5C8D6E]/30' : '',
                   player.item.is_exhausted
-                    ? 'bg-[#252830] border-[#3a3d42] text-[#5a5d65] cursor-not-allowed'
-                    : 'bg-[#2a2010] border-[#ff9800]/40 hover:border-[#ff9800] text-[#ffa726]'
+                    ? 'bg-[#E8E0D5] border-[#D4C8B8] text-[#B0A595] cursor-not-allowed'
+                    : 'bg-[#FFF3E0] border-[#EF6C00]/40 hover:border-[#EF6C00] text-[#EF6C00]'
                 ]"
               >
                 <div class="flex items-center justify-center gap-1">
                   <span>{{ player.item.name }}</span>
-                  <span class="text-[10px] text-[#8a8d95]">({{ player.item.max_uses - player.item.uses }})</span>
+                  <span class="text-[10px] text-[#6B5E4F]">({{ player.item.max_uses - player.item.uses }})</span>
                 </div>
                 <!-- Tooltip -->
-                <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-[#111318] border border-[#4a4d55] text-[#cdd6e0] text-xs rounded shadow-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+                <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-[#3D2B1F] border border-[#C9A96E]/40 text-[#FBF7F0] text-xs rounded shadow-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
                   <template v-if="player.item.is_exhausted">已用完</template>
-                  <template v-else-if="player.item.last_use_turn > 0 && state.turn - player.item.last_use_turn < player.item.cooldown_turns">
-                    冷却中({{ player.item.cooldown_turns - (state.turn - player.item.last_use_turn) }}回合后可用)
+                  <template v-else-if="player.item.last_use_turn > 0 && store.turn - player.item.last_use_turn < player.item.cooldown_turns">
+                    冷却中({{ player.item.cooldown_turns - (store.turn - player.item.last_use_turn) }}回合后可用)
                   </template>
                   <template v-else>使用道具</template>
                 </div>
               </button>
               <button
                 @click="showSwitchMenu = true"
-                class="flex-1 bg-[#252830] hover:bg-[#2e3640] border border-[#3a3d42] hover:border-[#4a90d9] text-[#9a9da5] text-xs font-medium py-2 rounded transition-colors"
+                class="flex-1 bg-white hover:bg-[#F5F2EC] border border-[#D4C8B8] hover:border-[#C9A96E] text-[#6B5E4F] text-xs font-medium py-2 rounded transition-colors"
               >
                 换宠
               </button>
             </div>
             <!-- Debug Status -->
             <div v-if="debugMode" class="mt-2 flex items-center gap-2 text-[10px]">
-              <span class="px-2 py-0.5 rounded" :class="debugActionA ? 'bg-[#1a2a3a] text-[#4a90d9] border border-[#4a90d9]/50' : 'bg-[#2a1a1a] text-[#f44336] border border-[#f44336]/50'">
+              <span class="px-2 py-0.5 rounded" :class="debugActionA ? 'bg-[#E8F5E9] text-[#5C8D6E] border border-[#5C8D6E]/50' : 'bg-[#FFEBEE] text-[#D4534A] border border-[#D4534A]/50'">
                 我方: {{ debugActionLabel(debugActionA) }}
               </span>
-              <span class="text-[#6a6d75]">|</span>
-              <span class="px-2 py-0.5 rounded" :class="debugActionB ? 'bg-[#2a2010] text-[#ff9800] border border-[#ff9800]/50' : 'bg-[#2a1a1a] text-[#f44336] border border-[#f44336]/50'">
+              <span class="text-[#6B5E4F]">|</span>
+              <span class="px-2 py-0.5 rounded" :class="debugActionB ? 'bg-[#FFF3E0] text-[#EF6C00] border border-[#EF6C00]/50' : 'bg-[#FFEBEE] text-[#D4534A] border border-[#D4534A]/50'">
                 对方: {{ debugActionLabel(debugActionB) }}
               </span>
             </div>
@@ -356,25 +381,25 @@ const debugActionLabel = (action) => {
 
           <!-- Switch Menu -->
           <template v-else>
-            <div class="text-xs text-[#8a8d95] mb-2 text-center">选择替换上场:</div>
+            <div class="text-xs text-[#6B5E4F] mb-2 text-center">选择替换上场:</div>
             <div class="grid grid-cols-3 gap-1.5 mb-1.5">
               <button
-                v-for="(sprite, i) in player.team"
+                v-for="(sprite, i) in store.selfTeam"
                 :key="i"
                 @click="handleAction('switch', i); showSwitchMenu = false"
-                :disabled="i === player.active_index || sprite.is_fainted"
-                class="bg-[#252830] hover:bg-[#2e3640] disabled:opacity-40 border text-left px-2.5 py-2 rounded transition-colors"
-                :class="i === player.active_index ? 'border-[#4a90d9]' : 'border-[#3a3d42] hover:border-[#5a5d65]'"
+                :disabled="i === store.activeIndexA || sprite.is_fainted"
+                class="bg-white hover:bg-[#F5F2EC] disabled:opacity-40 border text-left px-2.5 py-2 rounded transition-colors"
+                :class="i === store.activeIndexA ? 'border-[#5C8D6E]' : 'border-[#D4C8B8] hover:border-[#6B5E4F]'"
               >
-                <div class="text-xs font-bold text-[#e0e0e0] truncate">{{ sprite.name }}</div>
-                <div class="text-[10px]" :class="sprite.is_fainted ? 'text-[#f44336]' : 'text-[#4caf50]'">
+                <div class="text-xs font-bold text-[#3D2B1F] truncate">{{ sprite.name }}</div>
+                <div class="text-[10px]" :class="sprite.is_fainted ? 'text-[#D4534A]' : 'text-[#6DBF7C]'">
                   {{ sprite.is_fainted ? '力竭' : `${sprite.current_hp} HP` }}
                 </div>
               </button>
             </div>
             <button
               @click="showSwitchMenu = false"
-              class="w-full bg-[#2a2d35] hover:bg-[#3a3d45] text-[#8a8d95] text-xs py-1.5 rounded transition-colors"
+              class="w-full bg-[#E8E0D5] hover:bg-[#D4C8B8] text-[#6B5E4F] text-xs py-1.5 rounded transition-colors"
             >
               取消
             </button>
@@ -387,29 +412,35 @@ const debugActionLabel = (action) => {
         <!-- Active Sprite -->
         <div class="flex-1 flex flex-col items-center justify-center p-6">
           <div class="text-center mb-4">
-            <div class="text-lg font-bold text-[#e0e0e0]">
-              {{ activeOpp.name }}
-              <span v-if="activeOpp.is_fainted" class="text-[#f44336] text-xs ml-1">(力竭)</span>
-              <span v-if="isChargingOpp" class="text-[#ffc107] text-xs ml-1">蓄力-{{ activeOpp.charging }}</span>
+            <div class="text-lg font-bold text-[#3D2B1F]">
+              {{ activeOpp?.name }}
+              <span v-if="activeOpp?.is_fainted" class="text-[#D4534A] text-xs ml-1">(力竭)</span>
+              <span v-if="isChargingOpp" class="text-[#C9A96E] text-xs ml-1">蓄力-{{ activeOpp?.charging }}</span>
             </div>
-            <div class="text-[10px] text-[#6a6d75] mt-0.5">Lv.100</div>
+            <div class="text-[10px] text-[#6B5E4F] mt-0.5">Lv.100</div>
           </div>
+
+          <!-- SpriteCard -->
+          <SpriteCard
+            :sprite="activeOpp || {}"
+            :is-fainted="activeOpp?.is_fainted ?? false"
+          />
 
           <!-- HP Bar -->
           <div class="w-64 mb-3">
-            <div class="flex justify-between text-[10px] text-[#8a8d95] mb-0.5">
+            <div class="flex justify-between text-[10px] text-[#6B5E4F] mb-0.5">
               <span>HP</span>
-              <span>{{ activeOpp.current_hp }} / {{ activeOpp.max_hp }}</span>
+              <span>{{ activeOpp?.current_hp ?? 0 }} / {{ activeOpp?.max_hp ?? 0 }}</span>
             </div>
-            <div class="w-full h-3.5 bg-[#3a1a1a] rounded-sm overflow-hidden border border-[#4a3a3a] relative">
+            <div class="w-full h-3.5 bg-[#F5E6D3] rounded-sm overflow-hidden border border-[#D4C8B8] relative">
               <div
                 class="h-full transition-all duration-400"
-                :class="hpColorClass(activeOpp.current_hp, activeOpp.max_hp)"
-                :style="{ width: hpPct(activeOpp.current_hp, activeOpp.max_hp) + '%' }"
+                :class="activeOpp ? hpColorClass(activeOpp.current_hp, activeOpp.max_hp) : ''"
+                :style="{ width: hpPct(activeOpp?.current_hp ?? 0, activeOpp?.max_hp ?? 0) + '%' }"
               ></div>
               <!-- Freeze overlay -->
               <div
-                v-if="freezeStacks(activeOpp) > 0"
+                v-if="activeOpp && freezeStacks(activeOpp) > 0"
                 class="absolute top-0 left-0 h-full bg-gradient-to-r from-[#7ec8e3]/80 via-[#a0d8ef]/60 to-[#c8e8f8]/30 transition-all duration-400 rounded-sm"
                 :style="{ width: Math.min(freezePct(activeOpp), hpPct(activeOpp.current_hp, activeOpp.max_hp)) + '%' }"
               ></div>
@@ -418,109 +449,95 @@ const debugActionLabel = (action) => {
 
           <!-- Energy -->
           <div class="flex items-center gap-1 mb-3">
-            <span class="text-[10px] text-[#6a6d75] mr-1">能量</span>
+            <span class="text-[10px] text-[#6B5E4F] mr-1">能量</span>
             <div class="flex gap-0.5">
               <div
                 v-for="i in 10"
                 :key="i"
-                class="w-2 h-3 rounded-sm"
-                :class="i <= activeOpp.energy ? 'bg-[#4a90d9]' : 'bg-[#2a2d35]'"
+                class="w-2.5 h-4 rounded-sm transition-colors duration-300"
+                :class="i <= (activeOpp?.energy ?? 0) ? 'bg-gradient-to-b from-[#C9A96E] to-[#A08050]' : 'bg-[#D4C8B8]'"
               ></div>
             </div>
-            <span class="text-[10px] text-[#6a6d75] ml-1">{{ activeOpp.energy }}/10</span>
+            <span class="text-[10px] text-[#6B5E4F] ml-1">{{ activeOpp?.energy ?? 0 }}/10</span>
           </div>
 
           <!-- Effects -->
-          <div v-if="activeOpp.effects && activeOpp.effects.length > 0" class="flex flex-wrap gap-1 justify-center">
-            <span
+          <div v-if="activeOpp?.effects && activeOpp.effects.length > 0" class="flex flex-wrap gap-1 justify-center">
+            <EffectCard
               v-for="(eff, effIdx) in activeOpp.effects"
               :key="effIdx"
-              class="px-1.5 py-0.5 text-[10px] rounded border"
-              :class="eff.category === 'abnormal'
-                ? 'bg-[#3a1a1a] border-[#5a2a2a] text-[#f44336]'
-                : 'bg-[#1a2a1a] border-[#2a3a2a] text-[#4caf50]'"
-            >
-              {{ eff.name }}<template v-if="eff.stacks > 1"> &times;{{ eff.stacks }}</template>
-            </span>
+              :effect="eff"
+            />
           </div>
         </div>
 
         <!-- Marks Bar -->
-        <div v-if="props.state.marks_b && props.state.marks_b.length > 0" class="px-4 pb-2 flex flex-wrap gap-1">
+        <div v-if="store.marksB && store.marksB.length > 0" class="px-4 pb-2 flex flex-wrap gap-1">
           <span
-            v-for="(m, mi) in props.state.marks_b"
+            v-for="(m, mi) in store.marksB"
             :key="mi"
             class="px-1.5 py-0.5 text-[10px] rounded border"
             :class="m.type === 'positive'
-              ? 'bg-[#1a2a1a] border-[#2a3a2a] text-[#4caf50]'
-              : 'bg-[#2a1a2a] border-[#3a2a3a] text-[#ce93d8]'"
+              ? 'bg-[#E8F5E9] border-[#A5D6A7] text-[#5C8D6E]'
+              : 'bg-[#EDE7F6] border-[#B39DDB] text-[#7B4F9D]'"
           >
             [{{ m.name }}<template v-if="m.stacks > 1"> &times;{{ m.stacks }}</template>]
           </span>
         </div>
 
         <!-- Opponent: Debug Action Panel -->
-        <div v-if="debugMode && !state.is_finished" class="border-t border-[#ff9800]/50 p-3 bg-[#1e2128]">
-          <div class="text-[10px] text-[#ff9800] mb-1 font-bold">[调试] 对手操作</div>
+        <div v-if="debugMode && !store.isFinished" class="border-t border-[#EF6C00]/50 p-3 bg-[#F5F2EC]">
+          <div class="text-[10px] text-[#EF6C00] mb-1 font-bold">[调试] 对手操作</div>
           <template v-if="!showSwitchMenuOpp">
             <div :class="['grid gap-1.5 mb-1.5', gridColsOpp]">
-              <button
-                v-for="sk in activeOpp.skills"
+              <SkillButton
+                v-for="sk in activeOpp?.skills || []"
                 :key="sk.name"
-                @click="selectDebugAction('B', 'skill', sk.name)"
-                :disabled="activeOpp.is_fainted || !canUseSkill(activeOpp, sk.name)"
-                class="group relative bg-[#252830] hover:bg-[#2e3640] disabled:opacity-40 border text-[#e0e0e0] rounded text-left transition-colors"
-                :class="[
-                  btnPadOpp,
-                  debugActionB?.payload === sk.name ? 'border-[#ff9800] ring-1 ring-[#ff9800]/50' : effectivenessClass(sk.name, active?.element) || 'border-[#3a3d42]',
-                  energyInsufficient(activeOpp, sk.name) ? 'border-[#f44336]/50' : 'hover:border-[#ff9800]'
-                ]"
-              >
-                <div class="text-sm font-medium leading-tight truncate">{{ sk.name }}</div>
-                <div class="text-[10px] leading-tight mt-0.5"
-                  :class="energyInsufficient(activeOpp, sk.name) ? 'text-[#f44336]' : 'text-[#6a6d75]'"
-                >{{ skillBrief(activeOpp, sk.name) }}</div>
-                <div v-if="energyInsufficient(activeOpp, sk.name)" class="mt-0.5 text-[9px] text-[#f44336] font-medium">能量不足</div>
-                <div v-if="getSpriteSkill(activeOpp, sk.name)?.cooldown > 0" class="mt-0.5 text-[9px] text-[#ff9800] font-medium">冷却中</div>
-</button>
+                :skill="sk"
+                :skill-meta="props.skillMap[sk.name]"
+                :disabled="(activeOpp?.is_fainted ?? true) || !canUseSkill(activeOpp, sk.name)"
+                :energy-insufficient="energyInsufficient(activeOpp, sk.name)"
+                :selected="debugActionB?.payload === sk.name"
+                @select="(name) => selectDebugAction('B', 'skill', name)"
+              />
             </div>
             <div class="flex gap-1.5">
               <button
                 @click="selectDebugAction('B', 'gather')"
-                :disabled="activeOpp.is_fainted"
-                class="flex-1 bg-[#252830] hover:bg-[#2e3640] disabled:opacity-40 border text-xs font-medium py-2 rounded transition-colors"
-                :class="debugActionB?.type === 'gather' ? 'border-[#ff9800] text-[#ff9800]' : 'border-[#3a3d42] text-[#9a9da5]'"
+                :disabled="activeOpp?.is_fainted ?? true"
+                class="flex-1 bg-white hover:bg-[#F5F2EC] disabled:opacity-40 border text-xs font-medium py-2 rounded transition-colors"
+                :class="debugActionB?.type === 'gather' ? 'border-[#EF6C00] text-[#EF6C00]' : 'border-[#D4C8B8] text-[#6B5E4F]'"
               >
                 聚能
               </button>
               <button
                 @click="showSwitchMenuOpp = true"
-                class="flex-1 bg-[#252830] hover:bg-[#2e3640] border border-[#3a3d42] hover:border-[#ff9800] text-[#9a9da5] text-xs font-medium py-2 rounded transition-colors"
+                class="flex-1 bg-white hover:bg-[#F5F2EC] border border-[#D4C8B8] hover:border-[#EF6C00] text-[#6B5E4F] text-xs font-medium py-2 rounded transition-colors"
               >
                 换宠
               </button>
             </div>
           </template>
           <template v-else>
-            <div class="text-xs text-[#8a8d95] mb-2 text-center">选择对手替换上场:</div>
+            <div class="text-xs text-[#6B5E4F] mb-2 text-center">选择对手替换上场:</div>
             <div class="grid grid-cols-3 gap-1.5 mb-1.5">
               <button
-                v-for="(sprite, i) in opponent.team"
+                v-for="(sprite, i) in store.oppTeam"
                 :key="i"
                 @click="selectDebugAction('B', 'switch', i); showSwitchMenuOpp = false"
-                :disabled="i === opponent.active_index || sprite.is_fainted"
-                class="bg-[#252830] hover:bg-[#2e3640] disabled:opacity-40 border text-left px-2.5 py-2 rounded transition-colors"
-                :class="i === opponent.active_index ? 'border-[#4a90d9]' : 'border-[#3a3d42] hover:border-[#5a5d65]'"
+                :disabled="i === store.activeIndexB || sprite.is_fainted"
+                class="bg-white hover:bg-[#F5F2EC] disabled:opacity-40 border text-left px-2.5 py-2 rounded transition-colors"
+                :class="i === store.activeIndexB ? 'border-[#5C8D6E]' : 'border-[#D4C8B8] hover:border-[#6B5E4F]'"
               >
-                <div class="text-xs font-bold text-[#e0e0e0] truncate">{{ sprite.name }}</div>
-                <div class="text-[10px]" :class="sprite.is_fainted ? 'text-[#f44336]' : 'text-[#4caf50]'">
+                <div class="text-xs font-bold text-[#3D2B1F] truncate">{{ sprite.name }}</div>
+                <div class="text-[10px]" :class="sprite.is_fainted ? 'text-[#D4534A]' : 'text-[#6DBF7C]'">
                   {{ sprite.is_fainted ? '力竭' : `${sprite.current_hp} HP` }}
                 </div>
               </button>
             </div>
             <button
               @click="showSwitchMenuOpp = false"
-              class="w-full bg-[#2a2d35] hover:bg-[#3a3d45] text-[#8a8d95] text-xs py-1.5 rounded transition-colors"
+              class="w-full bg-[#E8E0D5] hover:bg-[#D4C8B8] text-[#6B5E4F] text-xs py-1.5 rounded transition-colors"
             >
               取消
             </button>
@@ -528,16 +545,16 @@ const debugActionLabel = (action) => {
         </div>
 
         <!-- Opponent: Normal Mini-view -->
-        <div v-else class="border-t border-[#3a3d42] p-3 bg-[#1e2128]">
+        <div v-else class="border-t border-[#D4C8B8] p-3 bg-[#F5F2EC]">
           <div class="grid grid-cols-3 gap-1.5">
             <div
-              v-for="(sprite, i) in opponent.team"
+              v-for="(sprite, i) in store.oppTeam"
               :key="i"
-              class="bg-[#252830] border rounded px-2 py-1.5 text-center"
-              :class="i === opponent.active_index ? 'border-[#4a90d9]' : 'border-[#3a3d42]'"
+              class="bg-white border rounded px-2 py-1.5 text-center"
+              :class="i === store.activeIndexB ? 'border-[#5C8D6E]' : 'border-[#D4C8B8]'"
             >
-              <div class="text-[10px] font-bold text-[#cdd6e0] truncate">{{ sprite.name }}</div>
-              <div class="text-[10px]" :class="sprite.is_fainted ? 'text-[#f44336]' : 'text-[#4caf50]'">
+              <div class="text-[10px] font-bold text-[#3D2B1F] truncate">{{ sprite.name }}</div>
+              <div class="text-[10px]" :class="sprite.is_fainted ? 'text-[#D4534A]' : 'text-[#6DBF7C]'">
                 {{ sprite.is_fainted ? '力竭' : Math.round((sprite.current_hp / sprite.max_hp) * 100) + '%' }}
               </div>
             </div>
