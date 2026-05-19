@@ -5,23 +5,20 @@
   "skill_type": "魔攻",
   "power": 85,
   "energy_cost": 3,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "stat",
-      "target": "opp",
-      "stat": "sp_atk",
-      "steps": 7,
-      "scope": "battlefield"
-    },
-    {
-      "kind": "stat",
-      "target": "self",
-      "stat": "sp_atk",
-      "steps": 7,
-      "scope": "battlefield"
+      "when": {
+        "cond": "on_ko"
+      },
+      "then": [
+        {
+          "op": "mod",
+          "target": "sprite_self",
+          "stat": "sp_atk",
+          "value": 0.7,
+          "mode": "add"
+        }
+      ]
     }
   ],
   "description": "✦造成魔伤，若击败敌方，自己获得魔攻+70%。"

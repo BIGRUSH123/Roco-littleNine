@@ -24,6 +24,7 @@ def build_ctx(
     opp_skill: Any = None,
     globals_: GlobalEffects | None = None,
     *,
+    team: str = "A",
     turn: int = 0,
     is_first: bool = False,
     opp_switched: bool = False,
@@ -110,19 +111,24 @@ def build_ctx(
 
     # ── Teams (from GlobalEffects) ──
     g = globals_
+    own_team = team
+    opp_team = "B" if team == "A" else "A"
     mark_stacks_own: dict[str, int] = {}
     mark_count_own = 0
     mark_stacks_opp: dict[str, int] = {}
     mark_count_opp = 0
+    mark_bonus_own = 0.0
     if g:
-        pos_a, neg_a = g.get_marks("A")
-        pos_b, neg_b = g.get_marks("B")
-        for m in pos_a + neg_a:
+        pos_own, neg_own = g.get_marks(own_team)
+        pos_opp, neg_opp = g.get_marks(opp_team)
+        for m in pos_own + neg_own:
             mark_stacks_own[m.name] = mark_stacks_own.get(m.name, 0) + m.stacks
             mark_count_own += m.stacks
-        for m in pos_b + neg_b:
+        for m in pos_opp + neg_opp:
             mark_stacks_opp[m.name] = mark_stacks_opp.get(m.name, 0) + m.stacks
             mark_count_opp += m.stacks
+        mark_mult = g.mark_damage_mult(own_team, is_first)
+        mark_bonus_own = mark_mult - 1.0
 
     weather = g.weather if g else ""
 
@@ -152,6 +158,11 @@ def build_ctx(
         sp_def_self=ss.effective_stat("sp_def") if hasattr(ss, 'effective_stat') else ss.initial_stats.get("sp_def", 100),
         speed_self=ss.effective_stat("speed") if hasattr(ss, 'effective_stat') else ss.initial_stats.get("speed", 100),
         damage_reduction_self=ss._modifiers.get("damage_reduction", 0.0),
+        power_mult_self=ss._modifiers.get("power_mult", 1.0),
+        damage_mult_self=ss._modifiers.get("damage_mult", 1.0),
+        energy_cost_mult_self=ss._modifiers.get("energy_cost_mult", 0.0),
+        combo_mult_self=ss._modifiers.get("combo_mult", 1.0),
+        life_drain_self=ss._modifiers.get("life_drain", 0.0),
         abnormal_count_self=sum(abnormal_stacks_self.values()),
         abnormal_stacks_self=abnormal_stacks_self,
         positive_count_self=_count_positive(ss),
@@ -185,6 +196,8 @@ def build_ctx(
         sp_def_opp=os.effective_stat("sp_def") if hasattr(os, 'effective_stat') else os.initial_stats.get("sp_def", 100),
         speed_opp=os.effective_stat("speed") if hasattr(os, 'effective_stat') else os.initial_stats.get("speed", 100),
         damage_reduction_opp=os._modifiers.get("damage_reduction", 0.0),
+        power_mult_opp=os._modifiers.get("power_mult", 1.0),
+        damage_mult_opp=os._modifiers.get("damage_mult", 1.0),
         abnormal_count_opp=sum(abnormal_stacks_opp.values()),
         abnormal_stacks_opp=abnormal_stacks_opp,
         positive_count_opp=_count_positive(os),
@@ -201,6 +214,7 @@ def build_ctx(
         mark_count_opp=mark_count_opp,
         mark_stacks_opp=mark_stacks_opp,
         mark_count_both=mark_count_own + mark_count_opp,
+        mark_bonus_own=mark_bonus_own,
         skill_count_own=skill_count_own or {},
         devotion_own=devotion_own or {},
         devotion_opp=devotion_opp or {},

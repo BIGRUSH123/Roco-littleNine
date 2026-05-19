@@ -3,28 +3,25 @@
   "name": "捧杀",
   "element": "萌",
   "skill_type": "防御",
-  "power": 0,
   "energy_cost": 4,
   "counter": "攻击",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "special",
-      "name": "damage_reduction",
-      "value": 0.9
+      "value": 0.9,
+      "target": "sprite_self",
+      "op": "mod",
+      "stat": "damage_reduction",
+      "feeds": "mult"
     },
     {
-      "kind": "conditional",
       "when": {
-        "kind": "counter_succeeded"
+        "cond": "counter_succeeded"
       },
       "then": [
         {
-          "kind": "abnormal",
-          "target": "opp",
+          "op": "abnormal",
+          "target": "sprite_opp",
           "name": "萌化",
-          "scope": "persistent",
           "stacks": 1
         }
       ]

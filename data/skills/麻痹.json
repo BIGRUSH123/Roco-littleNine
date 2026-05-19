@@ -3,38 +3,32 @@
   "name": "麻痹",
   "element": "电",
   "skill_type": "状态",
-  "power": 0,
   "energy_cost": 2,
   "counter": "防御",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "stat",
-      "target": "opp",
+      "value": -1,
+      "target": "sprite_opp",
+      "op": "mod",
       "stat": "priority",
-      "steps": -1,
-      "scope": "battlefield"
+      "mode": "add"
     },
     {
-      "kind": "conditional",
       "when": {
-        "kind": "counter_succeeded"
+        "cond": "counter_succeeded"
       },
       "then": [
         {
-          "kind": "stat",
-          "target": "opp",
+          "op": "mod",
+          "target": "sprite_opp",
           "stat": "atk",
-          "steps": -7,
-          "scope": "battlefield"
+          "steps": -7
         },
         {
-          "kind": "stat",
-          "target": "opp",
+          "op": "mod",
+          "target": "sprite_opp",
           "stat": "sp_atk",
-          "steps": -7,
-          "scope": "battlefield"
+          "steps": -7
         }
       ]
     }

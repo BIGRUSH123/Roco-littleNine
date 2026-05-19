@@ -5,15 +5,11 @@
   "skill_type": "魔攻",
   "power": 60,
   "energy_cost": 2,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "special",
-      "name": "dispel_negative",
-      "amount": -1,
-      "target": "self"
+      "target": "sprite_self",
+      "op": "dispel",
+      "what": "negative"
     }
   ],
   "description": "✦造成魔伤，驱散自己的减益。"

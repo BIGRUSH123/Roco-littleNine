@@ -3,25 +3,24 @@
   "name": "赤子之心",
   "element": "萌",
   "skill_type": "状态",
-  "power": 0,
   "energy_cost": 2,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "abnormal",
-      "target": "self",
+      "target": "sprite_self",
+      "op": "abnormal",
       "name": "萌化",
-      "scope": "persistent",
-      "stacks": 1
-    },
-    {
-      "kind": "stat",
-      "target": "self",
-      "stat": "energy_cost",
-      "steps": -3,
-      "scope": "permanent"
+      "stacks": 1,
+      "then": [
+        {
+          "op": "mod",
+          "target": "sprite_self",
+          "stat": "energy_cost",
+          "value": -3,
+          "mode": "add",
+          "scope": "permanent",
+          "skill_filter": "all"
+        }
+      ]
     }
   ],
   "description": "✦自己获得萌化：全技能能耗永久-3。"

@@ -5,23 +5,12 @@
   "skill_type": "魔攻",
   "power": 70,
   "energy_cost": 2,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "stat",
-      "target": "opp",
+      "target": "sprite_self",
+      "op": "mod",
       "stat": "speed",
-      "steps": 3,
-      "scope": "battlefield"
-    },
-    {
-      "kind": "stat",
-      "target": "self",
-      "stat": "speed",
-      "steps": 3,
-      "scope": "battlefield"
+      "steps": 3
     }
   ],
   "description": "✦造成魔伤，自己获得速度+30。"

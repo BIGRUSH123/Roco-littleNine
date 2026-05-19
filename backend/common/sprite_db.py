@@ -51,8 +51,9 @@ class SpriteDB:
     def get(self, name: str, form: str = '') -> Optional[SpeciesStats]:
         """精确查询：按 (name, form) 找到唯一形态。"""
         m = self._RE_FORM_SUFFIX.search(name)
-        if m and not form:
-            form = m.group(1)
+        if m:
+            if not form:
+                form = m.group(1)
             name = name[:m.start()].strip()
 
         display = f'{name}（{form}）' if form else name
@@ -63,11 +64,19 @@ class SpriteDB:
         candidates = self._by_name.get(name, [])
         if len(candidates) == 1:
             return self._read_one(candidates[0])
-        if candidates and not form:
+        if candidates:
+            # Multiple forms exist. Try exact form match first.
+            for p in candidates:
+                s = self._read_one(p)
+                if s and s.form == form:
+                    return s
+            # Then try base form (empty form).
             for p in candidates:
                 s = self._read_one(p)
                 if s and s.form == '':
                     return s
+            # Fallback: return first available form.
+            return self._read_one(candidates[0])
         return None
 
     def list_forms(self, name: str) -> list[str]:

@@ -1,4 +1,4 @@
-﻿"""scripts/sim/factory.py — 从 wiki 数据构建模拟对象"""
+﻿"""backend/sim/factory.py — 从 wiki 数据构建模拟对象"""
 
 import json
 import sys

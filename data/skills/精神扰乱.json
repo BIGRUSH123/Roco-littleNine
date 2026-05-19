@@ -3,31 +3,31 @@
   "name": "精神扰乱",
   "element": "普通",
   "skill_type": "状态",
-  "power": 0,
   "energy_cost": 0,
   "counter": "防御",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "stat",
-      "target": "self",
-      "stat": "energy_cost",
-      "steps": 1,
-      "scope": "battlefield"
-    },
-    {
-      "kind": "conditional",
       "when": {
-        "kind": "counter_succeeded"
+        "cond": "counter_succeeded"
       },
       "then": [
         {
-          "kind": "stat",
-          "target": "opp",
+          "op": "mod",
+          "target": "sprite_opp",
           "stat": "energy_cost",
-          "steps": 1,
-          "scope": "battlefield"
+          "value": 3,
+          "mode": "add",
+          "scope": "persistent"
+        }
+      ],
+      "else": [
+        {
+          "op": "mod",
+          "target": "sprite_opp",
+          "stat": "energy_cost",
+          "value": 1,
+          "mode": "add",
+          "scope": "persistent"
         }
       ]
     }

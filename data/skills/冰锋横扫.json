@@ -3,16 +3,18 @@
   "name": "冰锋横扫",
   "element": "冰",
   "skill_type": "魔攻",
-  "power": 0,
   "energy_cost": 4,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "special",
-      "name": "power_by_enemy_energy",
-      "value": 10.0
+      "value": {
+        "q": "skills_energy_sum",
+        "of": "sprite_opp",
+        "scale": 10
+      },
+      "target": "skill_off_0",
+      "op": "mod",
+      "stat": "power",
+      "feeds": "power"
     }
   ],
   "description": "✦造成魔伤，本技能威力等于敌方精灵技能总能耗的10倍。"

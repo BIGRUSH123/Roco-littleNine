@@ -3,22 +3,32 @@
   "name": "假寐",
   "element": "虫",
   "skill_type": "状态",
-  "power": 0,
   "energy_cost": 2,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "special",
-      "name": "gain_energy",
-      "amount": 2
+      "value": 2,
+      "target": "sprite_self",
+      "op": "mod",
+      "stat": "energy",
+      "mode": "add"
     },
     {
-      "kind": "special",
-      "name": "random_devotion",
-      "amount": 1,
-      "abnormal_name": "2"
+      "value": 1,
+      "target": "team_own",
+      "op": "mod",
+      "stat": "devotion",
+      "mode": "add",
+      "name": "能耗-2",
+      "then": [
+        {
+          "op": "mod",
+          "target": "skill_off_0",
+          "stat": "energy_cost",
+          "value": -2,
+          "mode": "add",
+          "feeds": "cost"
+        }
+      ]
     }
   ],
   "description": "✦自己回复2能量，己方队伍获得1次奉献：能耗-2。"

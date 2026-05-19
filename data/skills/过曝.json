@@ -5,16 +5,19 @@
   "skill_type": "魔攻",
   "power": 60,
   "energy_cost": 3,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "stat",
-      "target": "opp",
+      "value": {
+        "q": "elements_used_count",
+        "of": "sprite_self",
+        "exclude_self": true,
+        "scale": 3
+      },
+      "target": "skill_off_0",
+      "op": "mod",
       "stat": "power",
-      "steps": 3,
-      "scope": "persistent"
+      "mode": "add",
+      "scope": "permanent"
     }
   ],
   "description": "✦造成魔伤，每使用过1个其他系别技能，本技能威力永久+30。"

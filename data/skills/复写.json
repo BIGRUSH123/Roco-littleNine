@@ -3,23 +3,22 @@
   "name": "复写",
   "element": "普通",
   "skill_type": "状态",
-  "power": 0,
   "energy_cost": 0,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "special",
-      "name": "borrow_skill"
-    },
-    {
-      "kind": "stat",
-      "target": "self",
+      "value": -2,
+      "target": "skill_off_0",
+      "op": "mod",
       "stat": "energy_cost",
-      "steps": -2,
+      "mode": "add",
       "scope": "battlefield"
     }
   ],
-  "description": "✦每回合随机变成自己未携带的技能，且该技能能耗-2。"
+  "description": "✦每回合随机变成自己未携带的技能，且该技能能耗-2。",
+  "morph": {
+    "from": "team_own",
+    "mode": "random",
+    "exclude_self": true,
+    "exclude_owned": true
+  }
 }

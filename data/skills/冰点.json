@@ -3,25 +3,27 @@
   "name": "冰点",
   "element": "冰",
   "skill_type": "状态",
-  "power": 0,
   "energy_cost": 2,
   "counter": "防御",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "abnormal",
-      "target": "self",
+      "target": "sprite_opp",
+      "op": "abnormal",
       "name": "冻结",
-      "scope": "persistent",
       "stacks": 5
     },
     {
-      "kind": "abnormal",
-      "target": "opp",
-      "name": "冻结",
-      "scope": "persistent",
-      "stacks": 5
+      "when": {
+        "cond": "counter_succeeded"
+      },
+      "then": [
+        {
+          "op": "abnormal",
+          "target": "sprite_opp",
+          "name": "冻结",
+          "stacks": 5
+        }
+      ]
     }
   ],
   "description": "✦敌方获得5层冻结，应对防御：额外获得5层。"

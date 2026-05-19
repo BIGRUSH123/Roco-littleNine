@@ -5,9 +5,6 @@
   "skill_type": "物攻",
   "power": 60,
   "energy_cost": 4,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
   "effects": [],
   "description": "✦造成物伤，速度比敌方越高，本次技能威力越高。"
 }

@@ -3,25 +3,14 @@
   "name": "咆哮",
   "element": "普通",
   "skill_type": "状态",
-  "power": 0,
   "energy_cost": 1,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "stat",
-      "target": "self",
+      "value": -1.3,
+      "target": "sprite_opp",
+      "op": "mod",
       "stat": "atk",
-      "steps": -13,
-      "scope": "battlefield"
-    },
-    {
-      "kind": "stat",
-      "target": "opp",
-      "stat": "atk",
-      "steps": -13,
-      "scope": "battlefield"
+      "mode": "add"
     }
   ],
   "description": "✦敌方获得物攻-130%。"

@@ -496,19 +496,6 @@ SKILL_龙爪 = 10914
 SKILL_龙血 = 10915
 SKILL_水枪 = 10951
 SKILL_火柱 = 10952
-SKILL_debug_attack = 90001
-SKILL_debug_defense = 90002
-SKILL_debug_status = 90003
-SKILL_test_basic_attack = 90004
-SKILL_test_l0_l2 = 90005
-SKILL_test_l1_power = 90006
-SKILL_test_l1_setup = 90007
-SKILL_test_l3_exchange = 90008
-SKILL_test_l3_l4_defense = 90009
-SKILL_test_l3_state = 90010
-SKILL_test_l5_escape = 90011
-SKILL_test_l5_inherit = 90012
-SKILL_test_l5_multi = 90013
 
 # ── 特性 ID ──
 TRAIT_三鼓作气 = 20001
@@ -681,19 +668,6 @@ TRAIT_逐魂鸟 = 20165
 # ── 名称→ID 映射 ──
 
 SKILL_NAME_TO_ID: dict[str, int] = {
-    'debug_attack': 90001,
-    'debug_defense': 90002,
-    'debug_status': 90003,
-    'test_basic_attack': 90004,
-    'test_l0_l2': 90005,
-    'test_l1_power': 90006,
-    'test_l1_setup': 90007,
-    'test_l3_exchange': 90008,
-    'test_l3_l4_defense': 90009,
-    'test_l3_state': 90010,
-    'test_l5_escape': 90011,
-    'test_l5_inherit': 90012,
-    'test_l5_multi': 90013,
     '一拳': 10451,
     '三连破': 10301,
     '三鼓作气': 10379,
@@ -1685,19 +1659,6 @@ SKILL_ID_TO_NAME: dict[int, str] = {
     10915: '龙血',
     10951: '水枪',
     10952: '火柱',
-    90001: 'debug_attack',
-    90002: 'debug_defense',
-    90003: 'debug_status',
-    90004: 'test_basic_attack',
-    90005: 'test_l0_l2',
-    90006: 'test_l1_power',
-    90007: 'test_l1_setup',
-    90008: 'test_l3_exchange',
-    90009: 'test_l3_l4_defense',
-    90010: 'test_l3_state',
-    90011: 'test_l5_escape',
-    90012: 'test_l5_inherit',
-    90013: 'test_l5_multi',
 }
 
 TRAIT_NAME_TO_ID: dict[str, int] = {

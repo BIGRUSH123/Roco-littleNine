@@ -5,9 +5,24 @@
   "skill_type": "魔攻",
   "power": 25,
   "energy_cost": 3,
-  "counter": "无",
-  "priority": 0,
   "combo": 2,
-  "effects": [],
+  "effects": [
+    {
+      "op": "count",
+      "when": {
+        "cond": "counter_succeeded"
+      },
+      "then": [
+        {
+          "op": "mod",
+          "target": "skill_off_0",
+          "stat": "combo",
+          "value": 2,
+          "mode": "add",
+          "scope": "permanent"
+        }
+      ]
+    }
+  ],
   "description": "✦造成魔伤，2连击，每成功应对1次，本技能连击数永久+2。"
 }

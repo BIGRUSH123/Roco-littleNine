@@ -3,25 +3,28 @@
   "name": "嘲弄",
   "element": "幽",
   "skill_type": "状态",
-  "power": 0,
   "energy_cost": 2,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "stat",
-      "target": "self",
+      "value": 0.9,
+      "target": "sprite_self",
+      "op": "mod",
       "stat": "sp_atk",
-      "steps": 9,
-      "scope": "battlefield"
+      "mode": "add"
     },
     {
-      "kind": "stat",
-      "target": "self",
-      "stat": "speed",
-      "steps": 7,
-      "scope": "battlefield"
+      "when": {
+        "cond": "opp_switched"
+      },
+      "then": [
+        {
+          "op": "mod",
+          "target": "sprite_self",
+          "stat": "speed",
+          "value": 70,
+          "mode": "add"
+        }
+      ]
     }
   ],
   "description": "✦自己获得魔攻+90%，若敌方本回合更换精灵，自己获得速度+70。"

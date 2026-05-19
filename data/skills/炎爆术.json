@@ -3,18 +3,23 @@
   "name": "炎爆术",
   "element": "火",
   "skill_type": "状态",
-  "power": 0,
   "energy_cost": 2,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "abnormal",
-      "target": "self",
-      "name": "灼烧",
-      "scope": "battlefield",
-      "stacks": 1
+      "target": "team_opp",
+      "op": "dispel",
+      "what": "mark"
+    },
+    {
+      "value": {
+        "q": "mark_count",
+        "of": "team_opp",
+        "name": "any",
+        "scale": 3
+      },
+      "target": "sprite_opp",
+      "op": "abnormal",
+      "name": "灼烧"
     }
   ]
 }

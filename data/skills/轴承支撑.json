@@ -3,19 +3,42 @@
   "name": "轴承支撑",
   "element": "机械",
   "skill_type": "状态",
-  "power": 0,
   "energy_cost": 3,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
+  "transmission": 1,
   "effects": [
     {
-      "kind": "stat",
-      "target": "self",
+      "value": -1,
+      "target": "skill_off_0",
+      "op": "mod",
       "stat": "energy_cost",
-      "steps": -1,
-      "scope": "battlefield"
+      "mode": "add"
+    },
+    {
+      "op": "count",
+      "when": {
+        "cond": "sprite_entered"
+      },
+      "then": [
+        {
+          "op": "mod",
+          "target": "skill_off_0",
+          "stat": "power",
+          "value": 1,
+          "mode": "add",
+          "scope": "permanent"
+        }
+      ]
     }
   ],
-  "description": "✦主动：本技能被动额外-1能耗，被动：两侧技能能耗-1，传动1。"
+  "description": "✦主动：本技能被动额外-1能耗，被动：两侧技能能耗-1，传动1。",
+  "passive": [
+    {
+      "op": "mod",
+      "target": "sprite_self",
+      "stat": "energy_cost",
+      "value": -1,
+      "mode": "add",
+      "skill_filter": "adjacent"
+    }
+  ]
 }

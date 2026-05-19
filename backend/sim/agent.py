@@ -1,4 +1,4 @@
-"""scripts/sim/agent.py — 决策代理
+"""backend/sim/agent.py — 决策代理
 
 TODO: 接入大模型 API（如 Claude/DeepSeek），将 battle 状态序列化为 prompt，
 由 LLM 推理选择动作，替代当前规则评分。需解决：

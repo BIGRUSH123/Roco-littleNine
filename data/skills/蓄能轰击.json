@@ -5,16 +5,23 @@
   "skill_type": "魔攻",
   "power": 130,
   "energy_cost": 6,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "stat",
-      "target": "opp",
-      "stat": "energy_cost",
-      "steps": -2,
-      "scope": "persistent"
+      "op": "count",
+      "when": {
+        "cond": "skill_use",
+        "element": "普通"
+      },
+      "then": [
+        {
+          "op": "mod",
+          "target": "skill_off_0",
+          "stat": "energy_cost",
+          "value": -2,
+          "mode": "add",
+          "scope": "permanent"
+        }
+      ]
     }
   ],
   "description": "✦造成魔伤，每使用1次普通系技能，本技能能耗永久-2。"

@@ -3,18 +3,16 @@
   "name": "伺机而动",
   "element": "普通",
   "skill_type": "状态",
-  "power": 0,
   "energy_cost": 1,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "stat",
-      "target": "self",
+      "value": 70,
+      "target": "sprite_self",
+      "op": "mod",
       "stat": "power",
-      "steps": 7,
-      "scope": "battlefield"
+      "mode": "add",
+      "on_next": true,
+      "if_type": "attack"
     }
   ],
   "description": "✦下一次攻击时，技能威力+70。"

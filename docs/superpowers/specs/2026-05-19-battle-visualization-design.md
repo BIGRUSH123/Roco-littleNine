@@ -2,7 +2,7 @@
 
 **目标**：基于现有对战引擎，重构前端 UI 为自然奇幻风格，实现精灵可视化对战 + buff/debuff 清晰展示 + 属性克制可视化 + 回合时间线回放。
 
-**架构**：设计 Token 体系驱动 + 组件重建（方案 B），Vue 3 + Vite + Tailwind CSS，不升级架构，不引入新路由/状态管理。
+**架构**：设计 Token 体系驱动 + 组件重建（方案 B 升级），Vue 3 + Vite + Tailwind CSS + **GSAP**（动画引擎）+ **Pinia**（状态管理）+ **Headless UI**（可访问组件库）。不引入路由。
 
 **素材**：467 PNG 精灵图（`_attachments/sprites/精灵名.png`）
 
@@ -205,61 +205,187 @@
 
 ---
 
-## 七、动画系统
+## 七、动画系统（GSAP）
 
-全部使用 CSS 动画，不引入第三方动画库：
+引入 GSAP（GreenSock Animation Platform）替代纯 CSS 动画，提供精细的时间线编排、缓动函数和精灵变形能力。
+
+### 核心用法
+
+- **GSAP Timeline**：编排多阶段动画序列（如：入场→ 受击→ 退场）
+- **gsap.to / gsap.fromTo**：精灵位移、缩放、旋转、透明度、滤镜
+- **Easing**：`power2.out`（入场）、`back.out(1.2)`（弹跳）、`rough({ strength: 3 })`（受击抖动）
+- **ScrollTrigger 不用**：对战界面无滚动触发需求
+
+### 动画规格
 
 | 动画 | 实现 | 时长 |
 |------|------|------|
-| 精灵待机呼吸 | `@keyframes breathe` scale 1.0→1.02 | 2s 循环 |
-| 受击抖动 | `@keyframes shake` translateX ±5px | 200ms |
-| 攻击前冲 | translate + 元素色 box-shadow | 300ms |
-| 力竭灰化 | filter: grayscale + opacity | 500ms |
-| 入场滑入 | translateY + opacity 0→1 | 400ms |
-| HP 条过渡 | CSS transition: width | 500ms ease-out |
-| 按钮悬停 | transform: translateY(-4px) + box-shadow | 150ms |
-| 卡片入场 | 错开 animation-delay，每张 +50ms | 300ms/张 |
-| 时间线脉冲 | `@keyframes pulse` scale + opacity | 1.5s 循环 |
+| 精灵待机呼吸 | `gsap.to(sprite, { scale: 1.02, duration: 1, yoyo: true, repeat: -1, ease: 'sine.inOut' })` | 2s 循环 |
+| 受击抖动 | `gsap.to(sprite, { x: ±5, duration: 0.05, repeat: 5, yoyo: true, ease: 'rough' })` | 250ms |
+| 受击红闪 | `gsap.to(sprite, { filter: 'brightness(1.5) hue-rotate(-30deg)', duration: 0.1, yoyo: true })` | 200ms |
+| 攻击前冲 + 光晕 | timeline: 前冲 20px → 元素色 boxShadow 爆发 → 回弹 | 400ms |
+| 力竭灰化 | `gsap.to(sprite, { filter: 'grayscale(1)', opacity: 0.6, y: 10, duration: 0.5 })` | 500ms |
+| 入场滑入 | `gsap.fromTo(sprite, { y: -60, opacity: 0 }, { y: 0, opacity: 1, ease: 'power2.out' })` | 400ms |
+| HP/能量条过渡 | `gsap.to(bar, { width: newPercent, duration: 0.5, ease: 'power2.out' })` | 500ms |
+| 技能按钮悬停 | `gsap.to(btn, { y: -4, boxShadow: glow, duration: 0.15 })` | 150ms |
+| 卡片错开入场 | `gsap.fromTo(cards, { y: 20, opacity: 0 }, { y: 0, opacity: 1, stagger: 0.05, ease: 'back.out(1.2)' })` | stagger 50ms |
+| 伤害数字弹出 | `gsap.fromTo(numEl, { scale: 0.5, opacity: 0 }, { scale: 1.3, opacity: 1, duration: 0.2 })` + 上浮消失 | 1s 总长 |
+
+### Composable 封装
+
+`frontend/src/composables/useSpriteAnim.js` — Vue composable，封装精灵动画方法：
+```js
+// 返回 { playHit, playAttack, playFaint, playEntry, playIdle }
+const { playHit } = useSpriteAnim(spriteRef)
+await playHit()  // 返回 Promise，动画完成后 resolve
+```
+
+---
+
+## 七-B、状态管理（Pinia）
+
+引入 Pinia 替代 props 传递 + composables 的散落状态，对战数据集中管理。
+
+### Store 设计
+
+**`useBattleStore`** — 对战核心状态
+
+```js
+{
+  // 双方精灵
+  selfSprite: SpriteState | null,
+  oppSprite: SpriteState | null,
+  
+  // 队伍
+  selfTeam: SpriteSummary[],    // 后备精灵
+  oppTeam: SpriteSummary[],
+  
+  // 回合
+  turn: number,
+  maxTurn: number,
+  weather: string | null,
+  
+  // 技能
+  selfSkills: SkillSummary[],   // 4 个当前可用技能
+  selectedSkill: number | null,  // 玩家选中的技能 index
+  
+  // 时间线回放
+  turnSnapshots: TurnSnapshot[],  // 每回合快照
+  replayMode: boolean,
+  replayTurn: number,
+  
+  // UI 状态
+  isProcessing: boolean,
+  battlePhase: 'selection' | 'action' | 'result',
+  winner: string | null,
+  logEntries: LogEntry[],
+}
+```
+
+**`useTeamStore`** — 队伍编成状态
+
+```js
+{
+  slots: (SpriteSummary | null)[],  // 6 槽位
+  selectedBloodline: string | null,
+  selectedItem: string | null,
+  savedTeams: SavedTeam[],
+}
+```
+
+**`useSpriteAssetStore`** — 精灵图片缓存
+
+```js
+{
+  cache: Map<string, string>,  // 精灵名 → Vite URL
+  loading: Set<string>,
+  errors: Set<string>,
+  
+  getSprite(name: string): string | null,
+  preloadTeam(names: string[]): Promise<void>,
+}
+```
+
+### 数据流
+
+```
+API /api/battle/action → JSON
+  → battleStore.updateFromResponse(data)
+    → selfSprite / oppSprite 更新
+    → GSAP 动画触发 (watch sprite state changes)
+    → turnSnapshots.push(snapshot)
+    → logEntries 追加
+```
+
+---
+
+## 七-C、组件库（Headless UI）
+
+引入 Headless UI v2（Vue 版本）提供可访问的基础组件，保持 Tailwind 风格自由度：
+
+| 组件 | 用途 |
+|------|------|
+| `Dialog` | 精灵选择弹窗、回合回放面板、对战结果覆盖层 |
+| `Popover` | 技能 tooltip、增益/异常来源 tooltip |
+| `Listbox` | 血脉下拉选择、道具下拉选择 |
+| `Switch` | 调试模式开关、自动播放开关 |
+| `Transition` | 弹窗/面板的入场/退场动画（已有 Vue Transition，Headless UI 提供更强的键盘焦点管理） |
+
+所有 Headless UI 组件是 **无头（headless）的**——只有逻辑和可访问性，样式完全由 Tailwind Token 控制，与自然奇幻风无缝配合。
 
 ---
 
 ## 八、文件变更清单
+
+### 依赖新增
+
+```json
+// package.json 新增
+{
+  "gsap": "^3.12",
+  "pinia": "^2.1",
+  "@headlessui/vue": "^2.0"
+}
+```
 
 ### 新建
 
 | 文件 | 说明 |
 |------|------|
 | `frontend/src/design/tokens.css` | CSS 变量定义（色板/字体/间距/圆角/阴影） |
-| `frontend/src/design/animations.css` | 共享 @keyframes（抖动/呼吸/滑入/脉冲） |
+| `frontend/src/design/animations.css` | 辅助 CSS（GSAP 不覆盖的静态样式） |
 | `frontend/src/design/elements.css` | 元素属性色（18 系别） |
-| `frontend/src/components/TimelineReplay.vue` | 回合时间线回放组件 |
-| `frontend/src/components/TypeChart.vue` | 18×18 属性克制缩略热力图 |
-| `frontend/src/components/SpriteCard.vue` | 精灵卡片组件（复用：选队/对战） |
-| `frontend/src/components/EffectCard.vue` | 增益/异常卡片组件 |
-| `frontend/src/components/SkillButton.vue` | 技能按钮组件 |
-| `frontend/src/composables/useSpriteAssets.js` | 精灵图路径映射 + 按需加载 |
-| `frontend/src/composables/useTimelineSnapshots.js` | 回合快照收集 + 回溯逻辑 |
+| `frontend/src/stores/battle.js` | Pinia — 对战核心状态 |
+| `frontend/src/stores/team.js` | Pinia — 队伍编成 |
+| `frontend/src/stores/spriteAssets.js` | Pinia — 精灵图片缓存 + 按需加载 |
+| `frontend/src/composables/useSpriteAnim.js` | GSAP 精灵动画 composable |
+| `frontend/src/components/TimelineReplay.vue` | 回合时间线回放面板（Dialog + GSAP） |
+| `frontend/src/components/TypeChart.vue` | 18×18 属性克制缩略热力图（Popover 放大） |
+| `frontend/src/components/SpriteCard.vue` | 精灵卡片（复用：选队/对战） |
+| `frontend/src/components/EffectCard.vue` | 增益/异常卡片（Popover 来源 tooltip） |
+| `frontend/src/components/SkillButton.vue` | 技能按钮（Popover 技能详情 tooltip） |
 
 ### 重写
 
 | 文件 | 说明 |
 |------|------|
-| `frontend/src/components/BattleArena.vue` | 对战界面主组件，使用新子组件 |
-| `frontend/src/components/TeamSelection.vue` | 队伍选择，使用 SpriteCard + 精灵选择弹窗 |
+| `frontend/src/components/BattleArena.vue` | 对战主组件，使用 Pinia stores + GSAP 动画 |
+| `frontend/src/components/TeamSelection.vue` | 队伍选择，Dialog 弹出精灵选择 + Listbox 血脉/道具 |
 | `frontend/src/components/BattleLog.vue` | 战斗日志，增强样式 |
+| `frontend/src/App.vue` | 引入 Pinia plugin + 初始化 stores |
 | `frontend/src/style.css` | 视觉升级（引入 design tokens） |
 
 ### 后端变更
 
 | 文件 | 说明 |
 |------|------|
-| `backend/api/main.py` | 回合快照数据纳入 `/api/battle/action` 响应 |
-| `backend/api/schemas.py` | 新增 `TurnSnapshot` schema |
+| `backend/api/main.py` | `/api/battle/action` 响应中追加 `turn_snapshot` |
+| `backend/api/schemas.py` | 新增 `TurnSnapshot` Pydantic model |
 
 ### 不修改
 
 - `backend/vm/`、`backend/sim/`、`backend/engine/` — 引擎核心不动
-- `frontend/src/main.js`、`App.vue` — 架构不变
+- `frontend/src/main.js` — 只加 Pinia plugin 注册，架构不变
 
 ---
 

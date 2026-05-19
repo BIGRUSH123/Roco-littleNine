@@ -1,4 +1,4 @@
-﻿"""scripts/sim/traits/trait_engine.py — 通用特性引擎
+﻿"""backend/sim/traits/trait_engine.py — 通用特性引擎
 
 DataDrivenTrait: 从 JSON 加载特性定义，实现 TraitHandler 接口。
 支持条件求值、动态 ref 表达式、modifier 操作、效果管线。

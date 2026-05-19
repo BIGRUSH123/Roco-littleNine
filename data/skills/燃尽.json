@@ -5,16 +5,19 @@
   "skill_type": "魔攻",
   "power": 155,
   "energy_cost": 4,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "stat",
-      "target": "opp",
+      "value": {
+        "q": "hp_missing_ratio",
+        "of": "sprite_opp",
+        "per": 0.05,
+        "scale": -5
+      },
+      "target": "skill_off_0",
+      "op": "mod",
       "stat": "power",
-      "steps": -1,
-      "scope": "battlefield"
+      "mode": "add",
+      "feeds": "power"
     }
   ],
   "description": "✦造成魔伤，敌方每失去5%生命，本次技能威力-5。"

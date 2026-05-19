@@ -3,32 +3,29 @@
   "name": "捆缚",
   "element": "虫",
   "skill_type": "状态",
-  "power": 0,
   "energy_cost": 2,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "abnormal",
-      "target": "self",
+      "target": "sprite_opp",
+      "op": "abnormal",
       "name": "中毒",
-      "scope": "battlefield",
       "stacks": 2
     },
     {
-      "kind": "abnormal",
-      "target": "self",
-      "name": "中毒",
-      "scope": "battlefield",
-      "stacks": 1
-    },
-    {
-      "kind": "abnormal",
-      "target": "opp",
-      "name": "中毒",
-      "scope": "battlefield",
-      "stacks": 2
+      "value": 1,
+      "target": "team_own",
+      "op": "mod",
+      "stat": "devotion",
+      "mode": "add",
+      "name": "中毒两层",
+      "then": [
+        {
+          "op": "abnormal",
+          "target": "sprite_opp",
+          "name": "中毒",
+          "stacks": 2
+        }
+      ]
     }
   ],
   "description": "✦敌方获得2层中毒，获得1次奉献：敌方获得2层中毒。"

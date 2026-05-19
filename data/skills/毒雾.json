@@ -3,18 +3,21 @@
   "name": "毒雾",
   "element": "毒",
   "skill_type": "状态",
-  "power": 0,
   "energy_cost": 7,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "abnormal",
-      "target": "self",
-      "name": "中毒",
-      "scope": "battlefield",
-      "stacks": 1
+      "target": "sprite_opp",
+      "op": "dispel",
+      "what": "positive"
+    },
+    {
+      "value": {
+        "q": "positive_count",
+        "of": "sprite_opp"
+      },
+      "target": "sprite_opp",
+      "op": "abnormal",
+      "name": "中毒"
     }
   ],
   "description": "✦将敌方所有增益，转化成中毒。"

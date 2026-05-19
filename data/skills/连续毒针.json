@@ -5,16 +5,14 @@
   "skill_type": "物攻",
   "power": 15,
   "energy_cost": 2,
-  "counter": "无",
-  "priority": 0,
   "combo": 2,
   "effects": [
     {
-      "kind": "abnormal",
-      "target": "opp",
+      "target": "sprite_opp",
+      "op": "abnormal",
       "name": "中毒",
-      "scope": "battlefield",
-      "stacks": 1
+      "stacks": 1,
+      "per_hit": true
     }
   ],
   "description": "✦造成物伤，2连击，每次连击使敌方获得1层中毒。"

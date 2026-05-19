@@ -5,18 +5,54 @@
   "skill_type": "魔攻",
   "power": 1,
   "energy_cost": 3,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "special",
-      "name": "charge"
+      "when": {
+        "cond": "charged"
+      },
+      "then": [
+        {
+          "when": {
+            "cond": "have",
+            "what": "counter",
+            "name": "蓄力受击",
+            "value_gt": 0
+          },
+          "then": [
+            {
+              "op": "mod",
+              "target": "skill_off_0",
+              "stat": "power",
+              "value": {
+                "q": "power_base",
+                "of": "skill_opp_current",
+                "scale": 3
+              }
+            }
+          ]
+        }
+      ],
+      "else": [
+        {
+          "op": "charge"
+        }
+      ]
     },
     {
-      "kind": "special",
-      "name": "power_by_enemy_power",
-      "value": 3.0
+      "op": "count",
+      "when": {
+        "cond": "and",
+        "conditions": [
+          {
+            "cond": "opp_is_attack"
+          },
+          {
+            "cond": "is_charging"
+          }
+        ]
+      },
+      "name": "蓄力受击",
+      "then": []
     }
   ],
   "description": "✦蓄力，造成魔伤，若蓄力期间受到攻击，本技能威力变为敌方技能威力的3倍。"

@@ -1,4 +1,4 @@
-"""scripts/sim/player.py — 玩家 + 操作习惯画像 + 道具"""
+"""backend/sim/player.py — 玩家 + 操作习惯画像 + 道具"""
 
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING

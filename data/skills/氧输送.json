@@ -3,23 +3,19 @@
   "name": "氧输送",
   "element": "草",
   "skill_type": "状态",
-  "power": 0,
   "energy_cost": 2,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "special",
-      "name": "gain_energy",
-      "amount": 4
+      "value": 4,
+      "target": "sprite_self",
+      "op": "mod",
+      "stat": "energy"
     },
     {
-      "kind": "stat",
-      "target": "self",
+      "target": "sprite_self",
+      "op": "mod",
       "stat": "sp_atk",
-      "steps": 7,
-      "scope": "battlefield"
+      "steps": 7
     }
   ],
   "description": "✦自己回复4能量，并获得魔攻+70%。"

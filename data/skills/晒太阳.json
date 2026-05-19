@@ -3,17 +3,12 @@
   "name": "晒太阳",
   "element": "普通",
   "skill_type": "状态",
-  "power": 0,
   "energy_cost": 1,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "special",
-      "name": "dispel_positive",
-      "amount": -1,
-      "target": "opp"
+      "target": "sprite_opp",
+      "op": "dispel",
+      "what": "positive"
     }
   ],
   "description": "✦驱散敌方所有增益。"

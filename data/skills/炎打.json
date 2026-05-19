@@ -5,23 +5,12 @@
   "skill_type": "魔攻",
   "power": 95,
   "energy_cost": 2,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "stat",
-      "target": "opp",
+      "target": "sprite_self",
+      "op": "mod",
       "stat": "def",
-      "steps": -4,
-      "scope": "battlefield"
-    },
-    {
-      "kind": "stat",
-      "target": "self",
-      "stat": "def",
-      "steps": -4,
-      "scope": "battlefield"
+      "steps": -4
     }
   ],
   "description": "✦造成高额魔法伤害，自己获得物防-40%。"

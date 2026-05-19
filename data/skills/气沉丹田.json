@@ -3,30 +3,40 @@
   "name": "气沉丹田",
   "element": "武",
   "skill_type": "状态",
-  "power": 0,
   "energy_cost": 10,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "special",
-      "name": "heal",
-      "value": 0.6
+      "value": 0.6,
+      "target": "sprite_self",
+      "op": "mod",
+      "stat": "hp"
     },
     {
-      "kind": "stat",
-      "target": "self",
+      "target": "sprite_self",
+      "op": "mod",
       "stat": "atk",
-      "steps": 13,
-      "scope": "battlefield"
+      "steps": 13
     },
     {
-      "kind": "stat",
-      "target": "self",
-      "stat": "energy_cost",
-      "steps": -3,
-      "scope": "battlefield"
+      "op": "count",
+      "when": {
+        "cond": "counter_succeeded"
+      },
+      "then": [
+        {
+          "op": "mod",
+          "target": "skill_off_0",
+          "stat": "energy_cost",
+          "value": -3,
+          "mode": "add",
+          "scope": "permanent"
+        }
+      ]
+    },
+    {
+      "target": "skill_off_0",
+      "op": "reset",
+      "stat": "energy_cost"
     }
   ],
   "description": "✦自己回复60%生命，获得物攻+130%，每次应对后本技能能耗-3，使用后能耗重置。"

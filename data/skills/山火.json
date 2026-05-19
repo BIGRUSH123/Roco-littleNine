@@ -5,13 +5,24 @@
   "skill_type": "物攻",
   "power": 15,
   "energy_cost": 3,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "special",
-      "name": "power_double"
+      "op": "count",
+      "when": {
+        "cond": "skill_use",
+        "element": "火",
+        "exclude_self": true
+      },
+      "then": [
+        {
+          "op": "mod",
+          "target": "skill_off_0",
+          "stat": "power_mult",
+          "value": 2,
+          "mode": "multiply",
+          "scope": "permanent"
+        }
+      ]
     }
   ],
   "description": "✦造成物伤，每使用1次其他火系技能，本技能威力永久翻倍。"

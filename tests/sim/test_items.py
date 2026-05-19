@@ -1,4 +1,4 @@
-"""tests/sim/test_items.py — 道具系统集成测试"""
+﻿"""tests/sim/test_items.py — 道具系统集成测试"""
 
 import sys
 from pathlib import Path
@@ -7,9 +7,9 @@ _PROJ = Path(__file__).resolve().parent.parent.parent
 if str(_PROJ) not in sys.path:
     sys.path.insert(0, str(_PROJ))
 
-from scripts.sim.factory import SimFactory
-from scripts.sim.player import Item
-from scripts.common.sprite_db import SpriteDB
+from backend.sim.factory import SimFactory
+from backend.sim.player import Item
+from backend.common.sprite_db import SpriteDB
 
 factory = SimFactory()
 sprite_db = SpriteDB(_PROJ)
@@ -36,7 +36,7 @@ def test_wish_replaces_skill0_with_bloodline_skill():
     bl_skill_id = sprite.bloodline_skills.get("水")
     assert bl_skill_id is not None, "水灵应有水系血脉技能"
 
-    from scripts.common.skill_trait_ids import SKILL_ID_TO_NAME
+    from backend.common.skill_trait_ids import SKILL_ID_TO_NAME
     bl_name = SKILL_ID_TO_NAME.get(bl_skill_id)
     assert bl_name is not None, f"技能ID {bl_skill_id} 应有名称"
     assert bl_name == "水弹枪", f"水系血脉技能应为水弹枪，实际为{bl_name}"
@@ -61,7 +61,7 @@ def test_evolution_power_evolves_to_leader_form():
     assert boss is not None, "水灵(number=10)应有首领形态"
     assert "首领" in (boss.form or ""), f"首领形态名称应包含'首领': {boss.display_name()}"
 
-    from scripts.common.formulas import StatsCalc
+    from backend.common.formulas import StatsCalc
     calc = StatsCalc()
     result = calc.compute(boss, nature=sprite.nature, iv=sprite.iv)
     sprite.species = boss
@@ -70,7 +70,7 @@ def test_evolution_power_evolves_to_leader_form():
     sprite.current_hp = max(1, round(result.final_stats['hp'] * old_hp_ratio))
     sprite.bloodline_skills = dict(boss.bloodline_skills)
 
-    from scripts.sim.sprite import StatusEffect
+    from backend.sim.sprite import StatusEffect
     for key in ['atk', 'sp_atk', 'def', 'sp_def', 'speed']:
         sprite.add_effect(StatusEffect(
             name='首领化', category='stat', stat_key=key, steps=2,
@@ -149,7 +149,7 @@ def test_no_leader_form_no_evolution():
 
 def test_full_item_battle_flow():
     """完整对战道具流程：创建对局，验证道具可用"""
-    from scripts.sim.battle import Battle
+    from backend.sim.battle import Battle
 
     p1 = factory.build_player("Alice", [
         {"name": "水灵", "skills": ["猛烈撞击", "甩水"], "bloodline": "水"},

@@ -54,6 +54,9 @@ def op_hit(ctx: Ctx, effect) -> list[Mutation]:
         atk_stage=atk_stage,
         def_stage=def_stage,
         damage_reduction=ctx.damage_reduction_opp,
+        power_mult=ctx.power_mult_self,
+        damage_mult=ctx.damage_mult_self,
+        mark_bonus=ctx.mark_bonus_own,
         combo_count=ctx.combo_self,
     )
 

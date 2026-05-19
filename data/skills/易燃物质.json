@@ -5,23 +5,14 @@
   "skill_type": "魔攻",
   "power": 30,
   "energy_cost": 3,
-  "counter": "无",
-  "priority": 0,
   "combo": 2,
   "effects": [
     {
-      "kind": "abnormal",
-      "target": "opp",
+      "target": "sprite_opp",
+      "op": "abnormal",
       "name": "灼烧",
-      "scope": "battlefield",
-      "stacks": 1
-    },
-    {
-      "kind": "abnormal",
-      "target": "opp",
-      "name": "灼烧",
-      "scope": "battlefield",
-      "stacks": 2
+      "stacks": 2,
+      "per_hit": true
     }
   ],
   "description": "✦造成魔伤，2连击，每次连击使敌方获得2层灼烧。"

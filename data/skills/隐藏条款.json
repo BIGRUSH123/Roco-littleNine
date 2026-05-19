@@ -3,15 +3,11 @@
   "name": "隐藏条款",
   "element": "恶",
   "skill_type": "状态",
-  "power": 0,
   "energy_cost": 8,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "special",
-      "name": "exchange_skills"
+      "op": "exchange",
+      "what": "skills"
     }
   ],
   "description": "✦与敌方交换携带的技能。"

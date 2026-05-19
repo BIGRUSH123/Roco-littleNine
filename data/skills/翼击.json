@@ -5,9 +5,8 @@
   "skill_type": "魔攻",
   "power": 50,
   "energy_cost": 3,
-  "counter": "无",
   "priority": 1,
-  "combo": 1,
   "effects": [],
-  "description": "✦造成魔伤，迅捷。"
+  "description": "✦造成魔伤，迅捷。",
+  "tag": "迅捷"
 }

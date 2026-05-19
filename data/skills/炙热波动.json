@@ -6,27 +6,30 @@
   "power": 55,
   "energy_cost": 3,
   "counter": "状态",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "abnormal",
-      "target": "opp",
-      "name": "灼烧",
-      "scope": "battlefield",
-      "stacks": 4
-    },
-    {
-      "kind": "conditional",
       "when": {
-        "kind": "counter_succeeded"
+        "cond": "counter_succeeded"
       },
       "then": [
         {
-          "kind": "abnormal",
-          "target": "opp",
+          "op": "mod",
+          "target": "skill_off_0",
+          "stat": "power_mult",
+          "value": 2
+        },
+        {
+          "op": "abnormal",
+          "target": "sprite_opp",
           "name": "灼烧",
-          "scope": "battlefield",
+          "stacks": 8
+        }
+      ],
+      "else": [
+        {
+          "op": "abnormal",
+          "target": "sprite_opp",
+          "name": "灼烧",
           "stacks": 4
         }
       ]

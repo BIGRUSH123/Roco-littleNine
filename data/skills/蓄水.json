@@ -3,18 +3,15 @@
   "name": "蓄水",
   "element": "水",
   "skill_type": "状态",
-  "power": 0,
   "energy_cost": 1,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "stat",
-      "target": "self",
+      "value": -6,
+      "target": "sprite_self",
+      "op": "mod",
       "stat": "energy_cost",
-      "steps": -6,
-      "scope": "next_use"
+      "mode": "add",
+      "on_next": true
     }
   ],
   "description": "✦下次使用的技能能耗-6。"

@@ -5,16 +5,18 @@
   "skill_type": "物攻",
   "power": 100,
   "energy_cost": 3,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "stat",
-      "target": "opp",
+      "value": {
+        "q": "energy_cost",
+        "of": "skill_off_0",
+        "scale": 50
+      },
+      "target": "skill_off_0",
+      "op": "mod",
       "stat": "power",
-      "steps": 5,
-      "scope": "battlefield"
+      "mode": "add",
+      "feeds": "power"
     }
   ],
   "description": "✦造成物伤，本技能能耗每+1，威力+50。"

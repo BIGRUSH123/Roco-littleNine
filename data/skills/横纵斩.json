@@ -5,8 +5,7 @@
   "skill_type": "魔攻",
   "power": 25,
   "energy_cost": 2,
-  "counter": "无",
-  "priority": 0,
   "combo": 2,
-  "effects": []
+  "effects": [],
+  "description": " 造成魔伤，2连击。"
 }

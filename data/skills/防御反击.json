@@ -3,29 +3,26 @@
   "name": "防御反击",
   "element": "武",
   "skill_type": "防御",
-  "power": 0,
   "energy_cost": 3,
   "counter": "攻击",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "special",
-      "name": "damage_reduction",
-      "value": 0.8
+      "value": 0.8,
+      "target": "sprite_self",
+      "op": "mod",
+      "stat": "damage_reduction"
     },
     {
-      "kind": "conditional",
       "when": {
-        "kind": "counter_succeeded"
+        "cond": "counter_succeeded"
       },
       "then": [
         {
-          "kind": "stat",
-          "target": "self",
+          "op": "mod",
+          "target": "sprite_self",
           "stat": "power",
           "steps": 4,
-          "scope": "battlefield"
+          "skill_filter": "all"
         }
       ]
     }

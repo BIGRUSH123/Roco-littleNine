@@ -2,15 +2,19 @@
   "id": 20011,
   "name": "做噩梦",
   "description": "敌方精灵离场后，更换入场的精灵失去3能量。",
-  "triggers": [
+  "passive": [
     {
-      "on": "enemy_leave",
-      "effects": [
+      "op": "count",
+      "when": {
+        "cond": "opp_switched"
+      },
+      "then": [
         {
-          "kind": "special",
-          "name": "lose_energy",
-          "amount": 3,
-          "target": "enemy_new"
+          "op": "mod",
+          "target": "sprite_opp",
+          "stat": "energy",
+          "value": -3,
+          "mode": "add"
         }
       ]
     }

@@ -3,27 +3,37 @@
   "name": "无畏之心",
   "element": "普通",
   "skill_type": "防御",
-  "power": 0,
   "energy_cost": 5,
   "counter": "攻击",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "special",
-      "name": "damage_reduction",
-      "value": 1.0
+      "value": 1,
+      "target": "sprite_self",
+      "op": "mod",
+      "stat": "damage_reduction",
+      "feeds": "mult"
     },
     {
-      "kind": "conditional",
       "when": {
-        "kind": "counter_succeeded"
+        "cond": "counter_succeeded"
       },
       "then": [
         {
-          "kind": "special",
-          "name": "energy_cost_increment",
-          "amount": 2
+          "op": "mod",
+          "target": "sprite_self",
+          "stat": "hp",
+          "value": {
+            "q": "damage_reduced",
+            "of": "sprite_self"
+          }
+        },
+        {
+          "op": "mod",
+          "target": "skill_off_0",
+          "stat": "energy_cost",
+          "value": 2,
+          "mode": "add",
+          "scope": "permanent"
         }
       ]
     }

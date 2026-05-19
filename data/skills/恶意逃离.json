@@ -3,28 +3,25 @@
   "name": "恶意逃离",
   "element": "恶",
   "skill_type": "状态",
-  "power": 0,
   "energy_cost": 1,
   "counter": "防御",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "special",
-      "name": "escape"
+      "target": "sprite_self",
+      "op": "escape"
     },
     {
-      "kind": "conditional",
       "when": {
-        "kind": "counter_succeeded"
+        "cond": "counter_succeeded"
       },
       "then": [
         {
-          "kind": "stat",
-          "target": "opp",
+          "op": "mod",
+          "target": "sprite_opp",
           "stat": "energy_cost",
-          "steps": 4,
-          "scope": "battlefield"
+          "value": 4,
+          "scope": "persistent",
+          "skill_filter": "attack"
         }
       ]
     }

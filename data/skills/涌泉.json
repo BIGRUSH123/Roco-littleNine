@@ -5,16 +5,18 @@
   "skill_type": "魔攻",
   "power": 60,
   "energy_cost": 6,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "stat",
-      "target": "opp",
+      "value": {
+        "q": "energy_cost_reduction",
+        "of": "skill_off_0",
+        "scale": 10
+      },
+      "target": "skill_off_0",
+      "op": "mod",
       "stat": "power",
-      "steps": 1,
-      "scope": "battlefield"
+      "mode": "add",
+      "feeds": "power"
     }
   ],
   "description": "✦造成魔伤，本技能能耗每-1，威力+10。"

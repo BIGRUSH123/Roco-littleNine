@@ -3,20 +3,19 @@
   "name": "遁地",
   "element": "地",
   "skill_type": "防御",
-  "power": 0,
   "energy_cost": 3,
   "counter": "攻击",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "special",
-      "name": "damage_reduction",
-      "value": 0.5
+      "value": 0.5,
+      "target": "sprite_self",
+      "op": "mod",
+      "stat": "damage_reduction",
+      "feeds": "mult"
     },
     {
-      "kind": "special",
-      "name": "escape"
+      "target": "sprite_self",
+      "op": "escape"
     }
   ],
   "description": "✦减伤50%并脱离，应对攻击。"

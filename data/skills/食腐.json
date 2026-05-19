@@ -3,17 +3,23 @@
   "name": "食腐",
   "element": "虫",
   "skill_type": "状态",
-  "power": 0,
   "energy_cost": 2,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "special",
-      "name": "dispel_mark",
-      "target": "opp_team",
-      "value": 0.1
+      "value": {
+        "q": "mark_count",
+        "of": "team_opp",
+        "scale": 0.1,
+        "name": "any"
+      },
+      "target": "sprite_self",
+      "op": "mod",
+      "stat": "hp"
+    },
+    {
+      "target": "team_opp",
+      "op": "dispel",
+      "what": "mark"
     }
   ],
   "description": "✦驱散敌方印记，每层印记回复自己10%生命。"

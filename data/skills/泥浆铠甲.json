@@ -3,36 +3,30 @@
   "name": "泥浆铠甲",
   "element": "地",
   "skill_type": "状态",
-  "power": 0,
   "energy_cost": 2,
   "counter": "防御",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "stat",
-      "target": "self",
-      "stat": "def",
-      "steps": 6,
-      "scope": "battlefield"
-    },
-    {
-      "kind": "stat",
-      "target": "self",
+      "target": "sprite_self",
+      "op": "mod",
       "stat": "atk",
-      "steps": 6,
-      "scope": "battlefield"
+      "steps": 6
     },
     {
-      "kind": "conditional",
+      "target": "sprite_self",
+      "op": "mod",
+      "stat": "def",
+      "steps": 6
+    },
+    {
       "when": {
-        "kind": "counter_succeeded"
+        "cond": "counter_succeeded"
       },
       "then": [
         {
-          "kind": "special",
-          "name": "double_positive",
-          "target": "self"
+          "op": "double",
+          "target": "sprite_self",
+          "what": "positive"
         }
       ]
     }

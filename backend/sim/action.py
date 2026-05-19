@@ -1,4 +1,4 @@
-"""scripts/sim/action.py — 回合行动"""
+"""backend/sim/action.py — 回合行动"""
 
 from dataclasses import dataclass
 
@@ -8,7 +8,7 @@ class Action:
     """玩家在一个回合中选择的操作。"""
 
     kind: str               # "gather" | "switch" | "skill" | "item"
-    skill_index: int | None = None   # skills[0-3] 索引
+    skill_index: int | None = None   # skills 索引
     switch_index: int | None = None  # 换宠目标索引（team 中的位置）
 
     def __repr__(self) -> str:

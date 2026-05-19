@@ -3,75 +3,63 @@
   "name": "暗箱操作",
   "element": "恶",
   "skill_type": "状态",
-  "power": 0,
   "energy_cost": 1,
   "counter": "防御",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "conditional",
       "when": {
-        "kind": "counter_succeeded"
+        "cond": "counter_succeeded"
       },
       "then": [
         {
-          "kind": "stat",
-          "target": "opp",
-          "stat": "def",
-          "steps": -10,
-          "scope": "battlefield"
-        },
-        {
-          "kind": "stat",
-          "target": "opp",
-          "stat": "sp_def",
-          "steps": -10,
-          "scope": "battlefield"
-        },
-        {
-          "kind": "stat",
-          "target": "opp",
+          "op": "mod",
+          "target": "sprite_opp",
           "stat": "atk",
-          "steps": -10,
-          "scope": "battlefield"
+          "steps": -10
         },
         {
-          "kind": "stat",
-          "target": "opp",
+          "op": "mod",
+          "target": "sprite_opp",
           "stat": "sp_atk",
-          "steps": -10,
-          "scope": "battlefield"
+          "steps": -10
+        },
+        {
+          "op": "mod",
+          "target": "sprite_opp",
+          "stat": "def",
+          "steps": -10
+        },
+        {
+          "op": "mod",
+          "target": "sprite_opp",
+          "stat": "sp_def",
+          "steps": -10
         }
       ],
-      "otherwise": [
+      "else": [
         {
-          "kind": "stat",
-          "target": "self",
-          "stat": "def",
-          "steps": -10,
-          "scope": "battlefield"
-        },
-        {
-          "kind": "stat",
-          "target": "self",
-          "stat": "sp_def",
-          "steps": -10,
-          "scope": "battlefield"
-        },
-        {
-          "kind": "stat",
-          "target": "self",
+          "op": "mod",
+          "target": "sprite_self",
           "stat": "atk",
-          "steps": -10,
-          "scope": "battlefield"
+          "steps": -10
         },
         {
-          "kind": "stat",
-          "target": "self",
+          "op": "mod",
+          "target": "sprite_self",
           "stat": "sp_atk",
-          "steps": -10,
-          "scope": "battlefield"
+          "steps": -10
+        },
+        {
+          "op": "mod",
+          "target": "sprite_self",
+          "stat": "def",
+          "steps": -10
+        },
+        {
+          "op": "mod",
+          "target": "sprite_self",
+          "stat": "sp_def",
+          "steps": -10
         }
       ]
     }

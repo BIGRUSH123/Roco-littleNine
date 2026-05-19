@@ -3,18 +3,24 @@
   "name": "逆向演化",
   "element": "萌",
   "skill_type": "状态",
-  "power": 0,
   "energy_cost": 1,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "abnormal",
-      "target": "self",
-      "name": "萌化",
-      "scope": "persistent",
-      "stacks": 1
+      "value": {
+        "q": "abnormal_stacks",
+        "of": "sprite_self",
+        "name": "萌化"
+      },
+      "target": "sprite_opp",
+      "op": "abnormal",
+      "name": "萌化"
+    },
+    {
+      "target": "sprite_self",
+      "op": "dispel",
+      "what": "abnormal",
+      "name": "萌化"
     }
-  ]
+  ],
+  "description": "✦解除萌化，每层萌化会给敌方赋予一层萌化。"
 }

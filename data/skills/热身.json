@@ -3,27 +3,31 @@
   "name": "热身",
   "element": "火",
   "skill_type": "状态",
-  "power": 0,
   "energy_cost": 1,
   "counter": "防御",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "special",
-      "name": "power_mult",
-      "value": 2.0
-    },
-    {
-      "kind": "conditional",
       "when": {
-        "kind": "counter_succeeded"
+        "cond": "counter_succeeded"
       },
       "then": [
         {
-          "kind": "special",
-          "name": "power_mult",
-          "value": 4.0
+          "op": "mod",
+          "target": "sprite_self",
+          "stat": "power_mult",
+          "value": 4,
+          "on_next": true,
+          "if_type": "attack"
+        }
+      ],
+      "else": [
+        {
+          "op": "mod",
+          "target": "sprite_self",
+          "stat": "power_mult",
+          "value": 2,
+          "on_next": true,
+          "if_type": "attack"
         }
       ]
     }

@@ -6,35 +6,25 @@
   "power": 120,
   "energy_cost": 3,
   "counter": "状态",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "stat",
-      "target": "opp",
-      "stat": "atk",
-      "steps": -5,
-      "scope": "battlefield"
-    },
-    {
-      "kind": "stat",
-      "target": "self",
-      "stat": "atk",
-      "steps": -5,
-      "scope": "battlefield"
-    },
-    {
-      "kind": "conditional",
       "when": {
-        "kind": "counter_succeeded"
+        "cond": "counter_succeeded"
       },
       "then": [
         {
-          "kind": "stat",
-          "target": "opp",
+          "op": "mod",
+          "target": "sprite_self",
           "stat": "atk",
-          "steps": 5,
-          "scope": "battlefield"
+          "steps": 5
+        }
+      ],
+      "else": [
+        {
+          "op": "mod",
+          "target": "sprite_self",
+          "stat": "atk",
+          "steps": -5
         }
       ]
     }

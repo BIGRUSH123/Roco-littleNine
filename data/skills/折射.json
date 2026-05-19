@@ -1,13 +1,321 @@
 {
-  "id": 10005,
+  "id": 0,
   "name": "折射",
   "element": "光",
   "skill_type": "魔攻",
-  "power": 50,
+  "power": 90,
   "energy_cost": 4,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
-  "effects": [],
+  "effects": [
+    {
+      "when": {
+        "cond": "have_skill_of",
+        "of": "sprite_self",
+        "element": "地",
+        "exclude_self": true
+      },
+      "then": [
+        {
+          "op": "mod",
+          "target": "sprite_opp",
+          "stat": "speed",
+          "steps": -4
+        },
+        {
+          "op": "mod",
+          "target": "skill_off_0",
+          "stat": "combo",
+          "value": -2,
+          "mode": "add"
+        }
+      ]
+    },
+    {
+      "when": {
+        "cond": "have_skill_of",
+        "of": "sprite_self",
+        "element": "普通",
+        "exclude_self": true
+      },
+      "then": [
+        {
+          "op": "mod",
+          "target": "skill_off_0",
+          "stat": "power",
+          "steps": 2
+        }
+      ]
+    },
+    {
+      "when": {
+        "cond": "have_skill_of",
+        "of": "sprite_self",
+        "element": "机械",
+        "exclude_self": true
+      },
+      "then": [
+        {
+          "op": "mod",
+          "target": "sprite_self",
+          "stat": "def",
+          "steps": 4
+        },
+        {
+          "op": "mod",
+          "target": "sprite_self",
+          "stat": "sp_def",
+          "steps": 4
+        }
+      ]
+    },
+    {
+      "when": {
+        "cond": "have_skill_of",
+        "of": "sprite_self",
+        "element": "草",
+        "exclude_self": true
+      },
+      "then": [
+        {
+          "op": "mod",
+          "target": "sprite_self",
+          "stat": "hp",
+          "value": 0.2
+        }
+      ]
+    },
+    {
+      "when": {
+        "cond": "have_skill_of",
+        "of": "sprite_self",
+        "element": "火",
+        "exclude_self": true
+      },
+      "then": [
+        {
+          "op": "abnormal",
+          "target": "sprite_opp",
+          "name": "灼烧",
+          "stacks": 4
+        }
+      ]
+    },
+    {
+      "when": {
+        "cond": "have_skill_of",
+        "of": "sprite_self",
+        "element": "冰",
+        "exclude_self": true
+      },
+      "then": [
+        {
+          "op": "abnormal",
+          "target": "sprite_opp",
+          "name": "冻结",
+          "stacks": 2
+        }
+      ]
+    },
+    {
+      "when": {
+        "cond": "have_skill_of",
+        "of": "sprite_self",
+        "element": "毒",
+        "exclude_self": true
+      },
+      "then": [
+        {
+          "op": "abnormal",
+          "target": "sprite_opp",
+          "name": "中毒",
+          "stacks": 2
+        }
+      ]
+    },
+    {
+      "when": {
+        "cond": "have_skill_of",
+        "of": "sprite_self",
+        "element": "虫",
+        "exclude_self": true
+      },
+      "then": [
+        {
+          "op": "mod",
+          "target": "sprite_opp",
+          "stat": "def",
+          "steps": -4
+        }
+      ]
+    },
+    {
+      "when": {
+        "cond": "have_skill_of",
+        "of": "sprite_self",
+        "element": "龙",
+        "exclude_self": true
+      },
+      "then": [
+        {
+          "op": "mod",
+          "target": "sprite_opp",
+          "stat": "sp_def",
+          "steps": -4
+        }
+      ]
+    },
+    {
+      "when": {
+        "cond": "have_skill_of",
+        "of": "sprite_self",
+        "element": "翼",
+        "exclude_self": true
+      },
+      "then": [
+        {
+          "op": "mod",
+          "target": "skill_off_0",
+          "stat": "combo",
+          "value": 1,
+          "mode": "add"
+        }
+      ]
+    },
+    {
+      "when": {
+        "cond": "have_skill_of",
+        "of": "sprite_self",
+        "element": "水",
+        "exclude_self": true
+      },
+      "then": [
+        {
+          "op": "mod",
+          "target": "sprite_self",
+          "stat": "energy_cost",
+          "value": -1,
+          "skill_filter": "all"
+        }
+      ]
+    },
+    {
+      "when": {
+        "cond": "have_skill_of",
+        "of": "sprite_self",
+        "element": "武",
+        "exclude_self": true
+      },
+      "then": [
+        {
+          "op": "mod",
+          "target": "sprite_self",
+          "stat": "atk",
+          "steps": 4
+        }
+      ]
+    },
+    {
+      "when": {
+        "cond": "have_skill_of",
+        "of": "sprite_self",
+        "element": "光",
+        "exclude_self": true
+      },
+      "then": [
+        {
+          "op": "mod",
+          "target": "sprite_self",
+          "stat": "sp_atk",
+          "steps": 4
+        }
+      ]
+    },
+    {
+      "when": {
+        "cond": "have_skill_of",
+        "of": "sprite_self",
+        "element": "幻",
+        "exclude_self": true
+      },
+      "then": [
+        {
+          "op": "mark",
+          "target": "team_opp",
+          "name": "星陨印记",
+          "stacks": 1
+        }
+      ]
+    },
+    {
+      "when": {
+        "cond": "have_skill_of",
+        "of": "sprite_self",
+        "element": "幽灵",
+        "exclude_self": true
+      },
+      "then": [
+        {
+          "op": "mod",
+          "target": "sprite_opp",
+          "stat": "energy",
+          "value": -2
+        }
+      ]
+    },
+    {
+      "when": {
+        "cond": "have_skill_of",
+        "of": "sprite_self",
+        "element": "恶",
+        "exclude_self": true
+      },
+      "then": [
+        {
+          "op": "mod",
+          "target": "skill_off_0",
+          "stat": "life_drain",
+          "value": 0.3,
+          "mode": "add"
+        }
+      ]
+    },
+    {
+      "when": {
+        "cond": "have_skill_of",
+        "of": "sprite_self",
+        "element": "电",
+        "exclude_self": true
+      },
+      "then": [
+        {
+          "op": "mod",
+          "target": "sprite_self",
+          "stat": "speed",
+          "steps": 5
+        }
+      ]
+    },
+    {
+      "when": {
+        "cond": "have_skill_of",
+        "of": "sprite_self",
+        "element": "萌",
+        "exclude_self": true
+      },
+      "then": [
+        {
+          "op": "mod",
+          "target": "sprite_opp",
+          "stat": "atk",
+          "steps": -3
+        },
+        {
+          "op": "mod",
+          "target": "sprite_opp",
+          "stat": "sp_atk",
+          "steps": -3
+        }
+      ]
+    }
+  ],
   "description": "✦造成魔伤，携带其他系别技能会给本技能带来不同效果。"
 }

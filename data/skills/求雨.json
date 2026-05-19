@@ -3,16 +3,20 @@
   "name": "求雨",
   "element": "水",
   "skill_type": "状态",
-  "power": 0,
   "energy_cost": 8,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "weather",
+      "op": "weather",
       "weather": "rain",
       "turns": 8
+    },
+    {
+      "value": 2,
+      "target": "skill_off_0",
+      "op": "mod",
+      "stat": "energy_cost_mult",
+      "feeds": "cost"
     }
-  ]
+  ],
+  "description": "✦ 将天气变为雨天，本技能能耗降低效果收益翻倍。"
 }

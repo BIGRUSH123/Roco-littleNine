@@ -2,28 +2,35 @@
   "id": 20028,
   "name": "图书守卫者",
   "description": "入场时若己方魔力值为1，获得双攻+50%。",
-  "triggers": [
+  "passive": [
     {
-      "on": "entry",
-      "condition": {
-        "path": "player.lives",
-        "op": "eq",
-        "value": 1
+      "op": "count",
+      "when": {
+        "cond": "and",
+        "conds": [
+          {
+            "cond": "sprite_entered"
+          },
+          {
+            "cond": "energy_eq",
+            "value": 1
+          }
+        ]
       },
-      "effects": [
+      "then": [
         {
-          "kind": "stat",
+          "op": "mod",
+          "target": "sprite_self",
           "stat": "atk",
-          "steps": 5,
-          "scope": "battlefield",
-          "source": "图书守卫者"
+          "value": 1.5,
+          "scope": "permanent"
         },
         {
-          "kind": "stat",
+          "op": "mod",
+          "target": "sprite_self",
           "stat": "sp_atk",
-          "steps": 5,
-          "scope": "battlefield",
-          "source": "图书守卫者"
+          "value": 1.5,
+          "scope": "permanent"
         }
       ]
     }

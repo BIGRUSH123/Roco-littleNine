@@ -3,23 +3,25 @@
   "name": "超新星馈赠",
   "element": "幻",
   "skill_type": "状态",
-  "power": 0,
   "energy_cost": 2,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "mark",
-      "target": "own_team",
-      "name": "星陨印记",
-      "stacks": 2
+      "value": {
+        "q": "counter_value",
+        "of": "skill_off_0",
+        "name": "星陨",
+        "offset": 2
+      },
+      "target": "opp_team",
+      "op": "mark",
+      "name": "星陨印记"
     },
     {
-      "kind": "mark",
-      "target": "opp_team",
-      "name": "星陨印记",
-      "stacks": 2
+      "op": "count",
+      "name": "星陨",
+      "when": {
+        "cond": "skill_use"
+      }
     }
   ],
   "description": "✦敌方获得2层星陨印记，每使用1次，赋予的星陨印记层数+1。"

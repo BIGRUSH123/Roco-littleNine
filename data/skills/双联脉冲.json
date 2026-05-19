@@ -5,14 +5,21 @@
   "skill_type": "魔攻",
   "power": 50,
   "energy_cost": 4,
-  "counter": "无",
-  "priority": 0,
   "combo": 1,
   "effects": [
     {
-      "kind": "special",
-      "name": "burst",
-      "target": "extra_use"
+      "when": {
+        "cond": "burst"
+      },
+      "then": [
+        {
+          "op": "mod",
+          "target": "sprite_self",
+          "stat": "extra_action",
+          "value": 1,
+          "mode": "add"
+        }
+      ]
     }
   ],
   "description": "✦造成魔伤，迸发：本技能使用次数+1。"

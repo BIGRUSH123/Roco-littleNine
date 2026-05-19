@@ -3,17 +3,17 @@
   "name": "风墙",
   "element": "翼",
   "skill_type": "防御",
-  "power": 0,
   "energy_cost": 2,
   "counter": "攻击",
   "priority": 1,
-  "combo": 1,
   "effects": [
     {
-      "kind": "special",
-      "name": "damage_reduction",
-      "value": 0.5
+      "value": 0.5,
+      "target": "sprite_self",
+      "op": "mod",
+      "stat": "damage_reduction"
     }
   ],
-  "description": "✦减伤50%，迅捷，应对攻击。"
+  "description": "✦减伤50%，迅捷，应对攻击。",
+  "tag": "迅捷"
 }

@@ -1,4 +1,4 @@
-"""scripts/sim/skill.py — 战斗技能（自包含，从 JSON 反序列化）"""
+"""backend/sim/skill.py — 战斗技能（自包含，从 JSON 反序列化）"""
 
 from __future__ import annotations
 from dataclasses import dataclass, field
@@ -31,15 +31,29 @@ class Skill:
     energy_cost: int = 0
     counter: str = '无'        # 无|攻击|防御|状态
     priority: int = 0
-    combo: int = 1             # 连击数：技能重复执行次数
+    combo: int = -1            # 连击数：-1=不参与连击，1=单次，2+=多次
     effects: list[Effect] = field(default_factory=list)
     exclusive_to: str = ''     # 专属技能归属精灵名（萌化后不匹配则封印）
+    transmission: int = 0      # 传动：-1=主轴（不参与传动），0=普通，1+=传动等级
+    description: str = ''      # 人类可读描述（API/前端展示用）
 
     @classmethod
     def load(cls, data: dict) -> 'Skill':
-        """从 JSON dict 反序列化。"""
+        """从 JSON dict 反序列化。自动迁移 main_axis → transmission=-1。"""
         effects_raw = data.get('effects', [])
         effects = [effect_from_dict(e) for e in effects_raw]
+
+        # transmission: 旧格式 main_axis=true → transmission=-1
+        transmission = data.get('transmission', 0)
+        if data.get('main_axis', False):
+            if transmission not in (0, -1):
+                import warnings
+                warnings.warn(
+                    f"Skill {data.get('name', '?')}: main_axis=true conflicts with "
+                    f"transmission={transmission}, using -1"
+                )
+            transmission = -1
+
         return cls(
             id=data.get('id', 0),
             name=data['name'],
@@ -49,9 +63,11 @@ class Skill:
             energy_cost=data.get('energy_cost', 0),
             counter=data.get('counter', '无'),
             priority=data.get('priority', 0),
-            combo=data.get('combo', 1),
+            combo=data.get('combo', -1),
             effects=effects,
             exclusive_to=data.get('exclusive_to', ''),
+            transmission=transmission,
+            description=data.get('description', ''),
         )
 
     @classmethod

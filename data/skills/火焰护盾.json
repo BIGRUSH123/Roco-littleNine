@@ -3,28 +3,25 @@
   "name": "火焰护盾",
   "element": "火",
   "skill_type": "防御",
-  "power": 0,
   "energy_cost": 2,
   "counter": "攻击",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "special",
-      "name": "damage_reduction",
-      "value": 0.7
+      "value": 0.7,
+      "target": "sprite_self",
+      "op": "mod",
+      "stat": "damage_reduction",
+      "feeds": "mult"
     },
     {
-      "kind": "conditional",
       "when": {
-        "kind": "counter_succeeded"
+        "cond": "counter_succeeded"
       },
       "then": [
         {
-          "kind": "abnormal",
-          "target": "opp",
+          "op": "abnormal",
+          "target": "sprite_opp",
           "name": "灼烧",
-          "scope": "battlefield",
           "stacks": 6
         }
       ]

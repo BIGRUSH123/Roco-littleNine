@@ -6,18 +6,19 @@
   "power": 55,
   "energy_cost": 1,
   "counter": "状态",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "conditional",
       "when": {
-        "kind": "counter_succeeded"
+        "cond": "counter_succeeded"
       },
       "then": [
         {
-          "kind": "special",
-          "name": "skip_next_charge"
+          "op": "mod",
+          "target": "sprite_self",
+          "stat": "pre_charged",
+          "value": 1,
+          "on_next": true,
+          "if_type": "charge"
         }
       ]
     }

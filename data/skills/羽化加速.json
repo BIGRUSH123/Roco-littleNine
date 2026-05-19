@@ -3,19 +3,16 @@
   "name": "羽化加速",
   "element": "翼",
   "skill_type": "状态",
-  "power": 0,
   "energy_cost": 2,
-  "counter": "无",
   "priority": 1,
-  "combo": 1,
   "effects": [
     {
-      "kind": "stat",
-      "target": "self",
+      "target": "sprite_self",
+      "op": "mod",
       "stat": "power",
-      "steps": 2,
-      "scope": "battlefield"
+      "steps": 2
     }
   ],
-  "description": "✦自己获得全技能威力+20，迅捷。"
+  "description": "✦自己获得全技能威力+20，迅捷。",
+  "tag": "迅捷"
 }

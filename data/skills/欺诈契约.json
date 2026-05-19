@@ -3,15 +3,11 @@
   "name": "欺诈契约",
   "element": "恶",
   "skill_type": "状态",
-  "power": 0,
   "energy_cost": 3,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "special",
-      "name": "exchange_effects"
+      "op": "exchange",
+      "what": "effects"
     }
   ],
   "description": "✦与敌方交换增益和减益。"

@@ -3,31 +3,27 @@
   "name": "盛开",
   "element": "草",
   "skill_type": "状态",
-  "power": 0,
   "energy_cost": 1,
   "counter": "防御",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "stat",
-      "target": "self",
-      "stat": "power",
-      "steps": 3,
-      "scope": "battlefield"
-    },
-    {
-      "kind": "conditional",
       "when": {
-        "kind": "counter_succeeded"
+        "cond": "counter_succeeded"
       },
       "then": [
         {
-          "kind": "stat",
-          "target": "self",
+          "op": "mod",
+          "target": "sprite_self",
           "stat": "power",
-          "steps": 3,
-          "scope": "battlefield"
+          "steps": 6
+        }
+      ],
+      "else": [
+        {
+          "op": "mod",
+          "target": "sprite_self",
+          "stat": "power",
+          "steps": 3
         }
       ]
     }

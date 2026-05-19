@@ -1,4 +1,4 @@
-"""Observer system — passive effects that fire when conditions are met.
+﻿"""Observer system — passive effects that fire when conditions are met.
 
 Observers are registered by battle/trait setup and evaluated after each
 relevant event (skill use, damage, KO, switch, etc.). Each observer has
@@ -8,10 +8,10 @@ a condition, a then-block of effects, and a scope that controls lifetime.
 from dataclasses import dataclass, field
 from typing import Callable
 
-from scripts.vm.ctx import Ctx
-from scripts.vm.cond import eval_one
-from scripts.vm.executor import process_effects
-from scripts.vm.journal import Mutation
+from backend.vm.ctx import Ctx
+from backend.vm.cond import eval_one
+from backend.vm.executor import process_effects
+from backend.vm.journal import Mutation
 
 
 # Trigger points — events that cause observers to be evaluated
@@ -67,7 +67,7 @@ class ObserverRegistry:
 
     def register_from_counter(self, counter) -> None:
         """Register an observer from a CounterRegister mutation."""
-        from scripts.vm.journal import CounterRegister
+        from backend.vm.journal import CounterRegister
         self._observers.append(Observer(
             cond=counter.cond,
             then=counter.then,

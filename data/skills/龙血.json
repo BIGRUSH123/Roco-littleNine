@@ -3,17 +3,31 @@
   "name": "龙血",
   "element": "龙",
   "skill_type": "防御",
-  "power": 0,
   "energy_cost": 2,
   "counter": "攻击",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "special",
-      "name": "damage_reduction",
-      "value": 0.7
+      "value": 0.7,
+      "target": "sprite_self",
+      "op": "mod",
+      "stat": "damage_reduction"
+    },
+    {
+      "when": {
+        "cond": "counter_succeeded"
+      },
+      "then": [
+        {
+          "op": "mod",
+          "target": "sprite_self",
+          "stat": "pre_charged",
+          "value": 1,
+          "on_next": true,
+          "if_type": "charge"
+        }
+      ]
     }
   ],
-  "description": "✦减伤70%，本技能可以在蓄力状态下使用，应对攻击：下次技能无需蓄力。"
+  "description": "✦减伤70%，本技能可以在蓄力状态下使用，应对攻击：下次技能无需蓄力。",
+  "usable_while_charging": true
 }

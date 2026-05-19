@@ -5,13 +5,10 @@
   "skill_type": "物攻",
   "power": 70,
   "energy_cost": 3,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "mark",
       "target": "opp_team",
+      "op": "mark",
       "name": "星陨印记",
       "stacks": 1
     }

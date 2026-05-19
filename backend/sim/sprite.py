@@ -1,12 +1,12 @@
-"""scripts/sim/sprite.py — 战斗精灵实例 + 状态效果追踪"""
+﻿"""backend/sim/sprite.py — 战斗精灵实例 + 状态效果追踪"""
 
 from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
-from scripts.common import STAT_KEYS
-from scripts.common.models import SpeciesStats, StatsResult
-from scripts.common.skill_trait_ids import TRAIT_多人宿舍, TRAIT_无忧无虑
+from backend.common import STAT_KEYS
+from backend.common.models import SpeciesStats, StatsResult
+from backend.common.skill_trait_ids import TRAIT_多人宿舍, TRAIT_无忧无虑
 from .traits.trait_engine import fire_hook_first
 
 if TYPE_CHECKING:
@@ -35,6 +35,8 @@ class StatusEffect:
     stacks: int = 1                     # 层数
     scope: str = 'battlefield'          # "battlefield" | "persistent" | "permanent" | "aura"
     source: str = ''                    # 来源技能/特性名
+    ttl: int = 0                        # 存活回合数（0=永久，每回合末-1，归零自动消除）
+    cooldown: int = 0                   # 冷却次数（0=无冷却，每次触发-1，归零自动消除）
 
     @property
     def is_stat(self) -> bool:
@@ -90,6 +92,12 @@ class Sprite:
     # 运行时 modifier 累积 (damage_reduction, power_mult, etc.)
     # 由 JournalReplayer._apply_modifier 写入，snapshot 读取
     _modifiers: dict[str, float] = field(default_factory=dict)
+
+    # 延迟生效的效果队列：[(StatusEffect, delay_remaining), ...]
+    _pending_effects: list = field(default_factory=list)
+
+    # on_next 延迟 modifier 队列：引擎下次匹配技能时注入
+    _pending_modifiers: list = field(default_factory=list)
 
     # 特性交互（禁用/复制/移除）
     _trait_suppressed: bool = False     # 特性被压制时跳过所有 trait dispatch
@@ -266,6 +274,87 @@ class Sprite:
     def clear_all_effects(self) -> None:
         self.effects.clear()
 
+    # ── 效果生命周期：TTL / Delay / Cooldown ──
+
+    def decrement_ttl(self) -> list[StatusEffect]:
+        """回合末：所有 ttl>0 的效果 -1，ttl 归零的移除。返回被移除的效果列表。"""
+        removed = []
+        surviving = []
+        for e in self.effects:
+            if e.ttl > 0:
+                e.ttl -= 1
+                if e.ttl <= 0:
+                    removed.append(e)
+                    continue
+            surviving.append(e)
+        self.effects = surviving
+        return removed
+
+    def add_pending_effect(self, effect: StatusEffect, delay: int) -> None:
+        """添加延迟生效的效果。delay 回合后再生效。"""
+        self._pending_effects.append((effect, delay))
+
+    def process_pending_effects(self) -> list[StatusEffect]:
+        """回合初：所有延迟效果 delay-1，delay=0 的生效。返回本次生效的效果列表。"""
+        activated = []
+        remaining = []
+        for eff, delay in self._pending_effects:
+            delay -= 1
+            if delay <= 0:
+                self.add_effect(eff)
+                activated.append(eff)
+            else:
+                remaining.append((eff, delay))
+        self._pending_effects = remaining
+        return activated
+
+    def use_cooldown(self, name: str) -> int:
+        """触发指定名称效果的冷却：cooldown-1。cooldown 归零时移除效果。返回剩余冷却。"""
+        for e in self.effects:
+            if e.name == name and e.cooldown > 0:
+                e.cooldown -= 1
+                if e.cooldown <= 0:
+                    self.effects.remove(e)
+                    return 0
+                return e.cooldown
+        return 0
+
+    def consume_pending_modifiers(self, skill_type: str):
+        """消耗 on_next pending modifiers：匹配 if_type 的注入并清除。返回匹配的 modifier 列表。"""
+        from backend.vm.journal import ModifierInjection
+        consumed = []
+        remaining = []
+        for m in self._pending_modifiers:
+            if_type = getattr(m, 'if_type', None)
+            # 匹配规则：if_type 为空（所有技能）或匹配当前技能类型
+            if if_type is None or if_type == '' or self._skill_type_matches(skill_type, if_type):
+                consumed.append(m)
+                # Apply the modifier to _modifiers
+                cur = self._modifiers.get(m.stat)
+                if m.mode == "set":
+                    self._modifiers[m.stat] = m.value
+                elif m.mode == "add":
+                    self._modifiers[m.stat] = (cur or 0.0) + m.value
+                elif m.mode == "multiply":
+                    self._modifiers[m.stat] = (cur or 1.0) * m.value if cur is not None else m.value
+                else:
+                    self._modifiers[m.stat] = m.value
+            else:
+                remaining.append(m)
+        self._pending_modifiers = remaining
+        return consumed
+
+    @staticmethod
+    def _skill_type_matches(skill_type: str, if_type: str) -> bool:
+        """Check if a skill type matches an if_type filter."""
+        if if_type == "attack":
+            return skill_type in ("物攻", "魔攻", "动态攻击")
+        elif if_type == "defense":
+            return skill_type == "防御"
+        elif if_type == "status":
+            return skill_type == "状态"
+        return False
+
     # ── 计数器 ──
 
     def inc_counter(self, key: str, delta: int = 1) -> int:
@@ -333,7 +422,7 @@ class Sprite:
         old_name = self.name
         self.species = new_species
         # 用 StatsCalc 重新计算六维（保留 IV/性格修正）
-        from scripts.common.formulas import StatsCalc
+        from backend.common.formulas import StatsCalc
         calc = StatsCalc()
         result = calc.compute(new_species, nature=self.nature, iv=self.iv)
         self.initial_stats = dict(result.final_stats)

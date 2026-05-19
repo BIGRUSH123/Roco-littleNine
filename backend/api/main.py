@@ -461,9 +461,19 @@ def get_type_chart():
 
 @app.post("/api/battle/init")
 def init_battle(req: schemas.InitRequest):
+    try:
+        return _init_battle_impl(req)
+    except Exception:
+        import traceback, sys
+        tb = traceback.format_exc()
+        print(f"[ERROR] init_battle failed:\n{tb}", file=sys.stderr)
+        raise HTTPException(status_code=500, detail=tb[:500])
+
+
+def _init_battle_impl(req: schemas.InitRequest):
     if not req.team:
         raise HTTPException(status_code=400, detail="Team cannot be empty")
-        
+
     team_a_specs = [{
         "name": s.name, "skills": s.skills,
         "bloodline": s.bloodline, "form": s.form,
@@ -480,8 +490,8 @@ def init_battle(req: schemas.InitRequest):
         pool = list(SPRITE_ENTRIES)
         random.shuffle(pool)
         for entry in pool[:len(team_a_specs)]:
-            chosen_skills = random.sample(entry["skills"], min(6, len(entry["skills"])))
-            team_b_specs.append({"name": entry["name"], "skills": chosen_skills, "bloodline": None, "form": ""})
+            chosen_skills = random.sample(entry.skills, min(6, len(entry.skills)))
+            team_b_specs.append({"name": entry.name, "skills": chosen_skills, "bloodline": None, "form": ""})
 
     # 道具
     from backend.sim.player import Item
@@ -505,13 +515,13 @@ def init_battle(req: schemas.InitRequest):
     agent_b = RuleAgent("B", player_b)
     # AI 首发选择
     player_b.active_index = agent_b.choose_lead(battle)
-    
+
     session_id = str(uuid.uuid4())
     sessions[session_id] = {
         "battle": battle,
         "agent_b": agent_b
     }
-    
+
     return serialize_battle_state(battle, session_id)
 
 @app.post("/api/battle/action")
@@ -584,7 +594,13 @@ def battle_action(req: schemas.ActionRequest):
                          switch_index=req.switch_index or 0)
     
     # Execute turn
-    battle.execute_turn(agent_a, agent_b)
+    try:
+        battle.execute_turn(agent_a, agent_b)
+    except Exception:
+        import traceback, sys
+        tb = traceback.format_exc()
+        print(f"[ERROR] battle.execute_turn failed:\n{tb}", file=sys.stderr)
+        raise HTTPException(status_code=500, detail=tb[:500])
     
     # Get the latest turn record
     turn_log = []
@@ -700,7 +716,7 @@ def debug_init():
 
     # Player B: 3 debug skills
     b_skills = []
-    for name in ('debug_attack', 'debug_defense', 'debug_status'):
+    for name in ('丢冰块', '不动如山', '假寐'):
         found = [bs for bs in all_skills if bs.name == name]
         if found:
             b_skills.append(found[0])

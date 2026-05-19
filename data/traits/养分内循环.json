@@ -2,14 +2,19 @@
   "id": 20014,
   "name": "养分内循环",
   "description": "回合结束时，回复6能量。",
-  "triggers": [
+  "passive": [
     {
-      "on": "turn_end",
-      "effects": [
+      "op": "count",
+      "when": {
+        "cond": "turn_end"
+      },
+      "then": [
         {
-          "kind": "special",
-          "name": "gain_energy",
-          "amount": 6
+          "op": "mod",
+          "target": "sprite_self",
+          "stat": "energy",
+          "value": 6,
+          "mode": "add"
         }
       ]
     }

@@ -5,14 +5,20 @@
   "skill_type": "物攻",
   "power": 80,
   "energy_cost": 3,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "special",
-      "name": "gain_energy",
-      "amount": 7
+      "when": {
+        "cond": "opp_switched"
+      },
+      "then": [
+        {
+          "op": "mod",
+          "target": "sprite_self",
+          "stat": "energy",
+          "value": 7,
+          "mode": "add"
+        }
+      ]
     }
   ],
   "description": "✦造成物伤，若敌方本回合更换精灵，自己回复7点能量。"

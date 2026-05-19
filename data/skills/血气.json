@@ -3,16 +3,27 @@
   "name": "血气",
   "element": "普通",
   "skill_type": "防御",
-  "power": 0,
   "energy_cost": 2,
   "counter": "攻击",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "special",
-      "name": "damage_reduction",
-      "value": 0.6
+      "value": 0.6,
+      "target": "sprite_self",
+      "op": "mod",
+      "stat": "damage_reduction"
+    },
+    {
+      "when": {
+        "cond": "counter_succeeded"
+      },
+      "then": [
+        {
+          "op": "mod",
+          "target": "sprite_self",
+          "stat": "survive",
+          "value": true
+        }
+      ]
     }
   ],
   "description": "✦减伤60%，应对攻击：本回合受到致命伤害时，保留1生命值。"

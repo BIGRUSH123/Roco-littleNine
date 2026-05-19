@@ -3,15 +3,12 @@
   "name": "击鼓传花",
   "element": "萌",
   "skill_type": "状态",
-  "power": 0,
   "energy_cost": 3,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "special",
-      "name": "escape_inherit"
+      "target": "sprite_self",
+      "op": "escape",
+      "inherit": true
     }
   ],
   "description": "✦自己脱离，下个入场精灵继承自己增益。"

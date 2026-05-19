@@ -3,16 +3,18 @@
   "name": "雾气环绕",
   "element": "冰",
   "skill_type": "状态",
-  "power": 0,
   "energy_cost": 1,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "special",
-      "name": "gain_energy_by_enemy",
-      "value": 0.5
+      "value": {
+        "q": "energy_total",
+        "of": "skill_opp_current",
+        "scale": 0.5
+      },
+      "target": "sprite_self",
+      "op": "mod",
+      "stat": "energy",
+      "mode": "add"
     }
   ],
   "description": "✦回复能量，回复值等于敌方技能总能耗的一半。"

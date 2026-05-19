@@ -3,24 +3,20 @@
   "name": "洗礼",
   "element": "水",
   "skill_type": "状态",
-  "power": 0,
   "energy_cost": 1,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "special",
-      "name": "dispel_negative",
-      "amount": -1,
-      "target": "self"
+      "target": "sprite_self",
+      "op": "dispel",
+      "what": "negative"
     },
     {
-      "kind": "stat",
-      "target": "self",
+      "value": -1,
+      "target": "sprite_self",
+      "op": "mod",
       "stat": "energy_cost",
-      "steps": -1,
-      "scope": "battlefield"
+      "mode": "add",
+      "skill_filter": "all"
     }
   ],
   "description": "✦驱散自己的减益，并获得全技能能耗-1。"

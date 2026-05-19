@@ -5,21 +5,19 @@
   "skill_type": "魔攻",
   "power": 40,
   "energy_cost": 2,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "conditional",
       "when": {
-        "kind": "energy_eq",
+        "cond": "energy_eq",
+        "of": "sprite_opp",
         "value": 0
       },
       "then": [
         {
-          "kind": "special",
-          "name": "damage_mult",
-          "value": 20.0
+          "op": "mod",
+          "target": "skill_off_0",
+          "stat": "damage_mult",
+          "value": 20
         }
       ]
     }

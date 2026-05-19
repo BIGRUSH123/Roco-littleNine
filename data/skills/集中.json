@@ -3,16 +3,26 @@
   "name": "集中",
   "element": "电",
   "skill_type": "防御",
-  "power": 0,
   "energy_cost": 2,
   "counter": "攻击",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "special",
-      "name": "damage_reduction",
-      "value": 0.8
+      "value": 0.8,
+      "target": "sprite_self",
+      "op": "mod",
+      "stat": "damage_reduction"
+    },
+    {
+      "when": {
+        "cond": "counter_succeeded"
+      },
+      "then": [
+        {
+          "op": "return",
+          "target": "sprite_self",
+          "needs": "turn_end"
+        }
+      ]
     }
   ],
   "description": "✦减伤80%，应对攻击：自己回合结束返场。"

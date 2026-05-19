@@ -3,16 +3,15 @@
   "name": "虫群智慧",
   "element": "虫",
   "skill_type": "状态",
-  "power": 0,
   "energy_cost": 3,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "special",
-      "name": "random_devotion",
-      "amount": 2
+      "value": 2,
+      "target": "team_own",
+      "op": "mod",
+      "stat": "devotion",
+      "mode": "add",
+      "name": "random"
     }
   ],
   "description": "✦己方队伍获得2次随机奉献。"

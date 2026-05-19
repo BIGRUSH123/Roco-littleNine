@@ -1,6 +1,6 @@
-"""tests/conftest.py — 测试根配置
+﻿"""tests/conftest.py — 测试根配置
 
-确保项目根目录在 sys.path 中，使 from scripts.xxx import ... 可用。
+确保项目根目录在 sys.path 中，使 from backend.xxx import ... 可用。
 """
 
 import sys

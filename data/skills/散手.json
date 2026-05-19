@@ -6,18 +6,17 @@
   "power": 35,
   "energy_cost": 3,
   "counter": "状态",
-  "priority": 0,
   "combo": 2,
   "effects": [
     {
-      "kind": "conditional",
       "when": {
-        "kind": "counter_succeeded"
+        "cond": "counter_succeeded"
       },
       "then": [
         {
-          "kind": "special",
-          "name": "multi_hit",
+          "op": "mod",
+          "target": "skill_off_0",
+          "stat": "combo",
           "value": 6
         }
       ]

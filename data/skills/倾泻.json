@@ -5,14 +5,21 @@
   "skill_type": "魔攻",
   "power": 70,
   "energy_cost": 3,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "special",
-      "name": "dispel_mark",
-      "target": "both"
+      "when": {
+        "cond": "not",
+        "condition": {
+          "cond": "self_was_countered"
+        }
+      },
+      "then": [
+        {
+          "op": "dispel",
+          "target": "team_both",
+          "what": "mark"
+        }
+      ]
     }
   ],
   "description": "✦造成魔伤，若本次攻击未被防御技能应对，则驱散双方所有印记。"

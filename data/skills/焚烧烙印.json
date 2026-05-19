@@ -2,19 +2,24 @@
   "id": 10629,
   "name": "焚烧烙印",
   "element": "火",
-  "skill_type": "状态",
-  "power": 0,
+  "skill_type": "魔攻",
   "energy_cost": 3,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "special",
-      "name": "dispel_mark",
-      "target": "both",
-      "abnormal_name": "灼烧",
-      "per_stack_value": 5
+      "target": "team_both",
+      "op": "dispel",
+      "what": "mark"
+    },
+    {
+      "value": {
+        "q": "mark_count",
+        "of": "team_both",
+        "name": "any",
+        "scale": 5
+      },
+      "target": "sprite_opp",
+      "op": "abnormal",
+      "name": "灼烧"
     }
   ],
   "description": "✦驱散双方所有印记，每驱散1层，敌方获得5层灼烧。"

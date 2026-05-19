@@ -1,4 +1,4 @@
-﻿"""scripts/sim/battle.py — 对局引擎
+﻿"""backend/sim/battle.py — 对局引擎
 
 回合 = 开始阶段 → 选择阶段 → 结算阶段 → 结束阶段
 """
@@ -23,12 +23,13 @@ from .traits.trait_engine import (
     fire_hook, fire_hook_first, get_data_trait_instance, DataDrivenTrait,
 )
 
+from backend.vm.ir_skill import CompiledSkill, ChargeOp
+
 if TYPE_CHECKING:
     from .player import Player
     from .sprite import Sprite
     from .skill import Skill
     from .agent import Agent
-    from backend.vm.ir_skill import CompiledSkill
 
 
 @dataclass
@@ -85,7 +86,6 @@ class Battle(BattleMechanicsMixin):
         self._vm_engine = BattleVMEngine()
         self._skill_compiler = SkillCompiler()
         self._skill_cache: dict[str, 'CompiledSkill'] = {}
-        self._use_vm = True  # toggle to switch between VM and legacy pipeline
         self.team_counters: dict[str, dict[str, int]] = {'A': {}, 'B': {}}  # pre-entry accumulators
         self.pending_effects: dict[str, list] = {'A': [], 'B': []}  # leave-buff → next entry
         self.scheduled_effects: list[dict] = []  # 延时效果队列 [{turn, phase, effects, ...}]
@@ -140,6 +140,12 @@ class Battle(BattleMechanicsMixin):
         self.turn += 1
         self._agent_a = agent_a
         self._agent_b = agent_b
+
+        # 每回合开始时，清空双方所有精灵的 VM modifier 累积
+        # （由 VM 管线每回合重新计算注入，不跨回合累加）
+        # 注意：_pending_modifiers 不清空，它用于 on_next 延迟注入
+        for sprite in self.player_a.team + self.player_b.team:
+            sprite._modifiers.clear()
 
         s_a = self.player_a.active
         s_b = self.player_b.active
@@ -374,25 +380,14 @@ class Battle(BattleMechanicsMixin):
         opponent_switched: bool = False,
     ) -> list[str]:
         """执行单个玩家的技能/聚能行动。"""
-        if self._use_vm:
-            return self._execute_skill_vm(
-                team, action,
-                is_countered=is_countered,
-                countered_skill=countered_skill,
-                countering_skill=countering_skill,
-                is_first=is_first,
-                opponent_switched=opponent_switched,
-            )
-        from .pipeline import SkillPipeline
-        pipeline = SkillPipeline(
-            battle=self, team=team, action=action,
+        return self._execute_skill_vm(
+            team, action,
             is_countered=is_countered,
             countered_skill=countered_skill,
             countering_skill=countering_skill,
             is_first=is_first,
             opponent_switched=opponent_switched,
         )
-        return pipeline.execute()
 
     # ── VM 技能执行 ──
 
@@ -466,6 +461,15 @@ class Battle(BattleMechanicsMixin):
                 f'{bs.name}，但被{opp_sprite.name}（{countering_skill.name}）应对了！'
             )
 
+        # ═══ Consume on_next pending modifiers ═══
+        # Must happen BEFORE energy gate so on_next energy_cost modifiers
+        # are consumed and visible to the energy payment calculation.
+        if user._pending_modifiers:
+            skill_type = getattr(bs.base, 'skill_type', '')
+            consumed = user.consume_pending_modifiers(skill_type)
+            for m in consumed:
+                events.append(f'{user.name} 触发待机效果: {m.stat}={m.value}')
+
         # ═══ Gate: 能量支付 ═══
         cost = bs.energy_cost
         # Energy cost modifier from VM pipeline (accumulated via ModifierInjection)
@@ -508,13 +512,6 @@ class Battle(BattleMechanicsMixin):
 
         user.inc_counter(f'skill_used:{bs.name}')
         user.inc_counter('skills_used')
-
-        # ═══ Consume on_next pending modifiers ═══
-        if user._pending_modifiers:
-            skill_type = getattr(bs.base, 'skill_type', '')
-            consumed = user.consume_pending_modifiers(skill_type)
-            for m in consumed:
-                events.append(f'{user.name} 触发待机效果: {m.stat}={m.value}')
 
         # ═══ Load CompiledSkill + execute VM ═══
         try:
@@ -579,7 +576,7 @@ class Battle(BattleMechanicsMixin):
             record = self._get_skill_record(bs.base.name)
         except FileNotFoundError:
             return None
-        has_charge = any(e.get('op') == 'charge' for e in record.effects)
+        has_charge = any(isinstance(e, ChargeOp) for e in record.effects)
 
         is_charging = getattr(user, '_charging', False)
         charged_idx = getattr(user, '_charged_skill_index', -1)

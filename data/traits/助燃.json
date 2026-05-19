@@ -2,28 +2,29 @@
   "id": 20019,
   "name": "助燃",
   "description": "使用火系技能后，获得双攻+20%。",
-  "triggers": [
+  "passive": [
     {
-      "on": "skill_use",
-      "condition": {
-        "path": "skill.element",
-        "op": "eq",
-        "value": "火"
+      "op": "count",
+      "when": {
+        "cond": "skill_use",
+        "element": "火"
       },
-      "effects": [
+      "then": [
         {
-          "kind": "stat",
+          "op": "mod",
+          "target": "sprite_self",
           "stat": "atk",
-          "steps": 2,
-          "scope": "battlefield",
-          "source": "助燃"
+          "value": 0.2,
+          "mode": "add",
+          "scope": "permanent"
         },
         {
-          "kind": "stat",
+          "op": "mod",
+          "target": "sprite_self",
           "stat": "sp_atk",
-          "steps": 2,
-          "scope": "battlefield",
-          "source": "助燃"
+          "value": 0.2,
+          "mode": "add",
+          "scope": "permanent"
         }
       ]
     }

@@ -3,18 +3,15 @@
   "name": "三鼓作气",
   "element": "普通",
   "skill_type": "状态",
-  "power": 0,
   "energy_cost": 3,
-  "counter": "无",
-  "priority": 0,
   "combo": 3,
   "effects": [
     {
-      "kind": "stat",
-      "target": "self",
+      "target": "sprite_self",
+      "op": "mod",
       "stat": "atk",
-      "steps": 3,
-      "scope": "battlefield"
+      "steps": 3
     }
-  ]
+  ],
+  "description": "✦ 提升自身30%物攻，3连击。"
 }

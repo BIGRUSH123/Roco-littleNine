@@ -46,6 +46,13 @@ class Ctx:
     stat_stages_self: dict[str, int] = field(default_factory=dict)  # {stat: stage} positive=boost
     energy_cost_sum_self: dict[str, int] = field(default_factory=dict)  # {type/element/tag: total energy}
     zero_cost_skill_count_self: int = 0  # number of 0-cost skills carried
+    # VM modifier injections (cross-skill, read from _modifiers by build_ctx)
+    power_mult_self: float = 1.0
+    damage_mult_self: float = 1.0
+    energy_cost_mult_self: float = 0.0
+    combo_mult_self: float = 1.0
+    life_drain_self: float = 0.0
+    mark_bonus_own: float = 0.0  # damage bonus from own team marks
 
     # ── 敌方精灵 ──
     hp_opp: int = 0
@@ -66,6 +73,8 @@ class Ctx:
     skill_elements_opp: frozenset = frozenset()
     stat_stages_opp: dict[str, int] = field(default_factory=dict)  # {stat: stage} positive=boost
     skills_energy_sum_opp: int = 0
+    power_mult_opp: float = 1.0
+    damage_mult_opp: float = 1.0
 
     # ── 双方队伍 ──
     mark_count_own: int = 0              # total mark stacks on own team
@@ -164,6 +173,12 @@ ADDRESS_MAP: dict[tuple[str, str], str] = {
     ("sprite_self", "is_charging"):        "is_charging_self",
     ("sprite_self", "first_action"):       "first_action_self",
     ("sprite_self", "energy_cost_sum"):    "energy_cost_sum_self",
+    ("sprite_self", "power_mult"):         "power_mult_self",
+    ("sprite_self", "damage_mult"):        "damage_mult_self",
+    ("sprite_self", "energy_cost_mult"):   "energy_cost_mult_self",
+    ("sprite_self", "combo_mult"):         "combo_mult_self",
+    ("sprite_self", "life_drain"):         "life_drain_self",
+    ("sprite_self", "mark_bonus"):         "mark_bonus_own",
 
     # sprite_opp
     ("sprite_opp", "hp"):                  "hp_opp",
@@ -183,6 +198,8 @@ ADDRESS_MAP: dict[tuple[str, str], str] = {
     ("sprite_opp", "damage_reduction"):    "damage_reduction_opp",
     ("sprite_opp", "hp_max"):             "hp_opp_max",
     ("sprite_opp", "skills_energy_sum"):   "skills_energy_sum_opp",
+    ("sprite_opp", "power_mult"):          "power_mult_opp",
+    ("sprite_opp", "damage_mult"):         "damage_mult_opp",
 
     # battle
     ("battle", "abnormal_stacks"):         "abnormal_stacks_battle",

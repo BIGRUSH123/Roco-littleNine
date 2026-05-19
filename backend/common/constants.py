@@ -32,7 +32,7 @@ LABEL_TO_KEY['双防'] = ('def', 'sp_def')
 
 MARK_TYPES: list[str] = [
     '星陨印记', '光合印记', '降临印记', '润泽印记', '蓄势印记', '蓄电印记',
-    '龙式印记', '中毒印记', '减速印记', '棘刺', '迟缓', '风起', '攻击印记',
+    '龙噬印记', '中毒印记', '减速印记', '棘刺', '迟缓', '风起', '攻击印记',
 ]
 MARK_PAT: str = '|'.join(sorted(MARK_TYPES, key=len, reverse=True))
 

@@ -5,13 +5,11 @@
   "skill_type": "物攻",
   "power": 45,
   "energy_cost": 5,
-  "counter": "无",
-  "priority": 0,
   "combo": 2,
   "effects": [
     {
-      "kind": "special",
-      "name": "escape"
+      "target": "sprite_self",
+      "op": "escape"
     }
   ],
   "description": "✦造成物伤，2连击，自己脱离。"

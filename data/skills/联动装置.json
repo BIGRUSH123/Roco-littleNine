@@ -3,27 +3,31 @@
   "name": "联动装置",
   "element": "机械",
   "skill_type": "状态",
-  "power": 0,
   "energy_cost": 0,
   "counter": "防御",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "special",
-      "name": "adjacent_power_bonus",
-      "value": 20
-    },
-    {
-      "kind": "conditional",
       "when": {
-        "kind": "counter_succeeded"
+        "cond": "counter_succeeded"
       },
       "then": [
         {
-          "kind": "special",
-          "name": "adjacent_power_bonus",
-          "value": 10
+          "op": "mod",
+          "target": "sprite_self",
+          "stat": "power",
+          "steps": 3,
+          "scope": "permanent",
+          "skill_filter": "adjacent"
+        }
+      ],
+      "else": [
+        {
+          "op": "mod",
+          "target": "sprite_self",
+          "stat": "power",
+          "steps": 2,
+          "scope": "permanent",
+          "skill_filter": "adjacent"
         }
       ]
     }

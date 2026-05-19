@@ -3,31 +3,30 @@
   "name": "流沙",
   "element": "地",
   "skill_type": "状态",
-  "power": 0,
   "energy_cost": 2,
   "counter": "防御",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "conditional",
+      "target": "sprite_opp",
+      "op": "lock",
+      "turns": 3
+    },
+    {
       "when": {
-        "kind": "counter_succeeded"
+        "cond": "counter_succeeded"
       },
       "then": [
         {
-          "kind": "stat",
-          "target": "opp",
+          "op": "mod",
+          "target": "sprite_opp",
           "stat": "def",
-          "steps": -6,
-          "scope": "battlefield"
+          "steps": -6
         },
         {
-          "kind": "stat",
-          "target": "opp",
+          "op": "mod",
+          "target": "sprite_opp",
           "stat": "sp_def",
-          "steps": -6,
-          "scope": "battlefield"
+          "steps": -6
         }
       ]
     }

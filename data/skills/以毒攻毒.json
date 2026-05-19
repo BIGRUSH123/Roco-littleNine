@@ -3,33 +3,18 @@
   "name": "以毒攻毒",
   "element": "毒",
   "skill_type": "状态",
-  "power": 0,
   "energy_cost": 1,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "abnormal",
-      "target": "self",
-      "name": "中毒",
-      "scope": "battlefield",
-      "stacks": 1
-    },
-    {
-      "kind": "special",
-      "name": "stat_by_abnormal",
+      "target": "sprite_self",
+      "op": "mod",
       "stat": "sp_atk",
-      "abnormal_name": "中毒",
-      "value": 3,
-      "target": "self"
-    },
-    {
-      "kind": "abnormal",
-      "target": "opp",
-      "name": "中毒",
-      "scope": "battlefield",
-      "stacks": 1
+      "steps": {
+        "q": "abnormal_stacks",
+        "of": "sprite_opp",
+        "name": "中毒",
+        "scale": 3
+      }
     }
   ],
   "description": "✦敌方每有1层中毒效果，自己获得魔攻+30%。"

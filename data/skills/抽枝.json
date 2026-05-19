@@ -6,19 +6,23 @@
   "power": 90,
   "energy_cost": 4,
   "counter": "状态",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "conditional",
       "when": {
-        "kind": "counter_succeeded"
+        "cond": "counter_succeeded"
       },
       "then": [
         {
-          "kind": "special",
-          "name": "heal",
+          "op": "mod",
+          "target": "sprite_self",
+          "stat": "hp",
           "value": 0.5
+        },
+        {
+          "op": "mod",
+          "target": "sprite_self",
+          "stat": "energy",
+          "value": 5
         }
       ]
     }

@@ -3,23 +3,18 @@
   "name": "充分燃烧",
   "element": "火",
   "skill_type": "状态",
-  "power": 0,
   "energy_cost": 3,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "special",
-      "name": "double_abnormal",
-      "target": "opp",
-      "abnormal_name": "灼烧"
+      "target": "sprite_opp",
+      "op": "double",
+      "what": "abnormal",
+      "name": "灼烧"
     },
     {
-      "kind": "special",
-      "name": "abnormal_tick",
-      "target": "opp",
-      "abnormal_name": "灼烧"
+      "target": "sprite_opp",
+      "op": "tick",
+      "name": "灼烧"
     }
   ],
   "description": "✦使敌方身上的灼烧翻倍，并触发1次灼烧伤害。"

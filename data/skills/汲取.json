@@ -5,16 +5,12 @@
   "skill_type": "魔攻",
   "power": 30,
   "energy_cost": 1,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "stat",
-      "target": "self",
-      "stat": "life_drain",
-      "steps": 10,
-      "scope": "battlefield"
+      "value": 1,
+      "target": "skill_off_0",
+      "op": "mod",
+      "stat": "life_drain"
     }
   ],
   "description": "✦造成魔伤，并吸血100%。"

@@ -5,16 +5,12 @@
   "skill_type": "物攻",
   "power": 90,
   "energy_cost": 3,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "stat",
-      "target": "opp",
+      "target": "sprite_opp",
+      "op": "mod",
       "stat": "speed",
-      "steps": -3,
-      "scope": "battlefield"
+      "steps": -3
     }
   ],
   "description": "✦造成物伤，敌方获得速度-30。"

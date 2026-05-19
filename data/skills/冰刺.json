@@ -6,7 +6,19 @@
   "power": 85,
   "energy_cost": 3,
   "counter": "状态",
-  "priority": 0,
-  "combo": 1,
-  "effects": []
+  "effects": [
+    {
+      "when": {
+        "cond": "counter_succeeded"
+      },
+      "then": [
+        {
+          "op": "lock",
+          "target": "sprite_opp",
+          "turns": 2
+        }
+      ]
+    }
+  ],
+  "description": "造成物伤，应对状态：敌方2回合无法换宠。"
 }

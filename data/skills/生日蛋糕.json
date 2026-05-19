@@ -3,22 +3,17 @@
   "name": "生日蛋糕",
   "element": "萌",
   "skill_type": "状态",
-  "power": 0,
   "energy_cost": 4,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "special",
-      "name": "dispel_negative",
-      "amount": -1,
-      "target": "self"
+      "target": "sprite_self",
+      "op": "dispel",
+      "what": "negative"
     },
     {
-      "kind": "special",
-      "name": "double_positive",
-      "target": "self"
+      "target": "sprite_self",
+      "op": "double",
+      "what": "positive"
     }
   ],
   "description": "✦驱散自己的减益，自己的增益翻倍。"

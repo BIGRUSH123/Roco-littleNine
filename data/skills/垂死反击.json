@@ -5,15 +5,18 @@
   "skill_type": "物攻",
   "power": 80,
   "energy_cost": 4,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "special",
-      "name": "power_by_missing_hp",
-      "value": 5,
-      "amount": 5
+      "value": {
+        "q": "hp_missing_ratio",
+        "of": "sprite_self",
+        "per": 0.05,
+        "scale": 5
+      },
+      "target": "skill_off_0",
+      "op": "mod",
+      "stat": "power",
+      "mode": "add"
     }
   ],
   "description": "✦造成物伤，自己每失去5%生命，本次技能威力+5。"

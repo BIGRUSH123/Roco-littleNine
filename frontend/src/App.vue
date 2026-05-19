@@ -1,13 +1,17 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useBattleStore } from './stores/battle.js'
+import { useSpriteAssetStore } from './stores/spriteAssets.js'
 import TeamSelection from './components/TeamSelection.vue'
 import BattleArena from './components/BattleArena.vue'
 import BattleLog from './components/BattleLog.vue'
+import TypeChart from './components/TypeChart.vue'
+import TimelineReplay from './components/TimelineReplay.vue'
 
 const battleStore = useBattleStore()
+const spriteAssets = useSpriteAssetStore()
 
-const API_BASE = 'http://localhost:8000/api'
+const API_BASE = '/api'
 
 const currentPhase = ref('selection')
 const battleState = ref(null)
@@ -17,6 +21,7 @@ const battleError = ref('')
 const skillMap = ref({})
 const typeChart = ref({})
 const debugMode = ref(false)
+const showReplay = ref(false)
 
 onMounted(async () => {
   try {
@@ -27,10 +32,14 @@ onMounted(async () => {
     if (skillsRes.ok) {
       const data = await skillsRes.json()
       skillMap.value = data.skills || {}
+    } else {
+      console.error('Skills load failed:', skillsRes.status)
     }
     if (chartRes.ok) {
       const data = await chartRes.json()
       typeChart.value = data.chart || {}
+    } else {
+      console.error('Type chart load failed:', chartRes.status)
     }
   } catch (e) {
     console.error('Failed to load data:', e)
@@ -61,15 +70,19 @@ const handleQuickTest = async () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ team: TEST_TEAM, opponent_team: TEST_OPPONENT, lead_index: 0 })
     })
-    if (!res.ok) throw new Error('战斗初始化失败')
+    if (!res.ok) {
+      const errText = await res.text()
+      throw new Error(`HTTP ${res.status}: ${errText}`)
+    }
     const data = await res.json()
     battleState.value = data
     battleStore.updateFromResponse(data)
     battleLogs.value = ['快速测试开始！']
+    spriteAssets.preloadTeam([...TEST_TEAM.map(s => s.name), ...TEST_OPPONENT.map(s => s.name)])
     currentPhase.value = 'battle'
   } catch (error) {
     console.error('Error starting battle:', error)
-    alert('初始化战斗失败，请确认后端已启动。')
+    alert(`初始化战斗失败: ${error.message}`)
   } finally {
     isProcessing.value = false
   }
@@ -84,16 +97,20 @@ const handleStartBattle = async ({ team, leadIndex, item }) => {
       body: JSON.stringify({ team, opponent_team: TEST_OPPONENT, lead_index: leadIndex, item: item || undefined })
     })
 
-    if (!res.ok) throw new Error('战斗初始化失败')
+    if (!res.ok) {
+      const errText = await res.text()
+      throw new Error(`HTTP ${res.status}: ${errText}`)
+    }
 
     const data = await res.json()
     battleState.value = data
     battleStore.updateFromResponse(data)
     battleLogs.value = ['战斗开始！']
+    spriteAssets.preloadTeam([...team.map(s => s.name), ...TEST_OPPONENT.map(s => s.name)])
     currentPhase.value = 'battle'
   } catch (error) {
     console.error('Error starting battle:', error)
-    alert('初始化战斗失败，请确认后端已启动。')
+    alert(`初始化战斗失败: ${error.message}`)
   } finally {
     isProcessing.value = false
   }
@@ -142,16 +159,21 @@ const handleDebugInit = async () => {
   try {
     isProcessing.value = true
     const res = await fetch(`${API_BASE}/debug/init`, { method: 'POST' })
-    if (!res.ok) throw new Error('调试初始化失败')
+    if (!res.ok) {
+      const errText = await res.text()
+      throw new Error(`HTTP ${res.status}: ${errText}`)
+    }
     const data = await res.json()
     battleState.value = data
     battleStore.updateFromResponse(data)
     battleLogs.value = [`[调试模式] 双方准备就绪 | 我方 ${data.debug_skills_a?.length || 0} 技能 | 对方 ${data.debug_skills_b?.length || 0} 技能`]
+    if (data.player_a?.team) spriteAssets.preloadTeam(data.player_a.team.map(s => s.name))
+    if (data.player_b?.team) spriteAssets.preloadTeam(data.player_b.team.map(s => s.name))
     currentPhase.value = 'battle'
     debugMode.value = true
   } catch (error) {
     console.error('Debug init failed:', error)
-    alert('调试模式初始化失败，请确认后端已启动。')
+    alert(`调试模式初始化失败: ${error.message}`)
   } finally {
     isProcessing.value = false
   }
@@ -197,6 +219,7 @@ const restartGame = () => {
   battleState.value = null
   battleLogs.value = []
   debugMode.value = false
+  showReplay.value = false
   battleStore.resetBattle()
 }
 </script>
@@ -235,9 +258,16 @@ const restartGame = () => {
           {{ battleState?.weather ? `天气: ${battleState.weather}` : '无天气' }}
         </span>
         <button
+          @click="showReplay = true"
+          :disabled="battleStore.turnSnapshots.length === 0"
+          class="ml-auto px-3 py-1.5 bg-[#C9A96E] hover:bg-[#B0985D] disabled:opacity-30 disabled:cursor-not-allowed text-white text-xs font-bold rounded-xl transition-colors mr-2 shadow-[0_2px_0_rgba(61,43,31,0.15)]"
+        >
+          ⏸ 时间线回放
+        </button>
+        <button
           v-if="debugMode"
           @click="restartGame"
-          class="ml-auto px-4 py-1.5 bg-[#D4534A] hover:bg-[#C62828] text-white text-xs font-bold rounded-xl transition-colors mr-2 shadow-[0_2px_0_rgba(61,43,31,0.15)]"
+          class="px-4 py-1.5 bg-[#D4534A] hover:bg-[#C62828] text-white text-xs font-bold rounded-xl transition-colors mr-2 shadow-[0_2px_0_rgba(61,43,31,0.15)]"
         >
           退出调试
         </button>
@@ -275,10 +305,13 @@ const restartGame = () => {
             />
           </div>
 
-          <!-- Right Sidebar: Log + Type Chart -->
-          <div class="lg:w-80 xl:w-96 flex-shrink-0 flex flex-col border-l border-[#D4C8B8]">
-            <div class="flex-1">
+          <!-- Right Sidebar: Log (70%) + Type Chart (30%) -->
+          <div class="lg:w-80 xl:w-96 flex-shrink-0 flex flex-col border-l border-[#D4C8B8] min-h-0">
+            <div class="flex-[7] min-h-0 overflow-y-auto">
               <BattleLog :logs="battleLogs" />
+            </div>
+            <div class="flex-[3] border-t border-[#D4C8B8] overflow-y-auto">
+              <TypeChart :type-chart="typeChart" />
             </div>
           </div>
 
@@ -286,6 +319,9 @@ const restartGame = () => {
       </Transition>
 
     </main>
+
+    <!-- Timeline Replay Dialog -->
+    <TimelineReplay :is-open="showReplay" @close="showReplay = false" />
 
     <!-- Game Over Overlay -->
     <div v-if="battleState?.is_finished" class="fixed inset-0 bg-[#3D2B1F]/60 flex items-center justify-center z-50">

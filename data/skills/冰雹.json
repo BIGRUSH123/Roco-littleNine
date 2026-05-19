@@ -6,21 +6,19 @@
   "power": 105,
   "energy_cost": 4,
   "counter": "状态",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "conditional",
       "when": {
-        "kind": "counter_succeeded"
+        "cond": "counter_succeeded"
       },
       "then": [
         {
-          "kind": "stat",
-          "target": "opp",
+          "op": "mod",
+          "target": "sprite_opp",
           "stat": "energy_cost",
-          "steps": 3,
-          "scope": "battlefield"
+          "value": 3,
+          "mode": "add",
+          "skill_filter": "all"
         }
       ]
     }

@@ -3,21 +3,11 @@
   "name": "超维投射",
   "element": "幻",
   "skill_type": "状态",
-  "power": 0,
   "energy_cost": 4,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "mark",
-      "target": "own_team",
-      "name": "星陨印记",
-      "stacks": 4
-    },
-    {
-      "kind": "mark",
       "target": "opp_team",
+      "op": "mark",
       "name": "星陨印记",
       "stacks": 4
     }

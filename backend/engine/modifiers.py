@@ -1,4 +1,4 @@
-"""Modifier collector — compute effective modifier values from Journal.
+﻿"""Modifier collector — compute effective modifier values from Journal.
 
 After VM execution, the engine scans the journal for ModifierInjections,
 computes effective values for each modifier category, and adjusts Damage
@@ -16,10 +16,10 @@ via the snapshot → replayer → _modifiers loop.
 from __future__ import annotations
 from typing import TYPE_CHECKING
 
-from scripts.vm.journal import Journal, Mutation, Damage, ModifierInjection
+from backend.vm.journal import Journal, Mutation, Damage, ModifierInjection
 
 if TYPE_CHECKING:
-    from scripts.vm.ctx import Ctx
+    from backend.vm.ctx import Ctx
 
 
 def collect_modifiers(journal: Journal, ctx: Ctx) -> dict:
@@ -65,6 +65,17 @@ def collect_modifiers(journal: Journal, ctx: Ctx) -> dict:
             elif mode == "set" and value != 0:
                 mods["power_base"] = value
 
+    # Convert power_add to equivalent power_mult multiplier
+    if mods.get("power_add", 0) > 0 and ctx.power_self > 0:
+        effective_power = ctx.power_self + mods["power_add"]
+        mods["power_mult"] *= effective_power / ctx.power_self
+
+    # Compute same-skill damage_reduction delta (ctx already has cross-skill value)
+    base_dr = ctx.damage_reduction_opp
+    total_dr = mods.get("damage_reduction", base_dr)
+    if total_dr > base_dr:
+        mods["damage_reduction_delta"] = total_dr - base_dr
+
     return mods
 
 
@@ -101,6 +112,53 @@ def adjust_damage(dmg: Damage, mods: dict) -> Damage:
         element=dmg.element,
         type=dmg.type,
     )
+
+
+def eval_skill_where(skill_where: dict | None, skill: dict) -> bool:
+    """Evaluate a skill_where condition against a single skill's properties.
+
+    skill_where format: {"q": "energy_cost", "op": "gt", "value": 3}
+    Returns True if the skill matches the condition (or no condition).
+    """
+    if not skill_where:
+        return True
+    q = skill_where.get("q", "")
+    op = skill_where.get("op", "eq")
+    expected = skill_where.get("value")
+    actual = skill.get(q)
+    if actual is None:
+        return False
+    if op == "gt":
+        return actual > expected
+    elif op == "gte":
+        return actual >= expected
+    elif op == "lt":
+        return actual < expected
+    elif op == "lte":
+        return actual <= expected
+    elif op == "eq":
+        return actual == expected
+    elif op == "neq":
+        return actual != expected
+    return False
+
+
+def select_skills_by_element(skills: list[dict], per_element: int) -> list[dict]:
+    """Select skills when element='each', taking at most per_element per element group.
+
+    Skills are grouped by element, then the first per_element from each group
+    are selected (in original order within each group).
+    """
+    if per_element is None or per_element <= 0:
+        return list(skills)
+    groups: dict[str, list[dict]] = {}
+    for s in skills:
+        el = s.get("element", "普通")
+        groups.setdefault(el, []).append(s)
+    selected = []
+    for el, group in groups.items():
+        selected.extend(group[:per_element])
+    return selected
 
 
 def apply_modifiers_to_journal(journal: Journal, ctx: Ctx) -> Journal:

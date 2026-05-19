@@ -3,16 +3,12 @@
   "name": "落井下毒",
   "element": "毒",
   "skill_type": "状态",
-  "power": 0,
   "energy_cost": 6,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "special",
-      "name": "double_negative",
-      "target": "opp"
+      "target": "sprite_opp",
+      "op": "double",
+      "what": "negative"
     }
   ],
   "description": "✦使敌方精灵减益的层数翻倍。"

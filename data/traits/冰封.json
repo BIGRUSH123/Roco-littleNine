@@ -2,21 +2,15 @@
   "id": 20016,
   "name": "冰封",
   "description": "在场时，敌方全技能能耗+1。离场后敌方能耗恢复。",
-  "triggers": [
+  "passive": [
     {
-      "aura": {
-        "name": "冰封",
-        "target": "target",
-        "effects": [
-          {
-            "kind": "stat",
-            "stat": "energy_cost",
-            "steps": 1,
-            "scope": "battlefield",
-            "source": "冰封"
-          }
-        ]
-      }
+      "op": "mod",
+      "target": "sprite_opp",
+      "stat": "energy_cost",
+      "value": 1,
+      "mode": "add",
+      "scope": "battlefield",
+      "skill_filter": "all"
     }
   ]
 }

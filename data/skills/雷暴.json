@@ -5,14 +5,33 @@
   "skill_type": "魔攻",
   "power": 55,
   "energy_cost": 1,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "special",
-      "name": "burst",
-      "target": "burst_collect"
+      "op": "replay",
+      "from": "team_burst",
+      "what": "burst"
+    },
+    {
+      "value": {
+        "q": "burst_triggered_count",
+        "of": "team_own",
+        "scale": 1
+      },
+      "target": "skill_off_0",
+      "op": "mod",
+      "stat": "energy_cost",
+      "mode": "add"
+    },
+    {
+      "value": {
+        "q": "burst_triggered_count",
+        "of": "team_own",
+        "scale": 10
+      },
+      "target": "skill_off_0",
+      "op": "mod",
+      "stat": "power",
+      "mode": "add"
     }
   ],
   "description": "✦造成魔伤，迸发：本技能获得所有生效过的迸发，每获得1种，本技能能耗+1，威力+10。"

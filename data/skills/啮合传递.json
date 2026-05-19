@@ -3,26 +3,40 @@
   "name": "啮合传递",
   "element": "机械",
   "skill_type": "状态",
-  "power": 0,
   "energy_cost": 1,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "stat",
-      "target": "self",
+      "value": 80,
+      "target": "sprite_self",
+      "op": "mod",
       "stat": "speed",
-      "steps": 8,
-      "scope": "battlefield"
+      "mode": "add"
     },
     {
-      "kind": "stat",
-      "target": "self",
-      "stat": "atk",
-      "steps": 6,
-      "scope": "battlefield"
+      "when": {
+        "cond": "or",
+        "conditions": [
+          {
+            "cond": "skill_at",
+            "position": 1
+          },
+          {
+            "cond": "skill_at",
+            "position": 3
+          }
+        ]
+      },
+      "then": [
+        {
+          "op": "mod",
+          "target": "sprite_self",
+          "stat": "atk",
+          "value": 0.6,
+          "mode": "add"
+        }
+      ]
     }
   ],
-  "description": "✦自己获得速度+80，本技能位于1号或3号位时额外获得物攻+60%，传动1。"
+  "description": "✦自己获得速度+80，本技能位于1号或3号位时额外获得物攻+60%，传动1。",
+  "tag": "传动"
 }

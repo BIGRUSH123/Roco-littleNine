@@ -3,31 +3,31 @@
   "name": "极速冷冻",
   "element": "冰",
   "skill_type": "状态",
-  "power": 0,
   "energy_cost": 2,
   "counter": "防御",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "stat",
-      "target": "self",
-      "stat": "energy_cost",
-      "steps": 2,
-      "scope": "battlefield"
-    },
-    {
-      "kind": "conditional",
       "when": {
-        "kind": "counter_succeeded"
+        "cond": "counter_succeeded"
       },
       "then": [
         {
-          "kind": "stat",
-          "target": "opp",
+          "op": "mod",
+          "target": "skill_opp_current",
           "stat": "energy_cost",
-          "steps": 2,
-          "scope": "battlefield"
+          "value": 4,
+          "mode": "add",
+          "feeds": "cost"
+        }
+      ],
+      "else": [
+        {
+          "op": "mod",
+          "target": "skill_opp_current",
+          "stat": "energy_cost",
+          "value": 2,
+          "mode": "add",
+          "feeds": "cost"
         }
       ]
     }

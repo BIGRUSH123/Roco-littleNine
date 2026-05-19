@@ -3,16 +3,12 @@
   "name": "借用",
   "element": "普通",
   "skill_type": "状态",
-  "power": 0,
   "energy_cost": 0,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
-  "effects": [
-    {
-      "kind": "special",
-      "name": "borrow_skill"
-    }
-  ],
-  "description": "✦每回合随机变成己方队伍中其他精灵的技能。"
+  "effects": [],
+  "description": "✦每回合随机变成己方队伍中其他精灵的技能。",
+  "morph": {
+    "from": "team_own",
+    "mode": "random",
+    "exclude_self": true
+  }
 }

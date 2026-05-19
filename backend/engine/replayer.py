@@ -1,4 +1,4 @@
-"""JournalReplayer — apply VM Mutations to mutable battle state.
+﻿"""JournalReplayer — apply VM Mutations to mutable battle state.
 
 Pure counterpart to the VM: takes a Journal and replays each Mutation
 against the mutable Sprite/GlobalEffects objects, producing side effects
@@ -8,7 +8,7 @@ and observer-triggering events.
 from __future__ import annotations
 from typing import TYPE_CHECKING
 
-from scripts.vm.journal import (
+from backend.vm.journal import (
     StatChange, ModifierInjection, Damage, Heal, EnergyChange,
     MarkChange, AbnormalChange, WeatherSet, Dispel, Steal, Tick,
     Double, Charge, Escape, Return, Lock, Interrupt, Exchange,
@@ -20,6 +20,15 @@ if TYPE_CHECKING:
     from sim.sprite import Sprite, StatusEffect
     from sim.globals import GlobalEffects
     from .observer import ObserverRegistry
+
+
+# Stats whose values are ratios (display as percentage)
+_RATIO_STATS: frozenset[str] = frozenset({
+    "power_mult", "damage_mult", "damage_reduction",
+    "energy_cost_mult",
+    "heal_reverse", "life_drain",
+    "ignore_resistance", "ignore_mods", "survive",
+})
 
 
 class JournalReplayer:
@@ -132,8 +141,16 @@ class JournalReplayer:
         ModifierInjections carry values like damage_reduction, power_mult,
         combo, etc. They are stored on the sprite's _modifiers dict and
         read by build_ctx when constructing Ctx for subsequent skills.
+
+        If on_next=True, the modifier is deferred to _pending_modifiers
+        and will be consumed on the next matching skill use.
         """
         sprite = self._target_sprite(m.target)
+
+        if m.on_next:
+            sprite._pending_modifiers.append(m)
+            return f"{sprite.name} {m.stat} pending (on_next, if_type={m.if_type})"
+
         cur = sprite._modifiers.get(m.stat)  # None if never set (distinct from 0.0)
         if m.mode == "set":
             sprite._modifiers[m.stat] = m.value
@@ -143,7 +160,10 @@ class JournalReplayer:
             sprite._modifiers[m.stat] = (cur or 1.0) * m.value if cur is not None else m.value
         else:
             sprite._modifiers[m.stat] = m.value
-        return f"{sprite.name} {m.stat}={sprite._modifiers[m.stat]:.0%}"
+        final = sprite._modifiers[m.stat]
+        if m.stat in _RATIO_STATS:
+            return f"{sprite.name} {m.stat}={final:.0%}"
+        return f"{sprite.name} {m.stat}={final:+.0f}"
 
     def _apply_damage(self, m: Damage) -> str:
         sprite = self._target_sprite(m.target)
@@ -238,17 +258,25 @@ class JournalReplayer:
             return f"{self.self.name} 偷取 {stolen}E from {target.name}"
         elif m.what == "mark":
             # Determine team for mark stealing
-            from_team = "A" if m.from_target == "team_own" else "B"
-            to_team = self.team
+            from_team_key = "A" if m.from_target == "team_own" else "B"
+            to_team_key = self.team
             name = m.name  # specific mark name, or None = all
             if name:
-                # Steal specific mark
-                stacks = self.globals.get_mark_stacks(from_team, name)
-                if stacks > 0:
-                    self.globals.remove_mark(from_team, name, stacks)
-                    self.globals.apply_mark(to_team, name,
-                        self.globals.classify_mark(name), stacks)
-                    return f"{self.self.name} 偷取 {name} ×{stacks}"
+                # Steal specific mark: find it, remove it, apply to own team
+                mark = self.globals.get_mark_by_name(from_team_key, name)
+                if mark and mark.stacks > 0:
+                    stacks = mark.stacks
+                    category = mark.category
+                    # Remove from source team's list
+                    if from_team_key == "A":
+                        src_list = self.globals.pos_marks_a if category == "positive" else self.globals.neg_marks_a
+                    else:
+                        src_list = self.globals.pos_marks_b if category == "positive" else self.globals.neg_marks_b
+                    if mark in src_list:
+                        src_list.remove(mark)
+                    # Apply to own team
+                    self.globals.apply_mark(to_team_key, name, category, stacks)
+                    return f"{self.self.name} 偷取 {name} x{stacks}"
             return ""
         return ""
 

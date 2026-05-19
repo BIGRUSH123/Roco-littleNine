@@ -3,25 +3,22 @@
   "name": "示弱",
   "element": "萌",
   "skill_type": "状态",
-  "power": 0,
   "energy_cost": 1,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "abnormal",
-      "target": "self",
+      "target": "sprite_self",
+      "op": "abnormal",
       "name": "萌化",
-      "scope": "persistent",
-      "stacks": 1
-    },
-    {
-      "kind": "stat",
-      "target": "self",
-      "stat": "speed",
-      "steps": 15,
-      "scope": "permanent"
+      "stacks": 1,
+      "then": [
+        {
+          "op": "mod",
+          "target": "sprite_self",
+          "stat": "speed",
+          "steps": 15,
+          "scope": "permanent"
+        }
+      ]
     }
   ],
   "description": "✦自己获得萌化：速度永久+150。"

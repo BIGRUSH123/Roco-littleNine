@@ -3,35 +3,31 @@
   "name": "芳香诱引",
   "element": "草",
   "skill_type": "状态",
-  "power": 0,
   "energy_cost": 1,
   "counter": "防御",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "stat",
-      "target": "self",
+      "value": 3,
+      "target": "sprite_self",
+      "op": "mod",
       "stat": "combo",
-      "steps": 3,
-      "scope": "battlefield"
+      "mode": "add"
     },
     {
-      "kind": "conditional",
       "when": {
-        "kind": "counter_succeeded"
+        "cond": "counter_succeeded"
       },
       "then": [
         {
-          "kind": "special",
-          "name": "interrupt"
+          "op": "interrupt",
+          "target": "sprite_opp"
         },
         {
-          "kind": "abnormal",
-          "target": "opp",
+          "op": "abnormal",
+          "target": "sprite_opp",
           "name": "眩晕",
-          "scope": "battlefield",
-          "stacks": 1
+          "stacks": 1,
+          "delay": 1
         }
       ]
     }

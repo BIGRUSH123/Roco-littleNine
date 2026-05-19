@@ -6,15 +6,27 @@
   "power": 25,
   "energy_cost": 2,
   "counter": "状态",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "abnormal",
-      "target": "opp",
-      "name": "中毒",
-      "scope": "battlefield",
-      "stacks": 2
+      "when": {
+        "cond": "counter_succeeded"
+      },
+      "then": [
+        {
+          "op": "abnormal",
+          "target": "sprite_opp",
+          "name": "中毒",
+          "stacks": 6
+        }
+      ],
+      "else": [
+        {
+          "op": "abnormal",
+          "target": "sprite_opp",
+          "name": "中毒",
+          "stacks": 2
+        }
+      ]
     }
   ],
   "description": "✦造成物伤，敌方获得2层中毒，应对状态：改为获得6层。"

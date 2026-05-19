@@ -2,31 +2,42 @@
   "id": 20024,
   "name": "向心力",
   "description": "1号位和2号位技能获得传动1和威力+30。",
-  "triggers": [
+  "passive": [
     {
-      "on": "entry",
-      "battleskill_mut": [
+      "op": "count",
+      "when": {
+        "cond": "sprite_entered"
+      },
+      "then": [
         {
-          "filter": {
-            "slot": [
-              0,
-              1
-            ]
-          },
-          "field": "_transmission",
-          "op": "set",
-          "value": 1
+          "op": "mod",
+          "target": "skill_at_1",
+          "stat": "power",
+          "value": 30,
+          "mode": "add",
+          "scope": "battlefield"
         },
         {
-          "filter": {
-            "slot": [
-              0,
-              1
-            ]
-          },
-          "field": "power_mod",
-          "op": "add",
-          "value": 30
+          "op": "mod",
+          "target": "skill_at_1",
+          "stat": "drive",
+          "value": 1,
+          "scope": "battlefield"
+        },
+        {
+          "op": "mod",
+          "target": "skill_at_2",
+          "stat": "power",
+          "value": 30,
+          "mode": "add",
+          "scope": "battlefield"
+        },
+        {
+          "op": "mod",
+          "target": "skill_at_2",
+          "stat": "drive",
+          "value": 1,
+          "scope": "battlefield"
         }
       ]
     }

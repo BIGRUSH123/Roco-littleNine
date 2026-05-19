@@ -5,13 +5,22 @@
   "skill_type": "魔攻",
   "power": 75,
   "energy_cost": 3,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "special",
-      "name": "power_double_on_ko"
+      "op": "count",
+      "when": {
+        "cond": "on_ko"
+      },
+      "then": [
+        {
+          "op": "mod",
+          "target": "skill_off_0",
+          "stat": "power_mult",
+          "value": 2,
+          "mode": "multiply",
+          "scope": "permanent"
+        }
+      ]
     }
   ],
   "description": "✦造成魔伤，每次击败敌方，本技能威力永久翻倍。"

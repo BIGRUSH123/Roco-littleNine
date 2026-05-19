@@ -3,21 +3,29 @@
   "name": "听桥",
   "element": "武",
   "skill_type": "防御",
-  "power": 0,
   "energy_cost": 4,
   "counter": "攻击",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "special",
-      "name": "damage_reduction",
-      "value": 0.6
+      "value": 0.6,
+      "target": "sprite_self",
+      "op": "mod",
+      "stat": "damage_reduction"
     },
     {
-      "kind": "special",
-      "name": "counter_damage",
-      "value": 0
+      "when": {
+        "cond": "counter_succeeded"
+      },
+      "then": [
+        {
+          "op": "hit",
+          "power": {
+            "q": "power_base",
+            "of": "skill_opp_current"
+          },
+          "type": "物攻"
+        }
+      ]
     }
   ],
   "description": "✦减伤60%，应对攻击：对敌方造成物理伤害，威力与被应对技能相等。"

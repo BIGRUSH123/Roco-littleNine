@@ -5,9 +5,6 @@
   "skill_type": "魔攻",
   "power": 40,
   "energy_cost": 0,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
   "effects": [],
   "description": "✦对敌方精灵造成魔法伤害。"
 }

@@ -5,14 +5,17 @@
   "skill_type": "物攻",
   "power": 180,
   "energy_cost": 4,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "special",
-      "name": "power_penalty_by_energy",
-      "value": 10
+      "value": {
+        "q": "energy",
+        "of": "sprite_opp",
+        "scale": -0.1
+      },
+      "target": "skill_off_0",
+      "op": "mod",
+      "stat": "power_mult",
+      "mode": "add"
     }
   ],
   "description": "✦造成物伤，敌方每有1能量，本次技能威力-10%。"

@@ -5,15 +5,11 @@
   "skill_type": "物攻",
   "power": 20,
   "energy_cost": 0,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "abnormal",
-      "target": "opp",
+      "target": "sprite_opp",
+      "op": "abnormal",
       "name": "中毒",
-      "scope": "battlefield",
       "stacks": 1
     }
   ],

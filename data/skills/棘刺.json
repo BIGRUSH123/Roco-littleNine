@@ -3,22 +3,12 @@
   "name": "棘刺",
   "element": "普通",
   "skill_type": "状态",
-  "power": 0,
   "energy_cost": 2,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "mark",
-      "target": "own_team",
+      "target": "team_opp",
+      "op": "mark",
       "name": "棘刺印记",
-      "stacks": 1
-    },
-    {
-      "kind": "mark",
-      "target": "opp_team",
-      "name": "棘刺",
       "stacks": 1
     }
   ],

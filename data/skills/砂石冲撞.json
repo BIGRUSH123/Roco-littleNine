@@ -5,23 +5,19 @@
   "skill_type": "物攻",
   "power": 80,
   "energy_cost": 3,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "stat",
-      "target": "opp",
-      "stat": "def",
-      "steps": 10,
-      "scope": "battlefield"
-    },
-    {
-      "kind": "stat",
-      "target": "self",
-      "stat": "def",
-      "steps": 10,
-      "scope": "battlefield"
+      "when": {
+        "cond": "opp_switched"
+      },
+      "then": [
+        {
+          "op": "mod",
+          "target": "sprite_self",
+          "stat": "def",
+          "steps": 10
+        }
+      ]
     }
   ],
   "description": "✦造成物伤，若敌方本回合更换精灵，自己获得物防+100%。"

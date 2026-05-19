@@ -3,23 +3,15 @@
   "name": "星链",
   "element": "幻",
   "skill_type": "状态",
-  "power": 0,
   "energy_cost": 3,
-  "counter": "无",
-  "priority": 0,
   "combo": 2,
   "effects": [
     {
-      "kind": "mark",
-      "target": "own_team",
-      "name": "每次连击1星陨印记",
-      "stacks": 1
-    },
-    {
-      "kind": "mark",
-      "target": "opp_team",
+      "target": "team_opp",
+      "op": "mark",
       "name": "星陨印记",
-      "stacks": 1
+      "stacks": 1,
+      "per_hit": true
     }
   ],
   "description": "✦2连击，每次连击使敌方获得1层星陨印记。"

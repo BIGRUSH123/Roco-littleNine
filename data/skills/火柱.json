@@ -5,7 +5,5 @@
   "skill_type": "魔攻",
   "power": 90,
   "energy_cost": 3,
-  "counter": "无",
-  "priority": 0,
   "effects": []
 }

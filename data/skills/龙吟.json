@@ -3,36 +3,37 @@
   "name": "龙吟",
   "element": "龙",
   "skill_type": "状态",
-  "power": 0,
   "energy_cost": 3,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "special",
-      "name": "charge"
-    },
-    {
-      "kind": "stat",
-      "target": "self",
-      "stat": "atk",
-      "steps": 10,
-      "scope": "battlefield"
-    },
-    {
-      "kind": "stat",
-      "target": "self",
-      "stat": "sp_atk",
-      "steps": 10,
-      "scope": "battlefield"
-    },
-    {
-      "kind": "stat",
-      "target": "self",
-      "stat": "speed",
-      "steps": 6,
-      "scope": "battlefield"
+      "when": {
+        "cond": "charged"
+      },
+      "then": [
+        {
+          "op": "mod",
+          "target": "sprite_self",
+          "stat": "atk",
+          "steps": 10
+        },
+        {
+          "op": "mod",
+          "target": "sprite_self",
+          "stat": "sp_atk",
+          "steps": 10
+        },
+        {
+          "op": "mod",
+          "target": "sprite_self",
+          "stat": "speed",
+          "steps": 6
+        }
+      ],
+      "else": [
+        {
+          "op": "charge"
+        }
+      ]
     }
   ],
   "description": "✦蓄力，自己获得双攻+100%和速度+60。"

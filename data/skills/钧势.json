@@ -3,25 +3,19 @@
   "name": "钧势",
   "element": "地",
   "skill_type": "状态",
-  "power": 0,
   "energy_cost": 3,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "stat",
-      "target": "self",
+      "target": "sprite_self",
+      "op": "mod",
       "stat": "def",
-      "steps": 14,
-      "scope": "battlefield"
+      "steps": 14
     },
     {
-      "kind": "stat",
-      "target": "self",
+      "target": "sprite_self",
+      "op": "mod",
       "stat": "speed",
-      "steps": -3,
-      "scope": "battlefield"
+      "steps": -3
     }
   ],
   "description": "✦自己获得物防+140%和速度-30。"

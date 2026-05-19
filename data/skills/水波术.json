@@ -5,16 +5,15 @@
   "skill_type": "魔攻",
   "power": 90,
   "energy_cost": 6,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "stat",
-      "target": "opp",
+      "value": 20,
+      "target": "skill_off_0",
+      "op": "mod",
       "stat": "power",
-      "steps": 2,
-      "scope": "persistent"
+      "mode": "add",
+      "scope": "permanent",
+      "needs": "turn_end"
     }
   ],
   "description": "✦造成魔伤，回合结束时，本技能威力永久+20。"

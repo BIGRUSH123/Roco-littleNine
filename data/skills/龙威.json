@@ -3,16 +3,12 @@
   "name": "龙威",
   "element": "龙",
   "skill_type": "状态",
-  "power": 0,
   "energy_cost": 3,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "mark",
       "target": "own_team",
-      "name": "自己1龙噬印记",
+      "op": "mark",
+      "name": "龙噬印记",
       "stacks": 1
     }
   ],

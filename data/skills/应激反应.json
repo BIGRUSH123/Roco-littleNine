@@ -3,27 +3,27 @@
   "name": "应激反应",
   "element": "普通",
   "skill_type": "状态",
-  "power": 0,
   "energy_cost": 2,
   "counter": "防御",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "special",
-      "name": "heal",
-      "value": 0.25
-    },
-    {
-      "kind": "conditional",
       "when": {
-        "kind": "counter_succeeded"
+        "cond": "counter_succeeded"
       },
       "then": [
         {
-          "kind": "special",
-          "name": "heal",
+          "op": "mod",
+          "target": "sprite_self",
+          "stat": "hp",
           "value": 0.5
+        }
+      ],
+      "else": [
+        {
+          "op": "mod",
+          "target": "sprite_self",
+          "stat": "hp",
+          "value": 0.25
         }
       ]
     }

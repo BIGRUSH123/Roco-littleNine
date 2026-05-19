@@ -5,16 +5,14 @@
   "skill_type": "物攻",
   "power": 90,
   "energy_cost": 4,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "stat",
-      "target": "opp",
+      "value": 1,
+      "target": "sprite_opp",
+      "op": "mod",
       "stat": "energy_cost",
-      "steps": 1,
-      "scope": "battlefield"
+      "mode": "add",
+      "skill_filter": "all"
     }
   ],
   "description": "✦造成物伤，敌方获得全技能能耗+1。"

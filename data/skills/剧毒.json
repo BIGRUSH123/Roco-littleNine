@@ -3,25 +3,29 @@
   "name": "剧毒",
   "element": "毒",
   "skill_type": "状态",
-  "power": 0,
   "energy_cost": 2,
   "counter": "防御",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "abnormal",
-      "target": "self",
-      "name": "中毒",
-      "scope": "battlefield",
-      "stacks": 3
-    },
-    {
-      "kind": "abnormal",
-      "target": "opp",
-      "name": "中毒",
-      "scope": "battlefield",
-      "stacks": 3
+      "when": {
+        "cond": "counter_succeeded"
+      },
+      "then": [
+        {
+          "op": "abnormal",
+          "target": "sprite_opp",
+          "name": "中毒",
+          "stacks": 8
+        }
+      ],
+      "else": [
+        {
+          "op": "abnormal",
+          "target": "sprite_opp",
+          "name": "中毒",
+          "stacks": 3
+        }
+      ]
     }
   ],
   "description": "✦敌方获得3层中毒，应对防御：改为获得8层。"

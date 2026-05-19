@@ -5,16 +5,37 @@
   "skill_type": "魔攻",
   "power": 90,
   "energy_cost": 3,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
+  "transmission": 1,
   "effects": [
     {
-      "kind": "stat",
-      "target": "opp",
-      "stat": "power",
-      "steps": 4,
-      "scope": "battlefield"
+      "when": {
+        "cond": "skill_at",
+        "position": 2
+      },
+      "then": [
+        {
+          "op": "mod",
+          "target": "skill_off_0",
+          "stat": "power",
+          "steps": 4
+        }
+      ]
+    },
+    {
+      "op": "count",
+      "when": {
+        "cond": "sprite_entered"
+      },
+      "then": [
+        {
+          "op": "mod",
+          "target": "skill_off_0",
+          "stat": "power",
+          "value": 1,
+          "mode": "add",
+          "scope": "permanent"
+        }
+      ]
     }
   ],
   "description": "✦造成魔伤，本技能位于3号位时威力+40，传动1。"

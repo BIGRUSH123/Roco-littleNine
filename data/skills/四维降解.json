@@ -5,22 +5,19 @@
   "skill_type": "魔攻",
   "power": 100,
   "energy_cost": 7,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "mark",
-      "target": "opp_team",
-      "name": "敌方每有1印记",
-      "stacks": 1
-    },
-    {
-      "kind": "stat",
-      "target": "opp",
+      "value": {
+        "q": "mark_count",
+        "of": "team_opp",
+        "scale": -1,
+        "name": "any"
+      },
+      "target": "skill_off_0",
+      "op": "mod",
       "stat": "energy_cost",
-      "steps": -1,
-      "scope": "battlefield"
+      "scope": "persistent",
+      "phase": "turn_start"
     }
   ],
   "description": "✦造成魔伤，敌方每有1层印记，本技能能耗-1。"

@@ -1,4 +1,4 @@
-"""scripts/sim/battle_context.py — Battle 最小接口协议
+"""backend/sim/battle_context.py — Battle 最小接口协议
 
 定义 traits 系统和 SkillPipeline 实际需要的 11 项 Battle 接口。
 Battle 类隐式满足此协议；当前作为文档和未来解耦路径使用。

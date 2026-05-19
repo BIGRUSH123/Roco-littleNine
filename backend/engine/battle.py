@@ -105,7 +105,7 @@ class BattleVMEngine:
         ctx = build_ctx(
             self_sprite, opp_sprite,
             self_skill, opp_skill, globals_,
-            turn=turn, is_first=is_first,
+            team=team, turn=turn, is_first=is_first,
             burst_triggered_count_own=self.burst_triggered_count(team),
             counter_values=dict(self._counter_values),
             **kwargs,

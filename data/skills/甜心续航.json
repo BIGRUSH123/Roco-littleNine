@@ -3,29 +3,47 @@
   "name": "甜心续航",
   "element": "萌",
   "skill_type": "状态",
-  "power": 0,
   "energy_cost": 3,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "abnormal",
-      "target": "self",
+      "target": "sprite_self",
+      "op": "abnormal",
       "name": "萌化",
-      "scope": "persistent",
       "stacks": 1,
-      "heal_pct": 0.4,
-      "energy_gain": 4
+      "then": [
+        {
+          "op": "mod",
+          "target": "sprite_self",
+          "stat": "hp",
+          "value": 0.4
+        },
+        {
+          "op": "mod",
+          "target": "sprite_self",
+          "stat": "energy",
+          "value": 4
+        }
+      ]
     },
     {
-      "kind": "abnormal",
-      "target": "opp",
+      "target": "sprite_opp",
+      "op": "abnormal",
       "name": "萌化",
-      "scope": "persistent",
       "stacks": 1,
-      "heal_pct": 0.4,
-      "energy_gain": 4
+      "then": [
+        {
+          "op": "mod",
+          "target": "sprite_self",
+          "stat": "hp",
+          "value": 0.4
+        },
+        {
+          "op": "mod",
+          "target": "sprite_self",
+          "stat": "energy",
+          "value": 4
+        }
+      ]
     }
   ],
   "description": "✦自己和敌方获得萌化：回复40%生命和4能量。"

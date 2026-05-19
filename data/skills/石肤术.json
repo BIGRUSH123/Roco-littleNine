@@ -3,25 +3,19 @@
   "name": "石肤术",
   "element": "地",
   "skill_type": "状态",
-  "power": 0,
   "energy_cost": 3,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "stat",
-      "target": "self",
+      "target": "sprite_self",
+      "op": "mod",
       "stat": "def",
-      "steps": 16,
-      "scope": "battlefield"
+      "steps": 16
     },
     {
-      "kind": "stat",
-      "target": "self",
+      "target": "sprite_self",
+      "op": "mod",
       "stat": "sp_def",
-      "steps": -6,
-      "scope": "battlefield"
+      "steps": -6
     }
   ],
   "description": "✦自己获得物防+160%和魔防-60%。"

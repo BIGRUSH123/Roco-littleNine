@@ -3,39 +3,35 @@
   "name": "怒火",
   "element": "火",
   "skill_type": "状态",
-  "power": 0,
   "energy_cost": 1,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "stat",
-      "target": "self",
+      "value": 1.2,
+      "target": "sprite_self",
+      "op": "mod",
       "stat": "atk",
-      "steps": 12,
-      "scope": "battlefield"
+      "mode": "add"
     },
     {
-      "kind": "stat",
-      "target": "self",
+      "value": 1.2,
+      "target": "sprite_self",
+      "op": "mod",
       "stat": "sp_atk",
-      "steps": 12,
-      "scope": "battlefield"
+      "mode": "add"
     },
     {
-      "kind": "stat",
-      "target": "self",
+      "value": -0.4,
+      "target": "sprite_self",
+      "op": "mod",
       "stat": "def",
-      "steps": -4,
-      "scope": "battlefield"
+      "mode": "add"
     },
     {
-      "kind": "stat",
-      "target": "self",
+      "value": -0.4,
+      "target": "sprite_self",
+      "op": "mod",
       "stat": "sp_def",
-      "steps": -4,
-      "scope": "battlefield"
+      "mode": "add"
     }
   ],
   "description": "✦自己获得双攻+120%和双防-40%。"

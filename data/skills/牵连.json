@@ -5,14 +5,18 @@
   "skill_type": "魔攻",
   "power": 85,
   "energy_cost": 4,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "special",
-      "name": "power_by_fainted",
-      "value": 30
+      "value": {
+        "q": "fainted",
+        "of": "team_opp",
+        "scale": 30
+      },
+      "target": "skill_off_0",
+      "op": "mod",
+      "stat": "power",
+      "mode": "add",
+      "feeds": "power"
     }
   ],
   "description": "✦造成魔伤，敌方每有1只力竭精灵，本次技能威力+30。"

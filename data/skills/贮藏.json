@@ -3,25 +3,31 @@
   "name": "贮藏",
   "element": "虫",
   "skill_type": "状态",
-  "power": 0,
   "energy_cost": 2,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "stat",
-      "target": "self",
+      "value": {
+        "q": "zero_cost_skill_count",
+        "of": "sprite_self",
+        "scale": 5,
+        "offset": 5
+      },
+      "target": "sprite_self",
+      "op": "mod",
       "stat": "atk",
-      "steps": 5,
-      "scope": "battlefield"
+      "mode": "add"
     },
     {
-      "kind": "stat",
-      "target": "self",
+      "value": {
+        "q": "zero_cost_skill_count",
+        "of": "sprite_self",
+        "scale": 5,
+        "offset": 5
+      },
+      "target": "sprite_self",
+      "op": "mod",
       "stat": "sp_atk",
-      "steps": 5,
-      "scope": "battlefield"
+      "mode": "add"
     }
   ],
   "description": "✦自己获得双攻+50%，每携带1个0能耗技能，额外+50%。"

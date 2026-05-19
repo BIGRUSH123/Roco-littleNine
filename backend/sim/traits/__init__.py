@@ -1,4 +1,4 @@
-"""scripts/sim/traits/__init__.py — 特性系统框架
+﻿"""backend/sim/traits/__init__.py — 特性系统框架
 
 TraitHandler 基类 + 注册表 + dispatch 函数。
 """
@@ -7,10 +7,10 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from scripts.sim.sprite import Sprite
-    from scripts.sim.battle import Battle
-    from scripts.sim.battleskill import BattleSkill, SkillUse
-    from scripts.sim.skill import Skill
+    from backend.sim.sprite import Sprite
+    from backend.sim.battle import Battle
+    from backend.sim.battleskill import BattleSkill, SkillUse
+    from backend.sim.skill import Skill
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -143,7 +143,7 @@ def register(name: str):
     def decorator(cls: type[TraitHandler]) -> type[TraitHandler]:
         cls.name = name
         try:
-            from scripts.common.skill_trait_ids import TRAIT_NAME_TO_ID
+            from backend.common.skill_trait_ids import TRAIT_NAME_TO_ID
             cls.trait_id = TRAIT_NAME_TO_ID.get(name, 0)
         except ImportError:
             pass
@@ -188,7 +188,7 @@ def get_trait(sprite: Sprite) -> TraitHandler | None:
             return instance
 
     # 3. 回退到注册的 Python 类
-    if ability and ability in TRAIT_REGISTRY:
+    if not ability or ability not in TRAIT_REGISTRY:
         return None
 
     cls = TRAIT_REGISTRY[ability]

@@ -3,16 +3,20 @@
   "name": "虚假破产",
   "element": "恶",
   "skill_type": "防御",
-  "power": 0,
   "energy_cost": 2,
   "counter": "攻击",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "special",
-      "name": "damage_reduction",
-      "value": 0.8
+      "value": 0.8,
+      "target": "sprite_self",
+      "op": "mod",
+      "stat": "damage_reduction"
+    },
+    {
+      "value": 0.05,
+      "target": "sprite_self",
+      "op": "mod",
+      "stat": "life_as_energy"
     }
   ],
   "description": "✦减伤80%，能量不足时，消耗5%生命代替1能量，应对攻击。"

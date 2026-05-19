@@ -3,16 +3,14 @@
   "name": "徒长",
   "element": "草",
   "skill_type": "状态",
-  "power": 0,
   "energy_cost": 2,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "special",
-      "name": "gain_energy",
-      "amount": 10
+      "value": 10,
+      "target": "sprite_self",
+      "op": "mod",
+      "stat": "energy",
+      "mode": "add"
     }
   ],
   "description": "✦自己回复10能量。"

@@ -3,28 +3,31 @@
   "name": "潮汐",
   "element": "水",
   "skill_type": "防御",
-  "power": 0,
   "energy_cost": 4,
   "counter": "攻击",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "special",
-      "name": "damage_reduction",
-      "value": 0.6
-    },
-    {
-      "kind": "conditional",
       "when": {
-        "kind": "counter_succeeded"
+        "cond": "have",
+        "what": "abnormal",
+        "of": "sprite_opp",
+        "name": "害怕"
       },
       "then": [
         {
-          "kind": "mark",
-          "target": "own_team",
-          "name": "润泽印记",
-          "stacks": 1
+          "op": "dispel",
+          "target": "sprite_opp",
+          "what": "abnormal"
+        },
+        {
+          "op": "mod",
+          "target": "sprite_opp",
+          "stat": "energy",
+          "value": {
+            "q": "energy",
+            "of": "sprite_opp",
+            "scale": -1
+          }
         }
       ]
     }

@@ -5,16 +5,13 @@
   "skill_type": "魔攻",
   "power": 70,
   "energy_cost": 3,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "stat",
-      "target": "opp",
+      "value": -0.5,
+      "target": "sprite_opp",
+      "op": "mod",
       "stat": "sp_def",
-      "steps": -5,
-      "scope": "battlefield"
+      "mode": "add"
     }
   ],
   "description": "✦造成魔伤，敌方获得魔防-50%。"

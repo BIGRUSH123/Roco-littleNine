@@ -5,15 +5,11 @@
   "skill_type": "魔攻",
   "power": 75,
   "energy_cost": 4,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "abnormal",
-      "target": "opp",
+      "target": "sprite_opp",
+      "op": "abnormal",
       "name": "灼烧",
-      "scope": "battlefield",
       "stacks": 6
     }
   ],

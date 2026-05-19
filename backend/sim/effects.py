@@ -1,4 +1,4 @@
-"""scripts/sim/effects.py — 类型化技能效果原语
+"""backend/sim/effects.py — 类型化技能效果原语
 
 定义 6 种效果类型，替代旧的 regex 字符串标签。
 """
@@ -114,19 +114,6 @@ class SpecialName:
     })
 
 
-class EffectLayer:
-    """技能效果管线分层。值即执行顺序。"""
-
-    MODIFIER = 0   # L0: 威力/伤害修正注入 → SkillUse.modifiers
-    POWER = 1      # L1: 动态威力解算 → power_override
-    DAMAGE = 2     # L2: per-hit 伤害 + 吸血
-    STATE = 3      # L3: 状态变更（资源/状态/交换），按 effects 数组顺序
-    COUNTER = 4    # L4: 反击伤害（独立公式）
-    SWITCH = 5     # L5: 换宠/返场/借用
-    TURN_END = 6   # L6: 回合末结算
-    POST_USE = 7   # L3.5: 技能使用后永久增长（连击/威力/能耗递增）
-
-
 @dataclass
 class StatEffect:
     """持久属性变化。"""
@@ -205,6 +192,9 @@ class ConditionalEffect:
 
 # Union type for all effects
 Effect = StatEffect | AbnormalEffect | MarkEffect | WeatherEffect | SpecialEffect | ConditionalEffect
+
+# Kinds that carry special mechanics (not stat/abnormal/mark/weather)
+SPECIAL_KINDS: frozenset[str] = frozenset({"special"})
 
 
 _KIND_CLASS_MAP: dict[str, type] = {

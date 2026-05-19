@@ -3,31 +3,25 @@
   "name": "预备势",
   "element": "武",
   "skill_type": "状态",
-  "power": 0,
   "energy_cost": 1,
   "counter": "防御",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "stat",
-      "target": "self",
+      "target": "sprite_self",
+      "op": "mod",
       "stat": "atk",
-      "steps": 8,
-      "scope": "battlefield"
+      "steps": 8
     },
     {
-      "kind": "conditional",
       "when": {
-        "kind": "counter_succeeded"
+        "cond": "counter_succeeded"
       },
       "then": [
         {
-          "kind": "stat",
-          "target": "opp",
+          "op": "mod",
+          "target": "sprite_opp",
           "stat": "def",
-          "steps": -8,
-          "scope": "battlefield"
+          "steps": -8
         }
       ]
     }

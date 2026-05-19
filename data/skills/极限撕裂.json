@@ -5,37 +5,29 @@
   "skill_type": "物攻",
   "power": 135,
   "energy_cost": 4,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "stat",
-      "target": "opp",
-      "stat": "atk",
-      "steps": -5,
-      "scope": "battlefield"
-    },
-    {
-      "kind": "stat",
-      "target": "opp",
-      "stat": "sp_atk",
-      "steps": -5,
-      "scope": "battlefield"
-    },
-    {
-      "kind": "stat",
-      "target": "self",
-      "stat": "atk",
-      "steps": -5,
-      "scope": "battlefield"
-    },
-    {
-      "kind": "stat",
-      "target": "self",
-      "stat": "sp_atk",
-      "steps": -5,
-      "scope": "battlefield"
+      "when": {
+        "cond": "not",
+        "condition": {
+          "cond": "hp_below",
+          "ratio": 0.5
+        }
+      },
+      "then": [
+        {
+          "op": "mod",
+          "target": "sprite_self",
+          "stat": "atk",
+          "steps": -5
+        },
+        {
+          "op": "mod",
+          "target": "sprite_self",
+          "stat": "sp_atk",
+          "steps": -5
+        }
+      ]
     }
   ],
   "description": "✦造成物伤，若生命高于50%，使用后自己获得双攻-50%。"

@@ -3,20 +3,17 @@
   "name": "移花接木",
   "element": "草",
   "skill_type": "状态",
-  "power": 0,
   "energy_cost": 2,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "special",
-      "name": "heal",
-      "value": 0.15
+      "value": 0.15,
+      "target": "sprite_self",
+      "op": "mod",
+      "stat": "hp"
     },
     {
-      "kind": "special",
-      "name": "escape"
+      "target": "sprite_self",
+      "op": "escape"
     }
   ],
   "description": "✦自己回复15%生命，随后脱离。"

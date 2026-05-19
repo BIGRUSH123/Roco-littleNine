@@ -3,16 +3,21 @@
   "name": "架势",
   "element": "龙",
   "skill_type": "状态",
-  "power": 0,
   "energy_cost": 2,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "special",
-      "name": "heal",
-      "value": 0.2
+      "value": 0.2,
+      "target": "sprite_self",
+      "op": "mod",
+      "stat": "hp"
+    },
+    {
+      "value": 1,
+      "target": "sprite_self",
+      "op": "mod",
+      "stat": "pre_charged",
+      "on_next": true,
+      "if_type": "charge"
     }
   ],
   "description": "✦自己回复20%生命，下次技能无需蓄力。"

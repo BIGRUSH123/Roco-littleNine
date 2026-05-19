@@ -6,8 +6,19 @@
   "power": 150,
   "energy_cost": 1,
   "counter": "状态",
-  "priority": 0,
-  "combo": 1,
-  "effects": [],
+  "effects": [
+    {
+      "when": {
+        "cond": "counter_succeeded"
+      },
+      "then": [],
+      "else": [
+        {
+          "op": "redirect",
+          "target": "sprite_self"
+        }
+      ]
+    }
+  ],
   "description": "✦对自己造成物伤，应对状态：改为对敌方造成物伤。"
 }

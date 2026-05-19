@@ -3,18 +3,33 @@
   "name": "放晴",
   "element": "光",
   "skill_type": "状态",
-  "power": 0,
   "energy_cost": 0,
   "counter": "防御",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "stat",
-      "target": "self",
-      "stat": "power",
-      "steps": 5,
-      "scope": "persistent"
+      "when": {
+        "cond": "counter_succeeded"
+      },
+      "then": [
+        {
+          "op": "mod",
+          "target": "sprite_self",
+          "stat": "power_mult",
+          "value": 2,
+          "scope": "permanent",
+          "element": "光"
+        }
+      ],
+      "else": [
+        {
+          "op": "mod",
+          "target": "sprite_self",
+          "stat": "power_mult",
+          "value": 1.5,
+          "scope": "permanent",
+          "element": "光"
+        }
+      ]
     }
   ],
   "description": "✦光系技能威力永久+50%，应对防御：改为永久+100%。"

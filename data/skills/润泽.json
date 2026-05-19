@@ -3,18 +3,13 @@
   "name": "润泽",
   "element": "水",
   "skill_type": "状态",
-  "power": 0,
   "energy_cost": 7,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "stat",
-      "target": "self",
+      "target": "sprite_self",
+      "op": "mod",
       "stat": "sp_atk",
-      "steps": 19,
-      "scope": "battlefield"
+      "steps": 19
     }
   ],
   "description": "✦自己获得魔攻+190%。"

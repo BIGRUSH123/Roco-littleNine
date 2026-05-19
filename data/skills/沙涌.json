@@ -3,15 +3,11 @@
   "name": "沙涌",
   "element": "地",
   "skill_type": "状态",
-  "power": 0,
   "energy_cost": 7,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "weather",
-      "weather": "sand",
+      "op": "weather",
+      "weather": "沙暴",
       "turns": 8
     }
   ],

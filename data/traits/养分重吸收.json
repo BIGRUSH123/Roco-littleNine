@@ -2,14 +2,19 @@
   "id": 20015,
   "name": "养分重吸收",
   "description": "回合结束时，回复3能量。",
-  "triggers": [
+  "passive": [
     {
-      "on": "turn_end",
-      "effects": [
+      "op": "count",
+      "when": {
+        "cond": "turn_end"
+      },
+      "then": [
         {
-          "kind": "special",
-          "name": "gain_energy",
-          "amount": 3
+          "op": "mod",
+          "target": "sprite_self",
+          "stat": "energy",
+          "value": 3,
+          "mode": "add"
         }
       ]
     }

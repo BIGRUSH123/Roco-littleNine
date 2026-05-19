@@ -3,20 +3,34 @@
   "name": "掩护",
   "element": "虫",
   "skill_type": "防御",
-  "power": 0,
   "energy_cost": 2,
   "counter": "攻击",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "special",
-      "name": "damage_reduction",
-      "value": 0.7
+      "value": 0.7,
+      "target": "sprite_self",
+      "op": "mod",
+      "stat": "damage_reduction",
+      "feeds": "mult"
     },
     {
-      "kind": "special",
-      "name": "escape"
+      "target": "sprite_self",
+      "op": "escape",
+      "urgent": true
+    },
+    {
+      "when": {
+        "cond": "counter_succeeded"
+      },
+      "then": [
+        {
+          "op": "mod",
+          "target": "sprite_self",
+          "stat": "damage_reduction",
+          "value": 0.7,
+          "scope": "battlefield"
+        }
+      ]
     }
   ],
   "description": "✦减伤70%，紧急脱离，应对攻击：下个入场精灵获得减伤。"

@@ -5,20 +5,19 @@
   "skill_type": "物攻",
   "power": 25,
   "energy_cost": 2,
-  "counter": "无",
-  "priority": 0,
   "combo": 2,
   "effects": [
     {
-      "kind": "conditional",
       "when": {
-        "kind": "is_second"
+        "cond": "is_second"
       },
       "then": [
         {
-          "kind": "special",
-          "name": "multi_hit",
-          "value": 3
+          "op": "mod",
+          "target": "skill_off_0",
+          "stat": "combo",
+          "value": 3,
+          "feeds": "power"
         }
       ]
     }

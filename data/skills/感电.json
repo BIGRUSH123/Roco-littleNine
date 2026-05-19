@@ -5,9 +5,17 @@
   "skill_type": "魔攻",
   "power": 60,
   "energy_cost": 2,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
-  "effects": [],
+  "effects": [
+    {
+      "value": {
+        "q": "times_left",
+        "of": "sprite_self"
+      },
+      "target": "skill_off_0",
+      "op": "mod",
+      "stat": "combo",
+      "scope": "permanent"
+    }
+  ],
   "description": "✦造成魔伤，每离场1次，本技能使用次数永久+1。"
 }

@@ -5,15 +5,29 @@
   "skill_type": "魔攻",
   "power": 85,
   "energy_cost": 4,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "mark",
-      "target": "opp_team",
-      "name": "若击败敌方则将中毒转化为中毒印记",
-      "stacks": 1
+      "when": {
+        "cond": "on_ko"
+      },
+      "then": [
+        {
+          "op": "dispel",
+          "target": "sprite_opp",
+          "what": "abnormal",
+          "name": "中毒"
+        },
+        {
+          "op": "mark",
+          "target": "team_opp",
+          "name": "中毒印记",
+          "value": {
+            "q": "abnormal_stacks",
+            "of": "sprite_opp",
+            "name": "中毒"
+          }
+        }
+      ]
     }
   ],
   "description": "✦造成魔伤，若击败敌方则将中毒转化为中毒印记。"

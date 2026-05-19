@@ -3,16 +3,32 @@
   "name": "雪替身",
   "element": "冰",
   "skill_type": "防御",
-  "power": 0,
   "energy_cost": 2,
   "counter": "攻击",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "special",
-      "name": "damage_reduction",
-      "value": 0.7
+      "value": 0.7,
+      "target": "sprite_self",
+      "op": "mod",
+      "stat": "damage_reduction"
+    },
+    {
+      "when": {
+        "cond": "counter_succeeded"
+      },
+      "then": [
+        {
+          "op": "mod",
+          "target": "sprite_self",
+          "stat": "energy",
+          "value": {
+            "q": "energy_total",
+            "of": "skill_opp_current",
+            "scale": 2
+          },
+          "mode": "add"
+        }
+      ]
     }
   ],
   "description": "✦减伤70%，应对攻击：回复能量，回复值等于被应对技能能耗的2倍。"

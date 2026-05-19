@@ -1,10 +1,10 @@
-"""scripts/sim/battleskill.py — 战斗中技能实例 + 使用时快照"""
+"""backend/sim/battleskill.py — 战斗中技能实例 + 使用时快照"""
 
 from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
-from .effects import SpecialName
+from .effects import SpecialName, SPECIAL_KINDS
 
 if TYPE_CHECKING:
     from .skill import Skill
@@ -26,9 +26,12 @@ class BattleSkill:
     next_attack_mult: float = 1.0   # 下次攻击威力倍率（热身），使用后重置为 1
     nullified: bool = False         # 打断标记：技能被无效化但不破坏 base
     sealed: bool = False            # 封印标记：此槽位不可选用（宝剑王牌/正位宝剑）
-    _transmission: int = 0          # 传动等级（向心力/翼轴）
-    _main_axis: bool = False        # 主轴技能：不参与传动
+    _transmission: int = 0          # 传动等级：-1=主轴，0=普通，1+=传动
     _element_override: str = ''     # 属性覆写（元素转换特性）
+
+    def __post_init__(self) -> None:
+        if self.base.transmission:
+            self._transmission = self.base.transmission
 
     @property
     def skill(self) -> 'Skill':
@@ -127,7 +130,7 @@ class SkillUse:
         for effect in self.battle_skill.effects:
             kind = getattr(effect, 'kind', '')
 
-            if kind == 'special':
+            if kind in SPECIAL_KINDS:
                 name = getattr(effect, 'name', '')
                 if name == SpecialName.IGNORE_MODS:
                     modifiers['ignore_mods'] = True
@@ -147,7 +150,7 @@ class SkillUse:
                 if not branches:
                     continue
                 for sub in branches:
-                    if getattr(sub, 'kind', '') != 'special':
+                    if getattr(sub, 'kind', '') not in SPECIAL_KINDS:
                         continue
                     sub_name = getattr(sub, 'name', '')
                     if sub_name == SpecialName.IGNORE_MODS:
@@ -161,7 +164,7 @@ class SkillUse:
         if self.is_countered and self.countering_skill:
             for effect in self.countering_skill.effects:
                 kind = getattr(effect, 'kind', '')
-                if kind == 'special':
+                if kind in SPECIAL_KINDS:
                     name = getattr(effect, 'name', '')
                     val = getattr(effect, 'value', 0) or 0
                     if name == SpecialName.IGNORE_MODS:
@@ -180,7 +183,7 @@ class SkillUse:
                     if when.get('kind') != 'counter_succeeded':
                         continue
                     for sub in then:
-                        if getattr(sub, 'kind', '') != 'special':
+                        if getattr(sub, 'kind', '') not in SPECIAL_KINDS:
                             continue
                         name = getattr(sub, 'name', '')
                         val = getattr(sub, 'value', 0) or 0
@@ -200,6 +203,10 @@ class SkillUse:
     @property
     def power_mult(self) -> float:
         return self.modifiers.get('power_mult', 1.0)
+
+    @property
+    def counter_power_mult(self) -> float:
+        return self.modifiers.get('counter_power_mult', 1.0)
 
     @property
     def damage_mult(self) -> float:

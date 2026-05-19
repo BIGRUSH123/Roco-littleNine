@@ -27,7 +27,7 @@ const selectedItem = ref('')          // '' | '愿力' | '进化之力'
 const availableItems = ref([])
 const evolutionEligible = ref(false)  // 队伍中是否有精灵可进化
 
-const API_BASE = 'http://localhost:8000/api'
+const API_BASE = '/api'
 
 // 元素名 → elements.css class 映射（elements.css 使用短名）
 const ELEMENT_NAME_MAP = { '普通': '普' }

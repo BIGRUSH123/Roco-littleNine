@@ -6,21 +6,17 @@
   "power": 95,
   "energy_cost": 3,
   "counter": "状态",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "conditional",
       "when": {
-        "kind": "counter_succeeded"
+        "cond": "counter_succeeded"
       },
       "then": [
         {
-          "kind": "stat",
-          "target": "opp",
+          "op": "mod",
+          "target": "sprite_opp",
           "stat": "def",
-          "steps": -8,
-          "scope": "battlefield"
+          "steps": -8
         }
       ]
     }

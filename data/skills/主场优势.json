@@ -3,21 +3,11 @@
   "name": "主场优势",
   "element": "普通",
   "skill_type": "状态",
-  "power": 0,
   "energy_cost": 3,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "mark",
       "target": "own_team",
-      "name": "自己1攻击印记",
-      "stacks": 1
-    },
-    {
-      "kind": "mark",
-      "target": "own_team",
+      "op": "mark",
       "name": "攻击印记",
       "stacks": 1
     }

@@ -6,35 +6,39 @@
   "power": 105,
   "energy_cost": 6,
   "counter": "状态",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "abnormal",
-      "target": "opp",
-      "name": "冻结",
-      "scope": "persistent",
-      "stacks": 1
-    },
-    {
-      "kind": "stat",
-      "target": "opp",
-      "stat": "power",
-      "steps": 6,
-      "scope": "battlefield"
-    },
-    {
-      "kind": "conditional",
       "when": {
-        "kind": "counter_succeeded"
+        "cond": "have",
+        "what": "abnormal",
+        "of": "sprite_opp",
+        "name": "冻结"
       },
       "then": [
         {
-          "kind": "abnormal",
-          "target": "opp",
+          "op": "mod",
+          "target": "skill_off_0",
+          "stat": "power",
+          "value": 60,
+          "mode": "add"
+        }
+      ]
+    },
+    {
+      "when": {
+        "cond": "counter_succeeded"
+      },
+      "then": [
+        {
+          "op": "abnormal",
+          "target": "sprite_opp",
           "name": "冻结",
-          "scope": "persistent",
-          "stacks": 1
+          "value": {
+            "q": "abnormal_stacks",
+            "of": "sprite_opp",
+            "name": "冻结",
+            "scale": 2
+          }
         }
       ]
     }

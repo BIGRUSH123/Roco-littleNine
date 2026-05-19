@@ -3,33 +3,24 @@
   "name": "霜天",
   "element": "冰",
   "skill_type": "状态",
-  "power": 0,
   "energy_cost": 4,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "abnormal",
-      "target": "self",
+      "target": "sprite_opp",
+      "op": "abnormal",
       "name": "冻结",
-      "scope": "persistent",
       "stacks": 1
     },
     {
-      "kind": "abnormal",
-      "target": "opp",
-      "name": "冻结",
-      "scope": "persistent",
-      "stacks": 1
-    },
-    {
-      "kind": "special",
-      "name": "stat_by_abnormal",
+      "value": {
+        "q": "abnormal_stacks",
+        "of": "sprite_opp",
+        "name": "冻结"
+      },
+      "target": "sprite_opp",
+      "op": "mod",
       "stat": "energy_cost",
-      "abnormal_name": "冻结",
-      "value": 1,
-      "target": "opp"
+      "mode": "add"
     }
   ],
   "description": "✦敌方获得1层冻结，且每有1层冻结获得全技能能耗+1。"

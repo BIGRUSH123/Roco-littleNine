@@ -6,18 +6,15 @@
   "power": 75,
   "energy_cost": 2,
   "counter": "状态",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "conditional",
       "when": {
-        "kind": "counter_succeeded"
+        "cond": "counter_succeeded"
       },
       "then": [
         {
-          "kind": "special",
-          "name": "interrupt"
+          "op": "interrupt",
+          "target": "sprite_opp"
         }
       ]
     }

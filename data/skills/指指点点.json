@@ -5,8 +5,11 @@
   "skill_type": "物攻",
   "power": 5,
   "energy_cost": 10,
-  "counter": "无",
-  "priority": 0,
-  "combo": 10,
-  "effects": []
+  "effects": [
+    {
+      "skill_type": "物攻",
+      "power": 0,
+      "combo": 10
+    }
+  ]
 }

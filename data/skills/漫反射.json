@@ -3,18 +3,17 @@
   "name": "漫反射",
   "element": "光",
   "skill_type": "状态",
-  "power": 0,
   "energy_cost": 1,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "stat",
-      "target": "self",
+      "value": 35,
+      "target": "sprite_self",
+      "op": "mod",
       "stat": "power",
-      "steps": 3,
-      "scope": "battlefield"
+      "mode": "add",
+      "scope": "permanent",
+      "element": "each",
+      "per_element": 1
     }
   ],
   "description": "✦每种系别中的至多1个技能，威力+35。"

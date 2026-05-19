@@ -9,11 +9,10 @@ scripts/sim/ — 格斗小九 PVP 对局模拟器
   Player      — 玩家
   Mark        — 单方印记
   GlobalEffects — 全局效果（天气 + 双方印记）
-  SkillResolver — 技能效果解析器（类型化分派 + 伤害）
-  TurnContext  — 回合快照（战场事实）
+  SkillResolver — 技能效果解析器（应对判断 + 伤害 + 回合末结算）
   TurnRecord  — 单回合记录
   Battle      — 对局
-  SkillPipeline — 单次技能执行管线 (L0-L5)
+  TurnPipeline  — 回合开始阶段管线（传动/位置预扫描/trait）
   BattleContext — Battle 最小接口协议
   Agent       — 决策代理协议
   RuleAgent   — 基于 PlayStyle 的规则 AI
@@ -31,11 +30,11 @@ from .battleskill import BattleSkill
 from .action import Action
 from .player import Item, PlayStyle, Player
 from .globals import Mark, GlobalEffects
-from .resolver import SkillResolver, TurnContext
+from .resolver import SkillResolver
 from .battle_mechanics import BattleMechanicsMixin
 from .battle_context import BattleContext
 from .battle import TurnRecord, Battle
-from .pipeline import SkillPipeline
+from .pipeline import TurnPipeline
 from .agent import Agent, RuleAgent, HumanAgent
 from .factory import SimFactory
 

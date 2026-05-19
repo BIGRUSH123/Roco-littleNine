@@ -3,24 +3,22 @@
   "name": "水星水",
   "element": "水",
   "skill_type": "魔攻",
-  "power": 0,
   "energy_cost": 3,
   "counter": "状态",
-  "priority": 0,
-  "description": "✦造成魔伤，应对成功时无视双方能力变化。",
-  "combo": 1,
   "effects": [
     {
-      "kind": "conditional",
       "when": {
-        "kind": "counter_succeeded"
+        "cond": "counter_succeeded"
       },
       "then": [
         {
-          "kind": "special",
-          "name": "ignore_mods"
+          "op": "mod",
+          "target": "skill_off_0",
+          "stat": "ignore_mods",
+          "value": 1
         }
       ]
     }
-  ]
+  ],
+  "description": "✦造成魔伤，应对成功时无视双方能力变化。"
 }

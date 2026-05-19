@@ -5,23 +5,18 @@
   "skill_type": "魔攻",
   "power": 40,
   "energy_cost": 3,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "abnormal",
-      "target": "opp",
-      "name": "冻结",
-      "scope": "persistent",
-      "stacks": 1
-    },
-    {
-      "kind": "special",
-      "name": "power_by_abnormal",
-      "abnormal_name": "冻结",
-      "value": 20,
-      "target": "opp"
+      "value": {
+        "q": "abnormal_stacks",
+        "of": "sprite_opp",
+        "name": "冻结",
+        "scale": 20
+      },
+      "target": "skill_off_0",
+      "op": "mod",
+      "stat": "power",
+      "mode": "add"
     }
   ],
   "description": "✦造成魔伤，敌方每有1层冻结，本次技能威力+20。"

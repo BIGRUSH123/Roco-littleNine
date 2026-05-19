@@ -3,25 +3,29 @@
   "name": "天火",
   "element": "火",
   "skill_type": "状态",
-  "power": 0,
   "energy_cost": 3,
   "counter": "防御",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "abnormal",
-      "target": "self",
-      "name": "灼烧",
-      "scope": "battlefield",
-      "stacks": 10
-    },
-    {
-      "kind": "abnormal",
-      "target": "opp",
-      "name": "灼烧",
-      "scope": "battlefield",
-      "stacks": 10
+      "when": {
+        "cond": "counter_succeeded"
+      },
+      "then": [
+        {
+          "op": "abnormal",
+          "target": "sprite_opp",
+          "name": "灼烧",
+          "stacks": 30
+        }
+      ],
+      "else": [
+        {
+          "op": "abnormal",
+          "target": "sprite_opp",
+          "name": "灼烧",
+          "stacks": 10
+        }
+      ]
     }
   ],
   "description": "✦敌方获得10层灼烧，应对防御：改为获得30层。"

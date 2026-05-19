@@ -3,20 +3,21 @@
   "name": "加大功率",
   "element": "电",
   "skill_type": "状态",
-  "power": 0,
   "energy_cost": 4,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "special",
-      "name": "escape"
-    },
-    {
-      "kind": "special",
-      "name": "gain_energy",
-      "amount": 8
+      "target": "sprite_self",
+      "op": "escape",
+      "inherit": true,
+      "then": [
+        {
+          "op": "mod",
+          "target": "sprite_self",
+          "stat": "energy",
+          "value": 8,
+          "mode": "add"
+        }
+      ]
     }
   ],
   "description": "✦自己脱离，替换入场的精灵回复8能量。"

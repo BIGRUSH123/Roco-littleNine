@@ -3,39 +3,33 @@
   "name": "破防",
   "element": "武",
   "skill_type": "状态",
-  "power": 0,
   "energy_cost": 3,
   "counter": "防御",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "stat",
-      "target": "self",
+      "target": "sprite_opp",
+      "op": "mod",
       "stat": "def",
-      "steps": -13,
-      "scope": "battlefield"
+      "steps": -13
     },
     {
-      "kind": "stat",
-      "target": "self",
+      "target": "sprite_opp",
+      "op": "mod",
       "stat": "sp_def",
-      "steps": -13,
-      "scope": "battlefield"
+      "steps": -13
     },
     {
-      "kind": "stat",
-      "target": "opp",
-      "stat": "def",
-      "steps": -13,
-      "scope": "battlefield"
-    },
-    {
-      "kind": "stat",
-      "target": "opp",
-      "stat": "sp_def",
-      "steps": -13,
-      "scope": "battlefield"
+      "when": {
+        "cond": "counter_succeeded"
+      },
+      "then": [
+        {
+          "op": "mod",
+          "target": "skill_opp_current",
+          "stat": "cooldown",
+          "value": 2
+        }
+      ]
     }
   ],
   "description": "✦敌方获得双防-130%，应对防御：额外使被应对技能冷却2回合。"

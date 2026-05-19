@@ -2,44 +2,37 @@
   "id": 20027,
   "name": "囤积",
   "description": "每有1能量，获得双防+10%。动态更新。",
-  "triggers": [
+  "passive": [
     {
-      "on": "entry",
-      "effects_mode": "replace",
-      "effects": [
+      "op": "count",
+      "when": {
+        "cond": "on_energy_changed",
+        "of": "sprite_self"
+      },
+      "then": [
         {
-          "kind": "stat",
+          "op": "mod",
+          "target": "sprite_self",
           "stat": "def",
-          "steps": "=@self.energy",
-          "scope": "persistent",
-          "source": "囤积"
+          "value": {
+            "q": "energy",
+            "of": "sprite_self",
+            "scale": 0.1,
+            "offset": 1
+          },
+          "scope": "permanent"
         },
         {
-          "kind": "stat",
+          "op": "mod",
+          "target": "sprite_self",
           "stat": "sp_def",
-          "steps": "=@self.energy",
-          "scope": "persistent",
-          "source": "囤积"
-        }
-      ]
-    },
-    {
-      "on": "energy_change",
-      "effects_mode": "replace",
-      "effects": [
-        {
-          "kind": "stat",
-          "stat": "def",
-          "steps": "=@self.energy",
-          "scope": "persistent",
-          "source": "囤积"
-        },
-        {
-          "kind": "stat",
-          "stat": "sp_def",
-          "steps": "=@self.energy",
-          "scope": "persistent",
-          "source": "囤积"
+          "value": {
+            "q": "energy",
+            "of": "sprite_self",
+            "scale": 0.1,
+            "offset": 1
+          },
+          "scope": "permanent"
         }
       ]
     }

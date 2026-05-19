@@ -5,21 +5,18 @@
   "skill_type": "物攻",
   "power": 65,
   "energy_cost": 2,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "conditional",
       "when": {
-        "kind": "energy_le",
+        "cond": "energy_le",
         "value": 2
       },
       "then": [
         {
-          "kind": "special",
-          "name": "damage_mult",
-          "value": 5.0
+          "op": "mod",
+          "target": "skill_off_0",
+          "stat": "damage_mult",
+          "value": 5
         }
       ]
     }

@@ -3,35 +3,31 @@
   "name": "摇篮曲",
   "element": "普通",
   "skill_type": "状态",
-  "power": 0,
   "energy_cost": 5,
   "counter": "防御",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "stat",
-      "target": "opp",
+      "value": 3,
+      "target": "sprite_opp",
+      "op": "mod",
       "stat": "energy_cost",
-      "steps": 3,
-      "scope": "battlefield"
+      "skill_filter": "all"
     },
     {
-      "kind": "conditional",
       "when": {
-        "kind": "counter_succeeded"
+        "cond": "counter_succeeded"
       },
       "then": [
         {
-          "kind": "special",
-          "name": "interrupt"
+          "op": "interrupt",
+          "target": "sprite_opp"
         },
         {
-          "kind": "abnormal",
-          "target": "opp",
+          "op": "abnormal",
+          "target": "sprite_opp",
           "name": "眩晕",
-          "scope": "battlefield",
-          "stacks": 1
+          "stacks": 1,
+          "delay": 1
         }
       ]
     }

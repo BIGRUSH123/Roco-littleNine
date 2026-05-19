@@ -2,22 +2,15 @@
   "id": 20013,
   "name": "共鸣",
   "description": "【虫鸣】技能威力+20。",
-  "triggers": [
+  "passive": [
     {
-      "on": "modifier",
-      "condition": {
-        "path": "skill.name",
-        "op": "eq",
-        "value": "虫鸣"
-      },
-      "battleskill_mut": [
-        {
-          "target": "current",
-          "field": "power_mod",
-          "op": "add",
-          "value": 20
-        }
-      ]
+      "op": "mod",
+      "target": "sprite_self",
+      "stat": "power",
+      "value": 20,
+      "mode": "add",
+      "scope": "permanent",
+      "name": "虫鸣"
     }
   ]
 }

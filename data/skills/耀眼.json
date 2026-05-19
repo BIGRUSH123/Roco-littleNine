@@ -3,18 +3,14 @@
   "name": "耀眼",
   "element": "普通",
   "skill_type": "状态",
-  "power": 0,
   "energy_cost": 1,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "stat",
-      "target": "self",
+      "value": -4,
+      "target": "sprite_opp",
+      "op": "mod",
       "stat": "combo",
-      "steps": -4,
-      "scope": "battlefield"
+      "mode": "add"
     }
   ],
   "description": "✦敌方获得连击数-4。"

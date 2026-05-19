@@ -3,15 +3,11 @@
   "name": "恶念交换",
   "element": "恶",
   "skill_type": "状态",
-  "power": 0,
   "energy_cost": 4,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "special",
-      "name": "exchange_hp_ratio"
+      "op": "exchange",
+      "what": "hp_ratio"
     }
   ],
   "description": "✦与敌方交换生命比例。"

@@ -3,22 +3,12 @@
   "name": "风起",
   "element": "翼",
   "skill_type": "状态",
-  "power": 0,
   "energy_cost": 4,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "mark",
       "target": "own_team",
-      "name": "自己1风起印记",
-      "stacks": 1
-    },
-    {
-      "kind": "mark",
-      "target": "own_team",
-      "name": "风起",
+      "op": "mark",
+      "name": "风起印记",
       "stacks": 1
     }
   ],

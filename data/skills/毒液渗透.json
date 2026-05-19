@@ -5,24 +5,29 @@
   "skill_type": "魔攻",
   "power": 120,
   "energy_cost": 5,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "abnormal",
-      "target": "opp",
-      "name": "中毒",
-      "scope": "battlefield",
-      "stacks": 1
+      "value": {
+        "q": "abnormal_stacks",
+        "of": "sprite_opp",
+        "name": "中毒",
+        "scale": -1
+      },
+      "target": "skill_off_0",
+      "op": "mod",
+      "stat": "energy_cost",
+      "feeds": "cost"
     },
     {
-      "kind": "special",
-      "name": "stat_by_abnormal",
-      "stat": "energy_cost",
-      "abnormal_name": "中毒",
-      "value": -1,
-      "target": "self"
+      "value": {
+        "q": "abnormal_stacks",
+        "of": "sprite_opp",
+        "name": "中毒",
+        "scale": 2
+      },
+      "target": "sprite_opp",
+      "op": "abnormal",
+      "name": "中毒"
     }
   ],
   "description": "✦造成魔伤，敌方每有1层中毒效果，本技能能耗-1，敌方获得1层中毒。"

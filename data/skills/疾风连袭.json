@@ -3,18 +3,41 @@
   "name": "疾风连袭",
   "element": "翼",
   "skill_type": "状态",
-  "power": 0,
   "energy_cost": 0,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "stat",
-      "target": "self",
+      "op": "replay",
+      "from": "sprite_self",
+      "skill_filter": {
+        "skill_type": "迅捷"
+      }
+    },
+    {
+      "value": {
+        "q": "energy_cost_sum",
+        "of": "sprite_self",
+        "skill_type": "迅捷",
+        "scale": 0.5
+      },
+      "target": "skill_off_0",
+      "op": "mod",
       "stat": "energy_cost",
-      "steps": 1,
-      "scope": "battlefield"
+      "feeds": "cost"
+    },
+    {
+      "op": "count",
+      "when": {
+        "cond": "skill_use"
+      },
+      "then": [
+        {
+          "op": "mod",
+          "target": "skill_off_0",
+          "stat": "energy_cost",
+          "value": 1,
+          "scope": "permanent"
+        }
+      ]
     }
   ],
   "description": "✦释放自己释放过的迅捷技能，其能耗之和的二分之一加至本技能能耗，每次使用后能耗+1。"

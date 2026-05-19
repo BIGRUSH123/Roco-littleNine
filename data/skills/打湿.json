@@ -3,16 +3,12 @@
   "name": "打湿",
   "element": "水",
   "skill_type": "状态",
-  "power": 0,
   "energy_cost": 4,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "mark",
-      "target": "own_team",
-      "name": "润泽印记",
+      "target": "team_own",
+      "op": "mark",
+      "name": "湿润印记",
       "stacks": 1
     }
   ],

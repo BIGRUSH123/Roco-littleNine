@@ -5,16 +5,19 @@
   "skill_type": "魔攻",
   "power": 90,
   "energy_cost": 4,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "abnormal",
-      "target": "opp",
-      "name": "萌化",
-      "scope": "persistent",
-      "stacks": 1
+      "when": {
+        "cond": "counter_succeeded"
+      },
+      "then": [
+        {
+          "op": "return",
+          "target": "sprite_opp",
+          "needs": "turn_end"
+        }
+      ]
     }
-  ]
+  ],
+  "description": "造成魔伤，自身拥有萌化时威力+60。"
 }

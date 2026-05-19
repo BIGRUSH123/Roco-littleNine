@@ -3,31 +3,29 @@
   "name": "盐水浴",
   "element": "水",
   "skill_type": "状态",
-  "power": 0,
   "energy_cost": 2,
   "counter": "防御",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "stat",
-      "target": "self",
-      "stat": "energy_cost",
-      "steps": -2,
-      "scope": "battlefield"
-    },
-    {
-      "kind": "conditional",
       "when": {
-        "kind": "counter_succeeded"
+        "cond": "counter_succeeded"
       },
       "then": [
         {
-          "kind": "stat",
-          "target": "self",
+          "op": "mod",
+          "target": "sprite_self",
           "stat": "energy_cost",
-          "steps": -3,
-          "scope": "battlefield"
+          "value": -3,
+          "scope": "persistent"
+        }
+      ],
+      "else": [
+        {
+          "op": "mod",
+          "target": "sprite_self",
+          "stat": "energy_cost",
+          "value": -2,
+          "scope": "persistent"
         }
       ]
     }

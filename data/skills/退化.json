@@ -3,24 +3,12 @@
   "name": "退化",
   "element": "普通",
   "skill_type": "状态",
-  "power": 0,
   "energy_cost": 2,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "abnormal",
-      "target": "self",
+      "target": "sprite_opp",
+      "op": "abnormal",
       "name": "萌化",
-      "scope": "persistent",
-      "stacks": 1
-    },
-    {
-      "kind": "abnormal",
-      "target": "opp",
-      "name": "萌化",
-      "scope": "persistent",
       "stacks": 1
     }
   ],

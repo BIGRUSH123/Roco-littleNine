@@ -5,8 +5,6 @@
   "skill_type": "魔攻",
   "power": 20,
   "energy_cost": 4,
-  "counter": "无",
-  "priority": 0,
   "combo": 5,
   "effects": [],
   "description": "✦造成魔伤，5连击。"

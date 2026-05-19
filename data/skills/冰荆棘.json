@@ -3,30 +3,28 @@
   "name": "冰荆棘",
   "element": "冰",
   "skill_type": "防御",
-  "power": 0,
   "energy_cost": 2,
   "counter": "攻击",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "special",
-      "name": "damage_reduction",
-      "value": 0.7
+      "value": 0.7,
+      "target": "sprite_self",
+      "op": "mod",
+      "stat": "damage_reduction"
     },
     {
-      "kind": "conditional",
       "when": {
-        "kind": "counter_succeeded"
+        "cond": "counter_succeeded"
       },
       "then": [
         {
-          "kind": "special",
-          "name": "double_abnormal",
-          "target": "opp",
-          "abnormal_name": "冻结"
+          "op": "double",
+          "target": "sprite_opp",
+          "what": "abnormal",
+          "name": "冻结"
         }
       ]
     }
-  ]
+  ],
+  "description": "✦ 减伤70%，应对攻击：敌方冻结层数翻倍。"
 }

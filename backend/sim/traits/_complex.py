@@ -1,14 +1,15 @@
-"""scripts/sim/traits/_complex.py — Complex 级特性（跨精灵/多步/战场光环）
+﻿"""backend/sim/traits/_complex.py — Complex 级特性（跨精灵/多步/战场光环）
 
 需要 battle 级状态追踪（pre-entry accumulator / pending effects / aura）。
 """
 
 from . import register, TraitHandler
-from scripts.sim.sprite import StatusEffect, Sprite
-from scripts.sim.battle import Battle
-from scripts.sim.battleskill import BattleSkill, SkillUse
-from scripts.common.skill_trait_ids import (
+from backend.sim.sprite import StatusEffect, Sprite
+from backend.sim.battle import Battle
+from backend.sim.battleskill import BattleSkill, SkillUse
+from backend.common.skill_trait_ids import (
     TRAIT_吟游之弦, TRAIT_多人宿舍, TRAIT_守望星, TRAIT_星地善良,
+    TRAIT_机械变式,
 )
 
 
@@ -189,8 +190,8 @@ class LikeBadElephant(TraitHandler):
 
 def _try_transform(user: Sprite, battle: Battle, team: str, trait_name: str) -> list[str]:
     """尝试将 user 变换为棋绮后。"""
-    from scripts.sim.battleskill import BattleSkill
-    from scripts.common.models import SpeciesStats
+    from backend.sim.battleskill import BattleSkill
+    from backend.common.models import SpeciesStats
 
     new_species = battle.lookup_species('棋绮后')
     if new_species is None:
@@ -349,14 +350,14 @@ class SoulChaser(TraitHandler):
 # Layer 3b: Hook 注册回调（替代硬编码 trait 名检查）
 # ═══════════════════════════════════════════════════════════════
 
-from scripts.sim.traits.trait_engine import register_hook
+from backend.sim.traits.trait_engine import register_hook
 
 
 def _bard_before_apply_mark(team, name, category, stacks, user):
     """吟游之弦: 印记共存模式。"""
     if user is None:
         return None
-    from scripts.sim.traits import get_trait
+    from backend.sim.traits import get_trait
     h = get_trait(user)
     return 'coexist' if (h and h.trait_id == TRAIT_吟游之弦) else None
 
@@ -365,7 +366,7 @@ register_hook('before_apply_mark', _bard_before_apply_mark, '吟游之弦')
 
 def _dorm_max_energy(sprite):
     """多人宿舍: 能量上限 10→15。"""
-    from scripts.sim.traits import get_trait
+    from backend.sim.traits import get_trait
     h = get_trait(sprite)
     return 15 if (h and h.trait_id == TRAIT_多人宿舍) else None
 
@@ -376,7 +377,7 @@ def _starguard_consume_starfall(team, amount, sprite, starfall_mark):
     """守望星: 星陨消耗减半。"""
     if sprite is None:
         return None
-    from scripts.sim.traits import get_trait
+    from backend.sim.traits import get_trait
     h = get_trait(sprite)
     return max(1, amount // 2) if (h and h.trait_id == TRAIT_守望星) else None
 
@@ -390,7 +391,7 @@ def _starground_bench_check(battle, team, active, player):
     for i, bench in enumerate(player.team):
         if i == player.active_index or bench.is_fainted:
             continue
-        from scripts.sim.traits import get_trait
+        from backend.sim.traits import get_trait
         h = get_trait(bench)
         if h and h.trait_id == TRAIT_星地善良:
             return (i, '星地善良')
@@ -400,7 +401,11 @@ register_hook('turn_end_bench_check', _starground_bench_check, '星地善良')
 
 
 def _mechvar_after_transmission(sprite, prev, battle, team):
-    """机械变式: 传动后技能位置变化 → 能耗-1。"""
+    """机械变式: 传动后技能位置变化 → 能耗-1（仅限拥有此特性的精灵）。"""
+    from . import get_trait
+    trait = get_trait(sprite)
+    if trait is None or trait.trait_id != TRAIT_机械变式:
+        return None
     events = []
     for i, bs in enumerate(sprite.skills):
         if i < len(prev) and bs.name != prev[i]:

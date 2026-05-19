@@ -1,10 +1,10 @@
-"""scripts/sim/globals.py — 全局效果（天气 + 双方印记 + 场地）"""
+﻿"""backend/sim/globals.py — 全局效果（天气 + 双方印记 + 场地）"""
 
 from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
-from scripts.common.skill_trait_ids import TRAIT_吟游之弦, TRAIT_守望星
+from backend.common.skill_trait_ids import TRAIT_吟游之弦, TRAIT_守望星
 from .traits.trait_engine import fire_hook_first
 
 if TYPE_CHECKING:
@@ -55,7 +55,7 @@ _MARK_EFFECTS: dict[str, dict] = {
         'category': 'positive',
         'turn_end_energy': 1,        # 每层回合末 +1 能量
     },
-    '龙式印记': {
+    '龙噬印记': {
         'category': 'positive',
     },
     '蓄势印记': {

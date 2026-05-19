@@ -3,31 +3,29 @@
   "name": "快速移动",
   "element": "普通",
   "skill_type": "状态",
-  "power": 0,
   "energy_cost": 1,
   "counter": "防御",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "stat",
-      "target": "self",
-      "stat": "speed",
-      "steps": 8,
-      "scope": "battlefield"
-    },
-    {
-      "kind": "conditional",
       "when": {
-        "kind": "counter_succeeded"
+        "cond": "counter_succeeded"
       },
       "then": [
         {
-          "kind": "stat",
-          "target": "self",
+          "op": "mod",
+          "target": "sprite_self",
           "stat": "speed",
-          "steps": 8,
-          "scope": "battlefield"
+          "value": 160,
+          "mode": "add"
+        }
+      ],
+      "else": [
+        {
+          "op": "mod",
+          "target": "sprite_self",
+          "stat": "speed",
+          "value": 80,
+          "mode": "add"
         }
       ]
     }

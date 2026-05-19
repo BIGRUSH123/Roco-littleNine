@@ -2,20 +2,34 @@
   "id": 20010,
   "name": "偏振",
   "description": "受到自己携带技能系别的攻击伤害-40%。",
-  "triggers": [
+  "passive": [
     {
-      "on": "defend",
-      "condition": {
-        "path": "skill.element",
-        "op": "in",
-        "value": "=@defender_skill_elements"
+      "op": "count",
+      "when": {
+        "cond": "on_damage_taken"
       },
-      "use_modifiers": {
-        "damage_mult": {
-          "op": "mult",
-          "value": 0.6
+      "then": [
+        {
+          "when": {
+            "cond": "have_skill_of",
+            "of": "sprite_self",
+            "element": {
+              "q": "element",
+              "of": "skill_opp_current"
+            }
+          },
+          "then": [
+            {
+              "op": "mod",
+              "target": "sprite_self",
+              "stat": "damage_reduction",
+              "value": 0.4,
+              "scope": "battlefield",
+              "per_hit": true
+            }
+          ]
         }
-      }
+      ]
     }
   ]
 }

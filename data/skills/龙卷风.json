@@ -7,17 +7,16 @@
   "energy_cost": 5,
   "counter": "状态",
   "priority": 1,
-  "combo": 1,
   "effects": [
     {
-      "kind": "conditional",
       "when": {
-        "kind": "counter_succeeded"
+        "cond": "counter_succeeded"
       },
       "then": [
         {
-          "kind": "special",
-          "name": "power_mult",
+          "op": "mod",
+          "target": "skill_off_0",
+          "stat": "power_mult",
           "value": 1.5
         }
       ]

@@ -6,19 +6,19 @@
   "power": 70,
   "energy_cost": 2,
   "counter": "状态",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "conditional",
       "when": {
-        "kind": "counter_succeeded"
+        "cond": "counter_succeeded"
       },
       "then": [
         {
-          "kind": "special",
-          "name": "power_mult",
-          "value": 2.0
+          "op": "mod",
+          "target": "sprite_self",
+          "stat": "power_mult",
+          "value": 2,
+          "on_next": true,
+          "if_type": "attack"
         }
       ]
     }

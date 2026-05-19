@@ -1,4 +1,4 @@
-"""scripts/sim/battle_mechanics.py — 场地变动 Mixin
+﻿"""backend/sim/battle_mechanics.py — 场地变动 Mixin
 
 换宠、返场、脱离、借用、力竭中断 —— 精灵进出场的全部逻辑，
 从 Battle 中提取为 Mixin，保持 Battle 的回合调度和动作执行精简。
@@ -152,7 +152,7 @@ class BattleMechanicsMixin:
                 return ''
             item.use(self.turn)
             # 用首领形态的种族值 + 原IV/性格重新计算六维
-            from scripts.common.formulas import StatsCalc
+            from backend.common.formulas import StatsCalc
             calc = StatsCalc()
             result = calc.compute(
                 boss_species,
@@ -208,7 +208,7 @@ class BattleMechanicsMixin:
     def _get_skill_name_by_id(self, skill_id: int) -> str | None:
         """按技能ID反查名称。"""
         try:
-            from scripts.common.skill_trait_ids import SKILL_ID_TO_NAME
+            from backend.common.skill_trait_ids import SKILL_ID_TO_NAME
             return SKILL_ID_TO_NAME.get(skill_id)
         except ImportError:
             return None

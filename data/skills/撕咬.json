@@ -5,16 +5,22 @@
   "skill_type": "物攻",
   "power": 30,
   "energy_cost": 3,
-  "counter": "无",
-  "priority": 0,
   "combo": 3,
   "effects": [
     {
-      "kind": "stat",
-      "target": "opp",
-      "stat": "combo",
-      "steps": 2,
-      "scope": "battlefield"
+      "when": {
+        "cond": "hp_below",
+        "ratio": 0.5
+      },
+      "then": [
+        {
+          "op": "mod",
+          "target": "skill_off_0",
+          "stat": "combo",
+          "value": 2,
+          "mode": "add"
+        }
+      ]
     }
   ],
   "description": "✦造成物伤，3连击，若自己的生命低于50%，本次技能连击数+2。"

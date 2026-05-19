@@ -5,16 +5,27 @@
   "skill_type": "魔攻",
   "power": 30,
   "energy_cost": 4,
-  "counter": "无",
-  "priority": 0,
   "combo": 3,
   "effects": [
     {
-      "kind": "stat",
-      "target": "opp",
-      "stat": "combo",
-      "steps": 3,
-      "scope": "battlefield"
+      "value": 3,
+      "target": "skill_off_0",
+      "op": "mod",
+      "stat": "combo"
+    },
+    {
+      "when": {
+        "cond": "opp_switched"
+      },
+      "then": [
+        {
+          "op": "mod",
+          "target": "skill_off_0",
+          "stat": "combo",
+          "value": 3,
+          "mode": "add"
+        }
+      ]
     }
   ],
   "description": "✦造成魔伤，3连击，若敌方本回合更换精灵，本次技能连击数+3。"

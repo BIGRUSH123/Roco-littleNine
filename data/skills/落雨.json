@@ -3,14 +3,10 @@
   "name": "落雨",
   "element": "水",
   "skill_type": "状态",
-  "power": 0,
   "energy_cost": 5,
-  "counter": "无",
-  "priority": 0,
-  "combo": 1,
   "effects": [
     {
-      "kind": "weather",
+      "op": "weather",
       "weather": "rain",
       "turns": 8
     }
