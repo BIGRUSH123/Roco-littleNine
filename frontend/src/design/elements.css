@@ -1,0 +1,31 @@
+/* 18 系别属性色 */
+.element-火  { --elem-color: #E53935; background: #E53935; color: #fff; }
+.element-水  { --elem-color: #1E88E5; background: #1E88E5; color: #fff; }
+.element-草  { --elem-color: #43A047; background: #43A047; color: #fff; }
+.element-光  { --elem-color: #FDD835; background: #FDD835; color: #3D2B1F; }
+.element-暗  { --elem-color: #8E24AA; background: #8E24AA; color: #fff; }
+.element-龙  { --elem-color: #EF6C00; background: #EF6C00; color: #fff; }
+.element-电  { --elem-color: #F9A825; background: #F9A825; color: #3D2B1F; }
+.element-冰  { --elem-color: #26C6DA; background: #26C6DA; color: #3D2B1F; }
+.element-虫  { --elem-color: #7CB342; background: #7CB342; color: #fff; }
+.element-毒  { --elem-color: #AB47BC; background: #AB47BC; color: #fff; }
+.element-土  { --elem-color: #6D4C41; background: #6D4C41; color: #fff; }
+.element-地  { --elem-color: #8D6E63; background: #8D6E63; color: #fff; }
+.element-石  { --elem-color: #757575; background: #757575; color: #fff; }
+.element-钢  { --elem-color: #90A4AE; background: #90A4AE; color: #3D2B1F; }
+.element-翼  { --elem-color: #4FC3F7; background: #4FC3F7; color: #3D2B1F; }
+.element-幻  { --elem-color: #E040FB; background: #E040FB; color: #fff; }
+.element-妖  { --elem-color: #F06292; background: #F06292; color: #fff; }
+.element-武  { --elem-color: #D84315; background: #D84315; color: #fff; }
+.element-普  { --elem-color: #9E9E9E; background: #9E9E9E; color: #fff; }
+.element-幽灵 { --elem-color: #5E35B1; background: #5E35B1; color: #fff; }
+.element-鬼  { --elem-color: #5E35B1; background: #5E35B1; color: #fff; }
+
+.elem-tag {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}

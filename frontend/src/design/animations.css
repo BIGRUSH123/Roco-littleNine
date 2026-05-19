@@ -1,0 +1,59 @@
+/* 精灵待机阴影 */
+.sprite-shadow {
+  width: 60%;
+  height: 12px;
+  background: radial-gradient(ellipse, rgba(61,43,31,0.15) 0%, transparent 70%);
+  margin: 0 auto;
+  border-radius: 50%;
+}
+
+/* 伤害数字弹出 */
+.damage-popup {
+  position: absolute;
+  font-family: var(--font-title);
+  font-weight: 700;
+  font-size: 24px;
+  pointer-events: none;
+  z-index: 100;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+
+.damage-popup.harm {
+  color: var(--damage-color);
+}
+
+.damage-popup.heal {
+  color: var(--heal-color);
+}
+
+/* 回合圆点脉冲 */
+@keyframes pulse-dot {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(201,169,110,0.6); }
+  50% { box-shadow: 0 0 0 6px rgba(201,169,110,0); }
+}
+
+.pulse-dot {
+  animation: pulse-dot 1.5s ease-in-out infinite;
+}
+
+/* 技能按钮悬浮光晕 */
+.skill-glow {
+  transition: box-shadow 0.15s ease;
+}
+.skill-glow:hover {
+  box-shadow: 0 0 12px rgba(201,169,110,0.3);
+}
+
+/* 转场 */
+.page-enter-active,
+.page-leave-active {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.page-enter-from {
+  opacity: 0;
+  transform: translateY(8px);
+}
+.page-leave-to {
+  opacity: 0;
+  transform: translateY(-8px);
+}
