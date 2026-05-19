@@ -1,5 +1,6 @@
 <script setup>
 import { ref, onMounted, computed, nextTick } from 'vue'
+import { Dialog, DialogPanel, TransitionRoot, TransitionChild } from '@headlessui/vue'
 
 const props = defineProps({
   skillMap: { type: Object, default: () => ({}) }
@@ -28,30 +29,10 @@ const evolutionEligible = ref(false)  // 队伍中是否有精灵可进化
 
 const API_BASE = 'http://localhost:8000/api'
 
-// 属性颜色映射
-const elementColors = {
-  '火': 'bg-[#f44336] text-white',
-  '水': 'bg-[#2196f3] text-white',
-  '草': 'bg-[#4caf50] text-white',
-  '光': 'bg-[#ffc107] text-[#1a1d23]',
-  '暗': 'bg-[#6a1b9a] text-white',
-  '龙': 'bg-[#ff6f00] text-white',
-  '电': 'bg-[#ffeb3b] text-[#1a1d23]',
-  '冰': 'bg-[#80deea] text-[#1a1d23]',
-  '虫': 'bg-[#8bc34a] text-[#1a1d23]',
-  '毒': 'bg-[#9c27b0] text-white',
-  '土': 'bg-[#795548] text-white',
-  '地': 'bg-[#a1887f] text-white',
-  '石': 'bg-[#757575] text-white',
-  '钢': 'bg-[#b0bec5] text-[#1a1d23]',
-  '翼': 'bg-[#90caf9] text-[#1a1d23]',
-  '幻': 'bg-[#e040fb] text-white',
-  '妖': 'bg-[#f48fb1] text-[#1a1d23]',
-  '武': 'bg-[#d84315] text-white',
-  '普': 'bg-[#9e9e9e] text-white',
-  '普通': 'bg-[#9e9e9e] text-white',
-  '幽灵': 'bg-[#5e35b1] text-white',
-  '鬼': 'bg-[#5e35b1] text-white',
+// 元素名 → elements.css class 映射（elements.css 使用短名）
+const ELEMENT_NAME_MAP = { '普通': '普' }
+function elementClass(el) {
+  return `element-${ELEMENT_NAME_MAP[el] || el}`
 }
 
 async function loadSprites() {
@@ -324,73 +305,73 @@ const startBattle = () => {
   <div class="p-4 md:p-6">
 
     <!-- Team Builder -->
-    <div class="bg-[#252830] border border-[#3a3d42] rounded">
-      <div class="px-4 py-2.5 border-b border-[#3a3d42] flex items-center gap-2">
-        <span class="text-sm font-bold text-[#e0e0e0]">队伍配置</span>
-        <span v-if="!loading && !error" class="text-xs text-[#6a6d75]">
+    <div class="card bg-white rounded-xl overflow-hidden">
+      <div class="px-5 py-3 border-b border-[#D4C8B8] flex items-center gap-2">
+        <span class="title text-lg font-bold text-[#3D2B1F]">队伍配置</span>
+        <span v-if="!loading && !error" class="text-xs text-[#6B5E4F]">
           已选 {{ selectedTeam.filter(s => s !== null).length }}/6
         </span>
       </div>
 
       <!-- Loading -->
-      <div v-if="loading" class="p-8 text-center text-sm text-[#6a6d75]">
+      <div v-if="loading" class="p-8 text-center text-sm text-[#6B5E4F]">
         加载精灵数据中...
       </div>
 
       <!-- Error -->
       <div v-else-if="error" class="p-8 text-center">
-        <div class="text-sm text-[#f44336] mb-1">加载精灵失败</div>
-        <div class="text-xs text-[#6a6d75] mb-4">{{ error }}</div>
-        <div class="text-xs text-[#5a5d65] mb-3">
+        <div class="text-sm text-[#D4534A] mb-1">加载精灵失败</div>
+        <div class="text-xs text-[#6B5E4F] mb-4">{{ error }}</div>
+        <div class="text-xs text-[#6B5E4F] mb-3">
           请确认后端已启动（端口 8000）：
-          <code class="bg-[#1e2128] px-1.5 py-0.5 rounded text-[#9a9da5]">python scripts/api/main.py</code>
+          <code class="bg-[#F5F2EC] px-1.5 py-0.5 rounded text-[#3D2B1F]">python scripts/api/main.py</code>
         </div>
         <button
           @click="loadSprites"
-          class="px-4 py-1.5 bg-[#4a90d9] hover:bg-[#5a9fe9] text-white text-xs font-bold rounded transition-colors"
+          class="btn btn-primary px-5 py-2 text-white text-xs font-bold rounded-lg transition-colors"
         >
           重试
         </button>
       </div>
 
       <!-- Team Slots -->
-      <div v-else class="p-4">
+      <div v-else class="p-5">
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           <div
             v-for="(slot, idx) in 6"
             :key="idx"
-            class="bg-[#1e2128] border rounded min-h-[140px]"
+            class="card bg-[#FBF7F0] rounded-xl min-h-[140px] transition-colors duration-150"
             :class="selectedTeam[idx]
-              ? leadSlot === idx ? 'border-[#ffc107]' : 'border-[#3a3d42] hover:border-[#5a5d65]'
-              : 'border-dashed border-[#3a3d42] hover:border-[#5a5d65]'"
+              ? leadSlot === idx ? 'border-[#C9A96E] shadow-[0_0_12px_rgba(201,169,110,0.2)]' : 'border-[#D4C8B8] hover:border-[#C9A96E]'
+              : 'border-dashed border-[#D4C8B8] hover:border-[#C9A96E]'"
           >
             <!-- Filled -->
             <template v-if="selectedTeam[idx]">
               <div class="p-3">
                 <div class="flex items-center justify-between mb-2">
                   <div class="flex items-center gap-1.5 min-w-0">
-                    <span class="text-[10px] text-[#6a6d75] font-mono flex-shrink-0">{{ selectedTeam[idx].number ? String(selectedTeam[idx].number).padStart(3, '0') : '???' }}</span>
+                    <span class="text-[10px] text-[#6B5E4F] font-mono flex-shrink-0">{{ selectedTeam[idx].number ? String(selectedTeam[idx].number).padStart(3, '0') : '???' }}</span>
                     <span
                       v-if="selectedTeam[idx].element"
-                      class="text-[10px] px-1 rounded border border-[#3a3d42] text-[#8a8d95] flex-shrink-0"
+                      class="text-[10px] px-1 rounded border border-[#D4C8B8] text-[#6B5E4F] flex-shrink-0"
                     >{{ selectedTeam[idx].element }}</span>
-                    <span class="text-sm font-bold text-[#e0e0e0] truncate">
+                    <span class="text-sm font-bold text-[#3D2B1F] truncate">
                       {{ selectedTeam[idx].name }}
                     </span>
                   </div>
                   <button
                     v-if="leadSlot !== idx"
                     @click="leadSlot = idx"
-                    class="text-[#6a6d75] hover:text-[#ffc107] text-[10px] px-1 py-0.5 rounded border border-[#3a3d42] hover:border-[#ffc107] transition-colors flex-shrink-0 ml-1"
+                    class="text-[#6B5E4F] hover:text-[#C9A96E] text-[10px] px-1.5 py-0.5 rounded border border-[#D4C8B8] hover:border-[#C9A96E] transition-colors flex-shrink-0 ml-1"
                     title="设为首发"
                   >首发</button>
                   <span
                     v-else
-                    class="text-[#ffc107] text-[10px] px-1 py-0.5 rounded border border-[#ffc107] flex-shrink-0 ml-1"
+                    class="text-[#C9A96E] text-[10px] px-1.5 py-0.5 rounded border border-[#C9A96E] flex-shrink-0 ml-1"
                   >★首发</span>
                   <button
                     @click="clearSlot(idx)"
-                    class="text-[#6a6d75] hover:text-[#f44336] text-xs transition-colors flex-shrink-0 ml-1"
+                    class="text-[#6B5E4F] hover:text-[#D4534A] text-xs transition-colors flex-shrink-0 ml-1"
                     title="移除"
                   >&times;</button>
                 </div>
@@ -400,29 +381,29 @@ const startBattle = () => {
                     :key="skill"
                     @click="toggleSkill(idx, skill)"
                     :class="[
-                      'group relative px-2 py-0.5 text-xs rounded transition-colors text-left',
+                      'group relative px-2 py-0.5 text-xs rounded-lg transition-colors text-left',
                       teamSkills[idx].includes(skill)
-                        ? 'bg-[#4a90d9] text-white'
-                        : 'bg-[#2a2d35] text-[#8a8d95] hover:bg-[#3a3d45]'
+                        ? 'btn btn-primary text-white'
+                        : 'bg-[#F5F2EC] text-[#6B5E4F] hover:bg-[#EDE8DF]'
                     ]"
                   >
                     {{ skill }}
-                    <span class="hidden group-hover:block absolute bottom-full left-0 mb-1 px-2 py-1 bg-[#1a1d23] border border-[#3a3d42] rounded text-[10px] text-[#9a9da5] whitespace-nowrap z-10 shadow-lg">
+                    <span class="hidden group-hover:block absolute bottom-full left-0 mb-1 px-2 py-1 bg-white border border-[#D4C8B8] rounded-lg text-[10px] text-[#3D2B1F] whitespace-nowrap z-10 shadow-lg">
                       {{ skillDesc(skill) || skill }}
                     </span>
                   </button>
                 </div>
                 <!-- 血脉选择 -->
                 <div v-if="teamBloodlineOptions[idx].length > 0" class="mt-2 flex items-center gap-1.5">
-                  <span class="text-[10px] text-[#6a6d75] flex-shrink-0">血脉:</span>
+                  <span class="text-[10px] text-[#6B5E4F] flex-shrink-0">血脉:</span>
                   <select
                     v-model="teamBloodlines[idx]"
-                    class="bg-[#1e2128] border border-[#3a3d42] rounded px-1.5 py-0.5 text-[11px] text-[#cdd6e0] outline-none focus:border-[#4a90d9] flex-1 min-w-0"
+                    class="bloodline-select bg-[#F5F2EC] border border-[#D4C8B8] rounded-lg px-2 py-0.5 text-[11px] text-[#3D2B1F] outline-none focus:border-[#C9A96E] flex-1 min-w-0"
                   >
                     <option v-for="bl in teamBloodlineOptions[idx]" :key="bl" :value="bl">{{ bl }}</option>
                   </select>
                 </div>
-                <div class="text-[10px] text-[#5a5d65] mt-2">
+                <div class="text-[10px] text-[#6B5E4F] mt-2">
                   {{ teamSkills[idx].length }}/10 技能
                 </div>
               </div>
@@ -431,7 +412,7 @@ const startBattle = () => {
             <template v-else>
               <button
                 @click="openPicker(idx)"
-                class="w-full h-full min-h-[140px] flex items-center justify-center text-sm text-[#6a6d75] hover:text-[#9a9da5] transition-colors"
+                class="w-full h-full min-h-[140px] flex items-center justify-center text-sm text-[#6B5E4F] hover:text-[#C9A96E] transition-colors"
               >
                 + 添加精灵
               </button>
@@ -440,16 +421,16 @@ const startBattle = () => {
         </div>
 
         <!-- 道具选择 -->
-        <div class="mt-5 pt-4 border-t border-[#3a3d42]">
-          <div class="text-xs font-bold text-[#e0e0e0] mb-3">携带道具（可选）</div>
+        <div class="mt-5 pt-4 border-t border-[#D4C8B8]">
+          <div class="text-xs font-bold text-[#3D2B1F] mb-3">携带道具（可选）</div>
           <div class="flex flex-wrap gap-2">
             <button
               @click="selectedItem = ''"
               :class="[
-                'px-4 py-2 text-xs rounded border transition-colors',
+                'px-4 py-2 text-xs rounded-lg border transition-colors',
                 !selectedItem
-                  ? 'border-[#4a90d9] bg-[#1a2a3a] text-[#4a90d9]'
-                  : 'border-[#3a3d42] bg-[#1e2128] text-[#8a8d95] hover:border-[#5a5d65]'
+                  ? 'border-[#5C8D6E] bg-[#5C8D6E]/10 text-[#5C8D6E]'
+                  : 'border-[#D4C8B8] bg-[#F5F2EC] text-[#6B5E4F] hover:border-[#C9A96E]'
               ]"
             >无道具</button>
             <button
@@ -458,27 +439,27 @@ const startBattle = () => {
               @click="selectedItem = item.name"
               :disabled="item.name === '进化之力' && !evolutionEligible"
               :class="[
-                'group relative px-4 py-2 text-xs rounded border transition-colors',
+                'group relative px-4 py-2 text-xs rounded-lg border transition-colors',
                 selectedItem === item.name
-                  ? 'border-[#4a90d9] bg-[#1a2a3a] text-[#4a90d9]'
+                  ? 'border-[#5C8D6E] bg-[#5C8D6E]/10 text-[#5C8D6E]'
                   : item.name === '进化之力' && !evolutionEligible
-                    ? 'border-[#3a3d42] bg-[#1e2128] text-[#5a5d65] cursor-not-allowed opacity-40'
-                    : 'border-[#3a3d42] bg-[#1e2128] text-[#8a8d95] hover:border-[#5a5d65]'
+                    ? 'border-[#D4C8B8] bg-[#F5F2EC] text-[#A89A8A] cursor-not-allowed opacity-50'
+                    : 'border-[#D4C8B8] bg-[#F5F2EC] text-[#6B5E4F] hover:border-[#C9A96E]'
               ]"
             >
               {{ item.name }}
               <!-- 进化之力不可用的提示 -->
-              <span v-if="item.name === '进化之力' && !evolutionEligible" class="block text-[10px] text-[#f4a236] mt-0.5">
+              <span v-if="item.name === '进化之力' && !evolutionEligible" class="block text-[10px] text-[#E0A030] mt-0.5">
                 队伍中无精灵可进化
               </span>
             </button>
           </div>
           <!-- 选中道具说明 -->
-          <div v-if="selectedItem" class="mt-2 text-[10px] text-[#6a6d75]">
+          <div v-if="selectedItem" class="mt-2 text-[10px] text-[#6B5E4F]">
             <template v-for="item in availableItems" :key="item.name">
               <template v-if="item.name === selectedItem">
                 {{ item.description }} · {{ item.cooldown_description }}
-                <span v-if="item.requirement" class="text-[#ff9800]"> · {{ item.requirement }}</span>
+                <span v-if="item.requirement" class="text-[#E0A030]"> · {{ item.requirement }}</span>
               </template>
             </template>
           </div>
@@ -490,10 +471,10 @@ const startBattle = () => {
             @click="startBattle"
             :disabled="!isReady"
             :class="[
-              'px-10 py-2.5 text-sm font-bold rounded transition-colors',
+              'px-10 py-2.5 text-sm font-bold rounded-lg transition-colors',
               isReady
-                ? 'bg-[#4a90d9] text-white hover:bg-[#5a9fe9] cursor-pointer'
-                : 'bg-[#2a2d35] text-[#5a5d65] cursor-not-allowed'
+                ? 'btn btn-primary text-white cursor-pointer'
+                : 'bg-[#EDE8DF] text-[#A89A8A] cursor-not-allowed'
             ]"
           >
             开始战斗
@@ -502,86 +483,112 @@ const startBattle = () => {
       </div>
     </div>
 
-    <!-- Sprite Picker Modal -->
-    <Transition name="modal">
-      <div
-        v-if="activeSlot >= 0"
-        class="fixed inset-0 z-50 flex items-start justify-center pt-20"
-        @click.self="closePicker"
-      >
-        <div class="bg-[#252830] border border-[#3a3d42] rounded shadow-lg w-full max-w-md mx-4" @click.stop>
-          <div class="p-3 border-b border-[#3a3d42] space-y-2">
-            <input
-              ref="searchInput"
-              v-model="searchText"
-              type="text"
-              placeholder="搜索精灵..."
-              class="w-full bg-[#1e2128] border border-[#3a3d42] rounded px-3 py-1.5 text-sm text-[#e0e0e0] placeholder-[#5a5d65] outline-none focus:border-[#4a90d9]"
-              @keydown.escape="closePicker"
-            />
-            <!-- 属性筛选标签 -->
-            <div class="flex flex-wrap gap-1">
-              <button
-                @click="elementFilter = ''"
-                class="px-1.5 py-0.5 text-[11px] rounded border transition-colors"
-                :class="!elementFilter
-                  ? 'bg-[#4a90d9] border-[#4a90d9] text-white'
-                  : 'bg-[#1e2128] border-[#3a3d42] text-[#8a8d95] hover:border-[#5a5d65]'"
-              >全部</button>
-              <button
-                v-for="el in availableElements"
-                :key="el"
-                @click="elementFilter = elementFilter === el ? '' : el"
-                class="px-1.5 py-0.5 text-[11px] rounded border transition-colors"
-                :class="elementFilter === el
-                  ? (elementColors[el] || 'bg-[#4a90d9] text-white') + ' border-transparent'
-                  : 'bg-[#1e2128] border-[#3a3d42] text-[#8a8d95] hover:border-[#5a5d65]'"
-              >{{ el }}</button>
-            </div>
-          </div>
-          <div class="max-h-72 overflow-y-auto p-1">
-            <div v-if="filteredSprites.length === 0" class="p-4 text-center text-sm text-[#6a6d75]">
-              未找到精灵
-            </div>
-            <button
-              v-for="sprite in filteredSprites"
-              :key="sprite.name"
-              @click="selectSprite(sprite)"
-              class="w-full text-left px-3 py-1.5 text-sm text-[#cdd6e0] hover:bg-[#2a2d35] rounded transition-colors flex items-center gap-2"
-            >
-              <span class="text-xs text-[#6a6d75] font-mono flex-shrink-0">{{ sprite.number ? String(sprite.number).padStart(3, '0') : '???' }}</span>
-              <span
-                v-if="sprite.element"
-                class="text-[10px] px-1 rounded border border-[#3a3d42] text-[#8a8d95] flex-shrink-0"
-              >{{ sprite.element }}</span>
-              <span class="truncate">{{ sprite.name }}</span>
-              <span class="text-xs text-[#5a5d65] ml-auto flex-shrink-0">{{ sprite.skills.length }}技</span>
-            </button>
-          </div>
+    <!-- Sprite Picker Modal (Headless UI Dialog) -->
+    <TransitionRoot :show="activeSlot >= 0" as="template">
+      <Dialog class="relative z-50" @close="closePicker">
+        <!-- Backdrop -->
+        <TransitionChild
+          as="template"
+          enter="duration-200 ease-out"
+          enter-from="opacity-0"
+          enter-to="opacity-100"
+          leave="duration-150 ease-in"
+          leave-from="opacity-100"
+          leave-to="opacity-0"
+        >
+          <div class="fixed inset-0 bg-black/15" />
+        </TransitionChild>
+
+        <div class="fixed inset-0 flex items-start justify-center pt-20">
+          <TransitionChild
+            as="template"
+            enter="duration-200 ease-out"
+            enter-from="opacity-0 scale-95"
+            enter-to="opacity-100 scale-100"
+            leave="duration-150 ease-in"
+            leave-from="opacity-100 scale-100"
+            leave-to="opacity-0 scale-95"
+          >
+            <DialogPanel class="card bg-white rounded-xl shadow-lg w-full max-w-md mx-4 overflow-hidden">
+              <div class="p-3 border-b border-[#D4C8B8] space-y-2">
+                <input
+                  ref="searchInput"
+                  v-model="searchText"
+                  type="text"
+                  placeholder="搜索精灵..."
+                  class="w-full bg-[#FBF7F0] border border-[#D4C8B8] rounded-lg px-3 py-2 text-sm text-[#3D2B1F] placeholder-[#A89A8A] outline-none focus:border-[#C9A96E] transition-colors"
+                />
+                <!-- 属性筛选标签 -->
+                <div class="flex flex-wrap gap-1">
+                  <button
+                    @click="elementFilter = ''"
+                    class="px-2 py-0.5 text-[11px] rounded-lg border transition-colors"
+                    :class="!elementFilter
+                      ? 'bg-[#5C8D6E] border-[#5C8D6E] text-white'
+                      : 'bg-[#F5F2EC] border-[#D4C8B8] text-[#6B5E4F] hover:border-[#C9A96E]'"
+                  >全部</button>
+                  <button
+                    v-for="el in availableElements"
+                    :key="el"
+                    @click="elementFilter = elementFilter === el ? '' : el"
+                    class="px-2 py-0.5 text-[11px] rounded-lg border transition-colors"
+                    :class="elementFilter === el
+                      ? [elementClass(el), 'border-transparent']
+                      : 'bg-[#F5F2EC] border-[#D4C8B8] text-[#6B5E4F] hover:border-[#C9A96E]'"
+                  >{{ el }}</button>
+                </div>
+              </div>
+              <div class="max-h-72 overflow-y-auto p-1 vintage-scrollbar">
+                <div v-if="filteredSprites.length === 0" class="p-4 text-center text-sm text-[#6B5E4F]">
+                  未找到精灵
+                </div>
+                <button
+                  v-for="sprite in filteredSprites"
+                  :key="sprite.name"
+                  @click="selectSprite(sprite)"
+                  class="w-full text-left px-3 py-2 text-sm text-[#3D2B1F] hover:bg-[#F5F2EC] rounded-lg transition-colors flex items-center gap-2"
+                >
+                  <span class="text-xs text-[#6B5E4F] font-mono flex-shrink-0">{{ sprite.number ? String(sprite.number).padStart(3, '0') : '???' }}</span>
+                  <span
+                    v-if="sprite.element"
+                    class="text-[10px] px-1 rounded border border-[#D4C8B8] text-[#6B5E4F] flex-shrink-0"
+                  >{{ sprite.element }}</span>
+                  <span class="truncate">{{ sprite.name }}</span>
+                  <span class="text-xs text-[#6B5E4F] ml-auto flex-shrink-0">{{ sprite.skills.length }}技</span>
+                </button>
+              </div>
+            </DialogPanel>
+          </TransitionChild>
         </div>
-      </div>
-    </Transition>
+      </Dialog>
+    </TransitionRoot>
 
   </div>
 </template>
 
 <style scoped>
-.modal-enter-active,
-.modal-leave-active {
-  transition: opacity 0.15s ease;
+/* Styled dropdown arrow for bloodline select */
+.bloodline-select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%236B5E4F'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 6px center;
+  padding-right: 22px;
 }
-.modal-enter-active > div,
-.modal-leave-active > div {
-  transition: transform 0.15s ease;
+
+/* Vintage scrollbar for sprite picker */
+.vintage-scrollbar::-webkit-scrollbar {
+  width: 6px;
 }
-.modal-enter-from,
-.modal-leave-to {
-  opacity: 0;
+.vintage-scrollbar::-webkit-scrollbar-track {
+  background: #F5F2EC;
+  border-radius: 3px;
 }
-.modal-enter-from > div {
-  transform: scale(0.95);
+.vintage-scrollbar::-webkit-scrollbar-thumb {
+  background: #D4C8B8;
+  border-radius: 3px;
 }
-.modal-leave-to > div {
-  transform: scale(0.95);
+.vintage-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #B8A898;
 }
 </style>
