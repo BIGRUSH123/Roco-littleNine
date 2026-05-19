@@ -46,11 +46,15 @@ class DebugActionRequest(BaseModel):
 
 class SkillSummary(BaseModel):
     name: str
+    skill_index: int            # 技能栏位置（0=1号位）
     base_power: int
-    effective_power: int
+    effective_power: int        # 含位置加成 / 印记加成
+    position_power_bonus: int   # 当前位的威力加成（械斗等在X号位）
     base_energy_cost: int
-    effective_energy_cost: int
+    effective_energy_cost: int  # 含轴承支撑被动 / 印记减费
     cooldown: int
+    transmission: int           # 传动等级（0=不传动）
+    main_axis: bool             # 主轴：不参与传动
 
 
 class EffectSummary(BaseModel):
@@ -112,6 +116,27 @@ class BattleState(BaseModel):
     marks_b: list[MarkSummary]
     mark_energy_mod_a: int
     mark_energy_mod_b: int
+
+
+# ═══════════════════════════════════════════════════════════════════
+# 回合快照（回放）
+# ═══════════════════════════════════════════════════════════════════
+
+class SnapshotSprite(BaseModel):
+    name: str
+    current_hp: int
+    max_hp: int
+    energy: int
+    is_fainted: bool
+    effects: list[EffectSummary]
+    skills: list[SkillSummary]
+
+
+class TurnSnapshot(BaseModel):
+    turn: int
+    self_sprite: SnapshotSprite
+    opp_sprite: SnapshotSprite
+    log_entries: list[str]
 
 
 # ═══════════════════════════════════════════════════════════════════

@@ -1,4 +1,4 @@
-import json
+﻿import json
 import uuid
 import random
 import re
@@ -8,24 +8,24 @@ from typing import Optional
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
-# Ensure we can import from scripts
+# Ensure we can import from backend
 import sys
 BASE = Path(__file__).resolve().parent.parent.parent
 if str(BASE) not in sys.path:
     sys.path.insert(0, str(BASE))
 
-from scripts.sim.factory import SimFactory
-from scripts.sim.agent import RuleAgent
-from scripts.sim.battle import Battle
-from scripts.sim.resolver import _TYPE_CHART
-from scripts.sim.player import Player, PlayStyle
-from scripts.sim.action import Action
-from scripts.sim.sprite import Sprite
-from scripts.sim.skill import Skill
-from scripts.sim.battleskill import BattleSkill
-from scripts.common.models import SpeciesStats
+from backend.sim.factory import SimFactory
+from backend.sim.agent import RuleAgent
+from backend.sim.battle import Battle
+from backend.sim.resolver import _TYPE_CHART
+from backend.sim.player import Player, PlayStyle
+from backend.sim.action import Action
+from backend.sim.sprite import Sprite
+from backend.sim.skill import Skill
+from backend.sim.battleskill import BattleSkill
+from backend.common.models import SpeciesStats
 
-from . import schemas
+from backend.api import schemas
 
 app = FastAPI(title="Roco Battle API")
 
@@ -242,6 +242,11 @@ def serialize_battle_state(battle: Battle, session_id: str) -> schemas.BattleSta
     pa = battle.player_a
     pb = battle.player_b
 
+    # 确保位置效果缓存已初始化（首次序列化时 TurnPipeline 可能尚未运行）
+    if not hasattr(battle, '_position_power_bonus'):
+        from backend.sim.pipeline import TurnPipeline
+        battle._position_power_bonus = TurnPipeline._scan_position_effects(battle)
+
     def _serialize_sprite(s, team='A') -> schemas.SpriteState:
         charging = getattr(s, '_charging', False)
         charged_idx = getattr(s, '_charged_skill_index', -1)
@@ -250,20 +255,33 @@ def serialize_battle_state(battle: Battle, session_id: str) -> schemas.BattleSta
             charged_name = s.skills[charged_idx].name
 
         mark_e_mod = battle.globals.mark_energy_mod(team)
+        pos_bonus_map = getattr(battle, '_position_power_bonus', {})
         skills_data = []
-        for sk in s.skills:
+        for i, sk in enumerate(s.skills):
             base_p = sk.base.power
             base_e = sk.base.energy_cost
+            pos_bonus = pos_bonus_map.get((team, i), 0)
             perm_p = base_p + sk.power_mod
-            eff_p = perm_p + battle.globals.mark_power_bonus(team, sk.base)
-            eff_e = max(0, base_e + s.energy_cost_mod + sk.energy_cost_mod - mark_e_mod)
+            eff_p = perm_p + battle.globals.mark_power_bonus(team, sk.base) + pos_bonus
+            # 轴承支撑被动：两侧技能能耗-1
+            adj_ec = 0
+            for offset in (-1, 1):
+                ni = i + offset
+                if 0 <= ni < len(s.skills) and s.skills[ni].name == '轴承支撑':
+                    adj_ec = 1
+                    break
+            eff_e = max(0, base_e + s.energy_cost_mod + sk.energy_cost_mod - mark_e_mod - adj_ec)
             skills_data.append(schemas.SkillSummary(
                 name=sk.name,
+                skill_index=i,
                 base_power=base_p,
                 effective_power=eff_p,
+                position_power_bonus=pos_bonus,
                 base_energy_cost=base_e,
                 effective_energy_cost=eff_e,
                 cooldown=sk.cooldown,
+                transmission=getattr(sk, '_transmission', 0),
+                main_axis=(getattr(sk, '_transmission', 0) == -1),
             ))
         return schemas.SpriteState(
             name=s.name,
@@ -279,7 +297,7 @@ def serialize_battle_state(battle: Battle, session_id: str) -> schemas.BattleSta
             energy_cost_mod=s.energy_cost_mod,
             effects=[schemas.EffectSummary(
                 name=e.name, category=e.category, stacks=e.stacks, steps=e.steps,
-            ) for e in s.effects],
+            ) for e in s.effects if e.name != '首领化'],
             skills=skills_data,
         )
 
@@ -320,6 +338,44 @@ def serialize_battle_state(battle: Battle, session_id: str) -> schemas.BattleSta
                 + [schemas.MarkSummary(name=m.name, stacks=m.stacks, type='negative') for m in marks_b_neg],
         mark_energy_mod_a=battle.globals.mark_energy_mod("A"),
         mark_energy_mod_b=battle.globals.mark_energy_mod("B"),
+    )
+
+def _build_turn_snapshot(battle, turn_log):
+    """Build a lightweight turn snapshot for timeline replay."""
+    from backend.api import schemas as s
+
+    sa = battle.player_a.active
+    sb = battle.player_b.active
+
+    def _snap(sprite):
+        return s.SnapshotSprite(
+            name=sprite.name,
+            current_hp=sprite.current_hp,
+            max_hp=sprite.max_hp,
+            energy=sprite.energy,
+            is_fainted=sprite.is_fainted,
+            effects=[s.EffectSummary(
+                name=e.name, category=e.category, stacks=e.stacks, steps=e.steps,
+            ) for e in sprite.effects if e.name != '首领化'],
+            skills=[s.SkillSummary(
+                name=sk.name,
+                skill_index=i,
+                base_power=sk.base.power,
+                effective_power=sk.base.power + sk.power_mod,
+                position_power_bonus=0,
+                base_energy_cost=sk.base.energy_cost,
+                effective_energy_cost=sk.base.energy_cost + sk.energy_cost_mod,
+                cooldown=sk.cooldown,
+                transmission=0,
+                main_axis=False,
+            ) for i, sk in enumerate(sprite.skills)],
+        )
+
+    return s.TurnSnapshot(
+        turn=battle.turn,
+        self_sprite=_snap(sa),
+        opp_sprite=_snap(sb),
+        log_entries=list(turn_log) if turn_log else [],
     )
 
 # --- Endpoints ---
@@ -428,7 +484,7 @@ def init_battle(req: schemas.InitRequest):
             team_b_specs.append({"name": entry["name"], "skills": chosen_skills, "bloodline": None, "form": ""})
 
     # 道具
-    from scripts.sim.player import Item
+    from backend.sim.player import Item
     item = None
     if req.item == '愿力':
         item = Item.wish()
@@ -479,53 +535,53 @@ def battle_action(req: schemas.ActionRequest):
             "log": log_lines,
         }
 
-    # Construct player action
+    # 验证请求参数，skill_index 由 DummyAgent 在传动后动态解析
     if req.action_type == "skill":
         if not req.skill_name:
             raise HTTPException(status_code=400, detail="skill_name required for skill action")
-            
-        skill_idx = -1
-        for i, skill in enumerate(battle.player_a.active.skills):
-            if skill.name == req.skill_name:
-                skill_idx = i
-                break
-                
-        if skill_idx == -1:
+        found = any(skill.name == req.skill_name for skill in battle.player_a.active.skills)
+        if not found:
             raise HTTPException(status_code=400, detail="Skill not found")
-            
-        action_a = Action(kind="skill", skill_index=skill_idx)
     elif req.action_type == "switch":
         if req.switch_index is None:
             raise HTTPException(status_code=400, detail="switch_index required for switch action")
-        action_a = Action(kind="switch", switch_index=req.switch_index)
-    elif req.action_type == "gather":
-        action_a = Action(kind="gather")
-    else:
+    elif req.action_type not in ("gather",):
         raise HTTPException(status_code=400, detail=f"Unknown action type: {req.action_type}")
-        
-    # Create a dummy agent for player A
+
+    # 在 execute_turn 内部传动后才解析 skill_index（避免 position 过期）
     class DummyAgent:
-        def __init__(self, team: str, action: Action):
+        def __init__(self, team: str, kind: str, skill_name: str = '', switch_index: int = 0):
             self.team = team
-            self.action = action
-            
+            self._kind = kind
+            self._skill_name = skill_name
+            self._switch_index = switch_index
+
         def choose_lead(self, battle):
             return 0
-            
+
         def choose_action(self, battle):
-            return self.action
-            
+            if self._kind == 'skill' and self._skill_name:
+                sprite = battle.get_player(self.team).active
+                for i, sk in enumerate(sprite.skills):
+                    if sk.name == self._skill_name:
+                        return Action(kind='skill', skill_index=i)
+                return Action(kind='gather')
+            if self._kind == 'switch':
+                return Action(kind='switch', switch_index=self._switch_index)
+            return Action(kind=self._kind)
+
         def choose_replacement(self, battle):
-            # Fallback if needed
             for i, s in enumerate(battle.get_player(self.team).team):
                 if not s.is_fainted:
                     return i
             return 0
-            
+
         def on_game_end(self, winner):
             pass
 
-    agent_a = DummyAgent("A", action_a)
+    agent_a = DummyAgent("A", req.action_type,
+                         skill_name=req.skill_name or '',
+                         switch_index=req.switch_index or 0)
     
     # Execute turn
     battle.execute_turn(agent_a, agent_b)
@@ -536,9 +592,12 @@ def battle_action(req: schemas.ActionRequest):
         latest_record = battle.log[-1]
         turn_log = latest_record.events
         
+    turn_snap = _build_turn_snapshot(battle, turn_log)
+
     return {
         "state": serialize_battle_state(battle, req.session_id),
-        "log": turn_log
+        "log": turn_log,
+        "turn_snapshot": turn_snap,
     }
 
 # ── Debug Mode Endpoints ───────────────────────────────────────────
@@ -558,19 +617,29 @@ def _make_debug_sprite(name: str, skills: list[BattleSkill], team: str) -> Sprit
     return s
 
 
-def _make_dummy_agent(team: str, action: Action):
-    """Create an agent that returns a fixed action. Replacement picks first alive."""
+def _make_dummy_agent(team: str, kind: str, skill_name: str = '', switch_index: int = 0):
+    """Create an agent that resolves skill by name in choose_action (after transmission)."""
 
     class DummyAgent:
-        def __init__(self, t: str, a: Action):
+        def __init__(self, t: str, k: str, sn: str, si: int):
             self.team = t
-            self.action = a
+            self._kind = k
+            self._skill_name = sn
+            self._switch_index = si
 
         def choose_lead(self, battle):
             return 0
 
         def choose_action(self, battle):
-            return self.action
+            if self._kind == 'skill' and self._skill_name:
+                sprite = battle.get_player(self.team).active
+                for i, sk in enumerate(sprite.skills):
+                    if sk.name == self._skill_name:
+                        return Action(kind='skill', skill_index=i)
+                return Action(kind='gather')
+            if self._kind == 'switch':
+                return Action(kind='switch', switch_index=self._switch_index)
+            return Action(kind=self._kind)
 
         def choose_replacement(self, battle):
             for i, sp in enumerate(battle.get_player(self.team).team):
@@ -581,23 +650,23 @@ def _make_dummy_agent(team: str, action: Action):
         def on_game_end(self, winner):
             pass
 
-    return DummyAgent(team, action)
+    return DummyAgent(team, kind, skill_name, switch_index)
 
 
-def _action_from_dict(action_data: dict, player, label: str) -> Action:
-    """Parse action dict into Action object."""
+def _parse_action_info(action_data: dict, player, label: str) -> dict:
+    """Extract action info, validate skill exists. Returns {kind, skill_name, switch_index}.
+    skill_index is NOT computed here — DummyAgent resolves it after transmission."""
     atype = action_data.get('type', 'gather')
     if atype == 'skill':
         skill_name = action_data.get('skill_name', '')
-        for i, skill in enumerate(player.active.skills):
-            if skill.name == skill_name:
-                return Action(kind='skill', skill_index=i)
-        raise HTTPException(status_code=400, detail=f'{label}: skill {skill_name} not found')
+        found = any(skill.name == skill_name for skill in player.active.skills)
+        if not found:
+            raise HTTPException(status_code=400, detail=f'{label}: skill {skill_name} not found')
+        return {'kind': 'skill', 'skill_name': skill_name, 'switch_index': 0}
     elif atype == 'switch':
-        idx = action_data.get('switch_index', 0)
-        return Action(kind='switch', switch_index=idx)
+        return {'kind': 'switch', 'skill_name': '', 'switch_index': action_data.get('switch_index', 0)}
     elif atype == 'gather':
-        return Action(kind='gather')
+        return {'kind': 'gather', 'skill_name': '', 'switch_index': 0}
     else:
         raise HTTPException(status_code=400, detail=f'{label}: unknown action type {atype}')
 
@@ -678,11 +747,11 @@ def debug_action(req: schemas.DebugActionRequest):
             item_log.append(f'[B] {result}')
         req.action_b = dict(req.action_b, type='gather')
 
-    action_a = _action_from_dict(req.action_a, battle.player_a, 'Player A')
-    action_b = _action_from_dict(req.action_b, battle.player_b, 'Player B')
+    info_a = _parse_action_info(req.action_a, battle.player_a, 'Player A')
+    info_b = _parse_action_info(req.action_b, battle.player_b, 'Player B')
 
-    agent_a = _make_dummy_agent('A', action_a)
-    agent_b = _make_dummy_agent('B', action_b)
+    agent_a = _make_dummy_agent('A', info_a['kind'], info_a['skill_name'], info_a['switch_index'])
+    agent_b = _make_dummy_agent('B', info_b['kind'], info_b['skill_name'], info_b['switch_index'])
 
     battle.execute_turn(agent_a, agent_b)
 
@@ -690,12 +759,15 @@ def debug_action(req: schemas.DebugActionRequest):
     if battle.log:
         turn_log += battle.log[-1].events
 
+    turn_snap = _build_turn_snapshot(battle, turn_log)
+
     return {
         'state': serialize_battle_state(battle, req.session_id),
         'log': turn_log,
+        'turn_snapshot': turn_snap,
     }
 
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("scripts.api.main:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("backend.api.main:app", host="0.0.0.0", port=8000, reload=True)
