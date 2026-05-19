@@ -202,60 +202,68 @@ const restartGame = () => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-[#1a1d23] text-[#cdd6e0]">
+  <div class="min-h-screen relative" style="background: var(--bg-main); z-index: 1;">
 
     <!-- Header -->
-    <header class="bg-[#252830] border-b border-[#3a3d42] px-4 py-3 flex items-center gap-3">
-      <div class="w-5 h-5 rounded-sm bg-[#4a90d9]"></div>
-      <h1 class="text-base font-bold tracking-wide text-[#e0e0e0]">
-        格斗小九
-      </h1>
-      <button
-        v-if="currentPhase === 'selection'"
-        @click="handleQuickTest"
-        :disabled="isProcessing"
-        class="ml-auto px-3 py-1 bg-[#4caf50] hover:bg-[#5cbf60] disabled:opacity-40 text-white text-xs font-bold rounded transition-colors mr-3"
-      >
-        快速测试
-      </button>
-      <button
-        v-if="currentPhase === 'selection'"
-        @click="handleDebugInit"
-        :disabled="isProcessing"
-        class="px-3 py-1 bg-[#ff9800] hover:bg-[#ffa726] disabled:opacity-40 text-black text-xs font-bold rounded transition-colors mr-3"
-      >
-        调试模式
-      </button>
-      <button
-        v-if="debugMode"
-        @click="restartGame"
-        class="px-3 py-1 bg-[#f44336] hover:bg-[#ef5350] text-white text-xs font-bold rounded transition-colors mr-3"
-      >
-        退出调试
-      </button>
-      <span class="text-xs text-[#6a6d75]">v0.1</span>
+    <header class="border-b px-5 py-3 flex items-center gap-3" style="background: linear-gradient(180deg, rgba(251,247,240,0.98) 0%, rgba(245,240,230,0.95) 100%); border-color: var(--border-default);">
+      <div class="text-xl font-[family-name:var(--font-title)] font-bold text-[#3D2B1F] tracking-wide">
+        ✦ 格斗小九 ✦
+      </div>
+
+      <template v-if="currentPhase === 'selection'">
+        <button
+          @click="handleQuickTest"
+          :disabled="isProcessing"
+          class="ml-auto px-4 py-1.5 bg-[#5C8D6E] hover:bg-[#4A7D5E] disabled:opacity-40 text-white text-xs font-bold rounded-xl transition-colors mr-2 shadow-[0_2px_0_rgba(61,43,31,0.15)]"
+        >
+          快速测试
+        </button>
+        <button
+          @click="handleDebugInit"
+          :disabled="isProcessing"
+          class="px-4 py-1.5 bg-[#EF6C00] hover:bg-[#F57C00] disabled:opacity-40 text-white text-xs font-bold rounded-xl transition-colors mr-2 shadow-[0_2px_0_rgba(61,43,31,0.15)]"
+        >
+          调试模式
+        </button>
+        <span class="text-xs text-[#B0A595]">v0.2</span>
+      </template>
+
+      <template v-if="currentPhase === 'battle'">
+        <span class="text-sm text-[#6B5E4F] font-[family-name:var(--font-title)]">回合 {{ battleState?.turn || 0 }}/150</span>
+        <span class="text-[#D4C8B8]">|</span>
+        <span class="text-sm text-[#6B5E4F]">
+          {{ battleState?.weather ? `天气: ${battleState.weather}` : '无天气' }}
+        </span>
+        <button
+          v-if="debugMode"
+          @click="restartGame"
+          class="ml-auto px-4 py-1.5 bg-[#D4534A] hover:bg-[#C62828] text-white text-xs font-bold rounded-xl transition-colors mr-2 shadow-[0_2px_0_rgba(61,43,31,0.15)]"
+        >
+          退出调试
+        </button>
+      </template>
     </header>
 
     <!-- Main Content -->
-    <main class="mx-auto" style="max-width: 1100px">
+    <main class="mx-auto" style="max-width: 1200px">
 
-      <Transition name="fade" mode="out-in">
+      <Transition name="page" mode="out-in">
         <TeamSelection
           v-if="currentPhase === 'selection'"
           :skill-map="skillMap"
           @start-battle="handleStartBattle"
         />
 
-        <div v-else-if="currentPhase === 'battle' && battleState" class="flex flex-col lg:flex-row gap-0 lg:gap-0">
+        <div v-else-if="currentPhase === 'battle' && battleState" class="flex flex-col lg:flex-row gap-0">
 
           <!-- Error Toast -->
           <Transition name="fade">
-            <div v-if="battleError" class="fixed top-12 left-1/2 -translate-x-1/2 z-50 bg-[#3a1a1a] border border-[#f44336] text-[#f44336] text-xs px-4 py-2 rounded shadow-lg">
+            <div v-if="battleError" class="fixed top-16 left-1/2 -translate-x-1/2 z-50 bg-[#FFF3E0] border border-[#D4534A] text-[#D4534A] text-xs px-4 py-2 rounded-xl shadow-lg">
               {{ battleError }}
             </div>
           </Transition>
 
-          <!-- Battle Arena (left) -->
+          <!-- Battle Arena -->
           <div class="flex-1 min-w-0">
             <BattleArena
               :skill-map="skillMap"
@@ -267,9 +275,11 @@ const restartGame = () => {
             />
           </div>
 
-          <!-- Battle Log (right sidebar) -->
-          <div class="lg:w-72 xl:w-80 flex-shrink-0">
-            <BattleLog :logs="battleLogs" />
+          <!-- Right Sidebar: Log + Type Chart -->
+          <div class="lg:w-80 xl:w-96 flex-shrink-0 flex flex-col border-l border-[#D4C8B8]">
+            <div class="flex-1">
+              <BattleLog :logs="battleLogs" />
+            </div>
           </div>
 
         </div>
@@ -278,16 +288,17 @@ const restartGame = () => {
     </main>
 
     <!-- Game Over Overlay -->
-    <div v-if="battleState?.is_finished" class="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
-      <div class="bg-[#252830] p-10 rounded border border-[#3a3d42] text-center shadow-lg">
-        <div class="text-xs text-[#6a6d75] tracking-widest uppercase mb-3">战斗结果</div>
-        <h2 class="text-3xl font-bold mb-2" :class="battleState.winner === '玩家' ? 'text-[#4caf50]' : 'text-[#f44336]'">
-          {{ battleState.winner === '玩家' ? '胜利' : '失败' }}
+    <div v-if="battleState?.is_finished" class="fixed inset-0 bg-[#3D2B1F]/60 flex items-center justify-center z-50">
+      <div class="card p-10 text-center shadow-xl max-w-sm w-full mx-4">
+        <div class="text-xs text-[#B0A595] tracking-widest uppercase mb-3">战斗结果</div>
+        <h2 class="text-3xl font-bold mb-2 font-[family-name:var(--font-title)]"
+            :class="battleState.winner === '玩家' ? 'text-[#5C8D6E]' : 'text-[#D4534A]'">
+          {{ battleState.winner === '玩家' ? '胜利 ✦' : '失败' }}
         </h2>
-        <p class="text-sm text-[#9a9da5] mb-8">{{ battleState.winner }} 赢得了战斗！</p>
+        <p class="text-sm text-[#6B5E4F] mb-8">{{ battleState.winner }} 赢得了战斗！</p>
         <button
           @click="restartGame"
-          class="px-8 py-2.5 bg-[#4a90d9] hover:bg-[#5a9fe9] text-white text-sm font-bold rounded transition-colors"
+          class="btn btn-primary px-8 py-2.5 text-sm"
         >
           再来一局
         </button>
@@ -298,11 +309,23 @@ const restartGame = () => {
 </template>
 
 <style>
+.page-enter-active,
+.page-leave-active {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.page-enter-from {
+  opacity: 0;
+  transform: translateY(8px);
+}
+.page-leave-to {
+  opacity: 0;
+  transform: translateY(-8px);
+}
+
 .fade-enter-active,
 .fade-leave-active {
   transition: opacity 0.15s ease;
 }
-
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
