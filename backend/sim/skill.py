@@ -1,10 +1,11 @@
 """backend/sim/skill.py — 战斗技能（自包含，从 JSON 反序列化）"""
 
 from __future__ import annotations
+
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
-from .effects import effect_from_dict, Effect
+from .effects import Effect, effect_from_dict
 
 if TYPE_CHECKING:
     from .sprite import Sprite
@@ -38,7 +39,7 @@ class Skill:
     description: str = ''      # 人类可读描述（API/前端展示用）
 
     @classmethod
-    def load(cls, data: dict) -> 'Skill':
+    def load(cls, data: dict) -> Skill:
         """从 JSON dict 反序列化。自动迁移 main_axis → transmission=-1。"""
         effects_raw = data.get('effects', [])
         effects = [effect_from_dict(e) for e in effects_raw]
@@ -71,7 +72,7 @@ class Skill:
         )
 
     @classmethod
-    def null(cls) -> 'Skill':
+    def null(cls) -> Skill:
         """空技能：打断后被替换为此，无属性/无威力/无效果。"""
         return cls(name='(打断)', element='', skill_type='物攻', power=0, energy_cost=0)
 
@@ -89,7 +90,7 @@ class Skill:
     def is_status(self) -> bool:
         return self.skill_type == '状态'
 
-    def get_atk_def_keys(self, sprite: 'Sprite | None' = None) -> tuple[str, str] | None:
+    def get_atk_def_keys(self, sprite: Sprite | None = None) -> tuple[str, str] | None:
         """返回 (攻击键, 防御键)。动态攻击需传入精灵以判定物/魔。"""
         mapping = _TYPE_ATK_DEF.get(self.skill_type)
         if mapping is not None:

@@ -1,9 +1,8 @@
 """Tests for Pass 3: SkillValidatePass."""
-import pytest
-from backend.vm.ir_skill import ModOp, HitOp, AbnormalOp, SkillIROp
-from backend.vm.ir_values import Literal
 from backend.vm.compiler.context import CompilerContext
 from backend.vm.compiler.passes.skill_validate import SkillValidatePass
+from backend.vm.ir_skill import AbnormalOp, HitOp, ModOp
+from backend.vm.ir_values import Literal
 
 
 class TestSkillValidatePass:

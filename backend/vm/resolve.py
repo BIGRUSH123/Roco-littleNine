@@ -8,8 +8,9 @@ QueryRef is a pre-indexed query for O(1) runtime lookup (used by SkillLoader).
 """
 
 from dataclasses import dataclass
-from .ctx import Ctx, ADDRESS_MAP
-from .ir_values import Literal, Query, RefExpr, IRValue
+
+from .ctx import ADDRESS_MAP, Ctx
+from .ir_values import Literal, Query, RefExpr
 
 # Dict-type register queries that require a 'name' key for sub-indexing
 _NAMED_DICT_QUERIES = frozenset({

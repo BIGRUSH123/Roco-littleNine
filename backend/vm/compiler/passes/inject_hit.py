@@ -1,9 +1,9 @@
 """Pass 2: InjectHitPass — inject implicit HitOp for attack-type skills."""
 from __future__ import annotations
 
-from backend.vm.ir_skill import HitOp, SkillIROp
-from backend.vm.ir_values import Literal
 from backend.vm.compiler.context import CompilerContext
+from backend.vm.ir_skill import HitOp
+from backend.vm.ir_values import Literal
 
 _ATTACK_TYPES = frozenset({"物攻", "魔攻", "动态攻击"})
 

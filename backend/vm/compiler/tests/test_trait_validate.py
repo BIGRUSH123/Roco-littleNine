@@ -1,8 +1,9 @@
 """Tests for Pass 3: TraitValidatePass."""
 import pytest
-from backend.vm.compiler.passes.trait_validate import TraitValidatePass
+
 from backend.vm.compiler.context import CompilerContext
-from backend.vm.ir_trait import TraitTrigger, PathCond
+from backend.vm.compiler.passes.trait_validate import TraitValidatePass
+from backend.vm.ir_trait import PathCond, TraitTrigger
 from backend.vm.ir_values import Literal
 
 

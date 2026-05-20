@@ -4,8 +4,7 @@ V2: Supports typed TickOp alongside backward-compat dict.
 """
 
 from ..ctx import Ctx
-from ..journal import Tick, Mutation
-from ..ir_skill import TickOp
+from ..journal import Mutation, Tick
 
 
 def _get(effect, key, default=None):

@@ -23,7 +23,6 @@ from roco.tournament import (
     load_agent,
 )
 
-
 # ── agent stubs for testing ──
 
 

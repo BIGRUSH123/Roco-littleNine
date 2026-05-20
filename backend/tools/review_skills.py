@@ -85,7 +85,7 @@ def review():
                 label = _effect_label(e)
                 print(f'     [{i}] {label}')
         else:
-            print(f'  ⚡ 无效果')
+            print('  ⚡ 无效果')
 
         print()
         print('  [n]下一页 [p]上一页 [j]跳转 [f]搜索 [q]退出')

@@ -4,9 +4,8 @@ V2: Supports typed AbnormalOp alongside backward-compat dict.
 """
 
 from ..ctx import Ctx
-from ..resolve import resolve
 from ..journal import AbnormalChange, Mutation
-from ..ir_skill import AbnormalOp
+from ..resolve import resolve
 
 
 def _get(effect, key, default=None):

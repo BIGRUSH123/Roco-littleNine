@@ -1,31 +1,28 @@
 ﻿import json
-import uuid
 import random
 import re
+import sys
+import uuid
 from pathlib import Path
-from typing import Optional
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
 # Ensure we can import from backend
-import sys
 BASE = Path(__file__).resolve().parent.parent.parent
 if str(BASE) not in sys.path:
     sys.path.insert(0, str(BASE))
 
-from backend.sim.factory import SimFactory
-from roco.ai.agent import RandomAgent
-from backend.sim.battle import Battle
-from backend.sim.resolver import _TYPE_CHART
-from backend.sim.player import Player, PlayStyle
-from backend.sim.action import Action
-from backend.sim.sprite import Sprite
-from backend.sim.skill import Skill
-from backend.sim.battleskill import BattleSkill
-from backend.common.models import SpeciesStats
-
 from backend.api import schemas
+from backend.common.models import SpeciesStats
+from backend.sim.action import Action
+from backend.sim.battle import Battle
+from backend.sim.battleskill import BattleSkill
+from backend.sim.factory import SimFactory
+from backend.sim.player import Player, PlayStyle
+from backend.sim.resolver import _TYPE_CHART
+from backend.sim.skill import Skill
+from backend.sim.sprite import Sprite
 
 # Agent registry: whitelist of registered AI agents.
 # NEVER accept raw file paths — agents are loaded by registered name only.
@@ -82,7 +79,7 @@ app.add_middleware(
 def get_agents():
     """Return registered AI agents (whitelist-based, no file path routing)."""
     agents = []
-    for name, info in AGENT_REGISTRY.items():
+    for _name, info in AGENT_REGISTRY.items():
         agents.append({
             "name": info["name"],
             "description": info["description"],
@@ -96,8 +93,8 @@ def get_agent(name: str):
     """Return details for a specific registered agent."""
     info = AGENT_REGISTRY.get(name)
     if info is None:
-        available = ', '.join(AGENT_REGISTRY.keys())
-        raise HTTPException(status_code=404, detail=f"Agent {name!r} not registered. Available: {available}.")
+        msg = f"Agent {name!r} not registered. Available: {', '.join(AGENT_REGISTRY.keys())}."
+        raise HTTPException(status_code=404, detail=msg)
     return {
         "name": info["name"],
         "description": info["description"],
@@ -221,9 +218,9 @@ def _describe_skill(s: dict) -> str:
 
     # Damage type + combo
     if skill_type == '物攻':
-        parts.append(f"造成物伤")
+        parts.append("造成物伤")
     elif skill_type == '魔攻':
-        parts.append(f"造成魔伤")
+        parts.append("造成魔伤")
 
     if combo > 1:
         if not parts:
@@ -564,7 +561,8 @@ def init_battle(req: schemas.InitRequest):
     try:
         return _init_battle_impl(req)
     except Exception:
-        import traceback, sys
+        import sys
+        import traceback
         tb = traceback.format_exc()
         print(f"[ERROR] init_battle failed:\n{tb}", file=sys.stderr)
         raise HTTPException(status_code=500, detail=tb[:500])
@@ -697,7 +695,8 @@ def battle_action(req: schemas.ActionRequest):
     try:
         battle.execute_turn(agent_a, agent_b)
     except Exception:
-        import traceback, sys
+        import sys
+        import traceback
         tb = traceback.format_exc()
         print(f"[ERROR] battle.execute_turn failed:\n{tb}", file=sys.stderr)
         raise HTTPException(status_code=500, detail=tb[:500])

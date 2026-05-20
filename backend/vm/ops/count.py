@@ -9,7 +9,6 @@ V2: Supports typed CountOp alongside backward-compat dict.
 
 from ..ctx import Ctx
 from ..journal import CounterRegister, Mutation
-from ..ir_skill import CountOp
 
 
 def _get(effect, key, default=None):

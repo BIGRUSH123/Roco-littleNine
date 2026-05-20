@@ -1,17 +1,28 @@
 """Tests for Pass 1: SkillParsePass."""
-import pytest
-from backend.vm.ir_skill import (
-    CondExpr, AndCond, OrCond, NotCond,
-    WhenBlock, WhenBranch,
-    ModOp, HitOp, MarkOp, AbnormalOp, WeatherOp,
-    DispelOp, StealOp, TickOp, DoubleOp, ChargeOp,
-    EscapeOp, ReturnOp, LockOp, InterruptOp,
-    ExchangeOp, ResetOp, RedirectOp, ReplayOp,
-    BorrowOp, CountOp,
-)
-from backend.vm.ir_values import Literal, Query
 from backend.vm.compiler.context import CompilerContext
 from backend.vm.compiler.passes.skill_parse import SkillParsePass
+from backend.vm.ir_skill import (
+    AbnormalOp,
+    AndCond,
+    BorrowOp,
+    ChargeOp,
+    CondExpr,
+    CountOp,
+    DispelOp,
+    DoubleOp,
+    EscapeOp,
+    ExchangeOp,
+    InterruptOp,
+    LockOp,
+    MarkOp,
+    ModOp,
+    OrCond,
+    ReturnOp,
+    StealOp,
+    WeatherOp,
+    WhenBlock,
+)
+from backend.vm.ir_values import Literal, Query
 
 
 class TestSkillParsePass:

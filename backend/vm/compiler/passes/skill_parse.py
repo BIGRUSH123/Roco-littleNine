@@ -1,18 +1,39 @@
 """Pass 1: SkillParsePass — parse skill JSON effects into SkillIROp list."""
 from __future__ import annotations
 
-from backend.vm.ir_skill import (
-    CondExpr, AndCond, OrCond, NotCond, SkillCondition,
-    WhenBlock, WhenBranch,
-    ModOp, HitOp, MarkOp, AbnormalOp, WeatherOp,
-    DispelOp, StealOp, TickOp, DoubleOp, ChargeOp,
-    EscapeOp, ReturnOp, LockOp, InterruptOp,
-    ExchangeOp, ResetOp, RedirectOp, ReplayOp,
-    BorrowOp, CountOp, SkillIROp,
-)
-from backend.vm.ir_values import Literal, Query, IRValue
+from backend.vm.compiler.context import CompileError, CompilerContext
 from backend.vm.ctx import ADDRESS_MAP
-from backend.vm.compiler.context import CompilerContext, CompileError
+from backend.vm.ir_skill import (
+    AbnormalOp,
+    AndCond,
+    BorrowOp,
+    ChargeOp,
+    CondExpr,
+    CountOp,
+    DispelOp,
+    DoubleOp,
+    EscapeOp,
+    ExchangeOp,
+    HitOp,
+    InterruptOp,
+    LockOp,
+    MarkOp,
+    ModOp,
+    NotCond,
+    OrCond,
+    RedirectOp,
+    ReplayOp,
+    ResetOp,
+    ReturnOp,
+    SkillCondition,
+    SkillIROp,
+    StealOp,
+    TickOp,
+    WeatherOp,
+    WhenBlock,
+    WhenBranch,
+)
+from backend.vm.ir_values import IRValue, Literal, Query
 
 
 class SkillParsePass:

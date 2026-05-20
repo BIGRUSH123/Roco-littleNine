@@ -1,15 +1,17 @@
 ﻿"""backend/sim/globals.py — 全局效果（天气 + 双方印记 + 场地）"""
 
 from __future__ import annotations
+
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 from backend.common.skill_trait_ids import TRAIT_吟游之弦, TRAIT_守望星
+
 from .traits.trait_engine import fire_hook_first
 
 if TYPE_CHECKING:
-    from .sprite import Sprite
     from .skill import Skill
+    from .sprite import Sprite
 
 
 @dataclass
@@ -124,7 +126,7 @@ class GlobalEffects:
             return 0.5
         return 1.0
 
-    def weather_turn_effects(self, sprites: list['Sprite']) -> list[str]:
+    def weather_turn_effects(self, sprites: list[Sprite]) -> list[str]:
         """回合末天气效果。"""
         events: list[str] = []
         if self.weather == 'snow':
@@ -165,7 +167,7 @@ class GlobalEffects:
     def _get_mark_config(name: str) -> dict:
         return _MARK_EFFECTS.get(name, {})
 
-    def mark_power_bonus(self, team: str, skill: 'Skill') -> int:
+    def mark_power_bonus(self, team: str, skill: Skill) -> int:
         """印记威力加成。从配置读取 power_bonus 字段。"""
         pos, _ = self.get_marks(team)
         total = 0
@@ -219,7 +221,7 @@ class GlobalEffects:
             total += mod * mark.stacks
         return total
 
-    def mark_switch_damage(self, team: str, sprite: 'Sprite') -> int:
+    def mark_switch_damage(self, team: str, sprite: Sprite) -> int:
         """印记进场伤害。从配置读取 switch_damage_pct 字段。"""
         _, neg = self.get_marks(team)
         total = 0
@@ -240,7 +242,7 @@ class GlobalEffects:
             total += loss * mark.stacks
         return total
 
-    def mark_turn_end_effects(self, sprites: dict[str, 'Sprite']) -> list[str]:
+    def mark_turn_end_effects(self, sprites: dict[str, Sprite]) -> list[str]:
         """回合末印记效果。从配置读取 turn_end_energy / turn_end_damage_pct 字段。"""
         events: list[str] = []
         for team_key in ('A', 'B'):
@@ -269,7 +271,7 @@ class GlobalEffects:
     # ── 印记增删 ──
 
     def apply_mark(self, team: str, name: str, category: str, stacks: int = 1,
-                   user: 'Sprite | None' = None) -> list[str]:
+                   user: Sprite | None = None) -> list[str]:
         """应用印记。
         若 user 有吟游之弦特性 → 共存（同名叠加，异名新增）。
         否则 → 替换（同类别清空后新增）。
@@ -321,7 +323,7 @@ class GlobalEffects:
             else:
                 self.neg_marks_b.clear()
 
-    def consume_starfall_stacks(self, team: str, amount: int, sprite: 'Sprite') -> int:
+    def consume_starfall_stacks(self, team: str, amount: int, sprite: Sprite) -> int:
         """消耗星陨印记层数。若 sprite 有守望星 → 只消耗一半。
         返回实际消耗层数（用于伤害计算）。"""
         _, neg = self.get_marks(team)

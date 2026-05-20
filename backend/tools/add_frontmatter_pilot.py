@@ -2,8 +2,8 @@
 试点：为光系精灵和技能页面添加 YAML frontmatter
 用于 Obsidian Bases 动态视图
 """
-import re
 import os
+import re
 import sys
 
 BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -25,7 +25,7 @@ def strip_existing_frontmatter(text):
 
 
 def parse_pokemon(filepath):
-    with open(filepath, 'r', encoding='utf-8') as f:
+    with open(filepath, encoding='utf-8') as f:
         text = f.read()
 
     # 如果已有 frontmatter，剥离后重新生成
@@ -89,7 +89,7 @@ def parse_pokemon(filepath):
 
 
 def parse_skill(filepath):
-    with open(filepath, 'r', encoding='utf-8') as f:
+    with open(filepath, encoding='utf-8') as f:
         text = f.read()
 
     body = strip_existing_frontmatter(text)

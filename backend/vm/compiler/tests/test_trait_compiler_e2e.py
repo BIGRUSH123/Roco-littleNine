@@ -1,14 +1,12 @@
 """End-to-end tests: compile ALL traits from data/traits/*.json."""
 import json
-import os
 from pathlib import Path
 
 import pytest
 
-from backend.vm.compiler.trait_compiler import TraitCompiler
 from backend.vm.compiler.context import CompilationError
+from backend.vm.compiler.trait_compiler import TraitCompiler
 from backend.vm.ir_trait import CompiledTrait, TraitTrigger
-
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent.parent
 TRAITS_DIR = PROJECT_ROOT / "data" / "traits"
@@ -31,7 +29,7 @@ def all_traits():
         if fpath.name.startswith("_"):
             continue
         try:
-            with open(fpath, "r", encoding="utf-8") as f:
+            with open(fpath, encoding="utf-8") as f:
                 data = json.load(f)
         except (json.JSONDecodeError, OSError) as e:
             pytest.fail(f"Failed to read {fpath.name}: {e}")

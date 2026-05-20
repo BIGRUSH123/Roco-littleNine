@@ -11,10 +11,13 @@ match/case in eval_one, plus backward-compat dict path.
 """
 
 from .ctx import Ctx
-from .resolve import resolve
 from .ir_skill import (
-    SkillCondition, CondExpr, AndCond, OrCond, NotCond,
+    AndCond,
+    CondExpr,
+    NotCond,
+    OrCond,
 )
+from .resolve import resolve
 
 
 def compare_op(a, op: str, b) -> bool:

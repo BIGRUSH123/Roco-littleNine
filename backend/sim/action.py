@@ -17,5 +17,5 @@ class Action:
         if self.kind == 'switch':
             return f'Action(switch→[{self.switch_index}])'
         if self.kind == 'item':
-            return f'Action(item)'
+            return 'Action(item)'
         return f'Action({self.kind})'

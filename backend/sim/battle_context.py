@@ -5,11 +5,12 @@ Battle 类隐式满足此协议；当前作为文档和未来解耦路径使用�
 """
 
 from __future__ import annotations
-from typing import Protocol, TYPE_CHECKING
+
+from typing import TYPE_CHECKING, Protocol
 
 if TYPE_CHECKING:
-    from .player import Player
     from .globals import GlobalEffects
+    from .player import Player
 
 
 class BattleContext(Protocol):
@@ -19,11 +20,11 @@ class BattleContext(Protocol):
     """
 
     # ── 队伍查询 ──
-    def get_player(self, team: str) -> 'Player': ...
-    def get_opponent(self, team: str) -> 'Player': ...
+    def get_player(self, team: str) -> Player: ...
+    def get_opponent(self, team: str) -> Player: ...
 
     # ── 全局状态 ──
-    globals: 'GlobalEffects'
+    globals: GlobalEffects
     scheduled_effects: list[dict]
     pending_effects: dict[str, list]
     team_counters: dict[str, dict[str, int]]

@@ -4,6 +4,7 @@ TurnPipeline: 回合开始阶段（传动 / 位置效果预扫描 / trait / 不�
 """
 
 from __future__ import annotations
+
 from typing import TYPE_CHECKING
 
 from .traits import dispatch_turn_start
@@ -22,7 +23,7 @@ class TurnPipeline:
     """回合管线：管理回合开始阶段的所有效果。"""
 
     @staticmethod
-    def execute_turn_start(battle: 'Battle') -> list[str]:
+    def execute_turn_start(battle: Battle) -> list[str]:
         """执行回合开始阶段。"""
         events: list[str] = []
 
@@ -84,7 +85,7 @@ class TurnPipeline:
         return events
 
     @staticmethod
-    def _scan_position_effects(battle: 'Battle') -> dict[tuple[str, int], int]:
+    def _scan_position_effects(battle: Battle) -> dict[tuple[str, int], int]:
         """扫描双方精灵所有技能，预计算 skill_at → stat power 威力加成。
         返回 {(team, skill_index): power_bonus}。"""
         result: dict[tuple[str, int], int] = {}
@@ -100,7 +101,7 @@ class TurnPipeline:
         return result
 
     @staticmethod
-    def _extract_position_power_bonus(bs: 'BattleSkill', skill_index: int) -> int:
+    def _extract_position_power_bonus(bs: BattleSkill, skill_index: int) -> int:
         """提取单个技能中 skill_at 条件下的 stat power 总加成。"""
         total = 0
         for eff in bs.effects:

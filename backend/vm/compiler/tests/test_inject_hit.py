@@ -1,10 +1,9 @@
 """Tests for Pass 2: InjectHitPass."""
-import pytest
-from backend.vm.ir_skill import HitOp, ModOp, SkillIROp
-from backend.vm.ir_values import Literal
 from backend.vm.compiler.context import CompilerContext
-from backend.vm.compiler.passes.skill_parse import SkillParsePass
 from backend.vm.compiler.passes.inject_hit import InjectHitPass
+from backend.vm.compiler.passes.skill_parse import SkillParsePass
+from backend.vm.ir_skill import HitOp, ModOp
+from backend.vm.ir_values import Literal
 
 
 class TestInjectHitPass:

@@ -10,11 +10,11 @@ if str(_PROJ) not in sys.path:
     sys.path.insert(0, str(_PROJ))
 
 import pytest
-from backend.sim.factory import SimFactory
-from backend.sim.agent import RuleAgent
 
+from backend.sim.agent import RuleAgent
+from backend.sim.factory import SimFactory
 from roco.ai.agent import RandomAgent
-from roco.ai.observation import Action, ActionKind
+from roco.ai.observation import ActionKind
 from roco.bridge import (
     adapt_agent,
     build_observation,

@@ -6,7 +6,6 @@
 import json
 import re
 from pathlib import Path
-from typing import Optional
 
 from .models import SpeciesStats
 
@@ -48,7 +47,7 @@ class SpriteDB:
 
     # ── 读取 ──
 
-    def get(self, name: str, form: str = '') -> Optional[SpeciesStats]:
+    def get(self, name: str, form: str = '') -> SpeciesStats | None:
         """精确查询：按 (name, form) 找到唯一形态。"""
         m = self._RE_FORM_SUFFIX.search(name)
         if m:
@@ -86,7 +85,7 @@ class SpriteDB:
             if (s := self._read_one(p))
         ))
 
-    def get_alternate_species(self, species: SpeciesStats) -> Optional[SpeciesStats]:
+    def get_alternate_species(self, species: SpeciesStats) -> SpeciesStats | None:
         """查找同一编号下的另一种形态（首领化目标）。"""
         if not species.number:
             return None
@@ -96,7 +95,7 @@ class SpriteDB:
                 return s
         return None
 
-    def lookup_by_number(self, number: str, form: str = '') -> Optional[SpeciesStats]:
+    def lookup_by_number(self, number: str, form: str = '') -> SpeciesStats | None:
         """按精灵编号查找基础形态（用于萌化退化查找 pre_species）。"""
         if not number:
             return None
@@ -151,7 +150,7 @@ class SpriteDB:
     # ── 内部 ──
 
     @staticmethod
-    def _read_one(path: Path) -> Optional[SpeciesStats]:
+    def _read_one(path: Path) -> SpeciesStats | None:
         """从单个 JSON 文件读取 SpeciesStats。"""
         try:
             data = json.loads(path.read_text(encoding='utf-8'))

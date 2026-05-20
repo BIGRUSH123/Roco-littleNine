@@ -4,13 +4,14 @@ TraitHandler 基类 + 注册表 + dispatch 函数。
 """
 
 from __future__ import annotations
+
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from backend.sim.sprite import Sprite
     from backend.sim.battle import Battle
     from backend.sim.battleskill import BattleSkill, SkillUse
     from backend.sim.skill import Skill
+    from backend.sim.sprite import Sprite
 
 
 # ═══════════════════════════════════════════════════════════════════

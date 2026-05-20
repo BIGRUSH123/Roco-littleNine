@@ -5,14 +5,13 @@ relevant event (skill use, damage, KO, switch, etc.). Each observer has
 a condition, a then-block of effects, and a scope that controls lifetime.
 """
 
-from dataclasses import dataclass, field
-from typing import Callable
+from collections.abc import Callable
+from dataclasses import dataclass
 
-from backend.vm.ctx import Ctx
 from backend.vm.cond import eval_one
+from backend.vm.ctx import Ctx
 from backend.vm.executor import process_effects
 from backend.vm.journal import Mutation
-
 
 # Trigger points — events that cause observers to be evaluated
 TRIGGER_POINTS = frozenset({
@@ -67,7 +66,6 @@ class ObserverRegistry:
 
     def register_from_counter(self, counter) -> None:
         """Register an observer from a CounterRegister mutation."""
-        from backend.vm.journal import CounterRegister
         self._observers.append(Observer(
             cond=counter.cond,
             then=counter.then,

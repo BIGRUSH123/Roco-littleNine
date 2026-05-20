@@ -6,13 +6,16 @@ focus on verifying engine behavior (damage, counters, stat changes, escape).
 """
 
 from __future__ import annotations
+
 import sys
+
 sys.path.insert(0, ".")
 
 import json
 from pathlib import Path
-from backend.vm.compiler.skill_compiler import SkillCompiler
+
 from backend.engine.battle import BattleVMEngine
+from backend.vm.compiler.skill_compiler import SkillCompiler
 
 _compiler = SkillCompiler()
 
@@ -20,9 +23,10 @@ def _load_skill(path):
     """Load and compile a skill from a JSON file path."""
     data = json.loads(Path(path).read_text(encoding="utf-8"))
     return _compiler.compile(data)
-from backend.sim.sprite import Sprite
-from backend.sim.globals import GlobalEffects
 from backend.common.models import SpeciesStats
+from backend.sim.globals import GlobalEffects
+from backend.sim.sprite import Sprite
+
 
 # Shared test species template
 def _make_species(name="测试精灵", hp=450, atk=130, def_=110, sp_atk=120, sp_def=105, speed=100):
@@ -161,7 +165,7 @@ def test_battle2_round5_death_and_switch():
                                    was_countered=False)
     print(f"  R5: 利灯鱼 水光冲击 → 棋齐垒 HP: {qi.current_hp}/{qi.max_hp}")
     assert qi.is_fainted, f"棋齐垒 should be fainted, HP={qi.current_hp}"
-    print(f"       棋齐垒 fainted! ✓")
+    print("       棋齐垒 fainted! ✓")
 
 
 def test_battle2_round7_counter_chain():
@@ -286,7 +290,7 @@ def test_battle3_round22_final_ko():
                                    turn=22, is_first=True, team="A")
     print(f"  R22: 圣剑X 齿轮切开 → 化蝶 HP: {maomao.current_hp}/{maomao.max_hp}")
     assert maomao.current_hp < 80, f"齿轮切开 should deal damage, HP={maomao.current_hp}"
-    print(f"       Final blow dealt!")
+    print("       Final blow dealt!")
 
 
 # ═══════════════════════════════════════════════════════════════

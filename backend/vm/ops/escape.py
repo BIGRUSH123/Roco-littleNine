@@ -5,7 +5,6 @@ V2: Supports typed EscapeOp alongside backward-compat dict.
 
 from ..ctx import Ctx
 from ..journal import Escape, Mutation
-from ..ir_skill import EscapeOp
 
 
 def _get(effect, key, default=None):

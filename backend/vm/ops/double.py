@@ -5,7 +5,6 @@ V2: Supports typed DoubleOp alongside backward-compat dict.
 
 from ..ctx import Ctx
 from ..journal import Double, Mutation
-from ..ir_skill import DoubleOp
 
 
 def _get(effect, key, default=None):

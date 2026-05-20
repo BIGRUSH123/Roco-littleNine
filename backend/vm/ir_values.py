@@ -1,5 +1,6 @@
 """共享 IRValue 类型 — Literal | Query | RefExpr."""
 from __future__ import annotations
+
 from dataclasses import dataclass, field
 
 

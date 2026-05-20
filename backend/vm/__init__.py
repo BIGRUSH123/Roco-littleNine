@@ -11,17 +11,37 @@ Public API:
     from vm.ops import op_mod, ...
 """
 
-from .ctx import Ctx, ADDRESS_MAP
-from .resolve import resolve, QueryRef
-from .cond import eval_one, COND_EVAL, HAVE_EVAL
+from .cond import COND_EVAL, HAVE_EVAL, eval_one
+from .ctx import ADDRESS_MAP, Ctx
 from .damage import calc_damage
+from .executor import execute, process_effects, process_one
 from .journal import (
-    StatChange, ModifierInjection, Damage, Heal, EnergyChange,
-    MarkChange, AbnormalChange, WeatherSet, Dispel, Steal, Tick,
-    Double, Charge, Escape, Return, Lock, Interrupt, Exchange,
-    Reset, Redirect, Replay, Borrow, CounterRegister,
-    Mutation, Journal,
+    AbnormalChange,
+    Borrow,
+    Charge,
+    CounterRegister,
+    Damage,
+    Dispel,
+    Double,
+    EnergyChange,
+    Escape,
+    Exchange,
+    Heal,
+    Interrupt,
+    Journal,
+    Lock,
+    MarkChange,
+    ModifierInjection,
+    Mutation,
+    Redirect,
+    Replay,
+    Reset,
+    Return,
+    StatChange,
+    Steal,
+    Tick,
+    WeatherSet,
 )
 from .ops import op_mod
-from .executor import execute, process_effects, process_one
+from .resolve import QueryRef, resolve
 from .sort import sort_effects

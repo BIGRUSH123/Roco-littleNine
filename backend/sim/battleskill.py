@@ -1,10 +1,11 @@
 """backend/sim/battleskill.py — 战斗中技能实例 + 使用时快照"""
 
 from __future__ import annotations
+
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
-from .effects import SpecialName, SPECIAL_KINDS
+from .effects import SPECIAL_KINDS, SpecialName
 
 if TYPE_CHECKING:
     from .skill import Skill
@@ -14,14 +15,14 @@ if TYPE_CHECKING:
 class BattleSkill:
     """战斗中一个技能槽的实例。持有静态 Skill + 可变战斗状态。"""
 
-    base: 'Skill'
+    base: Skill
 
     # ── 可变状态 ──
     power_mod: int = 0              # 永久威力变化（联动装置等）
     combo_mod: int = 0              # 永久连击数变化（聚盐/乘胜追击等）
     energy_cost_mod: int = 0        # 永久能耗变化（水炮/重击等）
     power_override: int | None = None  # 动态威力（冰锋横扫/钢钻），覆盖 base.power
-    replaced_by: 'Skill | None' = None  # 技能替换（镜像反射）
+    replaced_by: Skill | None = None  # 技能替换（镜像反射）
     cooldown: int = 0               # 剩余冷却回合（防御技能）
     next_attack_mult: float = 1.0   # 下次攻击威力倍率（热身），使用后重置为 1
     nullified: bool = False         # 打断标记：技能被无效化但不破坏 base
@@ -34,7 +35,7 @@ class BattleSkill:
             self._transmission = self.base.transmission
 
     @property
-    def skill(self) -> 'Skill':
+    def skill(self) -> Skill:
         """当前生效的技能（可能被替换/打断）。"""
         if self.nullified:
             from .skill import Skill
@@ -111,8 +112,8 @@ class SkillUse:
     battle_skill: BattleSkill
     is_countered: bool = False
     is_first: bool = False
-    countered_skill: 'BattleSkill | None' = None    # 我方反击的对方技能（reflect_damage 用）
-    countering_skill: 'BattleSkill | None' = None   # 反击我方的对方技能（damage_reduction 注入用）
+    countered_skill: BattleSkill | None = None    # 我方反击的对方技能（reflect_damage 用）
+    countering_skill: BattleSkill | None = None   # 反击我方的对方技能（damage_reduction 注入用）
     skill_index: int = -1                            # 在 sprite.skills 中的位置
 
     # __post_init__ 预计算

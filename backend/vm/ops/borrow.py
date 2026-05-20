@@ -5,7 +5,6 @@ V2: Supports typed BorrowOp alongside backward-compat dict.
 
 from ..ctx import Ctx
 from ..journal import Borrow, Mutation
-from ..ir_skill import BorrowOp
 
 
 def _get(effect, key, default=None):

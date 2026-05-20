@@ -6,19 +6,41 @@ and observer-triggering events.
 """
 
 from __future__ import annotations
+
 from typing import TYPE_CHECKING
 
 from backend.vm.journal import (
-    StatChange, ModifierInjection, Damage, Heal, EnergyChange,
-    MarkChange, AbnormalChange, WeatherSet, Dispel, Steal, Tick,
-    Double, Charge, Escape, Return, Lock, Interrupt, Exchange,
-    Reset, Redirect, Replay, Borrow, CounterRegister,
-    Mutation, Journal,
+    AbnormalChange,
+    Borrow,
+    Charge,
+    CounterRegister,
+    Damage,
+    Dispel,
+    Double,
+    EnergyChange,
+    Escape,
+    Exchange,
+    Heal,
+    Interrupt,
+    Journal,
+    Lock,
+    MarkChange,
+    ModifierInjection,
+    Mutation,
+    Redirect,
+    Replay,
+    Reset,
+    Return,
+    StatChange,
+    Steal,
+    Tick,
+    WeatherSet,
 )
 
 if TYPE_CHECKING:
-    from sim.sprite import Sprite, StatusEffect
     from sim.globals import GlobalEffects
+    from sim.sprite import Sprite
+
     from .observer import ObserverRegistry
 
 
@@ -242,7 +264,6 @@ class JournalReplayer:
         # Steal effects/energy/marks from target to self
         if m.what == "positive":
             target = self._target_sprite(m.from_target)
-            from sim.sprite import StatusEffect
             positives = [e for e in target.effects
                          if getattr(e, 'category', '') == 'stat' and e.steps > 0]
             for e in positives:

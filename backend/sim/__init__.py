@@ -24,26 +24,27 @@ Effect 类型 (effects.py):
   / SpecialEffect / ConditionalEffect
 """
 
-from .sprite import Sprite
-from .skill import Skill
-from .battleskill import BattleSkill
+# 加载数据驱动特性（JSON → DataDrivenTrait），优先于 Python 类
+import os
+
 from .action import Action
-from .player import Item, PlayStyle, Player
-from .globals import Mark, GlobalEffects
-from .resolver import SkillResolver
-from .battle_mechanics import BattleMechanicsMixin
+from .agent import Agent, HumanAgent, RuleAgent
+from .battle import Battle, TurnRecord
 from .battle_context import BattleContext
-from .battle import TurnRecord, Battle
-from .pipeline import TurnPipeline
-from .agent import Agent, RuleAgent, HumanAgent
+from .battle_mechanics import BattleMechanicsMixin
+from .battleskill import BattleSkill
 from .factory import SimFactory
+from .globals import GlobalEffects, Mark
+from .pipeline import TurnPipeline
+from .player import Item, Player, PlayStyle
+from .resolver import SkillResolver
+from .skill import Skill
+from .sprite import Sprite
 
 # 导入 trait 子模块以触发 @register 装饰器（放在最后，避免循环导入）
 from .traits import _complex  # noqa: E402, F401
-
-# 加载数据驱动特性（JSON → DataDrivenTrait），优先于 Python 类
-import os
 from .traits.trait_engine import register_data_traits
+
 _data_dir = os.path.join(os.path.dirname(__file__), '..', '..', 'data', 'traits')
 _data_dir = os.path.normpath(_data_dir)
 _loaded = register_data_traits(_data_dir)

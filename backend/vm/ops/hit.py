@@ -4,10 +4,10 @@ V2: Supports typed HitOp alongside backward-compat dict.
 """
 
 from ..ctx import Ctx
-from ..resolve import resolve
 from ..damage import calc_damage
 from ..journal import Damage, Mutation
-from ..ir_skill import HitOp
+from ..resolve import resolve
+
 
 # Stage steps to multiplier: each step = ±0.1
 def _stage_mult(steps: int) -> float:

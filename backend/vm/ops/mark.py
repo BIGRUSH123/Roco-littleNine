@@ -4,9 +4,8 @@ V2: Supports typed MarkOp alongside backward-compat dict.
 """
 
 from ..ctx import Ctx
-from ..resolve import resolve
 from ..journal import MarkChange, Mutation
-from ..ir_skill import MarkOp
+from ..resolve import resolve
 
 
 def _get(effect, key, default=None):

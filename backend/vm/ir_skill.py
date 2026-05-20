@@ -1,8 +1,9 @@
 """技能 IR 节点 — 21 op + WhenBlock + SkillCondition."""
 from __future__ import annotations
-from dataclasses import dataclass, field
-from .ir_values import IRValue
 
+from dataclasses import dataclass, field
+
+from .ir_values import IRValue
 
 # ── Condition ──
 
@@ -16,15 +17,15 @@ class CondExpr:
 
 @dataclass(frozen=True)
 class AndCond:
-    conditions: tuple['SkillCondition', ...]
+    conditions: tuple[SkillCondition, ...]
 
 @dataclass(frozen=True)
 class OrCond:
-    conditions: tuple['SkillCondition', ...]
+    conditions: tuple[SkillCondition, ...]
 
 @dataclass(frozen=True)
 class NotCond:
-    condition: 'SkillCondition'
+    condition: SkillCondition
 
 SkillCondition = CondExpr | AndCond | OrCond | NotCond
 
@@ -34,13 +35,13 @@ SkillCondition = CondExpr | AndCond | OrCond | NotCond
 @dataclass(frozen=True)
 class WhenBranch:
     cond: SkillCondition
-    then: tuple['SkillIROp', ...]
+    then: tuple[SkillIROp, ...]
 
 @dataclass(frozen=True)
 class WhenBlock:
     cond: SkillCondition
-    then: tuple['SkillIROp', ...]
-    else_: tuple['SkillIROp', ...] = ()
+    then: tuple[SkillIROp, ...]
+    else_: tuple[SkillIROp, ...] = ()
     elif_: tuple[WhenBranch, ...] = ()
     feeds: str = ""
     needs: str = ""
@@ -88,7 +89,7 @@ class MarkOp:
     name: str
     stacks: int = 1
     value: IRValue | None = None
-    then: tuple['SkillIROp', ...] = ()
+    then: tuple[SkillIROp, ...] = ()
     feeds: str = ""
     needs: str = ""
     priority: int = 0
@@ -101,7 +102,7 @@ class AbnormalOp:
     scope: str = "battlefield"
     heal_pct: float = 0.0
     energy_gain: int = 0
-    then: tuple['SkillIROp', ...] = ()
+    then: tuple[SkillIROp, ...] = ()
     feeds: str = ""
     needs: str = ""
     priority: int = 0
@@ -164,7 +165,7 @@ class EscapeOp:
     target: str
     inherit: bool = False
     urgent: bool = False
-    then: tuple['SkillIROp', ...] = ()
+    then: tuple[SkillIROp, ...] = ()
     feeds: str = ""
     needs: str = ""
     priority: int = 0
@@ -233,7 +234,7 @@ class BorrowOp:
 class CountOp:
     name: str = ""
     when: SkillCondition | None = None
-    then: tuple['SkillIROp', ...] = ()
+    then: tuple[SkillIROp, ...] = ()
     scope: str = "persistent"
     feeds: str = ""
     needs: str = ""

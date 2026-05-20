@@ -3,15 +3,14 @@
 import json
 import sys
 from pathlib import Path
-from typing import Optional
 
 from backend.common.sprite_db import SpriteDB
 
-from .sprite import Sprite
-from .skill import Skill
+from .battle import Battle
 from .battleskill import BattleSkill
 from .player import Item, Player, PlayStyle
-from .battle import Battle
+from .skill import Skill
+from .sprite import Sprite
 
 BASE = Path(__file__).resolve().parent.parent.parent
 

@@ -5,17 +5,20 @@ backend.sim.traits.trait_engine.DataDrivenTrait._apply_effect(),
 replacing raw dict dispatch with typed IR value matching.
 """
 from __future__ import annotations
+
 from typing import TYPE_CHECKING
 
 from backend.vm.ir_trait import (
-    TraitStatEffect, TraitAbnormalEffect, TraitMarkEffect,
-    TraitWeatherEffect, TraitSpecialEffect,
+    TraitAbnormalEffect,
+    TraitMarkEffect,
+    TraitSpecialEffect,
+    TraitStatEffect,
+    TraitWeatherEffect,
 )
-from backend.vm.ir_values import Literal, Query, RefExpr, IRValue
+from backend.vm.ir_values import IRValue, Literal, Query, RefExpr
 
 if TYPE_CHECKING:
-    from backend.sim.sprite import Sprite
-    from backend.sim.battle import Battle
+    pass
 
 
 # ── IRValue resolution ──

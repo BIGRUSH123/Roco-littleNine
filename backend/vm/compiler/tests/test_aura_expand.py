@@ -1,9 +1,9 @@
 """Tests for Pass 2: AuraExpandPass."""
 import pytest
-from backend.vm.compiler.passes.aura_expand import AuraExpandPass
+
 from backend.vm.compiler.context import CompilerContext
-from backend.vm.ir_trait import TraitTrigger, RemoveEffectOp, TraitStatEffect, TraitAbnormalEffect
-from backend.vm.ir_values import Literal
+from backend.vm.compiler.passes.aura_expand import AuraExpandPass
+from backend.vm.ir_trait import RemoveEffectOp, TraitAbnormalEffect, TraitTrigger
 
 
 @pytest.fixture

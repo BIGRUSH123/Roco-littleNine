@@ -8,13 +8,14 @@ Accepts any object with the required attributes for skill parameters
 """
 
 from __future__ import annotations
+
 from typing import TYPE_CHECKING, Any
 
 from backend.vm.ctx import Ctx
 
 if TYPE_CHECKING:
-    from sim.sprite import Sprite
     from sim.globals import GlobalEffects
+    from sim.sprite import Sprite
 
 
 def build_ctx(

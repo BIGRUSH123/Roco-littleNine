@@ -10,12 +10,12 @@ Usage:
 """
 
 from __future__ import annotations
+
 import re
 from typing import Any
 
-from .ir_trait import TraitCondition, PathCond, FnCond, AndCond, OrCond, NotCond
-from .ir_values import Literal, Query, RefExpr, IRValue
-
+from .ir_trait import AndCond, FnCond, NotCond, OrCond, PathCond, TraitCondition
+from .ir_values import IRValue, Literal, Query, RefExpr
 
 # ── Condition function registry (for FnCond) ──
 

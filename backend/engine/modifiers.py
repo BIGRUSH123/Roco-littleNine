@@ -14,9 +14,10 @@ via the snapshot → replayer → _modifiers loop.
 """
 
 from __future__ import annotations
+
 from typing import TYPE_CHECKING
 
-from backend.vm.journal import Journal, Mutation, Damage, ModifierInjection
+from backend.vm.journal import Damage, Journal, ModifierInjection
 
 if TYPE_CHECKING:
     from backend.vm.ctx import Ctx

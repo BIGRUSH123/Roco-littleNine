@@ -1,7 +1,7 @@
 """Pass 3: TraitValidatePass — validate compiled TraitTrigger IR."""
 from __future__ import annotations
 
-from backend.vm.compiler.context import CompilerContext, CompileError
+from backend.vm.compiler.context import CompileError, CompilerContext
 
 
 class TraitValidatePass:
@@ -68,10 +68,10 @@ class TraitValidatePass:
         # 4. Warn if no effects AND no battleskill_mut AND no use_modifiers AND no flags
         has_effects = bool(getattr(trigger, "effects", ()))
         has_battleskill_mut = bool(getattr(trigger, "battleskill_mut", ()))
-        has_use_modifiers = bool(getattr(trigger, "use_modifiers"))
-        has_flags = bool(getattr(trigger, "flags"))
+        has_use_modifiers = bool(trigger.use_modifiers)
+        has_flags = bool(trigger.flags)
         has_pending = bool(getattr(trigger, "pending_effects", ()))
-        has_team_counters = bool(getattr(trigger, "team_counters"))
+        has_team_counters = bool(trigger.team_counters)
 
         if not any([has_effects, has_battleskill_mut, has_use_modifiers, has_flags, has_pending, has_team_counters]):
             ctx.warnings.append(

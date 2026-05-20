@@ -8,11 +8,10 @@ import random
 from typing import TYPE_CHECKING
 
 from .action import Action
-from .traits import dispatch_entry, dispatch_leave, dispatch_faint, dispatch_enemy_leave
+from .traits import dispatch_enemy_leave, dispatch_entry, dispatch_faint, dispatch_leave
 
 if TYPE_CHECKING:
     from .sprite import Sprite
-    from .skill import Skill
 
 
 class BattleMechanicsMixin:

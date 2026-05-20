@@ -1,13 +1,19 @@
 """Pass 2: AuraExpandPass — expand aura traits into entry+leave trigger pairs."""
 from __future__ import annotations
 
+from backend.vm.compiler.context import CompilerContext
 from backend.vm.ir_trait import (
-    TraitTrigger, TraitEffect, RemoveEffectOp, TraitCondition,
-    TraitStatEffect, TraitAbnormalEffect, TraitMarkEffect,
-    TraitWeatherEffect, TraitSpecialEffect, MutateEffectOp,
+    MutateEffectOp,
+    RemoveEffectOp,
+    TraitAbnormalEffect,
+    TraitEffect,
+    TraitMarkEffect,
+    TraitSpecialEffect,
+    TraitStatEffect,
+    TraitTrigger,
+    TraitWeatherEffect,
 )
-from backend.vm.ir_values import Literal, IRValue
-from backend.vm.compiler.context import CompilerContext, CompileError
+from backend.vm.ir_values import Literal
 
 
 class AuraExpandPass:

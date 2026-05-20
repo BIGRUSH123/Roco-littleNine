@@ -4,8 +4,7 @@ V2: Supports typed ReplayOp alongside backward-compat dict.
 """
 
 from ..ctx import Ctx
-from ..journal import Replay, Mutation
-from ..ir_skill import ReplayOp
+from ..journal import Mutation, Replay
 
 
 def _get(effect, key, default=None):

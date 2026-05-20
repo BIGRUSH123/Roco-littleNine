@@ -4,8 +4,7 @@ V2: Supports typed StealOp alongside backward-compat dict.
 """
 
 from ..ctx import Ctx
-from ..journal import Steal, Mutation
-from ..ir_skill import StealOp
+from ..journal import Mutation, Steal
 
 
 def _get(effect, key, default=None):

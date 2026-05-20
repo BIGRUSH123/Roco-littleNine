@@ -1,8 +1,10 @@
 """特性 IR 节点 — TraitEffect + TraitTrigger + TraitCondition."""
 from __future__ import annotations
-from dataclasses import dataclass, field
-from .ir_values import IRValue, Literal as _Literal
 
+from dataclasses import dataclass, field
+
+from .ir_values import IRValue
+from .ir_values import Literal as _Literal
 
 # ── TraitCondition (path-based, different from skill conditions) ──
 
@@ -20,17 +22,17 @@ class FnCond:
 
 @dataclass(frozen=True)
 class AndCond:
-    conditions: tuple["TraitCondition", ...]
+    conditions: tuple[TraitCondition, ...]
 
 
 @dataclass(frozen=True)
 class OrCond:
-    conditions: tuple["TraitCondition", ...]
+    conditions: tuple[TraitCondition, ...]
 
 
 @dataclass(frozen=True)
 class NotCond:
-    condition: "TraitCondition"
+    condition: TraitCondition
 
 
 TraitCondition = PathCond | FnCond | AndCond | OrCond | NotCond
@@ -85,7 +87,7 @@ class ActionModifierOp:
 class ScheduleOp:
     turns: int
     phase: str = "start"
-    effects: tuple["TraitEffect", ...] = ()
+    effects: tuple[TraitEffect, ...] = ()
 
 
 @dataclass(frozen=True)

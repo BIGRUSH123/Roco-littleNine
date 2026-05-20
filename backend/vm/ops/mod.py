@@ -7,12 +7,15 @@ V2: Supports typed ModOp alongside backward-compat dict.
 """
 
 from ..ctx import Ctx
-from ..resolve import resolve
 from ..journal import (
-    StatChange, ModifierInjection, Heal, Damage, EnergyChange,
+    Damage,
+    EnergyChange,
+    Heal,
+    ModifierInjection,
     Mutation,
+    StatChange,
 )
-from ..ir_skill import ModOp
+from ..resolve import resolve
 
 # Stats modified via stage steps (always produce StatChange when steps present)
 _STAT_STAGES = frozenset({"atk", "def", "sp_atk", "sp_def", "speed"})

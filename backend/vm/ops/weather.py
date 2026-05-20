@@ -4,8 +4,7 @@ V2: Supports typed WeatherOp alongside backward-compat dict.
 """
 
 from ..ctx import Ctx
-from ..journal import WeatherSet, Mutation
-from ..ir_skill import WeatherOp
+from ..journal import Mutation, WeatherSet
 
 
 def _get(effect, key, default=None):

@@ -5,9 +5,8 @@ API 层不应直接暴露 domain 对象（Sprite, BattleSkill 等），
 而是通过这里的 schema 解耦内部模型与外部契约。
 """
 
-from typing import Optional
-from pydantic import BaseModel
 
+from pydantic import BaseModel
 
 # ═══════════════════════════════════════════════════════════════════
 # 请求模型
@@ -16,23 +15,23 @@ from pydantic import BaseModel
 class SpriteSelection(BaseModel):
     name: str
     skills: list[str]
-    bloodline: Optional[str] = None
+    bloodline: str | None = None
     form: str = ''
 
 
 class InitRequest(BaseModel):
     team: list[SpriteSelection]
-    opponent_team: Optional[list[SpriteSelection]] = None
+    opponent_team: list[SpriteSelection] | None = None
     lead_index: int = 0
-    item: Optional[str] = None
-    ai_agent: Optional[str] = None  # registered agent name (whitelist)
+    item: str | None = None
+    ai_agent: str | None = None  # registered agent name (whitelist)
 
 
 class ActionRequest(BaseModel):
     session_id: str
     action_type: str  # "skill" | "switch" | "gather" | "item"
-    skill_name: Optional[str] = None
-    switch_index: Optional[int] = None
+    skill_name: str | None = None
+    switch_index: int | None = None
 
 
 class DebugActionRequest(BaseModel):
@@ -94,7 +93,7 @@ class PlayerState(BaseModel):
     name: str
     active_index: int
     lives: int
-    item: Optional[ItemState] = None
+    item: ItemState | None = None
     team: list[SpriteState]
 
 
@@ -108,7 +107,7 @@ class BattleState(BaseModel):
     session_id: str
     turn: int
     is_finished: bool
-    winner: Optional[str] = None
+    winner: str | None = None
     weather: str
     weather_turns: int
     player_a: PlayerState
@@ -160,7 +159,7 @@ class EvolutionResponse(BaseModel):
     number: int
     can_evolve: bool
     leader_form: str = ''
-    leader_species: Optional[dict] = None
+    leader_species: dict | None = None
 
 
 class BloodlineResponse(BaseModel):

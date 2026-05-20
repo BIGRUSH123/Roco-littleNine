@@ -1,20 +1,36 @@
 """Pass 1: TraitParsePass — parse trait JSON triggers into TraitTrigger IR."""
 from __future__ import annotations
+
 import re
 from typing import Any
 
+from backend.vm.compiler.context import CompileError, CompilerContext
 from backend.vm.ir_trait import (
-    PathCond, FnCond, AndCond, OrCond, NotCond, TraitCondition,
-    TraitStatEffect, TraitAbnormalEffect, TraitMarkEffect,
-    TraitWeatherEffect, TraitSpecialEffect,
-    MutateEffectOp, RemoveEffectOp,
-    ScheduleOp, InheritEffectsOp, TeamCounterOp,
-    TransformOp, TraitInteractionOp, LivesOp,
-    TraitEffect, BattleSkillMutOp, ActionModifierOp,
+    ActionModifierOp,
+    AndCond,
+    BattleSkillMutOp,
+    FnCond,
+    InheritEffectsOp,
+    LivesOp,
+    MutateEffectOp,
+    NotCond,
+    OrCond,
+    PathCond,
+    RemoveEffectOp,
+    ScheduleOp,
+    TeamCounterOp,
+    TraitAbnormalEffect,
+    TraitCondition,
+    TraitEffect,
+    TraitInteractionOp,
+    TraitMarkEffect,
+    TraitSpecialEffect,
+    TraitStatEffect,
     TraitTrigger,
+    TraitWeatherEffect,
+    TransformOp,
 )
-from backend.vm.ir_values import Literal, Query, RefExpr, IRValue
-from backend.vm.compiler.context import CompilerContext, CompileError
+from backend.vm.ir_values import IRValue, Literal, RefExpr
 
 
 class TraitParsePass:
@@ -777,7 +793,7 @@ class TraitParsePass:
         elif q == "last_tick_damage":
             ref = f"=@{target}.last_tick_damage"
         elif q == "energy_cost":
-            ref = f"=@skill.energy_cost"
+            ref = "=@skill.energy_cost"
         else:
             ref = f"=@{target}.{q}"
 

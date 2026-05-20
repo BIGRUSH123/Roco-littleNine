@@ -22,20 +22,18 @@ Schema 见 架构修改.md。
 """
 
 from __future__ import annotations
+
 import json
-import os
 import re
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from . import TraitHandler
 from backend.vm.executor_trait import process_trigger
 
+from . import TraitHandler
+
 if TYPE_CHECKING:
-    from backend.sim.sprite import Sprite, StatusEffect
-    from backend.sim.battle import Battle
-    from backend.sim.battleskill import BattleSkill, SkillUse
-    from backend.vm.ir_trait import TraitTrigger, CompiledTrait
+    from backend.vm.ir_trait import CompiledTrait, TraitTrigger
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -484,13 +482,13 @@ class DataDrivenTrait(TraitHandler):
     """
 
     def __init__(self, name: str, triggers: list[dict], trait_id: int = 0,
-                 compiled: "CompiledTrait | None" = None):
+                 compiled: CompiledTrait | None = None):
         self.name = name
         self.trait_id = trait_id
         self._triggers: dict[str, list[dict]] = {}
         self._process_triggers(triggers)
         # Typed triggers from CompiledTrait (Task 8/9: typed execution path)
-        self._compiled_triggers: dict[str, list["TraitTrigger"]] = {}
+        self._compiled_triggers: dict[str, list[TraitTrigger]] = {}
         if compiled is not None:
             self._process_compiled_triggers(compiled)
 
@@ -509,7 +507,7 @@ class DataDrivenTrait(TraitHandler):
             if hook:
                 self._triggers.setdefault(hook, []).append(t)
 
-    def _process_compiled_triggers(self, compiled: "CompiledTrait") -> None:
+    def _process_compiled_triggers(self, compiled: CompiledTrait) -> None:
         """组织 CompiledTrait 中的类型化 TraitTrigger 按 hook 分组。
 
         CompiledTrait 的 triggers 已经过 AuraExpandPass 展开，
@@ -1809,7 +1807,7 @@ register_condition_fn('is_weekend', _builtin_is_weekend)
 def load_data_trait(filepath: str) -> DataDrivenTrait | None:
     """从 JSON 文件加载一个数据驱动特性。"""
     try:
-        with open(filepath, 'r', encoding='utf-8') as f:
+        with open(filepath, encoding='utf-8') as f:
             data = json.load(f)
     except (json.JSONDecodeError, OSError):
         return None

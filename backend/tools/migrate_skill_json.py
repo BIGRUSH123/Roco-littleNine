@@ -19,7 +19,7 @@ def migrate_file(path: Path) -> list[str]:
     main_axis = data.pop('main_axis', None)
     if main_axis is True:
         data['transmission'] = -1
-        changes.append(f'main_axis=true → transmission=-1')
+        changes.append('main_axis=true → transmission=-1')
 
     # 2. 防御技能 combo:1 → combo:-1
     if data.get('skill_type') == '防御' and data.get('combo') == 1:

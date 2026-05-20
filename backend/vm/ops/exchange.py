@@ -5,7 +5,6 @@ V2: Supports typed ExchangeOp alongside backward-compat dict.
 
 from ..ctx import Ctx
 from ..journal import Exchange, Mutation
-from ..ir_skill import ExchangeOp
 
 
 def _get(effect, key, default=None):

@@ -1,14 +1,15 @@
 """Pass 3: SkillValidatePass — whitelist validation for all IR ops."""
 from __future__ import annotations
 
+from backend.vm.compiler.context import CompileError, CompilerContext
 from backend.vm.ir_skill import (
-    ModOp, HitOp, MarkOp, AbnormalOp, WeatherOp,
-    DispelOp, StealOp, TickOp, DoubleOp, ChargeOp,
-    EscapeOp, ReturnOp, LockOp, InterruptOp,
-    ExchangeOp, ResetOp, RedirectOp, ReplayOp,
-    BorrowOp, CountOp, WhenBlock, SkillIROp,
+    AbnormalOp,
+    HitOp,
+    ModOp,
+    ResetOp,
+    SkillIROp,
+    WhenBlock,
 )
-from backend.vm.compiler.context import CompilerContext, CompileError
 
 # ── Whitelists ──
 
@@ -105,7 +106,7 @@ class SkillValidatePass:
         if hasattr(op, "target"):
             self._check(op.target in VALID_TARGETS,
                         f"Invalid target '{op.target}'", idx, "target")
-        elif hasattr(op, "from_") and getattr(op, "from_"):
+        elif hasattr(op, "from_") and op.from_:
             self._check(op.from_ in VALID_TARGETS,
                         f"Invalid from_ '{op.from_}'", idx, "from_")
 
@@ -116,8 +117,8 @@ class SkillValidatePass:
                             f"Invalid stat '{op.stat}'", idx, "stat")
 
         # Validate scope field
-        if hasattr(op, "scope") and isinstance(getattr(op, "scope"), str):
-            s = getattr(op, "scope")
+        if hasattr(op, "scope") and isinstance(op.scope, str):
+            s = op.scope
             if s:
                 self._check(s in VALID_SCOPES,
                             f"Invalid scope '{s}'", idx, "scope")
@@ -130,7 +131,7 @@ class SkillValidatePass:
         if isinstance(op, AbnormalOp):
             if op.name:
                 self._check(len(op.name) > 0,
-                            f"AbnormalOp name cannot be empty", idx, "name")
+                            "AbnormalOp name cannot be empty", idx, "name")
 
     def _validate_when_block(self, wb: WhenBlock, idx: int) -> None:
         for j, child in enumerate(wb.then):

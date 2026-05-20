@@ -5,7 +5,6 @@ V2: Supports typed ChargeOp alongside backward-compat dict.
 
 from ..ctx import Ctx
 from ..journal import Charge, Mutation
-from ..ir_skill import ChargeOp
 
 
 def _get(effect, key, default=None):

@@ -5,9 +5,9 @@ same _PHASE constant from backend.vm.sort for consistency.
 """
 from __future__ import annotations
 
-from backend.vm.ir_skill import SkillIROp, WhenBlock
-from backend.vm.sort import _PHASE, _DEFAULT_PHASE
 from backend.vm.compiler.context import CompilerContext
+from backend.vm.ir_skill import SkillIROp
+from backend.vm.sort import _DEFAULT_PHASE, _PHASE
 
 
 class SortPass:

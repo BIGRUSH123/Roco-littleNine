@@ -5,7 +5,6 @@ V2: Supports typed DispelOp alongside backward-compat dict.
 
 from ..ctx import Ctx
 from ..journal import Dispel, Mutation
-from ..ir_skill import DispelOp
 
 
 def _get(effect, key, default=None):

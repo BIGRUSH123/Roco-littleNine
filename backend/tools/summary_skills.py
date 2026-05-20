@@ -4,8 +4,8 @@
 """
 
 import json
-from pathlib import Path
 from collections import defaultdict
+from pathlib import Path
 
 SKILLS_DIR = Path(__file__).resolve().parent.parent.parent / 'data' / 'skills'
 
@@ -34,7 +34,7 @@ def main():
             if s.get('main_axis'):
                 warnings.append('旧main_axis')
             if s.get('skill_type') == '防御' and s.get('combo', -1) != -1:
-                warnings.append(f'防御未设combo=-1')
+                warnings.append('防御未设combo=-1')
             if s.get('skill_type') in ('物攻', '魔攻', '动态攻击') and s.get('combo', -1) == -1:
                 warnings.append('攻击技combo=-1?')
             if not effects:

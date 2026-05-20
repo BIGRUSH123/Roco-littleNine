@@ -4,8 +4,7 @@ V2: Supports typed ResetOp alongside backward-compat dict.
 """
 
 from ..ctx import Ctx
-from ..journal import Reset, Mutation
-from ..ir_skill import ResetOp
+from ..journal import Mutation, Reset
 
 
 def _get(effect, key, default=None):

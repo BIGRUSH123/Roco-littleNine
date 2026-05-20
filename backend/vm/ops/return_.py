@@ -4,8 +4,7 @@ V2: Supports typed ReturnOp alongside backward-compat dict.
 """
 
 from ..ctx import Ctx
-from ..journal import Return, Mutation
-from ..ir_skill import ReturnOp
+from ..journal import Mutation, Return
 
 
 def _get(effect, key, default=None):

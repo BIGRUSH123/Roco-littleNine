@@ -1,20 +1,26 @@
 """End-to-end tests for the full SkillCompiler pipeline."""
 import json
-import os
-import pytest
 from pathlib import Path
 
-from backend.vm.ir_skill import (
-    CompiledSkill, HitOp, ModOp,
-    WhenBlock, AbnormalOp, EscapeOp, CountOp,
-    ChargeOp, ExchangeOp, DoubleOp, DispelOp,
-    StealOp, ReturnOp, LockOp, InterruptOp,
-    MarkOp,
-)
-from backend.vm.ir_values import Literal, Query
+import pytest
+
 from backend.vm.compiler.context import CompilationError
 from backend.vm.compiler.skill_compiler import SkillCompiler
-
+from backend.vm.ir_skill import (
+    AbnormalOp,
+    ChargeOp,
+    CountOp,
+    DispelOp,
+    DoubleOp,
+    EscapeOp,
+    ExchangeOp,
+    HitOp,
+    MarkOp,
+    ModOp,
+    StealOp,
+    WhenBlock,
+)
+from backend.vm.ir_values import Literal, Query
 
 # ── fixtures ──
 
@@ -31,7 +37,7 @@ def all_skills():
     for file_path in sorted(skills_dir.glob("*.json")):
         if file_path.name.startswith("_"):
             continue
-        with open(file_path, "r", encoding="utf-8") as f:
+        with open(file_path, encoding="utf-8") as f:
             data = json.load(f)
         skills[data.get("name", file_path.stem)] = data
     return skills

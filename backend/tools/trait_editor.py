@@ -7,11 +7,10 @@
 """
 
 import json
-import os
 import sys
 import webbrowser
+from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
-from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.parse import unquote, urlparse
 
 TRAITS_DIR = Path(__file__).resolve().parent.parent.parent / 'data' / 'traits'

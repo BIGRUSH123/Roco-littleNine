@@ -5,22 +5,31 @@ effect application to backend.vm.effect_applier.apply_effect().
 """
 
 from __future__ import annotations
+
 import random
 from typing import Any
 
-from backend.vm.ir_trait import (
-    TraitTrigger, TraitEffect,
-    TraitStatEffect, TraitAbnormalEffect, TraitMarkEffect,
-    TraitWeatherEffect, TraitSpecialEffect,
-    MutateEffectOp, RemoveEffectOp,
-    ScheduleOp, InheritEffectsOp, TeamCounterOp,
-    TransformOp, TraitInteractionOp, LivesOp,
-    BattleSkillMutOp,
-)
-from backend.vm.ir_values import Literal, Query, RefExpr, IRValue
-from backend.vm.effect_applier import apply_effect, resolve_value
 from backend.vm.cond_path import eval_path_cond
-
+from backend.vm.effect_applier import apply_effect, resolve_value
+from backend.vm.ir_trait import (
+    BattleSkillMutOp,
+    InheritEffectsOp,
+    LivesOp,
+    MutateEffectOp,
+    RemoveEffectOp,
+    ScheduleOp,
+    TeamCounterOp,
+    TraitAbnormalEffect,
+    TraitEffect,
+    TraitInteractionOp,
+    TraitMarkEffect,
+    TraitSpecialEffect,
+    TraitStatEffect,
+    TraitTrigger,
+    TraitWeatherEffect,
+    TransformOp,
+)
+from backend.vm.ir_values import IRValue, Literal, Query, RefExpr
 
 # ── IRValue resolution helper ──
 

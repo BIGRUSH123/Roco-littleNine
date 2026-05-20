@@ -21,11 +21,9 @@ _PROJ = Path(__file__).resolve().parent.parent.parent
 if str(_PROJ) not in sys.path:
     sys.path.insert(0, str(_PROJ))
 
-import pytest
+from backend.sim.agent import RuleAgent
 from backend.sim.factory import SimFactory
 from backend.sim.player import Item, PlayStyle
-from backend.sim.agent import RuleAgent
-
 
 factory = SimFactory()
 

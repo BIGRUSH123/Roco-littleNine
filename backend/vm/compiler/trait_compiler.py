@@ -1,15 +1,14 @@
 """TraitCompiler — 3-pass compilation pipeline (Parse -> AuraExpand -> Validate)."""
 from __future__ import annotations
-import json
-import os
-from pathlib import Path
-from typing import Any
 
-from backend.vm.ir_trait import CompiledTrait
-from backend.vm.compiler.context import CompilerContext, CompilationError
-from backend.vm.compiler.passes.trait_parse import TraitParsePass
+import json
+from pathlib import Path
+
+from backend.vm.compiler.context import CompilationError, CompilerContext
 from backend.vm.compiler.passes.aura_expand import AuraExpandPass
+from backend.vm.compiler.passes.trait_parse import TraitParsePass
 from backend.vm.compiler.passes.trait_validate import TraitValidatePass
+from backend.vm.ir_trait import CompiledTrait
 
 
 class TraitCompiler:
@@ -81,7 +80,7 @@ class TraitCompiler:
 
         for fpath in sorted(root.glob("*.json")):
             try:
-                with open(fpath, "r", encoding="utf-8") as f:
+                with open(fpath, encoding="utf-8") as f:
                     data = json.load(f)
             except (json.JSONDecodeError, OSError) as e:
                 errors[fpath.name] = f"Failed to read: {e}"

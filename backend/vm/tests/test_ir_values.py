@@ -1,5 +1,7 @@
 import pickle
+
 import pytest
+
 from backend.vm.ir_values import Literal, Query, RefExpr
 
 

@@ -2,15 +2,14 @@
 from __future__ import annotations
 
 import json
-import os
 from pathlib import Path
 
-from backend.vm.ir_skill import CompiledSkill
-from backend.vm.compiler.context import CompilerContext, CompilationError
-from backend.vm.compiler.passes.skill_parse import SkillParsePass
+from backend.vm.compiler.context import CompilationError, CompilerContext
 from backend.vm.compiler.passes.inject_hit import InjectHitPass
+from backend.vm.compiler.passes.skill_parse import SkillParsePass
 from backend.vm.compiler.passes.skill_validate import SkillValidatePass
 from backend.vm.compiler.passes.sort import SortPass
+from backend.vm.ir_skill import CompiledSkill
 
 
 class SkillCompiler:
@@ -72,7 +71,7 @@ class SkillCompiler:
                 continue
 
             try:
-                with open(file_path, "r", encoding="utf-8") as f:
+                with open(file_path, encoding="utf-8") as f:
                     data = json.load(f)
                 compiled = self.compile(data)
                 results[data["name"]] = compiled

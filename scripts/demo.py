@@ -20,7 +20,6 @@ sys.path.insert(0, str(_PROJ))
 from roco.ai.observation import Action, ActionKind, BattleObservation
 from roco.tournament import TournamentRunner, load_agent
 
-
 # ── Extra demo agents ──
 
 

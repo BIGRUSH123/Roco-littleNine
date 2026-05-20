@@ -270,18 +270,18 @@ def save_pet_page(pet, stats, total, abilities, skills):
 
     lines = [
         f"# {pet['name']}",
-        f"",
+        "",
         f"- **编号**：`{pet['no']:03d}`",
         f"- **属性**：`{pet['element']}`",
-        f"",
+        "",
     ]
 
     # Race stats
     if stats and total > 0:
         stat_names = ['生命', '物攻', '魔攻', '物防', '魔防', '速度']
         lines.append(f"## 种族值：{total}")
-        lines.append(f"| **属性** | **数值** |")
-        lines.append(f"| -------- | -------- |")
+        lines.append("| **属性** | **数值** |")
+        lines.append("| -------- | -------- |")
         for sn in stat_names:
             val = stats.get(sn, '-')
             lines.append(f"| **{sn}** | **{val}**  |")
@@ -337,19 +337,19 @@ def save_skill_page(skill_name, skill_data):
 
     lines = [
         f"# **{skill_name}**",
-        f"",
+        "",
         f"**属性：{element}**",
-        f"",
+        "",
         f"**类型：{skill_data.get('type', '未知')}**",
-        f"",
+        "",
         f"**威力：{skill_data.get('power', '-')}**",
-        f"",
+        "",
         f"**耗能：{skill_data.get('energy', '-')}**",
-        f"",
+        "",
         f"**应对：{counter}**",
-        f"",
+        "",
         f"**描述：**`{desc}`",
-        f"",
+        "",
     ]
 
     if learner_links:

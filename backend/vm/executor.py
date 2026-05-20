@@ -13,42 +13,57 @@ Entry points:
     process_one(ctx, effect)     — process a single effect
 """
 
-from .ctx import Ctx
 from .cond import eval_one
-from .sort import sort_effects
-from .journal import Mutation, Journal
+from .ctx import Ctx
 
 # V2: Typed IR ops for match/case dispatch
 from .ir_skill import (
-    SkillIROp, ModOp, HitOp, MarkOp, AbnormalOp, WeatherOp,
-    DispelOp, StealOp, TickOp, DoubleOp, ChargeOp,
-    EscapeOp, ReturnOp, LockOp, InterruptOp,
-    ExchangeOp, ResetOp, RedirectOp, ReplayOp,
-    BorrowOp, CountOp, WhenBlock, WhenBranch,
+    AbnormalOp,
+    BorrowOp,
+    ChargeOp,
+    CountOp,
+    DispelOp,
+    DoubleOp,
+    EscapeOp,
+    ExchangeOp,
+    HitOp,
+    InterruptOp,
+    LockOp,
+    MarkOp,
+    ModOp,
+    RedirectOp,
+    ReplayOp,
+    ResetOp,
+    ReturnOp,
+    StealOp,
+    TickOp,
+    WeatherOp,
+    WhenBlock,
 )
+from .journal import Journal, Mutation
+from .ops.abnormal import op_abnormal
+from .ops.borrow import op_borrow
+from .ops.charge import op_charge
+from .ops.count import op_count
+from .ops.dispel import op_dispel
+from .ops.double import op_double
+from .ops.escape import op_escape
+from .ops.exchange import op_exchange
+from .ops.hit import op_hit
+from .ops.interrupt import op_interrupt
+from .ops.lock import op_lock
+from .ops.mark import op_mark
 
 # Import all op handlers
 from .ops.mod import op_mod
-from .ops.hit import op_hit
-from .ops.mark import op_mark
-from .ops.abnormal import op_abnormal
-from .ops.weather import op_weather
-from .ops.dispel import op_dispel
-from .ops.steal import op_steal
-from .ops.tick import op_tick
-from .ops.double import op_double
-from .ops.charge import op_charge
-from .ops.escape import op_escape
-from .ops.return_ import op_return
-from .ops.lock import op_lock
-from .ops.interrupt import op_interrupt
-from .ops.exchange import op_exchange
-from .ops.reset import op_reset
 from .ops.redirect import op_redirect
 from .ops.replay import op_replay
-from .ops.borrow import op_borrow
-from .ops.count import op_count
-
+from .ops.reset import op_reset
+from .ops.return_ import op_return
+from .ops.steal import op_steal
+from .ops.tick import op_tick
+from .ops.weather import op_weather
+from .sort import sort_effects
 
 # ── Backward compat: dict dispatch (used when raw dict is passed) ──
 

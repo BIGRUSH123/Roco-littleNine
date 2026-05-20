@@ -11,11 +11,10 @@ scripts/common/formulas.py — 属性计算公式
 
 import math
 import re
-from typing import Optional
 
-from .constants import STAT_KEYS, STAT_LABELS, LABEL_TO_KEY
-from .nature import get_nature_coeff
+from .constants import LABEL_TO_KEY, STAT_KEYS
 from .models import SpeciesStats, StatsResult
+from .nature import get_nature_coeff
 
 
 def half_round(x: float) -> int:
@@ -100,9 +99,9 @@ class StatsCalc:
     @staticmethod
     def compute(
         species: SpeciesStats,
-        nature: Optional[str] = None,
-        iv:     Optional[dict[str, int]] = None,
-        mods:   Optional[list[str]] = None,
+        nature: str | None = None,
+        iv:     dict[str, int] | None = None,
+        mods:   list[str] | None = None,
         ability: str = '',
     ) -> StatsResult:
         iv   = iv   or {k: 0 for k in STAT_KEYS}

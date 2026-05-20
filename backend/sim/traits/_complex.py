@@ -3,15 +3,18 @@
 需要 battle 级状态追踪（pre-entry accumulator / pending effects / aura）。
 """
 
-from . import register, TraitHandler
-from backend.sim.sprite import StatusEffect, Sprite
-from backend.sim.battle import Battle
-from backend.sim.battleskill import BattleSkill, SkillUse
 from backend.common.skill_trait_ids import (
-    TRAIT_吟游之弦, TRAIT_多人宿舍, TRAIT_守望星, TRAIT_星地善良,
+    TRAIT_吟游之弦,
+    TRAIT_多人宿舍,
+    TRAIT_守望星,
+    TRAIT_星地善良,
     TRAIT_机械变式,
 )
+from backend.sim.battle import Battle
+from backend.sim.battleskill import BattleSkill, SkillUse
+from backend.sim.sprite import Sprite, StatusEffect
 
+from . import TraitHandler, register
 
 # ═══════════════════════════════════════════════════════════════
 # on_leave → next entry buff（离场后，下个入场精灵获得增益）
@@ -190,7 +193,6 @@ class LikeBadElephant(TraitHandler):
 
 def _try_transform(user: Sprite, battle: Battle, team: str, trait_name: str) -> list[str]:
     """尝试将 user 变换为棋绮后。"""
-    from backend.sim.battleskill import BattleSkill
     from backend.common.models import SpeciesStats
 
     new_species = battle.lookup_species('棋绮后')

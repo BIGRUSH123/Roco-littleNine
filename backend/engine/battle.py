@@ -11,22 +11,24 @@ Can be used standalone or as a drop-in for Battle.execute_skill().
 """
 
 from __future__ import annotations
+
 from typing import TYPE_CHECKING
 
-from backend.vm.ctx import Ctx
-from backend.vm.executor import execute as vm_execute, process_effects
-from backend.vm.journal import Journal, Mutation, ModifierInjection, CounterRegister, Replay
 from backend.vm.cond import eval_one
+from backend.vm.ctx import Ctx
+from backend.vm.executor import execute as vm_execute
+from backend.vm.executor import process_effects
+from backend.vm.journal import CounterRegister, Journal, Replay
 
-from .snapshot import build_ctx
+from .modifiers import apply_modifiers_to_journal
 from .observer import ObserverRegistry
 from .replayer import JournalReplayer
-from .modifiers import apply_modifiers_to_journal
+from .snapshot import build_ctx
 
 if TYPE_CHECKING:
-    from sim.sprite import Sprite
     from sim.globals import GlobalEffects
-    from backend.vm.ir_skill import CompiledSkill
+    from sim.sprite import Sprite
+
 
 
 class SkillExecutionResult:
@@ -250,8 +252,8 @@ class BattleVMEngine:
 
         The Borrow mutation itself is removed from the journal.
         """
-        from backend.vm.journal import Borrow, Damage
         from backend.vm.damage import calc_damage
+        from backend.vm.journal import Borrow, Damage
 
         borrow_muts = [m for m in journal if isinstance(m, Borrow)]
         if not borrow_muts:
@@ -307,7 +309,7 @@ class BattleVMEngine:
         When a Redirect(target="sprite_self") is present, all Damage
         targeting sprite_opp is redirected to sprite_self (or vice versa).
         """
-        from backend.vm.journal import Redirect, Damage
+        from backend.vm.journal import Damage, Redirect
 
         redirect_muts = [m for m in journal if isinstance(m, Redirect)]
         if not redirect_muts:
@@ -337,7 +339,6 @@ class BattleVMEngine:
         For sprite_self replays, finds matching skills in sprite history.
         The resulting mutations are prepended to the journal.
         """
-        from backend.vm.journal import Replay
 
         replay_muts = [m for m in journal if isinstance(m, Replay)]
         if not replay_muts:
@@ -358,7 +359,6 @@ class BattleVMEngine:
 
     def _handle_replay_sprite_self(self, journal: Journal, sprite_id: str, ctx: Ctx) -> Journal:
         """Handle Replay from sprite_self (used by tests with explicit sprite_id)."""
-        from backend.vm.journal import Replay
 
         replay_muts = [m for m in journal if isinstance(m, Replay)]
         if not replay_muts:

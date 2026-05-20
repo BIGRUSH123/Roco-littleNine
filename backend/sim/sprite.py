@@ -1,16 +1,17 @@
 ﻿"""backend/sim/sprite.py — 战斗精灵实例 + 状态效果追踪"""
 
 from __future__ import annotations
+
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 from backend.common import STAT_KEYS
 from backend.common.models import SpeciesStats, StatsResult
 from backend.common.skill_trait_ids import TRAIT_多人宿舍, TRAIT_无忧无虑
+
 from .traits.trait_engine import fire_hook_first
 
 if TYPE_CHECKING:
-    from .skill import Skill
     from .battleskill import BattleSkill
 
 # 步数换算
@@ -59,7 +60,7 @@ class Sprite:
     species: SpeciesStats
     bloodline: str = ""
     bloodline_skills: dict[str, int] = field(default_factory=dict)
-    skills: list['BattleSkill'] = field(default_factory=list)
+    skills: list[BattleSkill] = field(default_factory=list)
 
     # ── 初始六维（nature + IV 后的最终值，mods 前） ──
     initial_stats: dict[str, int] = field(default_factory=dict)
@@ -105,7 +106,7 @@ class Sprite:
     # 萌化状态（形态退化）
     _moe_chain: list = field(default_factory=list)       # 进化链快照 [highest, ..., lowest]
     _moe_position: int = 0              # 当前在链中的位置（0=原始，≥1=已退化n阶）
-    _moe_origin: 'SpeciesStats | None' = None   # 萌化前的原始物种
+    _moe_origin: SpeciesStats | None = None   # 萌化前的原始物种
     _moe_origin_skills: list = field(default_factory=list)  # 萌化前的原始技能列表
 
     # ── 有效属性 ──
@@ -321,7 +322,6 @@ class Sprite:
 
     def consume_pending_modifiers(self, skill_type: str):
         """消耗 on_next pending modifiers：匹配 if_type 的注入并清除。返回匹配的 modifier 列表。"""
-        from backend.vm.journal import ModifierInjection
         consumed = []
         remaining = []
         for m in self._pending_modifiers:
@@ -403,7 +403,7 @@ class Sprite:
     # ── 构造 ──
 
     @classmethod
-    def from_result(cls, result: StatsResult, energy: int = 10) -> 'Sprite':
+    def from_result(cls, result: StatsResult, energy: int = 10) -> Sprite:
         return cls(
             species=result.species,
             bloodline=result.species.bloodline,

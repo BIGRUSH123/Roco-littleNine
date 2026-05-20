@@ -7,7 +7,7 @@ TODO: 接入大模型 API（如 Claude/DeepSeek），将 battle 状态序列化�
   - 延迟与成本控制（缓存、fallback 到 RuleAgent）
 """
 
-from typing import Protocol, TYPE_CHECKING
+from typing import TYPE_CHECKING, Protocol
 
 from .action import Action
 from .battleskill import SkillUse
@@ -232,7 +232,7 @@ class HumanAgent:
     @staticmethod
     def _print_effects(sprite: 'Sprite') -> None:
         from .sprite import Sprite
-        s: 'Sprite' = sprite  # type: ignore
+        s: Sprite = sprite  # type: ignore
         if not s.effects:
             return
 

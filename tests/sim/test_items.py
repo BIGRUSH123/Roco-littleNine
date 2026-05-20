@@ -7,9 +7,9 @@ _PROJ = Path(__file__).resolve().parent.parent.parent
 if str(_PROJ) not in sys.path:
     sys.path.insert(0, str(_PROJ))
 
+from backend.common.sprite_db import SpriteDB
 from backend.sim.factory import SimFactory
 from backend.sim.player import Item
-from backend.common.sprite_db import SpriteDB
 
 factory = SimFactory()
 sprite_db = SpriteDB(_PROJ)

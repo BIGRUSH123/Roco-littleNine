@@ -5,13 +5,14 @@ VM 引擎使用 backend/vm/damage.py 的 calc_damage 公式。
 """
 
 from __future__ import annotations
+
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from .sprite import Sprite
-    from .skill import Skill
-    from .battleskill import BattleSkill, SkillUse
+    from .battleskill import SkillUse
     from .globals import GlobalEffects
+    from .skill import Skill
+    from .sprite import Sprite
 
 
 # 系别克制表（18 系）
@@ -43,7 +44,7 @@ class SkillResolver:
     """技能效果解析器（无状态，纯方法）。"""
 
     @staticmethod
-    def resolve_counter(atk_skill: 'Skill', def_skill: 'Skill') -> bool:
+    def resolve_counter(atk_skill: Skill, def_skill: Skill) -> bool:
         """返回 def_skill 是否应对了 atk_skill。"""
         if def_skill.counter == '攻击' and atk_skill.is_attack:
             return True
@@ -55,8 +56,8 @@ class SkillResolver:
 
     @staticmethod
     def calc_damage(
-        attacker: 'Sprite', defender: 'Sprite',
-        use: 'SkillUse', globals_: 'GlobalEffects',
+        attacker: Sprite, defender: Sprite,
+        use: SkillUse, globals_: GlobalEffects,
         attacker_team: str = 'A',
     ) -> tuple[int, list[str]]:
         """伤害公式 (v2):
@@ -116,7 +117,7 @@ class SkillResolver:
         return damage, events
 
     @staticmethod
-    def _get_type_mult(skill: 'Skill', attacker: 'Sprite', defender: 'Sprite') -> float:
+    def _get_type_mult(skill: Skill, attacker: Sprite, defender: Sprite) -> float:
         elem = skill.element
         if not elem:
             return 1.0
@@ -127,7 +128,7 @@ class SkillResolver:
         return chart.get(def_elem, 1.0)
 
     @staticmethod
-    def _get_stab(skill: 'Skill', attacker: 'Sprite') -> float:
+    def _get_stab(skill: Skill, attacker: Sprite) -> float:
         elem = skill.element
         if not elem:
             return 1.0
@@ -138,10 +139,9 @@ class SkillResolver:
 
     @staticmethod
     def turn_end(
-        sprites: dict[str, 'Sprite'], globals_: 'GlobalEffects',
+        sprites: dict[str, Sprite], globals_: GlobalEffects,
     ) -> list[str]:
         """回合末：中毒/灼烧/冻结/寄生 + 冷却递减 + 印记 + 天气递减。"""
-        from .sprite import StatusEffect  # noqa: F811
 
         events: list[str] = []
         all_sprites = list(sprites.values())

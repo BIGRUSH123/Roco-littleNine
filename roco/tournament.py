@@ -13,13 +13,12 @@ import signal
 import sys
 import time
 import traceback
-from inspect import isabstract
+from collections.abc import Callable
 from dataclasses import dataclass, field
+from inspect import isabstract
 from pathlib import Path
-from typing import Callable
 
 from roco.ai.agent import BattleAgent
-
 
 # ── result types ──
 
@@ -360,8 +359,8 @@ class TournamentRunner:
     def _play_match(
         self, home: BattleAgent, away: BattleAgent, idx: int
     ) -> MatchResult:
-        from backend.sim.factory import SimFactory
         from backend.sim.battle import Battle
+        from backend.sim.factory import SimFactory
         from roco.bridge import adapt_agent
 
         t0 = time.perf_counter()
@@ -387,7 +386,7 @@ class TournamentRunner:
                 winner=result_winner, turns=b.turn,
                 duration_ms=(time.perf_counter() - t0) * 1000,
             )
-        except Exception as exc:
+        except Exception:
             err_agent = home.name
             self._consecutive_errors[err_agent] = self._consecutive_errors.get(err_agent, 0) + 1
             if self._consecutive_errors[err_agent] >= 3:

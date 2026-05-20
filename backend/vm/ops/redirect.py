@@ -4,8 +4,7 @@ V2: Supports typed RedirectOp alongside backward-compat dict.
 """
 
 from ..ctx import Ctx
-from ..journal import Redirect, Mutation
-from ..ir_skill import RedirectOp
+from ..journal import Mutation, Redirect
 
 
 def _get(effect, key, default=None):

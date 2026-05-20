@@ -202,7 +202,7 @@ def main() -> None:
     # ── 输出 markdown ──
     print('# 六维属性影响技能汇总')
     print()
-    print('> 直接从技能描述文字中解析。共 {} 个技能。'.format(len(results)))
+    print(f'> 直接从技能描述文字中解析。共 {len(results)} 个技能。')
     print()
 
     # 按方向分表

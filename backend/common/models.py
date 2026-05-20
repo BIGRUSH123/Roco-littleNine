@@ -5,7 +5,6 @@ scripts/common/models.py — 共享数据模型
 """
 
 from dataclasses import dataclass
-from typing import Optional
 
 
 @dataclass
@@ -49,7 +48,7 @@ class SpeciesStats:
 class StatsResult:
     """精灵六维属性的完整计算结果。"""
     species: SpeciesStats
-    nature: Optional[str]
+    nature: str | None
     iv: dict[str, int]
     mods: list[str]
     ability: str

@@ -1,14 +1,19 @@
 import pickle
+
 import pytest
+
 from backend.vm.ir_trait import (
-    PathCond, FnCond, AndCond, OrCond, NotCond, TraitCondition,
-    MutateEffectOp, RemoveEffectOp,
-    BattleSkillMutOp, UseModifierOp, ActionModifierOp,
-    ScheduleOp, InheritEffectsOp, TeamCounterOp,
-    TransformOp, TraitInteractionOp, LivesOp,
-    TraitStatEffect, TraitAbnormalEffect, TraitMarkEffect,
-    TraitWeatherEffect, TraitSpecialEffect,
-    TraitTrigger, CompiledTrait, TraitEffect,
+    ActionModifierOp,
+    AndCond,
+    BattleSkillMutOp,
+    CompiledTrait,
+    FnCond,
+    MutateEffectOp,
+    PathCond,
+    TraitSpecialEffect,
+    TraitStatEffect,
+    TraitTrigger,
+    UseModifierOp,
 )
 from backend.vm.ir_values import Literal, RefExpr
 

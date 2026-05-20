@@ -4,32 +4,38 @@
 """
 
 from __future__ import annotations
+
 import random
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
-from .globals import GlobalEffects
-from .resolver import SkillResolver
-from .battleskill import BattleSkill
+from backend.common.skill_trait_ids import TRAIT_星地善良
+from backend.vm.ir_skill import ChargeOp, CompiledSkill
+
 from .action import Action
 from .battle_mechanics import BattleMechanicsMixin
-from backend.common.skill_trait_ids import TRAIT_星地善良
+from .battleskill import BattleSkill
+from .globals import GlobalEffects
+from .resolver import SkillResolver
 from .traits import (
-    dispatch_entry, dispatch_leave, dispatch_turn_end,
-    dispatch_counter_success, dispatch_faint,
-    dispatch_abnormal_tick, dispatch_before_action,
+    dispatch_abnormal_tick,
+    dispatch_before_action,
+    dispatch_counter_success,
+    dispatch_entry,
+    dispatch_leave,
+    dispatch_turn_end,
 )
 from .traits.trait_engine import (
-    fire_hook, fire_hook_first, get_data_trait_instance, DataDrivenTrait,
+    DataDrivenTrait,
+    fire_hook_first,
+    get_data_trait_instance,
 )
 
-from backend.vm.ir_skill import CompiledSkill, ChargeOp
-
 if TYPE_CHECKING:
-    from .player import Player
-    from .sprite import Sprite
-    from .skill import Skill
     from .agent import Agent
+    from .player import Player
+    from .skill import Skill
+    from .sprite import Sprite
 
 
 @dataclass
@@ -63,7 +69,7 @@ class Battle(BattleMechanicsMixin):
     MAX_TURNS = 150
 
     def __init__(
-        self, player_a: 'Player', player_b: 'Player',
+        self, player_a: Player, player_b: Player,
         weather: str = '', verbose: bool = True,
     ):
         self.player_a = player_a
@@ -75,17 +81,17 @@ class Battle(BattleMechanicsMixin):
         self.log: list[TurnRecord] = []
         self.winner: str | None = None
         self._resolver = SkillResolver()
-        self._agent_a: 'Agent | None' = None
-        self._agent_b: 'Agent | None' = None
+        self._agent_a: Agent | None = None
+        self._agent_b: Agent | None = None
         self.verbose = verbose
-        self._borrowed_restore: dict[tuple[str, int], 'Skill'] = {}
-        self._wish_restore: dict[tuple[str, int], 'BattleSkill'] = {}   # 愿力一回合后还原
+        self._borrowed_restore: dict[tuple[str, int], Skill] = {}
+        self._wish_restore: dict[tuple[str, int], BattleSkill] = {}   # 愿力一回合后还原
         # VM engine + skill cache
         from backend.engine.battle import BattleVMEngine
         from backend.vm.compiler.skill_compiler import SkillCompiler
         self._vm_engine = BattleVMEngine()
         self._skill_compiler = SkillCompiler()
-        self._skill_cache: dict[str, 'CompiledSkill'] = {}
+        self._skill_cache: dict[str, CompiledSkill] = {}
         self.team_counters: dict[str, dict[str, int]] = {'A': {}, 'B': {}}  # pre-entry accumulators
         self.pending_effects: dict[str, list] = {'A': [], 'B': []}  # leave-buff → next entry
         self.scheduled_effects: list[dict] = []  # 延时效果队列 [{turn, phase, effects, ...}]
@@ -114,10 +120,10 @@ class Battle(BattleMechanicsMixin):
     def is_finished(self) -> bool:
         return self.winner is not None or self.turn >= self.MAX_TURNS
 
-    def get_player(self, team: str) -> 'Player':
+    def get_player(self, team: str) -> Player:
         return self.player_a if team == 'A' else self.player_b
 
-    def get_opponent(self, team: str) -> 'Player':
+    def get_opponent(self, team: str) -> Player:
         return self.player_b if team == 'A' else self.player_a
 
     def inc_team_counter(self, team: str, key: str, amount: int = 1) -> None:
@@ -129,14 +135,14 @@ class Battle(BattleMechanicsMixin):
         """读取队伍级事件计数器。"""
         return self.team_counters.get(team, {}).get(key, 0)
 
-    def _get_agent(self, team: str) -> 'Agent':
+    def _get_agent(self, team: str) -> Agent:
         return self._agent_a if team == 'A' else self._agent_b  # type: ignore
 
     # ═══════════════════════════════════════════════════════════════
     # 回合主入口
     # ═══════════════════════════════════════════════════════════════
 
-    def execute_turn(self, agent_a: 'Agent', agent_b: 'Agent') -> TurnRecord:
+    def execute_turn(self, agent_a: Agent, agent_b: Agent) -> TurnRecord:
         self.turn += 1
         self._agent_a = agent_a
         self._agent_b = agent_b
@@ -217,7 +223,7 @@ class Battle(BattleMechanicsMixin):
     # Phase 2: 行动选择（含私有道具循环）
     # ═══════════════════════════════════════════════════════════════
 
-    def _select_action(self, agent: 'Agent', team: str) -> tuple[Action, str]:
+    def _select_action(self, agent: Agent, team: str) -> tuple[Action, str]:
         """道具循环：使用道具后重新选择。返回 (最终行动, 道具名)。"""
         item_used = ''
         while True:
@@ -374,8 +380,8 @@ class Battle(BattleMechanicsMixin):
     def _execute_single_action(
         self, team: str, action: Action,
         is_countered: bool = False,
-        countered_skill: 'BattleSkill | None' = None,
-        countering_skill: 'BattleSkill | None' = None,
+        countered_skill: BattleSkill | None = None,
+        countering_skill: BattleSkill | None = None,
         is_first: bool = False,
         opponent_switched: bool = False,
     ) -> list[str]:
@@ -391,15 +397,16 @@ class Battle(BattleMechanicsMixin):
 
     # ── VM 技能执行 ──
 
-    def _get_skill_record(self, skill_name: str) -> 'CompiledSkill':
+    def _get_skill_record(self, skill_name: str) -> CompiledSkill:
         """Load and cache a CompiledSkill from RISC IR JSON."""
-        import json, os
+        import json
+        import os
         if skill_name in self._skill_cache:
             return self._skill_cache[skill_name]
         path = os.path.join('data', 'skills', f'{skill_name}.json')
         if not os.path.exists(path):
             raise FileNotFoundError(f'Skill JSON not found: {path}')
-        with open(path, 'r', encoding='utf-8') as f:
+        with open(path, encoding='utf-8') as f:
             data = json.load(f)
         record = self._skill_compiler.compile(data)
         self._skill_cache[skill_name] = record
@@ -408,8 +415,8 @@ class Battle(BattleMechanicsMixin):
     def _execute_skill_vm(
         self, team: str, action: Action,
         is_countered: bool = False,
-        countered_skill: 'BattleSkill | None' = None,
-        countering_skill: 'BattleSkill | None' = None,
+        countered_skill: BattleSkill | None = None,
+        countering_skill: BattleSkill | None = None,
         is_first: bool = False,
         opponent_switched: bool = False,
     ) -> list[str]:
@@ -534,7 +541,7 @@ class Battle(BattleMechanicsMixin):
         events.extend(result.events)
 
         # ═══ Escape / Return handling ═══
-        from backend.vm.journal import Escape, Return
+        from backend.vm.journal import Escape
         for mutation in result.journal:
             if isinstance(mutation, Escape):
                 if mutation.inherit:
@@ -566,11 +573,10 @@ class Battle(BattleMechanicsMixin):
 
         return events
 
-    def _gate_charge_vm(self, user: 'Sprite', bs: 'BattleSkill', action: Action) -> bool | None:
+    def _gate_charge_vm(self, user: Sprite, bs: BattleSkill, action: Action) -> bool | None:
         """VM-compatible charge gate. Reads from RISC IR effects.
         True=entering charge, False=blocked, None=pass through.
         """
-        import json, os
         # Load record to check for charge opcode
         try:
             record = self._get_skill_record(bs.base.name)
@@ -608,7 +614,7 @@ class Battle(BattleMechanicsMixin):
 
     # ── 辅助 ──
 
-    def _get_skill(self, team: str, action: Action) -> 'Skill | None':
+    def _get_skill(self, team: str, action: Action) -> Skill | None:
         if action.kind != 'skill' or action.skill_index is None:
             return None
         sprite = self.get_player(team).active
@@ -707,7 +713,7 @@ class Battle(BattleMechanicsMixin):
                 sprite.extra_skill_use = True
                 events += self._resolve_return(team)
 
-        sprites: dict[str, 'Sprite'] = {}
+        sprites: dict[str, Sprite] = {}
         if not self.player_a.active.is_fainted:
             sprites['A'] = self.player_a.active
         if not self.player_b.active.is_fainted:
@@ -790,7 +796,7 @@ class Battle(BattleMechanicsMixin):
     # 批量运行
     # ═══════════════════════════════════════════════════════════════
 
-    def run(self, agent_a: 'Agent', agent_b: 'Agent') -> str | None:
+    def run(self, agent_a: Agent, agent_b: Agent) -> str | None:
         """完整对局流程：出场选择 → 回合循环 → 终局。"""
         self._agent_a = agent_a
         self._agent_b = agent_b

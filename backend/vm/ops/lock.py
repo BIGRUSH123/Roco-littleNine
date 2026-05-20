@@ -5,7 +5,6 @@ V2: Supports typed LockOp alongside backward-compat dict.
 
 from ..ctx import Ctx
 from ..journal import Lock, Mutation
-from ..ir_skill import LockOp
 
 
 def _get(effect, key, default=None):

@@ -1,14 +1,22 @@
 # backend/vm/tests/test_ir_skill.py
 import pickle
+
 import pytest
+
 from backend.vm.ir_skill import (
-    CondExpr, AndCond, OrCond, NotCond,
-    WhenBlock, WhenBranch,
-    ModOp, HitOp, MarkOp, AbnormalOp, WeatherOp,
-    DispelOp, StealOp, TickOp, DoubleOp, ChargeOp,
-    EscapeOp, ReturnOp, LockOp, InterruptOp,
-    ExchangeOp, ResetOp, RedirectOp, ReplayOp,
-    BorrowOp, CountOp, SkillIROp,
+    AbnormalOp,
+    AndCond,
+    CondExpr,
+    EscapeOp,
+    HitOp,
+    MarkOp,
+    ModOp,
+    NotCond,
+    ReturnOp,
+    SkillIROp,
+    WeatherOp,
+    WhenBlock,
+    WhenBranch,
 )
 from backend.vm.ir_values import Literal, Query
 

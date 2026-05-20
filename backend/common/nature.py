@@ -4,7 +4,6 @@ scripts/common/nature.py — 性格修正系统
 从 wiki/对战机制/宠物性格修正表.md 提取的 30 个性格。
 """
 
-from typing import Optional
 
 from .constants import STAT_KEYS
 
@@ -39,7 +38,7 @@ NATURE_PLUS_COEFF: float  = 1.20   # +20%
 NATURE_MINUS_COEFF: float = 0.90   # -10%
 
 
-def get_nature_coeff(nature: Optional[str]) -> dict[str, float]:
+def get_nature_coeff(nature: str | None) -> dict[str, float]:
     """返回每项 stat 的性格系数（1.20 / 0.90 / 1.00）。"""
     coeffs = {k: 1.0 for k in STAT_KEYS}
     if not nature:

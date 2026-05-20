@@ -1,12 +1,13 @@
 """Tests for shared effect_applier — stat/abnormal/mark/weather/special effects."""
-import pytest
 from backend.vm.effect_applier import apply_effect
 from backend.vm.ir_trait import (
-    TraitStatEffect, TraitAbnormalEffect, TraitMarkEffect,
-    TraitWeatherEffect, TraitSpecialEffect,
+    TraitAbnormalEffect,
+    TraitMarkEffect,
+    TraitSpecialEffect,
+    TraitStatEffect,
+    TraitWeatherEffect,
 )
 from backend.vm.ir_values import Literal
-
 
 # ── Mock classes ──
 

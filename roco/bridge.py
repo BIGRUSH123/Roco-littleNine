@@ -13,10 +13,10 @@ from roco.ai.observation import Action as SdkAction
 from roco.ai.observation import ActionKind, BattleObservation, SpriteSnapshot
 
 if TYPE_CHECKING:
+    from backend.sim.agent import Agent as SimAgent
     from backend.sim.battle import Battle
     from backend.sim.player import Player
     from backend.sim.sprite import Sprite
-    from backend.sim.agent import Agent as SimAgent
     from roco.ai.agent import BattleAgent
 
 

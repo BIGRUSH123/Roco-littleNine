@@ -1,12 +1,22 @@
 """Tests for Pass 1: TraitParsePass."""
 import pytest
-from backend.vm.compiler.passes.trait_parse import TraitParsePass
+
 from backend.vm.compiler.context import CompilerContext
+from backend.vm.compiler.passes.trait_parse import TraitParsePass
 from backend.vm.ir_trait import (
-    TraitTrigger, TraitStatEffect, TraitAbnormalEffect, TraitMarkEffect,
-    TraitWeatherEffect, TraitSpecialEffect,
-    PathCond, AndCond, OrCond, NotCond, FnCond,
-    BattleSkillMutOp, RemoveEffectOp,
+    AndCond,
+    BattleSkillMutOp,
+    FnCond,
+    NotCond,
+    OrCond,
+    PathCond,
+    RemoveEffectOp,
+    TraitAbnormalEffect,
+    TraitMarkEffect,
+    TraitSpecialEffect,
+    TraitStatEffect,
+    TraitTrigger,
+    TraitWeatherEffect,
 )
 from backend.vm.ir_values import Literal, RefExpr
 
