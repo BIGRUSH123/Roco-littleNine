@@ -99,6 +99,7 @@ class AbnormalOp:
     target: str
     name: str
     stacks: int = 1
+    value: IRValue | None = None
     scope: str = "battlefield"
     heal_pct: float = 0.0
     energy_gain: int = 0
