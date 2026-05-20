@@ -114,6 +114,14 @@ function skillIcon(skill) {
         等待战斗开始...
       </div>
 
+      <!-- Fallback: raw lines when no structured sections found -->
+      <div v-if="sections.length === 0 && logs.length > 0" class="space-y-1">
+        <div v-for="(line, idx) in logs" :key="'raw'+idx" class="text-xs px-3 py-1.5 rounded-lg font-mono"
+          :class="effectClass(line)">
+          {{ line }}
+        </div>
+      </div>
+
       <div v-for="(turn, ti) in sections" :key="ti" class="rounded-lg overflow-hidden">
         <!-- Turn Header (always visible, clickable to collapse) -->
         <button

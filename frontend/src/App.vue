@@ -202,7 +202,6 @@ const handleDebugAction = async ({ actionA, actionB }) => {
     battleStore.updateFromResponse(data.state)
 
     if (data.log && data.log.length > 0) {
-      battleLogs.value.push(`[回合${data.state.turn}]`)
       battleLogs.value.push(...data.log)
     }
   } catch (error) {
