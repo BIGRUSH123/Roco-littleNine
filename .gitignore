@@ -1,5 +1,7 @@
 # 忽略所有以 . 开头的文件和目录
 .*
+!.pre-commit-config.yaml
+!.github/
 
 raw
 
