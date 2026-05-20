@@ -52,8 +52,12 @@ _RATIO_STATS: frozenset[str] = frozenset({
     "ignore_resistance", "ignore_mods", "survive",
 })
 
-# Chinese labels for modifier stat keys
+# Chinese labels for stat keys (modifiers + stage stats)
 _STAT_LABELS: dict[str, str] = {
+    # Stage stats (1步=10%, speed=10点)
+    "atk": "物攻", "sp_atk": "魔攻", "def": "物防", "sp_def": "魔防",
+    "speed": "速度",
+    # Modifier stats
     "energy_cost": "能耗",
     "power": "威力",
     "combo": "连击",
@@ -67,6 +71,12 @@ _STAT_LABELS: dict[str, str] = {
     "ignore_resistance": "无视抗性",
     "ignore_mods": "无视修正",
     "survive": "不屈",
+}
+
+# Step unit for display conversion: steps → display value
+_STEP_UNIT: dict[str, int] = {
+    "power": 10, "speed": 10, "life_drain": 10,
+    "priority": 1, "energy_cost": 1, "combo": 1,
 }
 
 
@@ -163,8 +173,17 @@ class JournalReplayer:
     def _apply_stat_change(self, m: StatChange) -> str:
         sprite = self._target_sprite(m.target)
         from backend.sim.sprite import StatusEffect
+        label = _STAT_LABELS.get(m.stat, m.stat)
+        unit = _STEP_UNIT.get(m.stat, 10)
+        sign = '+' if m.steps > 0 else ''
+        if m.stat in ('priority', 'energy_cost', 'combo'):
+            display = f'{label}{sign}{m.steps * unit:+d}' if m.steps != 0 else f'{label}{m.steps:+d}'
+        elif m.stat == 'speed':
+            display = f'{label}{sign}{m.steps * unit:+d}'
+        else:
+            display = f'{label}{sign}{m.steps * unit}%'
         effect = StatusEffect(
-            name=f"{m.stat}+{m.steps}",
+            name=display,
             category="stat",
             stat_key=m.stat,
             steps=m.steps,
@@ -172,7 +191,7 @@ class JournalReplayer:
             source=m.name or "skill",
         )
         sprite.add_effect(effect)
-        return f"{sprite.name} {m.stat} {m.steps:+d}步"
+        return f"{sprite.name} {display}"
 
     def _apply_modifier(self, m: ModifierInjection) -> str:
         """Store modifier on target sprite for later snapshot consumption.
@@ -204,9 +223,7 @@ class JournalReplayer:
         if m.stat in _RATIO_STATS:
             return f"{sprite.name} {label}={final:.0%}"
         if m.stat == "energy_cost":
-            # Show delta for energy_cost: "能耗-N" instead of "能耗=-N"
-            delta = m.value if m.mode == "add" else final
-            return f"{sprite.name} {label}{delta:+.0f}"
+            return ""  # suppress: energy bar already shows cost visually
         return f"{sprite.name} {label}{final:+.0f}"
 
     def _apply_damage(self, m: Damage) -> str:

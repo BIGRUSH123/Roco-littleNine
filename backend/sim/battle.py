@@ -479,7 +479,9 @@ class Battle(BattleMechanicsMixin):
             skill_type = getattr(bs.base, 'skill_type', '')
             consumed = user.consume_pending_modifiers(skill_type)
             for m in consumed:
-                label = {'energy_cost': '能耗', 'power': '威力', 'combo': '连击'}.get(m.stat, m.stat)
+                if m.stat == 'energy_cost':
+                    continue  # suppress: energy bar already shows cost
+                label = {'power': '威力', 'combo': '连击'}.get(m.stat, m.stat)
                 events.append(f'{user.name} 触发待机效果: {label}{m.value:+}')
 
         # ═══ Gate: 能量支付 ═══
