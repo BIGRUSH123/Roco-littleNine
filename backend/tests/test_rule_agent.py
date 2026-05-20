@@ -33,7 +33,7 @@ factory = SimFactory()
 def _make_battle(p1_specs=None, p2_specs=None, p1_style=None, p1_item=None):
     from backend.sim.battle import Battle
     p1 = factory.build_player("A", p1_specs or [
-        {"name": "草衣虫", "skills": ["猛烈撞击", "寄生种子", "防御"]},
+        {"name": "草衣虫", "skills": ["猛烈撞击", "甩水", "防御"]},
     ], style=p1_style, item=p1_item)
     p2 = factory.build_player("B", p2_specs or [
         {"name": "花衣蝶", "skills": ["猛烈撞击", "甩水", "防御"]},

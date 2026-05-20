@@ -55,6 +55,42 @@ class MyAgent:
 agent = MyAgent()  # module-level instance for auto-discovery
 ```
 
+## Demo
+
+```bash
+python scripts/demo.py
+```
+
+Produces a live-updating tournament between 3 AI agents (AggroBot, HealBot, Random):
+
+```
+════════════════════════════════════════════════════════════
+  格斗小九 (Roco) — Battle VM Tournament Demo
+════════════════════════════════════════════════════════════
+
+  Agents: HealBot, AggroBot, Random
+  Rounds per matchup: 10
+  Total matches: 60
+
+  [####################] 60/60 (100%)  Random vs AggroBot → AggroBot  (8t 24ms)
+
+Rank  Agent                      W  L  Pct
+------------------------------------------------
+   1  AggroBot                   40   0 1.000
+   2  Random                     20  20 0.500
+   3  HealBot                     0  40 0.000
+
+           HealBot   AggroBot   Random
+          ------------------------------
+ HealBot |    ·         L         L
+AggroBot |    W         ·         W
+  Random |    W         L         ·
+
+  Completed in 1.6s (60 matches, 26.7ms/match)
+```
+
+To record as GIF: `asciinema rec demo.cast -c 'python scripts/demo.py' && asciicast2gif demo.cast docs/demo.gif`
+
 ## Architecture
 
 ```

@@ -207,7 +207,7 @@ def _is_battle_agent(obj) -> bool:
 # ── default sprite lineups ──
 
 _DEFAULT_TEAM_SPECS = [
-    {"name": "草衣虫", "skills": ["猛烈撞击", "寄生种子", "防御"]},
+    {"name": "草衣虫", "skills": ["猛烈撞击", "甩水", "防御"]},
 ]
 
 # ── runner ──

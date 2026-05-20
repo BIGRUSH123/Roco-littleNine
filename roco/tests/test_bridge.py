@@ -29,7 +29,7 @@ def factory():
 
 def _fresh_battle(factory):
     p1 = factory.build_player("A", [
-        {"name": "草衣虫", "skills": ["猛烈撞击", "寄生种子", "防御"]},
+        {"name": "草衣虫", "skills": ["猛烈撞击", "甩水", "防御"]},
     ])
     p2 = factory.build_player("B", [
         {"name": "花衣蝶", "skills": ["猛烈撞击", "甩水", "防御"]},
@@ -159,7 +159,7 @@ def test_adapt_agent_on_game_end(battle):
 def test_adapt_agent_full_battle():
     factory = SimFactory()
     p1 = factory.build_player("A", [
-        {"name": "草衣虫", "skills": ["猛烈撞击", "寄生种子", "防御"]},
+        {"name": "草衣虫", "skills": ["猛烈撞击", "甩水", "防御"]},
     ])
     p2 = factory.build_player("B", [
         {"name": "花衣蝶", "skills": ["猛烈撞击", "甩水", "防御"]},
@@ -182,7 +182,7 @@ def test_adapt_agent_vs_rule_agent_multiple():
     for _ in range(10):
         factory = SimFactory()
         p1 = factory.build_player("A", [
-            {"name": "草衣虫", "skills": ["猛烈撞击", "寄生种子", "防御"]},
+            {"name": "草衣虫", "skills": ["猛烈撞击", "甩水", "防御"]},
         ])
         p2 = factory.build_player("B", [
             {"name": "花衣蝶", "skills": ["猛烈撞击", "甩水", "防御"]},
