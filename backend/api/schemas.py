@@ -57,6 +57,7 @@ class SkillSummary(BaseModel):
     cooldown: int
     transmission: int           # 传动等级（0=不传动）
     main_axis: bool             # 主轴：不参与传动
+    usable_while_charging: bool = False  # 蓄力期间是否可使用
 
 
 class EffectSummary(BaseModel):

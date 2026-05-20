@@ -112,6 +112,7 @@ class SimFactory:
                     exclusive_to=data.get('exclusive_to', ''),
                     transmission=data.get('transmission', 0),
                     description=data.get('description', ''),
+                    usable_while_charging=data.get('usable_while_charging', False),
                 )
                 skills.append(BattleSkill(base=skill))
             else:

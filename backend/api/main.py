@@ -347,6 +347,7 @@ def serialize_battle_state(battle: Battle, session_id: str) -> schemas.BattleSta
                 cooldown=sk.cooldown,
                 transmission=getattr(sk, '_transmission', 0),
                 main_axis=(getattr(sk, '_transmission', 0) == -1),
+                usable_while_charging=getattr(sk.base, 'usable_while_charging', False),
             ))
         return schemas.SpriteState(
             name=s.name,

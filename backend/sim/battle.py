@@ -629,6 +629,10 @@ class Battle(BattleMechanicsMixin):
 
         if is_charging:
             if bs.base.usable_while_charging:
+                # Cancel charging — the sprite used a different skill instead of releasing the charged one
+                user._charging = False
+                user._charged_skill_index = -1
+                user.remove_effect("charging", "state")
                 return None  # pass through: skill can be used while charging
             return False  # blocked: must use charge skill
 

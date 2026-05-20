@@ -78,6 +78,8 @@ const canUseSkill = (sprite, skillName) => {
     return (sprite?.energy ?? 0) >= ss.effective_energy_cost
   }
   if (jealousy) return true
+  const ss = getSpriteSkill(sprite, skillName)
+  if (ss?.usable_while_charging) return true
   return skillName === sprite.charging
 }
 
