@@ -6,6 +6,8 @@ API 层不应直接暴露 domain 对象（Sprite, BattleSkill 等），
 """
 
 
+from typing import Optional
+
 from pydantic import BaseModel
 
 # ═══════════════════════════════════════════════════════════════════
@@ -189,3 +191,24 @@ class TypeChartResponse(BaseModel):
 class DebugInitResponse(BattleState):
     debug_skills_a: list[str] = []
     debug_skills_b: list[str] = []
+
+
+# ═══════════════════════════════════════════════════════════════════
+# 批处理
+# ═══════════════════════════════════════════════════════════════════
+
+class BatchRequest(BaseModel):
+    team: list[SpriteSelection]
+    ai_agent: Optional[str] = None
+    rounds: int = 10
+
+
+class BatchResult(BaseModel):
+    rounds: int
+    wins: int
+    losses: int
+    draws: int
+    win_rate: float
+    avg_turns: float
+    avg_duration_ms: float
+    ai_agent: str

@@ -715,6 +715,69 @@ def battle_action(req: schemas.ActionRequest):
         "turn_snapshot": turn_snap,
     }
 
+# ── Batch Battle Endpoint ──────────────────────────────────────────
+
+@app.post("/api/battle/batch")
+def batch_battle(req: schemas.BatchRequest):
+    """Run multiple battles against a selected AI agent and return aggregate stats."""
+    if not req.team:
+        raise HTTPException(status_code=400, detail="Team cannot be empty — at least one sprite with skills is required.")
+    if req.rounds < 1 or req.rounds > 100:
+        raise HTTPException(status_code=400, detail="Rounds must be between 1 and 100.")
+
+    team_specs = [{
+        "name": s.name, "skills": s.skills,
+        "bloodline": s.bloodline, "form": s.form,
+    } for s in req.team]
+
+    ai_name = req.ai_agent or "RuleAgent"
+
+    import time
+    wins = 0
+    losses = 0
+    draws = 0
+    total_turns = 0
+    total_ms = 0.0
+
+    for _ in range(req.rounds):
+        t0 = time.perf_counter()
+        try:
+            pa = FACTORY.build_player("玩家", team_specs)
+            pb = FACTORY.build_player("AI", team_specs, style=PlayStyle(aggression=0.7))
+            battle = FACTORY.build_battle(pa, pb)
+            agent_b = _load_ai_agent(ai_name, pb)
+            pb.active_index = agent_b.choose_lead(battle)
+
+            from backend.sim.agent import RuleAgent as SimRuleAgent
+            agent_a = SimRuleAgent("A", pa)
+            pa.active_index = agent_a.choose_lead(battle)
+
+            while not battle.is_finished:
+                battle.execute_turn(agent_a, agent_b)
+
+            total_turns += battle.turn
+            if battle.winner == "玩家":
+                wins += 1
+            elif battle.winner == "AI":
+                losses += 1
+            else:
+                draws += 1
+        except Exception:
+            losses += 1
+        total_ms += (time.perf_counter() - t0) * 1000
+
+    return schemas.BatchResult(
+        rounds=req.rounds,
+        wins=wins,
+        losses=losses,
+        draws=draws,
+        win_rate=wins / req.rounds if req.rounds > 0 else 0.0,
+        avg_turns=total_turns / req.rounds if req.rounds > 0 else 0.0,
+        avg_duration_ms=total_ms / req.rounds if req.rounds > 0 else 0.0,
+        ai_agent=ai_name,
+    )
+
+
 # ── Debug Mode Endpoints ───────────────────────────────────────────
 
 def _make_debug_sprite(name: str, skills: list[BattleSkill], team: str) -> Sprite:

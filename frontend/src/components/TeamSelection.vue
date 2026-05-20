@@ -2,6 +2,7 @@
 import { ref, onMounted, computed, nextTick } from 'vue'
 import { Dialog, DialogPanel, TransitionRoot, TransitionChild } from '@headlessui/vue'
 import AgentSelector from './AgentSelector.vue'
+import BatchResults from './BatchResults.vue'
 
 const props = defineProps({
   skillMap: { type: Object, default: () => ({}) }
@@ -28,6 +29,7 @@ const selectedItem = ref('')          // '' | '愿力' | '进化之力'
 const selectedAgent = ref('RuleAgent')  // AI agent name
 const availableItems = ref([])
 const evolutionEligible = ref(false)  // 队伍中是否有精灵可进化
+const showBatch = ref(false)
 
 const API_BASE = '/api'
 
@@ -284,6 +286,21 @@ const isReady = computed(() => {
   return false
 })
 
+const currentTeam = computed(() => {
+  const team = []
+  for (let i = 0; i < 6; i++) {
+    if (selectedTeam.value[i] && teamSkills.value[i].length > 0) {
+      team.push({
+        name: selectedTeam.value[i].name,
+        skills: teamSkills.value[i],
+        bloodline: teamBloodlines.value[i] || undefined,
+        form: '',
+      })
+    }
+  }
+  return team
+})
+
 const startBattle = () => {
   if (!isReady.value) return
   const team = []
@@ -477,12 +494,12 @@ const startBattle = () => {
         </div>
 
         <!-- Start -->
-        <div class="mt-5 text-center">
+        <div class="mt-5 text-center flex gap-3 justify-center">
           <button
             @click="startBattle"
             :disabled="!isReady"
             :class="[
-              'px-10 py-2.5 text-sm font-bold rounded-lg transition-colors',
+              'px-8 py-2.5 text-sm font-bold rounded-lg transition-colors',
               isReady
                 ? 'btn btn-primary text-white cursor-pointer'
                 : 'bg-[#EDE8DF] text-[#A89A8A] cursor-not-allowed'
@@ -490,6 +507,27 @@ const startBattle = () => {
           >
             开始战斗
           </button>
+          <button
+            @click="showBatch = !showBatch"
+            :disabled="!isReady"
+            :class="[
+              'px-8 py-2.5 text-sm font-bold rounded-lg border transition-colors',
+              isReady
+                ? 'border-[#C9A96E] text-[#C9A96E] hover:bg-[#C9A96E]/10 cursor-pointer'
+                : 'border-[#D4C8B8] text-[#A89A8A] cursor-not-allowed'
+            ]"
+          >
+            {{ showBatch ? '隐藏结果' : '批量测试' }}
+          </button>
+        </div>
+
+        <!-- Batch Results -->
+        <div v-if="showBatch" class="mt-4">
+          <BatchResults
+            :team="currentTeam"
+            :selectedAgent="selectedAgent"
+            @close="showBatch = false"
+          />
         </div>
       </div>
     </div>
