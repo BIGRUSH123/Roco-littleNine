@@ -82,7 +82,7 @@ const handleQuickTest = async () => {
     currentPhase.value = 'battle'
   } catch (error) {
     console.error('Error starting battle:', error)
-    alert(`初始化战斗失败: ${error.message}`)
+    alert(`初始化战斗失败: ${error.message}\n\n请确认后端已启动 (python scripts/api/main.py)`)
   } finally {
     isProcessing.value = false
   }
@@ -110,7 +110,7 @@ const handleStartBattle = async ({ team, leadIndex, item, aiAgent }) => {
     currentPhase.value = 'battle'
   } catch (error) {
     console.error('Error starting battle:', error)
-    alert(`初始化战斗失败: ${error.message}`)
+    alert(`初始化战斗失败: ${error.message}\n\n请确认后端已启动 (python scripts/api/main.py)`)
   } finally {
     isProcessing.value = false
   }
@@ -136,7 +136,7 @@ const handleAction = async ({ type, payload }) => {
       body: JSON.stringify(reqBody)
     })
 
-    if (!res.ok) throw new Error('操作执行失败')
+    if (!res.ok) throw new Error(`操作执行失败 (${res.status})`)
 
     const data = await res.json()
     battleState.value = data.state
@@ -148,7 +148,7 @@ const handleAction = async ({ type, payload }) => {
 
   } catch (error) {
     console.error('Error executing action:', error)
-    battleError.value = error.message || '操作失败'
+    battleError.value = error.message || '操作失败 — 请重试'
     setTimeout(() => { battleError.value = '' }, 4000)
   } finally {
     isProcessing.value = false
@@ -173,7 +173,7 @@ const handleDebugInit = async () => {
     debugMode.value = true
   } catch (error) {
     console.error('Debug init failed:', error)
-    alert(`调试模式初始化失败: ${error.message}`)
+    alert(`调试模式初始化失败: ${error.message}\n\n请确认后端已启动 (python scripts/api/main.py)`)
   } finally {
     isProcessing.value = false
   }
@@ -195,7 +195,7 @@ const handleDebugAction = async ({ actionA, actionB }) => {
       })
     })
 
-    if (!res.ok) throw new Error('操作执行失败')
+    if (!res.ok) throw new Error(`操作执行失败 (${res.status})`)
 
     const data = await res.json()
     battleState.value = data.state
@@ -207,7 +207,7 @@ const handleDebugAction = async ({ actionA, actionB }) => {
     }
   } catch (error) {
     console.error('Debug action failed:', error)
-    battleError.value = error.message || '操作失败'
+    battleError.value = error.message || '操作失败 — 请重试'
     setTimeout(() => { battleError.value = '' }, 4000)
   } finally {
     isProcessing.value = false

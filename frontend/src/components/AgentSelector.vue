@@ -18,11 +18,11 @@ async function loadAgents() {
   error.value = ''
   try {
     const res = await fetch(`${API_BASE}/agents`)
-    if (!res.ok) throw new Error(`服务器返回 ${res.status}`)
+    if (!res.ok) throw new Error(`服务器错误 (${res.status})`)
     const data = await res.json()
     agents.value = data.agents || []
   } catch (e) {
-    error.value = e.message || '无法加载 AI 对手列表'
+    error.value = e.message || '无法加载 AI 对手列表 — 请确认后端已启动'
     agents.value = []
   } finally {
     loading.value = false
@@ -57,7 +57,7 @@ onMounted(loadAgents)
       v-if="!loading && !error && agents.length === 0"
       class="text-xs text-parchment-500 p-3 bg-parchment-50 rounded-lg border border-parchment-200"
     >
-      暂无可用的 AI 对手。将使用默认 AI。
+      暂无可用的 AI 对手 — 后端可能未配置智能体。将使用默认 AI。
     </div>
 
     <!-- Agent grid -->

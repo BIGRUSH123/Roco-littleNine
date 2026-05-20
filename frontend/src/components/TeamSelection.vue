@@ -42,10 +42,10 @@ async function loadSprites() {
   error.value = ''
   try {
     const res = await fetch(`${API_BASE}/sprites`)
-    if (!res.ok) throw new Error(`服务器返回 ${res.status}`)
+    if (!res.ok) throw new Error(`服务器错误 (${res.status}) — 后端可能未启动或数据路径错误`)
     const data = await res.json()
     if (!data.sprites || !Array.isArray(data.sprites)) {
-      throw new Error('数据格式错误')
+      throw new Error('数据格式错误 — 后端返回了意外的响应结构，请检查 API 版本')
     }
     availableSprites.value = data.sprites
 
@@ -98,7 +98,7 @@ async function loadSprites() {
     }
   } catch (e) {
     console.error('加载精灵失败:', e)
-    error.value = e.message || '无法连接后端'
+    error.value = e.message || '无法连接后端 — 请确认后端已启动 (python scripts/api/main.py)'
     availableSprites.value = []
   } finally {
     loading.value = false
@@ -211,7 +211,7 @@ const selectSprite = async (sprite) => {
   const idx = activeSlot.value
   const isDuplicate = selectedTeam.value.some((s, i) => i !== idx && s?.name === sprite.name)
   if (isDuplicate) {
-    alert('队伍中不能有重复精灵！')
+    alert('队伍中不能有重复精灵 — 同一精灵只能上场一个')
     closePicker()
     return
   }

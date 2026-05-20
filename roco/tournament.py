@@ -135,7 +135,7 @@ def _load_from_file(path: Path) -> BattleAgent:
         path.stem, str(path.resolve())
     )
     if spec is None or spec.loader is None:
-        raise ImportError(f"cannot load {path}")
+        raise ImportError(f"Cannot load {path} — the file is not a valid Python module. Check that the path exists and is a .py file.")
     mod = importlib.util.module_from_spec(spec)
     sys.modules[path.stem] = mod
     spec.loader.exec_module(mod)
@@ -150,7 +150,7 @@ def _load_from_module(name: str) -> BattleAgent:
             return _find_agent(mod, module_name)
         except ImportError:
             continue
-    raise ImportError(f"cannot import agent from {name}")
+    raise ImportError(f"Cannot import agent from {name!r} — module not found. Check that the path or module name is correct, and that the module exports an 'agent' instance.")
 
 
 def _find_agent(mod, source_name: str) -> BattleAgent:
@@ -170,7 +170,7 @@ def _find_agent(mod, source_name: str) -> BattleAgent:
         if result is not None:
             return result
 
-    raise ValueError(f"no BattleAgent found in {source_name}")
+    raise ValueError(f"No BattleAgent found in {source_name!r} — the module must expose an object with 'name' (str) and 'select_action' (callable). Export it as 'agent = YourAgent()' at module level.")
 
 
 def _try_agent(obj) -> BattleAgent | None:
@@ -225,7 +225,7 @@ class TournamentRunner:
         on_match_result: Callable[[MatchResult], None] | None = None,
     ):
         if len(agents) < 2:
-            raise ValueError("need at least 2 agents")
+            raise ValueError("Tournament requires at least 2 agents. Provide at least 2 agent files or module paths.")
         self.agents = agents
         self.rounds = rounds
         self.team_specs = team_specs or _DEFAULT_TEAM_SPECS
@@ -464,7 +464,7 @@ def main(argv: list[str] | None = None):
         # When resuming, re-import agents by name from supplied args
         agents = [load_agent(a) for a in args.agents] if args.agents else []
         if not agents:
-            print("error: --resume requires agent paths to re-import", file=sys.stderr)
+            print("Error: --resume requires agent paths to re-import. Provide the same agent files/modules used in the original run.", file=sys.stderr)
             sys.exit(1)
         runner = TournamentRunner.from_checkpoint(args.resume, agents)
         runner.verbose = True
@@ -478,7 +478,7 @@ def main(argv: list[str] | None = None):
             except Exception as exc:
                 print(f"  SKIP {src}: {exc}", file=sys.stderr)
         if len(agents) < 2:
-            print("error: need at least 2 agents", file=sys.stderr)
+            print("Error: Tournament requires at least 2 agents. Make sure to provide at least 2 valid agent files or module paths.", file=sys.stderr)
             sys.exit(1)
         runner = TournamentRunner(agents, rounds=args.rounds)
 

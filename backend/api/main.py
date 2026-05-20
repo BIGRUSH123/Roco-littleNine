@@ -96,7 +96,8 @@ def get_agent(name: str):
     """Return details for a specific registered agent."""
     info = AGENT_REGISTRY.get(name)
     if info is None:
-        raise HTTPException(status_code=404, detail=f"Agent not found: {name!r}")
+        available = ', '.join(AGENT_REGISTRY.keys())
+        raise HTTPException(status_code=404, detail=f"Agent {name!r} not registered. Available: {available}.")
     return {
         "name": info["name"],
         "description": info["description"],
@@ -489,7 +490,7 @@ def check_evolution(name: str):
     db = FACTORY.sprite_db
     species = db.get(name, '')
     if species is None:
-        raise HTTPException(status_code=404, detail=f'Sprite not found: {name!r}')
+        raise HTTPException(status_code=404, detail=f"Sprite {name!r} not found in the Pokedex. Check the name spelling or consult /api/sprites for available sprites.")
     for p in db._by_number.get(species.number, []):
         s = db._read_one(p)
         if s and '首领' in (s.form or ''):
@@ -517,7 +518,7 @@ def get_bloodlines(name: str):
     db = FACTORY.sprite_db
     species = db.get(name, '')
     if species is None:
-        raise HTTPException(status_code=404, detail=f'Sprite not found: {name!r}')
+        raise HTTPException(status_code=404, detail=f"Sprite {name!r} not found in the Pokedex. Check the name spelling or consult /api/sprites for available sprites.")
     # 默认血脉=第一属性，可选=bloodline_skills的所有key
     bl_skills = species.bloodline_skills or {}
     return {
@@ -571,7 +572,7 @@ def init_battle(req: schemas.InitRequest):
 
 def _init_battle_impl(req: schemas.InitRequest):
     if not req.team:
-        raise HTTPException(status_code=400, detail="Team cannot be empty")
+        raise HTTPException(status_code=400, detail="Team cannot be empty — at least one sprite with skills is required to start a battle.")
 
     team_a_specs = [{
         "name": s.name, "skills": s.skills,
@@ -626,7 +627,7 @@ def _init_battle_impl(req: schemas.InitRequest):
 @app.post("/api/battle/action")
 def battle_action(req: schemas.ActionRequest):
     if req.session_id not in sessions:
-        raise HTTPException(status_code=404, detail="Session not found")
+        raise HTTPException(status_code=404, detail="Battle session not found — it may have expired. Start a new battle via POST /api/battle/init.")
 
     session = sessions[req.session_id]
     battle: Battle = session["battle"]
@@ -647,15 +648,15 @@ def battle_action(req: schemas.ActionRequest):
     # 验证请求参数，skill_index 由 DummyAgent 在传动后动态解析
     if req.action_type == "skill":
         if not req.skill_name:
-            raise HTTPException(status_code=400, detail="skill_name required for skill action")
+            raise HTTPException(status_code=400, detail="Missing skill_name — required when action_type is 'skill'. Provide the name of a skill your active sprite knows.")
         found = any(skill.name == req.skill_name for skill in battle.player_a.active.skills)
         if not found:
-            raise HTTPException(status_code=400, detail="Skill not found")
+            raise HTTPException(status_code=400, detail=f"Skill {req.skill_name!r} not available — your active sprite does not know this skill or it is sealed.")
     elif req.action_type == "switch":
         if req.switch_index is None:
-            raise HTTPException(status_code=400, detail="switch_index required for switch action")
+            raise HTTPException(status_code=400, detail="Missing switch_index — required when action_type is 'switch'. Provide the bench index of the sprite to switch to.")
     elif req.action_type not in ("gather",):
-        raise HTTPException(status_code=400, detail=f"Unknown action type: {req.action_type}")
+        raise HTTPException(status_code=400, detail=f"Unknown action_type {req.action_type!r}. Valid types: skill, switch, gather, item.")
 
     # 在 execute_turn 内部传动后才解析 skill_index（避免 position 过期）
     class DummyAgent:
@@ -776,14 +777,14 @@ def _parse_action_info(action_data: dict, player, label: str) -> dict:
         skill_name = action_data.get('skill_name', '')
         found = any(skill.name == skill_name for skill in player.active.skills)
         if not found:
-            raise HTTPException(status_code=400, detail=f'{label}: skill {skill_name} not found')
+            raise HTTPException(status_code=400, detail=f"{label}: skill {skill_name!r} not available — the sprite does not know this skill.")
         return {'kind': 'skill', 'skill_name': skill_name, 'switch_index': 0}
     elif atype == 'switch':
         return {'kind': 'switch', 'skill_name': '', 'switch_index': action_data.get('switch_index', 0)}
     elif atype == 'gather':
         return {'kind': 'gather', 'skill_name': '', 'switch_index': 0}
     else:
-        raise HTTPException(status_code=400, detail=f'{label}: unknown action type {atype}')
+        raise HTTPException(status_code=400, detail=f"{label}: unknown action_type {atype!r}. Valid types: skill, switch, gather.")
 
 
 @app.post("/api/debug/init")
@@ -841,7 +842,7 @@ def debug_init():
 @app.post("/api/debug/action")
 def debug_action(req: schemas.DebugActionRequest):
     if req.session_id not in debug_sessions:
-        raise HTTPException(status_code=404, detail='Debug session not found')
+        raise HTTPException(status_code=404, detail="Debug session not found — it may have expired. Start a new debug session via POST /api/debug/init.")
 
     session = debug_sessions[req.session_id]
     battle: Battle = session['battle']
