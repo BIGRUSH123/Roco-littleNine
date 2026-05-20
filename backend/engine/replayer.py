@@ -38,8 +38,8 @@ from backend.vm.journal import (
 )
 
 if TYPE_CHECKING:
-    from sim.globals import GlobalEffects
-    from sim.sprite import Sprite
+    from backend.sim.globals import GlobalEffects
+    from backend.sim.sprite import Sprite
 
     from .observer import ObserverRegistry
 
@@ -162,7 +162,7 @@ class JournalReplayer:
 
     def _apply_stat_change(self, m: StatChange) -> str:
         sprite = self._target_sprite(m.target)
-        from sim.sprite import StatusEffect
+        from backend.sim.sprite import StatusEffect
         effect = StatusEffect(
             name=f"{m.stat}+{m.steps}",
             category="stat",
@@ -247,7 +247,7 @@ class JournalReplayer:
 
     def _apply_abnormal_change(self, m: AbnormalChange) -> str:
         sprite = self._target_sprite(m.target)
-        from sim.sprite import StatusEffect
+        from backend.sim.sprite import StatusEffect
         effect = StatusEffect(
             name=m.name,
             category="abnormal",
@@ -351,7 +351,7 @@ class JournalReplayer:
 
     def _apply_charge(self, m: Charge) -> str:
         sprite = self._target_sprite(m.target)
-        from sim.sprite import StatusEffect
+        from backend.sim.sprite import StatusEffect
         sprite.add_effect(StatusEffect(
             name="charging", category="state", scope="persistent", source="skill",
         ))

@@ -14,8 +14,8 @@ from typing import TYPE_CHECKING, Any
 from backend.vm.ctx import Ctx
 
 if TYPE_CHECKING:
-    from sim.globals import GlobalEffects
-    from sim.sprite import Sprite
+    from backend.sim.globals import GlobalEffects
+    from backend.sim.sprite import Sprite
 
 
 def build_ctx(
