@@ -68,6 +68,7 @@ class EffectSummary(BaseModel):
 
 class SpriteState(BaseModel):
     name: str
+    image_key: str = ''
     element: str
     bloodline: str
     bloodline_skills: dict[str, int]

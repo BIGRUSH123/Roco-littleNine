@@ -350,6 +350,7 @@ def serialize_battle_state(battle: Battle, session_id: str) -> schemas.BattleSta
             ))
         return schemas.SpriteState(
             name=s.name,
+            image_key=s.species.display_name(),
             element=s.species.attributes,
             bloodline=s.bloodline,
             bloodline_skills=s.bloodline_skills,

@@ -41,7 +41,9 @@ class SpeciesStats:
         return [e.strip() for e in self.attributes.split(',') if e.strip()]
 
     def display_name(self) -> str:
-        return f"{self.name}（{self.form}）" if self.form else self.name
+        if self.form and self.form != '首领形态':
+            return f"{self.name}（{self.form}）"
+        return self.name
 
 
 @dataclass

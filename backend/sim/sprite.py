@@ -147,7 +147,7 @@ class Sprite:
 
     @property
     def name(self) -> str:
-        return self.species.display_name()
+        return self.species.name
 
     def _sum_steps(self, stat_key: str, ignore_negative: bool = False, ignore_positive: bool = False) -> int:
         total = 0

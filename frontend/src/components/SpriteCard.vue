@@ -12,13 +12,15 @@ const props = defineProps({
 
 const spriteAssets = useSpriteAssetStore()
 
+const imageKey = computed(() => props.sprite?.image_key || props.sprite?.name || '')
+
 const spriteUrl = computed(() => {
-  if (!props.sprite?.name) return null
-  return spriteAssets.getUrl(props.sprite.name)
+  if (!imageKey.value) return null
+  return spriteAssets.getUrl(imageKey.value)
 })
 
 const hasError = computed(() => {
-  return props.sprite?.name ? spriteAssets.hasError(props.sprite.name) : false
+  return imageKey.value ? spriteAssets.hasError(imageKey.value) : false
 })
 
 const sizeClass = computed(() => ({
