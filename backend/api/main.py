@@ -637,10 +637,11 @@ def battle_action(req: schemas.ActionRequest):
     # 道具：只应用效果不执行回合，前端重新选择动作
     if req.action_type == "item":
         item_result = battle._resolve_item('A')
-        log_lines = [item_result] if item_result else ['道具使用失败']
+        # 延迟到下一回合日志中显示，避免出现在错误回合上下文
+        session['pending_item_log'] = item_result or ''
         return {
             "state": serialize_battle_state(battle, req.session_id),
-            "log": log_lines,
+            "log": [],
         }
 
     # 验证请求参数，skill_index 由 DummyAgent 在传动后动态解析
@@ -706,6 +707,11 @@ def battle_action(req: schemas.ActionRequest):
     if battle.log:
         latest_record = battle.log[-1]
         turn_log = latest_record.events
+        # 将上一轮使用的道具日志插入本回合（在 >>>SPRITES: 标记之后）
+        pending_item = session.pop('pending_item_log', None)
+        if pending_item:
+            # events[0]=回合标题, events[1]=>>>SPRITES:  — 道具标记插入在两者之后
+            turn_log.insert(2, f'>>>ITEM:A:{pending_item}')
         
     turn_snap = _build_turn_snapshot(battle, turn_log)
 

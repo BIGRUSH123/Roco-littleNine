@@ -357,12 +357,15 @@ class Battle(BattleMechanicsMixin):
         record.first_team = first_team
 
         # 先手执行 (is_first=True)
+        second_sprite_before = self.get_player(second_team).active
         events += self._execute_single_action(first_team, first_action, is_first=True)
         self._check_faint_interrupt(first_team, events)
+        self._check_faint_interrupt(second_team, events)
 
-        # 后手执行 (is_first=False)，力竭中断则跳过
+        # 后手执行 (is_first=False)，力竭中断或已换宠则跳过
         if not self.is_finished:
-            if not self.get_player(second_team).active.is_fainted:
+            second_sprite_now = self.get_player(second_team).active
+            if not second_sprite_now.is_fainted and second_sprite_now is second_sprite_before:
                 events += self._execute_single_action(second_team, second_action, is_first=False)
                 self._check_faint_interrupt(second_team, events)
 

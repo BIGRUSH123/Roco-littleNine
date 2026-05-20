@@ -63,6 +63,13 @@ const sections = computed(() => {
         continue
       }
 
+      // Item marker: >>>ITEM:team:name
+      const itemMatch = line.match(/^>>>ITEM:(.+?):(.+)/)
+      if (itemMatch && currentTurn) {
+        currentTurn.itemUsed = { team: itemMatch[1], name: itemMatch[2] }
+        continue
+      }
+
       // Action start: >>>ACTION:actor:skill
       const actionMatch = line.match(/^>>>ACTION:(.+?):(.+)/)
       if (actionMatch && currentTurn) {
@@ -154,6 +161,11 @@ function skillIcon(skill) {
           <div v-for="(ef, ei) in turn.preEffects" :key="'pre'+ei" class="text-[11px] pl-6 py-0.5"
             :class="effectClass(ef)">
             {{ ef }}
+          </div>
+
+          <!-- Item usage -->
+          <div v-if="turn.itemUsed" class="text-[11px] pl-6 py-0.5 text-[#C9A96E] font-medium">
+            🧪 {{ turn.itemUsed.name }}
           </div>
 
           <!-- Actions -->
