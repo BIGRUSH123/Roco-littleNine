@@ -86,6 +86,7 @@ class BattleVMEngine:
         is_first: bool = False,
         team: str = "A",
         effects: list[dict] | None = None,
+        species_lookup = None,
         **kwargs,
     ) -> SkillExecutionResult:
         """Execute one skill through the full VM pipeline.
@@ -144,7 +145,8 @@ class BattleVMEngine:
 
         # 6. Replay journal against mutable state
         replayer = JournalReplayer(
-            self_sprite, opp_sprite, globals_, self.registry,
+            self_sprite, opp_sprite, globals_, self.registry, team=team,
+            species_lookup=species_lookup,
         )
         events = replayer.replay(journal)
 

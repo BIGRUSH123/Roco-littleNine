@@ -52,6 +52,20 @@ _RATIO_STATS: frozenset[str] = frozenset({
     "ignore_resistance", "ignore_mods", "survive",
 })
 
+# Modifier stats that should also create a visible StatusEffect.
+# These are integer-count stats that players expect to see as buff/debuff icons.
+# (power is excluded: values are direct power amounts with per-skill scope,
+# not global sprite buffs.)
+_VISIBLE_MOD_STATS: frozenset[str] = frozenset({
+    "combo", "priority",
+})
+
+# Stage stats that can also appear as value-based ModifierInjections.
+# Value → steps: non-speed: steps = int(value * 10); speed: steps = int(value / 10).
+_STAGE_STATS: frozenset[str] = frozenset({
+    "atk", "def", "sp_atk", "sp_def", "speed",
+})
+
 # Chinese labels for stat keys (modifiers + stage stats)
 _STAT_LABELS: dict[str, str] = {
     # Stage stats (1步=10%, speed=10点)
@@ -95,12 +109,14 @@ class JournalReplayer:
         globals_: GlobalEffects,
         registry: ObserverRegistry | None = None,
         team: str = "A",
+        species_lookup = None,
     ):
         self.self = self_sprite
         self.opp = opp_sprite
         self.globals = globals_
         self.registry = registry
         self.team = team  # "A" or "B"
+        self._species_lookup = species_lookup  # callable(number) -> SpeciesStats | None
 
     # ── Main entry ──
 
@@ -175,13 +191,12 @@ class JournalReplayer:
         from backend.sim.sprite import StatusEffect
         label = _STAT_LABELS.get(m.stat, m.stat)
         unit = _STEP_UNIT.get(m.stat, 10)
-        sign = '+' if m.steps > 0 else ''
         if m.stat in ('priority', 'energy_cost', 'combo'):
-            display = f'{label}{sign}{m.steps * unit:+d}' if m.steps != 0 else f'{label}{m.steps:+d}'
+            display = f'{label}{m.steps * unit:+d}' if m.steps != 0 else f'{label}{m.steps:+d}'
         elif m.stat == 'speed':
-            display = f'{label}{sign}{m.steps * unit:+d}'
+            display = f'{label}{m.steps * unit:+d}'
         else:
-            display = f'{label}{sign}{m.steps * unit}%'
+            display = f'{label}{m.steps * unit:+d}%'
         effect = StatusEffect(
             name=display,
             category="stat",
@@ -220,6 +235,47 @@ class JournalReplayer:
             sprite._modifiers[m.stat] = m.value
         final = sprite._modifiers[m.stat]
         label = _STAT_LABELS.get(m.stat, m.stat)
+
+        # Create visible StatusEffect for user-visible integer stats (combo, priority).
+        # Use m.value (the delta) as steps so add_effect() merging accumulates correctly.
+        if m.stat in _VISIBLE_MOD_STATS and m.value != 0:
+            from backend.sim.sprite import StatusEffect
+            steps = int(m.value)
+            effect = StatusEffect(
+                name=f'{label}{steps:+.0f}',
+                category="stat",
+                stat_key=m.stat,
+                steps=steps,
+                scope=m.scope,
+                source=m.name or "skill",
+            )
+            sprite.add_effect(effect)
+
+        # Create visible StatusEffect for stage stat value-based modifiers
+        # so they stack via add_effect() and are visible in the UI.
+        # Value → steps: non-speed 1 step = 10%, speed 1 step = 10 points.
+        if m.stat in _STAGE_STATS and m.value != 0:
+            from backend.sim.sprite import StatusEffect
+            if m.stat == "speed":
+                steps = int(round(m.value / 10))
+            else:
+                steps = int(round(m.value * 10))
+            if steps != 0:
+                unit = _STEP_UNIT.get(m.stat, 10)
+                if m.stat == "speed":
+                    display = f'{label}{steps * unit:+d}'
+                else:
+                    display = f'{label}{steps * unit:+d}%'
+                effect = StatusEffect(
+                    name=display,
+                    category="stat",
+                    stat_key=m.stat,
+                    steps=steps,
+                    scope=m.scope,
+                    source=m.name or "skill",
+                )
+                sprite.add_effect(effect)
+
         if m.stat in _RATIO_STATS:
             return f"{sprite.name} {label}={final:.0%}"
         if m.stat == "energy_cost":
@@ -264,6 +320,9 @@ class JournalReplayer:
 
     def _apply_abnormal_change(self, m: AbnormalChange) -> str:
         sprite = self._target_sprite(m.target)
+        # 萌化: trigger form devolution via apply_moe (needs species lookup)
+        if m.name == '萌化' and self._species_lookup is not None and m.delta > 0:
+            return self._apply_moe_via_replayer(sprite, m)
         from backend.sim.sprite import StatusEffect
         effect = StatusEffect(
             name=m.name,
@@ -274,6 +333,17 @@ class JournalReplayer:
         )
         sprite.add_effect(effect)
         return f"{sprite.name} {m.name} +{m.delta}层"
+
+    def _apply_moe_via_replayer(self, sprite: Sprite, m: AbnormalChange) -> str:
+        """Apply 萌化 form devolution through the replayer path.
+
+        Creates a minimal battle adapter so apply_moe() can look up species.
+        """
+        class _MoeBattle:
+            def lookup_species_by_number(_self, number):
+                return self._species_lookup(number)
+        events = sprite.apply_moe(m.delta, _MoeBattle())
+        return ' | '.join(events) if events else f"{sprite.name} {m.name} +{m.delta}层"
 
     def _apply_weather_set(self, m: WeatherSet) -> str:
         self.globals.set_weather(m.weather, m.turns)
@@ -288,6 +358,14 @@ class JournalReplayer:
             n = sprite.dispel_negative(m.limit if m.limit else -1)
             return f"{sprite.name} 驱散 {n} 减益"
         elif m.what == "abnormal":
+            # 萌化驱散：需同时恢复形态（沿进化链向上）
+            if m.name == '萌化' and self._species_lookup is not None and sprite._moe_position > 0:
+                class _MoeBattle:
+                    def lookup_species_by_number(_self, number):
+                        return self._species_lookup(number)
+                old_name = sprite.name
+                removed = sprite.remove_moe(sprite._moe_position, _MoeBattle())
+                return f"{old_name} 萌化解除 → 变为{sprite.name}(-{removed}层)"
             # Remove abnormal by name
             sprite.remove_effect(m.name, "abnormal")
             return f"{sprite.name} 驱散异常 {m.name}"

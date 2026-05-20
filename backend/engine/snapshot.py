@@ -136,7 +136,9 @@ def build_ctx(
     # ── Self skill ──
     sk = self_skill
     power_self = sk.power if hasattr(sk, 'power') else 0
-    combo_self = max(1, sk.combo) if hasattr(sk, 'combo') else 1
+    combo_base = sk.combo if hasattr(sk, 'combo') else 1
+    combo_mod = int(ss._modifiers.get("combo", 0))
+    combo_self = max(1, combo_base + combo_mod)
     energy_cost_self = sk.energy_cost if hasattr(sk, 'energy_cost') else 0
     energy_cost_reduction_self = 0  # engine tracks this
 
@@ -153,10 +155,14 @@ def build_ctx(
         hp_self_max=hp_self_max,
         hp_self_missing_ratio=hp_self_missing_ratio,
         energy_self=ss.energy,
-        atk_self=ss.effective_stat("atk") if hasattr(ss, 'effective_stat') else ss.initial_stats.get("atk", 100),
-        def_self=ss.effective_stat("def") if hasattr(ss, 'effective_stat') else ss.initial_stats.get("def", 100),
-        sp_atk_self=ss.effective_stat("sp_atk") if hasattr(ss, 'effective_stat') else ss.initial_stats.get("sp_atk", 100),
-        sp_def_self=ss.effective_stat("sp_def") if hasattr(ss, 'effective_stat') else ss.initial_stats.get("sp_def", 100),
+        # Use initial_stats (base without stage multipliers) because
+        # calc_damage applies stat_stages separately in the formula.
+        # Using effective_stat would double-count stages and cause
+        # division-by-zero when stages reduce a stat to 0.
+        atk_self=ss.initial_stats.get("atk", 100),
+        def_self=ss.initial_stats.get("def", 100),
+        sp_atk_self=ss.initial_stats.get("sp_atk", 100),
+        sp_def_self=ss.initial_stats.get("sp_def", 100),
         speed_self=ss.effective_stat("speed") if hasattr(ss, 'effective_stat') else ss.initial_stats.get("speed", 100),
         damage_reduction_self=ss._modifiers.get("damage_reduction", 0.0),
         power_mult_self=ss._modifiers.get("power_mult", 1.0),
@@ -191,10 +197,11 @@ def build_ctx(
         hp_opp_max=hp_opp_max,
         hp_opp_missing_ratio=hp_opp_missing_ratio,
         energy_opp=os.energy,
-        atk_opp=os.effective_stat("atk") if hasattr(os, 'effective_stat') else os.initial_stats.get("atk", 100),
-        def_opp=os.effective_stat("def") if hasattr(os, 'effective_stat') else os.initial_stats.get("def", 100),
-        sp_atk_opp=os.effective_stat("sp_atk") if hasattr(os, 'effective_stat') else os.initial_stats.get("sp_atk", 100),
-        sp_def_opp=os.effective_stat("sp_def") if hasattr(os, 'effective_stat') else os.initial_stats.get("sp_def", 100),
+        # Use initial_stats for non-speed stats (see self-sprite comment above)
+        atk_opp=os.initial_stats.get("atk", 100),
+        def_opp=os.initial_stats.get("def", 100),
+        sp_atk_opp=os.initial_stats.get("sp_atk", 100),
+        sp_def_opp=os.initial_stats.get("sp_def", 100),
         speed_opp=os.effective_stat("speed") if hasattr(os, 'effective_stat') else os.initial_stats.get("speed", 100),
         damage_reduction_opp=os._modifiers.get("damage_reduction", 0.0),
         power_mult_opp=os._modifiers.get("power_mult", 1.0),

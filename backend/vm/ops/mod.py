@@ -119,7 +119,7 @@ def op_mod(ctx: Ctx, effect) -> list[Mutation]:
     if isinstance(effect, dict):
         is_steps = "steps" in effect
     else:
-        is_steps = effect.steps > 0 if hasattr(effect, 'steps') else False
+        is_steps = effect.steps != 0 if hasattr(effect, 'steps') else False
 
     raw = _resolve_value(ctx, effect)
     value = float(raw)

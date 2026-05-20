@@ -21,7 +21,7 @@ def op_mark(ctx: Ctx, effect) -> list[Mutation]:
     Optional 'then' block is passed through for engine-side handling when
     mark application succeeds.
     """
-    target = _get(effect, "target", "team_own")
+    target = _get(effect, "target", "sprite_self")
     name = _get(effect, "name")
 
     if isinstance(effect, dict):
@@ -32,6 +32,7 @@ def op_mark(ctx: Ctx, effect) -> list[Mutation]:
     else:
         delta = resolve(ctx, effect.value) if effect.value is not None else effect.stacks
 
-    team = "own" if target == "team_own" else "opp"
+    # Normalize: 5 target values in skill data → own/opp
+    team = "own" if target in ("team_own", "own_team", "sprite_self") else "opp"
 
     return [MarkChange(target_team=team, name=name, delta=int(delta))]

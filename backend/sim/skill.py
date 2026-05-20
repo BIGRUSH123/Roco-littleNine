@@ -37,6 +37,7 @@ class Skill:
     exclusive_to: str = ''     # 专属技能归属精灵名（萌化后不匹配则封印）
     transmission: int = 0      # 传动：-1=主轴（不参与传动），0=普通，1+=传动等级
     description: str = ''      # 人类可读描述（API/前端展示用）
+    usable_while_charging: bool = False  # 蓄力期间是否可使用
 
     @classmethod
     def load(cls, data: dict) -> Skill:
@@ -69,6 +70,7 @@ class Skill:
             exclusive_to=data.get('exclusive_to', ''),
             transmission=transmission,
             description=data.get('description', ''),
+            usable_while_charging=data.get('usable_while_charging', False),
         )
 
     @classmethod

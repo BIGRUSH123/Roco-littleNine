@@ -10,7 +10,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 from backend.common.skill_trait_ids import TRAIT_星地善良
-from backend.vm.ir_skill import ChargeOp, CompiledSkill
+from backend.vm.ir_skill import ChargeOp, CompiledSkill, WhenBlock, WhenBranch
 
 from .action import Action
 from .battle_mechanics import BattleMechanicsMixin
@@ -61,6 +61,19 @@ class TurnRecord:
             f'(A HP={self.sprite_a_hp} E={self.sprite_a_energy}, '
             f'B HP={self.sprite_b_hp} E={self.sprite_b_energy})'
         )
+
+
+def _has_charge_op(obj) -> bool:
+    """Recursively search for ChargeOp in IR tree (handles WhenBlock nesting)."""
+    if isinstance(obj, ChargeOp):
+        return True
+    if isinstance(obj, WhenBlock):
+        return any(_has_charge_op(e) for e in (obj.then + obj.else_ + obj.elif_))
+    if isinstance(obj, WhenBranch):
+        return any(_has_charge_op(e) for e in obj.then)
+    if isinstance(obj, (tuple, list)):
+        return any(_has_charge_op(e) for e in obj)
+    return False
 
 
 class Battle(BattleMechanicsMixin):
@@ -463,6 +476,7 @@ class Battle(BattleMechanicsMixin):
         # ═══ Gate: 蓄力 ═══
         charge_result = self._gate_charge_vm(user, bs, action)
         if charge_result is True:
+            events.append(f'{user.name} 开始蓄力')
             return events  # entering charge
         if charge_result is False:
             return events  # blocked
@@ -550,6 +564,7 @@ class Battle(BattleMechanicsMixin):
             was_countered=is_countered,
             counter_succeeded=countered_skill is not None,
             skill_index=action.skill_index or 0,
+            species_lookup=self.lookup_species_by_number,
         )
         events.extend(result.events)
 
@@ -596,7 +611,7 @@ class Battle(BattleMechanicsMixin):
             record = self._get_skill_record(bs.base.name)
         except FileNotFoundError:
             return None
-        has_charge = any(isinstance(e, ChargeOp) for e in record.effects)
+        has_charge = any(_has_charge_op(e) for e in record.effects)
 
         is_charging = getattr(user, '_charging', False)
         charged_idx = getattr(user, '_charged_skill_index', -1)
@@ -613,15 +628,17 @@ class Battle(BattleMechanicsMixin):
             return None  # charge released
 
         if is_charging:
-            charged_name = (
-                user.skills[charged_idx].name
-                if 0 <= charged_idx < len(user.skills) else '?'
-            )
+            if bs.base.usable_while_charging:
+                return None  # pass through: skill can be used while charging
             return False  # blocked: must use charge skill
 
         if has_charge:
             user._charging = True
             user._charged_skill_index = action.skill_index
+            from .sprite import StatusEffect
+            user.add_effect(StatusEffect(
+                name="charging", category="state", scope="persistent", source="charge",
+            ))
             return True  # entering charge
 
         return None

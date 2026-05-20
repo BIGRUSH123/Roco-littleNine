@@ -21,7 +21,6 @@ const power = computed(() => props.skill.effective_power || 0)
 const energyCost = computed(() => props.skill.effective_energy_cost ?? props.skill.base_energy_cost ?? 0)
 const priority = computed(() => props.skillMeta?.priority || 0)
 const description = computed(() => props.skillMeta?.description || '')
-const cooldown = computed(() => props.skill.cooldown || 0)
 
 const elementColorClass = computed(() => element.value ? `element-${element.value}` : '')
 
@@ -75,7 +74,6 @@ function onClick() {
           <span v-if="skill.position_power_bonus > 0" class="text-[#5C8D6E]">+{{ skill.position_power_bonus }}</span>
         </div>
         <div v-if="energyInsufficient && !disabled" class="mt-1 text-xs text-[#D4534A] font-bold">能量不足</div>
-        <div v-if="cooldown > 0" class="mt-1 text-xs text-[#EF6C00] font-bold">冷却中 ({{ cooldown }}回合)</div>
       </button>
     </PopoverButton>
 

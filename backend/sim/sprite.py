@@ -469,10 +469,23 @@ class Sprite:
 
     # ── 萌化（形态退化）──
 
+    def _reset_moe_state(self) -> None:
+        """重置萌化状态（驱散/形态变化后清理）。"""
+        self._moe_chain.clear()
+        self._moe_position = 0
+        self._moe_origin = None
+        self._moe_origin_skills = []
+
     def apply_moe(self, stacks: int, battle) -> list[str]:
         """施加萌化：沿进化链向下退化。返回事件列表。"""
         if stacks <= 0:
             return []
+
+        # 验证现有链条是否仍匹配当前物种（进化之力等可能已改变形态）
+        if self._moe_chain and self._moe_position < len(self._moe_chain):
+            expected = self._moe_chain[self._moe_position]
+            if self.species.number != expected.number:
+                self._reset_moe_state()
 
         # 首次萌化：构建进化链快照 + 保存原始形态
         if not self._moe_chain:

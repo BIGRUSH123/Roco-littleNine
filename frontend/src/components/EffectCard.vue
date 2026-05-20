@@ -6,10 +6,12 @@ const props = defineProps({
   effect: { type: Object, required: true },
 })
 
-const isPositive = computed(() => props.effect.category !== 'abnormal')
+const isAbnormal = computed(() => props.effect.category === 'abnormal')
+const isStatDebuff = computed(() => props.effect.category === 'stat' && (props.effect.steps || 0) < 0)
+const isPositive = computed(() => !isAbnormal.value && !isStatDebuff.value)
 
 const icon = computed(() => {
-  if (!isPositive.value) {
+  if (isAbnormal.value) {
     const abnormalIcons = {
       '灼烧': '🔥', '中毒': '💀', '冻结': '❄️', '麻痹': '⚡',
       '睡眠': '💤', '混乱': '😵', '寄生': '🌿', '诅咒': '👻',
@@ -17,6 +19,7 @@ const icon = computed(() => {
     }
     return abnormalIcons[props.effect.name] || '⚠️'
   }
+  if (isStatDebuff.value) return '⬇️'
   const statIcons = {
     '攻击': '⚔️', '防御': '🛡️', '魔攻': '🔮', '魔防': '🛡️',
     '速度': '💨', '威力': '💥', '命中': '🎯', '闪避': '👟',
@@ -37,7 +40,9 @@ const sourceName = computed(() => props.effect.source || '')
         'px-2 py-1 text-xs rounded-lg border font-medium transition-colors flex items-center gap-1',
         isPositive
           ? 'bg-[#E8F5E9] border-[#A5D6A7] text-[#5C8D6E] hover:bg-[#C8E6C9]'
-          : 'bg-[#EDE7F6] border-[#B39DDB] text-[#4A3B5C] hover:bg-[#D1C4E9]'
+          : isAbnormal
+            ? 'bg-[#EDE7F6] border-[#B39DDB] text-[#4A3B5C] hover:bg-[#D1C4E9]'
+            : 'bg-[#FFF3E0] border-[#EF6C00]/40 text-[#BF360C] hover:bg-[#FFE0B2]'
       ]"
     >
       <span>{{ icon }}</span>
@@ -55,9 +60,9 @@ const sourceName = computed(() => props.effect.source || '')
             <span v-if="effect.name"> · {{ effect.name }}</span>
           </template>
           <template v-else>
-            <span class="text-[#D4534A]">异常</span>
+            <span :class="isAbnormal ? 'text-[#D4534A]' : 'text-[#EF6C00]'">{{ isAbnormal ? '异常' : '减益' }}</span>
             <span v-if="effect.name"> · {{ effect.name }}</span>
-            <span v-if="effect.stacks > 1"> ×{{ effect.stacks }}</span>
+            <span v-if="effect.stacks > 1"> x{{ effect.stacks }}</span>
           </template>
           <div v-if="sourceName" class="text-[#C9A96E] mt-1">
             来源: {{ sourceName }}

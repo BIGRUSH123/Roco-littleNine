@@ -167,6 +167,9 @@ class BattleMechanicsMixin:
             sprite.current_hp = max(1, round(result.final_stats['hp'] * hp_ratio))
             sprite.bloodline_skills = dict(boss_species.bloodline_skills)
             sprite.first_action = True
+            # 萌化状态在形态变化后失效
+            sprite._reset_moe_state()
+            sprite.remove_effect('萌化', 'abnormal')
             for key in ['atk', 'sp_atk', 'def', 'sp_def', 'speed']:
                 sprite.add_effect(StatusEffect(
                     name='首领化', category='stat', stat_key=key, steps=2,

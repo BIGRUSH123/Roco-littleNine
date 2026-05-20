@@ -8,7 +8,7 @@ const props = defineProps({
 
 const elements = computed(() => {
   const keys = Object.keys(props.typeChart)
-  return keys.length > 0 ? keys : ['火','水','草','光','暗','龙','电','冰','虫','毒','土','地','石','钢','翼','幻','妖','武','普']
+  return keys.length > 0 ? keys : ['光','冰','地','幻','幽','恶','普通','机械','武','毒','水','火','电','翼','草','萌','虫','龙']
 })
 
 function effectivenessColor(v) {
