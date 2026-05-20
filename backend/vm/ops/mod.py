@@ -123,10 +123,11 @@ def op_mod(ctx: Ctx, effect) -> list[Mutation]:
 
     raw = _resolve_value(ctx, effect)
     value = float(raw)
+    result: list[Mutation] = []
 
     # ── Steps-based stage changes ──
     if is_steps:
-        return [StatChange(
+        result = [StatChange(
             target=target,
             stat=stat,
             steps=int(raw),
@@ -135,77 +136,54 @@ def op_mod(ctx: Ctx, effect) -> list[Mutation]:
         )]
 
     # ── HP healing / damage ──
-    if stat == "hp":
+    elif stat == "hp":
         hp_max_field = _HP_MAX_MAP.get(target, "hp_self_max")
         hp_max = getattr(ctx, hp_max_field, 100)
         if value >= 0:
-            amount = _calc_heal_amount(raw, hp_max)  # use raw for float/int detection
-            return [Heal(target=target, amount=amount)] if amount > 0 else []
+            amount = _calc_heal_amount(raw, hp_max)
+            if amount > 0:
+                result = [Heal(target=target, amount=amount)]
         else:
             amount = abs(round(value))
-            return [Damage(
-                target=target,
-                amount=amount,
-                element=ctx.element_self,
-                type=ctx.skill_type_self,
-            )] if amount > 0 else []
+            if amount > 0:
+                result = [Damage(
+                    target=target, amount=amount,
+                    element=ctx.element_self, type=ctx.skill_type_self,
+                )]
 
     # ── Energy change ──
-    if stat == "energy":
+    elif stat == "energy":
         delta = int(value) if mode == "set" else int(value)
-        return [EnergyChange(target=target, delta=delta)] if delta != 0 else []
+        if delta != 0:
+            result = [EnergyChange(target=target, delta=delta)]
 
     # ── Devotion ──
-    if stat == "devotion":
-        return [ModifierInjection(
-            target=target,
-            stat=stat,
-            value=value,
-            scope=scope,
-            mode=mode,
+    elif stat == "devotion":
+        result = [ModifierInjection(
+            target=target, stat=stat, value=value,
+            scope=scope, mode=mode,
             name=_get_field(effect, "name"),
             then=_get_field(effect, "then"),
         )]
 
-    # ── Stage stat with value (multiplier mode) ──
-    if stat in _STAT_STAGES:
-        return [ModifierInjection(
-            target=target,
-            stat=stat,
-            value=value,
-            scope=scope,
-            mode=mode,
-            **meta,
-        )]
-
-    # ── Skill mod stats ──
-    if stat in _SKILL_MOD_STATS:
-        return [ModifierInjection(
-            target=target,
-            stat=stat,
-            value=value,
-            scope=scope,
-            mode=mode,
-            **meta,
-        )]
-
-    # ── Flag stats ──
-    if stat in _FLAG_STATS:
-        return [ModifierInjection(
-            target=target,
-            stat=stat,
-            value=value,
-            scope=scope,
-            mode=mode,
-            **meta,
+    # ── Stage / skill mod / flag stats ──
+    elif stat in _STAT_STAGES or stat in _SKILL_MOD_STATS or stat in _FLAG_STATS:
+        result = [ModifierInjection(
+            target=target, stat=stat, value=value,
+            scope=scope, mode=mode, **meta,
         )]
 
     # Unknown stat — default to ModifierInjection
-    return [ModifierInjection(
-        target=target,
-        stat=stat,
-        value=value,
-        scope=scope,
-        mode=mode,
-        **meta,
-    )]
+    else:
+        result = [ModifierInjection(
+            target=target, stat=stat, value=value,
+            scope=scope, mode=mode, **meta,
+        )]
+
+    # ── per_hit: repeat mutations for each combo hit ──
+    per_hit = _get_field(effect, 'per_hit', False)
+    combo = max(1, ctx.combo_self)
+    if per_hit and combo > 1 and result:
+        result = result * combo
+
+    return result

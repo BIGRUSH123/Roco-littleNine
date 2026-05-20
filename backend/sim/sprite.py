@@ -24,6 +24,32 @@ _ENERGY_STEP = 1     # 能耗：1步=1
 # 非百分比型 stat_key（直接累加步数×单位，不做乘法）
 _NON_PCT_KEYS: frozenset[str] = frozenset({'power', 'priority', 'energy_cost', 'combo', 'life_drain', 'combo_mult'})
 
+# stat_key → Chinese label for display
+_STAT_LABEL: dict[str, str] = {
+    'atk': '物攻', 'sp_atk': '魔攻', 'def': '物防', 'sp_def': '魔防',
+    'speed': '速度', 'power': '威力', 'priority': '先手',
+    'energy_cost': '能耗', 'combo': '连击', 'life_drain': '吸血',
+}
+
+# stat_key → step unit for display
+_STEP_UNIT: dict[str, int] = {
+    'power': 10, 'speed': 10, 'life_drain': 10,
+    'priority': 1, 'energy_cost': 1, 'combo': 1,
+}
+
+
+def _format_stat_name(stat_key: str, steps: int) -> str:
+    """Format a stat effect name from key + steps: '物攻+30%', '威力+20', '先手+3'."""
+    label = _STAT_LABEL.get(stat_key, stat_key)
+    unit = _STEP_UNIT.get(stat_key, 10)
+    if stat_key in ('priority', 'energy_cost', 'combo'):
+        return f'{label}{steps:+d}'
+    if stat_key in ('speed', 'power', 'life_drain'):
+        sign = '+' if steps > 0 else ''
+        return f'{label}{sign}{steps * unit}'
+    sign = '+' if steps > 0 else ''
+    return f'{label}{sign}{steps * unit}%'
+
 
 @dataclass
 class StatusEffect:
@@ -169,8 +195,16 @@ class Sprite:
     # ── 效果管理 ──
 
     def add_effect(self, effect: StatusEffect) -> None:
-        """添加效果。异常状态按同名合并层数；stat/state 追加（可叠加多条）。"""
-        if effect.is_stat or effect.is_state:
+        """添加效果。stat 按 stat_key 合并步数；state 追加；异常按同名合并层数。"""
+        if effect.is_stat:
+            for existing in self.effects:
+                if existing.is_stat and existing.stat_key == effect.stat_key:
+                    existing.steps += effect.steps
+                    existing.name = _format_stat_name(effect.stat_key, existing.steps)
+                    return
+            self.effects.append(effect)
+            return
+        if effect.is_state:
             self.effects.append(effect)
             return
         for existing in self.effects:

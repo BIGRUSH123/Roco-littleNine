@@ -10,7 +10,8 @@
       "target": "sprite_self",
       "op": "mod",
       "stat": "atk",
-      "steps": 3
+      "steps": 3,
+      "per_hit": true
     }
   ],
   "description": "✦自己获得物攻+30%，3连击。"

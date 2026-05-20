@@ -42,7 +42,6 @@ const sourceName = computed(() => props.effect.source || '')
     >
       <span>{{ icon }}</span>
       <span>{{ effect.name }}</span>
-      <span v-if="effect.steps > 0" class="font-mono">+{{ effect.steps }}</span>
       <span v-if="effect.stacks > 1" class="bg-[#3D2B1F] text-white text-[10px] rounded-full w-5 h-5 flex items-center justify-center ml-0.5">
         {{ effect.stacks }}
       </span>
@@ -54,7 +53,6 @@ const sourceName = computed(() => props.effect.source || '')
           <template v-if="isPositive">
             <span class="text-[#6DBF7C]">增益</span>
             <span v-if="effect.name"> · {{ effect.name }}</span>
-            <span v-if="effect.steps > 0"> +{{ effect.steps }}级</span>
           </template>
           <template v-else>
             <span class="text-[#D4534A]">异常</span>
