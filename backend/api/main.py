@@ -15,7 +15,7 @@ if str(BASE) not in sys.path:
     sys.path.insert(0, str(BASE))
 
 from backend.sim.factory import SimFactory
-from backend.sim.agent import RuleAgent
+from roco.ai.agent import RandomAgent
 from backend.sim.battle import Battle
 from backend.sim.resolver import _TYPE_CHART
 from backend.sim.player import Player, PlayStyle
@@ -27,6 +27,46 @@ from backend.common.models import SpeciesStats
 
 from backend.api import schemas
 
+# Agent registry: whitelist of registered AI agents.
+# NEVER accept raw file paths — agents are loaded by registered name only.
+AGENT_REGISTRY: dict[str, dict] = {
+    "Random": {
+        "name": "Random",
+        "description": "随机选择合法操作。基准线对手，用于衡量其他 AI 的水平。",
+        "source": "builtin",
+        "module": "roco.ai.agent",
+        "class": "RandomAgent",
+    },
+    "DamageAgent": {
+        "name": "DamageAgent",
+        "description": "始终选择第一个可用技能。简单攻击型 AI。",
+        "source": "example",
+        "module": None,
+        "file": "examples/my_agent.py",
+    },
+    "RuleAgent": {
+        "name": "RuleAgent",
+        "description": "基于启发式评分的内置规则 AI。考虑伤害、属性克制、HP 阈值、道具使用。",
+        "source": "builtin",
+        "module": "backend.sim.agent",
+        "class": "RuleAgent",
+    },
+    "HealBot": {
+        "name": "HealBot",
+        "description": "优先防御和回复。低 HP 时换宠，否则聚能。防御型 AI。",
+        "source": "demo",
+        "module": None,
+        "file": "scripts/demo.py",
+    },
+    "AggroBot": {
+        "name": "AggroBot",
+        "description": "始终进攻。无视防御，优先选择技能攻击。攻击型 AI。",
+        "source": "demo",
+        "module": None,
+        "file": "scripts/demo.py",
+    },
+}
+
 app = FastAPI(title="Roco Battle API")
 
 app.add_middleware(
@@ -36,6 +76,33 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.get("/api/agents")
+def get_agents():
+    """Return registered AI agents (whitelist-based, no file path routing)."""
+    agents = []
+    for name, info in AGENT_REGISTRY.items():
+        agents.append({
+            "name": info["name"],
+            "description": info["description"],
+            "source": info["source"],
+        })
+    return {"agents": agents}
+
+
+@app.get("/api/agents/{name}")
+def get_agent(name: str):
+    """Return details for a specific registered agent."""
+    info = AGENT_REGISTRY.get(name)
+    if info is None:
+        raise HTTPException(status_code=404, detail=f"Agent not found: {name!r}")
+    return {
+        "name": info["name"],
+        "description": info["description"],
+        "source": info["source"],
+    }
+
 
 WIKI_ROOT = BASE / "wiki"
 SKILLS_DIR = BASE / "data" / "skills"
@@ -378,6 +445,38 @@ def _build_turn_snapshot(battle, turn_log):
         log_entries=list(turn_log) if turn_log else [],
     )
 
+def _load_ai_agent(name: str, player):
+    """Load an AI agent from the registry by name. Falls back to RuleAgent."""
+    info = AGENT_REGISTRY.get(name)
+    if info is None:
+        from backend.sim.agent import RuleAgent
+        return RuleAgent("B", player)
+
+    source = info.get("source", "")
+    if source == "builtin":
+        mod_name = info.get("module", "")
+        cls_name = info.get("class", "")
+        import importlib
+        mod = importlib.import_module(mod_name)
+        cls = getattr(mod, cls_name)
+        if cls_name == "RuleAgent":
+            return cls("B", player)
+        else:
+            # SDK agent: adapt via bridge
+            from roco.bridge import adapt_agent
+            instance = cls() if isinstance(cls, type) else cls
+            return adapt_agent(instance, "B")
+    elif source in ("example", "demo"):
+        file_path = info.get("file", "")
+        from roco.tournament import load_agent
+        agent = load_agent(file_path)
+        from roco.bridge import adapt_agent
+        return adapt_agent(agent, "B")
+    else:
+        from backend.sim.agent import RuleAgent
+        return RuleAgent("B", player)
+
+
 # --- Endpoints ---
 
 @app.get("/api/sprites")
@@ -511,15 +610,15 @@ def _init_battle_impl(req: schemas.InitRequest):
 
     battle = FACTORY.build_battle(player_a, player_b)
 
-    # Initialize RuleAgent for AI
-    agent_b = RuleAgent("B", player_b)
-    # AI 首发选择
+    # Load AI agent from registry (default: RuleAgent)
+    agent_b = _load_ai_agent(req.ai_agent or "RuleAgent", player_b)
     player_b.active_index = agent_b.choose_lead(battle)
 
     session_id = str(uuid.uuid4())
     sessions[session_id] = {
         "battle": battle,
-        "agent_b": agent_b
+        "agent_b": agent_b,
+        "ai_agent_name": req.ai_agent or "RuleAgent",
     }
 
     return serialize_battle_state(battle, session_id)

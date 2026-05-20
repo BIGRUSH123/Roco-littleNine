@@ -25,6 +25,7 @@ class InitRequest(BaseModel):
     opponent_team: Optional[list[SpriteSelection]] = None
     lead_index: int = 0
     item: Optional[str] = None
+    ai_agent: Optional[str] = None  # registered agent name (whitelist)
 
 
 class ActionRequest(BaseModel):

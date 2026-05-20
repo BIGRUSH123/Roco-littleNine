@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted, computed, nextTick } from 'vue'
 import { Dialog, DialogPanel, TransitionRoot, TransitionChild } from '@headlessui/vue'
+import AgentSelector from './AgentSelector.vue'
 
 const props = defineProps({
   skillMap: { type: Object, default: () => ({}) }
@@ -24,6 +25,7 @@ const searchInput = ref(null)
 
 // 道具选择
 const selectedItem = ref('')          // '' | '愿力' | '进化之力'
+const selectedAgent = ref('RuleAgent')  // AI agent name
 const availableItems = ref([])
 const evolutionEligible = ref(false)  // 队伍中是否有精灵可进化
 
@@ -70,6 +72,9 @@ async function loadSprites() {
           // 恢复道具选择
           const savedItem = localStorage.getItem('roco_item')
           if (savedItem) selectedItem.value = savedItem
+          // 恢复 AI agent 选择
+          const savedAgent = localStorage.getItem('roco_agent')
+          if (savedAgent) selectedAgent.value = savedAgent
           // 检查进化资格
           setTimeout(async () => {
             evolutionEligible.value = await checkEvolutionEligibility()
@@ -297,7 +302,8 @@ const startBattle = () => {
   localStorage.setItem('roco_team', JSON.stringify(team))
   localStorage.setItem('roco_lead', leadSlot.value)
   localStorage.setItem('roco_item', selectedItem.value)
-  emit('start-battle', { team, leadIndex, item: selectedItem.value || undefined })
+  localStorage.setItem('roco_agent', selectedAgent.value)
+  emit('start-battle', { team, leadIndex, item: selectedItem.value || undefined, aiAgent: selectedAgent.value })
 }
 </script>
 
@@ -463,6 +469,11 @@ const startBattle = () => {
               </template>
             </template>
           </div>
+        </div>
+
+        <!-- AI Agent Selection -->
+        <div class="mt-5 pt-4 border-t border-[#D4C8B8]">
+          <AgentSelector v-model="selectedAgent" />
         </div>
 
         <!-- Start -->
