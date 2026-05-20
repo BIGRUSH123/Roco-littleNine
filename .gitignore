@@ -1,0 +1,13 @@
+# 忽略所有以 . 开头的文件和目录
+.*
+
+raw
+
+__pycache__
+
+架构修改.md
+
+代码架构.md
+
+# pip editable install artifacts
+roco.egg-info/
