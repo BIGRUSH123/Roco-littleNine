@@ -186,6 +186,8 @@ class Battle(BattleMechanicsMixin):
         b_short = self._action_short(record.action_b)
         header = f'[回合{self.turn}] {s_a.name}：{a_short} | {s_b.name}：{b_short}'
         events.insert(0, header)
+        # Structured markers for collapsible frontend rendering
+        events.insert(1, f'>>>SPRITES:{s_a.name}|{s_b.name}')
 
         # 填充记录（用回合结束时的实时精灵引用）
         record.events = events
@@ -432,12 +434,14 @@ class Battle(BattleMechanicsMixin):
 
         # ── 聚能 ──
         if action.kind == 'gather':
+            events.append(f'>>>ACTION:{user.name}:聚能')
             gained = user.gain_energy(5)
             user.first_action = False
             user.inc_counter('times_gathered')
             events.append(f'{user.name} 聚能+{gained}E(→{user.energy})')
             opp_team = 'B' if team == 'A' else 'A'
             self.inc_team_counter(opp_team, 'enemy_gather')
+            events.append('<<<ACTION')
             return events
 
         if action.kind != 'skill' or action.skill_index is None:
@@ -475,7 +479,8 @@ class Battle(BattleMechanicsMixin):
             skill_type = getattr(bs.base, 'skill_type', '')
             consumed = user.consume_pending_modifiers(skill_type)
             for m in consumed:
-                events.append(f'{user.name} 触发待机效果: {m.stat}={m.value}')
+                label = {'energy_cost': '能耗', 'power': '威力', 'combo': '连击'}.get(m.stat, m.stat)
+                events.append(f'{user.name} 触发待机效果: {label}{m.value:+}')
 
         # ═══ Gate: 能量支付 ═══
         cost = bs.energy_cost
@@ -519,6 +524,9 @@ class Battle(BattleMechanicsMixin):
 
         user.inc_counter(f'skill_used:{bs.name}')
         user.inc_counter('skills_used')
+
+        # ═══ Action marker (after all gates passed) ═══
+        events.append(f'>>>ACTION:{user.name}:{bs.name}')
 
         # ═══ Load CompiledSkill + execute VM ═══
         try:
@@ -571,6 +579,7 @@ class Battle(BattleMechanicsMixin):
         from .traits import dispatch_skill_use
         events += dispatch_skill_use(user, bs, self, team)
 
+        events.append('<<<ACTION')
         return events
 
     def _gate_charge_vm(self, user: Sprite, bs: BattleSkill, action: Action) -> bool | None:

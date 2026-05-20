@@ -195,7 +195,7 @@ def test_battle2_round7_counter_chain():
                                        turn=7, is_first=True, team="A",
                                        counter_succeeded=True)
     print(f"  R7-B: 琉璃水母 泡沫幻影(应对) → events={result_def.events}")
-    assert any("damage_reduction" in str(e).lower() for e in result_def.events), \
+    assert any("减伤" in str(e) for e in result_def.events), \
            "泡沫幻影 should provide damage reduction on counter"
 
 

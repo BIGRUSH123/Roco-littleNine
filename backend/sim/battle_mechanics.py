@@ -54,7 +54,9 @@ class BattleMechanicsMixin:
         new.entry_turn = self.turn
         new.first_action = True
         new.inc_counter('times_entered')
+        events.append(f'>>>ACTION:{old.name}:换宠→{new.name}')
         events.append(f'{old.name}↓ {new.name}↑')
+        events.append('<<<ACTION')
 
         # ── trait hooks ──
         events += dispatch_leave(old, self, team)

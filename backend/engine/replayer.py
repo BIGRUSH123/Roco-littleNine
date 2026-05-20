@@ -52,6 +52,23 @@ _RATIO_STATS: frozenset[str] = frozenset({
     "ignore_resistance", "ignore_mods", "survive",
 })
 
+# Chinese labels for modifier stat keys
+_STAT_LABELS: dict[str, str] = {
+    "energy_cost": "能耗",
+    "power": "威力",
+    "combo": "连击",
+    "priority": "先手",
+    "power_mult": "威力倍率",
+    "damage_mult": "伤害倍率",
+    "damage_reduction": "减伤",
+    "energy_cost_mult": "能耗倍率",
+    "heal_reverse": "回复反转",
+    "life_drain": "吸血",
+    "ignore_resistance": "无视抗性",
+    "ignore_mods": "无视修正",
+    "survive": "不屈",
+}
+
 
 class JournalReplayer:
     """Replays a VM Journal against mutable battle state.
@@ -171,7 +188,7 @@ class JournalReplayer:
 
         if m.on_next:
             sprite._pending_modifiers.append(m)
-            return f"{sprite.name} {m.stat} pending (on_next, if_type={m.if_type})"
+            return ""  # suppress verbose pending modifier log
 
         cur = sprite._modifiers.get(m.stat)  # None if never set (distinct from 0.0)
         if m.mode == "set":
@@ -183,9 +200,14 @@ class JournalReplayer:
         else:
             sprite._modifiers[m.stat] = m.value
         final = sprite._modifiers[m.stat]
+        label = _STAT_LABELS.get(m.stat, m.stat)
         if m.stat in _RATIO_STATS:
-            return f"{sprite.name} {m.stat}={final:.0%}"
-        return f"{sprite.name} {m.stat}={final:+.0f}"
+            return f"{sprite.name} {label}={final:.0%}"
+        if m.stat == "energy_cost":
+            # Show delta for energy_cost: "能耗-N" instead of "能耗=-N"
+            delta = m.value if m.mode == "add" else final
+            return f"{sprite.name} {label}{delta:+.0f}"
+        return f"{sprite.name} {label}{final:+.0f}"
 
     def _apply_damage(self, m: Damage) -> str:
         sprite = self._target_sprite(m.target)
@@ -397,7 +419,11 @@ class JournalReplayer:
                 name=m.name or "",
                 source="counter",
             ))
-            return f"注册计次器 {m.name or '(匿名)'}"
+            # Suppress unnamed counters — they are internal VM mechanics
+            # like damage accumulation, not player-visible effects.
+            if not m.name or not m.name.strip():
+                return ""
+            return f"注册计次器: {m.name}"
         return ""
 
     # ── Helpers ──
