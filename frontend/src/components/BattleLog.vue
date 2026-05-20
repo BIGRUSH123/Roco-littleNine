@@ -27,62 +27,76 @@ function toggleTurn(turn) {
 
 // Parse flat log into structured sections
 const sections = computed(() => {
-  const raw = props.logs || []
-  const result = []
-  let currentTurn = null
-  let currentAction = null
+  try {
+    const raw = props.logs || []
+    const result = []
+    let currentTurn = null
+    let currentAction = null
 
-  for (const line of raw) {
-    // Turn header: [回合N] ...
-    const turnMatch = line.match(/^\[回合(\d+)\]\s*(.*)/)
-    if (turnMatch) {
-      if (currentAction) { currentAction = null }
-      currentTurn = {
-        turn: parseInt(turnMatch.group(1)),
-        header: turnMatch.group(2),
-        sprites: '',
-        actions: [],
-        preEffects: [],
-        postEffects: [],
+    for (let i = 0; i < raw.length; i++) {
+      const line = raw[i]
+      if (typeof line !== 'string') {
+        console.warn('[BattleLog] non-string log entry:', line)
+        continue
       }
-      result.push(currentTurn)
-      continue
-    }
 
-    // Sprites marker: >>>SPRITES:nameA|nameB
-    const spritesMatch = line.match(/^>>>SPRITES:(.+)/)
-    if (spritesMatch && currentTurn) {
-      currentTurn.sprites = spritesMatch.group(1)
-      continue
-    }
-
-    // Action start: >>>ACTION:actor:skill
-    const actionMatch = line.match(/^>>>ACTION:(.+?):(.+)/)
-    if (actionMatch && currentTurn) {
-      currentAction = {
-        actor: actionMatch.group(1),
-        skill: actionMatch.group(2),
-        effects: [],
+      // Turn header: [回合N] ...
+      const turnMatch = line.match(/^\[回合(\d+)\]\s*(.*)/)
+      if (turnMatch) {
+        if (currentAction) { currentAction = null }
+        currentTurn = {
+          turn: parseInt(turnMatch[1]),
+          header: turnMatch[2],
+          sprites: '',
+          actions: [],
+          preEffects: [],
+          postEffects: [],
+        }
+        result.push(currentTurn)
+        continue
       }
-      currentTurn.actions.push(currentAction)
-      continue
+
+      // Sprites marker: >>>SPRITES:nameA|nameB
+      const spritesMatch = line.match(/^>>>SPRITES:(.+)/)
+      if (spritesMatch && currentTurn) {
+        currentTurn.sprites = spritesMatch[1]
+        continue
+      }
+
+      // Action start: >>>ACTION:actor:skill
+      const actionMatch = line.match(/^>>>ACTION:(.+?):(.+)/)
+      if (actionMatch && currentTurn) {
+        currentAction = {
+          actor: actionMatch[1],
+          skill: actionMatch[2],
+          effects: [],
+        }
+        currentTurn.actions.push(currentAction)
+        continue
+      }
+
+      // Action end: <<<ACTION
+      if (line === '<<<ACTION') {
+        currentAction = null
+        continue
+      }
+
+      // Place effect
+      if (currentAction) {
+        currentAction.effects.push(line)
+      } else if (currentTurn) {
+        currentTurn.preEffects.push(line)
+      }
     }
 
-    // Action end: <<<ACTION
-    if (line === '<<<ACTION') {
-      currentAction = null
-      continue
+    if (result.length > 0) {
+      console.log('[BattleLog] parsed', result.length, 'turns, total lines:', raw.length)
     }
-
-    // Place effect
-    if (currentAction) {
-      currentAction.effects.push(line)
-    } else if (currentTurn) {
-      currentTurn.preEffects.push(line)
-    }
+    return result
+  } catch (e) {
+    console.error('[BattleLog] parse error:', e)
+    return []
   }
-
-  return result
 })
 
 function effectClass(text) {
