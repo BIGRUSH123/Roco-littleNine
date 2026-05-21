@@ -20,6 +20,8 @@ export const useBattleStore = defineStore('battle', () => {
   const isFinished = ref(false)
   const activeIndexA = ref(0)
   const activeIndexB = ref(0)
+  const selfLives = ref(3)
+  const oppLives = ref(3)
   const selfItem = ref(null)
 
   function updateFromResponse(data) {
@@ -37,6 +39,7 @@ export const useBattleStore = defineStore('battle', () => {
       const pa = data.player_a
       selfTeam.value = pa.team || []
       activeIndexA.value = pa.active_index ?? 0
+      selfLives.value = pa.lives ?? 3
       selfItem.value = pa.item || null
       const activeIdx = pa.active_index ?? 0
       selfSprite.value = pa.team?.[activeIdx] || null
@@ -46,6 +49,7 @@ export const useBattleStore = defineStore('battle', () => {
       const pb = data.player_b
       oppTeam.value = pb.team || []
       activeIndexB.value = pb.active_index ?? 0
+      oppLives.value = pb.lives ?? 3
       const activeIdx = pb.active_index ?? 0
       oppSprite.value = pb.team?.[activeIdx] || null
     }
@@ -85,6 +89,8 @@ export const useBattleStore = defineStore('battle', () => {
     isFinished.value = false
     activeIndexA.value = 0
     activeIndexB.value = 0
+    selfLives.value = 3
+    oppLives.value = 3
     selfItem.value = null
   }
 
@@ -94,7 +100,7 @@ export const useBattleStore = defineStore('battle', () => {
     marksA, marksB, markEnergyModA, markEnergyModB,
     turnSnapshots, replayTurn,
     winner, isFinished,
-    activeIndexA, activeIndexB, selfItem,
+    activeIndexA, activeIndexB, selfLives, oppLives, selfItem,
     updateFromResponse, setReplayTurn, resetBattle,
   }
 })

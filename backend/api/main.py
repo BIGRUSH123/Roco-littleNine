@@ -708,7 +708,7 @@ def battle_action(req: schemas.ActionRequest):
     turn_log = []
     if battle.log:
         latest_record = battle.log[-1]
-        turn_log = latest_record.events
+        turn_log = latest_record.to_frontend_events()
         # 将上一轮使用的道具日志插入本回合（在 >>>SPRITES: 标记之后）
         pending_item = session.pop('pending_item_log', None)
         if pending_item:
@@ -943,7 +943,7 @@ def debug_action(req: schemas.DebugActionRequest):
 
     turn_log = item_log[:]
     if battle.log:
-        turn_log += battle.log[-1].events
+        turn_log += battle.log[-1].to_frontend_events()
 
     turn_snap = _build_turn_snapshot(battle, turn_log)
 

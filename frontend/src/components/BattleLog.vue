@@ -32,6 +32,7 @@ const sections = computed(() => {
     const result = []
     let currentTurn = null
     let currentAction = null
+    let currentPhase = null  // 'turnStart' | 'faintCheck' | 'turnEnd' | null
 
     for (let i = 0; i < raw.length; i++) {
       const line = raw[i]
@@ -44,13 +45,15 @@ const sections = computed(() => {
       const turnMatch = line.match(/^\[回合(\d+)\]\s*(.*)/)
       if (turnMatch) {
         if (currentAction) { currentAction = null }
+        currentPhase = null
         currentTurn = {
           turn: parseInt(turnMatch[1]),
           header: turnMatch[2],
           sprites: '',
           actions: [],
-          preEffects: [],
-          postEffects: [],
+          turnStartEffects: [],
+          faintCheckEffects: [],
+          turnEndEffects: [],
         }
         result.push(currentTurn)
         continue
@@ -70,9 +73,26 @@ const sections = computed(() => {
         continue
       }
 
+      // Phase start: >>>PHASE:NAME
+      const phaseMatch = line.match(/^>>>PHASE:(.+)/)
+      if (phaseMatch && currentTurn) {
+        const name = phaseMatch[1]
+        if (name === 'TURN_START') currentPhase = 'turnStart'
+        else if (name === 'FAINT_CHECK') currentPhase = 'faintCheck'
+        else if (name === 'TURN_END') currentPhase = 'turnEnd'
+        continue
+      }
+
+      // Phase end: <<<PHASE
+      if (line === '<<<PHASE') {
+        currentPhase = null
+        continue
+      }
+
       // Action start: >>>ACTION:actor:skill
       const actionMatch = line.match(/^>>>ACTION:(.+?):(.+)/)
       if (actionMatch && currentTurn) {
+        currentPhase = null
         currentAction = {
           actor: actionMatch[1],
           skill: actionMatch[2],
@@ -88,11 +108,15 @@ const sections = computed(() => {
         continue
       }
 
-      // Place effect
+      // Place effect in the right bucket
       if (currentAction) {
         currentAction.effects.push(line)
-      } else if (currentTurn) {
-        currentTurn.preEffects.push(line)
+      } else if (currentTurn && currentPhase === 'turnStart') {
+        currentTurn.turnStartEffects.push(line)
+      } else if (currentTurn && currentPhase === 'faintCheck') {
+        currentTurn.faintCheckEffects.push(line)
+      } else if (currentTurn && currentPhase === 'turnEnd') {
+        currentTurn.turnEndEffects.push(line)
       }
     }
 
@@ -157,11 +181,14 @@ function skillIcon(skill) {
 
         <!-- Collapsible body -->
         <div v-if="!collapsedTurns.has(turn.turn)" class="px-2 py-1 space-y-1 bg-[#FBF7F0] border-l-2 border-transparent">
-          <!-- Pre-turn effects (weather, transmission, etc.) -->
-          <div v-for="(ef, ei) in turn.preEffects" :key="'pre'+ei" class="text-[11px] pl-6 py-0.5"
-            :class="effectClass(ef)">
-            {{ ef }}
-          </div>
+          <!-- Turn start phase (weather, transmission, etc.) -->
+          <template v-if="turn.turnStartEffects.length">
+            <div class="text-[10px] text-[#A89A8A] pl-4 pt-1 font-medium">⚡ 回合开始</div>
+            <div v-for="(ef, ei) in turn.turnStartEffects" :key="'ts'+ei" class="text-[11px] pl-6 py-0.5"
+              :class="effectClass(ef)">
+              {{ ef }}
+            </div>
+          </template>
 
           <!-- Item usage -->
           <div v-if="turn.itemUsed" class="text-[11px] pl-6 py-0.5 text-[#C9A96E] font-medium">
@@ -184,11 +211,23 @@ function skillIcon(skill) {
             </div>
           </div>
 
-          <!-- Post-turn effects -->
-          <div v-for="(ef, ei) in turn.postEffects" :key="'post'+ei" class="text-[11px] pl-6 py-0.5"
-            :class="effectClass(ef)">
-            {{ ef }}
-          </div>
+          <!-- Faint check phase -->
+          <template v-if="turn.faintCheckEffects.length">
+            <div class="text-[10px] text-[#D4534A] pl-4 pt-1 font-medium">💀 力竭检查</div>
+            <div v-for="(ef, ei) in turn.faintCheckEffects" :key="'fc'+ei" class="text-[11px] pl-6 py-0.5"
+              :class="effectClass(ef)">
+              {{ ef }}
+            </div>
+          </template>
+
+          <!-- Turn end phase (dot, weather damage, etc.) -->
+          <template v-if="turn.turnEndEffects.length">
+            <div class="text-[10px] text-[#A89A8A] pl-4 pt-1 font-medium">⏳ 回合结束</div>
+            <div v-for="(ef, ei) in turn.turnEndEffects" :key="'te'+ei" class="text-[11px] pl-6 py-0.5"
+              :class="effectClass(ef)">
+              {{ ef }}
+            </div>
+          </template>
         </div>
       </div>
     </div>

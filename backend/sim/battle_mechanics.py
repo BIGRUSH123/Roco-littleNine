@@ -22,7 +22,8 @@ class BattleMechanicsMixin:
       turn, winner, globals, is_finished, _borrowed_restore.
     """
 
-    def _resolve_switch(self, team: str, action: Action) -> list[str]:
+    def _resolve_switch(self, team: str, action: Action,
+                         faint_events: list[str] | None = None) -> list[str]:
         events: list[str] = []
         player = self.get_player(team)
         old = player.active
@@ -54,9 +55,7 @@ class BattleMechanicsMixin:
         new.entry_turn = self.turn
         new.first_action = True
         new.inc_counter('times_entered')
-        events.append(f'>>>ACTION:{old.name}:换宠→{new.name}')
         events.append(f'{old.name}↓ {new.name}↑')
-        events.append('<<<ACTION')
 
         # ── trait hooks ──
         events += dispatch_leave(old, self, team)
@@ -70,7 +69,10 @@ class BattleMechanicsMixin:
         # team counter: enemy switch (搜刮 等 pre-entry accumulator)
         self.inc_team_counter(opp_team, 'enemy_switch')
 
-        self._check_faint_interrupt(team, events)
+        if faint_events is not None:
+            self._check_faint_interrupt(team, faint_events)
+        else:
+            self._check_faint_interrupt(team, events)
         return events
 
     def _resolve_return(self, team: str) -> list[str]:
@@ -353,7 +355,9 @@ class BattleMechanicsMixin:
                             active[(pos + 1) % m] = temp[pos]
                         for pos in range(0, block_end + 1):
                             active[(pos + 1) % m] = temp[pos]
-                    active[block_start] = temp[displaced_idx]
+                    # 当块覆盖整个虚拟数组时，无外部被挤出元素，跳过
+                    if displaced_idx != block_start:
+                        active[block_start] = temp[displaced_idx]
 
             # ── 第五步：映射回原始 skills 数组 ──
             for vi, oi in enumerate(active_map):

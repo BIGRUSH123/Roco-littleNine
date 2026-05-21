@@ -6,7 +6,6 @@
 from __future__ import annotations
 
 import random
-from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 from backend.common.skill_trait_ids import TRAIT_星地善良
@@ -17,6 +16,7 @@ from .battle_mechanics import BattleMechanicsMixin
 from .battleskill import BattleSkill
 from .globals import GlobalEffects
 from .resolver import SkillResolver
+from .round_record import ActionRecord, RoundRecord, _action_short as _rr_action_short
 from .traits import (
     dispatch_abnormal_tick,
     dispatch_before_action,
@@ -36,31 +36,6 @@ if TYPE_CHECKING:
     from .player import Player
     from .skill import Skill
     from .sprite import Sprite
-
-
-@dataclass
-class TurnRecord:
-    """单回合记录。"""
-    turn: int
-    first_team: str = ''        # "A" or "B"
-    action_a: str = ''
-    action_b: str = ''
-    item_used_a: str = ''
-    item_used_b: str = ''
-    events: list[str] = field(default_factory=list)
-    sprite_a_hp: int = 0
-    sprite_b_hp: int = 0
-    sprite_a_energy: int = 0
-    sprite_b_energy: int = 0
-    weather: str = ''
-
-    def summary(self) -> str:
-        return (
-            f'T{self.turn} [{self.first_team}先] '
-            f'A: {self.action_a} | B: {self.action_b} '
-            f'(A HP={self.sprite_a_hp} E={self.sprite_a_energy}, '
-            f'B HP={self.sprite_b_hp} E={self.sprite_b_energy})'
-        )
 
 
 def _has_charge_op(obj) -> bool:
@@ -91,7 +66,7 @@ class Battle(BattleMechanicsMixin):
         if weather:
             self.globals.set_weather(weather)
         self.turn: int = 0
-        self.log: list[TurnRecord] = []
+        self.log: list[RoundRecord] = []
         self.winner: str | None = None
         self._resolver = SkillResolver()
         self._agent_a: Agent | None = None
@@ -155,64 +130,57 @@ class Battle(BattleMechanicsMixin):
     # 回合主入口
     # ═══════════════════════════════════════════════════════════════
 
-    def execute_turn(self, agent_a: Agent, agent_b: Agent) -> TurnRecord:
+    def execute_turn(self, agent_a: Agent, agent_b: Agent) -> RoundRecord:
         self.turn += 1
         self._agent_a = agent_a
         self._agent_b = agent_b
 
         # 每回合开始时，清空双方所有精灵的 VM modifier 累积
-        # （由 VM 管线每回合重新计算注入，不跨回合累加）
-        # 注意：_pending_modifiers 不清空，它用于 on_next 延迟注入
         for sprite in self.player_a.team + self.player_b.team:
             sprite._modifiers.clear()
 
         s_a = self.player_a.active
         s_b = self.player_b.active
 
-        record = TurnRecord(turn=self.turn, weather=self.globals.weather)
+        rec = RoundRecord(
+            turn=self.turn,
+            weather=self.globals.weather,
+            sprite_a=s_a.name,
+            sprite_b=s_b.name,
+        )
 
         # 0. 首发入场（回合1触发 entry trait）
-        events: list[str] = []
         if self.turn == 1:
-            events += dispatch_entry(self.player_a.active, self, 'A')
-            events += dispatch_entry(self.player_b.active, self, 'B')
+            rec.turn_start_events += dispatch_entry(self.player_a.active, self, 'A')
+            rec.turn_start_events += dispatch_entry(self.player_b.active, self, 'B')
 
-        # 1. 回合开始阶段
-        events += self._phase_turn_start()
+        # 1. 回合开始阶段（已内含 >>>PHASE:TURN_START 标记）
+        ts_events = self._phase_turn_start()
+        rec.turn_start_events += ts_events
 
         # 2. 行动选择阶段（道具不互见）
         action_a, item_a = self._select_action(agent_a, 'A')
         action_b, item_b = self._select_action(agent_b, 'B')
-        record.action_a = self._describe_action('A', action_a)
-        record.action_b = self._describe_action('B', action_b)
-        record.item_used_a = item_a
-        record.item_used_b = item_b
+
+        # 构建 ActionRecord
+        rec.action_a = self._build_action_record('A', action_a, item_a)
+        rec.action_b = self._build_action_record('B', action_b, item_b)
 
         # 3. 行动结算阶段
-        events += self._phase_resolve(action_a, action_b, record)
+        resolve_events = self._phase_resolve(action_a, action_b, rec)
 
-        # 4. 回合结束阶段
-        events += self._phase_turn_end()
+        # 4. 回合结束阶段（已内含 >>>PHASE:TURN_END 标记）
+        te_events = self._phase_turn_end()
+        rec.turn_end_events = te_events
 
-        # 回合标题（用回合开始时快照的精灵名，避免力竭后显示替补名）
-        a_short = self._action_short(record.action_a)
-        b_short = self._action_short(record.action_b)
+        # ── 组装 frontend events ──
+        a_short = _rr_action_short(rec.action_a)
+        b_short = _rr_action_short(rec.action_b)
         header = f'[回合{self.turn}] {s_a.name}：{a_short} | {s_b.name}：{b_short}'
-        events.insert(0, header)
-        # Structured markers for collapsible frontend rendering
-        events.insert(1, f'>>>SPRITES:{s_a.name}|{s_b.name}')
+        rec._header = header
 
-        # 填充记录（用回合结束时的实时精灵引用）
-        record.events = events
-        final_a = self.player_a.active
-        final_b = self.player_b.active
-        record.sprite_a_hp = final_a.current_hp
-        record.sprite_b_hp = final_b.current_hp
-        record.sprite_a_energy = final_a.energy
-        record.sprite_b_energy = final_b.energy
-
-        self.log.append(record)
-        return record
+        self.log.append(rec)
+        return rec
 
     # ═══════════════════════════════════════════════════════════════
     # Phase 1: 回合开始
@@ -257,47 +225,52 @@ class Battle(BattleMechanicsMixin):
     # Phase 3: 行动结算（优先级排序）
     # ═══════════════════════════════════════════════════════════════
 
-    def _phase_resolve(self, action_a: Action, action_b: Action, record: TurnRecord) -> list[str]:
-        events: list[str] = []
+    def _phase_resolve(self, action_a: Action, action_b: Action, record: RoundRecord) -> list[str]:
+        """执行结算，直接填充 record.action_a / action_b / faint_check_events。"""
         a_kind = action_a.kind
         b_kind = action_b.kind
 
-        # 双方换宠 → 随机先后（无技能方，first_team 留空）
+        # 双方换宠 → 随机先后
         if a_kind == 'switch' and b_kind == 'switch':
+            faint_events: list[str] = []
             if random.random() < 0.5:
-                events += self._resolve_switch('A', action_a)
+                record.action_a.events = self._resolve_switch('A', action_a, faint_events)
                 if not self.is_finished:
-                    events += self._resolve_switch('B', action_b)
+                    record.action_b.events = self._resolve_switch('B', action_b, faint_events)
             else:
-                events += self._resolve_switch('B', action_b)
+                record.action_b.events = self._resolve_switch('B', action_b, faint_events)
                 if not self.is_finished:
-                    events += self._resolve_switch('A', action_a)
-            return events
+                    record.action_a.events = self._resolve_switch('A', action_a, faint_events)
+            record.faint_check_events = faint_events
+            return []
 
         # 单方换宠 + 单方技能/聚能 → 先换宠，后技能
-        # 技能方是唯一的行动方 → first_team = 技能方
         if a_kind == 'switch':
-            events += self._resolve_switch('A', action_a)
-            record.first_team = 'B'
+            faint_events: list[str] = []
+            record.action_a.events = self._resolve_switch('A', action_a, faint_events)
+            record.first_team = 'A'
             if not self.is_finished and not self.player_b.active.is_fainted:
-                events += self._resolve_single_action('B', action_b, opponent_switched=True)
-            return events
+                record.action_b.events = self._resolve_single_action('B', action_b, opponent_switched=True)
+            record.faint_check_events = faint_events
+            return []
 
         if b_kind == 'switch':
-            events += self._resolve_switch('B', action_b)
-            record.first_team = 'A'
+            faint_events: list[str] = []
+            record.action_b.events = self._resolve_switch('B', action_b, faint_events)
+            record.first_team = 'B'
             if not self.is_finished and not self.player_a.active.is_fainted:
-                events += self._resolve_single_action('A', action_a, opponent_switched=True)
-            return events
+                record.action_a.events = self._resolve_single_action('A', action_a, opponent_switched=True)
+            record.faint_check_events = faint_events
+            return []
 
         # 双方技能/聚能 → 优先级判定
-        events += self._resolve_both_skills(action_a, action_b, record)
-        return events
+        return self._resolve_both_skills(action_a, action_b, record)
 
     # ── 双方技能/聚能 ──
 
-    def _resolve_both_skills(self, action_a: Action, action_b: Action, record: TurnRecord) -> list[str]:
-        events: list[str] = []
+    def _resolve_both_skills(self, action_a: Action, action_b: Action, record: RoundRecord) -> list[str]:
+        """执行双方技能，直接填充 record.action_a / action_b / faint_check_events。"""
+        ar = {'A': record.action_a, 'B': record.action_b}
         s_a = self.player_a.active
         s_b = self.player_b.active
 
@@ -322,28 +295,30 @@ class Battle(BattleMechanicsMixin):
         countering_skill_b = skill_a if counter_a else None
 
         if countered:
+            faint_events: list[str] = []
             # 应对成功 → 双方同时（均视为"同时"，无先后之分）
-            events += self._execute_single_action(
+            ar['A'].events = self._execute_single_action(
                 'A', action_a, is_countered=counter_b,
                 countered_skill=countered_skill_a,
                 countering_skill=countering_skill_a, is_first=True,
             )
-            self._check_faint_interrupt('A', events)
-            self._check_faint_interrupt('B', events)
+            self._check_faint_interrupt('A', faint_events)
+            self._check_faint_interrupt('B', faint_events)
             if not self.is_finished:
-                events += self._execute_single_action(
+                ar['B'].events = self._execute_single_action(
                     'B', action_b, is_countered=counter_a,
                     countered_skill=countered_skill_b,
                     countering_skill=countering_skill_b, is_first=True,
                 )
-            # trait: counter success hooks
+            # trait: counter success hooks → 附加到对应 action
             if counter_a:
                 self.inc_team_counter('A', 'counter_success')
-                events += dispatch_counter_success(s_a, countered_skill_a, self, 'A')
+                ar['A'].events += dispatch_counter_success(s_a, countered_skill_a, self, 'A')
             if counter_b:
                 self.inc_team_counter('B', 'counter_success')
-                events += dispatch_counter_success(s_b, countered_skill_b, self, 'B')
-            return events
+                ar['B'].events += dispatch_counter_success(s_b, countered_skill_b, self, 'B')
+            record.faint_check_events = faint_events
+            return []  # events now stored in record
 
         # 无应对 → 按优先级先后执行
         priority_a = self._effective_priority('A', action_a)
@@ -369,20 +344,22 @@ class Battle(BattleMechanicsMixin):
         # 记录先手方
         record.first_team = first_team
 
+        faint_events: list[str] = []
         # 先手执行 (is_first=True)
         second_sprite_before = self.get_player(second_team).active
-        events += self._execute_single_action(first_team, first_action, is_first=True)
-        self._check_faint_interrupt(first_team, events)
-        self._check_faint_interrupt(second_team, events)
+        ar[first_team].events = self._execute_single_action(first_team, first_action, is_first=True)
+        self._check_faint_interrupt(first_team, faint_events)
+        self._check_faint_interrupt(second_team, faint_events)
 
         # 后手执行 (is_first=False)，力竭中断或已换宠则跳过
         if not self.is_finished:
             second_sprite_now = self.get_player(second_team).active
             if not second_sprite_now.is_fainted and second_sprite_now is second_sprite_before:
-                events += self._execute_single_action(second_team, second_action, is_first=False)
-                self._check_faint_interrupt(second_team, events)
+                ar[second_team].events = self._execute_single_action(second_team, second_action, is_first=False)
+                self._check_faint_interrupt(second_team, faint_events)
 
-        return events
+        record.faint_check_events = faint_events
+        return []  # events now stored in record
 
     # ── 单方行动执行 ──
 
@@ -450,14 +427,12 @@ class Battle(BattleMechanicsMixin):
 
         # ── 聚能 ──
         if action.kind == 'gather':
-            events.append(f'>>>ACTION:{user.name}:聚能')
             gained = user.gain_energy(5)
             user.first_action = False
             user.inc_counter('times_gathered')
             events.append(f'{user.name} 聚能+{gained}E(→{user.energy})')
             opp_team = 'B' if team == 'A' else 'A'
             self.inc_team_counter(opp_team, 'enemy_gather')
-            events.append('<<<ACTION')
             return events
 
         if action.kind != 'skill' or action.skill_index is None:
@@ -467,6 +442,9 @@ class Battle(BattleMechanicsMixin):
         if bs is None:
             events.append(f'[错误] {user.name} 无技能[{action.skill_index}]')
             return events
+
+        # 所有 gate 检查结果都归属到此 action 内（由 to_frontend_events 统一包裹）
+
 
         # ═══ Gate: 冷却 ═══
         if bs.cooldown > 0:
@@ -544,9 +522,6 @@ class Battle(BattleMechanicsMixin):
         user.inc_counter(f'skill_used:{bs.name}')
         user.inc_counter('skills_used')
 
-        # ═══ Action marker (after all gates passed) ═══
-        events.append(f'>>>ACTION:{user.name}:{bs.name}')
-
         # ═══ Load CompiledSkill + execute VM ═══
         try:
             record = self._get_skill_record(bs.base.name)
@@ -599,7 +574,6 @@ class Battle(BattleMechanicsMixin):
         from .traits import dispatch_skill_use
         events += dispatch_skill_use(user, bs, self, team)
 
-        events.append('<<<ACTION')
         return events
 
     def _gate_charge_vm(self, user: Sprite, bs: BattleSkill, action: Action) -> bool | None:
@@ -864,44 +838,45 @@ class Battle(BattleMechanicsMixin):
 
     # ── 日志输出 ──
 
-    def _describe_action(self, team: str, action: Action) -> str:
-        """将 Action 转为可读字符串（含技能名）。"""
-        if action.kind == 'skill' and action.skill_index is not None:
-            sprite = self.get_player(team).active
-            if action.skill_index < len(sprite.skills):
-                return f'skill:{sprite.skills[action.skill_index].name}'
+    def _build_action_record(self, team: str, action: Action, item_used: str = '') -> ActionRecord:
+        """从 Action + 道具构建 ActionRecord。"""
+        actor = self.get_player(team).active.name
+        if item_used:
+            return ActionRecord(team=team, actor=actor, kind='item', skill_name=item_used)
         if action.kind == 'switch' and action.switch_index is not None:
             player = self.get_player(team)
-            if action.switch_index < len(player.team):
-                return f'switch:{player.team[action.switch_index].name}'
-        return action.kind
+            target_name = player.team[action.switch_index].name if action.switch_index < len(player.team) else '?'
+            return ActionRecord(team=team, actor=actor, kind='switch', skill_name=target_name)
+        if action.kind == 'gather':
+            return ActionRecord(team=team, actor=actor, kind='gather', skill_name='聚能')
+        if action.kind == 'skill' and action.skill_index is not None:
+            sprite = self.get_player(team).active
+            skill_name = sprite.skills[action.skill_index].name if action.skill_index < len(sprite.skills) else '?'
+            return ActionRecord(team=team, actor=actor, kind='skill', skill_name=skill_name)
+        return ActionRecord(team=team, actor=actor, kind=action.kind)
 
-    @staticmethod
-    def _action_short(action_str: str) -> str:
-        """压缩行动字符串：'skill:闪击' → '闪击'，'switch:迪莫' → '↓迪莫'。"""
-        if action_str.startswith('skill:'):
-            return action_str[6:]
-        if action_str.startswith('switch:'):
-            return '↓' + action_str[7:]
-        return action_str
-
-    def _print_turn(self, r: TurnRecord) -> None:
+    def _print_turn(self, r: RoundRecord) -> None:
         """单回合紧凑日志。"""
-        a_short = self._action_short(r.action_a)
-        b_short = self._action_short(r.action_b)
+        a_short = _rr_action_short(r.action_a)
+        b_short = _rr_action_short(r.action_b)
         first = r.first_team or '?'
 
         parts = [f'T{r.turn:03d} [{first}先]']
         parts.append(f'A:{a_short}  B:{b_short}')
 
-        if r.events:
-            key_events = [e for e in r.events if 'HP' in e or '力竭' in e or '脱离' in e]
-            shown = key_events if key_events else r.events[:2]
+        all_events = (
+            r.turn_start_events
+            + (r.action_a.events if r.action_a else [])
+            + (r.action_b.events if r.action_b else [])
+            + r.faint_check_events
+            + r.turn_end_events
+        )
+        if all_events:
+            key_events = [e for e in all_events if 'HP' in e or '力竭' in e or '脱离' in e]
+            shown = key_events if key_events else all_events[:2]
             parts.append('| ' + ' '.join(shown))
 
-        weather = f' [{r.weather}]' if r.weather else ''
-        parts.append(f'(A:{r.sprite_a_hp}HP/{r.sprite_a_energy}E'
-                     f' B:{r.sprite_b_hp}HP/{r.sprite_b_energy}E{weather})')
+        parts.append(f'(weather={r.weather})' if r.weather else '')
         print('  '.join(parts))
 
     def _print_result(self, result: str) -> None:
@@ -916,39 +891,21 @@ class Battle(BattleMechanicsMixin):
         print(f'{"═" * 50}')
 
         # 回合详情表
-        print(f'\n  {"回合":<5} {"先":<3} {"A行动":<12} {"B行动":<12} {"A HP/E":<12} {"B HP/E":<12}')
-        print(f'  {"─" * 60}')
+        print(f'\n  {"回合":<5} {"先":<3} {"A行动":<12} {"B行动":<12}')
+        print(f'  {"─" * 40}')
         for r in self.log:
-            a_short = self._action_short(r.action_a)
-            b_short = self._action_short(r.action_b)
+            a_short = _rr_action_short(r.action_a)
+            b_short = _rr_action_short(r.action_b)
             print(f'  T{r.turn:<4d} {r.first_team:<3}'
-                  f' {a_short:<12} {b_short:<12}'
-                  f' {r.sprite_a_hp}/{r.sprite_a_energy:<8}'
-                  f' {r.sprite_b_hp}/{r.sprite_b_energy:<8}')
+                  f' {a_short:<12} {b_short:<12}')
 
     def save_log(self, path: str) -> None:
-        """将对局日志保存到文件。"""
+        """将对局日志保存到文件（使用 RoundRecord.to_message() 格式）。"""
         from datetime import datetime
         with open(path, 'w', encoding='utf-8') as f:
             f.write(f'# 对局记录 — {datetime.now().strftime("%Y-%m-%d %H:%M")}\n')
             f.write(f'# {self.player_a.name} vs {self.player_b.name}\n')
             f.write(f'# 结果: {self.winner or "draw"} ({self.turn}回合)\n\n')
             for r in self.log:
-                f.write(f'## T{r.turn} [{r.first_team}先]\n')
-                f.write(f'- A: {r.action_a}')
-                if r.item_used_a:
-                    f.write(f' (道具:{r.item_used_a})')
-                f.write('\n')
-                f.write(f'- B: {r.action_b}')
-                if r.item_used_b:
-                    f.write(f' (道具:{r.item_used_b})')
-                f.write('\n')
-                if r.events:
-                    f.write('- 事件:\n')
-                    for e in r.events:
-                        f.write(f'  - {e}\n')
-                f.write(f'- 结果: A HP={r.sprite_a_hp} E={r.sprite_a_energy}  '
-                        f'B HP={r.sprite_b_hp} E={r.sprite_b_energy}')
-                if r.weather:
-                    f.write(f'  天气={r.weather}')
+                f.write(r.to_message())
                 f.write('\n\n')

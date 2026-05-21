@@ -109,6 +109,31 @@ function effectivenessClass(skillName, targetElem) {
   return ''
 }
 
+function switchEffectiveness(benchElem, oppElem) {
+  if (!benchElem || !oppElem || !props.typeChart) return 1.0
+  const oppElems = (oppElem || '').split(',').map(e => e.trim()).filter(Boolean)
+  if (oppElems.length === 0) return 1.0
+  let worst = 1.0
+  for (const oppE of oppElems) {
+    const chart = props.typeChart[oppE] || {}
+    const benchElems = (benchElem || '').split(',').map(e => e.trim()).filter(Boolean)
+    for (const benchE of benchElems) {
+      const m = chart[benchE] ?? 1.0
+      if (m > worst) worst = m
+    }
+  }
+  return worst
+}
+
+function switchEffectivenessClass(benchElem, oppElem) {
+  const m = switchEffectiveness(benchElem, oppElem)
+  if (m >= 2.0) return 'border-l-4 border-l-[#D4534A]'
+  if (m <= 0.5 && m > 0) return 'border-l-4 border-l-[#43A047]'
+  return ''
+}
+
+const elementColorClass = (elem) => elem ? `element-${elem.split(',')[0].trim()}` : ''
+
 const hpPct = (current, max) => max === 0 ? 0 : Math.max(0, Math.min(100, (current / max) * 100))
 const hpColorClass = (current, max) => {
   if (max === 0) return 'bg-[#D4C8B8]'
@@ -188,10 +213,16 @@ const debugActionLabel = (action) => {
         <div class="flex-1 flex flex-col items-center justify-center p-4">
           <!-- Name -->
           <div class="text-center mb-4">
-            <div class="text-lg font-bold text-[#4A3B5C] font-[family-name:var(--font-title)]">
-              {{ activeOpp?.name || '???' }}
+            <div class="flex items-center justify-center gap-2 mb-1">
+              <span v-if="activeOpp?.element" :class="['elem-tag', elementColorClass(activeOpp.element)]">{{ activeOpp.element.split(',')[0].trim() }}</span>
+              <span class="text-lg font-bold text-[#4A3B5C] font-[family-name:var(--font-title)]">
+                {{ activeOpp?.name || '???' }}
+              </span>
             </div>
-            <div class="text-[10px] text-[#6B5E4F] mt-0.5">Lv.100</div>
+            <div class="flex items-center justify-center gap-3 text-[10px] text-[#6B5E4F]">
+              <span>Lv.100</span>
+              <span class="text-[#D4534A]">魔力 {{ store.oppLives }}</span>
+            </div>
             <span v-if="activeOpp?.is_fainted" class="text-[#D4534A] text-xs">(力竭)</span>
             <span v-if="isChargingOpp" class="text-[#C9A96E] text-xs ml-1">蓄力-{{ activeOpp?.charging }}</span>
           </div>
@@ -305,11 +336,20 @@ const debugActionLabel = (action) => {
                 @click="selectDebugAction('B', 'switch', i); showSwitchMenuOpp = false"
                 :disabled="i === store.activeIndexB || sprite.is_fainted"
                 class="bg-white hover:bg-[#F5F2EC] disabled:opacity-40 border text-left px-2.5 py-2 rounded transition-colors"
-                :class="i === store.activeIndexB ? 'border-[#5C8D6E]' : 'border-[#D4C8B8] hover:border-[#6B5E4F]'"
+                :class="[
+                  i === store.activeIndexB ? 'border-[#5C8D6E]' : 'border-[#D4C8B8] hover:border-[#6B5E4F]',
+                  switchEffectivenessClass(sprite.element, active?.element)
+                ]"
               >
-                <div class="text-xs font-bold text-[#3D2B1F] truncate">{{ sprite.name }}</div>
-                <div class="text-[10px]" :class="sprite.is_fainted ? 'text-[#D4534A]' : 'text-[#6DBF7C]'">
-                  {{ sprite.is_fainted ? '力竭' : `${sprite.current_hp} HP` }}
+                <div class="flex items-center gap-1 mb-0.5">
+                  <span v-if="sprite.element" :class="['elem-tag', elementColorClass(sprite.element)]" style="font-size:8px;padding:0 3px">{{ sprite.element.split(',')[0].trim() }}</span>
+                  <span class="text-xs font-bold text-[#3D2B1F] truncate">{{ sprite.name }}</span>
+                </div>
+                <div class="text-[10px] space-y-0.5">
+                  <div :class="sprite.is_fainted ? 'text-[#D4534A]' : 'text-[#6DBF7C]'">
+                    {{ sprite.is_fainted ? '力竭' : `HP ${sprite.current_hp}` }}
+                  </div>
+                  <div class="text-[#6B5E4F]">能 {{ sprite.energy }}/10</div>
                 </div>
               </button>
             </div>
@@ -329,12 +369,21 @@ const debugActionLabel = (action) => {
             <div
               v-for="(sprite, i) in store.oppTeam"
               :key="i"
-              class="bg-white border rounded px-2 py-1.5 text-center"
-              :class="i === store.activeIndexB ? 'border-[#4A3B5C] ring-1 ring-[#4A3B5C]/30' : 'border-[#D4C8B8]'"
+              class="bg-white border rounded px-2 py-1.5"
+              :class="[
+                i === store.activeIndexB ? 'border-[#4A3B5C] ring-1 ring-[#4A3B5C]/30' : 'border-[#D4C8B8]',
+                switchEffectivenessClass(sprite.element, active?.element)
+              ]"
             >
-              <div class="text-[10px] font-bold text-[#3D2B1F] truncate">{{ sprite.name }}</div>
-              <div class="text-[10px]" :class="sprite.is_fainted ? 'text-[#D4534A]' : 'text-[#6DBF7C]'">
-                {{ sprite.is_fainted ? '力竭' : Math.round((sprite.current_hp / sprite.max_hp) * 100) + '%' }}
+              <div class="flex items-center gap-0.5 mb-0.5">
+                <span v-if="sprite.element" :class="['elem-tag', elementColorClass(sprite.element)]" style="font-size:7px;padding:0 2px;line-height:1.2">{{ sprite.element.split(',')[0].trim() }}</span>
+                <span class="text-[10px] font-bold text-[#3D2B1F] truncate">{{ sprite.name }}</span>
+              </div>
+              <div class="text-[9px] space-y-0.5">
+                <div :class="sprite.is_fainted ? 'text-[#D4534A]' : 'text-[#6DBF7C]'">
+                  {{ sprite.is_fainted ? '力竭' : Math.round((sprite.current_hp / sprite.max_hp) * 100) + '%' }}
+                </div>
+                <div class="text-[#6B5E4F]">能 {{ sprite.energy }}/10</div>
               </div>
             </div>
           </div>
@@ -395,10 +444,12 @@ const debugActionLabel = (action) => {
         <!-- Name + Stats -->
         <div class="flex-1 min-w-0">
           <div class="flex items-center gap-2 mb-2">
+            <span v-if="active?.element" :class="['elem-tag', elementColorClass(active.element)]">{{ active.element.split(',')[0].trim() }}</span>
             <span class="text-lg font-bold text-[#3D2B1F] font-[family-name:var(--font-title)]">
               {{ active?.name || '???' }}
             </span>
             <span class="text-[10px] text-[#6B5E4F]">Lv.100</span>
+            <span class="text-[10px] text-[#D4534A]">魔力 {{ store.selfLives }}</span>
             <span v-if="active?.is_fainted" class="text-[#D4534A] text-xs font-bold">(力竭)</span>
             <span v-if="isCharging" class="text-[#C9A96E] text-xs font-bold">蓄力-{{ active?.charging }}</span>
           </div>
@@ -543,11 +594,22 @@ const debugActionLabel = (action) => {
               @click="handleAction('switch', i); showSwitchMenu = false"
               :disabled="i === store.activeIndexA || sprite.is_fainted"
               class="bg-white hover:bg-[#F5F2EC] disabled:opacity-40 border text-left px-3 py-2.5 rounded-xl transition-colors"
-              :class="i === store.activeIndexA ? 'border-[#5C8D6E] ring-1 ring-[#5C8D6E]/30' : 'border-[#D4C8B8] hover:border-[#6B5E4F]'"
+              :class="[
+                i === store.activeIndexA ? 'border-[#5C8D6E] ring-1 ring-[#5C8D6E]/30' : 'border-[#D4C8B8] hover:border-[#6B5E4F]',
+                switchEffectivenessClass(sprite.element, activeOpp?.element)
+              ]"
             >
-              <div class="text-sm font-bold text-[#3D2B1F] truncate">{{ sprite.name }}</div>
-              <div class="text-[10px]" :class="sprite.is_fainted ? 'text-[#D4534A]' : 'text-[#6DBF7C]'">
-                {{ sprite.is_fainted ? '力竭' : `${sprite.current_hp} / ${sprite.max_hp} HP` }}
+              <div class="flex items-center gap-1.5 mb-0.5">
+                <span v-if="sprite.element" :class="['elem-tag', elementColorClass(sprite.element)]" style="font-size:9px;padding:0 4px">{{ sprite.element.split(',')[0].trim() }}</span>
+                <span class="text-sm font-bold text-[#3D2B1F] truncate">{{ sprite.name }}</span>
+              </div>
+              <div class="text-[10px] space-y-0.5">
+                <div :class="sprite.is_fainted ? 'text-[#D4534A]' : 'text-[#6DBF7C]'">
+                  {{ sprite.is_fainted ? '力竭' : `HP ${sprite.current_hp}/${sprite.max_hp}` }}
+                </div>
+                <div class="text-[#6B5E4F]">
+                  能量 {{ sprite.energy }}/10
+                </div>
               </div>
             </button>
           </div>

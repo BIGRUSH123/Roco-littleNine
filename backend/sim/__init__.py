@@ -10,7 +10,8 @@ scripts/sim/ — 格斗小九 PVP 对局模拟器
   Mark        — 单方印记
   GlobalEffects — 全局效果（天气 + 双方印记）
   SkillResolver — 技能效果解析器（应对判断 + 伤害 + 回合末结算）
-  TurnRecord  — 单回合记录
+  RoundRecord  — 单回合结构化记录
+  ActionRecord — 单个行动记录
   Battle      — 对局
   TurnPipeline  — 回合开始阶段管线（传动/位置预扫描/trait）
   BattleContext — Battle 最小接口协议
@@ -29,7 +30,8 @@ import os
 
 from .action import Action
 from .agent import Agent, HumanAgent, RuleAgent
-from .battle import Battle, TurnRecord
+from .battle import Battle
+from .round_record import ActionRecord, RoundRecord
 from .battle_context import BattleContext
 from .battle_mechanics import BattleMechanicsMixin
 from .battleskill import BattleSkill
