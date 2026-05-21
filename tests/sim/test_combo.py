@@ -210,6 +210,55 @@ def test_per_hit_heal_energy():
     print(f"  [OK] 聚盐 per_hit: +{hp_gained}HP (费3E→返还2E)")
 
 
+# ═══════════════════════════════════════════════════════════════
+# combo_mult 跨技能连击倍率
+# ═══════════════════════════════════════════════════════════════
+
+def test_combo_mult_snapshot():
+    """combo_mult 在 build_ctx 中正确应用：(base+add)*(1+combo_mult)。"""
+    from backend.engine.snapshot import build_ctx
+    from backend.sim.sprite import Sprite, SpeciesStats
+    from backend.sim.skill import Skill
+    from backend.sim.battleskill import BattleSkill
+
+    stats = SpeciesStats(name="t", hp=100, atk=100, def_=100, sp_atk=100, sp_def=100, speed=100)
+    user = Sprite(stats, current_hp=100, max_hp=100, energy=10)
+    opp = Sprite(stats, current_hp=100, max_hp=100, energy=10)
+
+    # Without combo_mult
+    bs = BattleSkill(base=Skill(name="test", combo=2, power=25, element="普通", skill_type="物攻", energy_cost=0))
+    ctx1 = build_ctx(user, opp, bs, None, None, team="A")
+    assert ctx1.combo_self == 2, f"base combo=2: {ctx1.combo_self}"
+
+    # With combo_mult=2 (+200%) → (2+0)*(1+2) = 6
+    user._modifiers["combo_mult"] = 2.0
+    ctx2 = build_ctx(user, opp, bs, None, None, team="A")
+    assert ctx2.combo_self == 6, f"combo=2, mult=2 → 应=6, got {ctx2.combo_self}"
+
+    # With combo_mult=2 and combo_add=1 → (2+1)*(1+2) = 9
+    user._modifiers["combo"] = 1
+    ctx3 = build_ctx(user, opp, bs, None, None, team="A")
+    assert ctx3.combo_self == 9, f"combo=2, add=1, mult=2 → 应=9, got {ctx3.combo_self}"
+
+    # combo_mult=0 → no extra multiplier
+    user._modifiers["combo_mult"] = 0.0
+    user._modifiers["combo"] = 0
+    ctx4 = build_ctx(user, opp, bs, None, None, team="A")
+    assert ctx4.combo_self == 2, f"mult=0应无影响, got {ctx4.combo_self}"
+
+    print("  [OK] combo_mult snapshot: (base+add)*(1+mult)")
+
+
+def test_storm_eye_stores_combo_mult():
+    """暴风眼 使用后 sprite._modifiers['combo_mult']=2.0。"""
+    b = _make_battle(skills_a=["暴风眼"], skills_b=["猛烈撞击"])
+    _run_skill(b)
+    user = b.player_a.active
+    assert user._modifiers.get("combo_mult") == 2.0, \
+        f"暴风眼应存combo_mult=2, got {user._modifiers.get('combo_mult')}"
+    print("  [OK] 暴风眼 combo_mult=2 已存储")
+
+
 if __name__ == '__main__':
     test_combo2_damage()
     test_combo3_damage()
@@ -222,4 +271,6 @@ if __name__ == '__main__':
     test_per_hit_mod_energy_cost()
     test_combo_without_per_hit()
     test_per_hit_heal_energy()
+    test_combo_mult_snapshot()
+    test_storm_eye_stores_combo_mult()
     print('\n  [ALL COMBO TESTS PASSED]')

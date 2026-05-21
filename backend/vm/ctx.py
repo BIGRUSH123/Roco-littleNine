@@ -50,7 +50,7 @@ class Ctx:
     power_mult_self: float = 1.0
     damage_mult_self: float = 1.0
     energy_cost_mult_self: float = 0.0
-    combo_mult_self: float = 1.0
+    combo_mult_self: float = 0.0
     life_drain_self: float = 0.0
     mark_bonus_own: float = 0.0  # damage bonus from own team marks
 

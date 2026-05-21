@@ -34,6 +34,8 @@ def collect_modifiers(journal: Journal, ctx: Ctx) -> dict:
         "damage_mult": 1.0,
         "damage_reduction": ctx.damage_reduction_opp,
         "combo_add": 0,
+        "combo_set": 0,
+        "combo_base": max(1, ctx.combo_self),
         "power_add": 0,
     }
 
@@ -58,6 +60,8 @@ def collect_modifiers(journal: Journal, ctx: Ctx) -> dict:
         elif stat == "combo":
             if mode == "add":
                 mods["combo_add"] += int(value)
+            elif mode == "set":
+                mods["combo_set"] = int(value)
         elif stat == "power":
             if mode == "add":
                 mods["power_add"] += value
@@ -91,15 +95,22 @@ def adjust_damage(dmg: Damage, mods: dict) -> Damage:
     power_mult = mods.get("power_mult", 1.0)
     damage_mult = mods.get("damage_mult", 1.0)
     combo_add = mods.get("combo_add", 0)
+    combo_set = mods.get("combo_set", 0)
+    combo_base = mods.get("combo_base", 1)
     damage_reduction = mods.get("damage_reduction", 0.0)
 
     # Only adjust for same-skill modifier deltas
     amount = dmg.amount
     amount = round(amount * power_mult * damage_mult)
 
-    # combo_add: additional hits multiply damage
-    if combo_add > 0:
-        amount = round(amount * (1 + combo_add))
+    # combo: set overrides base, add adds to it
+    if combo_set > 0:
+        effective_combo = max(1, combo_set + combo_add)
+    else:
+        effective_combo = max(1, combo_base + combo_add)
+
+    if effective_combo != combo_base and combo_base > 0:
+        amount = round(amount * effective_combo / combo_base)
 
     # Only apply extra damage_reduction beyond what op_hit already applied
     # (op_hit uses ctx snapshot damage_reduction; same-skill mods add extra)

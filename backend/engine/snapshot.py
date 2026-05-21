@@ -138,7 +138,8 @@ def build_ctx(
     power_self = sk.power if hasattr(sk, 'power') else 0
     combo_base = sk.combo if hasattr(sk, 'combo') else 1
     combo_mod = int(ss._modifiers.get("combo", 0))
-    combo_self = max(1, combo_base + combo_mod)
+    combo_mult = ss._modifiers.get("combo_mult", 0.0)
+    combo_self = max(1, round((combo_base + combo_mod) * (1 + combo_mult)))
     energy_cost_self = sk.energy_cost if hasattr(sk, 'energy_cost') else 0
     energy_cost_reduction_self = 0  # engine tracks this
 
@@ -168,7 +169,7 @@ def build_ctx(
         power_mult_self=ss._modifiers.get("power_mult", 1.0),
         damage_mult_self=ss._modifiers.get("damage_mult", 1.0),
         energy_cost_mult_self=ss._modifiers.get("energy_cost_mult", 0.0),
-        combo_mult_self=ss._modifiers.get("combo_mult", 1.0),
+        combo_mult_self=ss._modifiers.get("combo_mult", 0.0),
         life_drain_self=ss._modifiers.get("life_drain", 0.0),
         abnormal_count_self=sum(abnormal_stacks_self.values()),
         abnormal_stacks_self=abnormal_stacks_self,
