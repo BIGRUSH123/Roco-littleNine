@@ -1,0 +1,10 @@
+{
+  "id": 10059,
+  "name": "冰爪",
+  "element": "冰",
+  "skill_type": "物攻",
+  "power": 80,
+  "energy_cost": 2,
+  "effects": [],
+  "description": "✦ 对敌方精灵造成物理伤害。"
+}

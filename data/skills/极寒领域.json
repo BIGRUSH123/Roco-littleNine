@@ -33,6 +33,7 @@
           "op": "abnormal",
           "target": "sprite_opp",
           "name": "冻结",
+          "scope": "persistent",
           "value": {
             "q": "abnormal_stacks",
             "of": "sprite_opp",

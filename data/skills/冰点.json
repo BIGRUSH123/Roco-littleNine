@@ -10,7 +10,8 @@
       "target": "sprite_opp",
       "op": "abnormal",
       "name": "冻结",
-      "stacks": 5
+      "stacks": 5,
+      "scope": "persistent"
     },
     {
       "when": {
@@ -21,7 +22,8 @@
           "op": "abnormal",
           "target": "sprite_opp",
           "name": "冻结",
-          "stacks": 5
+          "stacks": 5,
+          "scope": "persistent"
         }
       ]
     }

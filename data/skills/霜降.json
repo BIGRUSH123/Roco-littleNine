@@ -9,7 +9,8 @@
       "target": "sprite_opp",
       "op": "abnormal",
       "name": "冻结",
-      "stacks": 4
+      "stacks": 4,
+      "scope": "persistent"
     }
   ],
   "description": "✦敌方获得4层冻结。"

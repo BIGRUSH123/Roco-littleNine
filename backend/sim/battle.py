@@ -232,35 +232,29 @@ class Battle(BattleMechanicsMixin):
 
         # 双方换宠 → 随机先后
         if a_kind == 'switch' and b_kind == 'switch':
-            faint_events: list[str] = []
             if random.random() < 0.5:
-                record.action_a.events = self._resolve_switch('A', action_a, faint_events)
+                record.action_a.events = self._resolve_switch('A', action_a)
                 if not self.is_finished:
-                    record.action_b.events = self._resolve_switch('B', action_b, faint_events)
+                    record.action_b.events = self._resolve_switch('B', action_b)
             else:
-                record.action_b.events = self._resolve_switch('B', action_b, faint_events)
+                record.action_b.events = self._resolve_switch('B', action_b)
                 if not self.is_finished:
-                    record.action_a.events = self._resolve_switch('A', action_a, faint_events)
-            record.faint_check_events = faint_events
+                    record.action_a.events = self._resolve_switch('A', action_a)
             return []
 
         # 单方换宠 + 单方技能/聚能 → 先换宠，后技能
         if a_kind == 'switch':
-            faint_events: list[str] = []
-            record.action_a.events = self._resolve_switch('A', action_a, faint_events)
+            record.action_a.events = self._resolve_switch('A', action_a)
             record.first_team = 'A'
             if not self.is_finished and not self.player_b.active.is_fainted:
                 record.action_b.events = self._resolve_single_action('B', action_b, opponent_switched=True)
-            record.faint_check_events = faint_events
             return []
 
         if b_kind == 'switch':
-            faint_events: list[str] = []
-            record.action_b.events = self._resolve_switch('B', action_b, faint_events)
+            record.action_b.events = self._resolve_switch('B', action_b)
             record.first_team = 'B'
             if not self.is_finished and not self.player_a.active.is_fainted:
                 record.action_a.events = self._resolve_single_action('A', action_a, opponent_switched=True)
-            record.faint_check_events = faint_events
             return []
 
         # 双方技能/聚能 → 优先级判定
@@ -295,21 +289,24 @@ class Battle(BattleMechanicsMixin):
         countering_skill_b = skill_a if counter_a else None
 
         if countered:
-            faint_events: list[str] = []
-            # 应对成功 → 双方同时（均视为"同时"，无先后之分）
+            # 应对成功 → A 先执行，力竭中断 B
             ar['A'].events = self._execute_single_action(
                 'A', action_a, is_countered=counter_b,
                 countered_skill=countered_skill_a,
                 countering_skill=countering_skill_a, is_first=True,
             )
-            self._check_faint_interrupt('A', faint_events)
-            self._check_faint_interrupt('B', faint_events)
+            self._check_faint_interrupt('A', ar['A'].events)
+            self._check_faint_interrupt('B', ar['A'].events)
             if not self.is_finished:
-                ar['B'].events = self._execute_single_action(
-                    'B', action_b, is_countered=counter_a,
-                    countered_skill=countered_skill_b,
-                    countering_skill=countering_skill_b, is_first=True,
-                )
+                b_sprite_now = self.get_player('B').active
+                if not b_sprite_now.is_fainted and b_sprite_now is s_b:
+                    ar['B'].events = self._execute_single_action(
+                        'B', action_b, is_countered=counter_a,
+                        countered_skill=countered_skill_b,
+                        countering_skill=countering_skill_b, is_first=True,
+                    )
+                    self._check_faint_interrupt('A', ar['B'].events)
+                    self._check_faint_interrupt('B', ar['B'].events)
             # trait: counter success hooks → 附加到对应 action
             if counter_a:
                 self.inc_team_counter('A', 'counter_success')
@@ -317,8 +314,7 @@ class Battle(BattleMechanicsMixin):
             if counter_b:
                 self.inc_team_counter('B', 'counter_success')
                 ar['B'].events += dispatch_counter_success(s_b, countered_skill_b, self, 'B')
-            record.faint_check_events = faint_events
-            return []  # events now stored in record
+            return []
 
         # 无应对 → 按优先级先后执行
         priority_a = self._effective_priority('A', action_a)
@@ -344,22 +340,20 @@ class Battle(BattleMechanicsMixin):
         # 记录先手方
         record.first_team = first_team
 
-        faint_events: list[str] = []
         # 先手执行 (is_first=True)
         second_sprite_before = self.get_player(second_team).active
         ar[first_team].events = self._execute_single_action(first_team, first_action, is_first=True)
-        self._check_faint_interrupt(first_team, faint_events)
-        self._check_faint_interrupt(second_team, faint_events)
+        self._check_faint_interrupt(first_team, ar[first_team].events)
+        self._check_faint_interrupt(second_team, ar[first_team].events)
 
         # 后手执行 (is_first=False)，力竭中断或已换宠则跳过
         if not self.is_finished:
             second_sprite_now = self.get_player(second_team).active
             if not second_sprite_now.is_fainted and second_sprite_now is second_sprite_before:
                 ar[second_team].events = self._execute_single_action(second_team, second_action, is_first=False)
-                self._check_faint_interrupt(second_team, faint_events)
+                self._check_faint_interrupt(second_team, ar[second_team].events)
 
-        record.faint_check_events = faint_events
-        return []  # events now stored in record
+        return []
 
     # ── 单方行动执行 ──
 
@@ -868,7 +862,6 @@ class Battle(BattleMechanicsMixin):
             r.turn_start_events
             + (r.action_a.events if r.action_a else [])
             + (r.action_b.events if r.action_b else [])
-            + r.faint_check_events
             + r.turn_end_events
         )
         if all_events:

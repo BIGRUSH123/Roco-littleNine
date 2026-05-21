@@ -116,24 +116,26 @@ def test_roundtrip_switch():
 
 
 def test_roundtrip_faint():
-    """力竭回合往返：faint_check 有事件。"""
+    """力竭回合往返：力竭事件在 action events 中。"""
     rec = RoundRecord(
         turn=5,
         sprite_a='大头骨龙',
         sprite_b='蹦蹦草',
         action_a=ActionRecord(
             team='A', actor='大头骨龙', kind='skill', skill_name='龙吟',
-            events=['蹦蹦草 -200HP'],
+            events=[
+                '蹦蹦草 -200HP',
+                '蹦蹦草 力竭(B 魔力-1→3)',
+                '蹦蹦草 力竭↓ 游蛇魔使↑',
+            ],
         ),
-        faint_check_events=[
-            '蹦蹦草 力竭(B 魔力-1→3)',
-            '蹦蹦草 力竭↓ 游蛇魔使↑(本回合跳过)',
-        ],
     )
     msg = rec.to_message()
     parsed = RoundRecord.from_message(msg)
 
-    assert parsed.faint_check_events == rec.faint_check_events
+    assert parsed.action_a is not None
+    assert parsed.action_a.events == rec.action_a.events
+    assert parsed.faint_check_events == []
     print('  [OK] 力竭回合往返')
 
 
@@ -245,7 +247,7 @@ def test_to_frontend_events_format():
     # TURN_END phase — 毒伤在回合末
     te_idx = events.index('>>>PHASE:TURN_END')
     assert events[te_idx + 1] == '大头骨龙 中毒-44HP'
-    print('  [OK] to_frontend_events 格式正确: TURN_START → ACTION A → ACTION B → FAINT_CHECK → TURN_END')
+    print('  [OK] to_frontend_events 格式正确: TURN_START → ACTION A → ACTION B → TURN_END')
 
 
 def test_to_frontend_events_auto_header():

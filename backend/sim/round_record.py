@@ -71,12 +71,6 @@ class RoundRecord:
                 lines.append(f'  {e}')
             lines.append('<<<ACTION')
 
-        # faint_check
-        lines.append('>>>FAINT_CHECK')
-        for e in self.faint_check_events:
-            lines.append(f'  {e}')
-        lines.append('<<<FAINT_CHECK')
-
         # turn_end
         lines.append('>>>TURN_END')
         for e in self.turn_end_events:
@@ -159,9 +153,9 @@ class RoundRecord:
                     raise ValueError(f'第{i + 1}行: 无法解析 ACTION 头: {line!r}')
 
             elif line == '>>>FAINT_CHECK':
+                # 兼容旧日志格式（力竭事件已合并到 action events）
                 i += 1
                 while i < n and lines[i] != '<<<FAINT_CHECK':
-                    rec.faint_check_events.append(_unindent(lines[i]))
                     i += 1
                 if i < n and lines[i] == '<<<FAINT_CHECK':
                     i += 1
@@ -212,11 +206,6 @@ class RoundRecord:
             events.append(f'>>>ACTION:{ar.actor}:{ar.skill_name}')
             events.extend(ar.events)
             events.append('<<<ACTION')
-
-        # faint_check
-        events.append('>>>PHASE:FAINT_CHECK')
-        events.extend(self.faint_check_events)
-        events.append('<<<PHASE')
 
         # turn_end
         events.append('>>>PHASE:TURN_END')

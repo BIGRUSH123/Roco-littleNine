@@ -328,7 +328,7 @@ class JournalReplayer:
             name=m.name,
             category="abnormal",
             stacks=m.delta,
-            scope="battlefield",
+            scope=m.scope,
             source="skill",
         )
         sprite.add_effect(effect)

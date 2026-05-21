@@ -122,7 +122,7 @@ class BattleMechanicsMixin:
         new.entry_turn = self.turn
         new.first_action = True
         new.inc_counter('times_entered')
-        events.append(f'{old.name} 力竭↓ {new.name}↑(本回合跳过)')
+        events.append(f'{old.name} 力竭↓ {new.name}↑')
 
         # ── trait hooks ──
         events += dispatch_leave(old, self, team, is_faint=True)

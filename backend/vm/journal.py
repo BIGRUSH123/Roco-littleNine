@@ -86,6 +86,7 @@ class AbnormalChange:
     target: str       # "sprite_self" | "sprite_opp"
     name: str         # abnormal name, e.g. "中毒"
     delta: int        # stacks to add (positive) or set-to-zero (special sentinel)
+    scope: str = "battlefield"  # "battlefield" | "persistent" | "permanent"
 
 
 @dataclass(frozen=True)

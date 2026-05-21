@@ -21,7 +21,8 @@
           "op": "abnormal",
           "target": "sprite_opp",
           "name": "冻结",
-          "stacks": 2
+          "stacks": 2,
+          "scope": "persistent"
         }
       ]
     }

@@ -32,7 +32,7 @@ const sections = computed(() => {
     const result = []
     let currentTurn = null
     let currentAction = null
-    let currentPhase = null  // 'turnStart' | 'faintCheck' | 'turnEnd' | null
+    let currentPhase = null  // 'turnStart' | 'turnEnd' | null
 
     for (let i = 0; i < raw.length; i++) {
       const line = raw[i]
@@ -52,7 +52,6 @@ const sections = computed(() => {
           sprites: '',
           actions: [],
           turnStartEffects: [],
-          faintCheckEffects: [],
           turnEndEffects: [],
         }
         result.push(currentTurn)
@@ -78,7 +77,6 @@ const sections = computed(() => {
       if (phaseMatch && currentTurn) {
         const name = phaseMatch[1]
         if (name === 'TURN_START') currentPhase = 'turnStart'
-        else if (name === 'FAINT_CHECK') currentPhase = 'faintCheck'
         else if (name === 'TURN_END') currentPhase = 'turnEnd'
         continue
       }
@@ -113,8 +111,6 @@ const sections = computed(() => {
         currentAction.effects.push(line)
       } else if (currentTurn && currentPhase === 'turnStart') {
         currentTurn.turnStartEffects.push(line)
-      } else if (currentTurn && currentPhase === 'faintCheck') {
-        currentTurn.faintCheckEffects.push(line)
       } else if (currentTurn && currentPhase === 'turnEnd') {
         currentTurn.turnEndEffects.push(line)
       }
@@ -210,15 +206,6 @@ function skillIcon(skill) {
               </div>
             </div>
           </div>
-
-          <!-- Faint check phase -->
-          <template v-if="turn.faintCheckEffects.length">
-            <div class="text-[10px] text-[#D4534A] pl-4 pt-1 font-medium">💀 力竭检查</div>
-            <div v-for="(ef, ei) in turn.faintCheckEffects" :key="'fc'+ei" class="text-[11px] pl-6 py-0.5"
-              :class="effectClass(ef)">
-              {{ ef }}
-            </div>
-          </template>
 
           <!-- Turn end phase (dot, weather damage, etc.) -->
           <template v-if="turn.turnEndEffects.length">

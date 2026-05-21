@@ -30,4 +30,5 @@ def op_abnormal(ctx: Ctx, effect) -> list[Mutation]:
     else:
         delta = resolve(ctx, effect.value) if effect.value is not None else effect.stacks
 
-    return [AbnormalChange(target=target, name=name, delta=int(delta))]
+    scope = _get(effect, "scope", "battlefield")
+    return [AbnormalChange(target=target, name=name, delta=int(delta), scope=scope)]
