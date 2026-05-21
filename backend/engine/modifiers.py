@@ -36,6 +36,7 @@ def collect_modifiers(journal: Journal, ctx: Ctx) -> dict:
         "combo_add": 0,
         "combo_set": 0,
         "combo_base": max(1, ctx.combo_self),
+        "combo_mult": ctx.combo_mult_self,
         "power_add": 0,
     }
 
@@ -97,6 +98,7 @@ def adjust_damage(dmg: Damage, mods: dict) -> Damage:
     combo_add = mods.get("combo_add", 0)
     combo_set = mods.get("combo_set", 0)
     combo_base = mods.get("combo_base", 1)
+    combo_mult = mods.get("combo_mult", 0.0)
     damage_reduction = mods.get("damage_reduction", 0.0)
 
     # Only adjust for same-skill modifier deltas
@@ -108,6 +110,10 @@ def adjust_damage(dmg: Damage, mods: dict) -> Damage:
         effective_combo = max(1, combo_set + combo_add)
     else:
         effective_combo = max(1, combo_base + combo_add)
+
+    # combo_mult 在最后乘入（跨技能倍率，排序在 set/add 之后）
+    if combo_mult > 0:
+        effective_combo = max(1, round(effective_combo * (1 + combo_mult)))
 
     if effective_combo != combo_base and combo_base > 0:
         amount = round(amount * effective_combo / combo_base)

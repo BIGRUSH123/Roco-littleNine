@@ -135,9 +135,16 @@ class Battle(BattleMechanicsMixin):
         self._agent_a = agent_a
         self._agent_b = agent_b
 
-        # 每回合开始时，清空双方所有精灵的 VM modifier 累积
+        # 每回合开始时，清空双方精灵的"每回合临时" VM modifier
+        # （power_mult/damage_mult 等由 VM 每回合重新注入）
+        # combo/combo_mult 等跨回合持久键不清空
+        _PER_TURN_KEYS = frozenset({
+            "power", "power_mult", "damage_mult", "damage_reduction",
+            "energy_cost", "energy_cost_mult", "priority",
+        })
         for sprite in self.player_a.team + self.player_b.team:
-            sprite._modifiers.clear()
+            for key in _PER_TURN_KEYS:
+                sprite._modifiers.pop(key, None)
 
         s_a = self.player_a.active
         s_b = self.player_b.active

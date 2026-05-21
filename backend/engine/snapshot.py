@@ -138,8 +138,9 @@ def build_ctx(
     power_self = sk.power if hasattr(sk, 'power') else 0
     combo_base = sk.combo if hasattr(sk, 'combo') else 1
     combo_mod = int(ss._modifiers.get("combo", 0))
-    combo_mult = ss._modifiers.get("combo_mult", 0.0)
-    combo_self = max(1, round((combo_base + combo_mod) * (1 + combo_mult)))
+    # combo_mult 不在 snapshot 阶段乘入 — 留给 adjust_damage 在
+    # 同技能 combo 修改（set/add）之后再乘，确保正确的执行顺序。
+    combo_self = max(1, combo_base + combo_mod)
     energy_cost_self = sk.energy_cost if hasattr(sk, 'energy_cost') else 0
     energy_cost_reduction_self = 0  # engine tracks this
 

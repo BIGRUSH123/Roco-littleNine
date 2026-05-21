@@ -6,7 +6,7 @@
   "energy_cost": 2,
   "effects": [
     {
-      "value": 2,
+      "value": 1,
       "target": "sprite_self",
       "op": "mod",
       "stat": "combo_mult",

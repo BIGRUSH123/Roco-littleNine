@@ -259,14 +259,20 @@ class Sprite:
             ))
 
     def clear_effects(self, scope: str) -> None:
-        """清除指定 scope 的全部效果（换宠用）。battlefield 同步清除 aura。"""
+        """清除指定 scope 的全部效果（换宠用）。battlefield 同步清除 aura。
+        同步清理 _modifiers 中对应 stat_key 的持久值。
+        无 StatusEffect 的不可见 key（如 combo_mult）也一并清理。"""
         scopes = {scope}
         if scope == 'battlefield':
             scopes.add('aura')
-        self.effects = [
-            e for e in self.effects
-            if e.scope not in scopes
-        ]
+        removed = [e for e in self.effects if e.scope in scopes]
+        self.effects = [e for e in self.effects if e.scope not in scopes]
+        for e in removed:
+            if e.is_stat and e.stat_key:
+                self._modifiers.pop(e.stat_key, None)
+        # 不可见 modifier：无 StatusEffect 但 scope=battlefield 时也清
+        if scope == 'battlefield':
+            self._modifiers.pop('combo_mult', None)
 
     # ── 驱散 / 翻倍 ──
 

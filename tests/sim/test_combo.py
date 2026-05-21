@@ -215,7 +215,7 @@ def test_per_hit_heal_energy():
 # ═══════════════════════════════════════════════════════════════
 
 def test_combo_mult_snapshot():
-    """combo_mult 在 build_ctx 中正确应用：(base+add)*(1+combo_mult)。"""
+    """snapshot combo_self = base+add（不含mult）；combo_mult 留给 adjust_damage。"""
     from backend.engine.snapshot import build_ctx
     from backend.sim.sprite import Sprite, SpeciesStats
     from backend.sim.skill import Skill
@@ -224,39 +224,66 @@ def test_combo_mult_snapshot():
     stats = SpeciesStats(name="t", hp=100, atk=100, def_=100, sp_atk=100, sp_def=100, speed=100)
     user = Sprite(stats, current_hp=100, max_hp=100, energy=10)
     opp = Sprite(stats, current_hp=100, max_hp=100, energy=10)
-
-    # Without combo_mult
     bs = BattleSkill(base=Skill(name="test", combo=2, power=25, element="普通", skill_type="物攻", energy_cost=0))
+
+    # Without any modifiers
     ctx1 = build_ctx(user, opp, bs, None, None, team="A")
     assert ctx1.combo_self == 2, f"base combo=2: {ctx1.combo_self}"
+    assert ctx1.combo_mult_self == 0.0
 
-    # With combo_mult=2 (+200%) → (2+0)*(1+2) = 6
+    # combo_mult 只存在 ctx 上，不参与 combo_self
     user._modifiers["combo_mult"] = 2.0
     ctx2 = build_ctx(user, opp, bs, None, None, team="A")
-    assert ctx2.combo_self == 6, f"combo=2, mult=2 → 应=6, got {ctx2.combo_self}"
+    assert ctx2.combo_self == 2, f"snapshot不含mult: {ctx2.combo_self}"
+    assert ctx2.combo_mult_self == 2.0, f"mult应=2: {ctx2.combo_mult_self}"
 
-    # With combo_mult=2 and combo_add=1 → (2+1)*(1+2) = 9
+    # combo_add 参与 combo_self
     user._modifiers["combo"] = 1
     ctx3 = build_ctx(user, opp, bs, None, None, team="A")
-    assert ctx3.combo_self == 9, f"combo=2, add=1, mult=2 → 应=9, got {ctx3.combo_self}"
+    assert ctx3.combo_self == 3, f"base+add=3: {ctx3.combo_self}"
+    assert ctx3.combo_mult_self == 2.0
 
-    # combo_mult=0 → no extra multiplier
-    user._modifiers["combo_mult"] = 0.0
-    user._modifiers["combo"] = 0
-    ctx4 = build_ctx(user, opp, bs, None, None, team="A")
-    assert ctx4.combo_self == 2, f"mult=0应无影响, got {ctx4.combo_self}"
+    print("  [OK] snapshot: combo_self=base+add, combo_mult_self 独立")
 
-    print("  [OK] combo_mult snapshot: (base+add)*(1+mult)")
+
+def test_combo_mult_adjust_damage():
+    """adjust_damage 最后乘 combo_mult：(set/add 合并) * (1+mult)。"""
+    from backend.engine.modifiers import adjust_damage
+    from backend.vm.journal import Damage
+
+    dmg = Damage(target="sprite_opp", amount=100, element="普通", type="物攻")
+
+    # 只有 combo_mult=2：base=1, mult=2 → effective = 1*(1+2) = 3
+    mods1 = {"combo_base": 1, "combo_mult": 2.0}
+    r1 = adjust_damage(dmg, mods1)
+    assert r1.amount == 300, f"combo_mult×3: {r1.amount}"
+
+    # combo_set=3 + combo_mult=2：effective = 3*(1+2) = 9
+    mods2 = {"combo_base": 1, "combo_set": 3, "combo_mult": 2.0}
+    r2 = adjust_damage(dmg, mods2)
+    assert r2.amount == 900, f"set=3×mult=3 → 9x: {r2.amount}"
+
+    # combo_add=2 + combo_mult=1：effective = (1+2)*(1+1) = 6
+    mods3 = {"combo_base": 1, "combo_add": 2, "combo_mult": 1.0}
+    r3 = adjust_damage(dmg, mods3)
+    assert r3.amount == 600, f"add=2×mult=2 → 6x: {r3.amount}"
+
+    # combo_set=3, combo_add=1, combo_mult=2：effective = (3+1)*(1+2) = 12
+    mods4 = {"combo_base": 1, "combo_set": 3, "combo_add": 1, "combo_mult": 2.0}
+    r4 = adjust_damage(dmg, mods4)
+    assert r4.amount == 1200, f"(3+1)×3 → 12x: {r4.amount}"
+
+    print("  [OK] adjust_damage: (set/add合并) * (1+mult)")
 
 
 def test_storm_eye_stores_combo_mult():
-    """暴风眼 使用后 sprite._modifiers['combo_mult']=2.0。"""
+    """暴风眼 使用后 sprite._modifiers['combo_mult']=1.0（+100%）。"""
     b = _make_battle(skills_a=["暴风眼"], skills_b=["猛烈撞击"])
     _run_skill(b)
     user = b.player_a.active
-    assert user._modifiers.get("combo_mult") == 2.0, \
-        f"暴风眼应存combo_mult=2, got {user._modifiers.get('combo_mult')}"
-    print("  [OK] 暴风眼 combo_mult=2 已存储")
+    assert user._modifiers.get("combo_mult") == 1.0, \
+        f"暴风眼应存combo_mult=1, got {user._modifiers.get('combo_mult')}"
+    print("  [OK] 暴风眼 combo_mult=1 (+100%) 已存储")
 
 
 if __name__ == '__main__':
@@ -272,5 +299,6 @@ if __name__ == '__main__':
     test_combo_without_per_hit()
     test_per_hit_heal_energy()
     test_combo_mult_snapshot()
+    test_combo_mult_adjust_damage()
     test_storm_eye_stores_combo_mult()
     print('\n  [ALL COMBO TESTS PASSED]')
