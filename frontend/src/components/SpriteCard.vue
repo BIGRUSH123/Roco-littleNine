@@ -1,6 +1,7 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { useSpriteAssetStore } from '../stores/spriteAssets.js'
+import { useSpriteAnim } from '../composables/useSpriteAnim.js'
 
 const props = defineProps({
   sprite: { type: Object, default: null },
@@ -19,8 +20,22 @@ const spriteUrl = computed(() => {
   return spriteAssets.getUrl(imageKey.value)
 })
 
-const hasError = computed(() => {
-  return imageKey.value ? spriteAssets.hasError(imageKey.value) : false
+const hasError = ref(false)
+function onImageError() {
+  hasError.value = true
+  spriteAssets.setError(imageKey.value)
+}
+
+const spriteEl = ref(null)
+const shadowEl = ref(null)
+const { playIdle, cleanup } = useSpriteAnim(spriteEl, shadowEl)
+
+onMounted(() => {
+  if (!props.isFainted) playIdle()
+})
+
+onUnmounted(() => {
+  cleanup()
 })
 
 const sizeClass = computed(() => ({
@@ -43,14 +58,16 @@ const primaryElement = computed(() => {
 <template>
   <div class="flex flex-col items-center gap-2" :class="{ 'opacity-60 grayscale': isFainted }">
     <div
+      ref="spriteEl"
       :class="[sizeClass, 'relative rounded-full flex items-center justify-center']"
       :style="{ background: primaryElement ? `var(--elem-color, #C9A96E)` : '#C9A96E' }"
     >
       <img
-        v-if="spriteUrl"
+        v-if="spriteUrl && !hasError"
         :src="spriteUrl"
         :alt="sprite?.name || '精灵'"
         class="w-full h-full object-contain p-1"
+        @error="onImageError"
       />
       <span
         v-else
@@ -62,7 +79,7 @@ const primaryElement = computed(() => {
       </div>
     </div>
 
-    <div class="sprite-shadow"></div>
+    <div ref="shadowEl" class="sprite-shadow"></div>
 
     <div v-if="showHp && sprite" class="w-full max-w-40">
       <div class="flex justify-between text-xs text-[#6B5E4F] mb-0.5">

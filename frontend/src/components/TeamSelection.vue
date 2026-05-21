@@ -66,7 +66,8 @@ async function loadSprites() {
                 ;(async () => {
                   const blData = await loadSpriteBloodlines(sprite.name)
                   teamBloodlineOptions.value[index] = blData.bloodlines
-                  teamBloodlines.value[index] = member.bloodline || blData.default
+                  const savedBL = member.bloodline
+                  teamBloodlines.value[index] = (savedBL && blData.bloodlines.includes(savedBL)) ? savedBL : blData.default
                 })()
               }
             }

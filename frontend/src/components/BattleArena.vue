@@ -23,13 +23,7 @@ const debugActionA = ref(null)
 const debugActionB = ref(null)
 
 const player = computed(() => ({
-  team: store.selfTeam,
-  active_index: store.activeIndexA,
   item: store.selfItem,
-}))
-const opponent = computed(() => ({
-  team: store.oppTeam,
-  active_index: store.activeIndexB,
 }))
 const active = computed(() => store.selfSprite)
 const activeOpp = computed(() => store.oppSprite)
@@ -51,9 +45,6 @@ const gridColsOpp = computed(() => {
   if (skillCountOpp.value <= 8) return 'grid-cols-4'
   return 'grid-cols-5'
 })
-const btnPad = computed(() => skillCount.value > 6 ? 'py-1.5 px-1.5' : 'py-2.5 px-3')
-const btnPadOpp = computed(() => skillCountOpp.value > 6 ? 'py-1.5 px-1.5' : 'py-2.5 px-3')
-
 const markModA = computed(() => store.markEnergyModA || 0)
 const markModB = computed(() => store.markEnergyModB || 0)
 
@@ -83,26 +74,6 @@ const canUseSkill = (sprite, skillName) => {
   return skillName === sprite.charging
 }
 
-function skillBrief(sprite, name) {
-  const sm = props.skillMap[name]
-  if (!sm) return ''
-  const ss = getSpriteSkill(sprite, name)
-  const parts = [`${sm.element}`]
-  if (ss && ss.effective_power > 0) {
-    const p = ss.effective_power
-    const bonus = ss.position_power_bonus || 0
-    parts.push(bonus > 0 ? `${p}威(+${bonus})` : `${p}威`)
-  }
-  if (ss && ss.base_energy_cost > 0 && ss.effective_energy_cost < ss.base_energy_cost) {
-    const saving = ss.base_energy_cost - ss.effective_energy_cost
-    parts.push(`${ss.effective_energy_cost}费(-${saving})`)
-  } else {
-    parts.push(`${ss ? ss.effective_energy_cost : sm.energy_cost}费`)
-  }
-  if (sm.priority > 0) parts.push(`+${sm.priority}`)
-  return parts.join('·')
-}
-
 function skillBadges(sprite, name) {
   const ss = getSpriteSkill(sprite, name)
   if (!ss) return []
@@ -120,26 +91,21 @@ function energyInsufficient(sprite, name) {
   return (sprite?.energy ?? 0) < ss.effective_energy_cost
 }
 
-function skillDesc(name) {
-  const s = props.skillMap[name]
-  return s?.description || ''
-}
-
 function typeEffectiveness(skillName, targetElem) {
   const s = props.skillMap[skillName]
   if (!s) return 1.0
   const atkElem = s.element
   if (!atkElem) return 1.0
-  const defElem = (targetElem || '').split(',')[0].trim()
-  if (!defElem) return 1.0
-  return (props.typeChart[atkElem] || {})[defElem] ?? 1.0
+  const defElems = (targetElem || '').split(',').map(e => e.trim()).filter(Boolean)
+  if (defElems.length === 0) return 1.0
+  const chart = props.typeChart[atkElem] || {}
+  return defElems.reduce((m, e) => m * (chart[e] ?? 1.0), 1.0)
 }
 
 function effectivenessClass(skillName, targetElem) {
   const m = typeEffectiveness(skillName, targetElem)
-  if (m >= 2.0) return 'border-[#43A047] bg-[#E8F5E9]'
-  if (m <= 0.5 && m > 0) return 'border-[#EF6C00] bg-[#FFF3E0]'
-  if (m === 0) return 'border-[#D4534A] bg-[#FFEBEE]'
+  if (m >= 2.0) return 'border-l-4 border-l-[#43A047]'
+  if (m <= 0.5 && m > 0) return 'border-l-4 border-l-[#5C6BC0]'
   return ''
 }
 
@@ -308,13 +274,15 @@ const debugActionLabel = (action) => {
                 :disabled="(activeOpp?.is_fainted ?? true) || !canUseSkill(activeOpp, sk.name)"
                 :energy-insufficient="energyInsufficient(activeOpp, sk.name)"
                 :selected="debugActionB?.payload === sk.name"
+                :effectiveness-class="effectivenessClass(sk.name, active?.element)"
+                :badges="skillBadges(activeOpp, sk.name)"
                 @select="(name) => selectDebugAction('B', 'skill', name)"
               />
             </div>
             <div class="flex gap-1.5">
               <button
                 @click="selectDebugAction('B', 'gather')"
-                :disabled="activeOpp?.is_fainted ?? true"
+                :disabled="(activeOpp?.is_fainted ?? true) || (isChargingOpp && !hasJealousyOpp)"
                 class="flex-1 bg-white hover:bg-[#F5F2EC] disabled:opacity-40 border text-xs font-medium py-2 rounded transition-colors"
                 :class="debugActionB?.type === 'gather' ? 'border-[#EF6C00] text-[#EF6C00]' : 'border-[#D4C8B8] text-[#6B5E4F]'"
               >
@@ -512,6 +480,8 @@ const debugActionLabel = (action) => {
               :disabled="(active?.is_fainted ?? true) || !canUseSkill(active, sk.name)"
               :energy-insufficient="energyInsufficient(active, sk.name)"
               :selected="debugMode && debugActionA?.payload === sk.name"
+              :effectiveness-class="effectivenessClass(sk.name, activeOpp?.element)"
+              :badges="skillBadges(active, sk.name)"
               @select="(name) => handleAction('skill', name)"
             />
           </div>

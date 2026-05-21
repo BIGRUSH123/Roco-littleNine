@@ -522,7 +522,7 @@ def get_bloodlines(name: str):
     bl_skills = species.bloodline_skills or {}
     return {
         "sprite": name,
-        "default_bloodline": species.attributes[0] if species.attributes else '',
+        "default_bloodline": species.elements[0] if species.elements else '',
         "available_bloodlines": list(bl_skills.keys()),
         "bloodline_skills": bl_skills,
     }

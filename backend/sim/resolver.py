@@ -121,11 +121,14 @@ class SkillResolver:
         elem = skill.element
         if not elem:
             return 1.0
-        def_elem = (defender.species.attributes or '').split('/')[0]
-        if not def_elem:
+        def_elems = [e.strip() for e in (defender.species.attributes or '').split(',') if e.strip()]
+        if not def_elems:
             return 1.0
         chart = _TYPE_CHART.get(elem, {})
-        return chart.get(def_elem, 1.0)
+        mult = 1.0
+        for de in def_elems:
+            mult *= chart.get(de, 1.0)
+        return mult
 
     @staticmethod
     def _get_stab(skill: Skill, attacker: Sprite) -> float:

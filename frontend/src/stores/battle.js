@@ -10,31 +10,22 @@ export const useBattleStore = defineStore('battle', () => {
   const maxTurn = ref(150)
   const weather = ref(null)
   const weatherTurns = ref(0)
-  const selfSkills = ref([])
-  const selectedSkill = ref(null)
   const marksA = ref([])
   const marksB = ref([])
   const markEnergyModA = ref(0)
   const markEnergyModB = ref(0)
   const turnSnapshots = ref([])
-  const replayMode = ref(false)
   const replayTurn = ref(0)
-  const isProcessing = ref(false)
-  const battlePhase = ref('selection')
   const winner = ref(null)
-  const logEntries = ref([])
-  const sessionId = ref(null)
   const isFinished = ref(false)
   const activeIndexA = ref(0)
   const activeIndexB = ref(0)
   const selfItem = ref(null)
 
   function updateFromResponse(data) {
-    if (data.session_id) sessionId.value = data.session_id
     if (data.turn !== undefined) turn.value = data.turn
     if (data.is_finished !== undefined) {
       isFinished.value = data.is_finished
-      if (data.is_finished) battlePhase.value = 'result'
     }
     if (data.winner) winner.value = data.winner
     if (data.weather !== undefined) weather.value = data.weather
@@ -49,7 +40,6 @@ export const useBattleStore = defineStore('battle', () => {
       selfItem.value = pa.item || null
       const activeIdx = pa.active_index ?? 0
       selfSprite.value = pa.team?.[activeIdx] || null
-      selfSkills.value = selfSprite.value?.skills || []
     }
 
     if (data.player_b) {
@@ -65,12 +55,6 @@ export const useBattleStore = defineStore('battle', () => {
 
     if (data.turn_snapshot) {
       turnSnapshots.value.push(data.turn_snapshot)
-    }
-  }
-
-  function appendLogs(logs) {
-    if (logs && logs.length > 0) {
-      logEntries.value.push(...logs)
     }
   }
 
@@ -91,20 +75,13 @@ export const useBattleStore = defineStore('battle', () => {
     turn.value = 0
     weather.value = null
     weatherTurns.value = 0
-    selfSkills.value = []
-    selectedSkill.value = null
     marksA.value = []
     marksB.value = []
     markEnergyModA.value = 0
     markEnergyModB.value = 0
     turnSnapshots.value = []
-    replayMode.value = false
     replayTurn.value = 0
-    isProcessing.value = false
-    battlePhase.value = 'selection'
     winner.value = null
-    logEntries.value = []
-    sessionId.value = null
     isFinished.value = false
     activeIndexA.value = 0
     activeIndexB.value = 0
@@ -114,11 +91,10 @@ export const useBattleStore = defineStore('battle', () => {
   return {
     selfSprite, oppSprite, selfTeam, oppTeam,
     turn, maxTurn, weather, weatherTurns,
-    selfSkills, selectedSkill,
     marksA, marksB, markEnergyModA, markEnergyModB,
-    turnSnapshots, replayMode, replayTurn,
-    isProcessing, battlePhase, winner, logEntries, sessionId, isFinished,
+    turnSnapshots, replayTurn,
+    winner, isFinished,
     activeIndexA, activeIndexB, selfItem,
-    updateFromResponse, appendLogs, setReplayTurn, resetBattle,
+    updateFromResponse, setReplayTurn, resetBattle,
   }
 })

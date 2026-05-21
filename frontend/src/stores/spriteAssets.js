@@ -16,6 +16,10 @@ export const useSpriteAssetStore = defineStore('spriteAssets', () => {
     return errors.value.has(name)
   }
 
+  function setError(name) {
+    errors.value.add(name)
+  }
+
   async function loadSprite(name) {
     if (cache.value.has(name)) return cache.value.get(name)
     if (loading.value.has(name)) return null
@@ -43,5 +47,5 @@ export const useSpriteAssetStore = defineStore('spriteAssets', () => {
     return urls.filter(Boolean)
   }
 
-  return { cache, loading, errors, getUrl, hasError, loadSprite, preloadTeam }
+  return { cache, loading, errors, getUrl, hasError, setError, loadSprite, preloadTeam }
 })

@@ -83,8 +83,10 @@ class SimFactory:
 
         sprite = Sprite.from_result(result)
         sprite.skills = self._build_skill_list(skills)
-        if bloodline:
+        if bloodline and bloodline in sprite.bloodline_skills:
             sprite.bloodline = bloodline
+        elif species.elements:
+            sprite.bloodline = species.elements[0]
         return sprite
 
     def _build_skill_list(self, skill_names: list[str]) -> list[BattleSkill]:

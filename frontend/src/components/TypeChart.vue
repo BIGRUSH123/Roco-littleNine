@@ -12,15 +12,13 @@ const elements = computed(() => {
 })
 
 function effectivenessColor(v) {
-  if (v === 0) return 'bg-[#E53935]/60'
   if (v >= 2) return 'bg-[#43A047]/80'
-  if (v <= 0.5) return 'bg-[#EF6C00]/60'
+  if (v <= 0.5) return 'bg-[#5C6BC0]/60'
   return 'bg-[#D4C8B8]/40'
 }
 
 function effectivenessText(v) {
   if (v === undefined || v === null) return '-'
-  if (v === 0) return '0'
   return '×' + v
 }
 </script>
@@ -70,8 +68,7 @@ function effectivenessText(v) {
 
     <div class="flex gap-3 mt-2 text-[10px] text-[#6B5E4F]">
       <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-sm bg-[#43A047]/80 inline-block"></span>克制</span>
-      <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-sm bg-[#EF6C00]/60 inline-block"></span>抵抗</span>
-      <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-sm bg-[#E53935]/60 inline-block"></span>无效</span>
+      <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-sm bg-[#5C6BC0]/60 inline-block"></span>抵抗</span>
     </div>
   </div>
 </template>

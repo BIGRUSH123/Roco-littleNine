@@ -55,7 +55,6 @@ function stopAutoPlay() {
 
 function close() {
   stopAutoPlay()
-  battle.replayMode = false
   emit('close')
 }
 

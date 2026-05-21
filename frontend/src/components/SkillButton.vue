@@ -9,6 +9,8 @@ const props = defineProps({
   disabled: { type: Boolean, default: false },
   energyInsufficient: { type: Boolean, default: false },
   selected: { type: Boolean, default: false },
+  effectivenessClass: { type: String, default: '' },
+  badges: { type: Array, default: () => [] },
 })
 
 const emit = defineEmits(['select'])
@@ -58,6 +60,7 @@ function onClick() {
               : selected
                 ? 'bg-[#E8F5E9] border-[#5C8D6E] text-[#5C8D6E] ring-1 ring-[#5C8D6E]/30'
                 : 'bg-white border-[#D4C8B8] text-[#3D2B1F] hover:border-[#C9A96E]',
+          effectivenessClass,
           open ? 'border-[#C9A96E]' : ''
         ]"
       >
@@ -65,6 +68,7 @@ function onClick() {
           <span v-if="skill.skill_index !== undefined" class="text-xs text-[#6B5E4F] font-mono">[{{ skill.skill_index + 1 }}]</span>
           <span v-if="element" :class="['elem-tag', elementColorClass]">{{ element }}</span>
           <span class="text-sm font-bold truncate">{{ skill.name }}</span>
+          <span v-for="(b, bi) in badges" :key="bi" class="text-[10px] px-1 py-0.5 rounded" :class="b === '主轴' ? 'bg-[#EDE7F6] text-[#7B4F9D]' : 'bg-[#E8F5E9] text-[#5C8D6E]'">{{ b }}</span>
           <span v-if="priority > 0" class="text-xs text-[#C9A96E] font-bold">☆+{{ priority }}</span>
         </div>
         <div class="flex items-center gap-2 mt-1 text-xs text-[#6B5E4F]">

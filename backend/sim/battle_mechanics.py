@@ -282,7 +282,7 @@ class BattleMechanicsMixin:
     def _apply_transmission(self, sprite: 'Sprite') -> list[str]:
         """执行一次传动 pass：传动技能向下移动一个槽位，相邻传动合成块。
 
-        传动X: 传动 >= 当前 pass 的参与本次移动。
+        传动X: 传动 >= 当前 pass 的参与本次移动。_transmission=-1 为主轴（不参与不阻挡）。
         返回事件列表。"""
         skills = sprite.skills
         n = len(skills)
@@ -294,57 +294,72 @@ class BattleMechanicsMixin:
         if max_lv <= 0:
             return events
 
-        # 多 pass：先所有传动一起移动（pass 0），再仅传动2 单独移动（pass 1），依此类推
         for pass_num in range(max_lv):
-            moved: set[int] = set()
-            moves: list[tuple[int, int]] = []  # (old_pos, new_pos)
+            # ── 第一步：提取非主轴技能组成虚拟数组 ──
+            # 主轴不参与传动，也不阻挡——如同不存在
+            active_map: list[int] = []  # virtual_index → original_index
+            active: list = []           # virtual skills
+            for i, bs in enumerate(skills):
+                if getattr(bs, '_transmission', 0) != -1:
+                    active_map.append(i)
+                    active.append(bs)
+            m = len(active)
+            if m < 2:
+                continue
+
+            # ── 第二步：在虚拟数组上收集传动块 ──
+            blocks: list[tuple[int, int]] = []  # (start, end) in virtual indices
 
             i = 0
-            while i < n:
-                bs = skills[i]
-                trans_lv = getattr(bs, '_transmission', 0)
-                main_axis = getattr(bs, '_main_axis', False)
-                if trans_lv <= pass_num or main_axis:
+            while i < m:
+                trans_lv = getattr(active[i], '_transmission', 0)
+                if trans_lv <= pass_num:
                     i += 1
                     continue
 
-                # 找到传动块 [block_start, block_end]
                 block_start = i
                 block_end = i
-                while block_end + 1 < n:
-                    next_bs = skills[block_end + 1]
-                    next_lv = getattr(next_bs, '_transmission', 0)
-                    next_axis = getattr(next_bs, '_main_axis', False)
-                    if next_lv > pass_num and not next_axis:
+                while block_end + 1 < m:
+                    next_lv = getattr(active[block_end + 1], '_transmission', 0)
+                    if next_lv > pass_num:
                         block_end += 1
                     else:
                         break
 
-                # 被顶替的技能位置（块下端 + 1，四号位下行到一号位）
-                displaced_idx = (block_end + 1) % n
-                displaced = skills[displaced_idx]
-                if getattr(displaced, '_main_axis', False):
-                    # 主轴技能不参与：跳过整个块
-                    i = block_end + 1
-                    continue
-
-                # 块内每个技能下移一个位置
-                for pos in range(block_start, block_end + 1):
-                    moves.append((pos, (pos + 1) % n))
-                    moved.add(pos)
-
-                # 被顶替的技能移到块顶端
-                moves.append((displaced_idx, block_start))
-                moved.add(displaced_idx)
-
+                blocks.append((block_start, block_end))
                 i = block_end + 1
 
-            # 应用移动
-            if moves:
-                temp = list(skills)
-                for old_pos, new_pos in moves:
-                    skills[new_pos] = temp[old_pos]
-                names = '/'.join(bs.name for bs in skills)
-                events.append(f'{sprite.name} 传动→ {names}')
+            # ── 第三步：合并虚拟数组的循环边界块 ──
+            if len(blocks) >= 2:
+                first_start, first_end = blocks[0]
+                last_start, last_end = blocks[-1]
+                if first_start == 0 and last_end == m - 1:
+                    blocks[0] = (last_start, first_end)
+                    blocks.pop()
+
+            # ── 第四步：应用每个块的旋转到虚拟数组 ──
+            if blocks:
+                temp = list(active)
+                for block_start, block_end in blocks:
+                    displaced_idx = (block_end + 1) % m
+                    # 主轴已被排除，displaced 不会是主轴，无需屏障检查
+
+                    if block_start <= block_end:
+                        for pos in range(block_start, block_end + 1):
+                            active[(pos + 1) % m] = temp[pos]
+                    else:
+                        # 循环块：[block_start, m-1] + [0, block_end]
+                        for pos in range(block_start, m):
+                            active[(pos + 1) % m] = temp[pos]
+                        for pos in range(0, block_end + 1):
+                            active[(pos + 1) % m] = temp[pos]
+                    active[block_start] = temp[displaced_idx]
+
+            # ── 第五步：映射回原始 skills 数组 ──
+            for vi, oi in enumerate(active_map):
+                skills[oi] = active[vi]
+
+            names = '/'.join(bs.name for bs in skills)
+            events.append(f'{sprite.name} 传动→ {names}')
 
         return events
