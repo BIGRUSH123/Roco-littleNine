@@ -31,4 +31,11 @@ def op_abnormal(ctx: Ctx, effect) -> list[Mutation]:
         delta = resolve(ctx, effect.value) if effect.value is not None else effect.stacks
 
     scope = _get(effect, "scope", "battlefield")
-    return [AbnormalChange(target=target, name=name, delta=int(delta), scope=scope)]
+    result = [AbnormalChange(target=target, name=name, delta=int(delta), scope=scope)]
+
+    per_hit = _get(effect, "per_hit", False)
+    combo = max(1, ctx.combo_self)
+    if per_hit and combo > 1 and result:
+        result = result * combo
+
+    return result

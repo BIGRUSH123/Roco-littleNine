@@ -261,6 +261,7 @@ class SkillParsePass:
             name=self._str_or(e, "name", ""),
             stacks=self._int_or(e, "stacks", 1),
             value=value,
+            per_hit=self._bool_or(e, "per_hit", False),
             then=self._parse_then(e),
             **self._common_fields(e),
         )
@@ -271,6 +272,7 @@ class SkillParsePass:
             name=self._str_or(e, "name", ""),
             stacks=self._int_or(e, "stacks", 1),
             scope=self._str_or(e, "scope", "battlefield"),
+            per_hit=self._bool_or(e, "per_hit", False),
             heal_pct=self._float_or(e, "heal_pct", 0.0),
             energy_gain=self._int_or(e, "energy_gain", 0),
             then=self._parse_then(e),

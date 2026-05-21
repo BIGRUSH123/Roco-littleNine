@@ -35,4 +35,11 @@ def op_mark(ctx: Ctx, effect) -> list[Mutation]:
     # Normalize: 5 target values in skill data → own/opp
     team = "own" if target in ("team_own", "own_team", "sprite_self") else "opp"
 
-    return [MarkChange(target_team=team, name=name, delta=int(delta))]
+    result = [MarkChange(target_team=team, name=name, delta=int(delta))]
+
+    per_hit = _get(effect, "per_hit", False)
+    combo = max(1, ctx.combo_self)
+    if per_hit and combo > 1 and result:
+        result = result * combo
+
+    return result

@@ -89,6 +89,7 @@ class MarkOp:
     name: str
     stacks: int = 1
     value: IRValue | None = None
+    per_hit: bool = False
     then: tuple[SkillIROp, ...] = ()
     feeds: str = ""
     needs: str = ""
@@ -101,6 +102,7 @@ class AbnormalOp:
     stacks: int = 1
     value: IRValue | None = None
     scope: str = "battlefield"
+    per_hit: bool = False
     heal_pct: float = 0.0
     energy_gain: int = 0
     then: tuple[SkillIROp, ...] = ()
