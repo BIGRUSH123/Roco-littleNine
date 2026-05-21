@@ -145,6 +145,9 @@ class Battle(BattleMechanicsMixin):
         for sprite in self.player_a.team + self.player_b.team:
             for key in _PER_TURN_KEYS:
                 sprite._modifiers.pop(key, None)
+            for skill in (sprite.skills or []):
+                for key in _PER_TURN_KEYS:
+                    skill._modifiers.pop(key, None)
 
         s_a = self.player_a.active
         s_b = self.player_b.active
@@ -541,6 +544,7 @@ class Battle(BattleMechanicsMixin):
             counter_succeeded=countered_skill is not None,
             skill_index=action.skill_index or 0,
             species_lookup=self.lookup_species_by_number,
+            battle_skill=bs,
         )
         events.extend(result.events)
 

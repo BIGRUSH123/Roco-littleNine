@@ -9,15 +9,7 @@
   "effects": [
     {
       "when": {
-        "cond": "and",
-        "conditions": [
-          {
-            "cond": "is_first"
-          },
-          {
-            "cond": "opp_is_attack"
-          }
-        ]
+        "cond": "is_first"
       },
       "then": [
         {
@@ -29,5 +21,5 @@
       ]
     }
   ],
-  "description": "✦造成物伤，1连击，若先于敌方攻击，改为3连击。"
+  "description": "✦造成物伤，1连击，先手时改为3连击。"
 }

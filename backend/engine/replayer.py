@@ -110,6 +110,7 @@ class JournalReplayer:
         registry: ObserverRegistry | None = None,
         team: str = "A",
         species_lookup = None,
+        self_skill = None,
     ):
         self.self = self_sprite
         self.opp = opp_sprite
@@ -117,6 +118,7 @@ class JournalReplayer:
         self.registry = registry
         self.team = team  # "A" or "B"
         self._species_lookup = species_lookup  # callable(number) -> SpeciesStats | None
+        self._self_skill = self_skill
 
     # ── Main entry ──
 
@@ -224,21 +226,49 @@ class JournalReplayer:
             sprite._pending_modifiers.append(m)
             return ""  # suppress verbose pending modifier log
 
-        cur = sprite._modifiers.get(m.stat)  # None if never set (distinct from 0.0)
-        if m.mode == "set":
-            sprite._modifiers[m.stat] = m.value
-        elif m.mode == "add":
-            sprite._modifiers[m.stat] = (cur or 0.0) + m.value
-        elif m.mode == "multiply":
-            sprite._modifiers[m.stat] = (cur or 1.0) * m.value if cur is not None else m.value
+        # skill-scoped targets (e.g. skill_off_0) are stored on the skill's
+        # _modifiers dict, not the sprite. collect_modifiers / adjust_damage
+        # already handle them for current damage; skill._modifiers enables
+        # snapshot to read persistent skill-level buffs (future use).
+        # Conditional effects (疾风刺 combo=3) are re-evaluated each time so
+        # their persistence is harmless — they are cleared per-turn.
+        skill_scoped = m.target.startswith("skill_") if m.target else False
+
+        if skill_scoped:
+            if self._self_skill is not None:
+                target_mods = self._self_skill._modifiers
+            else:
+                # No skill reference available (e.g. test context) — fall back
+                # to sprite._modifiers for backward compat.
+                target_mods = sprite._modifiers
         else:
-            sprite._modifiers[m.stat] = m.value
-        final = sprite._modifiers[m.stat]
+            target_mods = sprite._modifiers
+
+        if target_mods is None:
+            final = m.value
+            label = _STAT_LABELS.get(m.stat, m.stat)
+            if m.stat in _RATIO_STATS:
+                return f"{sprite.name} {label}={final:.0%}"
+            if m.stat == "energy_cost":
+                return ""
+            return f"{sprite.name} {label}{final:+.0f}"
+
+        cur = target_mods.get(m.stat)  # None if never set (distinct from 0.0)
+        if m.mode == "set":
+            target_mods[m.stat] = m.value
+        elif m.mode == "add":
+            target_mods[m.stat] = (cur or 0.0) + m.value
+        elif m.mode == "multiply":
+            target_mods[m.stat] = (cur or 1.0) * m.value if cur is not None else m.value
+        else:
+            target_mods[m.stat] = m.value
+        final = target_mods[m.stat]
         label = _STAT_LABELS.get(m.stat, m.stat)
 
         # Create visible StatusEffect for user-visible integer stats (combo, priority).
         # Use m.value (the delta) as steps so add_effect() merging accumulates correctly.
-        if m.stat in _VISIBLE_MOD_STATS and m.value != 0:
+        # Only for sprite-scoped modifiers — skill-scoped ones don't get sprite visuals.
+        if not skill_scoped and m.stat in _VISIBLE_MOD_STATS and m.value != 0:
             from backend.sim.sprite import StatusEffect
             steps = int(m.value)
             effect = StatusEffect(
@@ -289,9 +319,13 @@ class JournalReplayer:
         if sprite.is_fainted:
             result += " (fainted)"
 
-        # Life drain: attacker heals by a percentage of damage dealt
+        # Life drain: attacker heals by a percentage of damage dealt.
+        # Check skill._modifiers first (same-execution injection), then
+        # sprite._modifiers for backward compat.
         if m.target != "sprite_self":
             drain_pct = self.self._modifiers.get("life_drain", 0.0)
+            if self._self_skill is not None:
+                drain_pct = max(drain_pct, self._self_skill._modifiers.get("life_drain", 0.0))
             if drain_pct > 0:
                 healed = self.self.heal(round(actual * drain_pct))
                 if healed:

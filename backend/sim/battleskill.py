@@ -18,6 +18,7 @@ class BattleSkill:
     base: Skill
 
     # ── 可变状态 ──
+    _modifiers: dict[str, float] = field(default_factory=dict)  # 技能级修饰符（power_mult/damage_mult 等）
     power_mod: int = 0              # 永久威力变化（联动装置等）
     combo_mod: int = 0              # 永久连击数变化（聚盐/乘胜追击等）
     energy_cost_mod: int = 0        # 永久能耗变化（水炮/重击等）

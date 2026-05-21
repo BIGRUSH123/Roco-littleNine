@@ -87,6 +87,7 @@ class BattleVMEngine:
         team: str = "A",
         effects: list[dict] | None = None,
         species_lookup = None,
+        battle_skill = None,
         **kwargs,
     ) -> SkillExecutionResult:
         """Execute one skill through the full VM pipeline.
@@ -147,6 +148,7 @@ class BattleVMEngine:
         replayer = JournalReplayer(
             self_sprite, opp_sprite, globals_, self.registry, team=team,
             species_lookup=species_lookup,
+            self_skill=battle_skill,
         )
         events = replayer.replay(journal)
 

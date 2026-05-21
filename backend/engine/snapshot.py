@@ -135,6 +135,7 @@ def build_ctx(
 
     # ── Self skill ──
     sk = self_skill
+    skill_mods = getattr(sk, '_modifiers', {}) if sk else {}
     power_self = sk.power if hasattr(sk, 'power') else 0
     combo_base = sk.combo if hasattr(sk, 'combo') else 1
     combo_mod = int(ss._modifiers.get("combo", 0))
@@ -166,9 +167,16 @@ def build_ctx(
         sp_atk_self=ss.initial_stats.get("sp_atk", 100),
         sp_def_self=ss.initial_stats.get("sp_def", 100),
         speed_self=ss.effective_stat("speed") if hasattr(ss, 'effective_stat') else ss.initial_stats.get("speed", 100),
-        damage_reduction_self=ss._modifiers.get("damage_reduction", 0.0),
-        power_mult_self=ss._modifiers.get("power_mult", 1.0),
-        damage_mult_self=ss._modifiers.get("damage_mult", 1.0),
+        # Sprite + skill modifier delta 相加（同类型 buff 加性叠加，非相乘）
+        damage_reduction_self=min(1.0,
+            ss._modifiers.get("damage_reduction", 0.0)
+            + skill_mods.get("damage_reduction", 0.0)),
+        power_mult_self=1.0
+            + (ss._modifiers.get("power_mult", 1.0) - 1.0)
+            + (skill_mods.get("power_mult", 1.0) - 1.0),
+        damage_mult_self=1.0
+            + (ss._modifiers.get("damage_mult", 1.0) - 1.0)
+            + (skill_mods.get("damage_mult", 1.0) - 1.0),
         energy_cost_mult_self=ss._modifiers.get("energy_cost_mult", 0.0),
         combo_mult_self=ss._modifiers.get("combo_mult", 0.0),
         life_drain_self=ss._modifiers.get("life_drain", 0.0),
