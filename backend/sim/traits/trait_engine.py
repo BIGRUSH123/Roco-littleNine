@@ -26,12 +26,9 @@ from __future__ import annotations
 import json
 import re
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from . import TraitHandler
-
-if TYPE_CHECKING:
-    from backend.vm.ir_trait import CompiledTrait, TraitTrigger
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -479,17 +476,11 @@ class DataDrivenTrait(TraitHandler):
     on_energy_short / on_fatal_damage 委托给 hook 系统（Layer 3b）。
     """
 
-    def __init__(self, name: str, triggers: list[dict], trait_id: int = 0,
-                 compiled: CompiledTrait | None = None):
+    def __init__(self, name: str, triggers: list[dict], trait_id: int = 0):
         self.name = name
         self.trait_id = trait_id
         self._triggers: dict[str, list[dict]] = {}
         self._process_triggers(triggers)
-        # Typed triggers from CompiledTrait (Task 8/9: typed execution path)
-        self._compiled_triggers: dict[str, list[TraitTrigger]] = {}
-        if compiled is not None:
-            self._process_compiled_triggers(compiled)
-        # Observer cache (lazy, built on first to_observers() call)
         self._observers: list = None
 
     def to_observers(self) -> list:
@@ -509,18 +500,9 @@ class DataDrivenTrait(TraitHandler):
             "triggers": [],
             "name": self.name,
         }
-        # Collect triggers that have 'effects' (skip engine-only)
         for hook_triggers in self._triggers.values():
             for t in hook_triggers:
                 trait_json["triggers"].append(t)
-        # Also include compiled triggers
-        for hook_triggers in self._compiled_triggers.values():
-            for t in hook_triggers:
-                trait_json["triggers"].append({
-                    "on": t.on,
-                    "condition": t.condition,
-                    "effects": t.effects,
-                })
 
         self._observers = converter.convert(trait_json, self.name)
         return self._observers
@@ -539,15 +521,6 @@ class DataDrivenTrait(TraitHandler):
             hook = t.get('on', '')
             if hook:
                 self._triggers.setdefault(hook, []).append(t)
-
-    def _process_compiled_triggers(self, compiled: CompiledTrait) -> None:
-        """组织 CompiledTrait 中的类型化 TraitTrigger 按 hook 分组。
-
-        CompiledTrait 的 triggers 已经过 AuraExpandPass 展开，
-        每个 TraitTrigger.on 即为 hook 名。
-        """
-        for t in compiled.triggers:
-            self._compiled_triggers.setdefault(t.on, []).append(t)
 
     def _expand_aura(self, aura: dict, parent: dict) -> None:
         """aura → entry + leave 触发器对。
@@ -845,99 +818,10 @@ class DataDrivenTrait(TraitHandler):
         events: list[str] = []
 
         for trigger in triggers:
-            condition = trigger.get('condition')
-            if not ConditionEvaluator.evaluate(condition, ctx):
+            if not ConditionEvaluator.evaluate(trigger.get('condition'), ctx):
                 continue
-
-            # ── 延时调度（方向: delayed effects）──
-            delay = trigger.get('delay', 0)
-            if delay and delay > 0:
-                battle = ctx.get('battle')
-                if battle:
-                    battle.scheduled_effects.append({
-                        'turn': battle.turn + delay,
-                        'phase': trigger.get('delay_phase', 'start'),
-                        'trait_name': self.name,
-                        'hook': hook,
-                        'trigger': trigger,
-                        'ctx_snapshot': {
-                            k: v for k, v in ctx.items()
-                            if k in ('team', 'self', 'target', 'attacker', 'battle')
-                        },
-                    })
-                continue
-
-            # ── Counter accumulation + threshold gate (方向: 跨触发器累积计数) ──
-            counter_key = trigger.get('counter')
-            counter_met = True
-            if counter_key:
-                sprite = ctx.get('self')
-                if sprite:
-                    cop = trigger.get('counter_op', 'inc')
-                    if cop == 'inc':
-                        sprite.inc_counter(counter_key)
-                    elif cop == 'dec':
-                        sprite.inc_counter(counter_key, -1)
-                    elif cop == 'set':
-                        cval = RefResolver.resolve(trigger.get('counter_value', 0), ctx) or 0
-                        sprite.counters[counter_key] = cval
-                    ctrigger = trigger.get('counter_trigger')
-                    if ctrigger:
-                        cur = sprite.get_counter(counter_key)
-                        counter_met = ConditionEvaluator._cmp(
-                            ctrigger.get('op', 'gte'), cur, ctrigger.get('value', 0))
-                    if not counter_met:
-                        continue
-
-            # ── Track / change detection gate (方向: 变化检测) ──
-            track = trigger.get('track')
-            if track:
-                sprite = ctx.get('self')
-                if sprite:
-                    new_val = RefResolver.resolve(track.get('expr', '=0'), ctx) or 0
-                    tkey = track.get('key', '_track')
-                    prev_val = sprite.get_counter(tkey)
-                    ctx['track_delta'] = new_val - prev_val
-                    if trigger.get('trigger_on_change') and new_val == prev_val:
-                        continue
-                    sprite.counters[tkey] = new_val
-
-            events += self._apply_use_modifiers(
-                trigger.get('use_modifiers', {}), ctx,
-            )
-
-            events += self._apply_battleskill_mut(
-                trigger.get('battleskill_mut', []), ctx,
-            )
-
-            effects = trigger.get('effects', [])
-            mode = trigger.get('effects_mode', 'accumulate')
-
-            if effects and mode == 'conditional_replace':
-                events += self._conditional_replace_effects(effects, trigger, ctx)
-            elif effects and mode == 'replace':
-                events += self._replace_effects(effects, ctx)
-            else:
-                for eff_dict in effects:
-                    events += self._apply_effect(eff_dict, ctx)
-
-            pending = trigger.get('pending_effects', [])
-            if pending:
-                events += self._handle_pending_effects(pending, ctx)
-
-            flags = trigger.get('flags', {})
-            if flags:
-                events += self._apply_flags(flags, ctx)
-
-            team_counters = trigger.get('team_counters', {})
-            if team_counters:
-                events += self._write_team_counters(team_counters, ctx)
-
-            # ── Counter reset (after effects, if threshold was met) ──
-            if counter_key and trigger.get('counter_reset') and counter_met:
-                sprite = ctx.get('self')
-                if sprite:
-                    sprite.counters[counter_key] = 0
+            for eff_dict in trigger.get('effects', []):
+                events += self._apply_effect(eff_dict, ctx)
 
         return events
 
@@ -960,140 +844,6 @@ class DataDrivenTrait(TraitHandler):
                 for e in s.species.elements
             ))
             ctx[f'{key}_lives'] = getattr(team_obj, 'lives', 0)
-
-    @staticmethod
-    def _write_team_counters(counters: dict, ctx: dict) -> list[str]:
-        """写入队伍计数器（方向 1）。"""
-        battle = ctx.get('battle')
-        team = ctx.get('team', 'A')
-        if not battle:
-            return []
-        for key, delta in counters.items():
-            battle.inc_team_counter(team, key, delta)
-        return []
-
-    # ── Modifier 操作 ──
-
-    @staticmethod
-    def _apply_use_modifiers(mods: dict, ctx: dict) -> list[str]:
-        use = ctx.get('use')
-        if not use or not mods:
-            return []
-
-        _INIT: dict[str, int | float | bool] = {
-            'power_mult': 1.0, 'damage_mult': 1.0,
-            'damage_reduction': 0.0, 'multi_hit': 0,
-            'ignore_mods': False, 'priority_mod': 0,
-        }
-
-        for key, spec in mods.items():
-            op = spec.get('op', 'add')
-            val = RefResolver.resolve(spec.get('value', 0), ctx)
-            target = spec.get('target', 'modifiers')
-
-            if target == 'battleskill':
-                bs = ctx.get('skill')
-                if bs and key == 'priority_mod':
-                    bs.priority_mod_temp = getattr(bs, 'priority_mod_temp', 0) + val
-            else:
-                current = use.modifiers.get(key, _INIT.get(key, 0))
-                if op == 'set':
-                    use.modifiers[key] = val
-                elif op == 'mult':
-                    use.modifiers[key] = current * val
-                else:
-                    use.modifiers[key] = current + val
-
-        return []
-
-    # field → _modifiers key mapping (temporary bridge until trait migration to skill IR)
-    _FIELD_TO_MOD: dict[str, str] = {
-        "power_mod": "power",
-        "energy_cost_mod": "energy_cost",
-        "combo_mod": "combo",
-        "power_override": "power_override",
-    }
-
-    @staticmethod
-    def _apply_battleskill_mut(mutations: list[dict], ctx: dict) -> list[str]:
-        if not mutations:
-            return []
-
-        sprite = ctx.get('self')
-        if not sprite:
-            return []
-
-        for mut in mutations:
-            filt = mut.get('filter', {})
-            field = mut.get('field', '')
-            op = mut.get('op', 'add')
-            val_raw = mut.get('value', 0)
-            val = RefResolver.resolve(val_raw, ctx) if isinstance(val_raw, str) else val_raw
-            target = mut.get('target', 'all')
-
-            def _apply_to(bs) -> None:
-                if field == 'element':
-                    bs._element_override = val
-                elif field == 'next_attack_mult':
-                    if op == 'set':
-                        bs.next_attack_mult = val
-                    elif op == 'mult':
-                        bs.next_attack_mult *= val
-                    else:
-                        bs.next_attack_mult += val
-                else:
-                    mod_key = DataDrivenTrait._FIELD_TO_MOD.get(field, field)
-                    if op == 'set':
-                        bs._modifiers[mod_key] = val
-                    elif op == 'mult':
-                        bs._modifiers[mod_key] = bs._modifiers.get(mod_key, 1.0) * val
-                    else:
-                        bs._modifiers[mod_key] = bs._modifiers.get(mod_key, 0) + val
-
-            if target == 'current':
-                bs = ctx.get('skill')
-                if bs is not None:
-                    _apply_to(bs)
-                continue
-
-            for i, bs in enumerate(sprite.skills):
-                if not DataDrivenTrait._match_filter(bs, i, filt):
-                    continue
-                _apply_to(bs)
-
-        return []
-
-    @staticmethod
-    def _match_filter(bs, idx: int, filt: dict) -> bool:
-        """技能过滤器（方向 8: 新增 energy_cost 范围 + base 属性）。"""
-        if not filt:
-            return True
-        if 'element' in filt and bs.element != filt['element']:
-            return False
-        if 'slot' in filt and idx not in filt['slot']:
-            return False
-        if 'slot_in' in filt and idx not in filt['slot_in']:
-            return False
-        if 'slot_not_in' in filt and idx in filt['slot_not_in']:
-            return False
-        if 'is_attack' in filt and bs.is_attack != filt['is_attack']:
-            return False
-        if 'is_defense' in filt and bs.is_defense != filt['is_defense']:
-            return False
-        if 'is_status' in filt:
-            bs_is_status = getattr(bs.base, 'is_status', False)
-            if bs_is_status != filt['is_status']:
-                return False
-        ec = bs.energy_cost
-        if 'energy_cost_lt' in filt and ec >= filt['energy_cost_lt']:
-            return False
-        if 'energy_cost_gt' in filt and ec <= filt['energy_cost_gt']:
-            return False
-        if 'energy_cost_gte' in filt and ec < filt['energy_cost_gte']:
-            return False
-        if 'energy_cost_eq' in filt and ec != filt['energy_cost_eq']:
-            return False
-        return True
 
     # ── 目标解析（方向: 随机目标选择）──
 
@@ -1243,44 +993,6 @@ class DataDrivenTrait(TraitHandler):
             return DataDrivenTrait._apply_mutate_effect(eff_dict, ctx)
 
         return []
-
-    @staticmethod
-    def _replace_effects(effects: list[dict], ctx: dict) -> list[str]:
-        """mode=replace: 先清除同 source 旧效果，再添加。"""
-        sprite = ctx.get('self')
-        if not sprite:
-            return []
-
-        sources = {e.get('source', '') for e in effects if e.get('source')}
-        for e in list(sprite.effects):
-            if getattr(e, 'source', '') in sources:
-                sprite.effects.remove(e)
-
-        events: list[str] = []
-        for eff_dict in effects:
-            events += DataDrivenTrait._apply_effect(eff_dict, ctx)
-        return events
-
-    @staticmethod
-    def _conditional_replace_effects(effects: list[dict], trigger: dict, ctx: dict) -> list[str]:
-        """mode=conditional_replace（方向 3）: 检查条件 → 满足才清除+添加。"""
-        sprite = ctx.get('self')
-        if not sprite:
-            return []
-
-        clear_cond = trigger.get('clear_condition')
-        if clear_cond and not ConditionEvaluator.evaluate(clear_cond, ctx):
-            return []
-
-        sources = {e.get('source', '') for e in effects if e.get('source')}
-        for e in list(sprite.effects):
-            if getattr(e, 'source', '') in sources:
-                sprite.effects.remove(e)
-
-        events: list[str] = []
-        for eff_dict in effects:
-            events += DataDrivenTrait._apply_effect(eff_dict, ctx)
-        return events
 
     @staticmethod
     def _apply_mutate_effect(eff_dict: dict, ctx: dict) -> list[str]:
@@ -1753,68 +1465,11 @@ class DataDrivenTrait(TraitHandler):
             available = [a for i, a in enumerate(available) if i == slot]
         return available
 
-    @staticmethod
-    def _handle_pending_effects(pending: list[dict], ctx: dict) -> list[str]:
-        from backend.sim.sprite import StatusEffect
 
-        battle = ctx.get('battle')
-        team = ctx.get('team', 'A')
-        sprite = ctx.get('self')
-        if not battle or not sprite:
-            return []
-
-        battle.pending_effects.setdefault(team, [])
-        for eff_dict in pending:
-            kind = eff_dict.get('kind', 'stat')
-            if kind == 'state':
-                battle.pending_effects[team].append(StatusEffect(
-                    name=eff_dict.get('name', ''),
-                    category='state',
-                    scope=eff_dict.get('scope', 'battlefield'),
-                    source=eff_dict.get('source', ''),
-                ))
-            elif kind == 'stat':
-                battle.pending_effects[team].append(StatusEffect(
-                    name=eff_dict.get('name', ''),
-                    category='stat',
-                    stat_key=eff_dict.get('stat', ''),
-                    steps=eff_dict.get('steps', 0),
-                    scope=eff_dict.get('scope', 'battlefield'),
-                    source=eff_dict.get('source', ''),
-                ))
-            elif kind == 'abnormal':
-                battle.pending_effects[team].append(StatusEffect(
-                    name=eff_dict.get('name', ''),
-                    category='abnormal',
-                    stacks=eff_dict.get('stacks', 1),
-                    scope=eff_dict.get('scope', 'battlefield'),
-                    source=eff_dict.get('source', ''),
-                ))
-
-        return [f'{sprite.name}: 离场效果→下一入场']
-
-    @staticmethod
-    def _apply_flags(flags: dict, ctx: dict) -> list[str]:
-        """设置 sprite flags 或 counters（方向 9）。
-
-        格式: {"_escape_pending": true, "counters.times_entered": 0}
-        """
-        sprite = ctx.get('self')
-        if not sprite:
-            return []
-
-        for flag, val in flags.items():
-            if flag.startswith('counters.'):
-                counter_key = flag[9:]
-                sprite.counters[counter_key] = val
-            else:
-                setattr(sprite, flag, val)
-        return []
-
-
-# ═══════════════════════════════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════════
 # 辅助
-# ═══════════════════════════════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════════
+
 
 _STEP_UNIT: dict[str, int] = {
     'power': 10, 'priority': 1, 'energy_cost': 1,

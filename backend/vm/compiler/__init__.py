@@ -1,9 +1,8 @@
-"""VM Compiler — IR compilation pipeline for skills and traits."""
+"""VM Compiler — IR compilation pipeline for skills."""
 from .context import CompilationError, CompileError, CompilerContext
 from .skill_compiler import SkillCompiler  # noqa: F401
-from .trait_compiler import TraitCompiler  # noqa: F401
 
 __all__ = [
-    "SkillCompiler", "TraitCompiler",
+    "SkillCompiler",
     "CompileError", "CompilerContext", "CompilationError",
 ]
