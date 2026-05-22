@@ -28,8 +28,6 @@ import re
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from backend.vm.executor_trait import process_trigger
-
 from . import TraitHandler
 
 if TYPE_CHECKING:
@@ -830,21 +828,12 @@ class DataDrivenTrait(TraitHandler):
     def _fire(self, hook: str, ctx: dict) -> list[str]:
         """执行匹配 hook 的所有 trigger。
 
-        管线: precompute team values → condition → use_modifiers →
-              battleskill_mut → effects → conditional_replace →
-              replace → accumulate → pending_effects →
-              flags → team_counters
-
-        优先执行 typed CompiledTrait triggers (通过 process_trigger()),
-        回退到原始 dict triggers 路径。
+        Phase C5: CompiledTrait triggers 已移交给 Observer 系统
+        (fire_trigger() / Skill VM)。此处仅执行 legacy dict triggers。
         """
         events: list[str] = []
 
         self._precompute_team_values(ctx)
-
-        # ── Typed path: CompiledTrait triggers via executor_trait ──
-        for trigger in self._compiled_triggers.get(hook, []):
-            events += process_trigger(trigger, ctx)
 
         # ── Dict path: legacy JSON triggers ──
         events += self._fire_dict_triggers(hook, self._triggers.get(hook, []), ctx)
