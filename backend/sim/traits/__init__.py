@@ -213,6 +213,12 @@ def dispatch_entry(sprite: Sprite, battle: Battle, team: str) -> list[str]:
     h = get_trait(sprite)
     events = h.on_entry(sprite, battle, team) if h else []
 
+    # Engine hooks: post_entry (skill sealing, etc.)
+    from .trait_engine import fire_hook
+    hook_events = fire_hook('post_entry', sprite, battle, team)
+    if hook_events:
+        events.extend(hook_events)
+
     # Phase C3 dual-run: register trait Observers in VM engine
     if h is not None and hasattr(h, 'to_observers'):
         try:
@@ -262,8 +268,17 @@ def dispatch_energy_short(sprite: Sprite, cost: int,
 
 def dispatch_modifier(user: Sprite, use: SkillUse,
                       battle: Battle, team: str) -> list[str]:
+    from .trait_engine import fire_hook
+
+    events: list[str] = []
     h = get_trait(user)
-    return h.on_modifier(user, use, battle, team) if h else []
+    if h:
+        events += h.on_modifier(user, use, battle, team)
+
+    hook_events = fire_hook('pre_modifier', user, use, battle, team) or []
+    if hook_events:
+        events.extend(hook_events)
+    return events
 
 
 def dispatch_damage(user: Sprite, target: Sprite, use: SkillUse,

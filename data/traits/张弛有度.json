@@ -1,0 +1,23 @@
+{
+  "id": 20155,
+  "name": "张弛有度",
+  "description": "周末双攻+40%，其他时间双防+40%。",
+  "triggers": [
+    {
+      "on": "entry",
+      "condition": {"kind": "fn", "name": "is_weekend"},
+      "effects": [
+        {"kind": "stat", "stat": "atk", "steps": 4, "target": "self", "source": "张弛有度"},
+        {"kind": "stat", "stat": "sp_atk", "steps": 4, "target": "self", "source": "张弛有度"}
+      ]
+    },
+    {
+      "on": "entry",
+      "condition": {"kind": "not", "condition": {"kind": "fn", "name": "is_weekend"}},
+      "effects": [
+        {"kind": "stat", "stat": "def", "steps": 4, "target": "self", "source": "张弛有度"},
+        {"kind": "stat", "stat": "sp_def", "steps": 4, "target": "self", "source": "张弛有度"}
+      ]
+    }
+  ]
+}

@@ -13,6 +13,7 @@ Usage:
 from __future__ import annotations
 
 from backend.engine.observer import Observer
+from backend.vm.ir_trait import FnCond
 
 # ── Hook → Observer trigger point mapping ──
 
@@ -137,6 +138,8 @@ class TraitToObserver:
                 "cond": "not",
                 "condition": self._convert_condition(condition.get("condition", {})),
             }
+        if kind == "fn":
+            return FnCond(name=condition.get("name", ""))
 
         # path-based condition
         path = condition.get("path", "")

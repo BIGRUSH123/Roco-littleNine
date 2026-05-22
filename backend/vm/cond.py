@@ -17,7 +17,26 @@ from .ir_skill import (
     NotCond,
     OrCond,
 )
+from .ir_trait import FnCond
 from .resolve import resolve
+
+
+# ── Function condition registry ──
+
+_FN_COND_REGISTRY: dict[str, callable] = {}
+
+
+def register_fn_cond(name: str, fn: callable) -> None:
+    """Register a function condition for FnCond evaluation."""
+    _FN_COND_REGISTRY[name] = fn
+
+
+def _builtin_is_weekend(_ctx: Ctx) -> bool:
+    import datetime
+    return datetime.date.today().weekday() >= 5
+
+
+register_fn_cond('is_weekend', _builtin_is_weekend)
 
 
 def compare_op(a, op: str, b) -> bool:
@@ -303,6 +322,10 @@ def eval_one(ctx: Ctx, cond) -> bool:
 
     if isinstance(cond, NotCond):
         return not eval_one(ctx, cond.condition)
+
+    if isinstance(cond, FnCond):
+        fn = _FN_COND_REGISTRY.get(cond.name)
+        return fn(ctx) if fn else False
 
     # ── Backward compat: raw dict ──
     if isinstance(cond, dict):

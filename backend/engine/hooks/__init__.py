@@ -18,6 +18,9 @@ from backend.common.skill_trait_ids import (
     TRAIT_惊吓,
     TRAIT_石头大餐,
     TRAIT_不朽,
+    TRAIT_宝剑王牌,
+    TRAIT_正位宝剑,
+    TRAIT_倾轧,
 )
 from backend.sim.traits.trait_engine import register_hook
 
@@ -141,3 +144,60 @@ def _immortal_on_faint(sprite, killer, battle, team):
 
 
 register_hook('on_faint', _immortal_on_faint, '不朽')
+
+
+# ── 宝剑王牌: seal skill slots 2,4 → only 1,3 usable ──
+
+def _sword_ace_post_entry(sprite, battle, team):
+    """宝剑王牌: 封印2号和4号位技能。"""
+    from backend.sim.traits import get_trait
+    h = get_trait(sprite)
+    if h is None or h.trait_id != TRAIT_宝剑王牌:
+        return None
+    for i, bs in enumerate(sprite.skills):
+        if i not in (0, 2):
+            bs.sealed = True
+    return [f'{sprite.name} 宝剑王牌: 仅1号/3号位可用']
+
+
+register_hook('post_entry', _sword_ace_post_entry, '宝剑王牌')
+
+
+# ── 正位宝剑: seal skill slots 2,3,4 → only 1 usable ──
+
+def _upright_sword_post_entry(sprite, battle, team):
+    """正位宝剑: 封印2/3/4号位技能。"""
+    from backend.sim.traits import get_trait
+    h = get_trait(sprite)
+    if h is None or h.trait_id != TRAIT_正位宝剑:
+        return None
+    for i, bs in enumerate(sprite.skills):
+        if i != 0:
+            bs.sealed = True
+    return [f'{sprite.name} 正位宝剑: 仅1号位可用']
+
+
+register_hook('post_entry', _upright_sword_post_entry, '正位宝剑')
+
+
+# ── 倾轧: energy cost modifier doubled ──
+
+def _crush_pre_modifier(user, use, battle, team):
+    """倾轧: 技能受能耗变化效果影响翻倍。"""
+    from backend.sim.traits import get_trait
+    h = get_trait(user)
+    if h is None or h.trait_id != TRAIT_倾轧:
+        return None
+    total = sum(e.steps for e in user.effects if e.category == 'stat'
+                and e.stat_key == 'energy_cost')
+    if total == 0:
+        return None
+    if total > 0:
+        user.lose_energy(total)
+        return [f'{user.name} 倾轧: 能耗翻倍, 额外消耗{total}E']
+    else:
+        user.gain_energy(-total)
+        return [f'{user.name} 倾轧: 能耗翻倍, 返还{-total}E']
+
+
+register_hook('pre_modifier', _crush_pre_modifier, '倾轧')
