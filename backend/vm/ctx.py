@@ -90,6 +90,8 @@ class Ctx:
     abnormal_stacks_battle: dict[str, int] = field(default_factory=dict)  # {name: total across both sides}
     fainted_own: int = 0                 # own team fainted count
     fainted_opp: int = 0                 # opponent team fainted count
+    lives_own: int = 5                   # own team lives (魔力值)
+    lives_opp: int = 5                   # opponent team lives
     burst_triggered_count_own: int = 0   # distinct burst types triggered by own team
     opp_switched: bool = False           # opponent switched this turn
     self_switched: bool = False          # self was switched out this turn (non-KO)
@@ -107,6 +109,8 @@ class Ctx:
     energy_cost_self: int = 0            # current skill energy cost
     energy_cost_reduction_self: int = 0  # cumulative energy cost reduction (base - current)
     energy_cost_opp: int = 0             # opponent skill total energy cost
+    energy_delta_self: int = 0           # energy change delta this event
+    skill_name_self: str = ""            # current skill name
     counter_succeeded: bool = False      # this skill countered the opponent's
     was_countered: bool = False          # this skill was countered
     prev_counter_succeeded: bool = False # previous turn counter succeeded

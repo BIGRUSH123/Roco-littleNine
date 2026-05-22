@@ -105,6 +105,9 @@ class BattleVMEngine:
         Returns:
             SkillExecutionResult with Ctx, Journal, and event strings
         """
+        # 0. Extract engine-only kwargs (not for build_ctx)
+        battle = kwargs.pop('battle', None)
+
         # 1. Build Ctx snapshot
         ctx = build_ctx(
             self_sprite, opp_sprite,
@@ -152,6 +155,7 @@ class BattleVMEngine:
             self_sprite, opp_sprite, globals_, self.registry, team=team,
             species_lookup=species_lookup,
             self_skill=battle_skill,
+            battle=battle,
         )
         events = replayer.replay(journal)
 
@@ -284,6 +288,7 @@ class BattleVMEngine:
         team: str = "A",
         species_lookup = None,
         self_skill = None,
+        battle = None,
     ) -> list[str]:
         """Public hook: fire a trigger point and replay results as events.
 
@@ -295,6 +300,7 @@ class BattleVMEngine:
             self_sprite, opp_sprite, globals_, self.registry, team=team,
             species_lookup=species_lookup,
             self_skill=self_skill,
+            battle=battle,
         )
         return self._fire_post_event(trigger, ctx, replayer)
 

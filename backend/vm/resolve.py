@@ -73,7 +73,11 @@ def resolve(ctx: Ctx, value) -> int | float | str:
     # bool before int since bool is subclass of int
     if isinstance(value, bool):
         return value
-    if isinstance(value, (int, float, str)):
+    if isinstance(value, (int, float)):
+        return value
+    if isinstance(value, str):
+        if value.startswith("="):
+            return _resolve_formula_string(ctx, value)
         return value
 
     # ── Raw dict query (backward compat) ──
@@ -150,3 +154,139 @@ def _resolve_ref(ctx: Ctx, ref: RefExpr) -> int | float | str:
         return float(current) * ref.multiplier + ref.offset
 
     return current
+
+
+# ── Formula string evaluation (=@ prefix) ──
+
+# Lightweight trait path → Ctx field map (mirrors cond._TRAIT_PATH_MAP,
+# duplicated here to avoid circular import)
+_FORMULA_PATH_MAP: dict[str, str] = {
+    "self.energy": "energy_self",
+    "self.hp": "hp_self",
+    "self.hp_ratio": "hp_self_ratio",
+    "self.max_hp": "hp_self_max",
+    "self.is_charging": "is_charging_self",
+    "self.first_action": "first_action_self",
+    "self.charged": "charged_self",
+    "self.positive_count": "positive_count_self",
+    "self.abnormal_count": "abnormal_count_self",
+    "self.fainted": "self_koed",
+    "self.just_entered": "just_entered",
+    "self.damage_reduction": "damage_reduction_self",
+    "self.energy_cost_total": "skills_energy_sum_self",
+    "self.energy_cost": "energy_cost_self",
+    "self.speed": "speed_self",
+    "self.atk": "atk_self",
+    "self.def": "def_self",
+    "self.sp_atk": "sp_atk_self",
+    "self.sp_def": "sp_def_self",
+    "target.energy": "energy_opp",
+    "target.hp": "hp_opp",
+    "target.hp_ratio": "hp_opp_ratio",
+    "target.max_hp": "hp_opp_max",
+    "target.positive_count": "positive_count_opp",
+    "target.abnormal_count": "abnormal_count_opp",
+    "target.energy_cost_total": "skills_energy_sum_opp",
+    "target.speed": "speed_opp",
+    "target.atk": "atk_opp",
+    "target.def": "def_opp",
+    "target.sp_atk": "sp_atk_opp",
+    "target.sp_def": "sp_def_opp",
+    "skill.power": "power_self",
+    "skill.element": "element_self",
+    "skill.energy_cost": "energy_cost_self",
+    "skill.combo": "combo_self",
+    "opponent_skill.power": "power_opp",
+    "player_fainted_count": "fainted_own",
+    "opponent_fainted_count": "fainted_opp",
+    "use.is_first": "is_first",
+    "first_action": "first_action_self",
+    "delta": "energy_delta_self",
+    "battle.globals.weather": "weather",
+    "opponent.lives": "lives_opp",
+    "effect_name": "abnormal_applied_name",
+}
+
+
+def _resolve_trait_ref(ref: str, ctx: Ctx):
+    """Resolve a single @path reference against Ctx.
+
+    Handles: direct field maps, effects[name=X].stacks/exists,
+    counters[key], team_counters[key], skills[filter].count.
+    """
+    import re
+
+    path = ref
+    if path.startswith("@"):
+        path = path[1:]
+
+    # Direct field map
+    if path in _FORMULA_PATH_MAP:
+        field = _FORMULA_PATH_MAP[path]
+        return getattr(ctx, field, 0)
+
+    # effects[name=X].stacks / effects[name=X].exists
+    m = re.match(r'(self|target)\.effects\[name=([^\]]+)\]\.(\w+)', path)
+    if m:
+        target, name, prop = m.group(1), m.group(2), m.group(3)
+        stacks = ctx.abnormal_stacks_self if target == "self" else ctx.abnormal_stacks_opp
+        val = stacks.get(name, 0)
+        return val > 0 if prop == "exists" else val
+
+    # counters[key]
+    m = re.match(r'(self|target)\.counters\[([^\]]+)\]', path)
+    if m:
+        return ctx.counter_values.get(m.group(2), 0)
+
+    # team_counters[key]
+    m = re.match(r'(?:player\.|opponent\.)?team_counters\[([^\]]+)\]', path)
+    if m:
+        key = m.group(1)
+        if path.startswith("opponent."):
+            return ctx.team_counters_opp.get(key, 0)
+        return ctx.team_counters_own.get(key, 0)
+
+    # skills[element=X].count
+    m = re.match(r'(self|target)\.skills\[element=([^\]]+)\]\.count', path)
+    if m:
+        target, element = m.group(1), m.group(2)
+        elements = ctx.skill_elements_self if target == "self" else ctx.skill_elements_opp
+        return 1 if element in elements else 0
+
+    return 0
+
+
+def _resolve_formula_string(ctx: Ctx, formula: str) -> int | float:
+    """Evaluate a =@ formula string against Ctx.
+
+    Formats:
+      =@path.field        → single reference
+      =@path.a - @path.b  → arithmetic expression
+      =literal            → literal numeric value
+    """
+    import re
+
+    expr = formula[1:]  # strip '='
+
+    # Arithmetic expression: replace @refs with resolved values, then eval
+    if re.search(r'[\+\-\*\/\(\)]', expr):
+        def replace_ref(m):
+            ref_expr = m.group(0)
+            val = _resolve_trait_ref(ref_expr, ctx)
+            return str(val) if val is not None else '0'
+
+        resolved = re.sub(
+            r'@[a-zA-Z_]\w*(?:\.[a-zA-Z_]\w*(?:\[[^\]]*\])?)*',
+            replace_ref, expr,
+        )
+
+        try:
+            return eval(resolved, {"__builtins__": {}}, {
+                "int": int, "float": float, "round": round,
+                "max": max, "min": min, "abs": abs,
+            })
+        except Exception:
+            return 0
+
+    # Single reference
+    return _resolve_trait_ref(expr, ctx)

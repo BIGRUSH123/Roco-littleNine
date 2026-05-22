@@ -45,17 +45,26 @@ _HP_MAX_MAP = {
 
 
 def _resolve_value(ctx: Ctx, effect) -> int | float:
-    """Resolve the numeric value from steps, value literal, or value query."""
+    """Resolve the numeric value from steps, value literal, or value query.
+
+    Supports 'negative' flag — when True, the resolved value is negated.
+    This allows formula strings (=@...) to produce negative values for
+    lose_energy / take_damage effects.
+    """
     # Support both dict and typed access
     if isinstance(effect, dict):
         if "steps" in effect:
-            return resolve(ctx, effect["steps"])
-        return resolve(ctx, effect.get("value", 0))
+            raw = resolve(ctx, effect["steps"])
+            return -float(raw) if effect.get("negative") else raw
+        raw = resolve(ctx, effect.get("value", 0))
+        return -float(raw) if effect.get("negative") else raw
     # Typed ModOp: steps take priority (mirrors dict behavior)
     if hasattr(effect, 'steps') and effect.steps:
-        return resolve(ctx, effect.steps)
+        raw = resolve(ctx, effect.steps)
+        return -float(raw) if getattr(effect, 'negative', False) else raw
     if effect.value is not None:
-        return resolve(ctx, effect.value)
+        raw = resolve(ctx, effect.value)
+        return -float(raw) if getattr(effect, 'negative', False) else raw
     return 0
 
 
@@ -75,13 +84,13 @@ def _metadata(effect) -> dict:
     meta = {}
     if isinstance(effect, dict):
         for key in ("name", "element", "per_element", "skill_filter", "skill_where",
-                     "on_next", "if_type"):
+                     "on_next", "if_type", "source"):
             if key in effect:
                 meta[key] = effect[key]
     else:
         # Typed ModOp
         for key in ("name", "element", "per_element", "skill_filter", "skill_where",
-                     "if_type"):
+                     "if_type", "source"):
             val = getattr(effect, key, None)
             if val is not None:
                 meta[key] = val

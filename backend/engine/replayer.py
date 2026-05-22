@@ -21,8 +21,10 @@ from backend.vm.journal import (
     Escape,
     Exchange,
     Heal,
+    InheritEffectsMutation,
     Interrupt,
     Journal,
+    LivesDelta,
     Lock,
     MarkChange,
     ModifierInjection,
@@ -31,9 +33,13 @@ from backend.vm.journal import (
     Replay,
     Reset,
     Return,
+    ScheduleEntry,
     StatChange,
     Steal,
+    TeamCounterDelta,
     Tick,
+    TraitInteractionMutation,
+    TransformMutation,
     WeatherSet,
 )
 
@@ -111,6 +117,7 @@ class JournalReplayer:
         team: str = "A",
         species_lookup = None,
         self_skill = None,
+        battle = None,
     ):
         self.self = self_sprite
         self.opp = opp_sprite
@@ -119,6 +126,7 @@ class JournalReplayer:
         self.team = team  # "A" or "B"
         self._species_lookup = species_lookup  # callable(number) -> SpeciesStats | None
         self._self_skill = self_skill
+        self._battle = battle  # optional ref for trait-level ops
 
     # ── Main entry ──
 
@@ -183,6 +191,18 @@ class JournalReplayer:
             return self._apply_borrow(m)
         elif cls == "CounterRegister":
             return self._apply_counter_register(m)
+        elif cls == "TeamCounterDelta":
+            return self._apply_team_counter_delta(m)
+        elif cls == "LivesDelta":
+            return self._apply_lives_delta(m)
+        elif cls == "ScheduleEntry":
+            return self._apply_schedule_entry(m)
+        elif cls == "InheritEffectsMutation":
+            return self._apply_inherit_effects_mutation(m)
+        elif cls == "TransformMutation":
+            return self._apply_transform_mutation(m)
+        elif cls == "TraitInteractionMutation":
+            return self._apply_trait_interaction_mutation(m)
 
         return f"Unknown mutation: {cls}"
 
@@ -205,7 +225,7 @@ class JournalReplayer:
             stat_key=m.stat,
             steps=m.steps,
             scope=m.scope,
-            source=m.name or "skill",
+            source=m.source or m.name or "skill",
         )
         sprite.add_effect(effect)
         return f"{sprite.name} {display}"
@@ -277,7 +297,7 @@ class JournalReplayer:
                 stat_key=m.stat,
                 steps=steps,
                 scope=m.scope,
-                source=m.name or "skill",
+                source=m.source or m.name or "skill",
             )
             sprite.add_effect(effect)
 
@@ -302,7 +322,7 @@ class JournalReplayer:
                     stat_key=m.stat,
                     steps=steps,
                     scope=m.scope,
-                    source=m.name or "skill",
+                    source=m.source or m.name or "skill",
                 )
                 sprite.add_effect(effect)
 
@@ -347,10 +367,65 @@ class JournalReplayer:
             return f"{sprite.name} -{actual}E"
 
     def _apply_mark_change(self, m: MarkChange) -> str:
-        team = self.team if m.target_team == "own" else ("B" if self.team == "A" else "A")
-        category = self.globals.classify_mark(m.name)
-        self.globals.apply_mark(team, m.name, category, m.delta)
-        return f"{team}队 {m.name} {m.delta:+d}层"
+        """Apply, dispel, steal, or convert marks."""
+        if m.action == "apply":
+            team = self.team if m.target_team == "own" else ("B" if self.team == "A" else "A")
+            category = self.globals.classify_mark(m.name)
+            self.globals.apply_mark(team, m.name, category, m.delta)
+            return f"{team}队 {m.name} {m.delta:+d}层"
+
+        if m.action == "dispel":
+            team = self.team if m.target_team == "own" else ("B" if self.team == "A" else "A")
+            pos, neg = self.globals.get_marks(team)
+            all_marks = pos + neg
+            count = m.delta or 1
+            for mark in all_marks:
+                if mark.name == m.name and mark.stacks > 0:
+                    removed = min(mark.stacks, count)
+                    mark.stacks -= removed
+                    return f"{self.self.name} 驱散{team}方{m.name}×{removed}"
+            return ""
+
+        if m.action == "steal":
+            opp_team = "B" if self.team == "A" else "A"
+            team = self.team if m.target_team == "own" else opp_team
+            from_team = opp_team if team == self.team else self.team
+            pos, neg = self.globals.get_marks(from_team)
+            all_marks = pos + neg
+            count = m.delta or 1
+            for mark in all_marks:
+                if mark.name == m.name and mark.stacks > 0:
+                    removed = min(mark.stacks, count)
+                    mark.stacks -= removed
+                    category = self.globals.classify_mark(m.name)
+                    self.globals.apply_mark(team, m.name, category, removed)
+                    return f"{self.self.name} 偷取{m.name}×{removed}"
+            return ""
+
+        if m.action == "convert":
+            source_name = m.source_abnormal
+            if not source_name:
+                return ""
+            effects_list = [e for e in self.self.effects
+                            if getattr(e, 'category', '') == 'abnormal'
+                            and getattr(e, 'name', '') == source_name]
+            total_stacks = sum(getattr(e, 'stacks', 0) for e in effects_list)
+            if total_stacks <= 0:
+                return ""
+            marks = max(1, int(total_stacks * m.ratio))
+            consumed = int(marks / m.ratio) if m.ratio > 0 else total_stacks
+            for e in effects_list:
+                remove_stacks = min(getattr(e, 'stacks', 0), consumed)
+                e.stacks -= remove_stacks
+                consumed -= remove_stacks
+                if consumed <= 0:
+                    break
+            team = self.team if m.target_team == "own" else ("B" if self.team == "A" else "A")
+            category = self.globals.classify_mark(m.name)
+            self.globals.apply_mark(team, m.name, category, marks)
+            return f"{self.self.name} {source_name}→{m.name}×{marks}"
+
+        return ""
 
     def _apply_abnormal_change(self, m: AbnormalChange) -> str:
         sprite = self._target_sprite(m.target)
@@ -386,13 +461,12 @@ class JournalReplayer:
     def _apply_dispel(self, m: Dispel) -> str:
         sprite = self._target_sprite(m.target)
         if m.what == "positive":
-            n = sprite.dispel_positive(m.limit if m.limit else -1)
+            n = self._dispel_by_source(sprite, m.source, positive_only=True) if m.source else sprite.dispel_positive(m.limit if m.limit else -1)
             return f"{sprite.name} 驱散 {n} 增益"
         elif m.what == "negative":
-            n = sprite.dispel_negative(m.limit if m.limit else -1)
+            n = self._dispel_by_source(sprite, m.source, positive_only=False) if m.source else sprite.dispel_negative(m.limit if m.limit else -1)
             return f"{sprite.name} 驱散 {n} 减益"
         elif m.what == "abnormal":
-            # 萌化驱散：需同时恢复形态（沿进化链向上）
             if m.name == '萌化' and self._species_lookup is not None and sprite._moe_position > 0:
                 class _MoeBattle:
                     def lookup_species_by_number(_self, number):
@@ -400,7 +474,9 @@ class JournalReplayer:
                 old_name = sprite.name
                 removed = sprite.remove_moe(sprite._moe_position, _MoeBattle())
                 return f"{old_name} 萌化解除 → 变为{sprite.name}(-{removed}层)"
-            # Remove abnormal by name
+            if m.source:
+                n = self._remove_by_source(sprite, m.source, "abnormal")
+                return f"{sprite.name} 驱散异常(source={m.source}) x{n}"
             sprite.remove_effect(m.name, "abnormal")
             return f"{sprite.name} 驱散异常 {m.name}"
         elif m.what == "mark":
@@ -410,6 +486,33 @@ class JournalReplayer:
             )
             return f"驱散印记 {m.name}"
         return ""
+
+    @staticmethod
+    def _dispel_by_source(sprite, source: str, positive_only: bool = True) -> int:
+        """Remove effects from sprite matching the given source. Returns count removed."""
+        removed = 0
+        for e in list(sprite.effects):
+            if getattr(e, 'category', '') == 'stat' and getattr(e, 'source', '') == source:
+                if positive_only and e.steps <= 0:
+                    continue
+                if not positive_only and e.steps >= 0:
+                    continue
+                sprite.effects.remove(e)
+                removed += 1
+        return removed
+
+    @staticmethod
+    def _remove_by_source(sprite, source: str, category: str = '') -> int:
+        """Remove effects matching source and optional category. Returns count removed."""
+        removed = 0
+        for e in list(sprite.effects):
+            if getattr(e, 'source', '') != source:
+                continue
+            if category and getattr(e, 'category', '') != category:
+                continue
+            sprite.effects.remove(e)
+            removed += 1
+        return removed
 
     def _apply_steal(self, m: Steal) -> str:
         # Steal effects/energy/marks from target to self
@@ -537,6 +640,117 @@ class JournalReplayer:
 
     def _apply_borrow(self, m: Borrow) -> str:
         return f"借用技能 from={m.from_skill}"
+
+    def _apply_team_counter_delta(self, m: TeamCounterDelta) -> str:
+        """Write to a team-level counter. Requires battle reference."""
+        if self._battle is None:
+            return ""
+        t = ("B" if self.team == "A" else "A") if m.target == "opp" else self.team
+        self._battle.inc_team_counter(t, m.key, m.delta)
+        return ""
+
+    def _apply_lives_delta(self, m: LivesDelta) -> str:
+        """Modify player lives. Requires battle reference."""
+        if self._battle is None:
+            return ""
+        t = ("B" if self.team == "A" else "A") if m.target_team == "opp" else self.team
+        player = self._battle.get_player(t)
+        if player is None:
+            return ""
+        if m.delta < 0 and player.lives <= 0:
+            return ""
+        player.lives += m.delta
+        label = f"奉献{m.delta}" if m.delta > 0 else f"魔力{m.delta}"
+        return f"{self.self.name} {label}" if self.self else ""
+
+    def _apply_schedule_entry(self, m: ScheduleEntry) -> str:
+        """Register delayed effects. Requires battle reference."""
+        if self._battle is None:
+            return ""
+        self._battle.scheduled_effects.append({
+            'turn': self._battle.turn + m.delay_turns,
+            'phase': m.phase,
+            'effects': m.effects,
+            'source': self.self,
+            'ctx_snapshot': {'team': self.team, 'target': 'self'},
+        })
+        return f"{self.self.name}: 延时效果({m.delay_turns}回合后)" if self.self else ""
+
+    def _apply_inherit_effects_mutation(self, m: InheritEffectsMutation) -> str:
+        """Transfer effects between sprites. Requires battle reference."""
+        if self._battle is None:
+            return ""
+        source_sprite = self.self if m.source_key == "self" else self.opp
+        if source_sprite is None:
+            return ""
+        inherited = [e for e in source_sprite.effects if getattr(e, 'scope', '') == m.scope]
+        if not inherited:
+            return ""
+        if m.via_pending:
+            self._battle.pending_effects.setdefault(self.team, [])
+            self._battle.pending_effects[self.team].extend(inherited)
+            return f"{source_sprite.name}→next({self.team}) 继承{len(inherited)}个效果"
+        else:
+            target_sprite = self.opp if m.target_key == "enemy_new" else self.self
+            if target_sprite is None:
+                return ""
+            for e in inherited:
+                target_sprite.add_effect(e)
+            return f"{source_sprite.name}→{target_sprite.name} 继承{len(inherited)}个效果"
+
+    def _apply_transform_mutation(self, m: TransformMutation) -> str:
+        """Transform a sprite's species. Requires battle reference for species lookup."""
+        if self._battle is None:
+            return ""
+        from backend.common.models import SpeciesStats
+        sprite = self.self
+        new_species = self._battle.lookup_species(m.species)
+        if new_species is None:
+            s = sprite.species
+            new_species = SpeciesStats(
+                name=m.species, form='',
+                hp=s.hp, atk=s.atk, sp_atk=s.sp_atk,
+                def_=s.def_, sp_def=s.sp_def, speed=s.speed,
+                attributes=s.attributes, ability=s.ability,
+            )
+        skill_names = list(m.skills) if m.skills else []
+        new_skills = self._battle.build_skills(skill_names) if skill_names else []
+        if m.reset_hp:
+            sprite.current_hp = sprite.max_hp
+        if m.reset_energy:
+            sprite.energy = getattr(sprite, 'max_energy', 10)
+        return sprite.transform(new_species, new_skills) if hasattr(sprite, 'transform') else f"{sprite.name} → {m.species}"
+
+    def _apply_trait_interaction_mutation(self, m: TraitInteractionMutation) -> str:
+        """Suppress, remove, or copy a trait on a sprite."""
+        target = self.self if m.target in ("sprite_self", "self") else self.opp
+        if target is None:
+            return ""
+        if m.action == 'suppress':
+            target._trait_suppressed = True
+            target._trait_handler = None
+            return f'{target.name} 特性被压制'
+        if m.action == 'remove':
+            target._trait_suppressed = True
+            target._trait_handler = None
+            if m.new_ability:
+                target.species.ability = m.new_ability
+                target._trait_suppressed = False
+                target._trait_handler = None
+                return f'{target.name} 特性变为 {m.new_ability}'
+            return f'{target.name} 特性被移除'
+        if m.action == 'copy':
+            source = self.opp if m.copy_from == "sprite_opp" else self.self
+            if source is None or target is source:
+                return ""
+            source_ability = source.species.ability
+            if not source_ability:
+                return ""
+            target.species.ability = source_ability
+            target._trait_handler = None
+            target._trait_suppressed = False
+            return f'{target.name} 复制特性 → {source_ability}'
+        return ""
 
     def _apply_counter_register(self, m: CounterRegister) -> str:
         if self.registry:

@@ -69,6 +69,8 @@ class ModOp:
     delay: int = 0
     ttl: int = 0
     cooldown: int = 0
+    source: str | None = None       # trait/skill name for replace-mode clearing
+    mutate: bool = False            # True = modify existing effects instead of creating new
     feeds: str = ""
     needs: str = ""
     priority: int = 0
@@ -91,6 +93,9 @@ class MarkOp:
     value: IRValue | None = None
     per_hit: bool = False
     then: tuple[SkillIROp, ...] = ()
+    action: str = "apply"           # "apply" | "dispel" | "steal" | "convert"
+    ratio: float = 1.0              # convert: abnormal→mark conversion ratio
+    target_team: str = "opp"        # for dispel/steal: which team to target
     feeds: str = ""
     needs: str = ""
     priority: int = 0
@@ -125,6 +130,7 @@ class DispelOp:
     name: str | None = None
     limit: int | None = None
     type_limit: int | None = None
+    source: str | None = None       # only dispel effects from this source
     feeds: str = ""
     needs: str = ""
     priority: int = 0
@@ -244,12 +250,79 @@ class CountOp:
     priority: int = 0
 
 
+# ── Trait-level ops (engine-replayed, added Phase C1) ──
+
+@dataclass(frozen=True)
+class TeamCounterWrite:
+    """Write to a team-level counter (e.g. skill element usage count)."""
+    target: str = "own"     # "own" | "opp"
+    key: str = ""           # counter key name
+    delta: int = 1          # +1 or -1
+    feeds: str = ""
+    needs: str = ""
+    priority: int = 0
+
+@dataclass(frozen=True)
+class LivesChange:
+    """Modify player lives (魔力)."""
+    target_team: str = "own"  # "own" | "opp"
+    delta: int = 1            # +1 (奉献) or -1 (魔力消耗)
+    feeds: str = ""
+    needs: str = ""
+    priority: int = 0
+
+@dataclass(frozen=True)
+class Schedule:
+    """Register delayed effects for a future turn."""
+    delay_turns: int
+    phase: str = "start"
+    effects: tuple[SkillIROp, ...] = ()
+    feeds: str = ""
+    needs: str = ""
+    priority: int = 0
+
+@dataclass(frozen=True)
+class InheritEffects:
+    """Transfer effects from one sprite to another on switch."""
+    source: str = "self"          # "self" | "target"
+    inherit_target: str = "enemy_new"  # sprite ref for the receiver
+    scope: str = "battlefield"
+    via_pending: bool = False     # route through battle.pending_effects
+    feeds: str = ""
+    needs: str = ""
+    priority: int = 0
+
+@dataclass(frozen=True)
+class Transform:
+    """Transform a sprite's species and optionally skills."""
+    species: str
+    skills: tuple[str, ...] | None = None  # skill names; None = keep current
+    reset_hp: bool = False
+    reset_energy: bool = False
+    feeds: str = ""
+    needs: str = ""
+    priority: int = 0
+
+@dataclass(frozen=True)
+class TraitInteraction:
+    """Suppress, remove, or copy a trait."""
+    action: str         # "suppress" | "remove" | "copy"
+    target: str         # sprite ref
+    copy_from: str | None = None
+    new_ability: str | None = None
+    feeds: str = ""
+    needs: str = ""
+    priority: int = 0
+
+
 SkillIROp = (
     ModOp | HitOp | MarkOp | AbnormalOp | WeatherOp |
     DispelOp | StealOp | TickOp | DoubleOp | ChargeOp |
     EscapeOp | ReturnOp | LockOp | InterruptOp |
     ExchangeOp | ResetOp | RedirectOp | ReplayOp |
-    BorrowOp | CountOp | WhenBlock
+    BorrowOp | CountOp | WhenBlock |
+    TeamCounterWrite | LivesChange | Schedule |
+    InheritEffects | Transform | TraitInteraction
 )
 
 

@@ -212,6 +212,16 @@ def dispatch_entry(sprite: Sprite, battle: Battle, team: str) -> list[str]:
 
     h = get_trait(sprite)
     events = h.on_entry(sprite, battle, team) if h else []
+
+    # Phase C3 dual-run: register trait Observers in VM engine
+    if h is not None and hasattr(h, 'to_observers'):
+        try:
+            observers = h.to_observers()
+            if observers:
+                battle._vm_engine.registry.register_many(observers)
+        except Exception:
+            pass  # Observer registration failure must not crash battle
+
     if pending:
         events.append(f'{sprite.name} 继承{len(pending)}个离场效果')
     return events
@@ -221,6 +231,14 @@ def dispatch_leave(sprite: Sprite, battle: Battle, team: str,
                    is_faint: bool = False) -> list[str]:
     h = get_trait(sprite)
     events = h.on_leave(sprite, battle, team, is_faint) if h else []
+
+    # Phase C3 dual-run: clear trait Observers on leave
+    if h is not None and hasattr(h, 'name'):
+        try:
+            battle._vm_engine.registry.clear_by_source(h.name)
+        except Exception:
+            pass
+
     # 清除缓存，下次入场重新创建
     sprite._trait_handler = None
     return events

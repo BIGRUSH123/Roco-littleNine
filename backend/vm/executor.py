@@ -27,7 +27,9 @@ from .ir_skill import (
     EscapeOp,
     ExchangeOp,
     HitOp,
+    InheritEffects,
     InterruptOp,
+    LivesChange,
     LockOp,
     MarkOp,
     ModOp,
@@ -35,8 +37,12 @@ from .ir_skill import (
     ReplayOp,
     ResetOp,
     ReturnOp,
+    Schedule,
     StealOp,
+    TeamCounterWrite,
     TickOp,
+    TraitInteraction,
+    Transform,
     WeatherOp,
     WhenBlock,
 )
@@ -63,6 +69,12 @@ from .ops.return_ import op_return
 from .ops.steal import op_steal
 from .ops.tick import op_tick
 from .ops.weather import op_weather
+from .ops.team_counter_write import op_team_counter_write
+from .ops.lives_change import op_lives_change
+from .ops.schedule import op_schedule
+from .ops.inherit_effects import op_inherit_effects
+from .ops.transform import op_transform
+from .ops.trait_interaction import op_trait_interaction
 from .sort import sort_effects
 
 # ── Backward compat: dict dispatch (used when raw dict is passed) ──
@@ -88,6 +100,12 @@ _DICT_DISPATCH = {
     "replay": op_replay,
     "borrow": op_borrow,
     "count": op_count,
+    "team_counter_write": op_team_counter_write,
+    "lives_change": op_lives_change,
+    "schedule": op_schedule,
+    "inherit_effects": op_inherit_effects,
+    "transform": op_transform,
+    "trait_interaction": op_trait_interaction,
 }
 
 
@@ -225,6 +243,18 @@ def process_one(ctx: Ctx, op) -> list[Mutation]:
             return op_borrow(ctx, op)
         case CountOp():
             return op_count(ctx, op)
+        case TeamCounterWrite():
+            return op_team_counter_write(ctx, op)
+        case LivesChange():
+            return op_lives_change(ctx, op)
+        case Schedule():
+            return op_schedule(ctx, op)
+        case InheritEffects():
+            return op_inherit_effects(ctx, op)
+        case Transform():
+            return op_transform(ctx, op)
+        case TraitInteraction():
+            return op_trait_interaction(ctx, op)
         case _:
             return []
 

@@ -519,8 +519,8 @@ class TestParseTriggers:
         trigger = result.ir[0]
         assert len(trigger.pending_effects) == 2
 
-    def test_empty_triggers_produces_error(self, parse_pass):
-        """Trait with no triggers should produce an error."""
+    def test_empty_triggers_produces_empty_compiled_trait(self, parse_pass):
+        """Trait with no triggers (engine-hook trait) should produce empty compiled trait."""
         data = {
             "id": 99999,
             "name": "空特性",
@@ -528,4 +528,6 @@ class TestParseTriggers:
         }
         ctx = _make_ctx(data)
         result = parse_pass.apply(ctx)
-        assert len(result.errors) > 0
+        assert len(result.errors) == 0
+        assert result.compiled is not None
+        assert len(result.compiled.triggers) == 0

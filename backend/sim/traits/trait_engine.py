@@ -491,6 +491,41 @@ class DataDrivenTrait(TraitHandler):
         self._compiled_triggers: dict[str, list[TraitTrigger]] = {}
         if compiled is not None:
             self._process_compiled_triggers(compiled)
+        # Observer cache (lazy, built on first to_observers() call)
+        self._observers: list = None
+
+    def to_observers(self) -> list:
+        """Convert trait triggers to Observer objects (Phase C3 dual-run).
+
+        Returns list of Observer ready for registry.register().
+        Engine-level triggers (battleskill_mut / use_modifiers) are skipped.
+        Result is cached after first call.
+        """
+        if self._observers is not None:
+            return self._observers
+
+        from backend.vm.compiler.trait_to_observer import TraitToObserver
+        converter = TraitToObserver()
+        # Build a JSON-like dict from the stored triggers
+        trait_json = {
+            "triggers": [],
+            "name": self.name,
+        }
+        # Collect triggers that have 'effects' (skip engine-only)
+        for hook_triggers in self._triggers.values():
+            for t in hook_triggers:
+                trait_json["triggers"].append(t)
+        # Also include compiled triggers
+        for hook_triggers in self._compiled_triggers.values():
+            for t in hook_triggers:
+                trait_json["triggers"].append({
+                    "on": t.on,
+                    "condition": t.condition,
+                    "effects": t.effects,
+                })
+
+        self._observers = converter.convert(trait_json, self.name)
+        return self._observers
 
     def _process_triggers(self, triggers: list[dict]) -> None:
         """处理 triggers 列表，展开 aura 定义（方向 2）。
@@ -691,6 +726,9 @@ class DataDrivenTrait(TraitHandler):
         })
 
     def on_faint(self, sprite, killer, battle, team):
+        result = fire_hook_first('on_faint', sprite, killer, battle, team)
+        if result is not None:
+            return result
         return self._fire('faint', {
             'self': sprite, 'killer': killer,
             'battle': battle, 'team': team,

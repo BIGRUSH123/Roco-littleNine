@@ -71,11 +71,11 @@ class BattleMechanicsMixin:
         # Observer: post_leave + post_entry + post_enemy_leave
         ctx_leave = self._make_ctx(old, opp_active, None, None, self.globals, team=team, turn=self.turn)
         ctx_entry = self._make_ctx(new, opp_active, None, None, self.globals, team=team, turn=self.turn)
-        events += self._vm_engine.fire_trigger("post_leave", ctx_leave, old, opp_active, self.globals, team=team)
-        events += self._vm_engine.fire_trigger("post_entry", ctx_entry, new, opp_active, self.globals, team=team)
+        events += self._vm_engine.fire_trigger("post_leave", ctx_leave, old, opp_active, self.globals, team=team, battle=self)
+        events += self._vm_engine.fire_trigger("post_entry", ctx_entry, new, opp_active, self.globals, team=team, battle=self)
         if not opp_active.is_fainted:
             ctx_enemy_leave = self._make_ctx(opp_active, new, None, None, self.globals, team=opp_team, turn=self.turn)
-            events += self._vm_engine.fire_trigger("post_enemy_leave", ctx_enemy_leave, opp_active, new, self.globals, team=opp_team)
+            events += self._vm_engine.fire_trigger("post_enemy_leave", ctx_enemy_leave, opp_active, new, self.globals, team=opp_team, battle=self)
 
         if faint_events is not None:
             self._check_faint_interrupt(team, faint_events)
@@ -101,7 +101,7 @@ class BattleMechanicsMixin:
         # Observer: post_entry
         opp = self.get_opponent(team).active
         ctx_ret = self._make_ctx(sprite, opp, None, None, self.globals, team=team, turn=self.turn)
-        events += self._vm_engine.fire_trigger("post_entry", ctx_ret, sprite, opp, self.globals, team=team)
+        events += self._vm_engine.fire_trigger("post_entry", ctx_ret, sprite, opp, self.globals, team=team, battle=self)
 
         return events
 
@@ -149,11 +149,11 @@ class BattleMechanicsMixin:
         # Observer: post_leave + post_entry + post_enemy_leave
         ctx_ko_leave = self._make_ctx(old, opp_active, None, None, self.globals, team=team, turn=self.turn, target_fainted=True)
         ctx_ko_entry = self._make_ctx(new, opp_active, None, None, self.globals, team=team, turn=self.turn)
-        events += self._vm_engine.fire_trigger("post_leave", ctx_ko_leave, old, opp_active, self.globals, team=team)
-        events += self._vm_engine.fire_trigger("post_entry", ctx_ko_entry, new, opp_active, self.globals, team=team)
+        events += self._vm_engine.fire_trigger("post_leave", ctx_ko_leave, old, opp_active, self.globals, team=team, battle=self)
+        events += self._vm_engine.fire_trigger("post_entry", ctx_ko_entry, new, opp_active, self.globals, team=team, battle=self)
         if not opp_active.is_fainted:
             ctx_ko_enemy = self._make_ctx(opp_active, new, None, None, self.globals, team=opp_team, turn=self.turn)
-            events += self._vm_engine.fire_trigger("post_enemy_leave", ctx_ko_enemy, opp_active, new, self.globals, team=opp_team)
+            events += self._vm_engine.fire_trigger("post_enemy_leave", ctx_ko_enemy, opp_active, new, self.globals, team=opp_team, battle=self)
 
     def _resolve_item(self, team: str) -> str:
         """使用道具，立即应用效果。返回道具名（用于记录）。"""
@@ -260,8 +260,8 @@ class BattleMechanicsMixin:
             opp_esc = self.get_opponent(team).active
             ctx_esc_leave = self._make_ctx(user, opp_esc, None, None, self.globals, team=team, turn=self.turn)
             ctx_esc_entry = self._make_ctx(new_sprite, opp_esc, None, None, self.globals, team=team, turn=self.turn)
-            events += self._vm_engine.fire_trigger("post_leave", ctx_esc_leave, user, opp_esc, self.globals, team=team)
-            events += self._vm_engine.fire_trigger("post_entry", ctx_esc_entry, new_sprite, opp_esc, self.globals, team=team)
+            events += self._vm_engine.fire_trigger("post_leave", ctx_esc_leave, user, opp_esc, self.globals, team=team, battle=self)
+            events += self._vm_engine.fire_trigger("post_entry", ctx_esc_entry, new_sprite, opp_esc, self.globals, team=team, battle=self)
 
     def _handle_escape_inherit(self, team: str, user: 'Sprite', events: list[str]) -> None:
         """脱离 + 下个入场精灵继承增益。"""
@@ -288,8 +288,8 @@ class BattleMechanicsMixin:
             opp_inh = self.get_opponent(team).active
             ctx_inh_leave = self._make_ctx(old, opp_inh, None, None, self.globals, team=team, turn=self.turn)
             ctx_inh_entry = self._make_ctx(new_sprite, opp_inh, None, None, self.globals, team=team, turn=self.turn)
-            events += self._vm_engine.fire_trigger("post_leave", ctx_inh_leave, old, opp_inh, self.globals, team=team)
-            events += self._vm_engine.fire_trigger("post_entry", ctx_inh_entry, new_sprite, opp_inh, self.globals, team=team)
+            events += self._vm_engine.fire_trigger("post_leave", ctx_inh_leave, old, opp_inh, self.globals, team=team, battle=self)
+            events += self._vm_engine.fire_trigger("post_entry", ctx_inh_entry, new_sprite, opp_inh, self.globals, team=team, battle=self)
 
     def _handle_borrow_skill(self, team: str, user: 'Sprite', skill_index: int, events: list[str]) -> None:
         """借用：从替补精灵随机借用一个技能替换当前技能槽，回合结束时还原。"""

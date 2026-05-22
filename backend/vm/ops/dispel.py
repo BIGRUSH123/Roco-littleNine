@@ -29,4 +29,5 @@ def op_dispel(ctx: Ctx, effect) -> list[Mutation]:
         name=_get(effect, "name"),
         limit=_get(effect, "limit"),
         type_limit=_get(effect, "type_limit"),
+        source=_get(effect, "source"),
     )]

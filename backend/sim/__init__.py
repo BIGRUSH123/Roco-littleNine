@@ -45,6 +45,7 @@ from .sprite import Sprite
 
 # 导入 trait 子模块以触发 @register 装饰器（放在最后，避免循环导入）
 from .traits import _complex  # noqa: E402, F401
+from backend.engine import hooks as _engine_hooks  # noqa: E402, F401  Phase C4: engine-level hooks
 from .traits.trait_engine import register_data_traits
 
 _data_dir = os.path.join(os.path.dirname(__file__), '..', '..', 'data', 'traits')

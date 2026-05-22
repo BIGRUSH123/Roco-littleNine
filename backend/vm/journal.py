@@ -17,6 +17,7 @@ class StatChange:
     scope: str = "battlefield"  # "battlefield" | "persistent" | "permanent"
     # Optional metadata for engine-side resolution
     name: str | None = None           # exact skill name filter
+    source: str | None = None         # trait/skill name for replace-mode clearing
     element: str | None = None        # element filter ("火", "each", etc.)
     per_element: int | None = None    # max per element when element="each"
     on_next: bool = False             # defer to next matching skill use
@@ -40,6 +41,7 @@ class ModifierInjection:
     mode: str = "set" # "set" | "add" | "multiply"
     # Optional metadata for engine-side resolution
     name: str | None = None           # exact skill name or devotion name
+    source: str | None = None         # trait/skill name for replace-mode clearing
     element: str | None = None        # element filter ("火", "each", etc.)
     per_element: int | None = None    # max per element when element="each"
     on_next: bool = False             # defer to next matching skill use
@@ -78,6 +80,9 @@ class MarkChange:
     target_team: str  # "own" | "opp"
     name: str         # mark name
     delta: int        # positive = add stacks, negative = remove
+    action: str = "apply"   # "apply" | "dispel" | "steal" | "convert"
+    ratio: float = 1.0      # convert: abnormal→mark conversion ratio
+    source_abnormal: str | None = None  # convert: source abnormal name
 
 
 @dataclass(frozen=True)
@@ -104,6 +109,7 @@ class Dispel:
     name: str | None = None
     limit: int | None = None
     type_limit: int | None = None
+    source: str | None = None  # only dispel effects from this source
 
 
 @dataclass(frozen=True)
@@ -198,6 +204,56 @@ class Borrow:
 
 
 @dataclass(frozen=True)
+class TeamCounterDelta:
+    """Write to a team-level counter."""
+    target: str        # "own" | "opp"
+    key: str           # counter key name
+    delta: int         # +1 or -1
+
+
+@dataclass(frozen=True)
+class LivesDelta:
+    """Modify player lives (魔力)."""
+    target_team: str   # "own" | "opp"
+    delta: int         # +1 (奉献) or -1 (魔力消耗)
+
+
+@dataclass(frozen=True)
+class ScheduleEntry:
+    """Register delayed effects for a future turn."""
+    delay_turns: int
+    phase: str         # "start" | "end"
+    effects: list      # IR effects to execute at the delayed time
+
+
+@dataclass(frozen=True)
+class InheritEffectsMutation:
+    """Transfer effects between sprites on switch."""
+    source_key: str             # "self" | "target"
+    target_key: str             # "enemy_new" | sprite_ref
+    scope: str                  # "battlefield" | "persistent"
+    via_pending: bool = False   # route through battle.pending_effects
+
+
+@dataclass(frozen=True)
+class TransformMutation:
+    """Transform a sprite's species and optionally skills."""
+    species: str
+    skills: tuple[str, ...] | None = None
+    reset_hp: bool = False
+    reset_energy: bool = False
+
+
+@dataclass(frozen=True)
+class TraitInteractionMutation:
+    """Suppress, remove, or copy a trait."""
+    action: str             # "suppress" | "remove" | "copy"
+    target: str             # sprite ref
+    copy_from: str | None = None
+    new_ability: str | None = None
+
+
+@dataclass(frozen=True)
 class CounterRegister:
     """Register a persistent counter/watcher on the skill."""
     name: str | None
@@ -212,6 +268,8 @@ Mutation = Union[
     MarkChange, AbnormalChange, WeatherSet, Dispel, Steal, Tick,
     Double, Charge, Escape, Return, Lock, Interrupt, Exchange,
     Reset, Redirect, Replay, Borrow, CounterRegister,
+    TeamCounterDelta, LivesDelta, ScheduleEntry,
+    InheritEffectsMutation, TransformMutation, TraitInteractionMutation,
 ]
 
 # Journal is an ordered list of mutations

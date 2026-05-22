@@ -21,17 +21,33 @@ from .resolve import resolve
 
 
 def compare_op(a, op: str, b) -> bool:
-    """Generic comparison: lt / le / eq / ge / gt."""
+    """Generic comparison with trait-system alias support."""
+    # Standard comparison
     if op == "lt":
         return a < b
-    if op == "le":
+    if op in ("le", "lte"):
         return a <= b
     if op == "eq":
         return a == b
-    if op == "ge":
+    if op in ("ne", "neq"):
+        return a != b
+    if op in ("ge", "gte"):
         return a >= b
     if op == "gt":
         return a > b
+    # Collection / string membership
+    if op == "contains":
+        if hasattr(a, "__contains__"):
+            return b in a
+        return str(b) in str(a)
+    if op == "in":
+        if hasattr(b, "__contains__"):
+            return a in b
+        return str(a) in str(b)
+    if op == "not_in":
+        if hasattr(b, "__contains__"):
+            return a not in b
+        return str(a) not in str(b)
     return False
 
 
@@ -256,6 +272,9 @@ COND_EVAL = {
 
     # ── have sub-dispatch ──
     "have": lambda ctx, cond: HAVE_EVAL[cond["what"]](ctx, cond),
+
+    # ── Trait path bridge (Phase C3) ──
+    "trait_path": lambda ctx, cond: _eval_trait_path(ctx, cond),
 }
 
 
@@ -293,6 +312,157 @@ def eval_one(ctx: Ctx, cond) -> bool:
         return COND_EVAL[key](ctx, cond)
 
     return False
+
+
+# ── Trait path bridge (Phase C3) ──
+
+# Map common trait path roots to Ctx fields
+_TRAIT_PATH_MAP: dict[str, str] = {
+    # Self
+    "self.energy": "energy_self",
+    "self.energy_self": "energy_self",
+    "self.hp": "hp_self",
+    "self.hp_ratio": "hp_self_ratio",
+    "self.hp_self_ratio": "hp_self_ratio",
+    "self.max_hp": "hp_self_max",
+    "self.is_charging": "is_charging_self",
+    "self._charging": "is_charging_self",
+    "self.first_action": "first_action_self",
+    "first_action": "first_action_self",
+    "self.charged": "charged_self",
+    "self.positive_count": "positive_count_self",
+    "self.abnormal_count": "abnormal_count_self",
+    "self.fainted": "self_koed",
+    "self.just_entered": "just_entered",
+    "self.damage_reduction": "damage_reduction_self",
+    # Target / opponent
+    "target.energy": "energy_opp",
+    "target.hp": "hp_opp",
+    "target.hp_ratio": "hp_opp_ratio",
+    "target.max_hp": "hp_opp_max",
+    "target.positive_count": "positive_count_opp",
+    "target.abnormal_count": "abnormal_count_opp",
+    "target.fainted": "self_koed",
+    # Skill
+    "skill.power": "power_self",
+    "skill.skill_type": "skill_type_self",
+    "skill.element": "element_self",
+    "skill.energy_cost": "energy_cost_self",
+    "skill.combo": "combo_self",
+    "opponent_skill.power": "power_opp",
+    "use.combo": "combo_self",
+    "use.is_first": "is_first",
+    # Battle / weather
+    "battle.globals.weather": "weather",
+    # Team aggregates
+    "player_fainted_count": "fainted_own",
+    "opponent_fainted_count": "fainted_opp",
+    # Event-specific (set by engine before trigger fire)
+    "effect_name": "abnormal_applied_name",
+    "effect.name": "abnormal_applied_name",
+}
+
+
+def _resolve_trait_path_value(ctx: Ctx, path: str):
+    """Resolve a trait path expression to a value from Ctx.
+
+    Handles: direct field maps, computed paths (skill.is_attack etc.),
+    effects[name=X], counters[key], skills[filter].count, team_counters[key].
+    """
+    import re
+
+    # Direct field map
+    if path in _TRAIT_PATH_MAP:
+        return getattr(ctx, _TRAIT_PATH_MAP[path])
+
+    # Computed paths
+    if path == "skill.is_attack":
+        return ctx.skill_type_self in ("物攻", "魔攻", "动态攻击")
+    if path == "skill.is_defense":
+        return ctx.skill_type_self in ("防御",)
+    if path == "skill.is_status":
+        return ctx.skill_type_self in ("状态", "变化")
+    if path == "target.is_fainted":
+        return ctx.target_fainted
+    if path == "is_faint":
+        return ctx.self_koed
+    if path == "self.energy_cost_total":
+        return ctx.skills_energy_sum_self
+    if path == "target_bloodline":
+        return getattr(ctx, "bloodline_opp", "")
+    if path == "skill":
+        return getattr(ctx, "skill_name_self", "")
+    if path == "type_mult":
+        return getattr(ctx, "type_mult", 1.0)
+    if path == "opponent.lives":
+        return getattr(ctx, "lives_opp", 5)
+    if path == "self._migration_cycle":
+        return ctx.counter_values.get("_migration_cycle", 0)
+    if path == "self._burst_extended_once":
+        return ctx.counter_values.get("_burst_extended_once", False)
+    if path == "team_elements":
+        return list(ctx.skill_elements_self) if ctx.skill_elements_self else []
+    if path == "effect.is_stat":
+        return getattr(ctx, "effect_is_stat", False)
+
+    # effects[name=X].exists / effects[name=X].stacks
+    m = re.match(r'(self|target)\.effects\[name=([^\]]+)\]\.(\w+)', path)
+    if m:
+        target, name, prop = m.group(1), m.group(2), m.group(3)
+        stacks = ctx.abnormal_stacks_self if target == "self" else ctx.abnormal_stacks_opp
+        val = stacks.get(name, 0)
+        if prop == "exists":
+            return val > 0
+        if prop == "stacks":
+            return val
+        return 0
+
+    # counters[key]
+    m = re.match(r'(self|target)\.counters\[([^\]]+)\]', path)
+    if m:
+        key = m.group(2)
+        return ctx.counter_values.get(key, 0)
+
+    # skills[element=X].count / skills[is_attack=True].count
+    m = re.match(r'(self|target)\.skills\[([^\]]+)\]\.(\w+)', path)
+    if m:
+        target, filter_str, prop = m.group(1), m.group(2), m.group(3)
+        elements = ctx.skill_elements_self if target == "self" else ctx.skill_elements_opp
+        filters = {}
+        for part in filter_str.split(','):
+            fm = re.match(r'(\w+)=(.+)', part.strip())
+            if fm:
+                k, v = fm.group(1), fm.group(2)
+                filters[k] = v
+        if "element" in filters:
+            count = 1 if filters["element"] in elements else 0
+            if prop == "count":
+                return count
+        return 0
+
+    # team_counters[key] / player.team_counters[key] / opponent.team_counters[key]
+    m = re.match(r'(?:player\.|opponent\.)?team_counters\[([^\]]+)\]', path)
+    if m:
+        key = m.group(1)
+        # Default to own team
+        if path.startswith("opponent."):
+            return ctx.team_counters_opp.get(key, 0)
+        return ctx.team_counters_own.get(key, 0)
+
+    # Fallback: try attribute access on ctx
+    return getattr(ctx, path, None)
+
+
+def _eval_trait_path(ctx: Ctx, cond: dict) -> bool:
+    """Evaluate a trait-style path condition against Ctx.
+
+    cond format: {"cond": "trait_path", "path": "...", "op": "...", "value": ...}
+    """
+    path = cond.get("path", "")
+    op = cond.get("op", "eq")
+    expected = cond.get("value")
+    actual = _resolve_trait_path_value(ctx, path)
+    return compare_op(actual, op, expected)
 
 
 def _eval_dict(ctx: Ctx, cond: dict) -> bool:

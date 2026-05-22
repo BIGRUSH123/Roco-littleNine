@@ -1,76 +1,19 @@
-﻿"""backend/sim/traits/_complex.py — Complex 级特性（跨精灵/多步/战场光环）
+"""backend/sim/traits/_complex.py — Complex 级特性（需要 Python 逻辑的特性）
 
-需要 battle 级状态追踪（pre-entry accumulator / pending effects / aura）。
+Phase C4: 9 个 pass-through 特性已移至 JSON + engine/hooks/。
+保留 11 个需要复杂战斗逻辑的特性类。
 """
 
-from backend.common.skill_trait_ids import (
-    TRAIT_吟游之弦,
-    TRAIT_多人宿舍,
-    TRAIT_守望星,
-    TRAIT_星地善良,
-    TRAIT_机械变式,
-)
 from backend.sim.battle import Battle
 from backend.sim.battleskill import BattleSkill, SkillUse
 from backend.sim.sprite import Sprite, StatusEffect
 
 from . import TraitHandler, register
 
-# ═══════════════════════════════════════════════════════════════
-# on_leave → next entry buff（离场后，下个入场精灵获得增益）
-# ═══════════════════════════════════════════════════════════════
 
-# ═══════════════════════════════════════════════════════════════
-# Enemy-leave reaction（敌方离场时触发）
-# ═══════════════════════════════════════════════════════════════
-
-# ═══════════════════════════════════════════════════════════════
-# Pre-entry accumulators（入场前累积计数 → 入场时一次性消费）
-# ═══════════════════════════════════════════════════════════════
-
-# ═══════════════════════════════════════════════════════════════
-# Aura traits（在场时持续生效的战场光环）
-# ═══════════════════════════════════════════════════════════════
-
-@register("吟游之弦")
-class BardicStrings(TraitHandler):
-    """赋予的印记不替换其他印记，同时生效。"""
-    # 实现在 GlobalEffects.apply_mark: 若 user 有此特性 → 同名叠加/异名共存
-
-
-@register("多人宿舍")
-class SharedDorm(TraitHandler):
-    """能量可以超过能量上限（10→15）。"""
-    # 实现在 Sprite.max_energy 属性中
-
-
-@register("无忧无虑")
-class Carefree(TraitHandler):
-    """萌化层数不受限制。"""
-    # 当前系统无萌化层数上限，默认已生效
-
-
-# ═══════════════════════════════════════════════════════════════
-# Conditional damage resistance（条件减伤）
-# ═══════════════════════════════════════════════════════════════
-
-# ═══════════════════════════════════════════════════════════════
-# KO / Faint 特殊效果
-# ═══════════════════════════════════════════════════════════════
-
-@register("不朽")
-class Immortal(TraitHandler):
-    """力竭3回合后复活。"""
-
-    def on_faint(self, sprite: Sprite, killer: Sprite | None,
-                 battle: Battle, team: str) -> list[str]:
-        sprite._faint_turn = battle.turn
-        return [f'{sprite.name} 不朽: 第{battle.turn}回合力竭, 3回合后复活']
-
-
-# ═══════════════════════════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════════════
 # 技能槽位限制
-# ═══════════════════════════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════════════
 
 @register("宝剑王牌")
 class SwordAce(TraitHandler):
@@ -94,21 +37,9 @@ class UprightSword(TraitHandler):
         return [f'{sprite.name} 正位宝剑: 仅1号位可用']
 
 
-# ═══════════════════════════════════════════════════════════════
-# Other conditional/passive traits
-# ═══════════════════════════════════════════════════════════════
-
-@register("星地善良")
-class StargroundKind(TraitHandler):
-    """回合结束时若场上己方精灵能量=0，自己立即替换之。"""
-    # 实现在 Battle._phase_turn_end 中的 bench 扫描逻辑
-    pass
-
-
-@register("对流")
-class Convection(TraitHandler):
-    """自己的能耗增加变为降低；降低变为增加。（由 engine 在能量计算和 energy_cost_increment 处统一反转）"""
-
+# ═══════════════════════════════════════════════════════════════════
+# Conditional / modifier traits
+# ═══════════════════════════════════════════════════════════════════
 
 @register("倾轧")
 class Crush(TraitHandler):
@@ -150,9 +81,9 @@ class WorkLifeBalance(TraitHandler):
             return [f'{sprite.name} 张弛有度: 平日双防+40%']
 
 
-# ═══════════════════════════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════════════
 # 裂口组 / 复杂状态转换
-# ═══════════════════════════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════════════
 
 @register("腾挪")
 class EvasiveManeuver(TraitHandler):
@@ -214,11 +145,9 @@ def _try_transform(user: Sprite, battle: Battle, team: str, trait_name: str) -> 
     return events
 
 
-@register("契约的形状")
-class ContractShape(TraitHandler):
-    """根据捕捉所用的咕噜球，入场时获得不同效果。"""
-    pass
-
+# ═══════════════════════════════════════════════════════════════════
+# Bloodline / resource / damage traits
+# ═══════════════════════════════════════════════════════════════════
 
 @register("稀兽花宝")
 class RareBeastFlower(TraitHandler):
@@ -238,19 +167,6 @@ class RareBeastFlower(TraitHandler):
         return [f'{sprite.name} 稀兽花宝({sprite.bloodline}): 获得血脉效果']
 
 
-@register("守望星")
-class Starguard(TraitHandler):
-    """触发星陨时消耗一半层数，仍造成满层伤害。"""
-    # 实现在 GlobalEffects.consume_starfall_stacks: 若 user 有此特性 → 消耗减半
-
-
-@register("石头大餐")
-class StoneFeast(TraitHandler):
-    """能量不足时消耗5%生命代替1能量。"""
-
-    def on_energy_short(self, sprite: Sprite, cost: int,
-                         battle: Battle, team: str) -> int:
-        return round(sprite.max_hp * 0.05 * cost)
 
 
 @register("系统发育")
@@ -272,18 +188,6 @@ class Phylogeny(TraitHandler):
         return [f'{sprite.name} 系统发育: {target.name} +{gained}E']
 
 
-@register("嫉妒")
-class Jealousy(TraitHandler):
-    """蓄力状态下可使用任一携带技能。"""
-    # agent 已处理：蓄力中 + 嫉妒 trait → 跳过 charged_skill_index 强制选择
-
-
-@register("机械变式")
-class MechanicalVariation(TraitHandler):
-    """技能每回合位置变化时，该技能能耗-1。"""
-    # 实现在 Battle._phase_turn_start 传动后检查中
-
-
 @register("刺肤")
 class ThornSkin(TraitHandler):
     """每受1次攻击，对攻击者造成50威力物理伤害。"""
@@ -297,9 +201,9 @@ class ThornSkin(TraitHandler):
         return [f'{target.name} 刺肤: 反伤{attacker.name}-{dealt}HP']
 
 
-# ═══════════════════════════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════════════
 # on_take_damage — 受伤后触发（条件判断）
-# ═══════════════════════════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════════════
 
 @register("嫁祸")
 class Scapegoat(TraitHandler):
@@ -324,96 +228,9 @@ class Scapegoat(TraitHandler):
         return []
 
 
-# ═══════════════════════════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════════════
 # on_fatal_damage — 致命伤害前触发
-# ═══════════════════════════════════════════════════════════════
-
-@register("惊吓")
-class Fright(TraitHandler):
-    """能量=0的精灵无法对自己造成伤害。"""
-
-    def on_fatal_damage(self, sprite: Sprite, damage: int,
-                        battle: Battle, team: str) -> bool:
-        opp_team = 'B' if team == 'A' else 'A'
-        attacker = battle.get_opponent(team).active
-        return attacker.energy == 0
+# ═══════════════════════════════════════════════════════════════════
 
 
-@register("逐魂鸟")
-class SoulChaser(TraitHandler):
-    """能耗<=1的攻击技能无法对自己造成伤害。"""
-
-    def on_fatal_damage(self, sprite: Sprite, damage: int,
-                        battle: Battle, team: str) -> bool:
-        return False  # L2级访问；由 _execute_single_action 处理
-
-
-# ═══════════════════════════════════════════════════════════════
-# Layer 3b: Hook 注册回调（替代硬编码 trait 名检查）
-# ═══════════════════════════════════════════════════════════════
-
-from backend.sim.traits.trait_engine import register_hook
-
-
-def _bard_before_apply_mark(team, name, category, stacks, user):
-    """吟游之弦: 印记共存模式。"""
-    if user is None:
-        return None
-    from backend.sim.traits import get_trait
-    h = get_trait(user)
-    return 'coexist' if (h and h.trait_id == TRAIT_吟游之弦) else None
-
-register_hook('before_apply_mark', _bard_before_apply_mark, '吟游之弦')
-
-
-def _dorm_max_energy(sprite):
-    """多人宿舍: 能量上限 10→15。"""
-    from backend.sim.traits import get_trait
-    h = get_trait(sprite)
-    return 15 if (h and h.trait_id == TRAIT_多人宿舍) else None
-
-register_hook('max_energy_override', _dorm_max_energy, '多人宿舍')
-
-
-def _starguard_consume_starfall(team, amount, sprite, starfall_mark):
-    """守望星: 星陨消耗减半。"""
-    if sprite is None:
-        return None
-    from backend.sim.traits import get_trait
-    h = get_trait(sprite)
-    return max(1, amount // 2) if (h and h.trait_id == TRAIT_守望星) else None
-
-register_hook('before_consume_starfall', _starguard_consume_starfall, '守望星')
-
-
-def _starground_bench_check(battle, team, active, player):
-    """星地善良: 己方能量=0时主动替换上场。"""
-    if active.is_fainted or active.energy > 0:
-        return None
-    for i, bench in enumerate(player.team):
-        if i == player.active_index or bench.is_fainted:
-            continue
-        from backend.sim.traits import get_trait
-        h = get_trait(bench)
-        if h and h.trait_id == TRAIT_星地善良:
-            return (i, '星地善良')
-    return None
-
-register_hook('turn_end_bench_check', _starground_bench_check, '星地善良')
-
-
-def _mechvar_after_transmission(sprite, prev, battle, team):
-    """机械变式: 传动后技能位置变化 → 能耗-1（仅限拥有此特性的精灵）。"""
-    from . import get_trait
-    trait = get_trait(sprite)
-    if trait is None or trait.trait_id != TRAIT_机械变式:
-        return None
-    events = []
-    for i, bs in enumerate(sprite.skills):
-        if i < len(prev) and bs.name != prev[i]:
-            bs.base.energy_cost = max(0, bs.base.energy_cost - 1)
-            events.append(f'{sprite.name} 机械变式: {bs.name} 能耗-1(传动位移)')
-    return events if events else None
-
-register_hook('after_transmission', _mechvar_after_transmission, '机械变式')
 

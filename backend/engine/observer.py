@@ -132,6 +132,12 @@ class ObserverRegistry:
         self._observers = [o for o in self._observers if o.scope != scope]
         return before - len(self._observers)
 
+    def clear_by_source(self, source: str) -> int:
+        """Remove all observers from a given source (trait name). Returns count removed."""
+        before = len(self._observers)
+        self._observers = [o for o in self._observers if o.source != source]
+        return before - len(self._observers)
+
     def clear_all(self) -> None:
         self._observers.clear()
 

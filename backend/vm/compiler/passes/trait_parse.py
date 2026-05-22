@@ -9,6 +9,7 @@ from backend.vm.ir_trait import (
     ActionModifierOp,
     AndCond,
     BattleSkillMutOp,
+    CompiledTrait,
     FnCond,
     InheritEffectsOp,
     LivesOp,
@@ -72,16 +73,18 @@ class TraitParsePass:
 
         triggers_raw = data.get("triggers", [])
         if not triggers_raw:
-            # Check if this is a metadata file (no name, no triggers)
             name = data.get("name", "")
-            if not name and not triggers_raw:
+            if not name:
                 # Skip silently — likely _ids.json or similar index file
                 return ctx
-            ctx.errors.append(CompileError(
-                op_index=0,
-                message=f"Trait '{data.get('name', '?')}' has no triggers",
-                field="triggers",
-            ))
+            # Allow empty triggers (Phase C4: engine-hook traits with no JSON triggers)
+            # Produce an empty compiled trait
+            ctx.compiled = CompiledTrait(
+                name=name,
+                triggers=(),
+                id=data.get("id", 0),
+                description=data.get("description", ""),
+            )
             return ctx
 
         for i, trigger_dict in enumerate(triggers_raw):
