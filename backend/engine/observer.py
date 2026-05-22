@@ -3,12 +3,17 @@
 Observers are registered by battle/trait setup and evaluated after each
 relevant event (skill use, damage, KO, switch, etc.). Each observer has
 a condition, a then-block of effects, and a scope that controls lifetime.
+
+Trigger filtering: listen triggers are inferred from the condition type
+via infer_triggers(). Only observers whose listen set contains the current
+trigger are evaluated. An empty listen set means "fire on all triggers"
+(backward compat / unknown condition types).
 """
 
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
-from backend.vm.cond import eval_one
+from backend.vm.cond import eval_one, infer_triggers
 from backend.vm.ctx import Ctx
 from backend.vm.executor import process_effects
 from backend.vm.journal import Mutation
@@ -50,6 +55,7 @@ class Observer:
     scope: str = "persistent" # "battlefield" | "persistent" | "permanent"
     name: str = ""            # Optional identifier
     source: str = ""          # Where this observer came from (skill/trait name)
+    listen: frozenset = field(default_factory=frozenset)  # Trigger points to evaluate on
 
     def is_active(self) -> bool:
         """Permanent observers never deactivate; others may be cleared."""
@@ -74,12 +80,16 @@ class ObserverRegistry:
         self._observers.extend(observers)
 
     def register_from_counter(self, counter) -> None:
-        """Register an observer from a CounterRegister mutation."""
+        """Register an observer from a CounterRegister mutation.
+
+        Auto-infers listen triggers from the condition type.
+        """
         self._observers.append(Observer(
             cond=counter.cond,
             then=counter.then,
             scope=counter.scope,
             name=counter.name or "",
+            listen=infer_triggers(counter.cond),
         ))
 
     # ── Firing ──
@@ -88,7 +98,8 @@ class ObserverRegistry:
              process_fn: Callable = None) -> list[Mutation]:
         """Evaluate all observers for a given trigger point.
 
-        Only observers whose condition evaluates True under the given Ctx
+        Only observers whose listen set is empty (backward compat) or contains
+        the current trigger are evaluated. Those whose condition evaluates True
         will have their 'then' effects processed.
 
         Args:
@@ -106,6 +117,10 @@ class ObserverRegistry:
         for obs in self._observers:
             if not obs.is_active():
                 continue
+            # Skip if observer has explicit listen triggers and this trigger
+            # isn't one of them (empty listen = fire on all, backward compat)
+            if obs.listen and trigger not in obs.listen:
+                continue
             try:
                 if eval_one(ctx, obs.cond):
                     result = process_fn(ctx, obs.then)
@@ -122,7 +137,9 @@ class ObserverRegistry:
         Useful when the engine wants to inspect matches before processing.
         """
         return [obs for obs in self._observers
-                if obs.is_active() and eval_one(ctx, obs.cond)]
+                if obs.is_active()
+                and (not obs.listen or trigger in obs.listen)
+                and eval_one(ctx, obs.cond)]
 
     # ── Lifecycle ──
 

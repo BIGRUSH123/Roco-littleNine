@@ -754,6 +754,7 @@ class JournalReplayer:
 
     def _apply_counter_register(self, m: CounterRegister) -> str:
         if self.registry:
+            from backend.vm.cond import infer_triggers
             from .observer import Observer
             self.registry.register(Observer(
                 cond=m.cond,
@@ -761,6 +762,7 @@ class JournalReplayer:
                 scope=m.scope,
                 name=m.name or "",
                 source="counter",
+                listen=infer_triggers(m.cond),
             ))
             # Suppress unnamed counters — they are internal VM mechanics
             # like damage accumulation, not player-visible effects.

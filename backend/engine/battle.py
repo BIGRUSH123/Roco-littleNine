@@ -325,6 +325,7 @@ class BattleVMEngine:
 
     def register_counter(self, mutation: CounterRegister) -> None:
         """Register a persistent counter from a CounterRegister mutation."""
+        from backend.vm.cond import infer_triggers
         from .observer import Observer
         self.registry.register(Observer(
             cond=mutation.cond,
@@ -332,6 +333,7 @@ class BattleVMEngine:
             scope=mutation.scope,
             name=mutation.name or "",
             source="counter",
+            listen=infer_triggers(mutation.cond),
         ))
 
     def _register_counters_from_journal(self, journal: Journal) -> None:

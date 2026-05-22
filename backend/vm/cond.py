@@ -138,7 +138,116 @@ def _skill_use_matches(ctx: Ctx, cond: dict) -> bool:
     if "tag" in cond:
         if ctx.skill_tag_self != cond["tag"]:
             return False
+    # energy_cost filter
+    if "energy_cost" in cond:
+        if ctx.energy_cost_self != cond["energy_cost"]:
+            return False
     return True
+
+
+# ── Condition → Trigger point inference ──
+# Maps each condition type to the trigger point(s) where it should be
+# evaluated. Used to auto-derive Observer.listen from condition trees.
+
+CONDITION_TRIGGERS: dict[str, frozenset[str]] = {
+    # Skill pipeline
+    "skill_use":               frozenset({"post_skill"}),
+    "counter_succeeded":       frozenset({"post_counter"}),
+    "self_was_countered":      frozenset({"post_skill"}),
+    "prev_counter_succeeded":  frozenset({"post_counter"}),
+    "charged":                 frozenset({"post_skill", "turn_end"}),
+    "is_charging":             frozenset({"post_skill", "turn_end"}),
+    "burst":                   frozenset({"post_skill"}),
+    "first_action":            frozenset({"post_skill"}),
+    "opp_is_attack":           frozenset({"post_skill"}),
+    "prev_skill_is":           frozenset({"post_skill"}),
+    "is_first":                frozenset({"post_skill"}),
+    "is_second":               frozenset({"post_skill"}),
+    "skill_at":                frozenset({"post_skill"}),
+    "skill_position_changed":  frozenset({"post_skill"}),
+    "energy_depleted":         frozenset({"post_skill", "post_energy_change"}),
+    # KO / Damage
+    "on_ko":                   frozenset({"post_ko"}),
+    "on_self_ko":              frozenset({"post_ko"}),
+    "on_damage_taken":         frozenset({"post_damage"}),
+    "prev_damage_taken":       frozenset({"post_damage"}),
+    # HP / Energy thresholds
+    "hp_below":                frozenset({"post_damage", "post_entry", "post_heal"}),
+    "energy_le":               frozenset({"post_skill", "post_energy_change", "post_entry"}),
+    "energy_eq":               frozenset({"post_skill", "post_energy_change"}),
+    # Weather
+    "weather_is":              frozenset({"post_skill", "post_entry", "turn_end"}),
+    # Switch
+    "opp_switched":            frozenset({"post_switch"}),
+    "self_switched":           frozenset({"post_switch"}),
+    # Entry
+    "sprite_entered":          frozenset({"post_entry"}),
+    "have_skill_of":           frozenset({"post_entry", "post_skill"}),
+    # Abnormal / state change events
+    "on_abnormal_tick":        frozenset({"post_abnormal_tick"}),
+    "on_abnormal_changed":     frozenset({"post_abnormal_change"}),
+    "on_abnormal_applied":     frozenset({"post_abnormal_apply"}),
+    "on_skills_energy_changed": frozenset({"post_energy_change"}),
+    "on_positive_changed":     frozenset({"post_positive_change"}),
+    "on_energy_changed":       frozenset({"post_energy_change"}),
+    # Turn boundaries
+    "turn_end":                frozenset({"turn_end"}),
+    # Devotion
+    "devotion_triggered":      frozenset({"post_skill"}),
+    # Have sub-dispatch
+    "have":                    frozenset({"post_skill", "post_entry",
+                                          "post_abnormal_change", "post_positive_change"}),
+}
+
+
+def infer_triggers(cond) -> frozenset[str]:
+    """Walk a condition tree and return the set of trigger points it should listen on.
+
+    For compound conditions:
+      - or:  union (any sub-condition could independently match → check at all)
+      - and: union (check combined condition at any trigger a sub-condition cares
+               about; the other sub-conditions are evaluated as state checks)
+      - not: triggers of inner condition (negation doesn't change when to check)
+
+    Returns empty frozenset for unknown/unmappable conditions (these fire on
+    ALL triggers as a fallback).
+    """
+    # Typed SkillCondition
+    if isinstance(cond, CondExpr):
+        return CONDITION_TRIGGERS.get(cond.cond, frozenset())
+
+    if isinstance(cond, AndCond):
+        result = frozenset()
+        for c in cond.conditions:
+            result = result | infer_triggers(c)
+        return result
+
+    if isinstance(cond, OrCond):
+        result = frozenset()
+        for c in cond.conditions:
+            result = result | infer_triggers(c)
+        return result
+
+    if isinstance(cond, NotCond):
+        return infer_triggers(cond.condition)
+
+    # FnCond — unknown, fire on all triggers as fallback
+    if isinstance(cond, FnCond):
+        return frozenset()
+
+    # Raw dict (backward compat)
+    if isinstance(cond, dict):
+        key = cond.get("cond", "")
+        if key in ("and", "or"):
+            result = frozenset()
+            for c in cond.get("conditions", []):
+                result = result | infer_triggers(c)
+            return result
+        if key in ("not",):
+            return infer_triggers(cond.get("condition", {}))
+        return CONDITION_TRIGGERS.get(key, frozenset())
+
+    return frozenset()
 
 
 # ── HAVE_EVAL sub-dispatch ──

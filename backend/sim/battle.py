@@ -25,11 +25,7 @@ from .traits import (
     dispatch_leave,
     dispatch_turn_end,
 )
-from .traits.trait_engine import (
-    DataDrivenTrait,
-    fire_hook_first,
-    get_data_trait_instance,
-)
+from .traits.trait_engine import fire_hook_first
 
 if TYPE_CHECKING:
     from .agent import Agent
@@ -687,7 +683,16 @@ class Battle(BattleMechanicsMixin):
     # ── 延时效果结算 ──
 
     def _execute_scheduled_effects(self, phase: str) -> list[str]:
-        """执行到期延时效果。返回事件列表。"""
+        """执行到期延时效果。返回事件列表。
+
+        新格式（Skill IR Schedule opcode）: effects 列表走 VM → Replay。
+        旧格式（trait_name/hook）: 已废弃，跳过。
+        """
+        from backend.vm.ctx import Ctx as VmCtx
+        from backend.vm.executor import process_effects
+        from backend.engine.snapshot import build_ctx
+        from backend.engine.replayer import JournalReplayer
+
         events: list[str] = []
         due = [s for s in self.scheduled_effects
                if s['turn'] <= self.turn and s['phase'] == phase]
@@ -698,35 +703,18 @@ class Battle(BattleMechanicsMixin):
             sprite = snap.get('self') or self.get_player(team).active
             if sprite is None:
                 continue
-            # DataDrivenTrait 延时 trigger
-            trait_name = sched.get('trait_name', '')
-            if trait_name:
-                trait = get_data_trait_instance(trait_name)
-                if trait:
-                    # 通过 on_ 前缀调用对应 hook 方法
-                    hook = sched.get('hook', '')
-                    method_name = f'on_{hook}'
-                    method = getattr(trait, method_name, None)
-                    if method:
-                        result = method(sprite, self, team)
-                        if isinstance(result, list):
-                            events += result
-                    else:
-                        # 回退: 手动构建 ctx 调用 _fire
-                        ctx = {
-                            'self': sprite, 'battle': self, 'team': team,
-                            'target': snap.get('target'),
-                            'attacker': snap.get('attacker'),
-                        }
-                        events += trait._fire(hook, ctx)
-            else:
-                # 直接 effects 列表（schedule 特殊效果）
-                ctx = {
-                    'self': sprite, 'battle': self, 'team': team,
-                    'target': snap.get('target'),
-                }
-                for eff in sched.get('effects', []):
-                    events += DataDrivenTrait._apply_effect(eff, ctx)
+            # 新格式: effects 列表 (Skill IR opcodes) → VM → Replay
+            effects = sched.get('effects', [])
+            if effects:
+                opp_player = self.get_opponent(team)
+                opp = opp_player.active if opp_player else None
+                ctx = build_ctx(sprite, opp, None, None, None, team=team, turn=self.turn)
+                journal = process_effects(ctx, effects)
+                replayer = JournalReplayer(
+                    sprite, opp, None, self._vm_engine.registry,
+                    team=team, battle=self,
+                )
+                events.extend(replayer.replay(journal))
         return events
 
     # ═══════════════════════════════════════════════════════════════
