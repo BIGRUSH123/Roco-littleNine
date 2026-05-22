@@ -326,7 +326,7 @@ def serialize_battle_state(battle: Battle, session_id: str) -> schemas.BattleSta
             base_p = sk.base.power
             base_e = sk.base.energy_cost
             pos_bonus = pos_bonus_map.get((team, i), 0)
-            perm_p = base_p + sk.power_mod
+            perm_p = base_p + int(sk._modifiers.get("power", 0))
             eff_p = perm_p + battle.globals.mark_power_bonus(team, sk.base) + pos_bonus
             # 轴承支撑被动：两侧技能能耗-1
             adj_ec = 0
@@ -335,7 +335,7 @@ def serialize_battle_state(battle: Battle, session_id: str) -> schemas.BattleSta
                 if 0 <= ni < len(s.skills) and s.skills[ni].name == '轴承支撑':
                     adj_ec = 1
                     break
-            eff_e = max(0, base_e + s.energy_cost_mod + sk.energy_cost_mod - mark_e_mod - adj_ec)
+            eff_e = max(0, base_e + s.energy_cost_mod + int(sk._modifiers.get("energy_cost", 0)) - mark_e_mod - adj_ec)
             skills_data.append(schemas.SkillSummary(
                 name=sk.name,
                 skill_index=i,
@@ -428,10 +428,10 @@ def _build_turn_snapshot(battle, turn_log):
                 name=sk.name,
                 skill_index=i,
                 base_power=sk.base.power,
-                effective_power=sk.base.power + sk.power_mod,
+                effective_power=sk.base.power + int(sk._modifiers.get("power", 0)),
                 position_power_bonus=0,
                 base_energy_cost=sk.base.energy_cost,
-                effective_energy_cost=sk.base.energy_cost + sk.energy_cost_mod,
+                effective_energy_cost=sk.base.energy_cost + int(sk._modifiers.get("energy_cost", 0)),
                 cooldown=sk.cooldown,
                 transmission=0,
                 main_axis=False,

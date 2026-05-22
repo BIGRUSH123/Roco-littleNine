@@ -14,7 +14,7 @@ from .ir_values import Literal, Query, RefExpr
 
 # Dict-type register queries that require a 'name' key for sub-indexing
 _NAMED_DICT_QUERIES = frozenset({
-    "counter_value", "abnormal_stacks", "devotion", "skill_count",
+    "counter_value", "abnormal_stacks", "devotion", "skill_count", "team_counter",
 })
 
 

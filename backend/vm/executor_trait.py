@@ -145,6 +145,14 @@ def _apply_battleskill_mut_typed(
     if not sprite:
         return []
 
+    # field → _modifiers key mapping (temporary bridge until trait migration to skill IR)
+    _FIELD_TO_MOD: dict[str, str] = {
+        "power_mod": "power",
+        "energy_cost_mod": "energy_cost",
+        "combo_mod": "combo",
+        "power_override": "power_override",
+    }
+
     for mut in muts:
         filt = mut.filter
         field = mut.field
@@ -152,35 +160,36 @@ def _apply_battleskill_mut_typed(
         val = _resolve_ir_value(mut.value, ctx)
         target = mut.target
 
+        def _apply_to(bs) -> None:
+            if field == 'element':
+                bs._element_override = val
+            elif field == 'next_attack_mult':
+                # One-shot multiplier — keep as dedicated field
+                if op == 'set':
+                    bs.next_attack_mult = val
+                elif op == 'mult':
+                    bs.next_attack_mult *= val
+                else:
+                    bs.next_attack_mult += val
+            else:
+                mod_key = _FIELD_TO_MOD.get(field, field)
+                if op == 'set':
+                    bs._modifiers[mod_key] = val
+                elif op == 'mult':
+                    bs._modifiers[mod_key] = bs._modifiers.get(mod_key, 1.0) * val
+                else:
+                    bs._modifiers[mod_key] = bs._modifiers.get(mod_key, 0) + val
+
         if target == 'current':
             bs = ctx.get('skill')
             if bs is not None:
-                if field == 'element':
-                    bs._element_override = val
-                elif op == 'set':
-                    setattr(bs, field, val)
-                elif op == 'mult':
-                    current_val = getattr(bs, field, 0)
-                    setattr(bs, field, current_val * val)
-                else:
-                    current_val = getattr(bs, field, 0)
-                    setattr(bs, field, current_val + val)
+                _apply_to(bs)
             continue
 
         for i, bs in enumerate(sprite.skills):
             if not _match_skill_filter(bs, i, filt):
                 continue
-
-            if field == 'element':
-                bs._element_override = val
-            elif op == 'set':
-                setattr(bs, field, val)
-            elif op == 'mult':
-                current_val = getattr(bs, field, 0)
-                setattr(bs, field, current_val * val)
-            else:
-                current_val = getattr(bs, field, 0)
-                setattr(bs, field, current_val + val)
+            _apply_to(bs)
 
     return []
 

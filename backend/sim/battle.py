@@ -76,8 +76,10 @@ class Battle(BattleMechanicsMixin):
         self._wish_restore: dict[tuple[str, int], BattleSkill] = {}   # 愿力一回合后还原
         # VM engine + skill cache
         from backend.engine.battle import BattleVMEngine
+        from backend.engine.snapshot import build_ctx as _build_ctx
         from backend.vm.compiler.skill_compiler import SkillCompiler
         self._vm_engine = BattleVMEngine()
+        self._build_ctx = _build_ctx  # stored for use in execute_turn etc.
         self._skill_compiler = SkillCompiler()
         self._skill_cache: dict[str, CompiledSkill] = {}
         self.team_counters: dict[str, dict[str, int]] = {'A': {}, 'B': {}}  # pre-entry accumulators
@@ -123,6 +125,29 @@ class Battle(BattleMechanicsMixin):
         """读取队伍级事件计数器。"""
         return self.team_counters.get(team, {}).get(key, 0)
 
+    def _make_ctx(self, self_sprite, opp_sprite, self_skill=None, opp_skill=None,
+                  globals_=None, *, team: str = "A", **kwargs):
+        """Build a Ctx with team_counters, devotion, fainted pre-filled from battle state."""
+        if globals_ is None:
+            globals_ = self.globals
+        opp_team = 'B' if team == 'A' else 'A'
+        own_player = self.get_player(team)
+        opp_player = self.get_player(opp_team)
+        # Count fainted sprites on each team
+        fainted_own = sum(1 for s in own_player.team if s.is_fainted)
+        fainted_opp = sum(1 for s in opp_player.team if s.is_fainted)
+        return self._build_ctx(
+            self_sprite, opp_sprite, self_skill, opp_skill, globals_,
+            team=team,
+            team_counters_own=dict(self.team_counters.get(team, {})),
+            team_counters_opp=dict(self.team_counters.get(opp_team, {})),
+            devotion_own=dict(getattr(own_player, 'devotion', {})),
+            devotion_opp=dict(getattr(opp_player, 'devotion', {})),
+            fainted_own=fainted_own,
+            fainted_opp=fainted_opp,
+            **kwargs,
+        )
+
     def _get_agent(self, team: str) -> Agent:
         return self._agent_a if team == 'A' else self._agent_b  # type: ignore
 
@@ -163,6 +188,11 @@ class Battle(BattleMechanicsMixin):
         if self.turn == 1:
             rec.turn_start_events += dispatch_entry(self.player_a.active, self, 'A')
             rec.turn_start_events += dispatch_entry(self.player_b.active, self, 'B')
+            # Observer: post_entry
+            ctx_a = self._make_ctx(self.player_a.active, self.player_b.active, None, None, self.globals, team='A', turn=self.turn)
+            ctx_b = self._make_ctx(self.player_b.active, self.player_a.active, None, None, self.globals, team='B', turn=self.turn)
+            rec.turn_start_events += self._vm_engine.fire_trigger("post_entry", ctx_a, self.player_a.active, self.player_b.active, self.globals, team='A')
+            rec.turn_start_events += self._vm_engine.fire_trigger("post_entry", ctx_b, self.player_b.active, self.player_a.active, self.globals, team='B')
 
         # 1. 回合开始阶段（已内含 >>>PHASE:TURN_START 标记）
         ts_events = self._phase_turn_start()
@@ -321,9 +351,15 @@ class Battle(BattleMechanicsMixin):
             if counter_a:
                 self.inc_team_counter('A', 'counter_success')
                 ar['A'].events += dispatch_counter_success(s_a, countered_skill_a, self, 'A')
+                # Observer: post_counter
+                ctx_ca = self._make_ctx(s_a, s_b, countered_skill_a, None, self.globals, team='A', turn=self.turn, counter_succeeded=True)
+                ar['A'].events += self._vm_engine.fire_trigger("post_counter", ctx_ca, s_a, s_b, self.globals, team='A')
             if counter_b:
                 self.inc_team_counter('B', 'counter_success')
                 ar['B'].events += dispatch_counter_success(s_b, countered_skill_b, self, 'B')
+                # Observer: post_counter
+                ctx_cb = self._make_ctx(s_b, s_a, countered_skill_b, None, self.globals, team='B', turn=self.turn, counter_succeeded=True)
+                ar['B'].events += self._vm_engine.fire_trigger("post_counter", ctx_cb, s_b, s_a, self.globals, team='B')
             return []
 
         # 无应对 → 按优先级先后执行
@@ -534,6 +570,7 @@ class Battle(BattleMechanicsMixin):
             return events
 
         opp_skill = countered_skill or countering_skill
+        opp_team = 'B' if team == 'A' else 'A'
         result = self._vm_engine.execute_skill(
             user, target,
             record, opp_skill, self.globals,
@@ -545,6 +582,8 @@ class Battle(BattleMechanicsMixin):
             skill_index=action.skill_index or 0,
             species_lookup=self.lookup_species_by_number,
             battle_skill=bs,
+            team_counters_own=dict(self.team_counters.get(team, {})),
+            team_counters_opp=dict(self.team_counters.get(opp_team, {})),
         )
         events.extend(result.events)
 
@@ -737,16 +776,19 @@ class Battle(BattleMechanicsMixin):
 
         # ── 异常 tick trait 通知（只读，不修改层数/HP）──
         for team, sprite in list(sprites.items()):
+            opp_team = 'B' if team == 'A' else 'A'
+            opp = self.get_opponent(team).active
             for e in sprite.effects:
                 if e.category != 'abnormal':
                     continue
                 if e.name in ('灼烧', '中毒'):
                     dmg = max(1, round(sprite.max_hp / 16)) if e.name == '灼烧' else max(1, round(sprite.max_hp / 8))
                     events += dispatch_abnormal_tick(sprite, e.name, dmg, self, team)
-                    opp_team = 'B' if team == 'A' else 'A'
-                    opp = self.get_opponent(team).active
                     if not opp.is_fainted:
                         events += dispatch_abnormal_tick(opp, e.name, dmg, self, opp_team)
+                    # Observer: post_abnormal_tick
+                    ctx_tick = self._make_ctx(sprite, opp, None, None, self.globals, team=team, turn=self.turn, last_tick_abnormal=e.name, last_tick_target=team)
+                    events += self._vm_engine.fire_trigger("post_abnormal_tick", ctx_tick, sprite, opp, self.globals, team=team)
 
         # ── TTL 衰减：双方精灵 decrement_ttl ──
         for team, sprite in sprites.items():
@@ -757,6 +799,11 @@ class Battle(BattleMechanicsMixin):
         # ── trait turn end hook ──
         for team, sprite in sprites.items():
             events += dispatch_turn_end(sprite, self, team)
+            # Observer: turn_end
+            opp_team = 'B' if team == 'A' else 'A'
+            opp = self.get_opponent(team).active
+            ctx_te = self._make_ctx(sprite, opp, None, None, self.globals, team=team, turn=self.turn, turn_end=True)
+            events += self._vm_engine.fire_trigger("turn_end", ctx_te, sprite, opp, self.globals, team=team)
 
         # 星地善良：回合末若己方能量=0，板凳星地善良替换上场
         for team in ('A', 'B'):
@@ -793,6 +840,13 @@ class Battle(BattleMechanicsMixin):
                 events.append(f'{old.name} 能量0↓ {new.name}↑({swap_reason})' if swap_reason else f'{old.name}↓ {new.name}↑')
                 events += dispatch_leave(old, self, team)
                 events += dispatch_entry(new, self, team)
+                # Observer: post_leave + post_entry
+                opp_team = 'B' if team == 'A' else 'A'
+                opp = self.get_opponent(team).active
+                ctx_leave = self._make_ctx(old, opp, None, None, self.globals, team=team, turn=self.turn)
+                ctx_entry = self._make_ctx(new, opp, None, None, self.globals, team=team, turn=self.turn)
+                events += self._vm_engine.fire_trigger("post_leave", ctx_leave, old, opp, self.globals, team=team)
+                events += self._vm_engine.fire_trigger("post_entry", ctx_entry, new, opp, self.globals, team=team)
 
         # 冻结斩杀检查
         for team in ('A', 'B'):

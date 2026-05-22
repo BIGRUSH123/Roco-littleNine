@@ -204,6 +204,13 @@ def _apply_abnormal_effect(
         stacks = 1
     stacks = int(stacks)
 
+    # 萌化 is a special abnormal that triggers morphological regression
+    if name == '萌化':
+        battle = ctx.get('battle') if ctx else None
+        if battle:
+            return sprite.apply_moe(stacks, battle)
+        return [f"{sprite.name} 萌化失败(缺少battle上下文)"]
+
     scope = effect.scope
     source = effect.source or None
 

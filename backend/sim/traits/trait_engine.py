@@ -979,6 +979,14 @@ class DataDrivenTrait(TraitHandler):
 
         return []
 
+    # field → _modifiers key mapping (temporary bridge until trait migration to skill IR)
+    _FIELD_TO_MOD: dict[str, str] = {
+        "power_mod": "power",
+        "energy_cost_mod": "energy_cost",
+        "combo_mod": "combo",
+        "power_override": "power_override",
+    }
+
     @staticmethod
     def _apply_battleskill_mut(mutations: list[dict], ctx: dict) -> list[str]:
         if not mutations:
@@ -996,36 +1004,35 @@ class DataDrivenTrait(TraitHandler):
             val = RefResolver.resolve(val_raw, ctx) if isinstance(val_raw, str) else val_raw
             target = mut.get('target', 'all')
 
+            def _apply_to(bs) -> None:
+                if field == 'element':
+                    bs._element_override = val
+                elif field == 'next_attack_mult':
+                    if op == 'set':
+                        bs.next_attack_mult = val
+                    elif op == 'mult':
+                        bs.next_attack_mult *= val
+                    else:
+                        bs.next_attack_mult += val
+                else:
+                    mod_key = DataDrivenTrait._FIELD_TO_MOD.get(field, field)
+                    if op == 'set':
+                        bs._modifiers[mod_key] = val
+                    elif op == 'mult':
+                        bs._modifiers[mod_key] = bs._modifiers.get(mod_key, 1.0) * val
+                    else:
+                        bs._modifiers[mod_key] = bs._modifiers.get(mod_key, 0) + val
+
             if target == 'current':
                 bs = ctx.get('skill')
                 if bs is not None:
-                    if field == 'element':
-                        bs._element_override = val
-                    elif op == 'set':
-                        setattr(bs, field, val)
-                    elif op == 'mult':
-                        current = getattr(bs, field, 0)
-                        setattr(bs, field, current * val)
-                    else:
-                        current = getattr(bs, field, 0)
-                        setattr(bs, field, current + val)
+                    _apply_to(bs)
                 continue
 
             for i, bs in enumerate(sprite.skills):
                 if not DataDrivenTrait._match_filter(bs, i, filt):
                     continue
-
-                # 元素转换: 设置 _element_override (element 是只读 property)
-                if field == 'element':
-                    bs._element_override = val
-                elif op == 'set':
-                    setattr(bs, field, val)
-                elif op == 'mult':
-                    current = getattr(bs, field, 0)
-                    setattr(bs, field, current * val)
-                else:
-                    current = getattr(bs, field, 0)
-                    setattr(bs, field, current + val)
+                _apply_to(bs)
 
         return []
 

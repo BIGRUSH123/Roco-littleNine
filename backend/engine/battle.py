@@ -112,11 +112,14 @@ class BattleVMEngine:
             team=team, turn=turn, is_first=is_first,
             burst_triggered_count_own=self.burst_triggered_count(team),
             counter_values=dict(self._counter_values),
+            battle_skill=battle_skill,
             **kwargs,
         )
 
         # 2. Fire pre-calc observers → collect modifier injections
         pre_mods = self._fire_pre_calc(ctx)
+        # 2.5 Fire pre-modifier observers (L0→L1 skill parameter adjustments)
+        pre_mods += self._fire_pre_event("pre_modifier", ctx)
 
         # 3. Execute VM on the skill's effects
         vm_effects = effects if effects is not None else self._get_effects(self_skill)
@@ -167,6 +170,10 @@ class BattleVMEngine:
         post_ev = self._fire_post_event("post_skill", ctx, replayer)
         events.extend(post_ev)
 
+        # 8. Fire mutation-driven observers (damage, KO, energy, abnormal, etc.)
+        post_mut_ev = self._fire_mutation_events(journal, ctx, replayer)
+        events.extend(post_mut_ev)
+
         return SkillExecutionResult(ctx, journal, events)
 
     def execute_effects(
@@ -180,10 +187,15 @@ class BattleVMEngine:
     # ── Observer integration ──
 
     def _fire_pre_calc(self, ctx: Ctx) -> Journal:
-        """Fire pre-calculation observers and collect their mutations.
+        """Fire pre-calculation observers and collect their mutations."""
+        return self._fire_pre_event("pre_calc", ctx)
 
-        Pre-calc observers (traits like "first action power bonus") run
-        BEFORE the VM and inject modifier effects into the pipeline.
+    def _fire_pre_event(self, trigger: str, ctx: Ctx) -> Journal:
+        """Fire pre-execution observers and collect their mutations.
+
+        Pre-execution observers run BEFORE the VM and inject modifier
+        effects into the pipeline. Unlike _fire_post_event, this does
+        not replay mutations — it only collects them for later replay.
         """
         mutations: Journal = []
         for obs in self.registry._observers:
@@ -207,6 +219,84 @@ class BattleVMEngine:
             except Exception:
                 continue
         return events
+
+    def _fire_mutation_events(self, journal: Journal, ctx: Ctx, replayer: JournalReplayer) -> list[str]:
+        """Fire observers for mutation-driven trigger points.
+
+        Scans the journal for specific mutation types and fires the
+        corresponding observer trigger points. Handles:
+          - Damage → post_damage
+          - KO (target_fainted) → post_ko
+          - EnergyChange → post_energy_change
+          - AbnormalChange → post_abnormal_change / post_abnormal_apply
+          - StatChange(positive) → post_positive_change
+        """
+        from backend.vm.journal import (
+            AbnormalChange, Damage, EnergyChange, StatChange,
+        )
+
+        events: list[str] = []
+        fired: set[str] = set()  # deduplicate triggers per execution
+
+        for m in journal:
+            trigger = None
+            if isinstance(m, Damage):
+                trigger = "post_damage"
+            elif isinstance(m, EnergyChange):
+                trigger = "post_energy_change"
+            elif isinstance(m, AbnormalChange):
+                trigger = "post_abnormal_change"
+                # Also fire post_abnormal_apply if stacks increased
+                if getattr(m, 'stacks_delta', 0) > 0:
+                    apply_trigger = "post_abnormal_apply"
+                    if apply_trigger not in fired:
+                        fired.add(apply_trigger)
+                        apply_ev = self._fire_post_event(apply_trigger, ctx, replayer)
+                        events.extend(apply_ev)
+            elif isinstance(m, StatChange):
+                if getattr(m, 'is_positive', False):
+                    trigger = "post_positive_change"
+
+            if trigger and trigger not in fired:
+                fired.add(trigger)
+                ev = self._fire_post_event(trigger, ctx, replayer)
+                events.extend(ev)
+
+        # post_ko: check if the target fainted from damage
+        for m in journal:
+            if isinstance(m, Damage) and getattr(m, 'target_fainted', False):
+                if "post_ko" not in fired:
+                    fired.add("post_ko")
+                    ev = self._fire_post_event("post_ko", ctx, replayer)
+                    events.extend(ev)
+                break
+
+        return events
+
+    def fire_trigger(
+        self,
+        trigger: str,
+        ctx: Ctx,
+        self_sprite: Sprite,
+        opp_sprite: Sprite,
+        globals_,
+        *,
+        team: str = "A",
+        species_lookup = None,
+        self_skill = None,
+    ) -> list[str]:
+        """Public hook: fire a trigger point and replay results as events.
+
+        Callable from sim/battle.py at dispatch points (entry, leave,
+        turn_end, counter_success, etc.) where the engine's internal
+        execute_skill() pipeline is not active.
+        """
+        replayer = JournalReplayer(
+            self_sprite, opp_sprite, globals_, self.registry, team=team,
+            species_lookup=species_lookup,
+            self_skill=self_skill,
+        )
+        return self._fire_post_event(trigger, ctx, replayer)
 
     # ── Helpers ──
 

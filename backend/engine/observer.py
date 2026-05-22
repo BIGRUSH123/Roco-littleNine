@@ -15,18 +15,27 @@ from backend.vm.journal import Mutation
 
 # Trigger points — events that cause observers to be evaluated
 TRIGGER_POINTS = frozenset({
-    "pre_calc",           # before VM execution (Ctx just built)
-    "post_skill",         # after skill effects applied
-    "post_damage",        # after damage taken
-    "post_switch",        # after sprite switch
-    "post_entry",         # after sprite enters
-    "post_abnormal_tick", # after abnormal tick damage
-    "post_abnormal_change", # after abnormal stacks change
-    "post_abnormal_apply",  # after abnormal applied
-    "post_ko",            # after a sprite faints
-    "post_energy_change", # after energy changes
-    "post_positive_change", # after positive effect count changes
-    "turn_end",           # at turn-end settlement
+    # Pre-execution
+    "pre_calc",            # before VM execution (Ctx just built)
+    "pre_modifier",        # L0→L1: before skill modifier computation
+    "pre_defend",          # L1→L2: before damage taken, defender's trait
+    # Post-execution
+    "post_skill",          # after skill effects applied
+    "post_damage",         # after damage taken
+    "post_switch",         # after sprite switch
+    "post_entry",          # after sprite enters
+    "post_leave",          # after sprite leaves (switch/faint)
+    "post_enemy_leave",    # after enemy sprite leaves
+    "post_counter",        # after counter succeeds
+    "post_ko",             # after a sprite faints
+    # Event-driven
+    "post_abnormal_tick",  # after abnormal tick damage
+    "post_abnormal_change",# after abnormal stacks change
+    "post_abnormal_apply", # after abnormal applied
+    "post_energy_change",  # after energy changes
+    "post_positive_change",# after positive effect count changes
+    # Turn boundaries
+    "turn_end",            # at turn-end settlement
 })
 
 

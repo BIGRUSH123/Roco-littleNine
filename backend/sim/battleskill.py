@@ -18,11 +18,7 @@ class BattleSkill:
     base: Skill
 
     # ── 可变状态 ──
-    _modifiers: dict[str, float] = field(default_factory=dict)  # 技能级修饰符（power_mult/damage_mult 等）
-    power_mod: int = 0              # 永久威力变化（联动装置等）
-    combo_mod: int = 0              # 永久连击数变化（聚盐/乘胜追击等）
-    energy_cost_mod: int = 0        # 永久能耗变化（水炮/重击等）
-    power_override: int | None = None  # 动态威力（冰锋横扫/钢钻），覆盖 base.power
+    _modifiers: dict[str, float] = field(default_factory=dict)  # 技能级修饰符（power/energy_cost/combo/power_mult等）
     replaced_by: Skill | None = None  # 技能替换（镜像反射）
     cooldown: int = 0               # 剩余冷却回合（防御技能）
     next_attack_mult: float = 1.0   # 下次攻击威力倍率（热身），使用后重置为 1
@@ -67,7 +63,7 @@ class BattleSkill:
 
     @property
     def combo(self) -> int:
-        return self.skill.combo + self.combo_mod
+        return self.skill.combo + int(self._modifiers.get("combo", 0))
 
     @property
     def effects(self) -> list:
@@ -88,18 +84,15 @@ class BattleSkill:
     def get_atk_def_keys(self, sprite=None) -> tuple[str, str] | None:
         return self.skill.get_atk_def_keys(sprite)
 
-    # ── 合成属性 ──
+    # ── 合成属性（从 _modifiers 统一读取）──
 
     @property
     def power(self) -> int:
-        base = self.skill.power
-        if self.power_override is not None:
-            base = self.power_override
-        return base + self.power_mod
+        return self.skill.power + int(self._modifiers.get("power", 0))
 
     @property
     def energy_cost(self) -> int:
-        return self.skill.energy_cost + self.energy_cost_mod
+        return self.skill.energy_cost + int(self._modifiers.get("energy_cost", 0))
 
 
 @dataclass

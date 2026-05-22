@@ -58,12 +58,18 @@ def build_ctx(
     counter_values: dict[str, int] | None = None,
     # Additional team accumulators
     skill_count_own: dict[str, int] | None = None,
+    team_counters_own: dict[str, int] | None = None,
+    team_counters_opp: dict[str, int] | None = None,
     energy_cost_sum_self: dict[str, int] | None = None,
     elements_used_count_self: int = 0,
     burst_triggered_count_own: int = 0,
+    fainted_own: int = 0,
+    fainted_opp: int = 0,
     devotion_own: dict[str, int] | None = None,
     devotion_opp: dict[str, int] | None = None,
     abnormal_stacks_battle: dict[str, int] | None = None,
+    # BattleSkill reference (for _modifiers and synthesized power/energy/combo)
+    battle_skill: Any = None,
 ) -> Ctx:
     """Build a VM Ctx snapshot from mutable battle objects.
 
@@ -135,14 +141,22 @@ def build_ctx(
 
     # ── Self skill ──
     sk = self_skill
-    skill_mods = getattr(sk, '_modifiers', {}) if sk else {}
-    power_self = sk.power if hasattr(sk, 'power') else 0
-    combo_base = sk.combo if hasattr(sk, 'combo') else 1
+    bs = battle_skill
+    # Read skill-level _modifiers from BattleSkill (unified dict);
+    # fall back to duck-typed _modifiers on self_skill for tests.
+    skill_mods = getattr(bs, '_modifiers', {}) if bs is not None else getattr(sk, '_modifiers', {}) if sk else {}
+    if bs is not None:
+        power_self = bs.power
+        combo_base = bs.base.combo if hasattr(bs, 'base') else getattr(sk, 'combo', 1)
+        energy_cost_self = bs.energy_cost
+    else:
+        power_self = sk.power if hasattr(sk, 'power') else 0
+        combo_base = sk.combo if hasattr(sk, 'combo') else 1
+        energy_cost_self = sk.energy_cost if hasattr(sk, 'energy_cost') else 0
     combo_mod = int(ss._modifiers.get("combo", 0))
     # combo_mult 不在 snapshot 阶段乘入 — 留给 adjust_damage 在
     # 同技能 combo 修改（set/add）之后再乘，确保正确的执行顺序。
     combo_self = max(1, combo_base + combo_mod)
-    energy_cost_self = sk.energy_cost if hasattr(sk, 'energy_cost') else 0
     energy_cost_reduction_self = 0  # engine tracks this
 
     # ── Opp skill ──
@@ -234,11 +248,13 @@ def build_ctx(
         mark_count_both=mark_count_own + mark_count_opp,
         mark_bonus_own=mark_bonus_own,
         skill_count_own=skill_count_own or {},
+        team_counters_own=team_counters_own or {},
+        team_counters_opp=team_counters_opp or {},
         devotion_own=devotion_own or {},
         devotion_opp=devotion_opp or {},
         abnormal_stacks_battle=abnormal_stacks_battle or {},
-        fainted_own=0,  # engine should track this
-        fainted_opp=0,
+        fainted_own=fainted_own,
+        fainted_opp=fainted_opp,
         burst_triggered_count_own=burst_triggered_count_own,
 
         # Skill

@@ -83,6 +83,8 @@ class Ctx:
     mark_stacks_opp: dict[str, int] = field(default_factory=dict)  # {name: stacks}
     mark_count_both: int = 0             # own + opp
     skill_count_own: dict[str, int] = field(default_factory=dict)  # {skill_name: count}
+    team_counters_own: dict[str, int] = field(default_factory=dict)  # {key: count}
+    team_counters_opp: dict[str, int] = field(default_factory=dict)  # {key: count}
     devotion_own: dict[str, int] = field(default_factory=dict)     # {name: stacks}
     devotion_opp: dict[str, int] = field(default_factory=dict)
     abnormal_stacks_battle: dict[str, int] = field(default_factory=dict)  # {name: total across both sides}
@@ -208,12 +210,14 @@ ADDRESS_MAP: dict[tuple[str, str], str] = {
     # team_own
     ("team_own", "mark_count"):            "mark_count_own",
     ("team_own", "skill_count"):           "skill_count_own",
+    ("team_own", "team_counter"):          "team_counters_own",
     ("team_own", "devotion"):              "devotion_own",
     ("team_own", "fainted"):              "fainted_own",
     ("team_own", "burst_triggered_count"): "burst_triggered_count_own",
 
     # team_opp
     ("team_opp", "mark_count"):            "mark_count_opp",
+    ("team_opp", "team_counter"):          "team_counters_opp",
     ("team_opp", "devotion"):              "devotion_opp",
     ("team_opp", "fainted"):              "fainted_opp",
 
