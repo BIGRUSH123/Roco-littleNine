@@ -21,6 +21,12 @@ from backend.common.skill_trait_ids import (
     TRAIT_宝剑王牌,
     TRAIT_正位宝剑,
     TRAIT_倾轧,
+    TRAIT_腾挪,
+    TRAIT_保卫,
+    TRAIT_好象坏象,
+    TRAIT_系统发育,
+    TRAIT_刺肤,
+    TRAIT_嫁祸,
 )
 from backend.sim.traits.trait_engine import register_hook
 
@@ -201,3 +207,159 @@ def _crush_pre_modifier(user, use, battle, team):
 
 
 register_hook('pre_modifier', _crush_pre_modifier, '倾轧')
+
+
+# ── 裂口组共用: transform to 棋绮后 ──
+
+def _try_transform(user, battle, team, trait_name):
+    """回满状态并变换为棋绮后。"""
+    from backend.common.models import SpeciesStats
+
+    new_species = battle.lookup_species('棋绮后')
+    if new_species is None:
+        s = user.species
+        new_species = SpeciesStats(
+            name='棋绮后', form='',
+            hp=s.hp, atk=s.atk, sp_atk=s.sp_atk,
+            def_=s.def_, sp_def=s.sp_def, speed=s.speed,
+            attributes=s.attributes, ability=s.ability,
+        )
+    new_skills = battle.build_skills([])
+    user.heal(user.max_hp)
+    user.energy = 10
+    user.clear_effects('battlefield')
+    events = user.transform(new_species, new_skills)
+    events.insert(0, f'{user.name} {trait_name}: 回满状态→棋绮后')
+    return events
+
+
+# ── 腾挪: counter attack → transform ──
+
+def _evasive_post_counter(user, countered_skill, battle, team):
+    """腾挪: 攻击技能应对1次后，回满状态，变为棋绮后。"""
+    from backend.sim.traits import get_trait
+    h = get_trait(user)
+    if h is None or h.trait_id != TRAIT_腾挪:
+        return None
+    if not countered_skill.base.is_attack:
+        return None
+    return _try_transform(user, battle, team, '腾挪')
+
+
+register_hook('post_counter', _evasive_post_counter, '腾挪')
+
+
+# ── 保卫: counter defense 2x → transform ──
+
+def _defend_post_counter(user, countered_skill, battle, team):
+    """保卫: 防御技能应对2次后，回满状态，变为棋绮后。"""
+    from backend.sim.traits import get_trait
+    h = get_trait(user)
+    if h is None or h.trait_id != TRAIT_保卫:
+        return None
+    if not countered_skill.base.is_defense:
+        return None
+    count = user.inc_counter('defend_countered')
+    if count >= 2:
+        user.counters['defend_countered'] = 0
+        return _try_transform(user, battle, team, '保卫')
+    return [f'{user.name} 保卫: 防御应对 {count}/2']
+
+
+register_hook('post_counter', _defend_post_counter, '保卫')
+
+
+# ── 好象坏象: counter status → transform ──
+
+def _elephant_post_counter(user, countered_skill, battle, team):
+    """好象坏象: 状态技能应对1次后，回满状态，变为棋绮后。"""
+    from backend.sim.traits import get_trait
+    h = get_trait(user)
+    if h is None or h.trait_id != TRAIT_好象坏象:
+        return None
+    if not countered_skill.base.is_status:
+        return None
+    return _try_transform(user, battle, team, '好象坏象')
+
+
+register_hook('post_counter', _elephant_post_counter, '好象坏象')
+
+
+# ── 系统发育: energy gain → random bench distribution ──
+
+def _phylogeny_energy_change(sprite, delta, new_energy, battle, team):
+    """系统发育: 获得能量时等量随机分配给场下精灵。"""
+    from backend.sim.traits import get_trait
+    h = get_trait(sprite)
+    if h is None or h.trait_id != TRAIT_系统发育:
+        return None
+    if delta <= 0:
+        return None
+    player = battle.get_player(team)
+    bench = [s for i, s in enumerate(player.team)
+             if i != player.active_index and not s.is_fainted]
+    if not bench:
+        return None
+    import random
+    target = random.choice(bench)
+    gained = target.gain_energy(delta)
+    return [f'{sprite.name} 系统发育: {target.name} +{gained}E']
+
+
+register_hook('post_energy_change', _phylogeny_energy_change, '系统发育')
+
+
+# ── 刺肤: damage reflection (50 power physical) ──
+
+def _thorn_skin_take_damage(target, attacker, damage, battle, team):
+    """刺肤: 每受1次攻击，对攻击者造成50威力物理伤害。"""
+    from backend.sim.traits import get_trait
+    h = get_trait(target)
+    if h is None or h.trait_id != TRAIT_刺肤:
+        return None
+    if attacker is None or attacker.is_fainted or damage <= 0:
+        return None
+    raw = round(target.effective_stat('atk') * 50 / max(1, attacker.effective_stat('def')))
+    dealt = attacker.take_damage(raw)
+    return [f'{target.name} 刺肤: 反伤{attacker.name}-{dealt}HP']
+
+
+register_hook('post_take_damage', _thorn_skin_take_damage, '刺肤')
+
+
+# ── 嫁祸: HP loss → combo gain ──
+
+def _scapegoat_post_entry(sprite, battle, team):
+    """嫁祸: 入场初始化HP追踪。"""
+    from backend.sim.traits import get_trait
+    h = get_trait(sprite)
+    if h is None or h.trait_id != TRAIT_嫁祸:
+        return None
+    sprite.counters['scapegoat_quarters'] = 0
+    return None
+
+
+register_hook('post_entry', _scapegoat_post_entry, '嫁祸')
+
+
+def _scapegoat_take_damage(target, attacker, damage, battle, team):
+    """嫁祸: 每失去25%生命，连击数+2。"""
+    from backend.sim.traits import get_trait
+    from backend.sim.sprite import StatusEffect
+    h = get_trait(target)
+    if h is None or h.trait_id != TRAIT_嫁祸:
+        return None
+    hp_pct = target.current_hp / target.max_hp
+    lost_quarters = int((1.0 - hp_pct) / 0.25)
+    prev = target.counters.get('scapegoat_quarters', 0)
+    if lost_quarters > prev:
+        gained = lost_quarters - prev
+        target.counters['scapegoat_quarters'] = lost_quarters
+        target.add_effect(StatusEffect(
+            name='嫁祸连击', category='stat', stat_key='combo',
+            steps=gained * 2, scope='battlefield', source='嫁祸'))
+        return [f'{target.name} 嫁祸: 连击+{gained * 2}']
+    return None
+
+
+register_hook('post_take_damage', _scapegoat_take_damage, '嫁祸')

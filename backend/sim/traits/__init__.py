@@ -302,8 +302,17 @@ def dispatch_skill_use(user: Sprite, skill: BattleSkill,
 
 def dispatch_take_damage(target: Sprite, attacker: Sprite, damage: int,
                          battle: Battle, team: str) -> list[str]:
+    from .trait_engine import fire_hook
+
+    events: list[str] = []
     h = get_trait(target)
-    return h.on_take_damage(target, attacker, damage, battle, team) if h else []
+    if h:
+        events += h.on_take_damage(target, attacker, damage, battle, team)
+
+    hook_events = fire_hook('post_take_damage', target, attacker, damage, battle, team) or []
+    if hook_events:
+        events.extend(hook_events)
+    return events
 
 
 def dispatch_fatal_damage(sprite: Sprite, damage: int,
@@ -324,8 +333,17 @@ def dispatch_ko_enemy(user: Sprite, victim: Sprite,
 
 def dispatch_counter_success(user: Sprite, countered_skill: BattleSkill,
                              battle: Battle, team: str) -> list[str]:
+    from .trait_engine import fire_hook
+
+    events: list[str] = []
     h = get_trait(user)
-    return h.on_counter_success(user, countered_skill, battle, team) if h else []
+    if h:
+        events += h.on_counter_success(user, countered_skill, battle, team)
+
+    hook_events = fire_hook('post_counter', user, countered_skill, battle, team) or []
+    if hook_events:
+        events.extend(hook_events)
+    return events
 
 
 def dispatch_faint(sprite: Sprite, killer: Sprite | None,
@@ -341,8 +359,17 @@ def dispatch_faint(sprite: Sprite, killer: Sprite | None,
 
 def dispatch_energy_change(sprite: Sprite, delta: int, new_energy: int,
                            battle: Battle, team: str) -> list[str]:
+    from .trait_engine import fire_hook
+
+    events: list[str] = []
     h = get_trait(sprite)
-    return h.on_energy_change(sprite, delta, new_energy, battle, team) if h else []
+    if h:
+        events += h.on_energy_change(sprite, delta, new_energy, battle, team)
+
+    hook_events = fire_hook('post_energy_change', sprite, delta, new_energy, battle, team) or []
+    if hook_events:
+        events.extend(hook_events)
+    return events
 
 
 def dispatch_gain_effect(sprite: Sprite, effect,
