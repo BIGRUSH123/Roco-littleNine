@@ -9,7 +9,7 @@ QueryRef is a pre-indexed query for O(1) runtime lookup (used by SkillLoader).
 
 from dataclasses import dataclass
 
-from .ctx import ADDRESS_MAP, Ctx
+from .ctx import ADDRESS_MAP, Ctx, EventContext
 from .ir_values import Literal, Query, RefExpr
 
 # Dict-type register queries that require a 'name' key for sub-indexing
@@ -95,6 +95,14 @@ def _resolve_dict_query(ctx: Ctx, value: dict) -> int | float | str:
 
     of = value.get("of", "sprite_self")
 
+    # Derived queries — computed from other fields, not direct registers
+    if q == "hp_missing_ratio":
+        ratio_field = "hp_self_ratio" if of == "sprite_self" else "hp_opp_ratio"
+        ratio = getattr(ctx, ratio_field, 1.0)
+        return _apply_transforms(1.0 - ratio, value)
+    if q == "mark_count_both":
+        return _apply_transforms(ctx.mark_count_own + ctx.mark_count_opp, value)
+
     # ADDRESS_MAP lookup
     map_key = (of, q)
     if map_key not in ADDRESS_MAP:
@@ -130,6 +138,32 @@ def _resolve_dict_query(ctx: Ctx, value: dict) -> int | float | str:
         raw = int(raw + value["offset"])
 
     return raw
+
+
+def _apply_transforms(raw, value: dict) -> int | float | str:
+    """Apply per/scale/offset transforms from a dict query to a raw value."""
+    if isinstance(raw, (str, bool)):
+        return raw
+
+    if "per" in value:
+        per = value["per"]
+        raw = int(raw / per) if per != 0 else raw
+
+    if "scale" in value:
+        raw = int(raw * value["scale"])
+
+    if "offset" in value:
+        raw = int(raw + value["offset"])
+
+    return raw
+
+
+def _get_ctx_field(ctx: Ctx, field_name: str, default=0):
+    """Get a field from Ctx, falling back to ctx.event for event fields."""
+    try:
+        return getattr(ctx, field_name)
+    except AttributeError:
+        return getattr(ctx.event, field_name, default)
 
 
 def _resolve_ref(ctx: Ctx, ref: RefExpr) -> int | float | str:
@@ -223,7 +257,7 @@ def _resolve_trait_ref(ref: str, ctx: Ctx):
     # Direct field map
     if path in _FORMULA_PATH_MAP:
         field = _FORMULA_PATH_MAP[path]
-        return getattr(ctx, field, 0)
+        return _get_ctx_field(ctx, field)
 
     # effects[name=X].stacks / effects[name=X].exists
     m = re.match(r'(self|target)\.effects\[name=([^\]]+)\]\.(\w+)', path)

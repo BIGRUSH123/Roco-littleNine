@@ -8,6 +8,36 @@ from dataclasses import dataclass, field
 
 
 @dataclass
+class EventContext:
+    """Per-trigger event flags — what just happened this action/tick.
+
+    These are NOT snapshot state. They describe the event that caused the
+    current Observer trigger to fire. Outside of Observer evaluation
+    (e.g. during VM when-block processing), all fields are at their
+    defaults (False / "").
+    """
+    counter_succeeded: bool = False
+    was_countered: bool = False
+    prev_counter_succeeded: bool = False
+    target_fainted: bool = False
+    self_koed: bool = False
+    opp_switched: bool = False
+    self_switched: bool = False
+    turn_end: bool = False
+    skill_position_changed: bool = False
+    devotion_triggered: bool = False
+    last_tick_abnormal: str = ""
+    last_tick_target: str = ""
+    abnormal_changed_name: str = ""
+    abnormal_changed_target: str = ""
+    abnormal_applied_name: str = ""
+    abnormal_applied_target: str = ""
+    skills_energy_changed_of: str = ""
+    positive_changed_of: str = ""
+    energy_changed_of: str = ""
+
+
+@dataclass
 class Ctx:
     """Turn snapshot — read-only register set.
 
@@ -18,17 +48,20 @@ class Ctx:
     All fields have sensible defaults so tests can construct minimal Ctx objects.
     """
 
+    # ── 事件上下文（由引擎在每个触发点构建） ──
+    event: EventContext = field(default_factory=EventContext)
+
     # ── 己方精灵 ──
     hp_self: int = 0
     hp_self_ratio: float = 1.0
     hp_self_max: int = 100
-    hp_self_missing_ratio: float = 0.0  # (max - current) / max
     energy_self: int = 0
     atk_self: int = 100
     def_self: int = 100
     sp_atk_self: int = 100
     sp_def_self: int = 100
     speed_self: int = 100
+    priority_self: int = 0               # action priority modifier
     damage_reduction_self: float = 0.0  # 0.0=no reduction, 1.0=immune
     abnormal_count_self: int = 0
     abnormal_stacks_self: dict[str, int] = field(default_factory=dict)
@@ -36,7 +69,6 @@ class Ctx:
     first_action_self: bool = False
     charged_self: bool = False
     is_charging_self: bool = False       # charging (not yet released)
-    self_koed: bool = False             # KO'd this turn
     times_entered_self: int = 0          # cumulative entry count
     times_left_self: int = 0             # cumulative leave count
     elements_used_count_self: int = 0    # distinct elements used
@@ -58,7 +90,6 @@ class Ctx:
     hp_opp: int = 0
     hp_opp_ratio: float = 1.0
     hp_opp_max: int = 100
-    hp_opp_missing_ratio: float = 0.0
     energy_opp: int = 0
     atk_opp: int = 100
     def_opp: int = 100
@@ -81,7 +112,6 @@ class Ctx:
     mark_stacks_own: dict[str, int] = field(default_factory=dict)  # {name: stacks}
     mark_count_opp: int = 0              # total mark stacks on opponent team
     mark_stacks_opp: dict[str, int] = field(default_factory=dict)  # {name: stacks}
-    mark_count_both: int = 0             # own + opp
     skill_count_own: dict[str, int] = field(default_factory=dict)  # {skill_name: count}
     team_counters_own: dict[str, int] = field(default_factory=dict)  # {key: count}
     team_counters_opp: dict[str, int] = field(default_factory=dict)  # {key: count}
@@ -93,8 +123,6 @@ class Ctx:
     lives_own: int = 5                   # own team lives (魔力值)
     lives_opp: int = 5                   # opponent team lives
     burst_triggered_count_own: int = 0   # distinct burst types triggered by own team
-    opp_switched: bool = False           # opponent switched this turn
-    self_switched: bool = False          # self was switched out this turn (non-KO)
 
     # ── 技能（当前发动的技能） ──
     power_self: int = 0                  # skill base power
@@ -111,35 +139,19 @@ class Ctx:
     energy_cost_opp: int = 0             # opponent skill total energy cost
     energy_delta_self: int = 0           # energy change delta this event
     skill_name_self: str = ""            # current skill name
-    counter_succeeded: bool = False      # this skill countered the opponent's
-    was_countered: bool = False          # this skill was countered
-    prev_counter_succeeded: bool = False # previous turn counter succeeded
-    damage_taken_this_turn: int = 0      # number of hits taken this turn
-    damage_reduced_self: int = 0         # damage reduced this turn
-    devotion_triggered: bool = False     # devotion triggered this action
+    damage_taken_this_turn: int = 0      # number of hits taken this turn (accumulated)
+    damage_reduced_self: int = 0         # damage reduced this turn (accumulated)
     prev_skill_type: str = ""            # previous skill type (for prev_skill_is)
-    target_fainted: bool = False         # target fainted from this skill
     prev_damage_taken_self: bool = False # self took damage last turn
     prev_damage_taken_opp: bool = False  # opponent took damage last turn
 
     # ── 技能追踪 ──
     skill_index: int = 0                 # position in skill list (0-indexed)
-    skill_position_changed: bool = False # skill position changed (count only)
     last_tick_damage_self: int = 0       # most recent tick damage taken
     last_tick_damage_opp: int = 0        # most recent tick damage dealt
 
     # ── 战场 ──
     weather: str = ""                    # current weather
-    last_tick_abnormal: str = ""         # most recent tick abnormal name
-    last_tick_target: str = ""           # most recent tick target ("sprite_self" | "sprite_opp")
-    abnormal_changed_name: str = ""      # most recent abnormal stack change name
-    abnormal_changed_target: str = ""    # target of most recent abnormal change
-    abnormal_applied_name: str = ""      # most recent abnormal application name
-    abnormal_applied_target: str = ""    # target of most recent abnormal application
-    skills_energy_changed_of: str = ""   # whose skill energy changed ("sprite_self" | "sprite_opp")
-    positive_changed_of: str = ""        # whose positive count changed
-    energy_changed_of: str = ""          # whose energy changed
-    turn_end: bool = False               # turn-end settlement signal (count only)
     turn: int = 0
     is_first: bool = False               # this skill is first action this turn
 
@@ -155,7 +167,6 @@ ADDRESS_MAP: dict[tuple[str, str], str] = {
     # sprite_self
     ("sprite_self", "hp"):                 "hp_self",
     ("sprite_self", "hp_ratio"):           "hp_self_ratio",
-    ("sprite_self", "hp_missing_ratio"):   "hp_self_missing_ratio",
     ("sprite_self", "energy"):             "energy_self",
     ("sprite_self", "skills_energy_sum"):  "skills_energy_sum_self",
     ("sprite_self", "abnormal_count"):     "abnormal_count_self",
@@ -165,6 +176,7 @@ ADDRESS_MAP: dict[tuple[str, str], str] = {
     ("sprite_self", "elements_used_count"):"elements_used_count_self",
     ("sprite_self", "positive_count"):     "positive_count_self",
     ("sprite_self", "zero_cost_skill_count"): "zero_cost_skill_count_self",
+    ("sprite_self", "priority"):           "priority_self",
     ("sprite_self", "atk"):               "atk_self",
     ("sprite_self", "def"):               "def_self",
     ("sprite_self", "sp_atk"):            "sp_atk_self",
@@ -189,7 +201,6 @@ ADDRESS_MAP: dict[tuple[str, str], str] = {
     # sprite_opp
     ("sprite_opp", "hp"):                  "hp_opp",
     ("sprite_opp", "hp_ratio"):            "hp_opp_ratio",
-    ("sprite_opp", "hp_missing_ratio"):    "hp_opp_missing_ratio",
     ("sprite_opp", "energy"):             "energy_opp",
     ("sprite_opp", "abnormal_count"):      "abnormal_count_opp",
     ("sprite_opp", "abnormal_stacks"):     "abnormal_stacks_opp",
@@ -225,9 +236,6 @@ ADDRESS_MAP: dict[tuple[str, str], str] = {
     ("team_opp", "devotion"):              "devotion_opp",
     ("team_opp", "fainted"):              "fainted_opp",
 
-    # team_both
-    ("team_both", "mark_count"):           "mark_count_both",
-
     # skill_off_0 (current attacking skill)
     ("skill_off_0", "power_base"):         "power_self",
     ("skill_off_0", "element"):            "element_self",
@@ -242,3 +250,16 @@ ADDRESS_MAP: dict[tuple[str, str], str] = {
     ("skill_opp_current", "element"):       "element_opp",
     ("skill_opp_current", "energy_total"): "energy_cost_opp",
 }
+
+
+def _validate_address_map() -> None:
+    """Verify every ADDRESS_MAP entry points to an actual Ctx field."""
+    valid_fields = set(Ctx.__dataclass_fields__)
+    for (of, q), field_name in ADDRESS_MAP.items():
+        if field_name not in valid_fields:
+            raise AttributeError(
+                f"ADDRESS_MAP ({of}, {q}) -> '{field_name}' is not a Ctx field"
+            )
+
+
+_validate_address_map()

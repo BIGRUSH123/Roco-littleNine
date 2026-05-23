@@ -668,7 +668,7 @@ def test_counter_fires_on_condition():
     """Test that a registered counter fires when its condition becomes true."""
     from backend.engine.battle import BattleVMEngine
     from backend.engine.observer import ObserverRegistry
-    from backend.vm.ctx import Ctx
+    from backend.vm.ctx import Ctx, EventContext
     from backend.vm.journal import CounterRegister, ModifierInjection
 
     # Setup: register a counter that modifies energy_cost on devotion_triggered
@@ -688,7 +688,7 @@ def test_counter_fires_on_condition():
     # Now fire with a ctx where devotion_triggered=True
     ctx = Ctx(
         element_self="虫", skill_type_self="物攻",
-        devotion_triggered=True,
+        event=EventContext(devotion_triggered=True),
     )
     mutations = registry.fire("post_skill", ctx)
     assert len(mutations) > 0, "Counter should fire when condition is met"
@@ -703,7 +703,7 @@ def test_counter_does_not_fire_without_condition():
     """Test that a registered counter does NOT fire when condition is false."""
     from backend.engine.battle import BattleVMEngine
     from backend.engine.observer import ObserverRegistry
-    from backend.vm.ctx import Ctx
+    from backend.vm.ctx import Ctx, EventContext
     from backend.vm.journal import CounterRegister
 
     registry = ObserverRegistry()
@@ -718,7 +718,7 @@ def test_counter_does_not_fire_without_condition():
     ))
 
     # Fire with devotion_triggered=False
-    ctx = Ctx(element_self="虫", skill_type_self="物攻", devotion_triggered=False)
+    ctx = Ctx(element_self="虫", skill_type_self="物攻", event=EventContext(devotion_triggered=False))
     mutations = registry.fire("post_skill", ctx)
     assert len(mutations) == 0, f"Counter should NOT fire when condition false, got {len(mutations)}"
     print("  Counter correctly stayed silent when condition false")
@@ -1229,7 +1229,7 @@ def test_use_devotion_e2e():
     assert len(counters) == 1, "啃咬 should register a counter"
     # Engine should have the counter registered
     assert len(engine.registry) >= 1
-    print(f"  啃咬: use_devotion=True, devotion_triggered={result.ctx.devotion_triggered}")
+    print(f"  啃咬: use_devotion=True, devotion_triggered={result.ctx.event.devotion_triggered}")
 
 
 # ═══════════════════════════════════════════════════════════════

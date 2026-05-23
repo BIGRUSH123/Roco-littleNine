@@ -286,9 +286,9 @@ HAVE_EVAL = {
 
 COND_EVAL = {
     # ── Counter / response ──
-    "counter_succeeded": lambda ctx, cond: ctx.counter_succeeded,
-    "self_was_countered": lambda ctx, cond: ctx.was_countered,
-    "prev_counter_succeeded": lambda ctx, cond: ctx.prev_counter_succeeded,
+    "counter_succeeded": lambda ctx, cond: ctx.event.counter_succeeded,
+    "self_was_countered": lambda ctx, cond: ctx.event.was_countered,
+    "prev_counter_succeeded": lambda ctx, cond: ctx.event.prev_counter_succeeded,
 
     # ── Charge / action state ──
     "charged": lambda ctx, cond: ctx.charged_self,
@@ -297,8 +297,8 @@ COND_EVAL = {
     "first_action": lambda ctx, cond: ctx.first_action_self,
 
     # ── KO ──
-    "on_ko": lambda ctx, cond: ctx.target_fainted,
-    "on_self_ko": lambda ctx, cond: ctx.self_koed,
+    "on_ko": lambda ctx, cond: ctx.event.target_fainted,
+    "on_self_ko": lambda ctx, cond: ctx.event.self_koed,
 
     # ── Damage ──
     "on_damage_taken": lambda ctx, cond: ctx.damage_taken_this_turn > 0,
@@ -307,8 +307,8 @@ COND_EVAL = {
     ),
 
     # ── Switch ──
-    "opp_switched": lambda ctx, cond: ctx.opp_switched,
-    "self_switched": lambda ctx, cond: ctx.self_switched,
+    "opp_switched": lambda ctx, cond: ctx.event.opp_switched,
+    "self_switched": lambda ctx, cond: ctx.event.self_switched,
 
     # ── Skill type checks ──
     "opp_is_attack": lambda ctx, cond: ctx.skill_type_opp in ("物攻", "魔攻", "动态攻击"),
@@ -345,7 +345,7 @@ COND_EVAL = {
 
     # ── Skill position ──
     "skill_at": lambda ctx, cond: ctx.skill_index == cond["position"],
-    "skill_position_changed": lambda ctx, cond: ctx.skill_position_changed,
+    "skill_position_changed": lambda ctx, cond: ctx.event.skill_position_changed,
 
     # ── Skill use (count only) ──
     "skill_use": lambda ctx, cond: _skill_use_matches(ctx, cond),
@@ -360,29 +360,29 @@ COND_EVAL = {
     # ── Entry / abnormal / state change events ──
     "sprite_entered": lambda ctx, cond: _sprite_of(ctx, cond.get("of", "sprite_self"))["just_entered"],
     "on_abnormal_tick": lambda ctx, cond: (
-        ctx.last_tick_abnormal == cond["name"]
-        and ctx.last_tick_target == cond.get("of", "sprite_opp")
+        ctx.event.last_tick_abnormal == cond["name"]
+        and ctx.event.last_tick_target == cond.get("of", "sprite_opp")
     ),
     "on_abnormal_changed": lambda ctx, cond: (
-        ctx.abnormal_changed_name == cond["name"]
-        and ctx.abnormal_changed_target == cond.get("of", "sprite_opp")
+        ctx.event.abnormal_changed_name == cond["name"]
+        and ctx.event.abnormal_changed_target == cond.get("of", "sprite_opp")
     ),
     "on_abnormal_applied": lambda ctx, cond: (
-        ctx.abnormal_applied_name == cond["name"]
-        and ctx.abnormal_applied_target == cond.get("of", "sprite_opp")
+        ctx.event.abnormal_applied_name == cond["name"]
+        and ctx.event.abnormal_applied_target == cond.get("of", "sprite_opp")
     ),
     "on_skills_energy_changed": lambda ctx, cond: (
-        ctx.skills_energy_changed_of == cond.get("of", "sprite_self")
+        ctx.event.skills_energy_changed_of == cond.get("of", "sprite_self")
     ),
     "on_positive_changed": lambda ctx, cond: (
-        ctx.positive_changed_of == cond.get("of", "sprite_opp")
+        ctx.event.positive_changed_of == cond.get("of", "sprite_opp")
     ),
     "on_energy_changed": lambda ctx, cond: (
-        ctx.energy_changed_of == cond.get("of", "sprite_self")
+        ctx.event.energy_changed_of == cond.get("of", "sprite_self")
     ),
 
     # ── Turn end ──
-    "turn_end": lambda ctx, cond: ctx.turn_end,
+    "turn_end": lambda ctx, cond: ctx.event.turn_end,
 
     # ── Generic comparison ──
     "compare": lambda ctx, cond: compare_op(
@@ -391,7 +391,7 @@ COND_EVAL = {
     ),
 
     # ── Devotion ──
-    "devotion_triggered": lambda ctx, cond: ctx.devotion_triggered,
+    "devotion_triggered": lambda ctx, cond: ctx.event.devotion_triggered,
 
     # ── Logic gates — recursive combinators ──
     "and": lambda ctx, cond: all(eval_one(ctx, c) for c in cond["conditions"]),
@@ -505,7 +505,11 @@ def _resolve_trait_path_value(ctx: Ctx, path: str):
 
     # Direct field map
     if path in _TRAIT_PATH_MAP:
-        return getattr(ctx, _TRAIT_PATH_MAP[path])
+        field = _TRAIT_PATH_MAP[path]
+        try:
+            return getattr(ctx, field)
+        except AttributeError:
+            return getattr(ctx.event, field, 0)
 
     # Computed paths
     if path == "skill.is_attack":
@@ -515,9 +519,9 @@ def _resolve_trait_path_value(ctx: Ctx, path: str):
     if path == "skill.is_status":
         return ctx.skill_type_self in ("状态", "变化")
     if path == "target.is_fainted":
-        return ctx.target_fainted
+        return ctx.event.target_fainted
     if path == "is_faint":
-        return ctx.self_koed
+        return ctx.event.self_koed
     if path == "self.energy_cost_total":
         return ctx.skills_energy_sum_self
     if path == "target_bloodline":
@@ -581,8 +585,11 @@ def _resolve_trait_path_value(ctx: Ctx, path: str):
             return ctx.team_counters_opp.get(key, 0)
         return ctx.team_counters_own.get(key, 0)
 
-    # Fallback: try attribute access on ctx
-    return getattr(ctx, path, None)
+    # Fallback: try attribute access on ctx, then ctx.event
+    val = getattr(ctx, path, None)
+    if val is not None:
+        return val
+    return getattr(ctx.event, path, None)
 
 
 def _eval_trait_path(ctx: Ctx, cond: dict) -> bool:

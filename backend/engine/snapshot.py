@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from backend.vm.ctx import Ctx
+from backend.vm.ctx import Ctx, EventContext
 
 if TYPE_CHECKING:
     from backend.sim.globals import GlobalEffects
@@ -82,7 +82,7 @@ def build_ctx(
     hp_self = ss.current_hp
     hp_self_max = ss.max_hp
     hp_self_ratio = hp_self / hp_self_max if hp_self_max > 0 else 0.0
-    hp_self_missing_ratio = (hp_self_max - hp_self) / hp_self_max if hp_self_max > 0 else 0.0
+    priority_self = int(ss._modifiers.get("priority", 0))
 
     stat_stages_self = _extract_stat_stages(ss)
     abnormal_stacks_self = _extract_abnormal_stacks(ss)
@@ -108,7 +108,6 @@ def build_ctx(
     hp_opp = os.current_hp
     hp_opp_max = os.max_hp
     hp_opp_ratio = hp_opp / hp_opp_max if hp_opp_max > 0 else 0.0
-    hp_opp_missing_ratio = (hp_opp_max - hp_opp) / hp_opp_max if hp_opp_max > 0 else 0.0
 
     stat_stages_opp = _extract_stat_stages(os)
     abnormal_stacks_opp = _extract_abnormal_stacks(os)
@@ -139,7 +138,7 @@ def build_ctx(
 
     weather = g.weather if g else ""
 
-    # ── Self skill ──
+    # ── Skill ──
     sk = self_skill
     bs = battle_skill
     # Read skill-level _modifiers from BattleSkill (unified dict);
@@ -164,14 +163,38 @@ def build_ctx(
     power_opp = osk.power if osk and hasattr(osk, 'power') else 0
     energy_cost_opp = osk.energy_cost if osk and hasattr(osk, 'energy_cost') else 0
 
+    # ── Build EventContext ──
+    event_ctx = EventContext(
+        counter_succeeded=counter_succeeded,
+        was_countered=was_countered,
+        prev_counter_succeeded=prev_counter_succeeded,
+        target_fainted=target_fainted,
+        self_koed=ss.is_fainted,
+        opp_switched=opp_switched,
+        self_switched=self_switched,
+        turn_end=turn_end,
+        skill_position_changed=skill_position_changed,
+        devotion_triggered=devotion_triggered,
+        last_tick_abnormal=last_tick_abnormal,
+        last_tick_target=last_tick_target,
+        abnormal_changed_name=abnormal_changed_name,
+        abnormal_changed_target=abnormal_changed_target,
+        abnormal_applied_name=abnormal_applied_name,
+        abnormal_applied_target=abnormal_applied_target,
+        skills_energy_changed_of=skills_energy_changed_of,
+        positive_changed_of=positive_changed_of,
+        energy_changed_of=energy_changed_of,
+    )
+
     # ── Build Ctx ──
     return Ctx(
+        event=event_ctx,
         # Self sprite
         hp_self=hp_self,
         hp_self_ratio=hp_self_ratio,
         hp_self_max=hp_self_max,
-        hp_self_missing_ratio=hp_self_missing_ratio,
         energy_self=ss.energy,
+        priority_self=priority_self,
         # Use initial_stats (base without stage multipliers) because
         # calc_damage applies stat_stages separately in the formula.
         # Using effective_stat would double-count stages and cause
@@ -200,7 +223,6 @@ def build_ctx(
         first_action_self=getattr(ss, 'first_action', True),
         charged_self=charged_self,
         is_charging_self=is_charging_self,
-        self_koed=ss.is_fainted,
         times_entered_self=ss.counters.get("times_entered", 0),
         times_left_self=ss.counters.get("times_left", 0),
         elements_used_count_self=elements_used_count_self,
@@ -219,7 +241,6 @@ def build_ctx(
         hp_opp=hp_opp,
         hp_opp_ratio=hp_opp_ratio,
         hp_opp_max=hp_opp_max,
-        hp_opp_missing_ratio=hp_opp_missing_ratio,
         energy_opp=os.energy,
         # Use initial_stats for non-speed stats (see self-sprite comment above)
         atk_opp=os.initial_stats.get("atk", 100),
@@ -245,7 +266,6 @@ def build_ctx(
         mark_stacks_own=mark_stacks_own,
         mark_count_opp=mark_count_opp,
         mark_stacks_opp=mark_stacks_opp,
-        mark_count_both=mark_count_own + mark_count_opp,
         mark_bonus_own=mark_bonus_own,
         skill_count_own=skill_count_own or {},
         team_counters_own=team_counters_own or {},
@@ -270,39 +290,21 @@ def build_ctx(
         energy_cost_self=energy_cost_self,
         energy_cost_reduction_self=energy_cost_reduction_self,
         energy_cost_opp=energy_cost_opp,
-        counter_succeeded=counter_succeeded,
-        was_countered=was_countered,
-        prev_counter_succeeded=prev_counter_succeeded,
         damage_taken_this_turn=damage_taken_this_turn,
         damage_reduced_self=damage_reduced_self,
-        devotion_triggered=devotion_triggered,
         prev_skill_type=prev_skill_type,
-        target_fainted=target_fainted,
         prev_damage_taken_self=prev_damage_taken_self,
         prev_damage_taken_opp=prev_damage_taken_opp,
 
         # Skill tracking
         skill_index=skill_index,
-        skill_position_changed=skill_position_changed,
         last_tick_damage_self=0,
         last_tick_damage_opp=0,
 
         # Battlefield
         weather=weather,
-        last_tick_abnormal=last_tick_abnormal,
-        last_tick_target=last_tick_target,
-        abnormal_changed_name=abnormal_changed_name,
-        abnormal_changed_target=abnormal_changed_target,
-        abnormal_applied_name=abnormal_applied_name,
-        abnormal_applied_target=abnormal_applied_target,
-        skills_energy_changed_of=skills_energy_changed_of,
-        positive_changed_of=positive_changed_of,
-        energy_changed_of=energy_changed_of,
-        turn_end=turn_end,
         turn=turn,
         is_first=is_first,
-        opp_switched=opp_switched,
-        self_switched=self_switched,
 
         # Counters
         counter_values=counter_values or {},
