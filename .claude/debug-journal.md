@@ -141,6 +141,14 @@
 - **涉及文件**: backend/engine/replayer.py:94/235/240/387-400/908, backend/vm/cond.py:198-199/397-398, backend/engine/battle.py:254, backend/sim/traits/trait_engine.py:133-148, data/traits/向心力.json
 - **教训**: 效果出现在错误目标时查 `_target_sprite` 是否识别该 target；位置型效果不跟随回合刷新时检查是否只有 `post_entry` 无 `turn_start`
 
+
+## 2026-05-26 - 吟游之弦 mark_coexist flag 只写不读 + Hook 路径 user 参数从未传入
+
+- **现象**: 吟游之弦（id=20146）印记共存特性在生产环境中完全不生效——印记仍然互相替换而非共存
+- **根因**: 两条执行路径均失效：① Hook 路径 `_bard_before_apply_mark` 检查 `user` 参数，但 replayer 全部 4 处 `apply_mark` 调用点均未传 `user`（永远为 None），hook 返回 None；② DataDrivenTrait observer 通过 `flag_set` 写入 `sprite._modifiers["mark_coexist"] = True`，但 `apply_mark` 从未读取此 flag——与 `extra_turn_end` 同模式的"只写不读"
+- **修复**: 删除全部 hook 代码（`hooks/__init__.py` 清空，18 个注册全部移除）；`apply_mark` 签名 `user` → `coexist: bool`；replayer 4 处调用点改为读 `self.self._modifiers.get("mark_coexist")` 后传 `coexist=`；`吟游之弦.json` listen 改为 `["pre_calc", "post_entry"]` 确保入场即设 flag
+- **涉及文件**: backend/engine/hooks/__init__.py, backend/sim/globals.py:273-286, backend/engine/replayer.py:523/551/576/705, data/traits/吟游之弦.json:15
+- **教训**: 特性通过 hook 实现时，先查 hook 的触发条件在生产环境中是否满足——特别是参数是否被实际传入（grep 所有调用点确认）。特性同时有 JSON observer 和 hook 两套路径时，大概率 observer 路径的 flag 只写不读
 <!-- 新条目追加在此行上方，格式如下：
 
 ## YYYY-MM-DD - 简短标题
