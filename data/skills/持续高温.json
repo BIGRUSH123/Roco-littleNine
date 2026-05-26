@@ -13,12 +13,12 @@
       },
       "then": [
         {
-          "op": "mod",
+          "op": "mult_mod",
           "target": "sprite_self",
-          "stat": "power_mult",
-          "value": 2,
           "on_next": true,
-          "if_type": "attack"
+          "if_type": "attack",
+          "attr": "power_mult",
+          "value": 2
         }
       ]
     }

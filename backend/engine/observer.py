@@ -56,10 +56,36 @@ class Observer:
     name: str = ""            # Optional identifier
     source: str = ""          # Where this observer came from (skill/trait name)
     listen: frozenset = field(default_factory=frozenset)  # Trigger points to evaluate on
+    threshold: int = 1        # fire then every N condition hits (1 = every time)
+    reset_on_fire: bool = True  # reset internal counter after then executes
+    owner_sprite_id: int | None = None  # id() of the sprite that owns this observer
+    _hit_count: int = field(default=0, repr=False)  # internal counter
 
     def is_active(self) -> bool:
         """Permanent observers never deactivate; others may be cleared."""
         return True  # engine manages lifecycle via scope
+
+    def should_clear(self, reason: str) -> bool:
+        """Whether this observer should be cleared for the given reason.
+
+        battlefield: clear on leave or faint
+        persistent: clear only on faint
+        permanent: never clear
+        """
+        if self.scope == "battlefield":
+            return True  # clear on any removal
+        if self.scope == "persistent":
+            return reason == "faint"
+        return False  # permanent — never clear
+
+    def hit(self) -> bool:
+        """Increment hit counter; return True if threshold reached."""
+        self._hit_count += 1
+        if self._hit_count >= self.threshold:
+            if self.reset_on_fire:
+                self._hit_count = 0
+            return True
+        return False
 
 
 class ObserverRegistry:
@@ -79,6 +105,15 @@ class ObserverRegistry:
     def register_many(self, observers: list[Observer]) -> None:
         self._observers.extend(observers)
 
+    def unregister_by_owner(self, sprite_id: int, reason: str = "leave") -> int:
+        """Remove observers owned by a sprite. Returns count removed."""
+        before = len(self._observers)
+        self._observers = [
+            obs for obs in self._observers
+            if obs.owner_sprite_id != sprite_id or not obs.should_clear(reason)
+        ]
+        return before - len(self._observers)
+
     def register_from_counter(self, counter) -> None:
         """Register an observer from a CounterRegister mutation.
 
@@ -90,6 +125,8 @@ class ObserverRegistry:
             scope=counter.scope,
             name=counter.name or "",
             listen=infer_triggers(counter.cond),
+            threshold=getattr(counter, 'threshold', 1),
+            reset_on_fire=getattr(counter, 'reset_on_fire', True),
         ))
 
     # ── Firing ──
@@ -123,8 +160,9 @@ class ObserverRegistry:
                 continue
             try:
                 if eval_one(ctx, obs.cond):
-                    result = process_fn(ctx, obs.then)
-                    mutations.extend(result)
+                    if obs.hit():  # threshold gate — only execute when threshold reached
+                        result = process_fn(ctx, obs.then)
+                        mutations.extend(result)
             except Exception:
                 # Observer evaluation failures should not crash the battle
                 continue

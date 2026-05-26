@@ -2,32 +2,35 @@
   "id": 20073,
   "name": "毒牙",
   "description": "使敌方获得中毒时，魔攻和魔防-40%。",
-  "triggers": [
+  "effects": [
     {
-      "on": "inflict",
-      "condition": {
-        "path": "effect_name",
-        "op": "eq",
-        "value": "中毒"
-      },
-      "effects": [
+      "op": "observer",
+      "then": [
         {
-          "kind": "stat",
-          "stat": "sp_atk",
-          "steps": -4,
           "target": "target",
           "scope": "battlefield",
-          "source": "毒牙"
+          "source": "毒牙",
+          "op": "stat_stage",
+          "stat": "sp_atk",
+          "steps": -4
         },
         {
-          "kind": "stat",
-          "stat": "sp_def",
-          "steps": -4,
           "target": "target",
           "scope": "battlefield",
-          "source": "毒牙"
+          "source": "毒牙",
+          "op": "stat_stage",
+          "stat": "sp_def",
+          "steps": -4
         }
-      ]
+      ],
+      "scope": "persistent",
+      "cond": {
+        "cond": "compare",
+        "q": "effect_name",
+        "of": "sprite_self",
+        "op": "eq",
+        "value": "中毒"
+      }
     }
   ]
 }

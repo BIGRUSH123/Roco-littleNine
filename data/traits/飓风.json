@@ -2,17 +2,19 @@
   "id": 20139,
   "name": "飓风",
   "description": "被击败时额外损失1魔力。",
-  "triggers": [
+  "effects": [
     {
-      "on": "faint",
-      "effects": [
+      "op": "observer",
+      "then": [
         {
-          "kind": "special",
-          "name": "lives_delta",
-          "amount": -1,
-          "target_team": "own"
+          "target": "sprite_self",
+          "op": "special"
         }
-      ]
+      ],
+      "scope": "persistent",
+      "cond": {
+        "cond": "on_self_ko"
+      }
     }
   ]
 }

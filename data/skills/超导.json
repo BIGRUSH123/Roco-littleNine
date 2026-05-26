@@ -12,11 +12,10 @@
       },
       "then": [
         {
-          "op": "mod",
+          "op": "power_mod",
           "target": "skill_off_0",
-          "stat": "energy_cost",
-          "value": -1,
-          "mode": "add"
+          "attr": "energy_cost",
+          "delta": -1
         }
       ]
     }

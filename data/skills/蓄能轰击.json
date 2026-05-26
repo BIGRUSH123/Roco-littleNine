@@ -7,21 +7,20 @@
   "energy_cost": 6,
   "effects": [
     {
-      "op": "count",
-      "when": {
-        "cond": "skill_use",
-        "element": "普通"
-      },
+      "op": "observer",
       "then": [
         {
-          "op": "mod",
+          "op": "power_mod",
           "target": "skill_off_0",
-          "stat": "energy_cost",
-          "value": -2,
-          "mode": "add",
-          "scope": "permanent"
+          "scope": "permanent",
+          "attr": "energy_cost",
+          "delta": -2
         }
-      ]
+      ],
+      "cond": {
+        "cond": "skill_use",
+        "element": "普通"
+      }
     }
   ],
   "description": "✦造成魔伤，每使用1次普通系技能，本技能能耗永久-2。"

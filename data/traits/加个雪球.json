@@ -4,12 +4,7 @@
   "description": "使敌方获得冻结时，额外+2层冻结。",
   "passive": [
     {
-      "op": "count",
-      "when": {
-        "cond": "on_abnormal_applied",
-        "of": "sprite_opp",
-        "name": "冻结"
-      },
+      "op": "observer",
       "then": [
         {
           "op": "abnormal",
@@ -17,7 +12,12 @@
           "name": "冻结",
           "stacks": 2
         }
-      ]
+      ],
+      "cond": {
+        "cond": "on_abnormal_applied",
+        "of": "sprite_opp",
+        "name": "冻结"
+      }
     }
   ]
 }

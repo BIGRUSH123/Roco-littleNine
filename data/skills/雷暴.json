@@ -12,26 +12,24 @@
       "what": "burst"
     },
     {
-      "value": {
+      "target": "skill_off_0",
+      "op": "power_mod",
+      "attr": "energy_cost",
+      "delta": {
         "q": "burst_triggered_count",
         "of": "team_own",
         "scale": 1
-      },
-      "target": "skill_off_0",
-      "op": "mod",
-      "stat": "energy_cost",
-      "mode": "add"
+      }
     },
     {
-      "value": {
+      "target": "skill_off_0",
+      "op": "power_mod",
+      "attr": "power",
+      "delta": {
         "q": "burst_triggered_count",
         "of": "team_own",
         "scale": 10
-      },
-      "target": "skill_off_0",
-      "op": "mod",
-      "stat": "power",
-      "mode": "add"
+      }
     }
   ],
   "description": "✦造成魔伤，迸发：本技能获得所有生效过的迸发，每获得1种，本技能能耗+1，威力+10。"

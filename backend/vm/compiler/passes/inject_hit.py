@@ -33,7 +33,7 @@ class InjectHitPass:
         if any(isinstance(op, HitOp) for op in ctx.ir):
             return
 
-        # Inject HitOp at the beginning
+        # Inject HitOp at the end — user effects (modifiers) should run first
         element = raw.get("element")
         combo = raw.get("combo", 1)
         hit = HitOp(
@@ -42,4 +42,4 @@ class InjectHitPass:
             element=element,
             combo=combo,
         )
-        ctx.ir.insert(0, hit)
+        ctx.ir.append(hit)

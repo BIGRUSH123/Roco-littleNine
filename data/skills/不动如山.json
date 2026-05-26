@@ -7,10 +7,10 @@
   "counter": "攻击",
   "effects": [
     {
-      "value": 0.9,
       "target": "sprite_self",
-      "op": "mod",
-      "stat": "damage_reduction"
+      "op": "mult_mod",
+      "attr": "damage_reduction",
+      "value": 0.9
     }
   ],
   "description": "✦减伤90%，应对攻击。"

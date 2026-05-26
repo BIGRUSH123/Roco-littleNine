@@ -2,18 +2,23 @@
   "id": 20134,
   "name": "野性感官",
   "description": "应对成功后，下次行动先手+1。",
-  "triggers": [
+  "effects": [
     {
-      "on": "counter_success",
-      "effects": [
+      "op": "observer",
+      "then": [
         {
-          "kind": "stat",
-          "stat": "priority",
-          "steps": 1,
+          "target": "sprite_self",
           "scope": "next_use",
-          "source": "野性感官"
+          "source": "野性感官",
+          "op": "stat_stage",
+          "stat": "priority",
+          "steps": 1
         }
-      ]
+      ],
+      "scope": "persistent",
+      "cond": {
+        "cond": "counter_succeeded"
+      }
     }
   ]
 }

@@ -8,13 +8,13 @@
   "effects": [
     {
       "target": "sprite_opp",
-      "op": "mod",
+      "op": "stat_stage",
       "stat": "def",
       "steps": -13
     },
     {
       "target": "sprite_opp",
-      "op": "mod",
+      "op": "stat_stage",
       "stat": "sp_def",
       "steps": -13
     },
@@ -24,9 +24,9 @@
       },
       "then": [
         {
-          "op": "mod",
+          "op": "flag_set",
           "target": "skill_opp_current",
-          "stat": "cooldown",
+          "flag": "cooldown",
           "value": 2
         }
       ]

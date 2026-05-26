@@ -4,11 +4,11 @@
   "description": "在场时，所有回合结束时触发次数+1。",
   "passive": [
     {
-      "op": "mod",
+      "op": "flag_set",
       "target": "sprite_self",
-      "stat": "extra_turn_end",
-      "value": 1,
-      "scope": "battlefield"
+      "scope": "battlefield",
+      "flag": "extra_turn_end",
+      "value": 1
     }
   ]
 }

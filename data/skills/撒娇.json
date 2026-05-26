@@ -13,12 +13,11 @@
       "stacks": 1,
       "then": [
         {
-          "op": "mod",
+          "op": "power_mod",
           "target": "skill_off_0",
-          "stat": "power",
-          "value": 20,
-          "mode": "add",
-          "scope": "permanent"
+          "scope": "permanent",
+          "attr": "power",
+          "delta": 20
         }
       ]
     }

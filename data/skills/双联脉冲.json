@@ -13,11 +13,10 @@
       },
       "then": [
         {
-          "op": "mod",
+          "op": "flag_set",
           "target": "sprite_self",
-          "stat": "extra_action",
-          "value": 1,
-          "mode": "add"
+          "flag": "extra_action",
+          "value": 1
         }
       ]
     }

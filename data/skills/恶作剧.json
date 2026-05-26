@@ -12,18 +12,16 @@
       },
       "then": [
         {
-          "op": "mod",
+          "op": "energize",
           "target": "sprite_opp",
-          "stat": "energy",
-          "value": -6
+          "delta": -6
         }
       ],
       "else": [
         {
-          "op": "mod",
+          "op": "energize",
           "target": "sprite_opp",
-          "stat": "energy",
-          "value": -3
+          "delta": -3
         }
       ]
     }

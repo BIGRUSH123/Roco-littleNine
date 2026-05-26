@@ -6,27 +6,27 @@
   "energy_cost": 2,
   "effects": [
     {
+      "target": "sprite_self",
+      "op": "mult_mod",
+      "attr": "atk",
       "value": {
         "q": "zero_cost_skill_count",
         "of": "sprite_self",
         "scale": 5,
         "offset": 5
       },
-      "target": "sprite_self",
-      "op": "mod",
-      "stat": "atk",
       "mode": "add"
     },
     {
+      "target": "sprite_self",
+      "op": "mult_mod",
+      "attr": "sp_atk",
       "value": {
         "q": "zero_cost_skill_count",
         "of": "sprite_self",
         "scale": 5,
         "offset": 5
       },
-      "target": "sprite_self",
-      "op": "mod",
-      "stat": "sp_atk",
       "mode": "add"
     }
   ],

@@ -119,6 +119,11 @@ class Sprite:
     # 运行时 modifier 累积 (damage_reduction, power_mult, etc.)
     # 由 JournalReplayer._apply_modifier 写入，snapshot 读取
     _modifiers: dict[str, float] = field(default_factory=dict)
+    # 不可见 modifier 的 scope 追踪 {stat_key: scope}
+    # scope="turn" → 回合末清除；scope="battlefield" → 离场时清除
+    _mod_scopes: dict[str, str] = field(default_factory=dict)
+    # 最近一次异常 tick 的实际伤害（含属性克制），供仁心等 trait observer 查询
+    _last_abnormal_dmg: dict[str, int] = field(default_factory=dict)
 
     # 延迟生效的效果队列：[(StatusEffect, delay_remaining), ...]
     _pending_effects: list = field(default_factory=list)
@@ -198,7 +203,7 @@ class Sprite:
         """添加效果。stat 按 stat_key 合并步数；state 追加；异常按同名合并层数。"""
         if effect.is_stat:
             for existing in self.effects:
-                if existing.is_stat and existing.stat_key == effect.stat_key:
+                if existing.is_stat and existing.stat_key == effect.stat_key and existing.scope == effect.scope:
                     existing.steps += effect.steps
                     existing.name = _format_stat_name(effect.stat_key, existing.steps)
                     return
@@ -259,20 +264,21 @@ class Sprite:
             ))
 
     def clear_effects(self, scope: str) -> None:
-        """清除指定 scope 的全部效果（换宠用）。battlefield 同步清除 aura。
-        同步清理 _modifiers 中对应 stat_key 的持久值。
-        无 StatusEffect 的不可见 key（如 combo_mult）也一并清理。"""
+        """清除指定 scope 的全部效果。同步清理 _modifiers 中的不可见 key。"""
         scopes = {scope}
-        if scope == 'battlefield':
+        if scope in ('battlefield', 'turn'):
             scopes.add('aura')
+        # 清除 StatusEffect
         removed = [e for e in self.effects if e.scope in scopes]
         self.effects = [e for e in self.effects if e.scope not in scopes]
         for e in removed:
             if e.is_stat and e.stat_key:
                 self._modifiers.pop(e.stat_key, None)
-        # 不可见 modifier：无 StatusEffect 但 scope=battlefield 时也清
-        if scope == 'battlefield':
-            self._modifiers.pop('combo_mult', None)
+        # 清除不可见 modifier（_mod_scopes 中记录的 key）
+        for mod_key, mod_scope in list(self._mod_scopes.items()):
+            if mod_scope == scope or (scope in ('battlefield', 'turn') and mod_scope == 'aura'):
+                self._modifiers.pop(mod_key, None)
+                del self._mod_scopes[mod_key]
 
     # ── 驱散 / 翻倍 ──
 

@@ -5,11 +5,11 @@
   "attributes": [
     "翼"
   ],
-  "hp": 102,
+  "hp": 107,
   "atk": 116,
-  "sp_atk": 64,
-  "def": 107,
-  "sp_def": 55,
+  "sp_atk": 69,
+  "def": 127,
+  "sp_def": 65,
   "speed": 120,
   "ability": "乘风连击",
   "ability_id": 20005,

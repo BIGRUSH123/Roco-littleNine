@@ -13,7 +13,7 @@
       },
       "then": [
         {
-          "op": "mod",
+          "op": "stat_stage",
           "target": "sprite_opp",
           "stat": "def",
           "steps": -8

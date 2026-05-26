@@ -7,16 +7,15 @@
   "energy_cost": 3,
   "effects": [
     {
-      "value": {
+      "target": "skill_off_0",
+      "op": "power_mod",
+      "attr": "power",
+      "delta": {
         "q": "abnormal_stacks",
         "of": "sprite_opp",
         "name": "冻结",
         "scale": 20
-      },
-      "target": "skill_off_0",
-      "op": "mod",
-      "stat": "power",
-      "mode": "add"
+      }
     }
   ],
   "description": "✦造成魔伤，敌方每有1层冻结，本次技能威力+20。"

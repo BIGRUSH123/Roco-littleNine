@@ -13,9 +13,9 @@
       },
       "then": [
         {
-          "op": "mod",
+          "op": "mult_mod",
           "target": "skill_off_0",
-          "stat": "power_mult",
+          "attr": "power_mult",
           "value": 2
         }
       ]

@@ -8,20 +8,19 @@
   "combo": 2,
   "effects": [
     {
-      "op": "count",
-      "when": {
-        "cond": "counter_succeeded"
-      },
+      "op": "observer",
       "then": [
         {
-          "op": "mod",
+          "op": "power_mod",
           "target": "skill_off_0",
-          "stat": "combo",
-          "value": 2,
-          "mode": "add",
-          "scope": "permanent"
+          "scope": "permanent",
+          "attr": "combo",
+          "delta": 2
         }
-      ]
+      ],
+      "cond": {
+        "cond": "counter_succeeded"
+      }
     }
   ],
   "description": "✦造成魔伤，2连击，每成功应对1次，本技能连击数永久+2。"

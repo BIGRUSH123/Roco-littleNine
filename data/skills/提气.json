@@ -7,10 +7,10 @@
   "effects": [
     {
       "target": "sprite_self",
-      "op": "mod",
-      "stat": "power",
-      "steps": 4,
-      "skill_filter": "all"
+      "op": "power_mod",
+      "skill_filter": "all",
+      "attr": "power",
+      "delta": 4
     },
     {
       "when": {
@@ -18,11 +18,11 @@
       },
       "then": [
         {
-          "op": "mod",
+          "op": "power_mod",
           "target": "sprite_self",
-          "stat": "power",
-          "steps": 5,
-          "skill_filter": "all"
+          "skill_filter": "all",
+          "attr": "power",
+          "delta": 5
         }
       ]
     }

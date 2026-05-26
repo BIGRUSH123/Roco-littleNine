@@ -12,9 +12,9 @@
       },
       "then": [
         {
-          "op": "mod",
+          "op": "mult_mod",
           "target": "sprite_self",
-          "stat": "sp_atk",
+          "attr": "sp_atk",
           "value": 0.7,
           "mode": "add"
         }

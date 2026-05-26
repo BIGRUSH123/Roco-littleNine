@@ -18,24 +18,19 @@ def _get(effect, key, default=None):
 
 
 def op_count(ctx: Ctx, effect) -> list[Mutation]:
-    """Register a persistent counter that fires on matching events.
-
-    condition: the trigger condition dict/SkillCondition
-    then: effects to execute when the counter fires
-    scope: "battlefield" | "persistent" | "permanent"
-    name: optional name for counter_value queries
-
-    The engine calls eval_one(ctx, cond) after each event; if true,
-    the then effects are executed as if they were part of the current skill.
-    """
-    cond = _get(effect, "when")
+    """Register a persistent counter that fires on matching events."""
+    cond = _get(effect, "cond") or _get(effect, "when")
     then = _get(effect, "then", [])
     scope = _get(effect, "scope", "persistent")
     name = _get(effect, "name")
+    threshold = _get(effect, "threshold", 1)
+    reset_on_fire = _get(effect, "reset_on_fire", True)
 
     return [CounterRegister(
         name=name,
         cond=cond,
         then=then,
         scope=scope,
+        threshold=threshold,
+        reset_on_fire=reset_on_fire,
     )]

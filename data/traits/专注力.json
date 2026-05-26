@@ -1,24 +1,26 @@
 {
   "id": 20004,
   "name": "专注力",
-  "description": "入场首回合，物攻+100%。",
-  "passive": [
+  "description": "仅入场首回合，物攻+100%。",
+  "effects": [
     {
-      "op": "count",
-      "when": {
-        "cond": "sprite_entered"
+      "op": "observer",
+      "cond": {
+        "cond": "first_action"
       },
       "then": [
         {
-          "op": "mod",
+          "op": "mult_mod",
           "target": "sprite_self",
-          "stat": "atk",
+          "scope": "turn",
+          "attr": "atk",
           "value": 1,
-          "mode": "add",
-          "scope": "battlefield",
-          "ttl": 1
+          "mode": "add"
         }
-      ]
+      ],
+      "listen": "pre_calc",
+      "scope": "battlefield"
     }
-  ]
+  ],
+  "passive": []
 }

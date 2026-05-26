@@ -4,26 +4,26 @@
   "description": "敌方每有1层增益，攻击威力+10%。",
   "passive": [
     {
-      "op": "count",
-      "when": {
-        "cond": "on_positive_changed",
-        "of": "sprite_opp"
-      },
+      "op": "observer",
       "then": [
         {
-          "op": "mod",
+          "op": "mult_mod",
           "target": "sprite_self",
-          "stat": "power_mult",
+          "scope": "permanent",
+          "skill_filter": "attack",
+          "attr": "power_mult",
           "value": {
             "q": "positive_count",
             "of": "sprite_opp",
             "scale": 0.1,
             "offset": 1
-          },
-          "scope": "permanent",
-          "skill_filter": "attack"
+          }
         }
-      ]
+      ],
+      "cond": {
+        "cond": "on_positive_changed",
+        "of": "sprite_opp"
+      }
     }
   ]
 }

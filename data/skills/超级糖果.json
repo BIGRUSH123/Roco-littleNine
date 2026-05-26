@@ -13,12 +13,11 @@
       "stacks": 1,
       "then": [
         {
-          "op": "mod",
+          "op": "power_mod",
           "target": "skill_off_0",
-          "stat": "power",
-          "value": 60,
-          "mode": "add",
-          "feeds": "power"
+          "feeds": "power",
+          "attr": "power",
+          "delta": 60
         }
       ]
     }

@@ -12,18 +12,18 @@
       },
       "then": [
         {
-          "op": "mod",
+          "op": "power_mod",
           "target": "sprite_self",
-          "stat": "power",
-          "steps": 6
+          "attr": "power",
+          "delta": 6
         }
       ],
       "else": [
         {
-          "op": "mod",
+          "op": "power_mod",
           "target": "sprite_self",
-          "stat": "power",
-          "steps": 3
+          "attr": "power",
+          "delta": 3
         }
       ]
     }

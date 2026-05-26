@@ -7,10 +7,10 @@
   "energy_cost": 3,
   "effects": [
     {
-      "value": -0.5,
       "target": "sprite_opp",
-      "op": "mod",
-      "stat": "sp_def",
+      "op": "mult_mod",
+      "attr": "sp_def",
+      "value": -0.5,
       "mode": "add"
     }
   ],

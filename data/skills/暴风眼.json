@@ -6,11 +6,11 @@
   "energy_cost": 2,
   "effects": [
     {
-      "value": 1,
       "target": "sprite_self",
-      "op": "mod",
-      "stat": "combo_mult",
-      "scope": "battlefield"
+      "op": "power_mod",
+      "scope": "battlefield",
+      "attr": "combo_mult",
+      "delta": 1
     }
   ],
   "description": "✦行动时连击数+100%。"

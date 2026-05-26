@@ -4,7 +4,7 @@ All dataclasses are frozen (immutable). The VM produces a Journal (list of
 Mutation) and the engine replays it against mutable battle state.
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Union
 
 
@@ -220,10 +220,10 @@ class LivesDelta:
 
 @dataclass(frozen=True)
 class ScheduleEntry:
-    """Register delayed effects for a future turn."""
-    delay_turns: int
-    phase: str         # "start" | "end"
-    effects: list      # IR effects to execute at the delayed time
+    """Register delayed effects for a future turn (RISC: defer)."""
+    turns: int
+    at: str = "turn_start"    # "turn_start" | "turn_end"
+    then: list = field(default_factory=list)  # IR effects to execute at the delayed time
 
 
 @dataclass(frozen=True)
@@ -231,8 +231,10 @@ class InheritEffectsMutation:
     """Transfer effects between sprites on switch."""
     source_key: str             # "self" | "target"
     target_key: str             # "enemy_new" | sprite_ref
-    scope: str                  # "battlefield" | "persistent"
+    scope: str = "battlefield"
     via_pending: bool = False   # route through battle.pending_effects
+    effects: tuple = ()         # fixed effects to apply to incoming sprite
+    inherit_stat_effects: bool = False  # copy dynamic stat effects
 
 
 @dataclass(frozen=True)
@@ -253,13 +255,15 @@ class TraitInteractionMutation:
     new_ability: str | None = None
 
 
-@dataclass(frozen=True)
+@dataclass
 class CounterRegister:
     """Register a persistent counter/watcher on the skill."""
-    name: str | None
-    cond: dict        # Trigger condition (shared COND_EVAL table)
-    then: list        # IR effects to execute when triggered
-    scope: str        # "battlefield" | "persistent" | "permanent"
+    name: str | None = None
+    cond: dict | None = None     # Trigger condition
+    then: list = field(default_factory=list)  # IR effects to execute
+    scope: str = "persistent"
+    threshold: int = 1            # fire every N triggers
+    reset_on_fire: bool = True    # reset counter after firing
 
 
 # Union of all mutation types the VM can produce

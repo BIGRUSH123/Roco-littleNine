@@ -8,13 +8,13 @@
   "effects": [
     {
       "target": "sprite_opp",
-      "op": "mod",
+      "op": "stat_stage",
       "stat": "def",
       "steps": -7
     },
     {
       "target": "sprite_opp",
-      "op": "mod",
+      "op": "stat_stage",
       "stat": "sp_def",
       "steps": -7
     },
@@ -24,7 +24,7 @@
       },
       "then": [
         {
-          "op": "mod",
+          "op": "stat_stage",
           "target": "sprite_self",
           "stat": "atk",
           "steps": 7

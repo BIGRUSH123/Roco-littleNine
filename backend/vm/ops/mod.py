@@ -104,6 +104,137 @@ def _get_field(effect, key, default=None):
     return getattr(effect, key, default)
 
 
+# ── RISC handlers (one per opcode, no stat dispatch) ──
+
+def op_stat_stage(ctx: Ctx, op) -> list[Mutation]:
+    """RISC: stat_stage → StatChange."""
+    target = _get_field(op, "target", "sprite_self")
+    stat = _get_field(op, "stat", "")
+    scope = _get_field(op, "scope", "battlefield")
+    source = _get_field(op, "source")
+    per_hit = _get_field(op, "per_hit", False)
+    steps = _get_field(op, "steps", 0)
+    value = _get_field(op, "value")
+    if value is not None:
+        steps = int(resolve(ctx, value))
+    elif steps and not isinstance(steps, int):
+        steps = int(resolve(ctx, steps))
+    result = [StatChange(
+        target=target, stat=stat, steps=int(steps),
+        scope=scope, source=source,
+    )]
+    if per_hit and ctx.combo_self > 1:
+        result = result * ctx.combo_self
+    return result
+
+
+def op_power_mod(ctx: Ctx, op) -> list[Mutation]:
+    """RISC: power_mod → ModifierInjection."""
+    target = _get_field(op, "target", "sprite_self")
+    attr = _get_field(op, "attr", "")
+    scope = _get_field(op, "scope", "battlefield")
+    per_hit = _get_field(op, "per_hit", False)
+    delta_raw = _get_field(op, "delta")
+    delta = resolve(ctx, delta_raw) if delta_raw is not None else 0
+    result = [ModifierInjection(
+        target=target, stat=attr, value=float(delta), mode="add",
+        scope=scope,
+        skill_filter=_get_field(op, "skill_filter"),
+        skill_where=_get_field(op, "skill_where"),
+        element=_get_field(op, "element"),
+        name=_get_field(op, "source"),
+    )]
+    if per_hit and ctx.combo_self > 1:
+        result = result * ctx.combo_self
+    return result
+
+
+def op_mult_mod(ctx: Ctx, op) -> list[Mutation]:
+    """RISC: mult_mod → ModifierInjection."""
+    target = _get_field(op, "target", "sprite_self")
+    attr = _get_field(op, "attr", "")
+    scope = _get_field(op, "scope", "battlefield")
+    mode = _get_field(op, "mode", "set")
+    per_hit = _get_field(op, "per_hit", False)
+    value_raw = _get_field(op, "value")
+    value = resolve(ctx, value_raw) if value_raw is not None else 1.0
+    result = [ModifierInjection(
+        target=target, stat=attr, value=float(value),
+        mode=mode, scope=scope,
+    )]
+    if per_hit and ctx.combo_self > 1:
+        result = result * ctx.combo_self
+    return result
+
+
+def op_flag_set(ctx: Ctx, op) -> list[Mutation]:
+    """RISC: flag_set → ModifierInjection."""
+    target = _get_field(op, "target", "sprite_self")
+    flag = _get_field(op, "flag", "")
+    scope = _get_field(op, "scope", "battlefield")
+    value_raw = _get_field(op, "value")
+    value = resolve(ctx, value_raw) if value_raw is not None else True
+    return [ModifierInjection(
+        target=target, stat=flag, value=value,
+        mode="set", scope=scope,
+        name=_get_field(op, "name"),
+        source=_get_field(op, "source"),
+    )]
+
+
+def op_heal(ctx: Ctx, op) -> list[Mutation]:
+    """RISC: heal → Heal (or Damage if negative)."""
+    target = _get_field(op, "target", "sprite_self")
+    ratio = _get_field(op, "ratio")
+    value_raw = _get_field(op, "value")
+    if ratio is not None:
+        hp_max_field = _HP_MAX_MAP.get(target, "hp_self_max")
+        hp_max = getattr(ctx, hp_max_field, 100)
+        amount = max(1, round(ratio * hp_max))
+    elif value_raw is not None:
+        raw = resolve(ctx, value_raw)
+        if isinstance(raw, float) and 0 < raw <= 1:
+            hp_max_field = _HP_MAX_MAP.get(target, "hp_self_max")
+            hp_max = getattr(ctx, hp_max_field, 100)
+            amount = max(1, round(float(raw) * hp_max))
+        else:
+            amount = int(raw)
+    else:
+        amount = 0
+    if amount > 0:
+        return [Heal(target=target, amount=amount)]
+    elif amount < 0:
+        return [Damage(
+            target=target, amount=abs(amount),
+            element=ctx.element_self, type=ctx.skill_type_self,
+        )]
+    return []
+
+
+def op_energize(ctx: Ctx, op) -> list[Mutation]:
+    """RISC: energize → EnergyChange."""
+    target = _get_field(op, "target", "sprite_self")
+    delta_raw = _get_field(op, "delta")
+    delta = resolve(ctx, delta_raw) if delta_raw is not None else 0
+    delta = int(delta)
+    if delta != 0:
+        return [EnergyChange(target=target, delta=delta)]
+    return []
+
+
+def op_revive(ctx: Ctx, op) -> list[Mutation]:
+    """RISC: revive → ModifierInjection (engine handles revive logic)."""
+    target = _get_field(op, "target", "sprite_self")
+    hp_ratio_raw = _get_field(op, "hp_ratio")
+    hp_ratio = resolve(ctx, hp_ratio_raw) if hp_ratio_raw is not None else 1.0
+    return [ModifierInjection(
+        target=target, stat="revive", value=float(hp_ratio),
+        mode="set",
+    )]
+
+
+# ── Legacy handler (backward compat) ──
+
 def op_mod(ctx: Ctx, effect) -> list[Mutation]:
     """Evaluate a 'mod' effect and produce zero or more Mutations.
 

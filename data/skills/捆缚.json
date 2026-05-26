@@ -12,11 +12,8 @@
       "stacks": 2
     },
     {
-      "value": 1,
       "target": "team_own",
       "op": "mod",
-      "stat": "devotion",
-      "mode": "add",
       "name": "中毒两层",
       "then": [
         {
@@ -25,7 +22,10 @@
           "name": "中毒",
           "stacks": 2
         }
-      ]
+      ],
+      "stat": "devotion",
+      "value": 1,
+      "mode": "add"
     }
   ],
   "description": "✦敌方获得2层中毒，获得1次奉献：敌方获得2层中毒。"

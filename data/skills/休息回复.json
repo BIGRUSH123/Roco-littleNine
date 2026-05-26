@@ -6,10 +6,9 @@
   "energy_cost": 2,
   "effects": [
     {
-      "value": 0.3,
       "target": "sprite_self",
-      "op": "mod",
-      "stat": "hp"
+      "op": "heal",
+      "ratio": 0.3
     }
   ],
   "description": "✦自己回复30%生命。"

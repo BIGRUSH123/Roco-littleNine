@@ -7,22 +7,20 @@
   "energy_cost": 0,
   "effects": [
     {
-      "value": {
+      "target": "skill_off_0",
+      "op": "power_mod",
+      "attr": "power",
+      "delta": {
         "q": "hp_missing_ratio",
         "of": "sprite_self",
         "per": 0.05,
         "scale": -10
-      },
-      "target": "skill_off_0",
-      "op": "mod",
-      "stat": "power",
-      "mode": "add"
+      }
     },
     {
-      "value": 0,
       "target": "sprite_self",
-      "op": "mod",
-      "stat": "hp"
+      "op": "heal",
+      "value": 0
     }
   ],
   "description": "✦造成魔伤，每失去5%生命，本次技能威力-10，使用后消耗全部生命。"

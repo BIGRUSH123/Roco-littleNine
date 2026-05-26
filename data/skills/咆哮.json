@@ -6,10 +6,10 @@
   "energy_cost": 1,
   "effects": [
     {
-      "value": -1.3,
       "target": "sprite_opp",
-      "op": "mod",
-      "stat": "atk",
+      "op": "mult_mod",
+      "attr": "atk",
+      "value": -1.3,
       "mode": "add"
     }
   ],

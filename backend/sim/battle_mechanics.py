@@ -74,7 +74,7 @@ class BattleMechanicsMixin:
         events += self._vm_engine.fire_trigger("post_leave", ctx_leave, old, opp_active, self.globals, team=team, battle=self)
         events += self._vm_engine.fire_trigger("post_entry", ctx_entry, new, opp_active, self.globals, team=team, battle=self)
         if not opp_active.is_fainted:
-            ctx_enemy_leave = self._make_ctx(opp_active, new, None, None, self.globals, team=opp_team, turn=self.turn)
+            ctx_enemy_leave = self._make_ctx(opp_active, new, None, None, self.globals, team=opp_team, turn=self.turn, opp_switched=True)
             events += self._vm_engine.fire_trigger("post_enemy_leave", ctx_enemy_leave, opp_active, new, self.globals, team=opp_team, battle=self)
 
         if faint_events is not None:
@@ -152,7 +152,7 @@ class BattleMechanicsMixin:
         events += self._vm_engine.fire_trigger("post_leave", ctx_ko_leave, old, opp_active, self.globals, team=team, battle=self)
         events += self._vm_engine.fire_trigger("post_entry", ctx_ko_entry, new, opp_active, self.globals, team=team, battle=self)
         if not opp_active.is_fainted:
-            ctx_ko_enemy = self._make_ctx(opp_active, new, None, None, self.globals, team=opp_team, turn=self.turn)
+            ctx_ko_enemy = self._make_ctx(opp_active, new, None, None, self.globals, team=opp_team, turn=self.turn, opp_switched=True)
             events += self._vm_engine.fire_trigger("post_enemy_leave", ctx_ko_enemy, opp_active, new, self.globals, team=opp_team, battle=self)
 
     def _resolve_item(self, team: str) -> str:
@@ -197,6 +197,15 @@ class BattleMechanicsMixin:
                     name='首领化', category='stat', stat_key=key, steps=2,
                     scope='permanent', source='进化之力',
                 ))
+            # 进化后重新加载特性（新形态有不同 ability）
+            sprite.entry_turn = self.turn  # 让 sprite_entered 条件生效
+            self._vm_engine.trait_loader.load_for_sprite(sprite)
+            from backend.sim.traits.trait_engine import fire_hook
+            fire_hook('post_entry', sprite, self, team)
+            # 触发 Observer 系统的 post_entry（全神贯注等入场特性）
+            opp = self.get_opponent(team).active
+            ctx = self._make_ctx(sprite, opp, None, None, self.globals, team=team, turn=self.turn)
+            self._vm_engine.fire_trigger("post_entry", ctx, sprite, opp, self.globals, team=team, battle=self)
             return '进化之力'
 
         elif item.name == '愿力':

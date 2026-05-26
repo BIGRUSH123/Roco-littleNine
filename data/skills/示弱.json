@@ -12,11 +12,11 @@
       "stacks": 1,
       "then": [
         {
-          "op": "mod",
+          "op": "stat_stage",
           "target": "sprite_self",
+          "scope": "permanent",
           "stat": "speed",
-          "steps": 15,
-          "scope": "permanent"
+          "steps": 15
         }
       ]
     }

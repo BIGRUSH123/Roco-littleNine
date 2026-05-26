@@ -2,16 +2,19 @@
   "id": 20099,
   "name": "生长",
   "description": "回合结束时，回复12%生命。",
-  "triggers": [
+  "effects": [
     {
-      "on": "turn_end",
-      "effects": [
+      "op": "observer",
+      "then": [
         {
-          "kind": "special",
-          "name": "heal",
-          "value": 0.12
+          "target": "sprite_self",
+          "op": "special"
         }
-      ]
+      ],
+      "scope": "persistent",
+      "cond": {
+        "cond": "turn_end"
+      }
     }
   ]
 }

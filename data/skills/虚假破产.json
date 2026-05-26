@@ -7,16 +7,16 @@
   "counter": "攻击",
   "effects": [
     {
-      "value": 0.8,
       "target": "sprite_self",
-      "op": "mod",
-      "stat": "damage_reduction"
+      "op": "mult_mod",
+      "attr": "damage_reduction",
+      "value": 0.8
     },
     {
-      "value": 0.05,
       "target": "sprite_self",
-      "op": "mod",
-      "stat": "life_as_energy"
+      "op": "flag_set",
+      "flag": "life_as_energy",
+      "value": 0.05
     }
   ],
   "description": "✦减伤80%，能量不足时，消耗5%生命代替1能量，应对攻击。"

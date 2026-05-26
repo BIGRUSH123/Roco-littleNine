@@ -7,16 +7,15 @@
   "energy_cost": 4,
   "effects": [
     {
-      "value": {
+      "target": "skill_off_0",
+      "op": "power_mod",
+      "feeds": "power",
+      "attr": "power",
+      "delta": {
         "q": "fainted",
         "of": "team_opp",
         "scale": 30
-      },
-      "target": "skill_off_0",
-      "op": "mod",
-      "stat": "power",
-      "mode": "add",
-      "feeds": "power"
+      }
     }
   ],
   "description": "✦造成魔伤，敌方每有1只力竭精灵，本次技能威力+30。"

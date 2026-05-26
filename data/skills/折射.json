@@ -15,17 +15,16 @@
       },
       "then": [
         {
-          "op": "mod",
+          "op": "stat_stage",
           "target": "sprite_opp",
           "stat": "speed",
           "steps": -4
         },
         {
-          "op": "mod",
+          "op": "power_mod",
           "target": "skill_off_0",
-          "stat": "combo",
-          "value": -2,
-          "mode": "add"
+          "attr": "combo",
+          "delta": -2
         }
       ]
     },
@@ -38,10 +37,10 @@
       },
       "then": [
         {
-          "op": "mod",
+          "op": "power_mod",
           "target": "skill_off_0",
-          "stat": "power",
-          "steps": 2
+          "attr": "power",
+          "delta": 2
         }
       ]
     },
@@ -54,13 +53,13 @@
       },
       "then": [
         {
-          "op": "mod",
+          "op": "stat_stage",
           "target": "sprite_self",
           "stat": "def",
           "steps": 4
         },
         {
-          "op": "mod",
+          "op": "stat_stage",
           "target": "sprite_self",
           "stat": "sp_def",
           "steps": 4
@@ -76,10 +75,9 @@
       },
       "then": [
         {
-          "op": "mod",
+          "op": "heal",
           "target": "sprite_self",
-          "stat": "hp",
-          "value": 0.2
+          "ratio": 0.2
         }
       ]
     },
@@ -141,7 +139,7 @@
       },
       "then": [
         {
-          "op": "mod",
+          "op": "stat_stage",
           "target": "sprite_opp",
           "stat": "def",
           "steps": -4
@@ -157,7 +155,7 @@
       },
       "then": [
         {
-          "op": "mod",
+          "op": "stat_stage",
           "target": "sprite_opp",
           "stat": "sp_def",
           "steps": -4
@@ -173,11 +171,10 @@
       },
       "then": [
         {
-          "op": "mod",
+          "op": "power_mod",
           "target": "skill_off_0",
-          "stat": "combo",
-          "value": 1,
-          "mode": "add"
+          "attr": "combo",
+          "delta": 1
         }
       ]
     },
@@ -190,11 +187,11 @@
       },
       "then": [
         {
-          "op": "mod",
+          "op": "power_mod",
           "target": "sprite_self",
-          "stat": "energy_cost",
-          "value": -1,
-          "skill_filter": "all"
+          "skill_filter": "all",
+          "attr": "energy_cost",
+          "delta": -1
         }
       ]
     },
@@ -207,7 +204,7 @@
       },
       "then": [
         {
-          "op": "mod",
+          "op": "stat_stage",
           "target": "sprite_self",
           "stat": "atk",
           "steps": 4
@@ -223,7 +220,7 @@
       },
       "then": [
         {
-          "op": "mod",
+          "op": "stat_stage",
           "target": "sprite_self",
           "stat": "sp_atk",
           "steps": 4
@@ -255,10 +252,9 @@
       },
       "then": [
         {
-          "op": "mod",
+          "op": "energize",
           "target": "sprite_opp",
-          "stat": "energy",
-          "value": -2
+          "delta": -2
         }
       ]
     },
@@ -271,9 +267,9 @@
       },
       "then": [
         {
-          "op": "mod",
+          "op": "mult_mod",
           "target": "skill_off_0",
-          "stat": "life_drain",
+          "attr": "life_drain",
           "value": 0.3,
           "mode": "add"
         }
@@ -288,7 +284,7 @@
       },
       "then": [
         {
-          "op": "mod",
+          "op": "stat_stage",
           "target": "sprite_self",
           "stat": "speed",
           "steps": 5
@@ -304,13 +300,13 @@
       },
       "then": [
         {
-          "op": "mod",
+          "op": "stat_stage",
           "target": "sprite_opp",
           "stat": "atk",
           "steps": -3
         },
         {
-          "op": "mod",
+          "op": "stat_stage",
           "target": "sprite_opp",
           "stat": "sp_atk",
           "steps": -3

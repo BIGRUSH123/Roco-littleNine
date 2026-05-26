@@ -12,18 +12,18 @@
       },
       "then": [
         {
-          "op": "mod",
+          "op": "mult_mod",
           "target": "sprite_self",
-          "stat": "speed",
+          "attr": "speed",
           "value": 160,
           "mode": "add"
         }
       ],
       "else": [
         {
-          "op": "mod",
+          "op": "mult_mod",
           "target": "sprite_self",
-          "stat": "speed",
+          "attr": "speed",
           "value": 80,
           "mode": "add"
         }

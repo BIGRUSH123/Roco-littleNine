@@ -8,9 +8,9 @@
   "effects": [
     {
       "target": "sprite_self",
-      "op": "mod",
-      "stat": "power",
-      "steps": 2
+      "op": "power_mod",
+      "attr": "power",
+      "delta": 2
     }
   ],
   "description": "✦自己获得全技能威力+20，迅捷。",

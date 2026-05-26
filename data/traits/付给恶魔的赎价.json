@@ -2,36 +2,32 @@
   "id": 20007,
   "name": "付给恶魔的赎价",
   "description": "击败敌方时，敌方额外-1魔力；被击败时，自己额外-1魔力。",
-  "passive": [
+  "effects": [
     {
-      "op": "count",
-      "when": {
-        "cond": "on_ko"
-      },
+      "op": "observer",
       "then": [
         {
-          "op": "mod",
-          "target": "sprite_opp",
-          "stat": "sp_atk",
-          "steps": -1,
-          "scope": "permanent"
+          "op": "lives",
+          "target_team": "opp",
+          "delta": -1
         }
-      ]
+      ],
+      "cond": {
+        "cond": "on_ko"
+      }
     },
     {
-      "op": "count",
-      "when": {
-        "cond": "on_self_ko"
-      },
+      "op": "observer",
       "then": [
         {
-          "op": "mod",
-          "target": "sprite_self",
-          "stat": "sp_atk",
-          "steps": -1,
-          "scope": "permanent"
+          "op": "lives",
+          "target_team": "own",
+          "delta": -1
         }
-      ]
+      ],
+      "cond": {
+        "cond": "on_self_ko"
+      }
     }
   ]
 }

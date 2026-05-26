@@ -5,11 +5,11 @@
   "attributes": [
     "地"
   ],
-  "hp": 99,
+  "hp": 112,
   "atk": 118,
-  "sp_atk": 38,
-  "def": 102,
-  "sp_def": 96,
+  "sp_atk": 23,
+  "def": 85,
+  "sp_def": 131,
   "speed": 100,
   "ability": "警惕",
   "ability_id": 20125,

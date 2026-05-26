@@ -2,39 +2,27 @@
   "id": 20131,
   "name": "超负荷",
   "description": "攻击技能获得迸发：敌方全技能能耗+1。",
-  "triggers": [
+  "effects": [
     {
-      "on": "modifier",
-      "condition": {
-        "kind": "and",
-        "conditions": [
-          {
-            "path": "first_action",
-            "op": "eq",
-            "value": true
-          },
-          {
-            "path": "skill.is_attack",
-            "op": "eq",
-            "value": true
-          },
-          {
-            "path": "target.is_fainted",
-            "op": "neq",
-            "value": true
-          }
-        ]
-      },
-      "effects": [
+      "op": "observer",
+      "then": [
         {
-          "kind": "stat",
-          "stat": "energy_cost",
-          "steps": 1,
           "target": "target",
           "scope": "battlefield",
-          "source": "超负荷"
+          "source": "超负荷",
+          "op": "stat_stage",
+          "stat": "energy_cost",
+          "steps": 1
         }
-      ]
+      ],
+      "scope": "persistent",
+      "cond": {
+        "cond": "compare",
+        "q": "",
+        "of": "sprite_self",
+        "op": "eq",
+        "value": null
+      }
     }
   ]
 }

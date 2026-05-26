@@ -2,22 +2,80 @@
   "id": 20155,
   "name": "张弛有度",
   "description": "周末双攻+40%，其他时间双防+40%。",
-  "triggers": [
+  "effects": [
     {
-      "on": "entry",
-      "condition": {"kind": "fn", "name": "is_weekend"},
-      "effects": [
-        {"kind": "stat", "stat": "atk", "steps": 4, "target": "self", "source": "张弛有度"},
-        {"kind": "stat", "stat": "sp_atk", "steps": 4, "target": "self", "source": "张弛有度"}
-      ]
+      "op": "observer",
+      "then": [
+        {
+          "target": "self",
+          "source": "张弛有度",
+          "op": "stat_stage",
+          "stat": "atk",
+          "steps": 4
+        },
+        {
+          "target": "self",
+          "source": "张弛有度",
+          "op": "stat_stage",
+          "stat": "sp_atk",
+          "steps": 4
+        }
+      ],
+      "scope": "persistent",
+      "cond": {
+        "cond": "and",
+        "conditions": [
+          {
+            "cond": "sprite_entered",
+            "of": "sprite_self"
+          },
+          {
+            "cond": "compare",
+            "q": "",
+            "of": "sprite_self",
+            "op": "eq",
+            "value": null
+          }
+        ]
+      },
+      "listen": "post_entry"
     },
     {
-      "on": "entry",
-      "condition": {"kind": "not", "condition": {"kind": "fn", "name": "is_weekend"}},
-      "effects": [
-        {"kind": "stat", "stat": "def", "steps": 4, "target": "self", "source": "张弛有度"},
-        {"kind": "stat", "stat": "sp_def", "steps": 4, "target": "self", "source": "张弛有度"}
-      ]
+      "op": "observer",
+      "then": [
+        {
+          "target": "self",
+          "source": "张弛有度",
+          "op": "stat_stage",
+          "stat": "def",
+          "steps": 4
+        },
+        {
+          "target": "self",
+          "source": "张弛有度",
+          "op": "stat_stage",
+          "stat": "sp_def",
+          "steps": 4
+        }
+      ],
+      "scope": "persistent",
+      "cond": {
+        "cond": "and",
+        "conditions": [
+          {
+            "cond": "sprite_entered",
+            "of": "sprite_self"
+          },
+          {
+            "cond": "compare",
+            "q": "",
+            "of": "sprite_self",
+            "op": "eq",
+            "value": null
+          }
+        ]
+      },
+      "listen": "post_entry"
     }
   ]
 }

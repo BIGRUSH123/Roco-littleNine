@@ -7,20 +7,19 @@
   "energy_cost": 8,
   "effects": [
     {
-      "op": "count",
-      "when": {
-        "cond": "on_damage_taken"
-      },
+      "op": "observer",
       "then": [
         {
-          "op": "mod",
+          "op": "power_mod",
           "target": "skill_off_0",
-          "stat": "energy_cost",
-          "value": -1,
-          "mode": "add",
-          "scope": "permanent"
+          "scope": "permanent",
+          "attr": "energy_cost",
+          "delta": -1
         }
-      ]
+      ],
+      "cond": {
+        "cond": "on_damage_taken"
+      }
     }
   ],
   "description": "✦造成物伤，每被攻击1次。本技能能耗永久-1。"

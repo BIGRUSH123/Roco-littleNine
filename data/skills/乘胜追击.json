@@ -8,20 +8,19 @@
   "combo": 1,
   "effects": [
     {
-      "op": "count",
-      "when": {
-        "cond": "skill_use"
-      },
+      "op": "observer",
       "then": [
         {
-          "op": "mod",
+          "op": "power_mod",
           "target": "skill_off_0",
-          "stat": "combo",
-          "value": 1,
-          "mode": "add",
-          "scope": "permanent"
+          "scope": "permanent",
+          "attr": "combo",
+          "delta": 1
         }
-      ]
+      ],
+      "cond": {
+        "cond": "skill_use"
+      }
     }
   ],
   "description": "✦造成物伤，1连击，每次使用后，本技能连击数永久+1。"

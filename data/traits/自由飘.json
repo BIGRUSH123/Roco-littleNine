@@ -2,37 +2,25 @@
   "id": 20112,
   "name": "自由飘",
   "description": "每有1层萌化，连击数+2。动态更新。",
-  "triggers": [
+  "effects": [
     {
-      "on": "entry",
-      "effects_mode": "replace",
-      "effects": [
+      "op": "observer",
+      "then": [
         {
-          "kind": "stat",
-          "stat": "combo",
-          "steps": "=@self.effects[name=萌化].stacks * 2",
+          "target": "sprite_self",
           "scope": "persistent",
-          "source": "自由飘"
+          "source": "自由飘",
+          "op": "stat_stage",
+          "stat": "combo",
+          "steps": "=@self.effects[name=萌化].stacks * 2"
         }
-      ]
-    },
-    {
-      "on": "gain_effect",
-      "condition": {
-        "path": "effect.name",
-        "op": "eq",
-        "value": "萌化"
+      ],
+      "scope": "battlefield",
+      "cond": {
+        "cond": "sprite_entered",
+        "of": "sprite_self"
       },
-      "effects_mode": "replace",
-      "effects": [
-        {
-          "kind": "stat",
-          "stat": "combo",
-          "steps": "=@self.effects[name=萌化].stacks * 2",
-          "scope": "persistent",
-          "source": "自由飘"
-        }
-      ]
+      "listen": "post_entry"
     }
   ]
 }

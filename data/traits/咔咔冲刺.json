@@ -4,8 +4,16 @@
   "description": "先于敌方行动时，行动后连击数+1。",
   "passive": [
     {
-      "op": "count",
-      "when": {
+      "op": "observer",
+      "then": [
+        {
+          "op": "power_mod",
+          "target": "sprite_self",
+          "attr": "combo",
+          "delta": 1
+        }
+      ],
+      "cond": {
         "cond": "and",
         "conds": [
           {
@@ -15,16 +23,7 @@
             "cond": "is_first"
           }
         ]
-      },
-      "then": [
-        {
-          "op": "mod",
-          "target": "sprite_self",
-          "stat": "combo",
-          "value": 1,
-          "mode": "add"
-        }
-      ]
+      }
     }
   ]
 }

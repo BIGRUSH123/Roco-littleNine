@@ -2,26 +2,33 @@
   "id": 20052,
   "name": "悼亡",
   "description": "双方队伍每有1只力竭精灵，双攻+30%。",
-  "triggers": [
+  "effects": [
     {
-      "on": "entry",
-      "effects_mode": "replace",
-      "effects": [
+      "op": "observer",
+      "then": [
         {
-          "kind": "stat",
-          "stat": "atk",
-          "steps": "=@player_fainted_count * 3 + opponent_fainted_count * 3",
+          "target": "sprite_self",
           "scope": "battlefield",
-          "source": "悼亡"
+          "source": "悼亡",
+          "op": "stat_stage",
+          "stat": "atk",
+          "steps": "=@player_fainted_count * 3 + opponent_fainted_count * 3"
         },
         {
-          "kind": "stat",
-          "stat": "sp_atk",
-          "steps": "=@player_fainted_count * 3 + opponent_fainted_count * 3",
+          "target": "sprite_self",
           "scope": "battlefield",
-          "source": "悼亡"
+          "source": "悼亡",
+          "op": "stat_stage",
+          "stat": "sp_atk",
+          "steps": "=@player_fainted_count * 3 + opponent_fainted_count * 3"
         }
-      ]
+      ],
+      "scope": "battlefield",
+      "cond": {
+        "cond": "sprite_entered",
+        "of": "sprite_self"
+      },
+      "listen": "post_entry"
     }
   ]
 }

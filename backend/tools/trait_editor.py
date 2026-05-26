@@ -7,6 +7,8 @@
 """
 
 import json
+import shutil
+import subprocess
 import sys
 import webbrowser
 from http.server import BaseHTTPRequestHandler, HTTPServer
@@ -15,11 +17,28 @@ from urllib.parse import unquote, urlparse
 
 TRAITS_DIR = Path(__file__).resolve().parent.parent.parent / 'data' / 'traits'
 TRAITS_DIR_ESC = str(TRAITS_DIR).replace('\\', '\\\\')
+IR_RISC_PATH = Path(__file__).resolve().parent.parent.parent / 'data' / 'IR_RISC.md'
+def _find_claude() -> str:
+    """查找 claude CLI，优先 PATH，其次搜索常见安装位置。"""
+    found = shutil.which('claude') or shutil.which('claude.exe')
+    if found:
+        return found
+    # 常见安装路径
+    for p in (
+        Path.home() / '.local' / 'bin' / 'claude.exe',
+        Path.home() / 'AppData' / 'Local' / 'Programs' / 'claude' / 'claude.exe',
+        Path.home() / 'AppData' / 'Roaming' / 'npm' / 'claude.cmd',
+    ):
+        if p.exists():
+            return str(p)
+    return 'claude'  # 最后的 fallback
+
+CLAUDE_CLI = _find_claude()
 
 # ── Format helpers ──────────────────────────────────────────────
 
 TOP_ORDER = [
-    'id', 'name', 'description', 'triggers',
+    'id', 'name', 'description', 'effects', 'triggers',
 ]
 
 TRIGGER_ORDER = [
@@ -53,6 +72,8 @@ def format_trait(data: dict) -> str:
             del ordered[k]
     if isinstance(ordered.get('triggers'), list):
         ordered['triggers'] = [_normalize_trigger(t) for t in ordered['triggers']]
+    if isinstance(ordered.get('effects'), list):
+        ordered['effects'] = [_normalize_effect(e) for e in ordered['effects']]
     return json.dumps(ordered, ensure_ascii=False, indent=2) + '\n'
 
 
@@ -78,7 +99,7 @@ class Handler(BaseHTTPRequestHandler):
     def do_OPTIONS(self):
         self.send_response(204)
         self.send_header('Access-Control-Allow-Origin', '*')
-        self.send_header('Access-Control-Allow-Methods', 'GET,PUT,OPTIONS')
+        self.send_header('Access-Control-Allow-Methods', 'GET,PUT,POST,OPTIONS')
         self.send_header('Access-Control-Allow-Headers', 'Content-Type')
         self.end_headers()
 
@@ -105,6 +126,15 @@ class Handler(BaseHTTPRequestHandler):
             self.send_response(404)
             self.end_headers()
 
+    def do_POST(self):
+        p = urlparse(self.path)
+        if p.path.startswith('/api/trait/') and p.path.endswith('/convert'):
+            name = unquote(p.path[len('/api/trait/'):-len('/convert')])
+            self._convert_trait(name)
+        else:
+            self.send_response(404)
+            self.end_headers()
+
     def _list_traits(self):
         traits = []
         for f in sorted(TRAITS_DIR.glob('*.json')):
@@ -116,7 +146,7 @@ class Handler(BaseHTTPRequestHandler):
                     'name': d.get('name', f.stem),
                     'filename': f.name,
                     'id': d.get('id', 0),
-                    'triggers_count': len(d.get('triggers', [])),
+                    'triggers_count': len(d.get('effects', [])) or len(d.get('triggers', [])),
                     'description': d.get('description', ''),
                 })
             except Exception:
@@ -164,6 +194,245 @@ class Handler(BaseHTTPRequestHandler):
         formatted = format_trait(data)
         fpath.write_text(formatted, 'utf-8')
         self._send_json({'ok': True, 'filename': fpath.name})
+
+    def _convert_trait(self, name):
+        try:
+            self._do_convert_trait(name)
+        except Exception as e:
+            self._send_json({'error': f'转换异常: {e}'}, 500)
+
+    def _do_convert_trait(self, name):
+        fpath = TRAITS_DIR / f'{name}.json'
+        if not fpath.exists():
+            self._send_json({'error': f'特性 "{name}" 不存在'}, 404)
+            return
+
+        body = self._read_body()
+        trait_json = body if body else fpath.read_text('utf-8')
+
+        # ── 读取 IR_RISC 规范全文 ──────────────────────────────────
+        ir_risc_text = ''
+        if IR_RISC_PATH.exists():
+            ir_risc_text = IR_RISC_PATH.read_text('utf-8')
+
+        prompt = (
+            '# 任务\n'
+            '你是格斗小九游戏的**特性编译器**。你只生成特性(trait)的 `effects[]`，不生成技能(skill)。\n'
+            '仔细阅读下面特性 JSON 中的 `description` 字段，理解该特性的语义和效果，'
+            '然后为它生成 `effects[]` 字段。\n'
+            '**description 是唯一的语义来源**——忽略 JSON 中可能存在的旧 `triggers[]`、`passive[]` 或其他结构字段，'
+            '一切以 description 描述的效果为准。\n\n'
+
+            '# 核心概念：特性 vs 技能\n'
+            '- **技能(skill)**：一次性动作。`effects[]` 中直接存放 VM opcode，技能释放时立即执行。\n'
+            '- **特性(trait)**：持久化被动能力。`effects[]` 中**只能**存放 `observer` op —— '
+            '每个 observer 是一个条件监听器，在特定 hook 点触发 `then` 块中的 VM opcode。\n'
+            '- 特性 = 持久化条件→动作绑定。外层永远是 observer 包装器，'
+            '`then` 内部才是 VM opcode。\n\n'
+
+            '# 输出格式\n'
+            '```json\n'
+            '{\n'
+            '  "id": ...,\n'
+            '  "name": "...",\n'
+            '  "description": "...",\n'
+            '  "effects": [\n'
+            '    {\n'
+            '      "op": "observer",\n'
+            '      "cond": { ... },\n'
+            '      "then": [ { ... }, { ... } ],\n'
+            '      "listen": "...",\n'
+            '      "scope": "..."\n'
+            '    }\n'
+            '  ]\n'
+            '}\n'
+            '```\n'
+            '- `effects[]` 中的每一项都必须是一个 observer op\n'
+            '- 一个特性可以有多个 observer（如"入场时X，行动后Y"→ 2个 observer）\n'
+            '- 保留 `id`, `name`, `description` 不变；保留 `source` 字段（如存在）\n\n'
+
+            '# Observer 结构\n'
+            '每个 observer 必须包含 5 个字段：\n'
+            '| 字段 | 类型 | 说明 |\n'
+            '|------|------|------|\n'
+            '| `op` | string | 固定为 "observer" |\n'
+            '| `cond` | object | 触发条件（见下方条件参考）|\n'
+            '| `then` | array | 触发时执行的 VM opcode 数组，每条 op 必须包含 `target` 字段 |\n'
+            '| `listen` | string | 触发 hook 点（见下方 hook 参考表）|\n'
+            '| `scope` | string | observer 自身生命周期（见下方 scope 参考）|\n\n'
+
+            '# Hook 点参考（listen 字段取值）\n'
+            '| listen | 触发时机 | 匹配的 cond 条件 |\n'
+            '|--------|---------|-----------------|\n'
+            '| "post_entry" | 精灵入场后 | sprite_entered |\n'
+            '| "post_leave" | 己方离场后 | sprite_left (of: sprite_self) |\n'
+            '| "post_enemy_leave" | 敌方离场后 | sprite_left (of: sprite_opp) / opp_switched |\n'
+            '| "pre_calc" | 伤害计算前(遍历) | have_skill_of / compare(无条件被动) |\n'
+            '| "post_skill" | 技能释放后 | skill_use / sprite_acted |\n'
+            '| "post_damage" | 受到伤害后 | on_damage_taken |\n'
+            '| "post_switch" | 精灵切换后 | opp_switched / self_switched |\n'
+            '| "post_ko" | 精灵力竭后 | on_self_ko / on_ko |\n'
+            '| "post_counter" | 应对成功后 | counter_succeeded / prev_counter_succeeded |\n'
+            '| "post_abnormal_tick" | 异常tick后 | on_abnormal_tick |\n'
+            '| "post_abnormal_change" | 异常变化后 | on_abnormal_changed |\n'
+            '| "post_abnormal_apply" | 异常施加后 | on_abnormal_applied |\n'
+            '| "post_energy_change" | 能量变化后 | on_skills_energy_changed / on_energy_changed |\n'
+            '| "post_positive_change" | 增益变化后 | on_positive_changed |\n'
+            '| "turn_end" | 回合结束时 | turn_end |\n\n'
+
+            '# Scope 参考\n'
+            '| scope | 含义 | 离场 | 力竭 | 适用场景 |\n'
+            '|-------|------|------|------|---------|\n'
+            '| "battlefield" | 在场有效 | 消失 | 消失 | 光环类效果 |\n'
+            '| "persistent" | 跨回合持久 | 消失 | 消失 | 入场/动作触发效果（最常用）|\n'
+            '| "permanent" | 永久 | 保留 | 保留 | 永久成长/全局被动 |\n'
+            '| "turn" | 当回合 | 消失 | 消失 | 单回合临时效果 |\n'
+            '- observer 自身的 scope 和 then 内部 op 的 scope 可以不同\n'
+            '- 例：observer.scope="persistent"（observer持久存在）+ op.scope="permanent"（效果永久）\n\n'
+
+            '# 条件参考（cond 常用类型）\n'
+            '**事件触发类：**\n'
+            '- {"cond": "sprite_entered", "of": "sprite_self"} — 己方入场\n'
+            '- {"cond": "sprite_entered", "of": "sprite_opp"} — 敌方入场\n'
+            '- {"cond": "sprite_left", "of": "sprite_self"} — 己方离场\n'
+            '- {"cond": "sprite_left", "of": "sprite_opp"} — 敌方离场\n'
+            '- {"cond": "sprite_acted", "of": "sprite_self"} — 己方行动后\n'
+            '- {"cond": "skill_use"} — 任意技能使用后\n'
+            '- {"cond": "skill_use", "element": "火"} — 使用火系技能后\n'
+            '- {"cond": "skill_use", "energy_cost": 3} — 使用能耗=3的技能后\n'
+            '- {"cond": "on_self_ko"} — 自己力竭时\n'
+            '- {"cond": "on_ko"} — 任意精灵力竭时\n'
+            '- {"cond": "on_damage_taken"} — 受到伤害时\n'
+            '- {"cond": "counter_succeeded"} — 应对成功时\n'
+            '- {"cond": "opp_switched"} — 敌方切换时\n'
+            '- {"cond": "turn_end"} — 回合结束时\n'
+            '- {"cond": "on_abnormal_tick", "name": "中毒"} — 中毒tick时\n'
+            '- {"cond": "team_has_element", "element": "虫"} — 队伍存在虫系\n\n'
+            '**状态检查类（通常与事件条件用 and 组合）：**\n'
+            '- {"cond": "have_skill_of", "of": "sprite_opp", "element": {"q": "element", "of": "skill_off_0"}} — 敌方持有攻击技能系别\n'
+            '- {"cond": "weather_is", "weather": "rain"} — 天气为雨天\n'
+            '- {"cond": "compare", "q": "hp_ratio", "of": "sprite_self", "op": "lt", "value": 0.5} — HP低于50%\n'
+            '- {"cond": "compare", "q": "energy", "of": "sprite_self", "op": "gte", "value": 0} — 始终为真(无条件触发)\n'
+            '- {"cond": "compare", "q": "abnormal_stacks", "of": "sprite_opp", "name": "中毒", "op": "gte", "value": 1} — 敌方有中毒\n\n'
+            '**逻辑组合：**\n'
+            '- {"cond": "and", "conditions": [...]} — 全部满足\n'
+            '- {"cond": "or", "conditions": [...]} — 任一满足\n'
+            '- {"cond": "not", "condition": {...}} — 取反\n\n'
+
+            '# then[] 常用 opcode\n'
+            '| op | 说明 | 关键字段 |\n'
+            '|----|------|---------|\n'
+            '| stat_stage | 修改能力等级 | stat(stat名), steps(±1=±10%), target, scope |\n'
+            '| mult_mod | 修改倍率 | attr(atk/def/power_mult/damage_reduction/...), value, mode(add/mult), target |\n'
+            '| power_mod | 修改技能属性 | attr(power/combo/energy_cost/...), delta, target |\n'
+            '| flag_set | 设置标记 | flag, value, target |\n'
+            '| heal | 回复生命 | ratio(0.0~1.0) 或 value(绝对值), target |\n'
+            '| energize | 回复/扣除能量 | delta(正=回复,负=扣除), target |\n'
+            '| revive | 复活 | hp_ratio, delay_turns, target |\n'
+            '| abnormal | 施加异常 | name, stacks, target |\n'
+            '| mark | 施加印记 | name, stacks, target |\n'
+            '| dispel | 驱散效果 | target |\n'
+            '| inherit | 继承效果 | source, inherit_target(enemy_new/ally_new), target |\n'
+            '| transform | 变形 | species(目标物种), target |\n'
+            '| exchange | 交换 | what("hp_ratio"/"effects"), target |\n'
+            '| reset | 重置属性 | stat, target |\n'
+            '| redirect | 重定向 | target |\n'
+            '| charge | 蓄力 | target |\n'
+            '| replay | 重放技能 | from, skill_filter |\n'
+            '| borrow | 借用技能 | from("skill_opp_current") |\n'
+            '| defer | 延迟执行 | turns, at("turn_start"/"turn_end"), then[] |\n'
+            '| branch | 条件分支 | cond, then[], else[], else_if[] |\n'
+            '- 每条 then 内的 op 必须包含 `target` 字段："sprite_self"(己方) / "sprite_opp"(敌方) / "target"(技能目标) / "skill_off_0"(攻击技能) / "self"(己方别名)\n'
+            '- =@表达式：`"steps": "=@player_fainted_count * 3"` (运行时求值)\n'
+            '- Query查询：`"value": {"q": "abnormal_stacks", "of": "sprite_opp", "name": "中毒"}`\n\n'
+
+            '# 典型示例\n\n'
+
+            '## 例1：入场加攻\n'
+            'description: "入场时获得物攻+100%"\n'
+            '→ effects: [{"op":"observer","cond":{"cond":"sprite_entered","of":"sprite_self"},"listen":"post_entry","scope":"battlefield","then":[{"op":"mult_mod","target":"sprite_self","attr":"atk","value":1,"mode":"add"}]}]\n\n'
+
+            '## 例2：敌方入场debuff\n'
+            'description: "敌方入场时，全技能能耗+1"\n'
+            '→ effects: [{"op":"observer","cond":{"cond":"sprite_entered","of":"sprite_opp"},"listen":"post_entry","scope":"battlefield","then":[{"op":"power_mod","target":"sprite_opp","attr":"energy_cost","delta":1}]}]\n\n'
+
+            '## 例3：条件减伤\n'
+            'description: "受到自己携带技能系别的攻击伤害-40%"\n'
+            '→ effects: [{"op":"observer","cond":{"cond":"have_skill_of","of":"sprite_opp","element":{"q":"element","of":"skill_off_0"}},"listen":"pre_calc","scope":"battlefield","then":[{"op":"mult_mod","target":"sprite_opp","attr":"damage_reduction","value":0.4,"mode":"add"}]}]\n\n'
+
+            '## 例4：使用技能触发\n'
+            'description: "使用火系技能后，获得双攻+30%"\n'
+            '→ effects: [{"op":"observer","cond":{"cond":"and","conditions":[{"cond":"skill_use"},{"cond":"skill_use","element":"火"}]},"listen":"post_skill","scope":"persistent","then":[{"op":"stat_stage","target":"sprite_self","stat":"atk","steps":3,"scope":"battlefield"},{"op":"stat_stage","target":"sprite_self","stat":"sp_atk","steps":3,"scope":"battlefield"}]}]\n\n'
+
+            '## 例5：力竭复活\n'
+            'description: "力竭3回合后复活"\n'
+            '→ effects: [{"op":"observer","cond":{"cond":"on_self_ko"},"listen":"post_ko","scope":"persistent","then":[{"op":"revive","target":"sprite_self","hp_ratio":1,"delay_turns":3}]}]\n\n'
+
+            '## 例6：离场继承\n'
+            'description: "离场后，自己的增益/减益被换上来的精灵继承"\n'
+            '→ effects: [{"op":"observer","cond":{"cond":"sprite_left","of":"sprite_self"},"listen":"post_leave","scope":"persistent","then":[{"op":"inherit","target":"ally_new","source":"sprite_self","inherit_stat_effects":true}]}]\n\n'
+
+            '## 例7：回合末回复\n'
+            'description: "回合结束时，回复12%生命"\n'
+            '→ effects: [{"op":"observer","cond":{"cond":"turn_end"},"listen":"turn_end","scope":"persistent","then":[{"op":"heal","target":"sprite_self","ratio":0.12}]}]\n\n'
+
+            '## 例8：多Observer（入场buff + 每次行动衰减）\n'
+            'description: "入场时获得物攻+100%，每次行动后物攻-20%"\n'
+            '→ effects: [{"op":"observer","cond":{"cond":"sprite_entered","of":"sprite_self"},"listen":"post_entry","scope":"battlefield","then":[{"op":"mult_mod","target":"sprite_self","attr":"atk","value":1,"mode":"add"}]},{"op":"observer","cond":{"cond":"sprite_acted","of":"sprite_self"},"listen":"post_skill","scope":"battlefield","then":[{"op":"mult_mod","target":"sprite_self","attr":"atk","value":-0.2,"mode":"add"}]}]\n\n'
+
+            '## 例9：敌方离场触发\n'
+            'description: "敌方精灵离场后，更换入场的精灵失去3能量"\n'
+            '→ effects: [{"op":"observer","cond":{"cond":"sprite_left","of":"sprite_opp"},"listen":"post_enemy_leave","scope":"battlefield","then":[{"op":"energize","target":"sprite_opp","delta":-3}]}]\n\n'
+
+            '# 关键规则（必须遵守）\n'
+            '1. **effects[] 每项外层必须包裹 observer op**。永远不要在 effects[] 中直接放裸 opcode（如 stat_stage/mult_mod/heal），这些只能出现在 observer 的 then[] 内部。\n'
+            '2. 每个 observer 必须包含全部 5 个字段：`op`, `cond`, `then`, `listen`, `scope`。\n'
+            '3. `then[]` 中的每条 op 必须包含 `target` 字段，指明效果对象。\n'
+            '4. `listen` 值必须与 `cond` 匹配。sprite_entered→post_entry；turn_end→turn_end；skill_use→post_skill；on_self_ko→post_ko；等等。\n'
+            '5. 如果 description 包含多个独立效果（如"入场时X，行动后Y"），用多个 observer 分别表示。\n'
+            '6. 保留 `id`, `name`, `description` 不变。保留 `source` 字段（如存在）。\n'
+            '7. 输出**仅**完整的 JSON（含生成的 effects[]）。不要 markdown 代码块标记，不要任何解释文字。\n\n'
+
+            '# 参考: IR_RISC 规范全文（opcode 字段级细节）\n'
+            + ir_risc_text[:30000] + '\n\n'
+
+            '# 需要处理的 Trait JSON\n'
+            '```json\n' + trait_json + '\n```\n\n'
+            '**只输出**完整的 JSON（含生成的 effects[]）。不要 markdown 代码块，不要任何解释。'
+        )
+
+        try:
+            # 将 prompt 通过 stdin 传入，避免命令行参数过长
+            result = subprocess.run(
+                [CLAUDE_CLI, '--print'],
+                input=prompt, capture_output=True, text=True, encoding='utf-8', timeout=120,
+                cwd=str(Path(__file__).resolve().parent.parent.parent),
+            )
+            output = result.stdout.strip()
+            if result.returncode != 0:
+                err = result.stderr.strip() or f'exit code {result.returncode}'
+                self._send_json({'error': f'Claude 调用失败: {err}', 'raw': output or ''}, 500)
+                return
+
+            # Extract JSON from output (handle markdown fences)
+            if output.startswith('```'):
+                # Remove opening fence line (``` or ```json)
+                output = output.split('\n', 1)[1] if '\n' in output else output[3:]
+            if output.rstrip().endswith('```'):
+                # Remove closing fence
+                output = output[:output.rstrip().rfind('```')].rstrip()
+
+            try:
+                json.loads(output)
+            except json.JSONDecodeError:
+                self._send_json({'error': 'Claude 返回的不是有效 JSON', 'raw': output[:2000]}, 500)
+                return
+
+            self._send_json({'ok': True, 'content': output, 'filename': fpath.name})
+        except FileNotFoundError:
+            self._send_json({'error': f'claude CLI 未找到 (尝试路径: {CLAUDE_CLI})，请确认已安装 Claude Code'}, 500)
+        except subprocess.TimeoutExpired:
+            self._send_json({'error': 'Claude 调用超时 (120s)'}, 500)
 
     def _serve_html(self):
         self.send_response(200)
@@ -516,6 +785,7 @@ body::before {
     <span id="status-msg"></span>
     <div style="flex:1"></div>
     <button id="btn-pretty" title="格式化 JSON">格式化</button>
+    <button id="btn-convert" title="调用 Claude 根据 description 生成 effects[]">生成 effects</button>
     <button id="btn-reload">重置</button>
     <button id="btn-save" disabled>保存</button>
   </div>
@@ -552,6 +822,7 @@ const $lineNums = document.getElementById('line-numbers');
 const $editorWrap = document.getElementById('editor-wrap');
 const $empty = document.getElementById('empty-state');
 const $btnSave = document.getElementById('btn-save');
+const $btnConvert = document.getElementById('btn-convert');
 const $status = document.getElementById('status-msg');
 const $toast = document.getElementById('toast');
 const $curName = document.getElementById('current-name');
@@ -717,7 +988,7 @@ document.getElementById('btn-reload').addEventListener('click', () => {
 });
 
 // ── Format ─────────────────────────────────────
-const TOP_ORDER = ['id', 'name', 'description', 'triggers'];
+const TOP_ORDER = ['id', 'name', 'description', 'effects', 'triggers'];
 const TRIGGER_ORDER = ['on', 'condition', 'use_modifiers', 'effects', 'battleskill_mut'];
 
 function formatTrait(raw) {
@@ -762,6 +1033,48 @@ document.getElementById('btn-pretty').addEventListener('click', () => {
     }
   } catch (e) {
     toast('JSON 格式错误，无法格式化: ' + e.message, 'err');
+  }
+});
+
+// ── Convert (Claude RISC IR) ──────────────────
+$btnConvert.addEventListener('click', async () => {
+  if (!currentFile) { toast('请先选择一个特性', 'err'); return; }
+
+  $btnConvert.disabled = true;
+  $btnConvert.textContent = '生成中…';
+  $status.textContent = '⏳ Claude 正在生成…';
+  const convertFile = currentFile;
+  const content = $editor.value;
+  try {
+    const res = await fetch('/api/trait/' + encodeURIComponent(convertFile.replace('.json','')) + '/convert', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: content,
+    });
+    const data = await res.json();
+    if (currentFile !== convertFile) return;  // user switched away
+    if (data.ok) {
+      $editor.value = data.content;
+      originalContent = data.content;
+      modified = true;
+      $btnSave.disabled = false;
+      updateLineNumbers();
+      toast('✓ 生成完成，点击保存以写入文件', 'ok');
+      $status.textContent = '生成完成';
+    } else {
+      if (data.raw && data.raw !== content) {
+        $editor.value = data.raw;
+        updateLineNumbers();
+      }
+      toast(data.error || '生成失败', 'err');
+      $status.textContent = '生成失败';
+    }
+  } catch (e) {
+    toast('网络错误: ' + e.message, 'err');
+    $status.textContent = '';
+  } finally {
+    $btnConvert.disabled = false;
+    $btnConvert.textContent = '生成 effects';
   }
 });
 

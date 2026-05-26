@@ -1,7 +1,7 @@
 {
   "id": 20067,
   "name": "暴食",
-  "description": "携带的龙系技能获得迅捷（先手+1）。",
+  "description": "携带的龙系技能获得迅捷。",
   "triggers": [
     {
       "on": "entry",

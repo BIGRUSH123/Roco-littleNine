@@ -2,24 +2,31 @@
   "id": 20121,
   "name": "蚀刻",
   "description": "回合结束时，敌方每2层中毒转化为1层中毒印记。",
-  "triggers": [
+  "effects": [
     {
-      "on": "turn_end",
-      "condition": {
-        "path": "target.effects[name=中毒].stacks",
-        "op": "gte",
-        "value": 2
-      },
-      "effects": [
+      "op": "observer",
+      "then": [
         {
-          "kind": "special",
-          "name": "convert_mark",
-          "source_effect": "中毒",
-          "mark_name": "中毒印记",
-          "ratio": 0.5,
-          "mark_target_team": "opp"
+          "target": "sprite_self",
+          "op": "special"
         }
-      ]
+      ],
+      "scope": "persistent",
+      "cond": {
+        "cond": "and",
+        "conditions": [
+          {
+            "cond": "turn_end"
+          },
+          {
+            "cond": "compare",
+            "q": "effects[name=中毒].stacks",
+            "of": "sprite_self",
+            "op": "gte",
+            "value": 2
+          }
+        ]
+      }
     }
   ]
 }

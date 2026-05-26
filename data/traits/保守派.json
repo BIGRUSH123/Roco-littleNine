@@ -2,12 +2,18 @@
   "id": 20009,
   "name": "保守派",
   "description": "总技能能耗<4时，双防+80%。",
-  "passive": [
+  "effects": [
     {
-      "op": "count",
-      "when": {
-        "cond": "on_skills_energy_changed",
-        "of": "sprite_self"
+      "op": "observer",
+      "listen": [
+        "post_entry"
+      ],
+      "cond": {
+        "cond": "compare",
+        "q": "energy",
+        "of": "sprite_self",
+        "op": "gte",
+        "value": 0
       },
       "then": [
         {
@@ -20,34 +26,38 @@
           },
           "then": [
             {
-              "op": "mod",
+              "op": "stat_stage",
               "target": "sprite_self",
               "stat": "def",
-              "value": 0.8,
-              "mode": "add"
+              "steps": 8,
+              "scope": "battlefield",
+              "source": "保守派"
             },
             {
-              "op": "mod",
+              "op": "stat_stage",
               "target": "sprite_self",
               "stat": "sp_def",
-              "value": 0.8,
-              "mode": "add"
+              "steps": 8,
+              "scope": "battlefield",
+              "source": "保守派"
             }
           ],
           "else": [
             {
-              "op": "mod",
+              "op": "stat_stage",
               "target": "sprite_self",
               "stat": "def",
-              "value": -0.8,
-              "mode": "add"
+              "steps": -8,
+              "scope": "battlefield",
+              "source": "保守派"
             },
             {
-              "op": "mod",
+              "op": "stat_stage",
               "target": "sprite_self",
               "stat": "sp_def",
-              "value": -0.8,
-              "mode": "add"
+              "steps": -8,
+              "scope": "battlefield",
+              "source": "保守派"
             }
           ]
         }

@@ -8,10 +8,10 @@
   "counter": "状态",
   "effects": [
     {
-      "value": 0.7,
       "target": "sprite_self",
-      "op": "mod",
-      "stat": "def",
+      "op": "mult_mod",
+      "attr": "def",
+      "value": 0.7,
       "mode": "add"
     },
     {
@@ -20,15 +20,15 @@
       },
       "then": [
         {
-          "op": "mod",
+          "op": "mult_mod",
           "target": "skill_off_0",
-          "stat": "power_mult",
+          "attr": "power_mult",
           "value": 2
         },
         {
-          "op": "mod",
+          "op": "mult_mod",
           "target": "sprite_self",
-          "stat": "def",
+          "attr": "def",
           "value": 0.7,
           "mode": "add"
         }

@@ -4,37 +4,37 @@
   "description": "每有1能量，获得双防+10%。动态更新。",
   "passive": [
     {
-      "op": "count",
-      "when": {
-        "cond": "on_energy_changed",
-        "of": "sprite_self"
-      },
+      "op": "observer",
       "then": [
         {
-          "op": "mod",
+          "op": "mult_mod",
           "target": "sprite_self",
-          "stat": "def",
+          "scope": "permanent",
+          "attr": "def",
           "value": {
             "q": "energy",
             "of": "sprite_self",
             "scale": 0.1,
             "offset": 1
-          },
-          "scope": "permanent"
+          }
         },
         {
-          "op": "mod",
+          "op": "mult_mod",
           "target": "sprite_self",
-          "stat": "sp_def",
+          "scope": "permanent",
+          "attr": "sp_def",
           "value": {
             "q": "energy",
             "of": "sprite_self",
             "scale": 0.1,
             "offset": 1
-          },
-          "scope": "permanent"
+          }
         }
-      ]
+      ],
+      "cond": {
+        "cond": "on_energy_changed",
+        "of": "sprite_self"
+      }
     }
   ]
 }

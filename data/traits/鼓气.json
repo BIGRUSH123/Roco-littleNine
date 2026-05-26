@@ -2,30 +2,43 @@
   "id": 20141,
   "name": "鼓气",
   "description": "使用能耗为3的技能时，获得攻防+20%。",
-  "triggers": [
+  "effects": [
     {
-      "on": "skill_use",
-      "condition": {
-        "path": "skill.energy_cost",
-        "op": "eq",
-        "value": 3
-      },
-      "effects": [
+      "op": "observer",
+      "then": [
         {
-          "kind": "stat",
-          "stat": "atk",
-          "steps": 2,
+          "target": "sprite_self",
           "scope": "battlefield",
-          "source": "鼓气"
+          "source": "鼓气",
+          "op": "stat_stage",
+          "stat": "atk",
+          "steps": 2
         },
         {
-          "kind": "stat",
-          "stat": "def",
-          "steps": 2,
+          "target": "sprite_self",
           "scope": "battlefield",
-          "source": "鼓气"
+          "source": "鼓气",
+          "op": "stat_stage",
+          "stat": "def",
+          "steps": 2
         }
-      ]
+      ],
+      "scope": "persistent",
+      "cond": {
+        "cond": "and",
+        "conditions": [
+          {
+            "cond": "skill_use"
+          },
+          {
+            "cond": "compare",
+            "q": "skill.energy_cost",
+            "of": "sprite_self",
+            "op": "eq",
+            "value": 3
+          }
+        ]
+      }
     }
   ]
 }

@@ -2,18 +2,23 @@
   "id": 20049,
   "name": "思维之盾",
   "description": "应对成功后，下次行动技能能耗-5。",
-  "triggers": [
+  "effects": [
     {
-      "on": "counter_success",
-      "effects": [
+      "op": "observer",
+      "then": [
         {
-          "kind": "stat",
-          "stat": "energy_cost",
-          "steps": -5,
+          "target": "sprite_self",
           "scope": "next_use",
-          "source": "思维之盾"
+          "source": "思维之盾",
+          "op": "stat_stage",
+          "stat": "energy_cost",
+          "steps": -5
         }
-      ]
+      ],
+      "scope": "persistent",
+      "cond": {
+        "cond": "counter_succeeded"
+      }
     }
   ]
 }

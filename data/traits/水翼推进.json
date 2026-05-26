@@ -2,19 +2,25 @@
   "id": 20077,
   "name": "水翼推进",
   "description": "入场时，根据己方队伍水系技能使用次数，降低全技能能耗。",
-  "triggers": [
+  "effects": [
     {
-      "on": "entry",
-      "effects_mode": "replace",
-      "effects": [
+      "op": "observer",
+      "then": [
         {
-          "kind": "stat",
-          "stat": "energy_cost",
-          "steps": "=0 - @team_counters[element:水]",
+          "target": "sprite_self",
           "scope": "battlefield",
-          "source": "水翼推进"
+          "source": "水翼推进",
+          "op": "stat_stage",
+          "stat": "energy_cost",
+          "steps": "=0 - @team_counters[element:水]"
         }
-      ]
+      ],
+      "scope": "battlefield",
+      "cond": {
+        "cond": "sprite_entered",
+        "of": "sprite_self"
+      },
+      "listen": "post_entry"
     }
   ]
 }

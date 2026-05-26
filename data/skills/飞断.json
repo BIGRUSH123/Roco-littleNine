@@ -7,21 +7,20 @@
   "energy_cost": 1,
   "effects": [
     {
-      "value": 1,
       "target": "team_own",
       "op": "mod",
-      "stat": "devotion",
-      "mode": "add",
       "name": "威力+20",
       "then": [
         {
-          "op": "mod",
+          "op": "power_mod",
           "target": "sprite_self",
-          "stat": "power",
-          "value": 20,
-          "mode": "add"
+          "attr": "power",
+          "delta": 20
         }
-      ]
+      ],
+      "stat": "devotion",
+      "value": 1,
+      "mode": "add"
     }
   ],
   "description": "✦造成物伤，己方队伍获得1次奉献：威力+20。"

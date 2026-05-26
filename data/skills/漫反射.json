@@ -6,14 +6,13 @@
   "energy_cost": 1,
   "effects": [
     {
-      "value": 35,
       "target": "sprite_self",
-      "op": "mod",
-      "stat": "power",
-      "mode": "add",
+      "op": "power_mod",
       "scope": "permanent",
       "element": "each",
-      "per_element": 1
+      "per_element": 1,
+      "attr": "power",
+      "delta": 35
     }
   ],
   "description": "✦每种系别中的至多1个技能，威力+35。"

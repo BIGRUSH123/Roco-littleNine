@@ -6,11 +6,9 @@
   "energy_cost": 3,
   "effects": [
     {
-      "value": 3,
       "target": "team_own_benched",
-      "op": "mod",
-      "stat": "energy",
-      "mode": "add"
+      "op": "energize",
+      "delta": 3
     }
   ],
   "description": "✦为场下每个精灵回复3能量。"

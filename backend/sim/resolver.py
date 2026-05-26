@@ -140,6 +140,20 @@ class SkillResolver:
             return 1.25
         return 1.0
 
+    _TICK_ELEMENT = {'灼烧': '火', '中毒': '毒', '寄生': '草'}
+
+    @staticmethod
+    def _tick_multiplier(sprite: Sprite, tick_name: str) -> float:
+        """元素克制倍率用于异常 tick 伤害。"""
+        elem = SkillResolver._TICK_ELEMENT.get(tick_name)
+        if not elem:
+            return 1.0
+        attrs = getattr(sprite.species, 'attributes', '')
+        mult = 1.0
+        for attr in (attrs.split(',') if attrs else []):
+            mult *= _TYPE_CHART.get(elem, {}).get(attr, 1.0)
+        return mult
+
     @staticmethod
     def turn_end(
         sprites: dict[str, Sprite], globals_: GlobalEffects,
@@ -155,22 +169,28 @@ class SkillResolver:
 
             poison_stacks = s.get_stacks('中毒')
             if poison_stacks > 0:
-                dmg = max(1, round(s.max_hp * 0.03 * poison_stacks))
-                s.take_damage(dmg)
-                events.append(f'{s.name} 中毒-{dmg}HP')
+                raw = max(1, round(s.max_hp * 0.03 * poison_stacks))
+                dmg = max(1, round(raw * SkillResolver._tick_multiplier(s, '中毒')))
+                actual = s.take_damage(dmg)
+                s._last_abnormal_dmg['中毒'] = actual
+                events.append(f'{s.name} 中毒-{actual}HP')
 
             burn_stacks = s.get_stacks('灼烧')
             if burn_stacks > 0:
-                dmg = max(1, round(s.max_hp * 0.02 * burn_stacks))
-                s.take_damage(dmg)
+                raw = max(1, round(s.max_hp * 0.02 * burn_stacks))
+                dmg = max(1, round(raw * SkillResolver._tick_multiplier(s, '灼烧')))
+                actual = s.take_damage(dmg)
                 new_stacks = (burn_stacks + 1) // 2
                 s.update_stacks('灼烧', new_stacks)
-                events.append(f'{s.name} 灼烧-{dmg}HP(剩{new_stacks}层)')
+                s._last_abnormal_dmg['灼烧'] = actual
+                events.append(f'{s.name} 灼烧-{actual}HP(剩{new_stacks}层)')
 
             if s.get_stacks('寄生') > 0:
-                dmg = max(1, round(s.max_hp * 0.06))
-                s.take_damage(dmg)
-                events.append(f'{s.name} 寄生-{dmg}HP')
+                raw = max(1, round(s.max_hp * 0.06))
+                dmg = max(1, round(raw * SkillResolver._tick_multiplier(s, '寄生')))
+                actual = s.take_damage(dmg)
+                s._last_abnormal_dmg['寄生'] = actual
+                events.append(f'{s.name} 寄生-{actual}HP')
 
             for bs in s.skills:
                 if bs.cooldown > 0:

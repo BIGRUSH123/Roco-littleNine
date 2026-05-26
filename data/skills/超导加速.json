@@ -8,7 +8,7 @@
   "effects": [
     {
       "target": "sprite_self",
-      "op": "mod",
+      "op": "stat_stage",
       "stat": "speed",
       "steps": 3
     }

@@ -2,5 +2,17 @@
   "id": 20142,
   "name": "不朽",
   "description": "力竭3回合后复活。",
-  "triggers": []
+  "effects": [
+    {
+      "op": "observer",
+      "cond": {
+        "cond": "on_self_ko"
+      },
+      "then": {
+        "op": "revive",
+        "hp_ratio": 1,
+        "delay_turns": 3
+      }
+    }
+  ]
 }

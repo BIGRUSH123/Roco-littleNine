@@ -8,10 +8,10 @@
   "effects": [
     {
       "target": "sprite_self",
-      "op": "mod",
+      "op": "stat_stage",
+      "per_hit": true,
       "stat": "sp_atk",
-      "steps": 6,
-      "per_hit": true
+      "steps": 6
     }
   ],
   "description": "✦2连击，每次连击自己获得魔攻+60%。"

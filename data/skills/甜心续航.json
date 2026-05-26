@@ -12,16 +12,14 @@
       "stacks": 1,
       "then": [
         {
-          "op": "mod",
+          "op": "heal",
           "target": "sprite_self",
-          "stat": "hp",
-          "value": 0.4
+          "ratio": 0.4
         },
         {
-          "op": "mod",
+          "op": "energize",
           "target": "sprite_self",
-          "stat": "energy",
-          "value": 4
+          "delta": 4
         }
       ]
     },
@@ -32,16 +30,14 @@
       "stacks": 1,
       "then": [
         {
-          "op": "mod",
+          "op": "heal",
           "target": "sprite_self",
-          "stat": "hp",
-          "value": 0.4
+          "ratio": 0.4
         },
         {
-          "op": "mod",
+          "op": "energize",
           "target": "sprite_self",
-          "stat": "energy",
-          "value": 4
+          "delta": 4
         }
       ]
     }

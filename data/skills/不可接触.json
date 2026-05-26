@@ -7,16 +7,16 @@
   "counter": "攻击",
   "effects": [
     {
+      "target": "sprite_self",
+      "op": "mult_mod",
+      "attr": "damage_reduction",
       "value": {
         "q": "abnormal_stacks",
         "of": "sprite_opp",
         "name": "中毒",
         "scale": 0.1,
         "offset": 0.5
-      },
-      "target": "sprite_self",
-      "op": "mod",
-      "stat": "damage_reduction"
+      }
     }
   ],
   "description": "✦减伤50%，敌方每有1层中毒效果，本技能减伤+10%，应对攻击。"

@@ -6,10 +6,10 @@
   "energy_cost": 2,
   "effects": [
     {
-      "value": 1,
       "target": "sprite_self",
-      "op": "mod",
-      "stat": "life_drain"
+      "op": "mult_mod",
+      "attr": "life_drain",
+      "value": 1
     }
   ],
   "description": "✦自己获得100%吸血。"

@@ -2,38 +2,50 @@
   "id": 20119,
   "name": "虫群突袭",
   "description": "队伍中每有1只其他虫系精灵，入场时获得攻防速+15%。",
-  "triggers": [
+  "effects": [
     {
-      "on": "entry",
-      "condition": {
-        "path": "team_elements",
-        "op": "contains",
-        "value": "虫"
-      },
-      "effects_mode": "replace",
-      "effects": [
+      "op": "observer",
+      "then": [
         {
-          "kind": "stat",
+          "target": "sprite_self",
+          "scope": "battlefield",
+          "source": "虫群突袭",
+          "op": "stat_stage",
           "stat": "atk",
-          "steps": "=@player_bug_count * 1.5",
-          "scope": "battlefield",
-          "source": "虫群突袭"
+          "steps": "=@player_bug_count * 1.5"
         },
         {
-          "kind": "stat",
+          "target": "sprite_self",
+          "scope": "battlefield",
+          "source": "虫群突袭",
+          "op": "stat_stage",
           "stat": "def",
-          "steps": "=@player_bug_count * 1.5",
-          "scope": "battlefield",
-          "source": "虫群突袭"
+          "steps": "=@player_bug_count * 1.5"
         },
         {
-          "kind": "stat",
-          "stat": "speed",
-          "steps": "=@player_bug_count * 1.5",
+          "target": "sprite_self",
           "scope": "battlefield",
-          "source": "虫群突袭"
+          "source": "虫群突袭",
+          "op": "stat_stage",
+          "stat": "speed",
+          "steps": "=@player_bug_count * 1.5"
         }
-      ]
+      ],
+      "scope": "battlefield",
+      "cond": {
+        "cond": "and",
+        "conditions": [
+          {
+            "cond": "sprite_entered",
+            "of": "sprite_self"
+          },
+          {
+            "cond": "team_has_element",
+            "element": "虫"
+          }
+        ]
+      },
+      "listen": "post_entry"
     }
   ]
 }

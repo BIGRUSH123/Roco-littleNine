@@ -169,6 +169,9 @@ class Battle(BattleMechanicsMixin):
             for skill in (sprite.skills or []):
                 for key in _PER_TURN_KEYS:
                     skill._modifiers.pop(key, None)
+        # Re-apply trait direct modifiers cleared by _PER_TURN_KEYS
+        self._vm_engine.trait_loader.reapply_all_direct_mods(
+            self.player_a.team + self.player_b.team)
 
         s_a = self.player_a.active
         s_b = self.player_b.active
@@ -567,6 +570,27 @@ class Battle(BattleMechanicsMixin):
 
         opp_skill = countered_skill or countering_skill
         opp_team = 'B' if team == 'A' else 'A'
+
+        # Inject countering skill's effects into defender BEFORE damage calc
+        if is_countered and countering_skill:
+            try:
+                counter_record = self._get_skill_record(countering_skill.base.name)
+                counter_effects = self._vm_engine._get_effects(counter_record)
+                # Filter: skip when-block effects (they run separately on counter success)
+                direct_effects = [e for e in counter_effects
+                                  if not (hasattr(e, 'when') and e.when) and 'when' not in (e if isinstance(e, dict) else {})]
+                if direct_effects:
+                    opp_ctx = self._build_ctx(
+                        target, user, counter_record, None, self.globals,
+                        team=opp_team, turn=self.turn,
+                    )
+                    counter_journal = self._vm_engine.execute_effects(opp_ctx, direct_effects)
+                    from backend.engine.replayer import JournalReplayer as _CR
+                    _cr = _CR(target, user, self.globals, self._vm_engine.registry, team=opp_team, battle=self)
+                    events += _cr.replay(counter_journal)
+            except Exception:
+                pass
+
         result = self._vm_engine.execute_skill(
             user, target,
             record, opp_skill, self.globals,
@@ -727,6 +751,20 @@ class Battle(BattleMechanicsMixin):
         # 延时效果结算（phase=end）
         events += self._execute_scheduled_effects('end')
 
+        # scope="turn" 效果清除 + ttl 递减（包括候补精灵）
+        for team in ('A', 'B'):
+            player = self.get_player(team)
+            for sprite in player.team:
+                if sprite.is_fainted:
+                    continue
+                sprite.clear_effects('turn')
+                for e in list(sprite.effects):
+                    if getattr(e, 'ttl', 0) > 0:
+                        e.ttl -= 1
+                        if e.ttl <= 0:
+                            sprite.effects.remove(e)
+                            events.append(f'{sprite.name} {e.name} 到期消失')
+
         # 借用还原
         for (team, si), original in self._borrowed_restore.items():
             sprite = self.get_player(team).active
@@ -771,13 +809,17 @@ class Battle(BattleMechanicsMixin):
                 if e.category != 'abnormal':
                     continue
                 if e.name in ('灼烧', '中毒'):
-                    dmg = max(1, round(sprite.max_hp / 16)) if e.name == '灼烧' else max(1, round(sprite.max_hp / 8))
+                    dmg = sprite._last_abnormal_dmg.get(e.name, 0)  # actual damage (with element multiplier)
                     events += dispatch_abnormal_tick(sprite, e.name, dmg, self, team)
                     if not opp.is_fainted:
                         events += dispatch_abnormal_tick(opp, e.name, dmg, self, opp_team)
-                    # Observer: post_abnormal_tick
-                    ctx_tick = self._make_ctx(sprite, opp, None, None, self.globals, team=team, turn=self.turn, last_tick_abnormal=e.name, last_tick_target=team)
-                    events += self._vm_engine.fire_trigger("post_abnormal_tick", ctx_tick, sprite, opp, self.globals, team=team, battle=self)
+                    # Observer: post_abnormal_tick — fire from both team perspectives
+                    # so observers with of:sprite_opp can match
+                    opp_team = 'B' if team == 'A' else 'A'
+                    ctx_tick_self = self._make_ctx(sprite, opp, None, None, self.globals, team=team, turn=self.turn, last_tick_abnormal=e.name, last_tick_target="sprite_self", last_tick_damage_self=dmg)
+                    ctx_tick_opp = self._make_ctx(opp, sprite, None, None, self.globals, team=opp_team, turn=self.turn, last_tick_abnormal=e.name, last_tick_target="sprite_opp", last_tick_damage_opp=dmg)
+                    events += self._vm_engine.fire_trigger("post_abnormal_tick", ctx_tick_self, sprite, opp, self.globals, team=team, battle=self)
+                    events += self._vm_engine.fire_trigger("post_abnormal_tick", ctx_tick_opp, opp, sprite, self.globals, team=opp_team, battle=self)
 
         # ── TTL 衰减：双方精灵 decrement_ttl ──
         for team, sprite in sprites.items():

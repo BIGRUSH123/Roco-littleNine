@@ -13,12 +13,12 @@
       },
       "then": [
         {
-          "op": "mod",
+          "op": "flag_set",
           "target": "sprite_self",
-          "stat": "pre_charged",
-          "value": 1,
           "on_next": true,
-          "if_type": "charge"
+          "if_type": "charge",
+          "flag": "pre_charged",
+          "value": 1
         }
       ]
     }

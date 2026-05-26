@@ -2,16 +2,21 @@
   "id": 20032,
   "name": "坚韧铠甲",
   "description": "每受1次攻击，己方队伍获得1次随机奉献。",
-  "triggers": [
+  "effects": [
     {
-      "on": "take_damage",
-      "effects": [
+      "op": "observer",
+      "then": [
         {
-          "kind": "special",
-          "name": "lives_add",
-          "amount": 1
+          "target": "sprite_self",
+          "op": "lives",
+          "delta": 1,
+          "target_team": "own"
         }
-      ]
+      ],
+      "scope": "persistent",
+      "cond": {
+        "cond": "on_damage_taken"
+      }
     }
   ]
 }

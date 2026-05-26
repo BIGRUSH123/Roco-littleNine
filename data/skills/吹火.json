@@ -7,12 +7,11 @@
   "energy_cost": 1,
   "effects": [
     {
-      "value": 20,
       "target": "skill_off_0",
-      "op": "mod",
-      "stat": "power",
-      "mode": "add",
-      "scope": "permanent"
+      "op": "power_mod",
+      "scope": "permanent",
+      "attr": "power",
+      "delta": 20
     }
   ],
   "description": "✦造成物伤，每次使用后，本技能威力永久+20。"

@@ -7,11 +7,11 @@
   "counter": "攻击",
   "effects": [
     {
-      "value": 0.8,
       "target": "sprite_self",
-      "op": "mod",
-      "stat": "damage_reduction",
-      "feeds": "mult"
+      "op": "mult_mod",
+      "feeds": "mult",
+      "attr": "damage_reduction",
+      "value": 0.8
     },
     {
       "when": {
@@ -19,12 +19,12 @@
       },
       "then": [
         {
-          "op": "mod",
+          "op": "mult_mod",
           "target": "sprite_self",
-          "stat": "power_mult",
-          "value": 2,
           "on_next": true,
-          "if_type": "attack"
+          "if_type": "attack",
+          "attr": "power_mult",
+          "value": 2
         }
       ]
     }

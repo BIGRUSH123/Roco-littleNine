@@ -2,56 +2,89 @@
   "id": 20045,
   "name": "得寸进尺",
   "description": "天气为雨天或水系环境时，双攻+100%。天气不满足时效果消失。",
-  "triggers": [
+  "effects": [
     {
-      "on": "entry",
-      "clear_condition": {
-        "path": "battle.globals.weather",
-        "op": "eq",
-        "value": "rain"
-      },
-      "effects_mode": "conditional_replace",
-      "effects": [
+      "op": "observer",
+      "then": [
         {
-          "kind": "stat",
-          "stat": "atk",
-          "steps": 10,
+          "target": "sprite_self",
           "scope": "battlefield",
-          "source": "得寸进尺"
+          "source": "得寸进尺",
+          "op": "stat_stage",
+          "stat": "atk",
+          "steps": 10
         },
         {
-          "kind": "stat",
-          "stat": "sp_atk",
-          "steps": 10,
+          "target": "sprite_self",
           "scope": "battlefield",
-          "source": "得寸进尺"
+          "source": "得寸进尺",
+          "op": "stat_stage",
+          "stat": "sp_atk",
+          "steps": 10
         }
-      ]
+      ],
+      "scope": "battlefield",
+      "cond": {
+        "cond": "sprite_entered",
+        "of": "sprite_self"
+      },
+      "listen": "post_entry"
     },
     {
-      "on": "turn_start",
-      "clear_condition": {
-        "path": "battle.globals.weather",
-        "op": "eq",
-        "value": "rain"
+      "op": "observer",
+      "cond": {
+        "cond": "not",
+        "condition": {
+          "cond": "weather_is",
+          "weather": "rain"
+        }
       },
-      "effects_mode": "conditional_replace",
-      "effects": [
+      "then": [
         {
-          "kind": "stat",
-          "stat": "atk",
-          "steps": 10,
+          "op": "dispel",
+          "target": "sprite_self"
+        }
+      ],
+      "scope": "persistent"
+    },
+    {
+      "op": "observer",
+      "then": [
+        {
+          "target": "sprite_self",
           "scope": "battlefield",
-          "source": "得寸进尺"
+          "source": "得寸进尺",
+          "op": "stat_stage",
+          "stat": "atk",
+          "steps": 10
         },
         {
-          "kind": "stat",
-          "stat": "sp_atk",
-          "steps": 10,
+          "target": "sprite_self",
           "scope": "battlefield",
-          "source": "得寸进尺"
+          "source": "得寸进尺",
+          "op": "stat_stage",
+          "stat": "sp_atk",
+          "steps": 10
         }
-      ]
+      ],
+      "scope": "battlefield"
+    },
+    {
+      "op": "observer",
+      "cond": {
+        "cond": "not",
+        "condition": {
+          "cond": "weather_is",
+          "weather": "rain"
+        }
+      },
+      "then": [
+        {
+          "op": "dispel",
+          "target": "sprite_self"
+        }
+      ],
+      "scope": "persistent"
     }
   ]
 }

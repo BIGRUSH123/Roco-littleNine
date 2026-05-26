@@ -4,19 +4,17 @@
   "description": "回合结束时，回复3能量。",
   "passive": [
     {
-      "op": "count",
-      "when": {
-        "cond": "turn_end"
-      },
+      "op": "observer",
       "then": [
         {
-          "op": "mod",
+          "op": "energize",
           "target": "sprite_self",
-          "stat": "energy",
-          "value": 3,
-          "mode": "add"
+          "delta": 3
         }
-      ]
+      ],
+      "cond": {
+        "cond": "turn_end"
+      }
     }
   ]
 }

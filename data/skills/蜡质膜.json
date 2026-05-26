@@ -7,10 +7,10 @@
   "counter": "攻击",
   "effects": [
     {
-      "value": 0.8,
       "target": "sprite_self",
-      "op": "mod",
-      "stat": "damage_reduction"
+      "op": "mult_mod",
+      "attr": "damage_reduction",
+      "value": 0.8
     },
     {
       "when": {
@@ -18,11 +18,9 @@
       },
       "then": [
         {
-          "op": "mod",
+          "op": "energize",
           "target": "sprite_self",
-          "stat": "energy",
-          "value": 3,
-          "mode": "add"
+          "delta": 3
         }
       ]
     }

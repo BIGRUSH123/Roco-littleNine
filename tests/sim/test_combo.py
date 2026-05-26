@@ -165,9 +165,9 @@ def test_per_hit_mod_energy_cost():
 
     _run_skill(b)
 
-    # energy_cost modifier 应累积+2
-    ec = opp._modifiers.get("energy_cost", 0)
-    assert ec == 2, f"energy_cost modifier应=2, got {ec}"
+    # energy_cost modifier 应累积+2，分布在每个 BattleSkill._modifiers 上
+    ec = opp.skills[0]._modifiers.get("energy_cost", 0) if opp.skills else 0
+    assert ec == 2, f"energy_cost modifier在BattleSkill上应=2, got {ec}"
     print(f"  [OK] 冰捆缚 per_hit energy_cost: +{ec}")
 
 

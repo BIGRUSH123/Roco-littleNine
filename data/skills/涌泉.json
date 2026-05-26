@@ -7,16 +7,15 @@
   "energy_cost": 6,
   "effects": [
     {
-      "value": {
+      "target": "skill_off_0",
+      "op": "power_mod",
+      "feeds": "power",
+      "attr": "power",
+      "delta": {
         "q": "energy_cost_reduction",
         "of": "skill_off_0",
         "scale": 10
-      },
-      "target": "skill_off_0",
-      "op": "mod",
-      "stat": "power",
-      "mode": "add",
-      "feeds": "power"
+      }
     }
   ],
   "description": "✦造成魔伤，本技能能耗每-1，威力+10。"

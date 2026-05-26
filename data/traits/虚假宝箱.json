@@ -2,32 +2,43 @@
   "id": 20118,
   "name": "虚假宝箱",
   "description": "自己力竭时，敌方获得攻防+20%。",
-  "triggers": [
+  "effects": [
     {
-      "on": "faint",
-      "condition": {
-        "path": "killer",
-        "op": "neq",
-        "value": null
-      },
-      "effects": [
+      "op": "observer",
+      "then": [
         {
-          "kind": "stat",
-          "stat": "atk",
-          "steps": 2,
           "target": "killer",
           "scope": "battlefield",
-          "source": "虚假宝箱"
+          "source": "虚假宝箱",
+          "op": "stat_stage",
+          "stat": "atk",
+          "steps": 2
         },
         {
-          "kind": "stat",
-          "stat": "def",
-          "steps": 2,
           "target": "killer",
           "scope": "battlefield",
-          "source": "虚假宝箱"
+          "source": "虚假宝箱",
+          "op": "stat_stage",
+          "stat": "def",
+          "steps": 2
         }
-      ]
+      ],
+      "scope": "persistent",
+      "cond": {
+        "cond": "and",
+        "conditions": [
+          {
+            "cond": "on_self_ko"
+          },
+          {
+            "cond": "compare",
+            "q": "killer",
+            "of": "sprite_self",
+            "op": "neq",
+            "value": null
+          }
+        ]
+      }
     }
   ]
 }

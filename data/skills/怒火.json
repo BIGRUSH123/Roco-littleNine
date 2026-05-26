@@ -6,31 +6,31 @@
   "energy_cost": 1,
   "effects": [
     {
+      "target": "sprite_self",
+      "op": "mult_mod",
+      "attr": "atk",
       "value": 1.2,
-      "target": "sprite_self",
-      "op": "mod",
-      "stat": "atk",
       "mode": "add"
     },
     {
+      "target": "sprite_self",
+      "op": "mult_mod",
+      "attr": "sp_atk",
       "value": 1.2,
-      "target": "sprite_self",
-      "op": "mod",
-      "stat": "sp_atk",
       "mode": "add"
     },
     {
-      "value": -0.4,
       "target": "sprite_self",
-      "op": "mod",
-      "stat": "def",
+      "op": "mult_mod",
+      "attr": "def",
+      "value": -0.4,
       "mode": "add"
     },
     {
-      "value": -0.4,
       "target": "sprite_self",
-      "op": "mod",
-      "stat": "sp_def",
+      "op": "mult_mod",
+      "attr": "sp_def",
+      "value": -0.4,
       "mode": "add"
     }
   ],

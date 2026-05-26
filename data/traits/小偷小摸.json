@@ -2,16 +2,21 @@
   "id": 20044,
   "name": "小偷小摸",
   "description": "入场时偷取所有敌方精灵2能量。",
-  "triggers": [
+  "effects": [
     {
-      "on": "entry",
-      "effects": [
+      "op": "observer",
+      "then": [
         {
-          "kind": "special",
-          "name": "steal_energy_all",
-          "amount": 2
+          "target": "sprite_self",
+          "op": "special"
         }
-      ]
+      ],
+      "scope": "persistent",
+      "cond": {
+        "cond": "sprite_entered",
+        "of": "sprite_self"
+      },
+      "listen": "post_entry"
     }
   ]
 }

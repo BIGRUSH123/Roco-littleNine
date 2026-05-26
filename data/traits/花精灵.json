@@ -2,16 +2,19 @@
   "id": 20113,
   "name": "花精灵",
   "description": "回合结束时，己方队伍获得1次随机奉献。",
-  "triggers": [
+  "effects": [
     {
-      "on": "turn_end",
-      "effects": [
+      "op": "observer",
+      "then": [
         {
-          "kind": "special",
-          "name": "lives_add",
-          "amount": 1
+          "target": "sprite_self",
+          "op": "special"
         }
-      ]
+      ],
+      "scope": "persistent",
+      "cond": {
+        "cond": "turn_end"
+      }
     }
   ]
 }

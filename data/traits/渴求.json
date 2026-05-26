@@ -2,18 +2,25 @@
   "id": 20087,
   "name": "渴求",
   "description": "入场时获得50%吸血。",
-  "triggers": [
+  "effects": [
     {
-      "on": "entry",
-      "effects": [
+      "op": "observer",
+      "then": [
         {
-          "kind": "stat",
-          "stat": "life_drain",
-          "steps": 5,
+          "target": "sprite_self",
           "scope": "battlefield",
-          "source": "渴求"
+          "source": "渴求",
+          "op": "stat_stage",
+          "stat": "life_drain",
+          "steps": 5
         }
-      ]
+      ],
+      "scope": "persistent",
+      "cond": {
+        "cond": "sprite_entered",
+        "of": "sprite_self"
+      },
+      "listen": "post_entry"
     }
   ]
 }

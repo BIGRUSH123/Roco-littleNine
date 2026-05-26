@@ -2,21 +2,31 @@
   "id": 20102,
   "name": "石天平",
   "description": "若使用技能能耗高于敌方，回合末敌方失去能耗之差的能量。",
-  "triggers": [
+  "effects": [
     {
-      "on": "turn_end",
-      "condition": {
-        "path": "self.energy_cost_total",
-        "op": "gt",
-        "value": "=@target.energy_cost_total"
-      },
-      "effects": [
+      "op": "observer",
+      "then": [
         {
-          "kind": "special",
-          "name": "lose_energy",
-          "amount": "=@self.energy_cost_total - target.energy_cost_total"
+          "target": "sprite_self",
+          "op": "special"
         }
-      ]
+      ],
+      "scope": "persistent",
+      "cond": {
+        "cond": "and",
+        "conditions": [
+          {
+            "cond": "turn_end"
+          },
+          {
+            "cond": "compare",
+            "q": "energy_cost_total",
+            "of": "sprite_self",
+            "op": "gt",
+            "value": "=@target.energy_cost_total"
+          }
+        ]
+      }
     }
   ]
 }

@@ -4,14 +4,30 @@
   "description": "使用能耗为3的技能时，获得攻防永久+20%。",
   "effects": [
     {
-      "op": "count",
-      "name": "三鼓作气",
-      "when": {"cond": "skill_use", "energy_cost": 3},
+      "op": "observer",
       "then": [
-        {"op": "mod", "target": "sprite_self", "stat": "atk", "value": 0.2, "mode": "add", "scope": "permanent"},
-        {"op": "mod", "target": "sprite_self", "stat": "def", "value": 0.2, "mode": "add", "scope": "permanent"}
+        {
+          "op": "mult_mod",
+          "target": "sprite_self",
+          "scope": "permanent",
+          "attr": "atk",
+          "value": 0.2,
+          "mode": "add"
+        },
+        {
+          "op": "mult_mod",
+          "target": "sprite_self",
+          "scope": "permanent",
+          "attr": "def",
+          "value": 0.2,
+          "mode": "add"
+        }
       ],
-      "scope": "persistent"
+      "scope": "persistent",
+      "cond": {
+        "cond": "skill_use",
+        "energy_cost": 3
+      }
     }
   ]
 }

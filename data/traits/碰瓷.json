@@ -2,32 +2,31 @@
   "id": 20104,
   "name": "碰瓷",
   "description": "使用恶系技能后，敌方失去2能量。",
-  "triggers": [
+  "effects": [
     {
-      "on": "skill_use",
-      "condition": {
-        "kind": "and",
+      "op": "observer",
+      "then": [
+        {
+          "target": "target",
+          "op": "special"
+        }
+      ],
+      "scope": "persistent",
+      "cond": {
+        "cond": "and",
         "conditions": [
           {
-            "path": "skill.element",
-            "op": "eq",
-            "value": "恶"
+            "cond": "skill_use"
           },
           {
-            "path": "target.is_fainted",
-            "op": "neq",
-            "value": true
+            "cond": "compare",
+            "q": "",
+            "of": "sprite_self",
+            "op": "eq",
+            "value": null
           }
         ]
-      },
-      "effects": [
-        {
-          "kind": "special",
-          "name": "lose_energy",
-          "amount": 2,
-          "target": "target"
-        }
-      ]
+      }
     }
   ]
 }

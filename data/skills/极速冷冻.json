@@ -12,22 +12,20 @@
       },
       "then": [
         {
-          "op": "mod",
+          "op": "power_mod",
           "target": "skill_opp_current",
-          "stat": "energy_cost",
-          "value": 4,
-          "mode": "add",
-          "feeds": "cost"
+          "feeds": "cost",
+          "attr": "energy_cost",
+          "delta": 4
         }
       ],
       "else": [
         {
-          "op": "mod",
+          "op": "power_mod",
           "target": "skill_opp_current",
-          "stat": "energy_cost",
-          "value": 2,
-          "mode": "add",
-          "feeds": "cost"
+          "feeds": "cost",
+          "attr": "energy_cost",
+          "delta": 2
         }
       ]
     }

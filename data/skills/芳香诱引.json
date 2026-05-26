@@ -7,11 +7,10 @@
   "counter": "防御",
   "effects": [
     {
-      "value": 3,
       "target": "sprite_self",
-      "op": "mod",
-      "stat": "combo",
-      "mode": "add"
+      "op": "power_mod",
+      "attr": "combo",
+      "delta": 3
     },
     {
       "when": {

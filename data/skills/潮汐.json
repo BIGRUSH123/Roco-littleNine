@@ -20,10 +20,9 @@
           "what": "abnormal"
         },
         {
-          "op": "mod",
+          "op": "energize",
           "target": "sprite_opp",
-          "stat": "energy",
-          "value": {
+          "delta": {
             "q": "energy",
             "of": "sprite_opp",
             "scale": -1

@@ -2,16 +2,19 @@
   "id": 20075,
   "name": "毒蘑菇",
   "description": "回合结束时，偷取敌方场上精灵1能量。",
-  "triggers": [
+  "effects": [
     {
-      "on": "turn_end",
-      "effects": [
+      "op": "observer",
+      "then": [
         {
-          "kind": "special",
-          "name": "steal_energy_all",
-          "amount": 1
+          "target": "sprite_self",
+          "op": "special"
         }
-      ]
+      ],
+      "scope": "persistent",
+      "cond": {
+        "cond": "turn_end"
+      }
     }
   ]
 }

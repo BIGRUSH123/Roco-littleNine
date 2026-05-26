@@ -6,11 +6,10 @@
   "energy_cost": 2,
   "effects": [
     {
-      "value": 3,
       "target": "sprite_self",
-      "op": "mod",
-      "stat": "combo",
-      "mode": "add"
+      "op": "power_mod",
+      "attr": "combo",
+      "delta": 3
     }
   ],
   "description": "✦自己获得连击数+3。"

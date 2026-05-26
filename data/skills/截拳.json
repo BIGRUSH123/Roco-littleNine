@@ -17,10 +17,9 @@
           "target": "sprite_opp"
         },
         {
-          "op": "mod",
+          "op": "energize",
           "target": "sprite_self",
-          "stat": "energy",
-          "value": {
+          "delta": {
             "q": "energy_cost",
             "of": "skill_off_0"
           }

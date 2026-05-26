@@ -7,10 +7,10 @@
   "counter": "攻击",
   "effects": [
     {
-      "value": 0.8,
       "target": "sprite_self",
-      "op": "mod",
-      "stat": "damage_reduction"
+      "op": "mult_mod",
+      "attr": "damage_reduction",
+      "value": 0.8
     },
     {
       "when": {
@@ -20,10 +20,10 @@
         {
           "op": "mod",
           "target": "team_own",
+          "name": "random",
           "stat": "devotion",
           "value": 1,
-          "mode": "add",
-          "name": "random"
+          "mode": "add"
         }
       ]
     }

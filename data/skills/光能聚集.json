@@ -7,21 +7,20 @@
   "energy_cost": 7,
   "effects": [
     {
-      "op": "count",
-      "when": {
-        "cond": "skill_use",
-        "element": "草"
-      },
+      "op": "observer",
       "then": [
         {
-          "op": "mod",
+          "op": "power_mod",
           "target": "skill_off_0",
-          "stat": "power",
-          "value": 60,
-          "mode": "add",
-          "scope": "permanent"
+          "scope": "permanent",
+          "attr": "power",
+          "delta": 60
         }
-      ]
+      ],
+      "cond": {
+        "cond": "skill_use",
+        "element": "草"
+      }
     }
   ],
   "description": "✦造成魔伤，每次使用其他草系技能后，本技能威力永久+60。"

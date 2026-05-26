@@ -11,11 +11,11 @@
       "turns": 8
     },
     {
-      "value": 2,
       "target": "skill_off_0",
-      "op": "mod",
-      "stat": "energy_cost_mult",
-      "feeds": "cost"
+      "op": "power_mod",
+      "feeds": "cost",
+      "attr": "energy_cost_mult",
+      "delta": 2
     }
   ],
   "description": "✦ 将天气变为雨天，本技能能耗降低效果收益翻倍。"

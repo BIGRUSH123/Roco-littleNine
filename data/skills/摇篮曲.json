@@ -7,11 +7,11 @@
   "counter": "防御",
   "effects": [
     {
-      "value": 3,
       "target": "sprite_opp",
-      "op": "mod",
-      "stat": "energy_cost",
-      "skill_filter": "all"
+      "op": "power_mod",
+      "skill_filter": "all",
+      "attr": "energy_cost",
+      "delta": 3
     },
     {
       "when": {

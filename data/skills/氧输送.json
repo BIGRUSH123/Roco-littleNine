@@ -6,14 +6,13 @@
   "energy_cost": 2,
   "effects": [
     {
-      "value": 4,
       "target": "sprite_self",
-      "op": "mod",
-      "stat": "energy"
+      "op": "energize",
+      "delta": 4
     },
     {
       "target": "sprite_self",
-      "op": "mod",
+      "op": "stat_stage",
       "stat": "sp_atk",
       "steps": 7
     }

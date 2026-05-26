@@ -13,31 +13,31 @@
       }
     },
     {
-      "value": {
+      "target": "skill_off_0",
+      "op": "power_mod",
+      "feeds": "cost",
+      "attr": "energy_cost",
+      "delta": {
         "q": "energy_cost_sum",
         "of": "sprite_self",
         "skill_type": "迅捷",
         "scale": 0.5
-      },
-      "target": "skill_off_0",
-      "op": "mod",
-      "stat": "energy_cost",
-      "feeds": "cost"
+      }
     },
     {
-      "op": "count",
-      "when": {
-        "cond": "skill_use"
-      },
+      "op": "observer",
       "then": [
         {
-          "op": "mod",
+          "op": "power_mod",
           "target": "skill_off_0",
-          "stat": "energy_cost",
-          "value": 1,
-          "scope": "permanent"
+          "scope": "permanent",
+          "attr": "energy_cost",
+          "delta": 1
         }
-      ]
+      ],
+      "cond": {
+        "cond": "skill_use"
+      }
     }
   ],
   "description": "✦释放自己释放过的迅捷技能，其能耗之和的二分之一加至本技能能耗，每次使用后能耗+1。"

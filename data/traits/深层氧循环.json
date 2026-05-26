@@ -2,21 +2,28 @@
   "id": 20085,
   "name": "深层氧循环",
   "description": "使用草系技能后回复15%生命。",
-  "triggers": [
+  "effects": [
     {
-      "on": "skill_use",
-      "condition": {
-        "path": "skill.element",
-        "op": "eq",
-        "value": "草"
-      },
-      "effects": [
+      "op": "observer",
+      "then": [
         {
-          "kind": "special",
-          "name": "heal",
-          "value": 0.15
+          "target": "sprite_self",
+          "op": "special"
         }
-      ]
+      ],
+      "scope": "persistent",
+      "cond": {
+        "cond": "and",
+        "conditions": [
+          {
+            "cond": "skill_use"
+          },
+          {
+            "cond": "skill_use",
+            "element": "草"
+          }
+        ]
+      }
     }
   ]
 }

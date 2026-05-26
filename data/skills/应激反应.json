@@ -12,18 +12,16 @@
       },
       "then": [
         {
-          "op": "mod",
+          "op": "heal",
           "target": "sprite_self",
-          "stat": "hp",
-          "value": 0.5
+          "ratio": 0.5
         }
       ],
       "else": [
         {
-          "op": "mod",
+          "op": "heal",
           "target": "sprite_self",
-          "stat": "hp",
-          "value": 0.25
+          "ratio": 0.25
         }
       ]
     }

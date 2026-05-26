@@ -14,29 +14,27 @@
       },
       "then": [
         {
-          "op": "mod",
+          "op": "power_mod",
           "target": "skill_off_0",
-          "stat": "power",
-          "value": 90,
-          "mode": "add"
+          "attr": "power",
+          "delta": 90
         }
       ]
     },
     {
-      "op": "count",
-      "when": {
-        "cond": "sprite_entered"
-      },
+      "op": "observer",
       "then": [
         {
-          "op": "mod",
+          "op": "power_mod",
           "target": "skill_off_0",
-          "stat": "power",
-          "value": 2,
-          "mode": "add",
-          "scope": "permanent"
+          "scope": "permanent",
+          "attr": "power",
+          "delta": 2
         }
-      ]
+      ],
+      "cond": {
+        "cond": "sprite_entered"
+      }
     }
   ],
   "description": "✦造成物伤，本技能位于1号位时威力+90，传动2。"

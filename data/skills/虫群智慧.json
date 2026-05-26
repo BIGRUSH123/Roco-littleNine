@@ -6,12 +6,12 @@
   "energy_cost": 3,
   "effects": [
     {
-      "value": 2,
       "target": "team_own",
       "op": "mod",
+      "name": "random",
       "stat": "devotion",
-      "mode": "add",
-      "name": "random"
+      "value": 2,
+      "mode": "add"
     }
   ],
   "description": "✦己方队伍获得2次随机奉献。"

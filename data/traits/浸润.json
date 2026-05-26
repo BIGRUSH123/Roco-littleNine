@@ -2,23 +2,32 @@
   "id": 20083,
   "name": "浸润",
   "description": "使用水系技能后，全技能能耗-1。",
-  "triggers": [
+  "effects": [
     {
-      "on": "skill_use",
-      "condition": {
-        "path": "skill.element",
-        "op": "eq",
-        "value": "水"
-      },
-      "effects": [
+      "op": "observer",
+      "then": [
         {
-          "kind": "stat",
-          "stat": "energy_cost",
-          "steps": -1,
+          "target": "sprite_self",
           "scope": "battlefield",
-          "source": "浸润"
+          "source": "浸润",
+          "op": "stat_stage",
+          "stat": "energy_cost",
+          "steps": -1
         }
-      ]
+      ],
+      "scope": "persistent",
+      "cond": {
+        "cond": "and",
+        "conditions": [
+          {
+            "cond": "skill_use"
+          },
+          {
+            "cond": "skill_use",
+            "element": "水"
+          }
+        ]
+      }
     }
   ]
 }

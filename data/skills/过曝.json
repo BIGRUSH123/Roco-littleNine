@@ -7,17 +7,16 @@
   "energy_cost": 3,
   "effects": [
     {
-      "value": {
+      "target": "skill_off_0",
+      "op": "power_mod",
+      "scope": "permanent",
+      "attr": "power",
+      "delta": {
         "q": "elements_used_count",
         "of": "sprite_self",
         "exclude_self": true,
         "scale": 3
-      },
-      "target": "skill_off_0",
-      "op": "mod",
-      "stat": "power",
-      "mode": "add",
-      "scope": "permanent"
+      }
     }
   ],
   "description": "✦造成魔伤，每使用过1个其他系别技能，本技能威力永久+30。"

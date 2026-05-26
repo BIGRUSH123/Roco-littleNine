@@ -17,9 +17,8 @@
       "name": "星陨印记"
     },
     {
-      "op": "count",
-      "name": "星陨",
-      "when": {
+      "op": "observer",
+      "cond": {
         "cond": "skill_use"
       }
     }

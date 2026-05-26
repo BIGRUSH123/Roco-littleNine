@@ -23,28 +23,27 @@
       },
       "then": [
         {
-          "op": "mod",
+          "op": "power_mod",
           "target": "skill_off_0",
-          "stat": "power",
-          "steps": 3
+          "attr": "power",
+          "delta": 3
         }
       ]
     },
     {
-      "op": "count",
-      "when": {
-        "cond": "sprite_entered"
-      },
+      "op": "observer",
       "then": [
         {
-          "op": "mod",
+          "op": "power_mod",
           "target": "skill_off_0",
-          "stat": "power",
-          "value": 1,
-          "mode": "add",
-          "scope": "permanent"
+          "scope": "permanent",
+          "attr": "power",
+          "delta": 1
         }
-      ]
+      ],
+      "cond": {
+        "cond": "sprite_entered"
+      }
     }
   ],
   "description": "✦造成魔伤，本技能位于1号或3号位时威力+30，传动1。"

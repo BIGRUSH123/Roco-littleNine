@@ -24,6 +24,7 @@ from .modifiers import apply_modifiers_to_journal
 from .observer import ObserverRegistry
 from .replayer import JournalReplayer
 from .snapshot import build_ctx
+from .trait_loader import TraitLoader
 
 if TYPE_CHECKING:
     from backend.sim.globals import GlobalEffects
@@ -52,6 +53,7 @@ class BattleVMEngine:
 
     def __init__(self, registry: ObserverRegistry | None = None):
         self.registry = registry if registry is not None else ObserverRegistry()
+        self.trait_loader = TraitLoader(self.registry)  # IR_RISC trait pipeline
         # Burst tracking: team → list of (skill_name, effects)
         self._burst_effects: dict[str, list[tuple[str, list[dict]]]] = {"A": [], "B": []}
         # Distinct burst skill names per team (for burst_triggered_count)
@@ -119,10 +121,24 @@ class BattleVMEngine:
             **kwargs,
         )
 
-        # 2. Fire pre-calc observers → collect modifier injections
-        pre_mods = self._fire_pre_calc(ctx)
-        # 2.5 Fire pre-modifier observers (L0→L1 skill parameter adjustments)
-        pre_mods += self._fire_pre_event("pre_modifier", ctx)
+        # 2. Fire pre-calc observers → apply to sprite → rebuild ctx
+        # so trait buffs like专注力's atk+100% are visible in the snapshot
+        pre_calc_mods = self._fire_pre_calc(ctx, id(self_sprite))
+        pre_calc_events: list[str] = []
+        if pre_calc_mods:
+            from .replayer import JournalReplayer as _JR
+            _pre_r = _JR(self_sprite, opp_sprite, globals_, self.registry, team=team, battle=battle)
+            pre_calc_events = _pre_r.replay(pre_calc_mods)
+            ctx = build_ctx(
+                self_sprite, opp_sprite, self_skill, opp_skill, globals_,
+                team=team, turn=turn, is_first=is_first,
+                burst_triggered_count_own=self.burst_triggered_count(team),
+                counter_values=dict(self._counter_values),
+                battle_skill=battle_skill,
+                **kwargs,
+            )
+        # pre_calc_mods already applied to sprite via _pre_r.replay above
+        pre_mods = self._fire_pre_event("pre_modifier", ctx)
 
         # 3. Execute VM on the skill's effects
         vm_effects = effects if effects is not None else self._get_effects(self_skill)
@@ -157,10 +173,10 @@ class BattleVMEngine:
             self_skill=battle_skill,
             battle=battle,
         )
-        events = replayer.replay(journal)
+        events = pre_calc_events + replayer.replay(journal)
 
         # 6.5 Register counters from journal
-        self._register_counters_from_journal(journal)
+        self._register_counters_from_journal(journal, self_sprite)
 
         # 6.6 Track skill history for sprite_self replay
         skill_name = getattr(self_skill, 'name', '')
@@ -171,6 +187,7 @@ class BattleVMEngine:
             )
 
         # 7. Fire post-skill observers
+        ctx.just_acted_self = True  # for sprite_acted condition
         post_ev = self._fire_post_event("post_skill", ctx, replayer)
         events.extend(post_ev)
 
@@ -190,19 +207,27 @@ class BattleVMEngine:
 
     # ── Observer integration ──
 
-    def _fire_pre_calc(self, ctx: Ctx) -> Journal:
+    def _fire_pre_calc(self, ctx: Ctx, sprite_id: int = 0) -> Journal:
         """Fire pre-calculation observers and collect their mutations."""
-        return self._fire_pre_event("pre_calc", ctx)
+        return self._fire_pre_event("pre_calc", ctx, sprite_id)
 
-    def _fire_pre_event(self, trigger: str, ctx: Ctx) -> Journal:
+    def _fire_pre_event(self, trigger: str, ctx: Ctx, sprite_id: int = 0) -> Journal:
         """Fire pre-execution observers and collect their mutations.
 
         Pre-execution observers run BEFORE the VM and inject modifier
         effects into the pipeline. Unlike _fire_post_event, this does
         not replay mutations — it only collects them for later replay.
+
+        Observers are filtered by listen set and owner sprite.
         """
         mutations: Journal = []
         for obs in self.registry._observers:
+            if obs.listen and trigger not in obs.listen:
+                continue
+            # Owner filter: observers with an owner only fire for their sprite
+            if obs.owner_sprite_id is not None and sprite_id != 0:
+                if obs.owner_sprite_id != sprite_id:
+                    continue
             try:
                 if eval_one(ctx, obs.cond):
                     result = process_effects(ctx, obs.then)
@@ -212,9 +237,22 @@ class BattleVMEngine:
         return mutations
 
     def _fire_post_event(self, trigger: str, ctx: Ctx, replayer: JournalReplayer) -> list[str]:
-        """Fire post-event observers and replay their mutations."""
+        """Fire post-event observers and replay their mutations.
+
+        Observers are filtered by listen set. For entry/leave triggers,
+        owner filtering ensures each sprite's observers only fire for
+        their own entry/leave events (not the opponent's).
+        """
         events: list[str] = []
+        owner_id = id(replayer.self) if replayer.self else None
         for obs in self.registry._observers:
+            if obs.listen and trigger not in obs.listen:
+                continue
+            # Owner filter: only for triggers where "which sprite" matters
+            if trigger in ("post_entry", "post_leave", "post_skill"):
+                if obs.owner_sprite_id is not None and owner_id is not None:
+                    if obs.owner_sprite_id != owner_id:
+                        continue
             try:
                 if eval_one(ctx, obs.cond):
                     journal = process_effects(ctx, obs.then)
@@ -246,13 +284,19 @@ class BattleVMEngine:
             trigger = None
             if isinstance(m, Damage):
                 trigger = "post_damage"
+                ctx.damage_taken_this_turn = m.amount
             elif isinstance(m, EnergyChange):
                 trigger = "post_energy_change"
             elif isinstance(m, AbnormalChange):
                 trigger = "post_abnormal_change"
+                # Set event context for condition matching
+                ctx.event.abnormal_changed_name = m.name
+                ctx.event.abnormal_changed_target = "sprite_self" if m.target == "sprite_self" else "sprite_opp"
                 # Also fire post_abnormal_apply if stacks increased
-                if getattr(m, 'stacks_delta', 0) > 0:
+                if getattr(m, 'delta', 0) > 0:
                     apply_trigger = "post_abnormal_apply"
+                    ctx.event.abnormal_applied_name = m.name
+                    ctx.event.abnormal_applied_target = ctx.event.abnormal_changed_target
                     if apply_trigger not in fired:
                         fired.add(apply_trigger)
                         apply_ev = self._fire_post_event(apply_trigger, ctx, replayer)
@@ -268,12 +312,15 @@ class BattleVMEngine:
 
         # post_ko: check if the target fainted from damage
         for m in journal:
-            if isinstance(m, Damage) and getattr(m, 'target_fainted', False):
-                if "post_ko" not in fired:
-                    fired.add("post_ko")
-                    ev = self._fire_post_event("post_ko", ctx, replayer)
-                    events.extend(ev)
-                break
+            if isinstance(m, Damage):
+                target_sprite = replayer.opp if m.target == "sprite_opp" else replayer.self
+                if target_sprite and target_sprite.is_fainted:
+                    if "post_ko" not in fired:
+                        fired.add("post_ko")
+                        ctx.event.target_fainted = True
+                        ev = self._fire_post_event("post_ko", ctx, replayer)
+                        events.extend(ev)
+                    break
 
         return events
 
@@ -323,10 +370,21 @@ class BattleVMEngine:
                 return result
         return []
 
-    def register_counter(self, mutation: CounterRegister) -> None:
-        """Register a persistent counter from a CounterRegister mutation."""
+    def register_counter(self, mutation: CounterRegister, owner_sprite=None) -> None:
+        """Register a persistent counter from a CounterRegister mutation.
+
+        Deduplicates: if an observer with the same cond+then+owner already
+        exists, skips registration.
+        """
         from backend.vm.cond import infer_triggers
         from .observer import Observer
+        owner_id = id(owner_sprite) if owner_sprite else None
+        # Check for duplicate
+        for obs in self.registry._observers:
+            if (obs.cond == mutation.cond
+                    and obs.then == mutation.then
+                    and obs.owner_sprite_id == owner_id):
+                return  # already registered
         self.registry.register(Observer(
             cond=mutation.cond,
             then=mutation.then,
@@ -334,13 +392,16 @@ class BattleVMEngine:
             name=mutation.name or "",
             source="counter",
             listen=infer_triggers(mutation.cond),
+            threshold=mutation.threshold,
+            reset_on_fire=mutation.reset_on_fire,
+            owner_sprite_id=owner_id,
         ))
 
-    def _register_counters_from_journal(self, journal: Journal) -> None:
+    def _register_counters_from_journal(self, journal: Journal, owner_sprite=None) -> None:
         """Scan journal for CounterRegister mutations and register them."""
         for m in journal:
             if isinstance(m, CounterRegister):
-                self.register_counter(m)
+                self.register_counter(m, owner_sprite)
                 # Initialize counter value for named counters
                 if m.name:
                     self._counter_values.setdefault(m.name, 0)

@@ -24,30 +24,28 @@
       },
       "then": [
         {
-          "op": "mod",
+          "op": "power_mod",
           "target": "skill_off_0",
-          "stat": "combo",
-          "value": 1,
-          "mode": "add",
-          "feeds": "power"
+          "feeds": "power",
+          "attr": "combo",
+          "delta": 1
         }
       ]
     },
     {
-      "op": "count",
-      "when": {
-        "cond": "sprite_entered"
-      },
+      "op": "observer",
       "then": [
         {
-          "op": "mod",
+          "op": "power_mod",
           "target": "skill_off_0",
-          "stat": "power",
-          "value": 1,
-          "mode": "add",
-          "scope": "permanent"
+          "scope": "permanent",
+          "attr": "power",
+          "delta": 1
         }
-      ]
+      ],
+      "cond": {
+        "cond": "sprite_entered"
+      }
     }
   ],
   "description": "✦造成物伤，2连击，本技能位于1号或3号位时连击+1，传动1。"

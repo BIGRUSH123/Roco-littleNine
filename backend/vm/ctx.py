@@ -74,6 +74,7 @@ class Ctx:
     elements_used_count_self: int = 0    # distinct elements used
     skills_energy_sum_self: int = 0      # sum of all skill energy costs
     just_entered: bool = False           # entered this turn (for sprite_entered cond)
+    just_acted_self: bool = False        # self just used a skill (for sprite_acted cond)
     skill_elements_self: frozenset = frozenset()  # elements of carried skills
     stat_stages_self: dict[str, int] = field(default_factory=dict)  # {stat: stage} positive=boost
     energy_cost_sum_self: dict[str, int] = field(default_factory=dict)  # {type/element/tag: total energy}

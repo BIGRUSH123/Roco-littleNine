@@ -2,22 +2,33 @@
   "id": 20135,
   "name": "铃兰晚钟",
   "description": "首次入场时失去一半当前生命。",
-  "triggers": [
+  "effects": [
     {
-      "on": "entry",
-      "condition": {
-        "path": "self.counters[times_entered]",
-        "op": "lte",
-        "value": 1
-      },
-      "effects": [
+      "op": "observer",
+      "then": [
         {
-          "kind": "special",
-          "name": "take_damage",
-          "value": "=@self.current_hp * 0.5",
-          "damage_target": "self"
+          "target": "sprite_self",
+          "op": "special"
         }
-      ]
+      ],
+      "scope": "persistent",
+      "cond": {
+        "cond": "and",
+        "conditions": [
+          {
+            "cond": "sprite_entered",
+            "of": "sprite_self"
+          },
+          {
+            "cond": "compare",
+            "q": "counters[times_entered]",
+            "of": "sprite_self",
+            "op": "lte",
+            "value": 1
+          }
+        ]
+      },
+      "listen": "post_entry"
     }
   ]
 }

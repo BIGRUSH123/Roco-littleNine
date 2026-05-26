@@ -7,14 +7,14 @@
   "energy_cost": 2,
   "effects": [
     {
-      "value": {
+      "target": "skill_off_0",
+      "op": "power_mod",
+      "scope": "permanent",
+      "attr": "combo",
+      "delta": {
         "q": "times_left",
         "of": "sprite_self"
-      },
-      "target": "skill_off_0",
-      "op": "mod",
-      "stat": "combo",
-      "scope": "permanent"
+      }
     }
   ],
   "description": "✦造成魔伤，每离场1次，本技能使用次数永久+1。"

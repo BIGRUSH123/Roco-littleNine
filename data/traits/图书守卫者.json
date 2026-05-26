@@ -4,8 +4,24 @@
   "description": "入场时若己方魔力值为1，获得双攻+50%。",
   "passive": [
     {
-      "op": "count",
-      "when": {
+      "op": "observer",
+      "then": [
+        {
+          "op": "mult_mod",
+          "target": "sprite_self",
+          "scope": "permanent",
+          "attr": "atk",
+          "value": 1.5
+        },
+        {
+          "op": "mult_mod",
+          "target": "sprite_self",
+          "scope": "permanent",
+          "attr": "sp_atk",
+          "value": 1.5
+        }
+      ],
+      "cond": {
         "cond": "and",
         "conds": [
           {
@@ -16,23 +32,7 @@
             "value": 1
           }
         ]
-      },
-      "then": [
-        {
-          "op": "mod",
-          "target": "sprite_self",
-          "stat": "atk",
-          "value": 1.5,
-          "scope": "permanent"
-        },
-        {
-          "op": "mod",
-          "target": "sprite_self",
-          "stat": "sp_atk",
-          "value": 1.5,
-          "scope": "permanent"
-        }
-      ]
+      }
     }
   ]
 }

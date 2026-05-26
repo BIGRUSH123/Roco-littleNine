@@ -13,16 +13,14 @@
       },
       "then": [
         {
-          "op": "mod",
+          "op": "heal",
           "target": "sprite_self",
-          "stat": "hp",
-          "value": 0.5
+          "ratio": 0.5
         },
         {
-          "op": "mod",
+          "op": "energize",
           "target": "sprite_self",
-          "stat": "energy",
-          "value": 5
+          "delta": 5
         }
       ]
     }

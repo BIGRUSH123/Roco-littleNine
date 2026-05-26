@@ -7,20 +7,20 @@
   "energy_cost": 3,
   "effects": [
     {
-      "op": "count",
-      "when": {
-        "cond": "on_ko"
-      },
+      "op": "observer",
       "then": [
         {
-          "op": "mod",
+          "op": "mult_mod",
           "target": "skill_off_0",
-          "stat": "power_mult",
+          "scope": "permanent",
+          "attr": "power_mult",
           "value": 2,
-          "mode": "multiply",
-          "scope": "permanent"
+          "mode": "multiply"
         }
-      ]
+      ],
+      "cond": {
+        "cond": "on_ko"
+      }
     }
   ],
   "description": "✦造成魔伤，每次击败敌方，本技能威力永久翻倍。"

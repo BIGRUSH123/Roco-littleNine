@@ -4,10 +4,7 @@
   "description": "回合结束时，敌方获得2层星陨印记。",
   "passive": [
     {
-      "op": "count",
-      "when": {
-        "cond": "turn_end"
-      },
+      "op": "observer",
       "then": [
         {
           "op": "mark",
@@ -15,7 +12,10 @@
           "name": "星陨印记",
           "stacks": 2
         }
-      ]
+      ],
+      "cond": {
+        "cond": "turn_end"
+      }
     }
   ]
 }

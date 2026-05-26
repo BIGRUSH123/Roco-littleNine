@@ -6,15 +6,14 @@
   "energy_cost": 2,
   "effects": [
     {
+      "target": "sprite_self",
+      "op": "heal",
       "value": {
         "q": "mark_count",
         "of": "team_opp",
         "scale": 0.1,
         "name": "any"
-      },
-      "target": "sprite_self",
-      "op": "mod",
-      "stat": "hp"
+      }
     },
     {
       "target": "team_opp",

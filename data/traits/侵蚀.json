@@ -2,25 +2,32 @@
   "id": 20008,
   "name": "侵蚀",
   "description": "敌方每有1层中毒，自己连击数+1。",
-  "passive": [
+  "effects": [
     {
-      "op": "count",
-      "when": {
-        "cond": "on_abnormal_changed",
-        "of": "sprite_opp",
-        "name": "中毒"
-      },
+      "op": "observer",
       "then": [
         {
-          "op": "mod",
+          "op": "power_mod",
           "target": "sprite_self",
-          "stat": "combo",
-          "value": {
+          "attr": "combo",
+          "delta": {
             "q": "abnormal_stacks",
             "of": "sprite_opp",
             "name": "中毒"
-          }
+          },
+          "scope": "turn"
         }
+      ],
+      "cond": {
+        "cond": "compare",
+        "q": "abnormal_stacks",
+        "of": "sprite_opp",
+        "name": "中毒",
+        "op": "gte",
+        "value": 1
+      },
+      "listen": [
+        "pre_calc"
       ]
     }
   ]

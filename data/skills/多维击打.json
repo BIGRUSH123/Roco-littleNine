@@ -8,21 +8,20 @@
   "combo": 1,
   "effects": [
     {
-      "value": 1,
       "target": "skill_off_0",
-      "op": "mod",
-      "stat": "combo"
+      "op": "power_mod",
+      "attr": "combo",
+      "delta": 1
     },
     {
-      "value": {
+      "target": "skill_off_0",
+      "op": "power_mod",
+      "attr": "combo",
+      "delta": {
         "q": "mark_count",
         "of": "team_opp",
         "name": "星陨印记"
-      },
-      "target": "skill_off_0",
-      "op": "mod",
-      "stat": "combo",
-      "mode": "add"
+      }
     }
   ],
   "description": "✦造成魔伤，1连击，敌方每有1层星陨印记，本次技能连击数+1。"

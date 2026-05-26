@@ -2,20 +2,21 @@
   "id": 20002,
   "name": "下黑手",
   "description": "敌方精灵离场后，更换入场的精灵获得5层中毒。",
-  "passive": [
+  "effects": [
     {
-      "op": "count",
-      "when": {
-        "cond": "opp_switched"
+      "op": "observer",
+      "cond": {
+        "cond": "sprite_entered",
+        "of": "sprite_opp"
       },
       "then": [
         {
           "op": "abnormal",
-          "target": "sprite_opp",
           "name": "中毒",
           "stacks": 5
         }
-      ]
+      ],
+      "scope": "battlefield"
     }
   ]
 }

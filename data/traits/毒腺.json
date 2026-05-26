@@ -2,33 +2,34 @@
   "id": 20074,
   "name": "毒腺",
   "description": "使用能耗<=1的技能时，敌方获得4层中毒。",
-  "triggers": [
+  "effects": [
     {
-      "on": "skill_use",
-      "condition": {
-        "kind": "and",
+      "op": "observer",
+      "then": [
+        {
+          "target": "target",
+          "source": "毒腺",
+          "op": "abnormal",
+          "name": "中毒",
+          "stacks": 4
+        }
+      ],
+      "scope": "persistent",
+      "cond": {
+        "cond": "and",
         "conditions": [
           {
-            "path": "skill.energy_cost",
-            "op": "lte",
-            "value": 1
+            "cond": "skill_use"
           },
           {
-            "path": "target.is_fainted",
-            "op": "neq",
-            "value": true
+            "cond": "compare",
+            "q": "",
+            "of": "sprite_self",
+            "op": "eq",
+            "value": null
           }
         ]
-      },
-      "effects": [
-        {
-          "kind": "abnormal",
-          "name": "中毒",
-          "stacks": 4,
-          "target": "target",
-          "source": "毒腺"
-        }
-      ]
+      }
     }
   ]
 }

@@ -2,18 +2,24 @@
   "id": 20096,
   "name": "珊瑚骨",
   "description": "敌方精灵离场时，自己获得全技能能耗-3。",
-  "triggers": [
+  "effects": [
     {
-      "on": "enemy_leave",
-      "effects": [
+      "op": "observer",
+      "then": [
         {
-          "kind": "stat",
-          "stat": "energy_cost",
-          "steps": -3,
+          "target": "sprite_self",
           "scope": "permanent",
-          "source": "珊瑚骨"
+          "source": "珊瑚骨",
+          "op": "stat_stage",
+          "stat": "energy_cost",
+          "steps": -3
         }
-      ]
+      ],
+      "scope": "persistent",
+      "cond": {
+        "cond": "sprite_left",
+        "of": "sprite_opp"
+      }
     }
   ]
 }

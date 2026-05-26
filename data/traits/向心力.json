@@ -4,42 +4,40 @@
   "description": "1号位和2号位技能获得传动1和威力+30。",
   "passive": [
     {
-      "op": "count",
-      "when": {
-        "cond": "sprite_entered"
-      },
+      "op": "observer",
       "then": [
         {
-          "op": "mod",
+          "op": "power_mod",
           "target": "skill_at_1",
-          "stat": "power",
-          "value": 30,
-          "mode": "add",
-          "scope": "battlefield"
+          "scope": "battlefield",
+          "attr": "power",
+          "delta": 30
         },
         {
-          "op": "mod",
+          "op": "flag_set",
           "target": "skill_at_1",
-          "stat": "drive",
-          "value": 1,
-          "scope": "battlefield"
+          "scope": "battlefield",
+          "flag": "drive",
+          "value": 1
         },
         {
-          "op": "mod",
+          "op": "power_mod",
           "target": "skill_at_2",
-          "stat": "power",
-          "value": 30,
-          "mode": "add",
-          "scope": "battlefield"
+          "scope": "battlefield",
+          "attr": "power",
+          "delta": 30
         },
         {
-          "op": "mod",
+          "op": "flag_set",
           "target": "skill_at_2",
-          "stat": "drive",
-          "value": 1,
-          "scope": "battlefield"
+          "scope": "battlefield",
+          "flag": "drive",
+          "value": 1
         }
-      ]
+      ],
+      "cond": {
+        "cond": "sprite_entered"
+      }
     }
   ]
 }

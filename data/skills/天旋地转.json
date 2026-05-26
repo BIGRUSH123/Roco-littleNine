@@ -9,9 +9,9 @@
   "effects": [
     {
       "target": "skill_off_0",
-      "op": "mod",
-      "stat": "priority",
-      "steps": 1
+      "op": "power_mod",
+      "attr": "priority",
+      "delta": 1
     },
     {
       "when": {
@@ -19,11 +19,10 @@
       },
       "then": [
         {
-          "op": "mod",
+          "op": "power_mod",
           "target": "skill_off_0",
-          "stat": "power",
-          "value": 30,
-          "mode": "add"
+          "attr": "power",
+          "delta": 30
         }
       ]
     }

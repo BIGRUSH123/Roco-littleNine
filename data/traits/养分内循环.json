@@ -4,19 +4,17 @@
   "description": "回合结束时，回复6能量。",
   "passive": [
     {
-      "op": "count",
-      "when": {
-        "cond": "turn_end"
-      },
+      "op": "observer",
       "then": [
         {
-          "op": "mod",
+          "op": "energize",
           "target": "sprite_self",
-          "stat": "energy",
-          "value": 6,
-          "mode": "add"
+          "delta": 6
         }
-      ]
+      ],
+      "cond": {
+        "cond": "turn_end"
+      }
     }
   ]
 }

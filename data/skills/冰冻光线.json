@@ -7,13 +7,12 @@
   "energy_cost": 7,
   "effects": [
     {
-      "value": 2,
       "target": "sprite_opp",
-      "op": "mod",
-      "stat": "energy_cost",
-      "mode": "add",
+      "op": "power_mod",
       "scope": "persistent",
-      "skill_filter": "all"
+      "skill_filter": "all",
+      "attr": "energy_cost",
+      "delta": 2
     }
   ],
   "description": "✦造成魔伤，敌方获得全技能能耗+2。"

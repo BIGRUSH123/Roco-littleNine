@@ -6,27 +6,26 @@
   "energy_cost": 1,
   "effects": [
     {
-      "value": 0.2,
       "target": "sprite_self",
-      "op": "mod",
-      "stat": "hp"
+      "op": "heal",
+      "ratio": 0.2
     },
     {
-      "value": 1,
       "target": "team_own",
       "op": "mod",
-      "stat": "devotion",
-      "mode": "add",
       "name": "10%吸血",
       "then": [
         {
-          "op": "mod",
+          "op": "mult_mod",
           "target": "sprite_self",
-          "stat": "life_drain",
+          "attr": "life_drain",
           "value": 0.1,
           "mode": "add"
         }
-      ]
+      ],
+      "stat": "devotion",
+      "value": 1,
+      "mode": "add"
     }
   ],
   "description": "✦自己回复20%生命，己方队伍获得1次奉献：获得10%吸血。"

@@ -2,21 +2,33 @@
   "id": 20047,
   "name": "快充",
   "description": "离场时回复10能量。",
-  "triggers": [
+  "effects": [
     {
-      "on": "leave",
-      "condition": {
-        "path": "is_faint",
-        "op": "eq",
-        "value": false
-      },
-      "effects": [
+      "op": "observer",
+      "then": [
         {
-          "kind": "special",
-          "name": "gain_energy",
-          "amount": 10
+          "target": "sprite_self",
+          "op": "special"
         }
-      ]
+      ],
+      "scope": "persistent",
+      "cond": {
+        "cond": "and",
+        "conditions": [
+          {
+            "cond": "sprite_left",
+            "of": "sprite_self"
+          },
+          {
+            "cond": "compare",
+            "q": "is_faint",
+            "of": "sprite_self",
+            "op": "eq",
+            "value": false
+          }
+        ]
+      },
+      "listen": "post_leave"
     }
   ]
 }

@@ -85,6 +85,7 @@ def _sprite_of(ctx: Ctx, of: str):
             "positive_count": ctx.positive_count_self,
             "skill_elements": ctx.skill_elements_self,
             "just_entered": ctx.just_entered,
+            "just_acted": ctx.just_acted_self,
             "is_charging": ctx.is_charging_self,
             "charged": ctx.charged_self,
         }
@@ -98,6 +99,7 @@ def _sprite_of(ctx: Ctx, of: str):
             "positive_count": ctx.positive_count_opp,
             "skill_elements": ctx.skill_elements_opp,
             "just_entered": False,
+            "just_acted": False,
             "is_charging": False,
             "charged": ctx.charged_opp,
         }
@@ -180,8 +182,9 @@ CONDITION_TRIGGERS: dict[str, frozenset[str]] = {
     # Switch
     "opp_switched":            frozenset({"post_switch"}),
     "self_switched":           frozenset({"post_switch"}),
-    # Entry
+    # Entry / action
     "sprite_entered":          frozenset({"post_entry"}),
+    "sprite_acted":            frozenset({"post_skill"}),
     "have_skill_of":           frozenset({"post_entry", "post_skill"}),
     # Abnormal / state change events
     "on_abnormal_tick":        frozenset({"post_abnormal_tick"}),
@@ -359,6 +362,7 @@ COND_EVAL = {
 
     # ── Entry / abnormal / state change events ──
     "sprite_entered": lambda ctx, cond: _sprite_of(ctx, cond.get("of", "sprite_self"))["just_entered"],
+    "sprite_acted": lambda ctx, cond: _sprite_of(ctx, cond.get("of", "sprite_self"))["just_acted"],
     "on_abnormal_tick": lambda ctx, cond: (
         ctx.event.last_tick_abnormal == cond["name"]
         and ctx.event.last_tick_target == cond.get("of", "sprite_opp")

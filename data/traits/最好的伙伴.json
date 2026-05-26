@@ -2,42 +2,56 @@
   "id": 20068,
   "name": "最好的伙伴",
   "description": "造成克制伤害后，获得攻防速+20%并回复2能量。",
-  "triggers": [
+  "effects": [
     {
-      "on": "damage",
-      "condition": {
-        "path": "type_mult",
-        "op": "gt",
-        "value": 1.0
-      },
-      "effects": [
+      "op": "observer",
+      "then": [
         {
-          "kind": "stat",
+          "target": "sprite_self",
+          "scope": "battlefield",
+          "source": "最好的伙伴",
+          "op": "stat_stage",
           "stat": "atk",
-          "steps": 2,
-          "scope": "battlefield",
-          "source": "最好的伙伴"
+          "steps": 2
         },
         {
-          "kind": "stat",
+          "target": "sprite_self",
+          "scope": "battlefield",
+          "source": "最好的伙伴",
+          "op": "stat_stage",
           "stat": "def",
-          "steps": 2,
-          "scope": "battlefield",
-          "source": "最好的伙伴"
+          "steps": 2
         },
         {
-          "kind": "stat",
+          "target": "sprite_self",
+          "scope": "battlefield",
+          "source": "最好的伙伴",
+          "op": "stat_stage",
           "stat": "speed",
-          "steps": 2,
-          "scope": "battlefield",
-          "source": "最好的伙伴"
+          "steps": 2
         },
         {
-          "kind": "special",
-          "name": "gain_energy",
-          "amount": 2
+          "target": "sprite_self",
+          "op": "energize",
+          "delta": 2
         }
-      ]
+      ],
+      "scope": "persistent",
+      "cond": {
+        "cond": "and",
+        "conditions": [
+          {
+            "cond": "on_damage_taken"
+          },
+          {
+            "cond": "compare",
+            "q": "type_mult",
+            "of": "sprite_self",
+            "op": "gt",
+            "value": 1.0
+          }
+        ]
+      }
     }
   ]
 }

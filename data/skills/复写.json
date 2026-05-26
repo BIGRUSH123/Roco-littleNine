@@ -6,12 +6,11 @@
   "energy_cost": 0,
   "effects": [
     {
-      "value": -2,
       "target": "skill_off_0",
-      "op": "mod",
-      "stat": "energy_cost",
-      "mode": "add",
-      "scope": "battlefield"
+      "op": "power_mod",
+      "scope": "battlefield",
+      "attr": "energy_cost",
+      "delta": -2
     }
   ],
   "description": "✦每回合随机变成自己未携带的技能，且该技能能耗-2。",

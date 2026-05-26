@@ -14,10 +14,10 @@
       },
       "then": [
         {
-          "op": "mod",
+          "op": "power_mod",
           "target": "skill_off_0",
-          "stat": "power",
-          "steps": 6
+          "attr": "power",
+          "delta": 6
         }
       ]
     }

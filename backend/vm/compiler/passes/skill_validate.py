@@ -4,12 +4,30 @@ from __future__ import annotations
 from backend.vm.compiler.context import CompileError, CompilerContext
 from backend.vm.ir_skill import (
     AbnormalOp,
+    EnergizeOp,
+    FlagSetOp,
+    HealOp,
     HitOp,
     ModOp,
+    MultModOp,
+    PowerModOp,
     ResetOp,
+    ReviveOp,
     SkillIROp,
+    StatStageOp,
     WhenBlock,
 )
+
+# RISC attr valid values
+VALID_STAGE_STATS = frozenset({"atk", "def", "sp_atk", "sp_def", "speed"})
+VALID_POWER_ATTRS = frozenset({
+    "power", "energy_cost", "combo", "priority",
+    "energy_cost_mult", "combo_mult", "energy_cost_delta_mult",
+})
+VALID_MULT_ATTRS = frozenset({
+    "power_mult", "damage_mult", "damage_reduction", "life_drain",
+    "atk", "def", "sp_atk", "sp_def", "speed",  # base stat multipliers
+})
 
 # ── Whitelists ──
 
@@ -132,6 +150,32 @@ class SkillValidatePass:
             if op.name:
                 self._check(len(op.name) > 0,
                             "AbnormalOp name cannot be empty", idx, "name")
+
+        # RISC op validation
+        if isinstance(op, StatStageOp):
+            if op.stat:
+                self._check(op.stat in VALID_STAGE_STATS,
+                            f"Invalid stat_stage stat '{op.stat}'", idx, "stat")
+        if isinstance(op, PowerModOp):
+            if op.attr:
+                self._check(op.attr in VALID_POWER_ATTRS,
+                            f"Invalid power_mod attr '{op.attr}'", idx, "attr")
+        if isinstance(op, MultModOp):
+            if op.attr:
+                self._check(op.attr in VALID_MULT_ATTRS,
+                            f"Invalid mult_mod attr '{op.attr}'", idx, "attr")
+        if isinstance(op, HealOp):
+            if op.ratio is not None:
+                self._check(0.0 <= op.ratio <= 1.0,
+                            f"heal ratio must be 0-1, got {op.ratio}", idx, "ratio")
+        if isinstance(op, EnergizeOp):
+            pass  # delta validated by IRValue resolution
+        if isinstance(op, ReviveOp):
+            pass  # hp_ratio validated by IRValue resolution
+        if isinstance(op, FlagSetOp):
+            if op.flag:
+                self._check(len(op.flag) > 0,
+                            "flag_set flag cannot be empty", idx, "flag")
 
     def _validate_when_block(self, wb: WhenBlock, idx: int) -> None:
         for j, child in enumerate(wb.then):

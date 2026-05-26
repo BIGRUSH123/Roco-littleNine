@@ -2,23 +2,22 @@
   "id": 20005,
   "name": "乘风连击",
   "description": "使用翼系技能后，连击数+1。",
-  "passive": [
+  "effects": [
     {
-      "op": "count",
-      "when": {
-        "cond": "skill_use",
-        "element": "翼"
-      },
+      "op": "observer",
       "then": [
         {
-          "op": "mod",
+          "op": "power_mod",
           "target": "sprite_self",
-          "stat": "combo",
-          "value": 1,
-          "mode": "add",
-          "scope": "permanent"
+          "scope": "permanent",
+          "attr": "combo",
+          "delta": 1
         }
-      ]
+      ],
+      "cond": {
+        "cond": "skill_use",
+        "element": "翼"
+      }
     }
   ]
 }

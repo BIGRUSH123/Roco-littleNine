@@ -6,11 +6,9 @@
   "energy_cost": 2,
   "effects": [
     {
-      "value": 10,
       "target": "sprite_self",
-      "op": "mod",
-      "stat": "energy",
-      "mode": "add"
+      "op": "energize",
+      "delta": 10
     }
   ],
   "description": "✦自己回复10能量。"

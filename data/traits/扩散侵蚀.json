@@ -2,23 +2,31 @@
   "id": 20055,
   "name": "扩散侵蚀",
   "description": "使用水系技能后，敌方获得中毒(层数=中毒印记层数x2)。",
-  "triggers": [
+  "effects": [
     {
-      "on": "skill_use",
-      "condition": {
-        "path": "skill.element",
-        "op": "eq",
-        "value": "水"
-      },
-      "effects": [
+      "op": "observer",
+      "then": [
         {
-          "kind": "abnormal",
-          "name": "中毒",
-          "stacks": "=@opp_poison_mark_stacks * 2",
           "target": "target",
-          "source": "扩散侵蚀"
+          "source": "扩散侵蚀",
+          "op": "abnormal",
+          "name": "中毒",
+          "stacks": "=@opp_poison_mark_stacks * 2"
         }
-      ]
+      ],
+      "scope": "persistent",
+      "cond": {
+        "cond": "and",
+        "conditions": [
+          {
+            "cond": "skill_use"
+          },
+          {
+            "cond": "skill_use",
+            "element": "水"
+          }
+        ]
+      }
     }
   ]
 }

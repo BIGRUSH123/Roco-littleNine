@@ -12,16 +12,15 @@
       },
       "then": [
         {
-          "op": "mod",
+          "op": "power_mod",
           "target": "skill_off_0",
-          "stat": "power",
-          "value": 50,
-          "mode": "add"
+          "attr": "power",
+          "delta": 50
         },
         {
-          "op": "mod",
+          "op": "flag_set",
           "target": "skill_off_0",
-          "stat": "ignore_resistance",
+          "flag": "ignore_resistance",
           "value": true
         }
       ]

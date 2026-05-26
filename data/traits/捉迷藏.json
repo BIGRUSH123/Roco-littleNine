@@ -2,24 +2,27 @@
   "id": 20062,
   "name": "捉迷藏",
   "description": "使敌方获得冻结时，全技能能耗+1。",
-  "triggers": [
+  "effects": [
     {
-      "on": "inflict",
-      "condition": {
-        "path": "effect_name",
-        "op": "eq",
-        "value": "冻结"
-      },
-      "effects": [
+      "op": "observer",
+      "then": [
         {
-          "kind": "stat",
-          "stat": "energy_cost",
-          "steps": 1,
           "target": "target",
           "scope": "battlefield",
-          "source": "捉迷藏"
+          "source": "捉迷藏",
+          "op": "stat_stage",
+          "stat": "energy_cost",
+          "steps": 1
         }
-      ]
+      ],
+      "scope": "persistent",
+      "cond": {
+        "cond": "compare",
+        "q": "effect_name",
+        "of": "sprite_self",
+        "op": "eq",
+        "value": "冻结"
+      }
     }
   ]
 }

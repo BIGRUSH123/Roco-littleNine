@@ -2,26 +2,33 @@
   "id": 20086,
   "name": "渗透",
   "description": "入场时，根据己方队伍武系和地系技能使用次数之和获得物攻和物防强化。",
-  "triggers": [
+  "effects": [
     {
-      "on": "entry",
-      "effects_mode": "replace",
-      "effects": [
+      "op": "observer",
+      "then": [
         {
-          "kind": "stat",
-          "stat": "atk",
-          "steps": "=@team_counters[element:武] * 0.5 + @team_counters[element:地] * 0.5",
+          "target": "sprite_self",
           "scope": "battlefield",
-          "source": "渗透"
+          "source": "渗透",
+          "op": "stat_stage",
+          "stat": "atk",
+          "steps": "=@team_counters[element:武] * 0.5 + @team_counters[element:地] * 0.5"
         },
         {
-          "kind": "stat",
-          "stat": "def",
-          "steps": "=@team_counters[element:武] * 0.5 + @team_counters[element:地] * 0.5",
+          "target": "sprite_self",
           "scope": "battlefield",
-          "source": "渗透"
+          "source": "渗透",
+          "op": "stat_stage",
+          "stat": "def",
+          "steps": "=@team_counters[element:武] * 0.5 + @team_counters[element:地] * 0.5"
         }
-      ]
+      ],
+      "scope": "battlefield",
+      "cond": {
+        "cond": "sprite_entered",
+        "of": "sprite_self"
+      },
+      "listen": "post_entry"
     }
   ]
 }

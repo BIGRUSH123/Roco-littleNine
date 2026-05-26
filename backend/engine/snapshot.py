@@ -18,6 +18,15 @@ if TYPE_CHECKING:
     from backend.sim.sprite import Sprite
 
 
+def _compute_speed_self(ss: Sprite) -> int:
+    """Compute ctx speed_self from sprite, applying _modifiers multiplier."""
+    base = ss.effective_stat("speed") if hasattr(ss, 'effective_stat') else ss.initial_stats.get("speed", 100)
+    speed_mod = ss._modifiers.get("speed", 0)
+    if speed_mod:
+        return max(1, round(base * (1.0 + speed_mod)))
+    return base
+
+
 def build_ctx(
     self_sprite: Sprite,
     opp_sprite: Sprite,
@@ -53,6 +62,8 @@ def build_ctx(
     skills_energy_changed_of: str = "",
     positive_changed_of: str = "",
     energy_changed_of: str = "",
+    last_tick_damage_self: int = 0,
+    last_tick_damage_opp: int = 0,
     turn_end: bool = False,
     # Counter values
     counter_values: dict[str, int] | None = None,
@@ -197,13 +208,12 @@ def build_ctx(
         priority_self=priority_self,
         # Use initial_stats (base without stage multipliers) because
         # calc_damage applies stat_stages separately in the formula.
-        # Using effective_stat would double-count stages and cause
-        # division-by-zero when stages reduce a stat to 0.
-        atk_self=ss.initial_stats.get("atk", 100),
-        def_self=ss.initial_stats.get("def", 100),
-        sp_atk_self=ss.initial_stats.get("sp_atk", 100),
-        sp_def_self=ss.initial_stats.get("sp_def", 100),
-        speed_self=ss.effective_stat("speed") if hasattr(ss, 'effective_stat') else ss.initial_stats.get("speed", 100),
+        # Apply _modifiers multipliers for mult_mod {attr: atk/def/etc.}
+        atk_self=round(ss.initial_stats.get("atk", 100) * (1.0 + ss._modifiers.get("atk", 0))),
+        def_self=round(ss.initial_stats.get("def", 100) * (1.0 + ss._modifiers.get("def", 0))),
+        sp_atk_self=round(ss.initial_stats.get("sp_atk", 100) * (1.0 + ss._modifiers.get("sp_atk", 0))),
+        sp_def_self=round(ss.initial_stats.get("sp_def", 100) * (1.0 + ss._modifiers.get("sp_def", 0))),
+        speed_self=_compute_speed_self(ss),
         # Sprite + skill modifier delta 相加（同类型 buff 加性叠加，非相乘）
         damage_reduction_self=min(1.0,
             ss._modifiers.get("damage_reduction", 0.0)
@@ -298,8 +308,8 @@ def build_ctx(
 
         # Skill tracking
         skill_index=skill_index,
-        last_tick_damage_self=0,
-        last_tick_damage_opp=0,
+        last_tick_damage_self=last_tick_damage_self,
+        last_tick_damage_opp=last_tick_damage_opp,
 
         # Battlefield
         weather=weather,

@@ -14,15 +14,15 @@
       },
       "then": [
         {
-          "op": "mod",
+          "op": "power_mod",
           "target": "skill_off_0",
-          "stat": "combo",
-          "value": {
+          "feeds": "power",
+          "attr": "combo",
+          "delta": {
             "q": "combo_current",
             "of": "skill_off_0",
             "scale": 2
-          },
-          "feeds": "power"
+          }
         }
       ]
     }

@@ -13,9 +13,9 @@
       },
       "then": [
         {
-          "op": "mod",
+          "op": "mult_mod",
           "target": "skill_off_0",
-          "stat": "damage_mult",
+          "attr": "damage_mult",
           "value": 5
         }
       ]

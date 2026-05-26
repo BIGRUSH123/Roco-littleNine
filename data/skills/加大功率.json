@@ -11,11 +11,9 @@
       "inherit": true,
       "then": [
         {
-          "op": "mod",
+          "op": "energize",
           "target": "sprite_self",
-          "stat": "energy",
-          "value": 8,
-          "mode": "add"
+          "delta": 8
         }
       ]
     }

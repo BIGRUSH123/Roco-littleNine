@@ -13,15 +13,15 @@
       },
       "then": [
         {
-          "op": "mod",
+          "op": "mult_mod",
           "target": "skill_off_0",
-          "stat": "power_mult",
+          "attr": "power_mult",
           "value": 2
         },
         {
-          "op": "mod",
+          "op": "flag_set",
           "target": "skill_off_0",
-          "stat": "ignore_resistance",
+          "flag": "ignore_resistance",
           "value": true
         }
       ]

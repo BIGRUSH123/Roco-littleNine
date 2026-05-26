@@ -66,10 +66,10 @@ class TestCompilerE2E:
         assert compiled.name == "丢冰块"
         assert compiled.skill_type == "物攻"
         assert compiled.power == 90
-        assert len(compiled.effects) == 2  # HitOp + ModOp
-        assert isinstance(compiled.effects[0], HitOp)
-        assert compiled.effects[0].power == Literal(value=90)
-        assert isinstance(compiled.effects[1], ModOp)
+        assert len(compiled.effects) == 2  # ModOp + HitOp (HitOp injected at end)
+        assert isinstance(compiled.effects[0], ModOp)
+        assert isinstance(compiled.effects[1], HitOp)
+        assert compiled.effects[1].power == Literal(value=90)
 
     def test_compile_status_skill(self, compiler):
         """三连破: 状态 skill, no HitOp injected."""
@@ -220,11 +220,10 @@ class TestCompilerE2E:
         }
         compiled = compiler.compile(data)
         assert compiled.name == "升龙咆哮"
-        wb = compiled.effects[0]  # HitOp injected first, then when block
-        # HitOp is injected as first effect
-        assert isinstance(compiled.effects[0], HitOp)
-        assert isinstance(compiled.effects[1], WhenBlock)
-        wb = compiled.effects[1]
+        # HitOp injected at end, after when block
+        assert isinstance(compiled.effects[0], WhenBlock)
+        assert isinstance(compiled.effects[1], HitOp)
+        wb = compiled.effects[0]
         assert len(wb.else_) == 1
         assert isinstance(wb.else_[0], ChargeOp)
 
@@ -268,8 +267,8 @@ class TestCompilerE2E:
         assert compiled.combo == 2
         # Should have: HitOp + WhenBlock + CountOp
         assert len(compiled.effects) == 3
-        assert isinstance(compiled.effects[1], WhenBlock)
-        assert isinstance(compiled.effects[2], CountOp)
+        assert isinstance(compiled.effects[0], WhenBlock)
+        assert isinstance(compiled.effects[1], CountOp)
 
     def test_compile_with_abnormal(self, compiler):
         """毒囊: abnormal op with counter condition."""
@@ -299,8 +298,7 @@ class TestCompilerE2E:
         compiled = compiler.compile(data)
         assert compiled.name == "毒囊"
         # HitOp + WhenBlock
-        assert isinstance(compiled.effects[0], HitOp)
-        wb = compiled.effects[1]
+        wb = compiled.effects[0]
         assert isinstance(wb, WhenBlock)
         assert isinstance(wb.then[0], AbnormalOp)
         assert wb.then[0].stacks == 6
@@ -340,10 +338,10 @@ class TestCompilerE2E:
             "description": "驱散敌方印记"
         }
         compiled = compiler.compile(data)
-        # HitOp + DispelOp
-        assert isinstance(compiled.effects[0], HitOp)
-        assert isinstance(compiled.effects[1], DispelOp)
-        assert compiled.effects[1].what == "mark"
+        # DispelOp + HitOp (HitOp injected at end)
+        assert isinstance(compiled.effects[0], DispelOp)
+        assert isinstance(compiled.effects[1], HitOp)
+        assert compiled.effects[0].what == "mark"
 
     def test_compile_with_steal(self, compiler):
         """小偷小摸: steal op."""

@@ -7,13 +7,13 @@
   "effects": [
     {
       "target": "sprite_self",
-      "op": "mod",
+      "op": "stat_stage",
       "stat": "def",
       "steps": 14
     },
     {
       "target": "sprite_self",
-      "op": "mod",
+      "op": "stat_stage",
       "stat": "speed",
       "steps": -3
     }

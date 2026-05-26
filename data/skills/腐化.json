@@ -7,7 +7,7 @@
   "effects": [
     {
       "target": "sprite_opp",
-      "op": "mod",
+      "op": "stat_stage",
       "stat": "atk",
       "steps": {
         "q": "abnormal_stacks",
@@ -18,7 +18,7 @@
     },
     {
       "target": "sprite_opp",
-      "op": "mod",
+      "op": "stat_stage",
       "stat": "sp_atk",
       "steps": {
         "q": "abnormal_stacks",

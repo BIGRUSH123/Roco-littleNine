@@ -12,21 +12,30 @@ from backend.vm.ir_skill import (
     CountOp,
     DispelOp,
     DoubleOp,
+    EnergizeOp,
     EscapeOp,
     ExchangeOp,
+    FlagSetOp,
+    HealOp,
     HitOp,
+    InheritEffects,
     InterruptOp,
     LockOp,
     MarkOp,
     ModOp,
+    MultModOp,
     NotCond,
     OrCond,
+    PowerModOp,
     RedirectOp,
     ReplayOp,
     ResetOp,
     ReturnOp,
+    ReviveOp,
+    Schedule,
     SkillCondition,
     SkillIROp,
+    StatStageOp,
     StealOp,
     TickOp,
     WeatherOp,
@@ -84,10 +93,11 @@ class SkillParsePass:
         cond = self._parse_condition(effect["when"])
         then = tuple(self._parse_effect(e) for e in effect.get("then", []))
         else_ = tuple(self._parse_effect(e) for e in effect.get("else", []))
-        elif_list = effect.get("elif", [])
+        # Support both "elif" (legacy) and "else_if" (RISC branch)
+        elif_list = effect.get("elif", []) or effect.get("else_if", [])
         elif_ = tuple(
             WhenBranch(
-                cond=self._parse_condition(branch["when"]),
+                cond=self._parse_condition(branch.get("cond", branch.get("when", {}))),
                 then=tuple(self._parse_effect(e) for e in branch.get("then", [])),
             )
             for branch in elif_list
@@ -139,9 +149,49 @@ class SkillParsePass:
         """Resolve a query dict to a Query IR node.
 
         Looks up ADDRESS_MAP[(of, q)] for O(1) field resolution at runtime.
+        Derived queries (hp_missing_ratio, mark_count_both) are translated
+        to equivalent queries on base fields.
         """
         q = value.get("q", "")
         of = value.get("of", "sprite_self")
+
+        # ── Derived queries ──
+        if q == "hp_missing_ratio":
+            # 1.0 - hp_ratio → redirect to hp_ratio with scale=-1, offset=1
+            base_of = of
+            map_key = (base_of, "hp_ratio")
+            if map_key not in ADDRESS_MAP:
+                raise KeyError(f"Unknown query address (of={of}, q=hp_ratio)")
+            field = ADDRESS_MAP[map_key]
+            user_scale = value.get("scale", 1.0)
+            user_offset = value.get("offset", 0)
+            # result = (raw * user_scale + user_offset)
+            # But we want: (1.0 - raw) * user_scale + user_offset
+            # = raw * (-user_scale) + (user_scale + user_offset)
+            return Query(
+                field=field,
+                scale=-user_scale,
+                offset=user_scale + user_offset,
+                per=value.get("per"),
+                default=value.get("default"),
+            )
+        if q == "mark_count_both":
+            # mark_count_own + mark_count_opp — handled by runtime resolve
+            # Use mark_count_own as primary, resolve.py adds mark_count_opp
+            own_key = ("team_own", "mark_count")
+            if own_key not in ADDRESS_MAP:
+                raise KeyError(f"Unknown query address (of=team_own, q=mark_count)")
+            field = ADDRESS_MAP[own_key]
+            return Query(
+                field=field,
+                name=value.get("name"),
+                scale=value.get("scale", 1.0),
+                offset=value.get("offset", 0),
+                per=value.get("per"),
+                default=value.get("default"),
+                sub_key_field="mark_count_both",
+            )
+
         map_key = (of, q)
         if map_key not in ADDRESS_MAP:
             raise KeyError(
@@ -410,5 +460,203 @@ class SkillParsePass:
             target="sprite_self",
             stat="",
             value=Literal(value=0),
+            **self._common_fields(e),
+        )
+
+    # ── RISC IR opcode parsers (compatibility shim: RISC JSON → internal IR) ──
+
+    def _parse_stat_stage(self, e: dict) -> StatStageOp:
+        """RISC: stat_stage → StatStageOp (stage changes only, 1 step = 10%)."""
+        stat = self._str_or(e, "stat", "")
+        raw_steps = e.get("steps", 0)
+        value = None
+        steps = 0
+        if isinstance(raw_steps, dict) and "q" in raw_steps:
+            value = self._parse_value(raw_steps)
+        else:
+            steps = int(raw_steps)  # stat_stage steps are always integer
+        return StatStageOp(
+            target=self._str_or(e, "target", "sprite_self"),
+            stat=stat,
+            steps=steps,
+            value=value,
+            per_hit=self._bool_or(e, "per_hit", False),
+            scope=self._str_or(e, "scope", "battlefield"),
+            source=e.get("source"),
+            **self._common_fields(e),
+        )
+
+    def _parse_power_mod(self, e: dict) -> PowerModOp:
+        """RISC: power_mod → PowerModOp."""
+        attr = self._str_or(e, "attr", "")
+        delta = self._parse_value_optional(e, "delta")
+        if delta is None:
+            delta_val = e.get("delta", 0)
+            if isinstance(delta_val, dict):
+                delta = self._parse_value(delta_val)
+            else:
+                delta = Literal(value=int(delta_val))
+        return PowerModOp(
+            target=self._str_or(e, "target", "sprite_self"),
+            attr=attr,
+            delta=delta,
+            per_hit=self._bool_or(e, "per_hit", False),
+            scope=self._str_or(e, "scope", "battlefield"),
+            skill_where=e.get("skill_where"),
+            skill_filter=e.get("skill_filter"),
+            element=e.get("element"),
+            ttl=self._int_or(e, "ttl", 0),
+            source=e.get("source"),
+            **self._common_fields(e),
+        )
+
+    def _parse_mult_mod(self, e: dict) -> MultModOp:
+        """RISC: mult_mod → MultModOp."""
+        attr = self._str_or(e, "attr", "")
+        value = self._parse_value_optional(e, "value")
+        if value is None:
+            val = e.get("value", 1.0)
+            value = Literal(value=float(val))
+        return MultModOp(
+            target=self._str_or(e, "target", "sprite_self"),
+            attr=attr,
+            value=value,
+            mode=self._str_or(e, "mode", "set"),
+            per_hit=self._bool_or(e, "per_hit", False),
+            scope=self._str_or(e, "scope", "battlefield"),
+            **self._common_fields(e),
+        )
+
+    def _parse_flag_set(self, e: dict) -> FlagSetOp:
+        """RISC: flag_set → FlagSetOp."""
+        flag = self._str_or(e, "flag", "")
+        value = self._parse_value_optional(e, "value")
+        if value is None:
+            val = e.get("value", True)
+            value = Literal(value=val)
+        return FlagSetOp(
+            target=self._str_or(e, "target", "sprite_self"),
+            flag=flag,
+            value=value,
+            scope=self._str_or(e, "scope", "battlefield"),
+            name=e.get("name"),
+            source=e.get("source"),
+            **self._common_fields(e),
+        )
+
+    def _parse_heal(self, e: dict) -> HealOp:
+        """RISC: heal → HealOp."""
+        ratio = None
+        value = None
+        if "ratio" in e:
+            ratio = e["ratio"]
+        elif "value" in e:
+            value = self._parse_value(e["value"])
+        else:
+            ratio = 0.5
+        return HealOp(
+            target=self._str_or(e, "target", "sprite_self"),
+            ratio=ratio,
+            value=value,
+            **self._common_fields(e),
+        )
+
+    def _parse_energize(self, e: dict) -> EnergizeOp:
+        """RISC: energize → EnergizeOp."""
+        delta = self._parse_value_optional(e, "delta")
+        if delta is None:
+            d = e.get("delta", 0)
+            if isinstance(d, dict):
+                delta = self._parse_value(d)
+            else:
+                delta = Literal(value=int(d))
+        return EnergizeOp(
+            target=self._str_or(e, "target", "sprite_self"),
+            delta=delta,
+            **self._common_fields(e),
+        )
+
+    def _parse_revive(self, e: dict) -> ReviveOp:
+        """RISC: revive → ReviveOp."""
+        hp_ratio = self._parse_value_optional(e, "hp_ratio")
+        if hp_ratio is None:
+            r = e.get("hp_ratio", 1.0)
+            hp_ratio = Literal(value=float(r))
+        return ReviveOp(
+            target=self._str_or(e, "target", "sprite_self"),
+            hp_ratio=hp_ratio,
+            **self._common_fields(e),
+        )
+
+    def _parse_observer(self, e: dict) -> CountOp:
+        """RISC: observer → CountOp (persistent condition→action binding)."""
+        cond = None
+        if "cond" in e:
+            cond = self._parse_condition(e["cond"])
+        counter = e.get("counter")
+        name = ""
+        threshold = 1
+        reset_on_fire = True
+        if counter and isinstance(counter, dict):
+            name = counter.get("name", "")
+            threshold = counter.get("threshold", 1)
+            reset_on_fire = counter.get("reset", True)
+        return CountOp(
+            name=name,
+            when=cond,
+            then=self._parse_then(e),
+            scope=self._str_or(e, "scope", "persistent"),
+            threshold=threshold,
+            reset_on_fire=reset_on_fire,
+            **self._common_fields(e),
+        )
+
+    def _parse_defer(self, e: dict) -> Schedule:
+        """RISC: defer → Schedule (delayed execution)."""
+        then_effects = []
+        then_list = e.get("then", [])
+        for item in then_list:
+            then_effects.append(self._parse_effect(item))
+        return Schedule(
+            turns=self._int_or(e, "turns", 0),
+            at=e.get("at", "turn_start"),
+            then=tuple(then_effects),
+            **self._common_fields(e),
+        )
+
+    def _parse_inherit(self, e: dict) -> InheritEffects:
+        """RISC: inherit → InheritEffects (pass effects to incoming sprite)."""
+        effects = []
+        eff_list = e.get("effects", [])
+        for item in eff_list:
+            effects.append(self._parse_effect(item))
+        return InheritEffects(
+            source=e.get("source", "self"),
+            inherit_target=e.get("target", "enemy_new"),
+            effects=tuple(effects),
+            scope=self._str_or(e, "scope", "battlefield"),
+            via_pending=self._bool_or(e, "via_pending", False),
+            inherit_stat_effects=self._bool_or(e, "inherit_stat_effects", False),
+            **self._common_fields(e),
+        )
+
+    def _parse_branch(self, e: dict) -> WhenBlock:
+        """RISC: branch → WhenBlock (conditional branch)."""
+        cond = self._parse_condition(e["cond"])
+        then = tuple(self._parse_effect(item) for item in e.get("then", []))
+        else_ = tuple(self._parse_effect(item) for item in e.get("else", []))
+        elif_list = e.get("else_if", [])
+        elif_ = tuple(
+            WhenBranch(
+                cond=self._parse_condition(branch["cond"]),
+                then=tuple(self._parse_effect(item) for item in branch.get("then", [])),
+            )
+            for branch in elif_list
+        )
+        return WhenBlock(
+            cond=cond,
+            then=then,
+            else_=else_,
+            elif_=elif_,
             **self._common_fields(e),
         )

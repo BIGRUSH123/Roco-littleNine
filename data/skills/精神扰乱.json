@@ -12,22 +12,20 @@
       },
       "then": [
         {
-          "op": "mod",
+          "op": "power_mod",
           "target": "sprite_opp",
-          "stat": "energy_cost",
-          "value": 3,
-          "mode": "add",
-          "scope": "persistent"
+          "scope": "persistent",
+          "attr": "energy_cost",
+          "delta": 3
         }
       ],
       "else": [
         {
-          "op": "mod",
+          "op": "power_mod",
           "target": "sprite_opp",
-          "stat": "energy_cost",
-          "value": 1,
-          "mode": "add",
-          "scope": "persistent"
+          "scope": "persistent",
+          "attr": "energy_cost",
+          "delta": 1
         }
       ]
     }

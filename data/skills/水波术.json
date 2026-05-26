@@ -7,13 +7,12 @@
   "energy_cost": 6,
   "effects": [
     {
-      "value": 20,
       "target": "skill_off_0",
-      "op": "mod",
-      "stat": "power",
-      "mode": "add",
+      "op": "power_mod",
       "scope": "permanent",
-      "needs": "turn_end"
+      "needs": "turn_end",
+      "attr": "power",
+      "delta": 20
     }
   ],
   "description": "✦造成魔伤，回合结束时，本技能威力永久+20。"

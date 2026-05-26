@@ -2,25 +2,31 @@
   "id": 20059,
   "name": "指挥家",
   "description": "应对成功后，永久获得双攻+20%。",
-  "triggers": [
+  "effects": [
     {
-      "on": "counter_success",
-      "effects": [
+      "op": "observer",
+      "then": [
         {
-          "kind": "stat",
-          "stat": "atk",
-          "steps": 2,
+          "target": "sprite_self",
           "scope": "permanent",
-          "source": "指挥家"
+          "source": "指挥家",
+          "op": "stat_stage",
+          "stat": "atk",
+          "steps": 2
         },
         {
-          "kind": "stat",
-          "stat": "sp_atk",
-          "steps": 2,
+          "target": "sprite_self",
           "scope": "permanent",
-          "source": "指挥家"
+          "source": "指挥家",
+          "op": "stat_stage",
+          "stat": "sp_atk",
+          "steps": 2
         }
-      ]
+      ],
+      "scope": "persistent",
+      "cond": {
+        "cond": "counter_succeeded"
+      }
     }
   ]
 }

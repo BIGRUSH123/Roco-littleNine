@@ -12,22 +12,22 @@
       },
       "then": [
         {
-          "op": "mod",
+          "op": "mult_mod",
           "target": "sprite_self",
-          "stat": "power_mult",
-          "value": 2,
           "scope": "permanent",
-          "element": "光"
+          "element": "光",
+          "attr": "power_mult",
+          "value": 2
         }
       ],
       "else": [
         {
-          "op": "mod",
+          "op": "mult_mod",
           "target": "sprite_self",
-          "stat": "power_mult",
-          "value": 1.5,
           "scope": "permanent",
-          "element": "光"
+          "element": "光",
+          "attr": "power_mult",
+          "value": 1.5
         }
       ]
     }

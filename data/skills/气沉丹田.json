@@ -6,32 +6,30 @@
   "energy_cost": 10,
   "effects": [
     {
-      "value": 0.6,
       "target": "sprite_self",
-      "op": "mod",
-      "stat": "hp"
+      "op": "heal",
+      "ratio": 0.6
     },
     {
       "target": "sprite_self",
-      "op": "mod",
+      "op": "stat_stage",
       "stat": "atk",
       "steps": 13
     },
     {
-      "op": "count",
-      "when": {
-        "cond": "counter_succeeded"
-      },
+      "op": "observer",
       "then": [
         {
-          "op": "mod",
+          "op": "power_mod",
           "target": "skill_off_0",
-          "stat": "energy_cost",
-          "value": -3,
-          "mode": "add",
-          "scope": "permanent"
+          "scope": "permanent",
+          "attr": "energy_cost",
+          "delta": -3
         }
-      ]
+      ],
+      "cond": {
+        "cond": "counter_succeeded"
+      }
     },
     {
       "target": "skill_off_0",

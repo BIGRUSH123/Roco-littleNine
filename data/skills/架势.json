@@ -6,18 +6,17 @@
   "energy_cost": 2,
   "effects": [
     {
-      "value": 0.2,
       "target": "sprite_self",
-      "op": "mod",
-      "stat": "hp"
+      "op": "heal",
+      "ratio": 0.2
     },
     {
-      "value": 1,
       "target": "sprite_self",
-      "op": "mod",
-      "stat": "pre_charged",
+      "op": "flag_set",
       "on_next": true,
-      "if_type": "charge"
+      "if_type": "charge",
+      "flag": "pre_charged",
+      "value": 1
     }
   ],
   "description": "✦自己回复20%生命，下次技能无需蓄力。"

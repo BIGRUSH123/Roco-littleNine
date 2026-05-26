@@ -14,11 +14,10 @@
       },
       "then": [
         {
-          "op": "mod",
+          "op": "power_mod",
           "target": "skill_off_0",
-          "stat": "combo",
-          "value": 2,
-          "mode": "add"
+          "attr": "combo",
+          "delta": 2
         }
       ]
     }

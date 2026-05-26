@@ -2,33 +2,34 @@
   "id": 20089,
   "name": "溶解扩散",
   "description": "每携带1个毒系技能进入战斗，水系技能使敌方获得1层中毒。",
-  "triggers": [
+  "effects": [
     {
-      "on": "skill_use",
-      "condition": {
-        "kind": "and",
+      "op": "observer",
+      "then": [
+        {
+          "target": "target",
+          "source": "溶解扩散",
+          "op": "abnormal",
+          "name": "中毒",
+          "stacks": "=@self.skills[element=毒].count"
+        }
+      ],
+      "scope": "persistent",
+      "cond": {
+        "cond": "and",
         "conditions": [
           {
-            "path": "skill.element",
-            "op": "eq",
-            "value": "水"
+            "cond": "skill_use"
           },
           {
-            "path": "self.skills[element=毒].count",
-            "op": "gt",
-            "value": 0
+            "cond": "compare",
+            "q": "",
+            "of": "sprite_self",
+            "op": "eq",
+            "value": null
           }
         ]
-      },
-      "effects": [
-        {
-          "kind": "abnormal",
-          "name": "中毒",
-          "stacks": "=@self.skills[element=毒].count",
-          "target": "target",
-          "source": "溶解扩散"
-        }
-      ]
+      }
     }
   ]
 }

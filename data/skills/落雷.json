@@ -7,20 +7,19 @@
   "energy_cost": 4,
   "effects": [
     {
-      "op": "count",
-      "when": {
-        "cond": "sprite_entered"
-      },
+      "op": "observer",
       "then": [
         {
-          "op": "mod",
+          "op": "power_mod",
           "target": "skill_off_0",
-          "stat": "power",
-          "value": 20,
-          "mode": "add",
-          "scope": "permanent"
+          "scope": "permanent",
+          "attr": "power",
+          "delta": 20
         }
-      ]
+      ],
+      "cond": {
+        "cond": "sprite_entered"
+      }
     }
   ],
   "description": "✦造成魔伤，每次入场，本技能威力永久+20。"

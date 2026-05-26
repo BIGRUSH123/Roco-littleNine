@@ -2,22 +2,23 @@
   "id": 20056,
   "name": "扫拖一体",
   "description": "回合结束时驱散敌方1层印记，己方队伍获得1次奉献。",
-  "triggers": [
+  "effects": [
     {
-      "on": "turn_end",
-      "effects": [
+      "op": "observer",
+      "then": [
         {
-          "kind": "special",
-          "name": "dispel_mark",
-          "count": 1,
-          "mark_target_team": "opp"
+          "target": "sprite_self",
+          "op": "special"
         },
         {
-          "kind": "special",
-          "name": "lives_add",
-          "amount": 1
+          "target": "sprite_self",
+          "op": "special"
         }
-      ]
+      ],
+      "scope": "persistent",
+      "cond": {
+        "cond": "turn_end"
+      }
     }
   ]
 }

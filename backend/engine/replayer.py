@@ -66,6 +66,9 @@ _VISIBLE_MOD_STATS: frozenset[str] = frozenset({
     "combo", "priority",
 })
 
+_STEP_PCT = 10        # 非速度六维：1步=10%
+_SPEED_STEP = 10       # 速度：1步=10点
+
 # Stage stats that can also appear as value-based ModifierInjections.
 # Value → steps: non-speed: steps = int(value * 10); speed: steps = int(value / 10).
 _STAGE_STATS: frozenset[str] = frozenset({
@@ -98,6 +101,33 @@ _STEP_UNIT: dict[str, int] = {
     "power": 10, "speed": 10, "life_drain": 10,
     "priority": 1, "energy_cost": 1, "combo": 1,
 }
+
+
+# Stats that distribute to all BattleSkills when skill_filter="all" is used
+# on a sprite-scoped target (e.g. power_mod {target: "sprite_self", skill_filter: "all"})
+_SKILL_DISTRIBUTE_STATS = frozenset({"energy_cost", "power", "combo", "priority"})
+
+
+def _apply_to_all_skills(sprite, m) -> str:
+    """Distribute a modifier to all BattleSkills on the sprite."""
+    label = _STAT_LABELS.get(m.stat, m.stat)
+    delta = m.value
+    if m.stat == "energy_cost":
+        delta *= sprite._modifiers.get("energy_cost_delta_mult", 1.0)
+    for bs in (sprite.skills or []):
+        bs_mods = getattr(bs, '_modifiers', None)
+        if bs_mods is None:
+            continue
+        cur = bs_mods.get(m.stat, 0.0)
+        if m.mode == "add":
+            bs_mods[m.stat] = cur + delta
+        elif m.mode == "set":
+            bs_mods[m.stat] = delta
+        elif m.mode == "multiply":
+            bs_mods[m.stat] = cur * delta if cur else delta
+    if m.stat == "energy_cost":
+        return ""  # energy bar shows cost visually
+    return f"{sprite.name} 全技能{label}{delta:+.0f}"
 
 
 class JournalReplayer:
@@ -240,26 +270,52 @@ class JournalReplayer:
         If on_next=True, the modifier is deferred to _pending_modifiers
         and will be consumed on the next matching skill use.
         """
+        # Devotion writes to team-level player.devotion, not sprite._modifiers
+        if m.stat == "devotion":
+            if self._battle is None:
+                return ""
+            t = ("B" if self.team == "A" else "A") if m.target == "opp" else self.team
+            player = self._battle.get_player(t)
+            if player is None:
+                return ""
+            devotion_name = m.name or ""
+            cur = player.devotion.get(devotion_name, 0)
+            if m.mode == "set":
+                player.devotion[devotion_name] = int(m.value)
+            elif m.mode == "add":
+                player.devotion[devotion_name] = cur + int(m.value)
+            else:
+                player.devotion[devotion_name] = int(m.value)
+            delta = player.devotion[devotion_name] - cur
+            return f"{t}队 奉献{devotion_name} {delta:+d}层"
+
         sprite = self._target_sprite(m.target)
 
         if m.on_next:
             sprite._pending_modifiers.append(m)
             return ""  # suppress verbose pending modifier log
 
-        # skill-scoped targets (e.g. skill_off_0) are stored on the skill's
-        # _modifiers dict, not the sprite. collect_modifiers / adjust_damage
-        # already handle them for current damage; skill._modifiers enables
-        # snapshot to read persistent skill-level buffs (future use).
-        # Conditional effects (疾风刺 combo=3) are re-evaluated each time so
-        # their persistence is harmless — they are cleared per-turn.
         skill_scoped = m.target.startswith("skill_") if m.target else False
+
+        # ── skill_filter "all" on sprite target: distribute to every BattleSkill ──
+        if not skill_scoped and m.skill_filter == "all" and m.stat in _SKILL_DISTRIBUTE_STATS:
+            return _apply_to_all_skills(sprite, m)
 
         if skill_scoped:
             if self._self_skill is not None:
                 target_mods = self._self_skill._modifiers
+                if m.scope == "permanent" and self._self_skill.skill:
+                    skill_name = getattr(self._self_skill.skill, 'name', '')
+                    if skill_name:
+                        key = f"skill.{skill_name}.{m.stat}"
+                        cur = sprite._modifiers.get(key, 0.0)
+                        if m.mode == "set":
+                            sprite._modifiers[key] = m.value
+                        elif m.mode == "add":
+                            sprite._modifiers[key] = cur + m.value
+                        elif m.mode == "multiply":
+                            sprite._modifiers[key] = (cur or 1.0) * m.value
             else:
-                # No skill reference available (e.g. test context) — fall back
-                # to sprite._modifiers for backward compat.
                 target_mods = sprite._modifiers
         else:
             target_mods = sprite._modifiers
@@ -273,51 +329,39 @@ class JournalReplayer:
                 return ""
             return f"{sprite.name} {label}{final:+.0f}"
 
-        cur = target_mods.get(m.stat)  # None if never set (distinct from 0.0)
+        cur = target_mods.get(m.stat)
         if m.mode == "set":
             target_mods[m.stat] = m.value
         elif m.mode == "add":
-            target_mods[m.stat] = (cur or 0.0) + m.value
+            delta = m.value
+            if m.stat == "energy_cost":
+                delta *= sprite._modifiers.get("energy_cost_delta_mult", 1.0)
+            target_mods[m.stat] = (cur or 0.0) + delta
         elif m.mode == "multiply":
             target_mods[m.stat] = (cur or 1.0) * m.value if cur is not None else m.value
         else:
             target_mods[m.stat] = m.value
         final = target_mods[m.stat]
+
+        # Track invisible modifiers for scope cleanup
+        if not skill_scoped and m.scope in ("turn", "battlefield", "persistent"):
+            sprite._mod_scopes[m.stat] = m.scope
         label = _STAT_LABELS.get(m.stat, m.stat)
 
-        # Create visible StatusEffect for user-visible integer stats (combo, priority).
-        # Use m.value (the delta) as steps so add_effect() merging accumulates correctly.
-        # Only for sprite-scoped modifiers — skill-scoped ones don't get sprite visuals.
-        if not skill_scoped and m.stat in _VISIBLE_MOD_STATS and m.value != 0:
+        if not skill_scoped and m.value != 0:
             from backend.sim.sprite import StatusEffect
-            steps = int(m.value)
-            effect = StatusEffect(
-                name=f'{label}{steps:+.0f}',
-                category="stat",
-                stat_key=m.stat,
-                steps=steps,
-                scope=m.scope,
-                source=m.source or m.name or "skill",
-            )
-            sprite.add_effect(effect)
-
-        # Create visible StatusEffect for stage stat value-based modifiers
-        # so they stack via add_effect() and are visible in the UI.
-        # Value → steps: non-speed 1 step = 10%, speed 1 step = 10 points.
-        if m.stat in _STAGE_STATS and m.value != 0:
-            from backend.sim.sprite import StatusEffect
-            if m.stat == "speed":
-                steps = int(round(m.value / 10))
-            else:
-                steps = int(round(m.value * 10))
-            if steps != 0:
-                unit = _STEP_UNIT.get(m.stat, 10)
-                if m.stat == "speed":
-                    display = f'{label}{steps * unit:+d}'
-                else:
-                    display = f'{label}{steps * unit:+d}%'
+            create_visible = False
+            steps = 0
+            if m.stat in _VISIBLE_MOD_STATS:
+                steps = int(m.value)
+                create_visible = True
+            # _STAGE_STATS (atk/def/sp_atk/sp_def/speed) are already applied
+            # through _modifiers → build_ctx → atk_self/def_self/etc.
+            # Creating a StatusEffect here would cause double-counting:
+            # once via _modifiers and once via _extract_stat_stages.
+            if create_visible and steps != 0:
                 effect = StatusEffect(
-                    name=display,
+                    name=f'{label}{steps:+.0f}',
                     category="stat",
                     stat_key=m.stat,
                     steps=steps,
@@ -329,7 +373,7 @@ class JournalReplayer:
         if m.stat in _RATIO_STATS:
             return f"{sprite.name} {label}={final:.0%}"
         if m.stat == "energy_cost":
-            return ""  # suppress: energy bar already shows cost visually
+            return ""
         return f"{sprite.name} {label}{final:+.0f}"
 
     def _apply_damage(self, m: Damage) -> str:
@@ -668,13 +712,13 @@ class JournalReplayer:
         if self._battle is None:
             return ""
         self._battle.scheduled_effects.append({
-            'turn': self._battle.turn + m.delay_turns,
-            'phase': m.phase,
-            'effects': m.effects,
+            'turn': self._battle.turn + m.turns,
+            'phase': m.at,
+            'effects': m.then,
             'source': self.self,
             'ctx_snapshot': {'team': self.team, 'target': 'self'},
         })
-        return f"{self.self.name}: 延时效果({m.delay_turns}回合后)" if self.self else ""
+        return f"{self.self.name}: 延时效果({m.turns}回合后)" if self.self else ""
 
     def _apply_inherit_effects_mutation(self, m: InheritEffectsMutation) -> str:
         """Transfer effects between sprites. Requires battle reference."""
@@ -719,7 +763,10 @@ class JournalReplayer:
             sprite.current_hp = sprite.max_hp
         if m.reset_energy:
             sprite.energy = getattr(sprite, 'max_energy', 10)
-        return sprite.transform(new_species, new_skills) if hasattr(sprite, 'transform') else f"{sprite.name} → {m.species}"
+        result = sprite.transform(new_species, new_skills) if hasattr(sprite, 'transform') else f"{sprite.name} → {m.species}"
+        if isinstance(result, list):
+            return ' | '.join(str(x) for x in result)
+        return result
 
     def _apply_trait_interaction_mutation(self, m: TraitInteractionMutation) -> str:
         """Suppress, remove, or copy a trait on a sprite."""
@@ -753,21 +800,10 @@ class JournalReplayer:
         return ""
 
     def _apply_counter_register(self, m: CounterRegister) -> str:
-        if self.registry:
-            from backend.vm.cond import infer_triggers
-            from .observer import Observer
-            self.registry.register(Observer(
-                cond=m.cond,
-                then=m.then,
-                scope=m.scope,
-                name=m.name or "",
-                source="counter",
-                listen=infer_triggers(m.cond),
-            ))
-            # Suppress unnamed counters — they are internal VM mechanics
-            # like damage accumulation, not player-visible effects.
-            if not m.name or not m.name.strip():
-                return ""
+        # Counter registration is handled by _register_counters_from_journal
+        # in battle.py → register_counter(). The replayer's job here is just
+        # to produce the verbose log entry (named counters only).
+        if self.registry and m.name and m.name.strip():
             return f"注册计次器: {m.name}"
         return ""
 

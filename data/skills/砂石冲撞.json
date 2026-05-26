@@ -12,7 +12,7 @@
       },
       "then": [
         {
-          "op": "mod",
+          "op": "stat_stage",
           "target": "sprite_self",
           "stat": "def",
           "steps": 10

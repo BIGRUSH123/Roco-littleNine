@@ -13,30 +13,28 @@
       },
       "then": [
         {
-          "op": "mod",
+          "op": "power_mod",
           "target": "skill_off_0",
-          "stat": "power",
-          "value": {
+          "attr": "power",
+          "delta": {
             "q": "abnormal_stacks",
             "of": "sprite_opp",
             "name": "中毒",
             "scale": 20
-          },
-          "mode": "add"
+          }
         }
       ],
       "else": [
         {
-          "op": "mod",
+          "op": "power_mod",
           "target": "skill_off_0",
-          "stat": "power",
-          "value": {
+          "attr": "power",
+          "delta": {
             "q": "abnormal_stacks",
             "of": "sprite_opp",
             "name": "中毒",
             "scale": 10
-          },
-          "mode": "add"
+          }
         }
       ]
     }

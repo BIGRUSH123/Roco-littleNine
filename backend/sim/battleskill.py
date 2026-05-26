@@ -31,6 +31,20 @@ class BattleSkill:
         if self.base.transmission:
             self._transmission = self.base.transmission
 
+    def load_permanent_mods(self, sprite_modifiers: dict[str, float]) -> None:
+        """Load permanent skill-scoped modifiers from sprite._modifiers.
+
+        Permanent modifiers are stored as skill.{skill_name}.{stat} keys.
+        Called after BattleSkill is created and added to a sprite.
+        """
+        if not self.base.name:
+            return
+        prefix = f"skill.{self.base.name}."
+        for key, value in sprite_modifiers.items():
+            if key.startswith(prefix):
+                stat = key[len(prefix):]
+                self._modifiers[stat] = value
+
     @property
     def skill(self) -> Skill:
         """当前生效的技能（可能被替换/打断）。"""

@@ -7,27 +7,21 @@
   "combo": 2,
   "effects": [
     {
-      "value": 0.05,
       "target": "sprite_self",
-      "op": "mod",
-      "stat": "hp",
-      "per_hit": true
+      "op": "heal",
+      "ratio": 0.05
     },
     {
-      "value": 1,
       "target": "sprite_self",
-      "op": "mod",
-      "stat": "energy",
-      "mode": "add",
-      "per_hit": true
+      "op": "energize",
+      "delta": 1
     },
     {
-      "value": 1,
       "target": "skill_off_0",
-      "op": "mod",
-      "stat": "combo",
-      "mode": "add",
-      "scope": "permanent"
+      "op": "power_mod",
+      "scope": "permanent",
+      "attr": "combo",
+      "delta": 1
     }
   ],
   "description": "✦2连击，每次连击自己回复5%生命和1能量，使用后本技能连击数永久+1。"

@@ -2,30 +2,45 @@
   "id": 20072,
   "name": "构装契约者",
   "description": "入场时若敌方魔力值为1，获得双防+50%。",
-  "triggers": [
+  "effects": [
     {
-      "on": "entry",
-      "condition": {
-        "path": "opponent.lives",
-        "op": "eq",
-        "value": 1
-      },
-      "effects": [
+      "op": "observer",
+      "then": [
         {
-          "kind": "stat",
-          "stat": "def",
-          "steps": 5,
+          "target": "sprite_self",
           "scope": "battlefield",
-          "source": "构装契约者"
+          "source": "构装契约者",
+          "op": "stat_stage",
+          "stat": "def",
+          "steps": 5
         },
         {
-          "kind": "stat",
-          "stat": "sp_def",
-          "steps": 5,
+          "target": "sprite_self",
           "scope": "battlefield",
-          "source": "构装契约者"
+          "source": "构装契约者",
+          "op": "stat_stage",
+          "stat": "sp_def",
+          "steps": 5
         }
-      ]
+      ],
+      "scope": "persistent",
+      "cond": {
+        "cond": "and",
+        "conditions": [
+          {
+            "cond": "sprite_entered",
+            "of": "sprite_self"
+          },
+          {
+            "cond": "compare",
+            "q": "opponent.lives",
+            "of": "sprite_self",
+            "op": "eq",
+            "value": 1
+          }
+        ]
+      },
+      "listen": "post_entry"
     }
   ]
 }

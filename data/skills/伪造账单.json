@@ -7,10 +7,10 @@
   "priority": 1,
   "effects": [
     {
-      "value": -2,
       "target": "sprite_opp",
-      "op": "mod",
-      "stat": "heal_reverse"
+      "op": "flag_set",
+      "flag": "heal_reverse",
+      "value": -2
     }
   ],
   "description": "✦若敌方本回合回复生命，改为失去2倍。先手+1。"

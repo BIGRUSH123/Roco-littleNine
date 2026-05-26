@@ -2,22 +2,25 @@
   "id": 20030,
   "name": "地脉",
   "description": "入场时能量置零，根据己方队伍地系技能使用次数回复能量（每层3点）。",
-  "triggers": [
+  "effects": [
     {
-      "on": "entry",
-      "effects_mode": "replace",
-      "effects": [
+      "op": "observer",
+      "then": [
         {
-          "kind": "special",
-          "name": "energy_set",
-          "amount": 0
+          "target": "sprite_self",
+          "op": "special"
         },
         {
-          "kind": "special",
-          "name": "gain_energy",
-          "amount": "=@team_counters[element:地] * 3"
+          "target": "sprite_self",
+          "op": "special"
         }
-      ]
+      ],
+      "scope": "battlefield",
+      "cond": {
+        "cond": "sprite_entered",
+        "of": "sprite_self"
+      },
+      "listen": "post_entry"
     }
   ]
 }

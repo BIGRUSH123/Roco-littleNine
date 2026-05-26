@@ -18,9 +18,13 @@ def op_inherit_effects(ctx: Ctx, effect) -> list[Mutation]:
     inherit_target = _get(effect, "inherit_target", "enemy_new")
     scope = _get(effect, "scope", "battlefield")
     via_pending = _get(effect, "via_pending", False)
+    effects = _get(effect, "effects", ())
+    inherit_stat_effects = _get(effect, "inherit_stat_effects", False)
     return [InheritEffectsMutation(
         source_key=source,
         target_key=inherit_target,
         scope=scope,
         via_pending=via_pending,
+        effects=tuple(effects) if effects else (),
+        inherit_stat_effects=inherit_stat_effects,
     )]

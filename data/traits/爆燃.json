@@ -2,30 +2,40 @@
   "id": 20094,
   "name": "爆燃",
   "description": "使用火系技能后，获得双攻+30%。",
-  "triggers": [
+  "effects": [
     {
-      "on": "skill_use",
-      "condition": {
-        "path": "skill.element",
-        "op": "eq",
-        "value": "火"
-      },
-      "effects": [
+      "op": "observer",
+      "then": [
         {
-          "kind": "stat",
-          "stat": "atk",
-          "steps": 3,
+          "target": "sprite_self",
           "scope": "battlefield",
-          "source": "爆燃"
+          "source": "爆燃",
+          "op": "stat_stage",
+          "stat": "atk",
+          "steps": 3
         },
         {
-          "kind": "stat",
-          "stat": "sp_atk",
-          "steps": 3,
+          "target": "sprite_self",
           "scope": "battlefield",
-          "source": "爆燃"
+          "source": "爆燃",
+          "op": "stat_stage",
+          "stat": "sp_atk",
+          "steps": 3
         }
-      ]
+      ],
+      "scope": "persistent",
+      "cond": {
+        "cond": "and",
+        "conditions": [
+          {
+            "cond": "skill_use"
+          },
+          {
+            "cond": "skill_use",
+            "element": "火"
+          }
+        ]
+      }
     }
   ]
 }

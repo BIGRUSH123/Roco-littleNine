@@ -16,13 +16,13 @@
       },
       "then": [
         {
-          "op": "mod",
+          "op": "stat_stage",
           "target": "sprite_self",
           "stat": "atk",
           "steps": -5
         },
         {
-          "op": "mod",
+          "op": "stat_stage",
           "target": "sprite_self",
           "stat": "sp_atk",
           "steps": -5

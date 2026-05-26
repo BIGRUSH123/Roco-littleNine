@@ -28,13 +28,13 @@ class TestInjectHitPass:
         }
         ctx = self._parse_and_inject(data)
         assert len(ctx.errors) == 0
-        # HitOp should be first, followed by the mod
+        # HitOp injected at the end, after user effects
         assert len(ctx.ir) == 2
-        assert isinstance(ctx.ir[0], HitOp)
-        assert ctx.ir[0].power == Literal(value=90)
-        assert ctx.ir[0].type == "物攻"
-        assert ctx.ir[0].element == "冰"
-        assert isinstance(ctx.ir[1], ModOp)
+        assert isinstance(ctx.ir[0], ModOp)
+        assert isinstance(ctx.ir[1], HitOp)
+        assert ctx.ir[1].power == Literal(value=90)
+        assert ctx.ir[1].type == "物攻"
+        assert ctx.ir[1].element == "冰"
 
     def test_no_inject_for_zero_power(self):
         """Skill with power 0 does not get HitOp."""

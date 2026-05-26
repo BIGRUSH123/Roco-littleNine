@@ -83,6 +83,9 @@ class SimFactory:
 
         sprite = Sprite.from_result(result)
         sprite.skills = self._build_skill_list(skills)
+        # Load permanent skill-scoped modifiers from previous battles
+        for bs in sprite.skills:
+            bs.load_permanent_mods(sprite._modifiers)
         if bloodline and bloodline in sprite.bloodline_skills:
             sprite.bloodline = bloodline
         elif species.elements:

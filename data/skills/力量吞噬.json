@@ -6,20 +6,18 @@
   "energy_cost": 4,
   "effects": [
     {
-      "value": -20,
       "target": "sprite_opp",
-      "op": "mod",
-      "stat": "power",
-      "mode": "add",
-      "skill_filter": "all"
+      "op": "power_mod",
+      "skill_filter": "all",
+      "attr": "power",
+      "delta": -20
     },
     {
-      "value": 20,
       "target": "sprite_self",
-      "op": "mod",
-      "stat": "power",
-      "mode": "add",
-      "skill_filter": "all"
+      "op": "power_mod",
+      "skill_filter": "all",
+      "attr": "power",
+      "delta": 20
     }
   ],
   "description": "✦敌方获得全技能威力-20，自己获得全技能威力+20。"

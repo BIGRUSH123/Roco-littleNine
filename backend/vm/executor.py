@@ -24,8 +24,11 @@ from .ir_skill import (
     CountOp,
     DispelOp,
     DoubleOp,
+    EnergizeOp,
     EscapeOp,
     ExchangeOp,
+    FlagSetOp,
+    HealOp,
     HitOp,
     InheritEffects,
     InterruptOp,
@@ -33,11 +36,15 @@ from .ir_skill import (
     LockOp,
     MarkOp,
     ModOp,
+    MultModOp,
+    PowerModOp,
     RedirectOp,
     ReplayOp,
     ResetOp,
     ReturnOp,
+    ReviveOp,
     Schedule,
+    StatStageOp,
     StealOp,
     TeamCounterWrite,
     TickOp,
@@ -61,7 +68,10 @@ from .ops.lock import op_lock
 from .ops.mark import op_mark
 
 # Import all op handlers
-from .ops.mod import op_mod
+from .ops.mod import (
+    op_energize, op_flag_set, op_heal, op_mod, op_mult_mod,
+    op_power_mod, op_revive, op_stat_stage,
+)
 from .ops.redirect import op_redirect
 from .ops.replay import op_replay
 from .ops.reset import op_reset
@@ -102,10 +112,24 @@ _DICT_DISPATCH = {
     "count": op_count,
     "team_counter_write": op_team_counter_write,
     "lives_change": op_lives_change,
+    "lives": op_lives_change,
     "schedule": op_schedule,
     "inherit_effects": op_inherit_effects,
     "transform": op_transform,
     "trait_interaction": op_trait_interaction,
+    # RISC ops — same handlers as typed match/case
+    "stat_stage": op_stat_stage,
+    "power_mod": op_power_mod,
+    "mult_mod": op_mult_mod,
+    "flag_set": op_flag_set,
+    "heal": op_heal,
+    "energize": op_energize,
+    "revive": op_revive,
+    # RISC aliases (backward compat for dict-format effects in trait then-blocks)
+    "observer": op_count,       # observer → count (same internal handler)
+    "defer": op_schedule,       # defer → schedule
+    "inherit": op_inherit_effects,  # inherit → inherit_effects
+    "branch": op_count,         # branch → count (when-block handler)
 }
 
 
@@ -163,9 +187,10 @@ def _process_dict_effect(ctx, effect: dict) -> list[Mutation]:
         if eval_one(ctx, cond):
             return process_effects(ctx, effect.get("then", []))
         else:
-            elif_chain = effect.get("elif", [])
+            elif_chain = effect.get("elif", []) or effect.get("else_if", [])
             for branch in elif_chain:
-                if eval_one(ctx, branch["when"]):
+                cond_key = "cond" if "cond" in branch else "when"
+                if eval_one(ctx, branch[cond_key]):
                     return process_effects(ctx, branch.get("then", []))
             return process_effects(ctx, effect.get("else", []))
 
@@ -203,6 +228,22 @@ def process_one(ctx: Ctx, op) -> list[Mutation]:
             return _process_whenblock(ctx, op)
         case ModOp(on_next=True):
             return _defer_mod(ctx, op)
+        # RISC register-modifying ops
+        case StatStageOp():
+            return op_stat_stage(ctx, op)
+        case PowerModOp():
+            return op_power_mod(ctx, op)
+        case MultModOp():
+            return op_mult_mod(ctx, op)
+        case FlagSetOp():
+            return op_flag_set(ctx, op)
+        case HealOp():
+            return op_heal(ctx, op)
+        case EnergizeOp():
+            return op_energize(ctx, op)
+        case ReviveOp():
+            return op_revive(ctx, op)
+        # Legacy mega-opcode
         case ModOp():
             return op_mod(ctx, op)
         case HitOp():

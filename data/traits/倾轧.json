@@ -1,6 +1,29 @@
 {
   "id": 20144,
   "name": "倾轧",
-  "description": "技能受能耗变化效果影响翻倍。",
-  "triggers": []
+  "description": "携带的技能受能耗变化效果影响翻倍。",
+  "effects": [
+    {
+      "op": "observer",
+      "listen": [
+        "post_entry"
+      ],
+      "cond": {
+        "cond": "compare",
+        "q": "energy",
+        "of": "sprite_self",
+        "op": "gte",
+        "value": 0
+      },
+      "then": [
+        {
+          "op": "mult_mod",
+          "target": "sprite_self",
+          "attr": "energy_cost_delta_mult",
+          "value": 2,
+          "scope": "permanent"
+        }
+      ]
+    }
+  ]
 }

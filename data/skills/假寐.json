@@ -6,29 +6,26 @@
   "energy_cost": 2,
   "effects": [
     {
-      "value": 2,
       "target": "sprite_self",
-      "op": "mod",
-      "stat": "energy",
-      "mode": "add"
+      "op": "energize",
+      "delta": 2
     },
     {
-      "value": 1,
       "target": "team_own",
       "op": "mod",
-      "stat": "devotion",
-      "mode": "add",
       "name": "能耗-2",
       "then": [
         {
-          "op": "mod",
+          "op": "power_mod",
           "target": "skill_off_0",
-          "stat": "energy_cost",
-          "value": -2,
-          "mode": "add",
-          "feeds": "cost"
+          "feeds": "cost",
+          "attr": "energy_cost",
+          "delta": -2
         }
-      ]
+      ],
+      "stat": "devotion",
+      "value": 1,
+      "mode": "add"
     }
   ],
   "description": "✦自己回复2能量，己方队伍获得1次奉献：能耗-2。"

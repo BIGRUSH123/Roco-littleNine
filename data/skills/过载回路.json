@@ -11,13 +11,12 @@
       "needs": "turn_end"
     },
     {
-      "value": 1,
       "target": "sprite_self",
-      "op": "mod",
-      "stat": "extra_action",
-      "mode": "add",
+      "op": "flag_set",
       "on_next": true,
-      "needs": "turn_end"
+      "needs": "turn_end",
+      "flag": "extra_action",
+      "value": 1
     }
   ],
   "description": "✦回合结束自己返场，下回合所选技能使用次数+1。"

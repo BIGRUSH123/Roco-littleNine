@@ -7,10 +7,9 @@
   "energy_cost": 0,
   "effects": [
     {
-      "value": 1,
       "target": "sprite_self",
-      "op": "mod",
-      "stat": "energy"
+      "op": "energize",
+      "delta": 1
     }
   ],
   "description": "✦造成魔伤，自己回复1能量。"

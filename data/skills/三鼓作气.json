@@ -8,10 +8,10 @@
   "effects": [
     {
       "target": "sprite_self",
-      "op": "mod",
+      "op": "stat_stage",
+      "per_hit": true,
       "stat": "atk",
-      "steps": 3,
-      "per_hit": true
+      "steps": 3
     }
   ],
   "description": "✦ 提升自身30%物攻，3连击。"

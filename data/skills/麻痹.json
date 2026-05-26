@@ -7,11 +7,10 @@
   "counter": "防御",
   "effects": [
     {
-      "value": -1,
       "target": "sprite_opp",
-      "op": "mod",
-      "stat": "priority",
-      "mode": "add"
+      "op": "power_mod",
+      "attr": "priority",
+      "delta": -1
     },
     {
       "when": {
@@ -19,13 +18,13 @@
       },
       "then": [
         {
-          "op": "mod",
+          "op": "stat_stage",
           "target": "sprite_opp",
           "stat": "atk",
           "steps": -7
         },
         {
-          "op": "mod",
+          "op": "stat_stage",
           "target": "sprite_opp",
           "stat": "sp_atk",
           "steps": -7

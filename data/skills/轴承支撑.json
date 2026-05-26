@@ -7,38 +7,35 @@
   "transmission": 1,
   "effects": [
     {
-      "value": -1,
       "target": "skill_off_0",
-      "op": "mod",
-      "stat": "energy_cost",
-      "mode": "add"
+      "op": "power_mod",
+      "attr": "energy_cost",
+      "delta": -1
     },
     {
-      "op": "count",
-      "when": {
-        "cond": "sprite_entered"
-      },
+      "op": "observer",
       "then": [
         {
-          "op": "mod",
+          "op": "power_mod",
           "target": "skill_off_0",
-          "stat": "power",
-          "value": 1,
-          "mode": "add",
-          "scope": "permanent"
+          "scope": "permanent",
+          "attr": "power",
+          "delta": 1
         }
-      ]
+      ],
+      "cond": {
+        "cond": "sprite_entered"
+      }
     }
   ],
   "description": "✦主动：本技能被动额外-1能耗，被动：两侧技能能耗-1，传动1。",
   "passive": [
     {
-      "op": "mod",
+      "op": "power_mod",
       "target": "sprite_self",
-      "stat": "energy_cost",
-      "value": -1,
-      "mode": "add",
-      "skill_filter": "adjacent"
+      "skill_filter": "adjacent",
+      "attr": "energy_cost",
+      "delta": -1
     }
   ]
 }

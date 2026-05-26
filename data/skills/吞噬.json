@@ -12,11 +12,9 @@
       },
       "then": [
         {
-          "op": "mod",
+          "op": "energize",
           "target": "sprite_self",
-          "stat": "energy",
-          "value": 6,
-          "mode": "add"
+          "delta": 6
         }
       ]
     }

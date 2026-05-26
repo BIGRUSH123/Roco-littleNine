@@ -60,6 +60,12 @@ def resolve(ctx: Ctx, value) -> int | float | str:
         raw = getattr(ctx, value.field, value.default)
         if raw is None:
             raw = value.default or 0
+        # Dict-type registers: sub-index by name (e.g. skill_count_own["虫鸣"])
+        if isinstance(raw, dict) and value.name:
+            raw = raw.get(value.name, 0)
+        # Derived query: mark_count_both = own + opp
+        if value.sub_key_field == "mark_count_both":
+            raw = (raw if isinstance(raw, (int, float)) else 0) + ctx.mark_count_opp
         result = raw
         if value.per is not None and value.per != 0:
             result = int(result / value.per) if isinstance(result, (int, float)) else result

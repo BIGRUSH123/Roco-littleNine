@@ -8,10 +8,10 @@
   "priority": 1,
   "effects": [
     {
-      "value": 0.5,
       "target": "sprite_self",
-      "op": "mod",
-      "stat": "damage_reduction"
+      "op": "mult_mod",
+      "attr": "damage_reduction",
+      "value": 0.5
     }
   ],
   "description": "✦减伤50%，迅捷，应对攻击。",

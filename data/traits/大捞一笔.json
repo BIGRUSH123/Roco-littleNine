@@ -2,16 +2,19 @@
   "id": 20036,
   "name": "大捞一笔",
   "description": "回合结束时，偷取所有敌方精灵2能量。",
-  "triggers": [
+  "effects": [
     {
-      "on": "turn_end",
-      "effects": [
+      "op": "observer",
+      "then": [
         {
-          "kind": "special",
-          "name": "steal_energy_all",
-          "amount": 2
+          "target": "sprite_self",
+          "op": "special"
         }
-      ]
+      ],
+      "scope": "persistent",
+      "cond": {
+        "cond": "turn_end"
+      }
     }
   ]
 }

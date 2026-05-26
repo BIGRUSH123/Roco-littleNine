@@ -6,15 +6,13 @@
   "energy_cost": 1,
   "effects": [
     {
-      "value": {
+      "target": "sprite_self",
+      "op": "energize",
+      "delta": {
         "q": "energy_total",
         "of": "skill_opp_current",
         "scale": 0.5
-      },
-      "target": "sprite_self",
-      "op": "mod",
-      "stat": "energy",
-      "mode": "add"
+      }
     }
   ],
   "description": "✦回复能量，回复值等于敌方技能总能耗的一半。"

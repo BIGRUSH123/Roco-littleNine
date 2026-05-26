@@ -12,9 +12,9 @@
       },
       "then": [
         {
-          "op": "mod",
+          "op": "flag_set",
           "target": "skill_off_0",
-          "stat": "ignore_mods",
+          "flag": "ignore_mods",
           "value": 1
         }
       ]

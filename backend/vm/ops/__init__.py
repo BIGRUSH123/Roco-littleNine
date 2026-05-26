@@ -13,14 +13,23 @@ from .double import op_double
 from .escape import op_escape
 from .exchange import op_exchange
 from .hit import op_hit
+from .inherit_effects import op_inherit_effects
 from .interrupt import op_interrupt
+from .lives_change import op_lives_change
 from .lock import op_lock
 from .mark import op_mark
-from .mod import op_mod
+from .mod import (
+    op_energize, op_flag_set, op_heal, op_mod, op_mult_mod,
+    op_power_mod, op_revive, op_stat_stage,
+)
 from .redirect import op_redirect
 from .replay import op_replay
 from .reset import op_reset
 from .return_ import op_return
+from .schedule import op_schedule
 from .steal import op_steal
+from .team_counter_write import op_team_counter_write
 from .tick import op_tick
+from .trait_interaction import op_trait_interaction
+from .transform import op_transform
 from .weather import op_weather

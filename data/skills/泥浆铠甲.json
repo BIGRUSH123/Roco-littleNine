@@ -8,13 +8,13 @@
   "effects": [
     {
       "target": "sprite_self",
-      "op": "mod",
+      "op": "stat_stage",
       "stat": "atk",
       "steps": 6
     },
     {
       "target": "sprite_self",
-      "op": "mod",
+      "op": "stat_stage",
       "stat": "def",
       "steps": 6
     },

@@ -7,10 +7,10 @@
   "energy_cost": 1,
   "effects": [
     {
-      "value": 1,
       "target": "skill_off_0",
-      "op": "mod",
-      "stat": "life_drain"
+      "op": "mult_mod",
+      "attr": "life_drain",
+      "value": 1
     }
   ],
   "description": "✦造成魔伤，并吸血100%。"

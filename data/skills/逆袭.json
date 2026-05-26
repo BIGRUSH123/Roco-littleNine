@@ -7,16 +7,15 @@
   "energy_cost": 3,
   "effects": [
     {
-      "value": {
+      "target": "skill_off_0",
+      "op": "power_mod",
+      "feeds": "power",
+      "attr": "power",
+      "delta": {
         "q": "energy_cost",
         "of": "skill_off_0",
         "scale": 50
-      },
-      "target": "skill_off_0",
-      "op": "mod",
-      "stat": "power",
-      "mode": "add",
-      "feeds": "power"
+      }
     }
   ],
   "description": "✦造成物伤，本技能能耗每+1，威力+50。"

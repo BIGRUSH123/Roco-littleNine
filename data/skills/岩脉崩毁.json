@@ -7,10 +7,10 @@
   "energy_cost": 4,
   "effects": [
     {
-      "op": "mod",
+      "op": "power_mod",
       "target": "skill_off_0",
-      "stat": "energy_cost",
-      "value": 4
+      "attr": "energy_cost",
+      "delta": 4
     }
   ],
   "description": "✦造成物伤，本技能能耗固定为4。"

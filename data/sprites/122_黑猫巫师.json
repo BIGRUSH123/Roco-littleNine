@@ -5,11 +5,11 @@
   "attributes": [
     "普通"
   ],
-  "hp": 152,
-  "atk": 91,
-  "sp_atk": 163,
-  "def": 67,
-  "sp_def": 119,
+  "hp": 149,
+  "atk": 53,
+  "sp_atk": 124,
+  "def": 90,
+  "sp_def": 129,
   "speed": 70,
   "ability": "预警",
   "pre_species": "121",

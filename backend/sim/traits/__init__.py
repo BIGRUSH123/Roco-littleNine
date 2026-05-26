@@ -210,8 +210,17 @@ def dispatch_entry(sprite: Sprite, battle: Battle, team: str) -> list[str]:
     if pending:
         battle.pending_effects[team] = []
 
-    h = get_trait(sprite)
-    events = h.on_entry(sprite, battle, team) if h else []
+    events: list[str] = []
+
+    # 首次入场时设置 entry_turn（初始精灵 entry_turn 默认为 0）
+    if sprite.entry_turn == 0:
+        sprite.entry_turn = battle.turn
+
+    # IR_RISC trait pipeline: load trait JSON → compile observers → register
+    try:
+        battle._vm_engine.trait_loader.load_for_sprite(sprite)
+    except Exception:
+        pass  # Observer registration failure must not crash battle
 
     # Engine hooks: post_entry (skill sealing, etc.)
     from .trait_engine import fire_hook
@@ -219,14 +228,13 @@ def dispatch_entry(sprite: Sprite, battle: Battle, team: str) -> list[str]:
     if hook_events:
         events.extend(hook_events)
 
-    # Phase C3 dual-run: register trait Observers in VM engine
-    if h is not None and hasattr(h, 'to_observers'):
+    # Legacy TraitHandler for backward compat
+    h = get_trait(sprite)
+    if h is not None and hasattr(h, 'on_entry'):
         try:
-            observers = h.to_observers()
-            if observers:
-                battle._vm_engine.registry.register_many(observers)
+            events += h.on_entry(sprite, battle, team)
         except Exception:
-            pass  # Observer registration failure must not crash battle
+            pass
 
     if pending:
         events.append(f'{sprite.name} 继承{len(pending)}个离场效果')
@@ -235,13 +243,24 @@ def dispatch_entry(sprite: Sprite, battle: Battle, team: str) -> list[str]:
 
 def dispatch_leave(sprite: Sprite, battle: Battle, team: str,
                    is_faint: bool = False) -> list[str]:
-    h = get_trait(sprite)
-    events = h.on_leave(sprite, battle, team, is_faint) if h else []
+    events: list[str] = []
 
-    # Phase C3 dual-run: clear trait Observers on leave
-    if h is not None and hasattr(h, 'name'):
+    # 清除 battlefield + turn scope 的 modifier 和效果（离场时临时效果不应保留）
+    sprite.clear_effects('battlefield')
+    sprite.clear_effects('turn')
+
+    # IR_RISC trait pipeline: unregister observers by scope
+    reason = "faint" if is_faint else "leave"
+    try:
+        battle._vm_engine.trait_loader.unload_for_sprite(sprite, reason)
+    except Exception:
+        pass
+
+    # Legacy TraitHandler for backward compat
+    h = get_trait(sprite)
+    if h is not None and hasattr(h, 'on_leave'):
         try:
-            battle._vm_engine.registry.clear_by_source(h.name)
+            events += h.on_leave(sprite, battle, team, is_faint)
         except Exception:
             pass
 

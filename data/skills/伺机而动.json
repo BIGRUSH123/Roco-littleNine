@@ -6,13 +6,12 @@
   "energy_cost": 1,
   "effects": [
     {
-      "value": 70,
       "target": "sprite_self",
-      "op": "mod",
-      "stat": "power",
-      "mode": "add",
+      "op": "power_mod",
       "on_next": true,
-      "if_type": "attack"
+      "if_type": "attack",
+      "attr": "power",
+      "delta": 70
     }
   ],
   "description": "✦下一次攻击时，技能威力+70。"

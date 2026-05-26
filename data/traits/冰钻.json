@@ -4,26 +4,26 @@
   "description": "敌方技能总能耗每1点 → 攻击威力+10%。",
   "passive": [
     {
-      "op": "count",
-      "when": {
-        "cond": "on_skills_energy_changed",
-        "of": "sprite_opp"
-      },
+      "op": "observer",
       "then": [
         {
-          "op": "mod",
+          "op": "mult_mod",
           "target": "sprite_self",
-          "stat": "power_mult",
+          "scope": "permanent",
+          "skill_filter": "attack",
+          "attr": "power_mult",
           "value": {
             "q": "skills_energy_sum",
             "of": "sprite_opp",
             "scale": 0.1,
             "offset": 1
-          },
-          "scope": "permanent",
-          "skill_filter": "attack"
+          }
         }
-      ]
+      ],
+      "cond": {
+        "cond": "on_skills_energy_changed",
+        "of": "sprite_opp"
+      }
     }
   ]
 }

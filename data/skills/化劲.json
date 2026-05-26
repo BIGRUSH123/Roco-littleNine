@@ -7,10 +7,10 @@
   "effects": [
     {
       "target": "sprite_self",
-      "op": "mod",
-      "stat": "power",
-      "steps": 4,
-      "skill_filter": "all"
+      "op": "power_mod",
+      "skill_filter": "all",
+      "attr": "power",
+      "delta": 4
     }
   ],
   "description": "✦自己获得全技能威力+40。"

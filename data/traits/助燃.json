@@ -4,29 +4,29 @@
   "description": "使用火系技能后，获得双攻+20%。",
   "passive": [
     {
-      "op": "count",
-      "when": {
-        "cond": "skill_use",
-        "element": "火"
-      },
+      "op": "observer",
       "then": [
         {
-          "op": "mod",
+          "op": "mult_mod",
           "target": "sprite_self",
-          "stat": "atk",
+          "scope": "permanent",
+          "attr": "atk",
           "value": 0.2,
-          "mode": "add",
-          "scope": "permanent"
+          "mode": "add"
         },
         {
-          "op": "mod",
+          "op": "mult_mod",
           "target": "sprite_self",
-          "stat": "sp_atk",
+          "scope": "permanent",
+          "attr": "sp_atk",
           "value": 0.2,
-          "mode": "add",
-          "scope": "permanent"
+          "mode": "add"
         }
-      ]
+      ],
+      "cond": {
+        "cond": "skill_use",
+        "element": "火"
+      }
     }
   ]
 }

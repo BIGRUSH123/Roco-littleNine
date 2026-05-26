@@ -7,15 +7,14 @@
   "energy_cost": 2,
   "effects": [
     {
-      "value": {
+      "target": "skill_off_0",
+      "op": "power_mod",
+      "attr": "combo",
+      "delta": {
         "q": "skill_count",
         "of": "team_own",
         "name": "虫鸣"
-      },
-      "target": "skill_off_0",
-      "op": "mod",
-      "stat": "combo",
-      "mode": "add"
+      }
     }
   ],
   "description": "✦造成魔伤，队伍中的精灵每携带1个虫鸣，本次技能连击数+1。"

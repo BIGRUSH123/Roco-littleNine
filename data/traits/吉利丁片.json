@@ -4,33 +4,33 @@
   "description": "离场后，更换入场的精灵获得双防+20%且免疫冻结。",
   "passive": [
     {
-      "op": "count",
-      "when": {
-        "cond": "self_switched"
-      },
+      "op": "observer",
       "then": [
         {
-          "op": "mod",
+          "op": "mult_mod",
           "target": "sprite_self",
-          "stat": "def",
-          "value": 1.2,
-          "scope": "permanent"
+          "scope": "permanent",
+          "attr": "def",
+          "value": 1.2
         },
         {
-          "op": "mod",
+          "op": "mult_mod",
           "target": "sprite_self",
-          "stat": "sp_def",
-          "value": 1.2,
-          "scope": "permanent"
+          "scope": "permanent",
+          "attr": "sp_def",
+          "value": 1.2
         },
         {
-          "op": "mod",
+          "op": "flag_set",
           "target": "sprite_self",
-          "stat": "immune",
-          "value": "冻结",
-          "scope": "permanent"
+          "scope": "permanent",
+          "flag": "immune",
+          "value": "冻结"
         }
-      ]
+      ],
+      "cond": {
+        "cond": "self_switched"
+      }
     }
   ]
 }

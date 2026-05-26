@@ -16,12 +16,12 @@
       },
       "then": [
         {
-          "op": "mod",
+          "op": "power_mod",
           "target": "sprite_opp",
-          "stat": "energy_cost",
-          "value": 4,
           "scope": "persistent",
-          "skill_filter": "attack"
+          "skill_filter": "attack",
+          "attr": "energy_cost",
+          "delta": 4
         }
       ]
     }

@@ -7,21 +7,20 @@
   "energy_cost": 7,
   "effects": [
     {
-      "op": "count",
-      "when": {
-        "cond": "skill_use"
-      },
+      "op": "observer",
       "then": [
         {
-          "op": "mod",
+          "op": "power_mod",
           "target": "skill_off_0",
-          "stat": "energy_cost",
-          "value": -1,
-          "mode": "add",
           "scope": "permanent",
-          "needs": "turn_end"
+          "needs": "turn_end",
+          "attr": "energy_cost",
+          "delta": -1
         }
-      ]
+      ],
+      "cond": {
+        "cond": "skill_use"
+      }
     }
   ],
   "description": "✦造成物伤，回合结束时，本技能能耗永久-1。"

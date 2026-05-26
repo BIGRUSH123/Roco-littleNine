@@ -6,10 +6,10 @@
   "energy_cost": 2,
   "effects": [
     {
-      "value": 0.9,
       "target": "sprite_self",
-      "op": "mod",
-      "stat": "sp_atk",
+      "op": "mult_mod",
+      "attr": "sp_atk",
+      "value": 0.9,
       "mode": "add"
     },
     {
@@ -18,9 +18,9 @@
       },
       "then": [
         {
-          "op": "mod",
+          "op": "mult_mod",
           "target": "sprite_self",
-          "stat": "speed",
+          "attr": "speed",
           "value": 70,
           "mode": "add"
         }

@@ -12,20 +12,20 @@
       },
       "then": [
         {
-          "op": "mod",
+          "op": "power_mod",
           "target": "sprite_self",
-          "stat": "energy_cost",
-          "value": -3,
-          "scope": "persistent"
+          "scope": "persistent",
+          "attr": "energy_cost",
+          "delta": -3
         }
       ],
       "else": [
         {
-          "op": "mod",
+          "op": "power_mod",
           "target": "sprite_self",
-          "stat": "energy_cost",
-          "value": -2,
-          "scope": "persistent"
+          "scope": "persistent",
+          "attr": "energy_cost",
+          "delta": -2
         }
       ]
     }

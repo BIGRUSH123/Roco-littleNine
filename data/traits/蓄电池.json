@@ -2,31 +2,45 @@
   "id": 20117,
   "name": "蓄电池",
   "description": "每入场1次，永久获得双攻+20%。",
-  "triggers": [
+  "effects": [
     {
-      "on": "entry",
-      "condition": {
-        "path": "self.counters[times_entered]",
-        "op": "gt",
-        "value": 1
-      },
-      "effects_mode": "replace",
-      "effects": [
+      "op": "observer",
+      "then": [
         {
-          "kind": "stat",
-          "stat": "atk",
-          "steps": "=@self.counters[times_entered] * 2",
+          "target": "sprite_self",
           "scope": "permanent",
-          "source": "蓄电池"
+          "source": "蓄电池",
+          "op": "stat_stage",
+          "stat": "atk",
+          "steps": "=@self.counters[times_entered] * 2"
         },
         {
-          "kind": "stat",
-          "stat": "sp_atk",
-          "steps": "=@self.counters[times_entered] * 2",
+          "target": "sprite_self",
           "scope": "permanent",
-          "source": "蓄电池"
+          "source": "蓄电池",
+          "op": "stat_stage",
+          "stat": "sp_atk",
+          "steps": "=@self.counters[times_entered] * 2"
         }
-      ]
+      ],
+      "scope": "battlefield",
+      "cond": {
+        "cond": "and",
+        "conditions": [
+          {
+            "cond": "sprite_entered",
+            "of": "sprite_self"
+          },
+          {
+            "cond": "compare",
+            "q": "counters[times_entered]",
+            "of": "sprite_self",
+            "op": "gt",
+            "value": 1
+          }
+        ]
+      },
+      "listen": "post_entry"
     }
   ]
 }

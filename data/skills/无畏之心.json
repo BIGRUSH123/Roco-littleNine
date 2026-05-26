@@ -7,11 +7,11 @@
   "counter": "攻击",
   "effects": [
     {
-      "value": 1,
       "target": "sprite_self",
-      "op": "mod",
-      "stat": "damage_reduction",
-      "feeds": "mult"
+      "op": "mult_mod",
+      "feeds": "mult",
+      "attr": "damage_reduction",
+      "value": 1
     },
     {
       "when": {
@@ -19,21 +19,19 @@
       },
       "then": [
         {
-          "op": "mod",
+          "op": "heal",
           "target": "sprite_self",
-          "stat": "hp",
           "value": {
             "q": "damage_reduced",
             "of": "sprite_self"
           }
         },
         {
-          "op": "mod",
+          "op": "power_mod",
           "target": "skill_off_0",
-          "stat": "energy_cost",
-          "value": 2,
-          "mode": "add",
-          "scope": "permanent"
+          "scope": "permanent",
+          "attr": "energy_cost",
+          "delta": 2
         }
       ]
     }

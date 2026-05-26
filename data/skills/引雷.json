@@ -8,10 +8,10 @@
   "combo": 2,
   "effects": [
     {
-      "value": 2,
       "target": "skill_off_0",
-      "op": "mod",
-      "stat": "combo"
+      "op": "power_mod",
+      "attr": "combo",
+      "delta": 2
     },
     {
       "when": {
@@ -19,11 +19,10 @@
       },
       "then": [
         {
-          "op": "mod",
+          "op": "power_mod",
           "target": "skill_off_0",
-          "stat": "power",
-          "value": 20,
-          "mode": "add"
+          "attr": "power",
+          "delta": 20
         }
       ]
     }

@@ -2,29 +2,25 @@
   "id": 20078,
   "name": "水翼飞升",
   "description": "入场时，根据己方队伍水系技能使用次数降低全技能能耗，0能耗技能威力+30%。",
-  "triggers": [
+  "effects": [
     {
-      "on": "entry",
-      "effects_mode": "replace",
-      "effects": [
+      "op": "observer",
+      "then": [
         {
-          "kind": "stat",
-          "stat": "energy_cost",
-          "steps": "=0 - @team_counters[element:水]",
+          "target": "sprite_self",
           "scope": "battlefield",
-          "source": "水翼飞升"
+          "source": "水翼飞升",
+          "op": "stat_stage",
+          "stat": "energy_cost",
+          "steps": "=0 - @team_counters[element:水]"
         }
       ],
-      "battleskill_mut": [
-        {
-          "filter": {
-            "energy_cost_eq": 0
-          },
-          "field": "power_mod",
-          "op": "add",
-          "value": 30
-        }
-      ]
+      "scope": "battlefield",
+      "cond": {
+        "cond": "sprite_entered",
+        "of": "sprite_self"
+      },
+      "listen": "post_entry"
     }
   ]
 }

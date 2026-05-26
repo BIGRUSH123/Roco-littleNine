@@ -48,8 +48,95 @@ class WhenBlock:
     priority: int = 0
 
 
-# ── Op nodes (21) ──
+# ── Op nodes (28: 7 RISC + 14 specialist + 7 legacy) ──
 
+# RISC register-modifying ops (split from ModOp)
+@dataclass(frozen=True)
+class StatStageOp:
+    """RISC: stat_stage — modify sprite stat stages (atk/def/sp_atk/sp_def/speed)."""
+    target: str = "sprite_self"
+    stat: str = ""
+    steps: int = 0
+    value: IRValue | None = None   # query-based steps (RefExpr)
+    per_hit: bool = False
+    scope: str = "battlefield"
+    source: str | None = None
+    feeds: str = ""
+    needs: str = ""
+    priority: int = 0
+
+@dataclass(frozen=True)
+class PowerModOp:
+    """RISC: power_mod — modify skill attributes (power/energy_cost/combo/priority)."""
+    target: str = "sprite_self"
+    attr: str = ""
+    delta: IRValue | None = None
+    per_hit: bool = False
+    scope: str = "battlefield"
+    skill_where: dict | None = field(default=None, hash=False, compare=False)
+    skill_filter: str | None = None
+    element: str | None = None
+    ttl: int = 0
+    source: str | None = None
+    feeds: str = ""
+    needs: str = ""
+    priority: int = 0
+
+@dataclass(frozen=True)
+class MultModOp:
+    """RISC: mult_mod — modify multipliers (power_mult/damage_mult/damage_reduction/life_drain)."""
+    target: str = "sprite_self"
+    attr: str = ""
+    value: IRValue | None = None
+    mode: str = "set"
+    per_hit: bool = False
+    scope: str = "battlefield"
+    feeds: str = ""
+    needs: str = ""
+    priority: int = 0
+
+@dataclass(frozen=True)
+class FlagSetOp:
+    """RISC: flag_set — set/clear boolean flags (immune/freeze_immune/survive/...)."""
+    target: str = "sprite_self"
+    flag: str = ""
+    value: IRValue | None = None   # true/false
+    name: str | None = None        # e.g. abnormal name for immune
+    scope: str = "battlefield"
+    source: str | None = None
+    feeds: str = ""
+    needs: str = ""
+    priority: int = 0
+
+@dataclass(frozen=True)
+class HealOp:
+    """RISC: heal — HP recovery or damage."""
+    target: str = "sprite_self"
+    ratio: float | None = None     # 0-1 ratio of max HP
+    value: IRValue | None = None   # absolute HP or query
+    feeds: str = ""
+    needs: str = ""
+    priority: int = 0
+
+@dataclass(frozen=True)
+class EnergizeOp:
+    """RISC: energize — energy recovery or drain."""
+    target: str = "sprite_self"
+    delta: IRValue | None = None   # positive=recover, negative=drain
+    feeds: str = ""
+    needs: str = ""
+    priority: int = 0
+
+@dataclass(frozen=True)
+class ReviveOp:
+    """RISC: revive — revive a fainted sprite."""
+    target: str = "sprite_self"
+    hp_ratio: IRValue | None = None
+    feeds: str = ""
+    needs: str = ""
+    priority: int = 0
+
+# Legacy mega-opcode — still accepted but new code should use the 7 RISC types above
 @dataclass(frozen=True)
 class ModOp:
     target: str
@@ -69,8 +156,8 @@ class ModOp:
     delay: int = 0
     ttl: int = 0
     cooldown: int = 0
-    source: str | None = None       # trait/skill name for replace-mode clearing
-    mutate: bool = False            # True = modify existing effects instead of creating new
+    source: str | None = None
+    mutate: bool = False
     feeds: str = ""
     needs: str = ""
     priority: int = 0
@@ -96,6 +183,7 @@ class MarkOp:
     action: str = "apply"           # "apply" | "dispel" | "steal" | "convert"
     ratio: float = 1.0              # convert: abnormal→mark conversion ratio
     target_team: str = "opp"        # for dispel/steal: which team to target
+    source: str | None = None       # trait/skill name for tracking/dispel
     feeds: str = ""
     needs: str = ""
     priority: int = 0
@@ -111,6 +199,8 @@ class AbnormalOp:
     heal_pct: float = 0.0
     energy_gain: int = 0
     then: tuple[SkillIROp, ...] = ()
+    source: str | None = None       # trait/skill name for tracking/dispel
+    duration: int = 0               # turns until auto-expire (0 = persistent)
     feeds: str = ""
     needs: str = ""
     priority: int = 0
@@ -245,6 +335,8 @@ class CountOp:
     when: SkillCondition | None = None
     then: tuple[SkillIROp, ...] = ()
     scope: str = "persistent"
+    threshold: int = 1               # fire then every N triggers (1 = every time)
+    reset_on_fire: bool = True       # reset counter after then executes
     feeds: str = ""
     needs: str = ""
     priority: int = 0
@@ -273,10 +365,10 @@ class LivesChange:
 
 @dataclass(frozen=True)
 class Schedule:
-    """Register delayed effects for a future turn."""
-    delay_turns: int
-    phase: str = "start"
-    effects: tuple[SkillIROp, ...] = ()
+    """Register delayed effects for a future turn (RISC: defer)."""
+    turns: int = 0
+    at: str = "turn_start"                       # "turn_start" | "turn_end"
+    then: tuple[SkillIROp, ...] = ()
     feeds: str = ""
     needs: str = ""
     priority: int = 0
@@ -288,6 +380,8 @@ class InheritEffects:
     inherit_target: str = "enemy_new"  # sprite ref for the receiver
     scope: str = "battlefield"
     via_pending: bool = False     # route through battle.pending_effects
+    effects: tuple[SkillIROp, ...] = ()  # fixed effects to pass to incoming sprite
+    inherit_stat_effects: bool = False  # copy dynamic stat effects from leaving sprite
     feeds: str = ""
     needs: str = ""
     priority: int = 0
@@ -316,7 +410,13 @@ class TraitInteraction:
 
 
 SkillIROp = (
-    ModOp | HitOp | MarkOp | AbnormalOp | WeatherOp |
+    # RISC register-modifying ops
+    StatStageOp | PowerModOp | MultModOp | FlagSetOp |
+    HealOp | EnergizeOp | ReviveOp |
+    # Legacy mega-opcode (backward compat)
+    ModOp |
+    # Specialist ops
+    HitOp | MarkOp | AbnormalOp | WeatherOp |
     DispelOp | StealOp | TickOp | DoubleOp | ChargeOp |
     EscapeOp | ReturnOp | LockOp | InterruptOp |
     ExchangeOp | ResetOp | RedirectOp | ReplayOp |
