@@ -130,6 +130,61 @@ def _apply_to_all_skills(sprite, m) -> str:
     return f"{sprite.name} 全技能{label}{delta:+.0f}"
 
 
+def _apply_to_matching_skills(sprite, m) -> str:
+    """Apply a modifier to BattleSkills matching skill_where.
+
+    Also registers the effect in sprite._trait_direct_effects so
+    reapply_all_direct_mods() can restore it after _PER_TURN_KEYS cleanup.
+    """
+    from backend.engine.modifiers import eval_skill_where
+
+    label = _STAT_LABELS.get(m.stat, m.stat)
+    delta = m.value
+    if m.stat == "energy_cost":
+        delta *= sprite._modifiers.get("energy_cost_delta_mult", 1.0)
+    applied = False
+    for bs in (sprite.skills or []):
+        bs_mods = getattr(bs, '_modifiers', None)
+        if bs_mods is None:
+            continue
+        skill_info = {
+            "name": getattr(bs, 'name', ''),
+            "energy_cost": getattr(bs, 'energy_cost', 0),
+            "element": getattr(getattr(bs, 'base', None), 'element', ''),
+            "skill_type": getattr(getattr(bs, 'base', None), 'skill_type', ''),
+        }
+        if not eval_skill_where(m.skill_where, skill_info):
+            continue
+        cur = bs_mods.get(m.stat, 0.0)
+        if m.mode == "add":
+            bs_mods[m.stat] = cur + delta
+        elif m.mode == "set":
+            bs_mods[m.stat] = delta
+        elif m.mode == "multiply":
+            bs_mods[m.stat] = cur * delta if cur else delta
+        applied = True
+
+    # Register for turn-to-turn persistence (survives _PER_TURN_KEYS cleanup)
+    if applied and m.scope != "turn" and m.mode == "add":
+        effect_dict = {
+            "op": "power_mod",
+            "attr": m.stat,
+            "delta": m.value,
+            "skill_where": m.skill_where,
+        }
+        direct_effects = getattr(sprite, '_trait_direct_effects', None)
+        if direct_effects is None:
+            sprite._trait_direct_effects = []
+        if effect_dict not in sprite._trait_direct_effects:
+            sprite._trait_direct_effects.append(effect_dict)
+
+    if applied:
+        if m.stat == "energy_cost":
+            return ""
+        return f"{sprite.name} {label}{delta:+.0f}"
+    return ""
+
+
 class JournalReplayer:
     """Replays a VM Journal against mutable battle state.
 
@@ -300,6 +355,10 @@ class JournalReplayer:
         # ── skill_filter "all" on sprite target: distribute to every BattleSkill ──
         if not skill_scoped and m.skill_filter == "all" and m.stat in _SKILL_DISTRIBUTE_STATS:
             return _apply_to_all_skills(sprite, m)
+
+        # ── skill_where on sprite target: distribute to matching BattleSkills ──
+        if not skill_scoped and m.skill_where is not None:
+            return _apply_to_matching_skills(sprite, m)
 
         if skill_scoped:
             if self._self_skill is not None:
