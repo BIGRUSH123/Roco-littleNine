@@ -13,89 +13,7 @@ if TYPE_CHECKING:
     from .sprite import Sprite
 
 
-@dataclass
-class Mark:
-    """单方印记。"""
-    name: str
-    category: str           # "positive" | "negative"
-    stacks: int = 1
-
-    @property
-    def is_positive(self) -> bool:
-        return self.category == 'positive'
-
-    @property
-    def is_negative(self) -> bool:
-        return self.category == 'negative'
-
-
 WEATHER_DURATION = 8  # 天气持续回合
-
-
-# ── 印记效果配置（集中管理，新增印记只需在此添加）──
-_MARK_EFFECTS: dict[str, dict] = {
-    '攻击印记': {
-        'category': 'positive',
-        'power_bonus': 10,           # 每层 +10 威力
-    },
-    '蓄电印记': {
-        'category': 'positive',
-        'power_bonus': 10,           # 每层 +10 威力（仅攻击技能）
-        'condition': 'is_attack',
-    },
-    '润泽印记': {
-        'category': 'positive',
-        'energy_mod': 1,             # 每层 -1 能耗
-    },
-    '风起': {
-        'category': 'positive',
-        'damage_mult': 0.20,         # 每层 +20% 伤害
-        'condition': 'is_first',
-    },
-    '光合印记': {
-        'category': 'positive',
-        'turn_end_energy': 1,        # 每层回合末 +1 能量
-    },
-    '龙噬印记': {
-        'category': 'positive',
-    },
-    '蓄势印记': {
-        'category': 'positive',
-    },
-    '减速': {
-        'category': 'negative',
-        'speed_penalty': 10,         # 每层 -10 速度
-    },
-    '迟缓': {
-        'category': 'negative',
-        'damage_mult': 0.30,         # 每层 +30% 伤害
-        'condition': 'not_first',
-    },
-    '棘刺': {
-        'category': 'negative',
-        'switch_damage_pct': 0.06,   # 每层进场 6% 最大HP 伤害
-    },
-    '降临印记': {
-        'category': 'negative',
-        'switch_energy_loss': 1,     # 每层进场 -1 能量
-    },
-    '中毒印记': {
-        'category': 'negative',
-        'turn_end_damage_pct': 0.03, # 每层回合末 3% 最大HP 伤害
-    },
-    '星陨印记': {
-        'category': 'negative',
-        'starfall_damage': 30,       # 每层 30 威力幻系魔法伤害
-    },
-}
-
-# 从配置派生正/负面印记集合
-POSITIVE_MARKS = frozenset(
-    name for name, cfg in _MARK_EFFECTS.items() if cfg['category'] == 'positive'
-)
-NEGATIVE_MARKS = frozenset(
-    name for name, cfg in _MARK_EFFECTS.items() if cfg['category'] == 'negative'
-)
 
 
 @dataclass
@@ -106,11 +24,9 @@ class GlobalEffects:
     weather: str = ''           # "" | "rain" | "sand" | "snow"
     weather_turns: int = 0
 
-    # 双方印记（list 支持吟游之弦多印记共存）
-    pos_marks_a: list[Mark] = field(default_factory=list)
-    neg_marks_a: list[Mark] = field(default_factory=list)
-    pos_marks_b: list[Mark] = field(default_factory=list)
-    neg_marks_b: list[Mark] = field(default_factory=list)
+    # 双方印记（MarkEffect 对象列表）
+    mark_effects: dict[str, list] = field(default_factory=dict)
+    # mark_effects["A"] / mark_effects["B"] → list[MarkEffect]
 
     # ── 天气查询 ──
 
@@ -149,123 +65,101 @@ class GlobalEffects:
 
     # ── 印记查询 ──
 
-    def get_marks(self, team: str) -> tuple[list[Mark], list[Mark]]:
-        """返回 (pos_marks, neg_marks)。"""
-        if team == 'A':
-            return self.pos_marks_a, self.neg_marks_a
-        return self.pos_marks_b, self.neg_marks_b
+    def get_marks(self, team: str) -> tuple[list, list]:
+        """返回 (pos_marks, neg_marks) as MarkEffect lists."""
+        from backend.vm.effect import MarkEffect
+        pos, neg = [], []
+        for me in self.mark_effects.get(team, []):
+            if isinstance(me, MarkEffect):
+                if me.is_positive:
+                    pos.append(me)
+                else:
+                    neg.append(me)
+        return pos, neg
 
-    def get_mark_by_name(self, team: str, name: str) -> Mark | None:
-        """获取指定名称的印记。"""
-        pos, neg = self.get_marks(team)
-        for m in pos + neg:
-            if m.name == name:
-                return m
+    def get_mark_by_name(self, team: str, name: str):
+        """获取指定名称的印记（MarkEffect）。"""
+        from backend.vm.effect import MarkEffect
+        for me in self.mark_effects.get(team, []):
+            if isinstance(me, MarkEffect) and me.name == name:
+                return me
         return None
 
-    @staticmethod
-    def _get_mark_config(name: str) -> dict:
-        return _MARK_EFFECTS.get(name, {})
-
     def mark_power_bonus(self, team: str, skill: Skill) -> int:
-        """印记威力加成。从配置读取 power_bonus 字段。"""
-        pos, _ = self.get_marks(team)
+        """印记威力加成。"""
+        from backend.vm.effect import MarkEffect
         total = 0
-        for mark in pos:
-            cfg = self._get_mark_config(mark.name)
-            bonus = cfg.get('power_bonus', 0)
-            if bonus and cfg.get('condition') == 'is_attack' and not skill.is_attack:
-                continue
-            total += bonus * mark.stacks
+        for me in self.mark_effects.get(team, []):
+            if isinstance(me, MarkEffect) and me.is_positive and me.power_bonus:
+                if me.condition == 'is_attack' and not skill.is_attack:
+                    continue
+                total += me.power_bonus * me.stacks
         return total
 
     def mark_damage_mult(self, team: str, is_first: bool) -> float:
-        """印记伤害倍率。从配置读取 damage_mult 字段。"""
-        pos, neg = self.get_marks(team)
+        """印记伤害倍率。"""
+        from backend.vm.effect import MarkEffect
         mult = 1.0
-        for mark in pos:
-            cfg = self._get_mark_config(mark.name)
-            dmg_mult = cfg.get('damage_mult', 0)
-            condition = cfg.get('condition', '')
-            if not dmg_mult:
+        for me in self.mark_effects.get(team, []):
+            if not isinstance(me, MarkEffect) or not me.damage_mult:
                 continue
-            if condition == '' or (condition == 'is_first' and is_first):
-                mult += dmg_mult * mark.stacks
-        for mark in neg:
-            cfg = self._get_mark_config(mark.name)
-            dmg_mult = cfg.get('damage_mult', 0)
-            condition = cfg.get('condition', '')
-            if not dmg_mult:
-                continue
-            if condition == '' or (condition == 'not_first' and not is_first):
-                mult += dmg_mult * mark.stacks
+            cond = me.condition
+            if cond == '' or (cond == 'is_first' and is_first) or (cond == 'not_first' and not is_first):
+                mult += me.damage_mult * me.stacks
         return mult
 
     def mark_speed_penalty(self, team: str) -> int:
-        """减速印记速度惩罚。从配置读取 speed_penalty 字段。"""
-        _, neg = self.get_marks(team)
+        """减速印记速度惩罚。"""
+        from backend.vm.effect import MarkEffect
         total = 0
-        for mark in neg:
-            cfg = self._get_mark_config(mark.name)
-            penalty = cfg.get('speed_penalty', 0)
-            total += penalty * mark.stacks
+        for me in self.mark_effects.get(team, []):
+            if isinstance(me, MarkEffect) and me.speed_penalty:
+                total += me.speed_penalty * me.stacks
         return total
 
     def mark_energy_mod(self, team: str) -> int:
-        """印记能耗减免。从配置读取 energy_mod 字段。"""
-        pos, _ = self.get_marks(team)
+        """印记能耗减免。"""
+        from backend.vm.effect import MarkEffect
         total = 0
-        for mark in pos:
-            cfg = self._get_mark_config(mark.name)
-            mod = cfg.get('energy_mod', 0)
-            total += mod * mark.stacks
+        for me in self.mark_effects.get(team, []):
+            if isinstance(me, MarkEffect) and me.energy_mod:
+                total += me.energy_mod * me.stacks
         return total
 
     def mark_switch_damage(self, team: str, sprite: Sprite) -> int:
-        """印记进场伤害。从配置读取 switch_damage_pct 字段。"""
-        _, neg = self.get_marks(team)
+        """印记进场伤害。"""
+        from backend.vm.effect import MarkEffect
         total = 0
-        for mark in neg:
-            cfg = self._get_mark_config(mark.name)
-            pct = cfg.get('switch_damage_pct', 0)
-            if pct:
-                total += max(0, round(sprite.max_hp * pct * mark.stacks))
+        for me in self.mark_effects.get(team, []):
+            if isinstance(me, MarkEffect) and me.switch_damage_pct:
+                total += max(0, round(sprite.max_hp * me.switch_damage_pct * me.stacks))
         return total
 
     def mark_switch_energy_loss(self, team: str) -> int:
-        """印记进场扣能。从配置读取 switch_energy_loss 字段。"""
-        _, neg = self.get_marks(team)
+        """印记进场扣能。"""
+        from backend.vm.effect import MarkEffect
         total = 0
-        for mark in neg:
-            cfg = self._get_mark_config(mark.name)
-            loss = cfg.get('switch_energy_loss', 0)
-            total += loss * mark.stacks
+        for me in self.mark_effects.get(team, []):
+            if isinstance(me, MarkEffect) and me.switch_energy_loss:
+                total += me.switch_energy_loss * me.stacks
         return total
 
     def mark_turn_end_effects(self, sprites: dict[str, Sprite]) -> list[str]:
-        """回合末印记效果。从配置读取 turn_end_energy / turn_end_damage_pct 字段。"""
+        """回合末印记效果。"""
         events: list[str] = []
         for team_key in ('A', 'B'):
-            pos, neg = self.get_marks(team_key)
             sprite = sprites.get(team_key)
             if not sprite or sprite.is_fainted:
                 continue
-            # 回合末回能
-            for mark in pos:
-                cfg = self._get_mark_config(mark.name)
-                gain = cfg.get('turn_end_energy', 0)
-                if gain:
-                    gained = sprite.gain_energy(gain * mark.stacks)
+            for me in self.mark_effects.get(team_key, []):
+                if me.turn_end_energy:
+                    gained = sprite.gain_energy(me.turn_end_energy * me.stacks)
                     if gained:
-                        events.append(f'{sprite.name} {mark.name}+{gained}E')
-            # 回合末扣血
-            for mark in neg:
-                cfg = self._get_mark_config(mark.name)
-                dmg_pct = cfg.get('turn_end_damage_pct', 0)
-                if dmg_pct:
-                    dmg = max(1, round(sprite.max_hp * dmg_pct * mark.stacks))
+                        events.append(f'{sprite.name} {me.name}+{gained}E')
+                if me.turn_end_damage_pct:
+                    dmg = max(1, round(sprite.max_hp * me.turn_end_damage_pct * me.stacks))
                     sprite.take_damage(dmg)
-                    events.append(f'{sprite.name} {mark.name}-{dmg}HP')
+                    events.append(f'{sprite.name} {me.name}-{dmg}HP')
         return events
 
     # ── 印记增删 ──
@@ -276,91 +170,92 @@ class GlobalEffects:
         若 coexist=True → 共存（同名叠加，异名新增）。
         否则 → 替换（同类别清空后新增）。
         返回事件列表。"""
-        mark = Mark(name=name, category=category, stacks=stacks)
-        if team == 'A':
-            pos_list, neg_list = self.pos_marks_a, self.neg_marks_a
+        from backend.engine.mark_config import MARK_TEMPLATES
+        from backend.vm.effect import MarkEffect
+
+        self.mark_effects.setdefault(team, [])
+        me_list = self.mark_effects[team]
+
+        existing = next((e for e in me_list if e.name == name), None)
+        if existing is not None:
+            existing.stacks += stacks
+            return []
+
+        template = MARK_TEMPLATES.get(name)
+        if template is not None:
+            new_me = MarkEffect(
+                name=template.name,
+                source=template.source or name,
+                scope=template.scope,
+                ttl=template.ttl,
+                stacks=stacks,
+                category=template.category,
+                power_bonus=template.power_bonus,
+                damage_mult=template.damage_mult,
+                speed_penalty=template.speed_penalty,
+                energy_mod=template.energy_mod,
+                turn_end_energy=template.turn_end_energy,
+                turn_end_damage_pct=template.turn_end_damage_pct,
+                switch_damage_pct=template.switch_damage_pct,
+                switch_energy_loss=template.switch_energy_loss,
+                starfall_damage=template.starfall_damage,
+                condition=template.condition,
+            )
         else:
-            pos_list, neg_list = self.pos_marks_b, self.neg_marks_b
+            new_me = MarkEffect(
+                name=name, source="skill", scope="persistent",
+                stacks=stacks, category=category,
+            )
 
-        target_list = pos_list if category == 'positive' else neg_list
-        events: list[str] = []
-
-        if coexist:
-            # 共存模式：同名叠加，异名新增
-            existing = next((m for m in target_list if m.name == name), None)
-            if existing:
-                existing.stacks += stacks
-            else:
-                target_list.append(mark)
-        else:
-            # 替换模式：同名叠加，异名替换（每类最多1种印记）
-            existing = next((m for m in target_list if m.name == name), None)
-            if existing:
-                existing.stacks += stacks
-            else:
-                target_list.clear()
-                target_list.append(mark)
-
-        return events
+        if not coexist:
+            me_list[:] = [e for e in me_list if e.category != category]
+        me_list.append(new_me)
+        return []
 
     def remove_mark(self, team: str, category: str) -> None:
-        if team == 'A':
-            if category == 'positive':
-                self.pos_marks_a.clear()
-            else:
-                self.neg_marks_a.clear()
-        else:
-            if category == 'positive':
-                self.pos_marks_b.clear()
-            else:
-                self.neg_marks_b.clear()
+        """Remove all marks of a category from a team."""
+        me_list = self.mark_effects.get(team, [])
+        me_list[:] = [e for e in me_list if e.category != category]
 
     def consume_starfall_stacks(self, team: str, amount: int, sprite: Sprite) -> int:
         """消耗星陨印记层数。若 sprite 有守望星 → 只消耗一半。
         返回实际消耗层数（用于伤害计算）。"""
-        _, neg = self.get_marks(team)
-        starfall = next((m for m in neg if m.name == '星陨印记'), None)
-        if not starfall or starfall.stacks <= 0:
-            return 0
+        from backend.vm.effect import MarkEffect
 
-        total = starfall.stacks
-        consume = amount
-
-        if sprite is not None:
-            from backend.vm.effect import ModifierEffect
-            for e in getattr(sprite, 'active_effects', []):
-                if isinstance(e, ModifierEffect) and e.attr == "starfall_consume_ratio":
-                    consume = max(1, int(amount * e.value))
-                    break
-
-        consumed = min(consume, total)
-        starfall.stacks -= consumed
-        if starfall.stacks <= 0:
-            neg.remove(starfall)
-        return consumed
+        for me in self.mark_effects.get(team, []):
+            if isinstance(me, MarkEffect) and me.name == '星陨印记' and me.stacks > 0:
+                total = me.stacks
+                consume = amount
+                if sprite is not None:
+                    from backend.vm.effect import ModifierEffect
+                    for e in getattr(sprite, 'active_effects', []):
+                        if isinstance(e, ModifierEffect) and e.attr == "starfall_consume_ratio":
+                            consume = max(1, int(amount * e.value))
+                            break
+                consumed = min(consume, total)
+                me.stacks -= consumed
+                if me.stacks <= 0:
+                    self.mark_effects[team].remove(me)
+                return consumed
+        return 0
 
     def trigger_starfall(self, team: str, attacker: Sprite, defender: Sprite) -> int:
         """触发星陨印记：消耗全部层数，造成幻系魔法伤害。
         返回实际伤害值（0=无星陨或非攻击技能）。
         """
-        _, neg = self.get_marks(team)
-        starfall = next((m for m in neg if m.name == '星陨印记'), None)
-        if not starfall or starfall.stacks <= 0:
-            return 0
+        from backend.vm.effect import MarkEffect
 
-        total_stacks = starfall.stacks
-        cfg = self._get_mark_config('星陨印记')
-        dmg_per_stack = cfg.get('starfall_damage', 30)
-
-        # 守望星: 消耗减半但造成满层伤害
-        consumed = self.consume_starfall_stacks(team, total_stacks, defender)
-        if consumed <= 0:
-            return 0
-
-        raw = round(attacker.effective_stat('sp_atk') * (total_stacks * dmg_per_stack)
-                    / max(1, defender.effective_stat('sp_def')))
-        dealt = defender.take_damage(raw)
-        return dealt
+        for me in self.mark_effects.get(team, []):
+            if isinstance(me, MarkEffect) and me.name == '星陨印记' and me.stacks > 0:
+                total_stacks = me.stacks
+                dmg_per_stack = me.starfall_damage or 30
+                consumed = self.consume_starfall_stacks(team, total_stacks, defender)
+                if consumed <= 0:
+                    return 0
+                raw = round(attacker.effective_stat('sp_atk') * (total_stacks * dmg_per_stack)
+                            / max(1, defender.effective_stat('sp_def')))
+                return defender.take_damage(raw)
+        return 0
 
     def set_weather(self, weather: str, turns: int = WEATHER_DURATION) -> None:
         self.weather = weather
@@ -369,8 +264,9 @@ class GlobalEffects:
     @staticmethod
     def classify_mark(name: str) -> str:
         """根据名称判断印记正负。"""
-        if name in POSITIVE_MARKS:
+        from backend.engine.mark_config import POSITIVE_MARK_NAMES, NEGATIVE_MARK_NAMES
+        if name in POSITIVE_MARK_NAMES:
             return 'positive'
-        if name in NEGATIVE_MARKS:
+        if name in NEGATIVE_MARK_NAMES:
             return 'negative'
         return 'negative'  # 安全默认

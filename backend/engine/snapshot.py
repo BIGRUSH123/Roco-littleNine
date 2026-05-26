@@ -99,13 +99,26 @@ def build_ctx(
     stat_stages_self = _extract_stat_stages(ss)
     abnormal_stacks_self = _extract_abnormal_stacks(ss)
 
-    # Charging state
-    is_charging_self = any(
-        e.name == "charging" and e.category == "state" for e in ss.effects
-    ) if hasattr(ss, 'effects') else False
-    charged_self = any(
-        e.name == "charged" and e.category == "state" for e in ss.effects
-    ) if hasattr(ss, 'effects') else False
+    # Charging state — prefer StateEffect from active_effects, fallback to old StatusEffect
+    from backend.vm.effect import StateEffect as _StateEffect
+    if hasattr(ss, 'active_effects'):
+        is_charging_self = any(
+            isinstance(e, _StateEffect) and e.state_type == "charging" for e in ss.active_effects
+        )
+        charged_self = any(
+            isinstance(e, _StateEffect) and e.state_type == "charged" for e in ss.active_effects
+        )
+    else:
+        is_charging_self = False
+        charged_self = False
+    # Fallback to old StatusEffect if no StateEffect found
+    if not is_charging_self and not charged_self and hasattr(ss, 'effects'):
+        is_charging_self = any(
+            e.name == "charging" and e.category == "state" for e in ss.effects
+        )
+        charged_self = any(
+            e.name == "charged" and e.category == "state" for e in ss.effects
+        )
 
     # Skill elements carried
     skill_elements_self = frozenset(
@@ -326,11 +339,22 @@ def build_ctx(
 # ── Internal helpers ──
 
 def _extract_stat_stages(sprite: Sprite) -> dict[str, int]:
-    """Extract stat stage changes from sprite effects.
+    """Extract stat stage changes from sprite active_effects (StatBuffEffect).
 
-    Returns {stat: total_steps} where steps are accumulated from stat effects.
+    Returns {stat: total_steps} where steps are accumulated from StatBuffEffect instances.
+    Falls back to old StatusEffect if no StatBuffEffect found.
     """
+    from backend.vm.effect import StatBuffEffect
+
     stages: dict[str, int] = {}
+    # Prefer StatBuffEffect from active_effects
+    if hasattr(sprite, 'active_effects'):
+        for e in sprite.active_effects:
+            if isinstance(e, StatBuffEffect):
+                stages[e.stat_key] = stages.get(e.stat_key, 0) + e.steps
+    if stages:
+        return stages
+    # Fallback to old StatusEffect
     if not hasattr(sprite, 'effects'):
         return stages
     for e in sprite.effects:
@@ -340,8 +364,21 @@ def _extract_stat_stages(sprite: Sprite) -> dict[str, int]:
 
 
 def _extract_abnormal_stacks(sprite: Sprite) -> dict[str, int]:
-    """Extract abnormal stacks from sprite effects."""
+    """Extract abnormal stacks from sprite active_effects (AbnormalEffect).
+
+    Falls back to old StatusEffect if no AbnormalEffect found.
+    """
+    from backend.vm.effect import AbnormalEffect
+
     stacks: dict[str, int] = {}
+    # Prefer AbnormalEffect from active_effects
+    if hasattr(sprite, 'active_effects'):
+        for e in sprite.active_effects:
+            if isinstance(e, AbnormalEffect):
+                stacks[e.name] = stacks.get(e.name, 0) + e.stacks
+    if stacks:
+        return stacks
+    # Fallback to old StatusEffect
     if not hasattr(sprite, 'effects'):
         return stacks
     for e in sprite.effects:
@@ -351,7 +388,18 @@ def _extract_abnormal_stacks(sprite: Sprite) -> dict[str, int]:
 
 
 def _count_positive(sprite: Sprite) -> int:
-    """Count distinct positive stat effects on a sprite."""
+    """Count distinct positive stat effects on a sprite.
+
+    Reads from StatBuffEffect in active_effects; falls back to old StatusEffect.
+    """
+    from backend.vm.effect import StatBuffEffect
+
+    # Prefer StatBuffEffect from active_effects
+    if hasattr(sprite, 'active_effects'):
+        count = sum(1 for e in sprite.active_effects if isinstance(e, StatBuffEffect) and e.steps > 0)
+        if count > 0:
+            return count
+    # Fallback to old StatusEffect
     if not hasattr(sprite, 'effects'):
         return 0
     return sum(

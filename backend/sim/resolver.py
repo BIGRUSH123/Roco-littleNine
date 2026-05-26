@@ -143,9 +143,9 @@ class SkillResolver:
     _TICK_ELEMENT = {'灼烧': '火', '中毒': '毒', '寄生': '草'}
 
     @staticmethod
-    def _tick_multiplier(sprite: Sprite, tick_name: str) -> float:
+    def _tick_multiplier(sprite: Sprite, tick_name: str, element: str = '') -> float:
         """元素克制倍率用于异常 tick 伤害。"""
-        elem = SkillResolver._TICK_ELEMENT.get(tick_name)
+        elem = element or SkillResolver._TICK_ELEMENT.get(tick_name, '')
         if not elem:
             return 1.0
         attrs = getattr(sprite.species, 'attributes', '')
@@ -158,7 +158,7 @@ class SkillResolver:
     def turn_end(
         sprites: dict[str, Sprite], globals_: GlobalEffects,
     ) -> list[str]:
-        """回合末：中毒/灼烧/冻结/寄生 + 冷却递减 + 印记 + 天气递减。"""
+        """回合末：异常tick + 冷却递减 + 印记 + 天气递减。"""
 
         events: list[str] = []
         all_sprites = list(sprites.values())
@@ -167,30 +167,34 @@ class SkillResolver:
             if s.is_fainted:
                 continue
 
-            poison_stacks = s.get_stacks('中毒')
-            if poison_stacks > 0:
-                raw = max(1, round(s.max_hp * 0.03 * poison_stacks))
-                dmg = max(1, round(raw * SkillResolver._tick_multiplier(s, '中毒')))
-                actual = s.take_damage(dmg)
-                s._last_abnormal_dmg['中毒'] = actual
-                events.append(f'{s.name} 中毒-{actual}HP')
+            # Tick damage from AbnormalEffect in active_effects
+            from backend.vm.effect import AbnormalEffect
+            active = getattr(s, 'active_effects', None) or []
 
-            burn_stacks = s.get_stacks('灼烧')
-            if burn_stacks > 0:
-                raw = max(1, round(s.max_hp * 0.02 * burn_stacks))
-                dmg = max(1, round(raw * SkillResolver._tick_multiplier(s, '灼烧')))
-                actual = s.take_damage(dmg)
-                new_stacks = (burn_stacks + 1) // 2
-                s.update_stacks('灼烧', new_stacks)
-                s._last_abnormal_dmg['灼烧'] = actual
-                events.append(f'{s.name} 灼烧-{actual}HP(剩{new_stacks}层)')
+            for ae in active:
+                if not isinstance(ae, AbnormalEffect):
+                    continue
+                if ae.stacks <= 0 or ae.tick_damage_pct <= 0:
+                    continue
 
-            if s.get_stacks('寄生') > 0:
-                raw = max(1, round(s.max_hp * 0.06))
-                dmg = max(1, round(raw * SkillResolver._tick_multiplier(s, '寄生')))
+                name = ae.name
+                stacks = ae.stacks
+                pct = ae.tick_damage_pct
+                if ae.tick_per_stack:
+                    raw = max(1, round(s.max_hp * pct * stacks))
+                else:
+                    raw = max(1, round(s.max_hp * pct))
+                mult = SkillResolver._tick_multiplier(s, name, ae.tick_element)
+                dmg = max(1, round(raw * mult))
                 actual = s.take_damage(dmg)
-                s._last_abnormal_dmg['寄生'] = actual
-                events.append(f'{s.name} 寄生-{actual}HP')
+                s._last_abnormal_dmg[name] = actual
+                events.append(f'{s.name} {name}-{actual}HP')
+
+                if ae.decay_on_tick:
+                    new_stacks = ae.apply_decay()
+                    ae.stacks = new_stacks
+                    s.update_stacks(name, new_stacks)
+                    events.append(f'{s.name} {name}衰减至{new_stacks}层')
 
             for bs in s.skills:
                 if bs.cooldown > 0:

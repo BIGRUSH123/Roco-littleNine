@@ -318,6 +318,7 @@ class JournalReplayer:
     def _apply_stat_change(self, m: StatChange) -> str:
         sprite = self._target_sprite(m.target)
         from backend.sim.sprite import StatusEffect
+        from backend.vm.effect import StatBuffEffect
         label = _STAT_LABELS.get(m.stat, m.stat)
         unit = _STEP_UNIT.get(m.stat, 10)
         if m.stat in ('priority', 'energy_cost', 'combo'):
@@ -335,6 +336,9 @@ class JournalReplayer:
             source=m.source or m.name or "skill",
         )
         sprite.add_effect(effect)
+        # Dual-write StatBuffEffect
+        self._sync_stat_buff_effect(sprite, m.stat, m.steps, m.scope,
+                                    m.source or m.name or "skill")
         return f"{sprite.name} {display}"
 
     def _apply_modifier(self, m: ModifierInjection) -> str:
@@ -472,6 +476,9 @@ class JournalReplayer:
                     source=m.source or m.name or "skill",
                 )
                 sprite.add_effect(effect)
+                # Dual-write StatBuffEffect
+                self._sync_stat_buff_effect(sprite, m.stat, steps, m.scope,
+                                            m.source or m.name or "skill")
 
         if m.stat in _RATIO_STATS:
             return f"{sprite.name} {label}={final:.0%}"
@@ -533,6 +540,8 @@ class JournalReplayer:
                 if mark.name == m.name and mark.stacks > 0:
                     removed = min(mark.stacks, count)
                     mark.stacks -= removed
+                    if mark.stacks <= 0:
+                        self.globals.mark_effects.get(team, []).remove(mark)
                     return f"{self.self.name} 驱散{team}方{m.name}×{removed}"
             return ""
 
@@ -547,6 +556,8 @@ class JournalReplayer:
                 if mark.name == m.name and mark.stacks > 0:
                     removed = min(mark.stacks, count)
                     mark.stacks -= removed
+                    if mark.stacks <= 0:
+                        self.globals.mark_effects.get(from_team, []).remove(mark)
                     category = self.globals.classify_mark(m.name)
                     coexist = bool(self.self._modifiers.get("mark_coexist", False))
                     self.globals.apply_mark(team, m.name, category, removed, coexist=coexist)
@@ -593,7 +604,49 @@ class JournalReplayer:
             source="skill",
         )
         sprite.add_effect(effect)
+        self._sync_abnormal_effect(sprite, m.name, m.delta, m.scope)
         return f"{sprite.name} {m.name} +{m.delta}层"
+
+    @staticmethod
+    def _sync_abnormal_effect(sprite, name: str, delta: int, scope: str) -> None:
+        """Create or update AbnormalEffect on sprite.active_effects (dual-write)."""
+        from backend.engine.abnormal_config import ABNORMAL_TEMPLATES
+        from backend.vm.effect import AbnormalEffect
+
+        active = getattr(sprite, 'active_effects', None)
+        if active is None:
+            return
+
+        existing = next(
+            (e for e in active if isinstance(e, AbnormalEffect) and e.name == name), None
+        )
+        if existing is not None:
+            existing.stacks += delta
+            if existing.stacks <= 0:
+                active.remove(existing)
+            return
+
+        if delta <= 0:
+            return
+
+        template = ABNORMAL_TEMPLATES.get(name)
+        if template is not None:
+            new_effect = AbnormalEffect(
+                name=template.name,
+                source=template.source,
+                scope=scope or template.scope,
+                ttl=template.ttl,
+                stacks=delta,
+                tick_damage_pct=template.tick_damage_pct,
+                tick_element=template.tick_element,
+                decay_on_tick=template.decay_on_tick,
+                max_stacks=template.max_stacks,
+            )
+        else:
+            new_effect = AbnormalEffect(
+                name=name, source="skill", scope=scope, stacks=delta,
+            )
+        active.append(new_effect)
 
     def _apply_moe_via_replayer(self, sprite: Sprite, m: AbnormalChange) -> str:
         """Apply 萌化 form devolution through the replayer path.
@@ -628,8 +681,10 @@ class JournalReplayer:
                 return f"{old_name} 萌化解除 → 变为{sprite.name}(-{removed}层)"
             if m.source:
                 n = self._remove_by_source(sprite, m.source, "abnormal")
+                self._remove_abnormal_effect(sprite, source=m.source)
                 return f"{sprite.name} 驱散异常(source={m.source}) x{n}"
             sprite.remove_effect(m.name, "abnormal")
+            self._remove_abnormal_effect(sprite, name=m.name)
             return f"{sprite.name} 驱散异常 {m.name}"
         elif m.what == "mark":
             self.globals.remove_mark(
@@ -666,6 +721,64 @@ class JournalReplayer:
             removed += 1
         return removed
 
+    @staticmethod
+    def _remove_abnormal_effect(sprite, name: str = '', source: str = '') -> None:
+        """Remove AbnormalEffect from sprite.active_effects by name or source."""
+        from backend.vm.effect import AbnormalEffect
+        active = getattr(sprite, 'active_effects', None)
+        if not active:
+            return
+        to_remove = []
+        for e in active:
+            if not isinstance(e, AbnormalEffect):
+                continue
+            if name and e.name == name:
+                to_remove.append(e)
+            elif source and e.source == source:
+                to_remove.append(e)
+        for e in to_remove:
+            active.remove(e)
+
+    @staticmethod
+    def _sync_stat_buff_effect(sprite, stat_key: str, steps: int, scope: str,
+                               source: str) -> None:
+        """Create or update StatBuffEffect on sprite.active_effects (dual-write)."""
+        from backend.vm.effect import StatBuffEffect
+        active = getattr(sprite, 'active_effects', None)
+        if active is None:
+            return
+
+        existing = next(
+            (e for e in active
+             if isinstance(e, StatBuffEffect) and e.stat_key == stat_key and e.scope == scope),
+            None,
+        )
+        if existing is not None:
+            existing.steps += steps
+            return
+
+        active.append(StatBuffEffect(
+            name=f'{stat_key}', source=source, scope=scope,
+            stat_key=stat_key, steps=steps,
+        ))
+
+    @staticmethod
+    def _sync_state_effect(sprite, state_type: str, params: dict | None = None) -> None:
+        """Create or update StateEffect on sprite.active_effects (dual-write)."""
+        from backend.vm.effect import StateEffect
+        active = getattr(sprite, 'active_effects', None)
+        if active is None:
+            return
+
+        # Replace existing state of same type
+        active[:] = [e for e in active
+                     if not (isinstance(e, StateEffect) and e.state_type == state_type)]
+
+        active.append(StateEffect(
+            name=state_type, source="skill", scope="turn",
+            state_type=state_type, params=params or {},
+        ))
+
     def _apply_steal(self, m: Steal) -> str:
         # Steal effects/energy/marks from target to self
         if m.what == "positive":
@@ -684,24 +797,15 @@ class JournalReplayer:
             self.self.gain_energy(stolen)
             return f"{self.self.name} 偷取 {stolen}E from {target.name}"
         elif m.what == "mark":
-            # Determine team for mark stealing
             from_team_key = "A" if m.from_target == "team_own" else "B"
             to_team_key = self.team
-            name = m.name  # specific mark name, or None = all
+            name = m.name
             if name:
-                # Steal specific mark: find it, remove it, apply to own team
                 mark = self.globals.get_mark_by_name(from_team_key, name)
                 if mark and mark.stacks > 0:
                     stacks = mark.stacks
                     category = mark.category
-                    # Remove from source team's list
-                    if from_team_key == "A":
-                        src_list = self.globals.pos_marks_a if category == "positive" else self.globals.neg_marks_a
-                    else:
-                        src_list = self.globals.pos_marks_b if category == "positive" else self.globals.neg_marks_b
-                    if mark in src_list:
-                        src_list.remove(mark)
-                    # Apply to own team
+                    self.globals.mark_effects.get(from_team_key, []).remove(mark)
                     coexist = bool(self.self._modifiers.get("mark_coexist", False))
                     self.globals.apply_mark(to_team_key, name, category, stacks, coexist=coexist)
                     return f"{self.self.name} 偷取 {name} x{stacks}"
@@ -712,12 +816,24 @@ class JournalReplayer:
         # Trigger abnormal tick damage
         sprite = self._target_sprite(m.target)
         stacks = sprite.get_stacks(m.abnormal_name)
-        if stacks > 0:
-            # Simple tick: deal damage based on abnormal type
-            dmg = max(1, round(sprite.max_hp * 0.03 * stacks))
-            sprite.take_damage(dmg)
-            return f"{sprite.name} {m.abnormal_name} tick -{dmg}HP"
-        return ""
+        if stacks <= 0:
+            return ""
+
+        # Read tick params from AbnormalEffect if available; fall back to hardcoded
+        dmg_pct = 0.03
+        from backend.vm.effect import AbnormalEffect
+        active = getattr(sprite, 'active_effects', None)
+        if active:
+            ae = next(
+                (e for e in active if isinstance(e, AbnormalEffect) and e.name == m.abnormal_name),
+                None,
+            )
+            if ae is not None:
+                dmg_pct = ae.tick_damage_pct or dmg_pct
+
+        dmg = max(1, round(sprite.max_hp * dmg_pct * stacks))
+        sprite.take_damage(dmg)
+        return f"{sprite.name} {m.abnormal_name} tick -{dmg}HP"
 
     def _apply_double(self, m: Double) -> str:
         sprite = self._target_sprite(m.target)
@@ -740,6 +856,7 @@ class JournalReplayer:
         sprite.add_effect(StatusEffect(
             name="charging", category="state", scope="persistent", source="skill",
         ))
+        self._sync_state_effect(sprite, "charging")
         return f"{sprite.name} 开始蓄力"
 
     def _apply_escape(self, m: Escape) -> str:
@@ -754,11 +871,13 @@ class JournalReplayer:
     def _apply_lock(self, m: Lock) -> str:
         sprite = self._target_sprite(m.target)
         sprite.locked_turns = m.turns
+        self._sync_state_effect(sprite, "locked", {"turns": m.turns})
         return f"{sprite.name} 锁定 {m.turns}t"
 
     def _apply_interrupt(self, m: Interrupt) -> str:
         sprite = self._target_sprite(m.target)
         sprite.interrupted = True
+        self._sync_state_effect(sprite, "interrupted")
         return f"{sprite.name} 被打断"
 
     def _apply_exchange(self, m: Exchange) -> str:

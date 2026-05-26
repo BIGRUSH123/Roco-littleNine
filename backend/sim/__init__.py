@@ -36,7 +36,7 @@ from .battle_context import BattleContext
 from .battle_mechanics import BattleMechanicsMixin
 from .battleskill import BattleSkill
 from .factory import SimFactory
-from .globals import GlobalEffects, Mark
+from .globals import GlobalEffects
 from .pipeline import TurnPipeline
 from .player import Item, Player, PlayStyle
 from .resolver import SkillResolver

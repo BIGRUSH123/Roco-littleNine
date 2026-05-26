@@ -78,3 +78,124 @@ class ModifierEffect(EffectObject):
     value: float = 0.0
     mode: str = "add"                   # set | add | multiply
     skill_where: dict | None = None     # per-skill conditional filter
+
+
+@dataclass
+class AbnormalEffect(EffectObject):
+    """Abnormal status effect: poison, burn, parasite, freeze, moe.
+
+    Carries tick behavior so new abnormal types can be added via config
+    without changing turn_end() or tick opcode handlers.
+    """
+
+    stacks: int = 0
+    tick_damage_pct: float = 0.0       # HP% damage per tick (x stacks if tick_per_stack)
+    tick_element: str = ""             # for element multiplier (克制)
+    decay_on_tick: bool = False        # burn: (stacks + 1) // 2 each tick
+    max_stacks: int = 0                # cap (freeze: 20); 0 = no cap
+    tick_per_stack: bool = True        # True: dmg × stacks; False: flat dmg
+
+    def tick_params(self) -> dict:
+        """Engine reads this to compute tick damage."""
+        return {
+            "damage_pct": self.tick_damage_pct,
+            "element": self.tick_element,
+            "decay": self.decay_on_tick,
+            "per_stack": self.tick_per_stack,
+        }
+
+    def apply_decay(self) -> int:
+        """Burn decay: (stacks + 1) // 2. Returns new stack count."""
+        return (self.stacks + 1) // 2
+
+
+@dataclass
+class MarkEffect(EffectObject):
+    """Team-level mark effect. Replaces the _MARK_EFFECTS config dict.
+
+    Each mark type is defined as a template in mark_config.py.
+    When applied, the engine clones the template with the requested stacks.
+    """
+
+    stacks: int = 0
+    category: str = "positive"            # "positive" | "negative"
+
+    # Per-stack behavior fields (0 = no effect)
+    power_bonus: int = 0                  # +N 威力 per stack
+    damage_mult: float = 0.0              # +N% 伤害倍率 per stack
+    speed_penalty: int = 0                # -N 速度 per stack
+    energy_mod: int = 0                   # -N 能耗 per stack
+    turn_end_energy: int = 0              # +N 能量 per stack at turn end
+    turn_end_damage_pct: float = 0.0      # N% maxHP damage per stack at turn end
+    switch_damage_pct: float = 0.0        # N% maxHP damage per stack on entry
+    switch_energy_loss: int = 0           # -N 能量 per stack on entry
+    starfall_damage: int = 0              # N 威力幻系魔法伤害 per stack
+
+    condition: str = ""                   # "is_attack" | "is_first" | "not_first" | ""
+
+    @property
+    def is_positive(self) -> bool:
+        return self.category == "positive"
+
+    @property
+    def is_negative(self) -> bool:
+        return self.category == "negative"
+
+
+@dataclass
+class StatBuffEffect(EffectObject):
+    """Stat buff/debuff — replaces StatusEffect(category="stat").
+
+    Covers both visible stage changes (atk+30%) and visible modifier
+    stats (combo+1, priority+2). Invisible modifiers (damage_mult, etc.)
+    remain in sprite._modifiers only.
+    """
+
+    stat_key: str = ""                    # atk | def | sp_atk | sp_def | speed | power | combo | priority | energy_cost
+    steps: int = 0                        # positive = buff, negative = debuff
+
+    @property
+    def is_positive(self) -> bool:
+        return self.steps > 0
+
+    @property
+    def is_negative(self) -> bool:
+        return self.steps < 0
+
+    @property
+    def display_name(self) -> str:
+        """Human-readable label for UI: '物攻+30%', '先手+3', etc."""
+        label = _STAT_LABELS.get(self.stat_key, self.stat_key)
+        unit = _STEP_UNITS.get(self.stat_key, 10)
+        if self.stat_key in ('priority', 'energy_cost', 'combo'):
+            return f'{label}{self.steps:+d}'
+        if self.stat_key in ('speed', 'power', 'life_drain'):
+            sign = '+' if self.steps > 0 else ''
+            return f'{label}{sign}{self.steps * unit}'
+        sign = '+' if self.steps > 0 else ''
+        return f'{label}{sign}{self.steps * unit}%'
+
+
+@dataclass
+class StateEffect(EffectObject):
+    """Special state effect — replaces StatusEffect(category="state").
+
+    Covers transient states: charging, locked, redirect, interrupted, first_action, etc.
+    """
+
+    state_type: str = ""                  # "charging" | "locked" | "redirect" | "interrupted" | "first_action"
+    params: dict = field(default_factory=dict)
+
+
+# ── Stat display helpers (shared with sprite.py) ──
+
+_STAT_LABELS: dict[str, str] = {
+    'atk': '物攻', 'sp_atk': '魔攻', 'def': '物防', 'sp_def': '魔防',
+    'speed': '速度', 'power': '威力', 'priority': '先手',
+    'energy_cost': '能耗', 'combo': '连击', 'life_drain': '吸血',
+}
+
+_STEP_UNITS: dict[str, int] = {
+    'power': 10, 'speed': 10, 'life_drain': 10,
+    'priority': 1, 'energy_cost': 1, 'combo': 1,
+}

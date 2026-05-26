@@ -283,6 +283,15 @@ class Sprite:
             if mod_scope == scope or (scope in ('battlefield', 'turn') and mod_scope == 'aura'):
                 self._modifiers.pop(mod_key, None)
                 del self._mod_scopes[mod_key]
+        # 清除 active_effects 中匹配 scope 的 AbnormalEffect / StatBuffEffect / StateEffect
+        from backend.vm.effect import AbnormalEffect, StatBuffEffect, StateEffect
+        self.active_effects = [
+            e for e in self.active_effects
+            if not (
+                (isinstance(e, (AbnormalEffect, StatBuffEffect)) and e.scope in scopes)
+                or (isinstance(e, StateEffect) and e.scope in scopes)
+            )
+        ]
 
     # ── 驱散 / 翻倍 ──
 

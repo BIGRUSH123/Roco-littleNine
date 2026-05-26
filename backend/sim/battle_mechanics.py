@@ -87,6 +87,7 @@ class BattleMechanicsMixin:
         if sprite.is_fainted:
             return events
         n = len([e for e in sprite.effects if e.scope == 'battlefield'])
+        n += len([e for e in getattr(sprite, 'active_effects', []) if getattr(e, 'scope', '') == 'battlefield'])
         sprite.clear_effects('battlefield')
         sprite.first_action = True
         sprite.inc_counter('times_entered')
