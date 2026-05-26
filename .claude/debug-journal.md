@@ -149,6 +149,14 @@
 - **修复**: 删除全部 hook 代码（`hooks/__init__.py` 清空，18 个注册全部移除）；`apply_mark` 签名 `user` → `coexist: bool`；replayer 4 处调用点改为读 `self.self._modifiers.get("mark_coexist")` 后传 `coexist=`；`吟游之弦.json` listen 改为 `["pre_calc", "post_entry"]` 确保入场即设 flag
 - **涉及文件**: backend/engine/hooks/__init__.py, backend/sim/globals.py:273-286, backend/engine/replayer.py:523/551/576/705, data/traits/吟游之弦.json:15
 - **教训**: 特性通过 hook 实现时，先查 hook 的触发条件在生产环境中是否满足——特别是参数是否被实际传入（grep 所有调用点确认）。特性同时有 JSON observer 和 hook 两套路径时，大概率 observer 路径的 flag 只写不读
+
+## 2026-05-26 - 星陨印记非幻系攻击不触发消耗和伤害
+
+- **现象**: 敌方有星陨印记时，用非幻系技能攻击不会消耗印记，也没有额外幻系伤害
+- **根因**: 三个断点：① `consume_starfall_stacks()` 在代码库中无任何调用者，星陨印记只增不减；② `_MARK_EFFECTS星陨印记` 空配，缺少伤害公式配置（每层30威力）；③ 整个引擎没有 `skill.element != "幻"` 的触发门检查
+- **修复**: globals.py 新增 `trigger_starfall(team, attacker, defender)` 方法（计算伤害 → 消耗层数 → take_damage）；`_MARK_EFFECTS` 添加 `starfall_damage: 30`；battle.py execute_skill() step 6.7 新增非幻系攻击触发检查；清理 consume_starfall_stacks 中已删除的 before_consume_starfall hook 调用
+- **涉及文件**: backend/sim/globals.py:87-89/318-357, backend/engine/battle.py:189-193
+- **教训**: 印记类机制排查先从三个点入手——配置是否有伤害/效果字段、消耗/触发方法是否有调用者、触发条件门（元素/技能类型）是否在引擎中存在
 <!-- 新条目追加在此行上方，格式如下：
 
 ## YYYY-MM-DD - 简短标题
