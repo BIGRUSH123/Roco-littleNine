@@ -56,10 +56,26 @@
 ## 2026-05-26 - 刺肤 on_damage_taken 无 of 过滤 + post_damage 视角翻转缺失导致双方双重伤害
 
 - **现象**: 石冠王蜥（刺肤特性）在场上时，双方每次攻击均出现两次伤害数字——攻击方额外受到一次反伤，受击方也额外受到一次反伤
-- **根因**: ① `on_damage_taken` 条件不检查 "of"（谁受伤），任意伤害都触发 observer；② `post_damage` 不在 owner-filter 列表中，对手攻击时 replayer 视角颠倒，`hit(sprite_opp)` 错误命中 owner 自己
+- **根因**: ① `on_damage_taken` 条件不检查 "of"（谁受伤），任意伤害都触发 observer；② `post_damage` 不在 owner-filter 列表中，对手攻击时 replayer 视角颠倒，`hit(sprite_opp)` 错误命中 owner 自己；③ 视角翻转在 `eval_one(cond)` 之后执行，导致条件仍从攻击方视角求值，`of: "sprite_self"` 永远不匹配→反伤完全不触发
 - **修复**: EventContext 新增 `damage_taken_of` 字段追踪受伤方；`on_damage_taken` 支持 `of` 参数（缺省向后兼容）；`_fire_post_event` 对 post_damage 做 owner 视角翻转；刺肤/坚韧铠甲/最好的伙伴三个 trait JSON 补上正确的 `of` 值
 - **涉及文件**: backend/vm/ctx.py:38, backend/engine/snapshot.py:64/197, backend/engine/battle.py:289-290/260-277, backend/vm/cond.py:307-310, data/traits/刺肤.json:10, data/traits/坚韧铠甲.json:19, data/traits/最好的伙伴.json:45
-- **教训**: 反伤/受击触发类特性出现"双方都受伤"或"反伤打自己"症状时，直接查两个点——条件是否含 `of` 过滤 + 对应 trigger 是否在 `_fire_post_event` 的视角翻转/owner 过滤列表中
+- **教训**: 反伤/受击触发类特性出现"双方都受伤"、"反伤打自己"或"反伤完全不触发"症状时，直接查三个点——条件是否含 `of` 过滤 + trigger 是否在视角翻转列表中 + 视角翻转是否在条件求值**之前**执行
+
+## 2026-05-26 - 反伤视角交换后 ctx 未重建导致反击伤害计算用错双方数值
+
+- **现象**: 石冠王蜥反伤触发但只造成 1 点伤害（预期为 50 威力物攻的正常伤害）
+- **根因**: 交换 replayer.self/opp 后 ctx 未重建——`op_hit` 读取 `ctx.atk_self` 仍是原攻击方的攻击力，`ctx.def_opp` 仍是防御方的防御力，攻防比极端不利 → `calc_damage` 返回 `max(1, ...)`
+- **修复**: Ctx 新增 `swapped_view()` 方法交换所有 self/opp 和 own/opp 字段；`_fire_post_event` 视角翻转时同步替换 ctx
+- **涉及文件**: backend/vm/ctx.py:162-216, backend/engine/battle.py:271-277
+- **教训**: 反伤伤害异常低（仅1点）时，查 ctx 的 atk_self/def_opp 是否对应反击方和受击方——视角交换了 replayer 但没交换 ctx
+
+## 2026-05-26 - post_damage 视角翻转在条件判断之后导致反伤完全不触发
+
+- **现象**: 石冠王蜥（刺肤特性）挨打后不再触发反伤，日志中无反伤伤害数字
+- **根因**: `_fire_post_event` 对 post_damage 的视角翻转（swap replayer.self/opp）放在 `eval_one(cond)` 内部，条件仍从攻击方视角求值——`damage_taken_of` 为 `"sprite_opp"`（对手受伤），`of: "sprite_self"` 永远不匹配
+- **修复**: 将 replayer.self/opp 交换移至 `eval_one` 之前，用 try/finally 包裹确保条件求值后恢复原视角
+- **涉及文件**: backend/engine/battle.py:259-286
+- **教训**: 反伤触发条件包含 `of` 过滤时，若完全不触发，查视角翻转是否在条件求值**之前**执行
 
 <!-- 新条目追加在此行上方，格式如下：
 
