@@ -101,6 +101,22 @@
 - **涉及文件**: data/traits/刺肤.json:9-10
 - **教训**: 反伤类特性出现"攻击时也造成额外伤害"，直接查 on_damage_taken 条件是否含 of 过滤
 
+## 2026-05-26 - resolve.py scale/offset 后 int() 截断导致小数值特性完全不生效
+
+- **现象**: 变形活画（敌方每有1层增益→技能威力+10%）完全不生效，无论敌方多少层增益威力都不变。囤积、冰钻等使用 scale: 0.1 的特性同样不生效
+- **根因**: `_resolve_dict_query` 和 `_apply_transforms` 在 scale/offset 变换后对结果调用了 `int()`——`int(3 * 0.1) = 0`，`int(0 + 1) = 1`——小数值被截断为 0，power_mult 永远为 1.0
+- **修复**: 移除 scale/offset 后的 int() 转换（per 的 int() 保留，用于除法取整是正确的）。涉及 `backend/vm/resolve.py:140-144` 和 `:158-162`
+- **涉及文件**: backend/vm/resolve.py:140-144, 158-162
+- **教训**: 特性数值完全不生效时，先查 resolve 中 dict query 的数值变换是否被 int() 截断——对比 typed Query 路径（正确保留 float）和 dict query 路径（之前有 int()）
+
+## 2026-05-26 - DataDrivenTrait 路径 observer listen 字段丢失导致触发所有事件
+
+- **现象**: 通过 DataDrivenTrait 路径加载的 observer 未按 listen 限制触发——例如 listen: "pre_calc" 的 observer 在 post_damage、turn_end 等所有事件上都触发
+- **根因**: `op_count` 未提取 `listen` 字段，CounterRegister 无此字段，_effects_to_observers 和 register_from_counter 只用 infer_triggers() 推断——"compare" 条件推断结果为空集合（等同于 fire on all events）
+- **修复**: CounterRegister 加 listen 字段；op_count 提取 listen；两处 Observer 构造使用显式 listen（回退到 infer_triggers）。主路径 TraitToObserver 不受影响（已正确处理 listen）
+- **涉及文件**: backend/vm/journal.py:265, backend/vm/ops/count.py:29-35, backend/sim/traits/trait_engine.py:129, backend/engine/observer.py:125-130
+- **教训**: observer 触发频率异常（不该触发时也在触发）时，检查 listen 字段是否在 trait→observer 转换链路中全程保留——每个中间数据结构都要有对应字段
+
 <!-- 新条目追加在此行上方，格式如下：
 
 ## YYYY-MM-DD - 简短标题
