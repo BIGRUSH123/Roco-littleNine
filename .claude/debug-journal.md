@@ -117,6 +117,30 @@
 - **涉及文件**: backend/vm/journal.py:265, backend/vm/ops/count.py:29-35, backend/sim/traits/trait_engine.py:129, backend/engine/observer.py:125-130
 - **教训**: observer 触发频率异常（不该触发时也在触发）时，检查 listen 字段是否在 trait→observer 转换链路中全程保留——每个中间数据结构都要有对应字段
 
+## 2026-05-26 - _target_sprite 不识别 ally_new/enemy_new 导致离场 buff 错误施加给对手
+
+- **现象**: 吉利丁片 def/sp_def 加成（修复条目1后）理论上会生效，但会错误施加到对手而非换入队友
+- **根因**: `_target_sprite` 只识别 sprite_self/self/team_own/skill_off_0，其余全部 fallback 到 self.opp
+- **修复**: _target_sprite 新增 ally_new → battle.get_player(team).active, enemy_new → battle.get_opponent(team).active
+- **涉及文件**: backend/engine/replayer.py:896-899
+- **教训**: 加成效果出现在错误目标（对手）身上时，查 _target_sprite 是否识别该 target 值
+
+## 2026-05-26 - sprite_left 条件未在 COND_EVAL 注册导致 post_leave observer 永不触发
+
+- **现象**: 吉利丁片（离场后换入精灵获得双防+20%）完全不触发，无任何加防提示
+- **根因**: `COND_EVAL` 调度表中缺少 `sprite_left` 条件——`eval_one()` 抛出 KeyError，被 `_fire_post_event` 的 `except Exception: continue` 静默吞掉。同时所有 `post_leave` 的 ctx 构造未传 `self_switched=True`
+- **修复**: cond.py 新增 `sprite_left` 条件（of=sprite_self→self_switched, of=sprite_opp→opp_switched）；battle_mechanics.py/battle.py 全部 post_leave ctx 补传 self_switched=True
+- **涉及文件**: backend/vm/cond.py:318-321, backend/sim/battle_mechanics.py:72/150/270/298, backend/sim/battle.py:886
+- **教训**: 特性完全不触发且 observer 已注册时，直接检查 COND_EVAL 是否包含 observer 的条件键——缺少就是静默失败
+
+## 2026-05-26 - 向心力 skill_at_N 目标未被识别导致 buff 加到对手 + 只触发一次不跟随传动换位
+
+- **现象**: 声波缇塔（向心力：1/2号位技能传动1+威力30）入场后，威力+30和传动+1全显示在对手双灯鱼身上，且效果永久附着入场时技能而非跟随传动换位
+- **根因**: ① `_target_sprite("skill_at_1")` 不匹配已知 target，fallback 到 `self.opp` → buff 全写给对手；② 无路由逻辑指到 `sprite.skills[N]._modifiers`；③ drive flag 写入后无人翻译为 `_transmission`；④ 只监听 `post_entry`，无 `turn_start` 每回合重评估
+- **修复**: replayer 新增 `skill_at_N` 识别（target 解析 + 位置路由 + drive→_transmission + 同 stat 批次清理）；cond/battle 加 `turn_start` trigger/`always` 条件；DataDrivenTrait 加 `on_turn_start`；向心力.json 改 `or(sprite_entered, always)` 监听 `[post_entry, turn_start]`
+- **涉及文件**: backend/engine/replayer.py:94/235/240/387-400/908, backend/vm/cond.py:198-199/397-398, backend/engine/battle.py:254, backend/sim/traits/trait_engine.py:133-148, data/traits/向心力.json
+- **教训**: 效果出现在错误目标时查 `_target_sprite` 是否识别该 target；位置型效果不跟随回合刷新时检查是否只有 `post_entry` 无 `turn_start`
+
 <!-- 新条目追加在此行上方，格式如下：
 
 ## YYYY-MM-DD - 简短标题
