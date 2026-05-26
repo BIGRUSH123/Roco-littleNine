@@ -21,6 +21,38 @@
 - **涉及文件**: backend/engine/battle.py:252-254
 - **教训**: 特性效果（回能/扣血/印记）出现"对手也触发了"或"触发两次"的症状时，直接查 `_fire_post_event` 的 owner 过滤是否包含对应 trigger
 
+## 2026-05-26 - load_for_sprite 重复调用 + should_clear reload 失效导致特性 observer 注册两份
+
+- **现象**: 奇丽果（养分内循环）回合末回能出现两次（+6E + +1E），delta=6 两次触发但第二次能量已近满只能+1
+- **根因**: `load_for_sprite()` 在 api init 和 dispatch_entry 各调用一次，去重用的 `unregister_by_owner(id, "reload")` 因 `Observer.should_clear("reload")` 对 persistent scope 返回 False（仅 faint 才清），旧 observer 未被删除导致重复注册
+- **修复**: `observer.py:68` — `should_clear` 新增 `reason == "reload"` 分支始终返回 True，确保 reload 去重对所有 scope 都生效
+- **涉及文件**: backend/engine/observer.py:68-79
+- **教训**: 特性效果数值翻倍或触发次数异常时，先怀疑 observer 是否被重复注册——检查 `load_for_sprite` 调用次数和 `should_clear` 的去重逻辑
+
+## 2026-05-26 - Observer 条件 on_skills_energy_changed 永远不触发
+
+- **现象**: 冰钻（敌方技能总能耗 → 攻击威力加成）特性完全不生效，observer 注册后从未触发
+- **根因**: battle.py `_fire_mutation_events` 处理 EnergyChange 时未填充 `ctx.event.skills_energy_changed_of`（默认 ""），条件求值 `"" == "sprite_opp"` 永远为 False
+- **修复**: EnergyChange 分支新增 `target_of` 解析，同时设置 `ctx.event.energy_changed_of` 和 `ctx.event.skills_energy_changed_of`
+- **涉及文件**: backend/engine/battle.py:291-293
+- **教训**: 特性完全不生效且使用 on_* 条件时，先查 `ctx.event.*` 对应字段是否在 `_fire_mutation_events` 或 `fire_trigger` 处被正确填充
+
+## 2026-05-26 - mult_mod 丢弃 skill_filter 导致技能过滤失效
+
+- **现象**: 冰钻/变形活画等使用 `op: "mult_mod"` + `skill_filter: "attack"` 的特性，威力加成作用于全部技能而非仅攻击技能
+- **根因**: `op_mult_mod` 创建 `ModifierInjection` 时只传 target/stat/value/mode/scope，丢弃了 skill_filter/skill_where 等元数据。编译器路径 `_parse_mult_mod` → `MultModOp` 同样缺少这些字段
+- **修复**: `MultModOp` 添加 5 个字段；`_parse_mult_mod` 传递它们；`op_mult_mod` 在 ModifierInjection 中包含它们
+- **涉及文件**: backend/vm/ir_skill.py:94-98, backend/vm/compiler/passes/skill_parse.py:527-531, backend/vm/ops/mod.py:164-168
+- **教训**: RISC op 处理函数之间应保持元数据传递一致性——对比 op_power_mod 和 op_mult_mod 就能发现遗漏
+
+## 2026-05-26 - Replayer 不处理 skill_filter: "attack" 导致 modifier 全局写入
+
+- **现象**: 带 skill_filter: "attack" 的 ModifierInjection 被写入 sprite._modifiers 而非对应技能的 BattleSkill._modifiers
+- **根因**: `_apply_modifier` 只对 `skill_filter == "all"` 和 `skill_where is not None` 做技能级分发，`skill_filter: "attack"` 落入全局 sprite._modifiers 分支
+- **修复**: 新增 `_matches_skill_type()` 辅助函数；`_apply_modifier` 将非 "all" 的 skill_filter 路由到 `_apply_to_matching_skills`；后者新增 skill_filter 过滤逻辑
+- **涉及文件**: backend/engine/replayer.py:108-121, 171-173, 378-380
+- **教训**: 数值加成为何不限于指定技能类型时，先查 replayer 的 modifier 分发路由是否匹配了该 skill_filter 值
+
 <!-- 新条目追加在此行上方，格式如下：
 
 ## YYYY-MM-DD - 简短标题
