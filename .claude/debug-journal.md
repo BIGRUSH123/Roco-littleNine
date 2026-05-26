@@ -77,6 +77,22 @@
 - **涉及文件**: backend/engine/battle.py:259-286
 - **教训**: 反伤触发条件包含 `of` 过滤时，若完全不触发，查视角翻转是否在条件求值**之前**执行
 
+## 2026-05-26 - mult_mod 对 atk/def/sp_atk 等倍率值日志显示为 +0
+
+- **现象**: 火神（助燃：使用火系技能后双攻+20%）日志显示 物攻+0 / 魔攻+0，看起来特性未生效
+- **根因**: replayer._apply_modifier 对 _STAGE_STATS 的 ModifierInjection 用 :+.0f 格式化，倍率值 0.2 被四舍五入为 +0。实际数值（_modifiers["atk"]=0.2）和伤害计算（build_ctx 用 1.0+0.2 倍率）均正确，纯显示 bug
+- **修复**: replayer.py — _STAGE_STATS 的 ModifierInjection 显示改用 :+.0% 格式化为百分比
+- **涉及文件**: backend/engine/replayer.py:454
+- **教训**: 日志显示 +0 但实际效果可能已生效——先验证数值是否存入 sprite._modifiers，再看 build_ctx 是否正确读取，最后查显示格式化
+
+## 2026-05-26 - 刺肤 on_damage_taken 缺 of 过滤导致主动攻击时也触发反伤
+
+- **现象**: 石冠王蜥（刺肤）主动攻击时，对手受到两次伤害数字（技能伤害 + 误触发的反伤）
+- **根因**: 刺肤 trait JSON 的 on_damage_taken 条件缺少 of: sprite_self 过滤，任意精灵受伤都触发 observer
+- **修复**: data/traits/刺肤.json — 条件加 of: sprite_self，限制仅在自身受伤时触发
+- **涉及文件**: data/traits/刺肤.json:9-10
+- **教训**: 反伤类特性出现"攻击时也造成额外伤害"，直接查 on_damage_taken 条件是否含 of 过滤
+
 <!-- 新条目追加在此行上方，格式如下：
 
 ## YYYY-MM-DD - 简短标题
