@@ -138,10 +138,10 @@ def _resolve_dict_query(ctx: Ctx, value: dict) -> int | float | str:
         raw = int(raw / per) if per != 0 else raw
 
     if "scale" in value:
-        raw = int(raw * value["scale"])
+        raw = raw * value["scale"]
 
     if "offset" in value:
-        raw = int(raw + value["offset"])
+        raw = raw + value["offset"]
 
     return raw
 
@@ -156,10 +156,10 @@ def _apply_transforms(raw, value: dict) -> int | float | str:
         raw = int(raw / per) if per != 0 else raw
 
     if "scale" in value:
-        raw = int(raw * value["scale"])
+        raw = raw * value["scale"]
 
     if "offset" in value:
-        raw = int(raw + value["offset"])
+        raw = raw + value["offset"]
 
     return raw
 

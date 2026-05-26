@@ -126,7 +126,7 @@ class DataDrivenTrait(TraitHandler):
                     scope=m.scope,
                     name=m.name or self.name,
                     source=self.name,
-                    listen=infer_triggers(m.cond),
+                    listen=m.listen if m.listen is not None else infer_triggers(m.cond),
                 ))
         return observers
 

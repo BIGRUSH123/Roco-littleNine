@@ -262,6 +262,7 @@ class CounterRegister:
     cond: dict | None = None     # Trigger condition
     then: list = field(default_factory=list)  # IR effects to execute
     scope: str = "persistent"
+    listen: frozenset | None = None  # explicit trigger set (None = auto-infer)
     threshold: int = 1            # fire every N triggers
     reset_on_fire: bool = True    # reset counter after firing
 

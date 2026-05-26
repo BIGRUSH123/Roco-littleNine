@@ -122,12 +122,13 @@ class ObserverRegistry:
 
         Auto-infers listen triggers from the condition type.
         """
+        explicit_listen = getattr(counter, 'listen', None)
         self._observers.append(Observer(
             cond=counter.cond,
             then=counter.then,
             scope=counter.scope,
             name=counter.name or "",
-            listen=infer_triggers(counter.cond),
+            listen=explicit_listen if explicit_listen is not None else infer_triggers(counter.cond),
             threshold=getattr(counter, 'threshold', 1),
             reset_on_fire=getattr(counter, 'reset_on_fire', True),
         ))

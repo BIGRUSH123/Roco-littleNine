@@ -26,11 +26,20 @@ def op_count(ctx: Ctx, effect) -> list[Mutation]:
     threshold = _get(effect, "threshold", 1)
     reset_on_fire = _get(effect, "reset_on_fire", True)
 
+    listen = None
+    listen_raw = _get(effect, "listen")
+    if listen_raw is not None:
+        if isinstance(listen_raw, str):
+            listen = frozenset([listen_raw])
+        else:
+            listen = frozenset(listen_raw)
+
     return [CounterRegister(
         name=name,
         cond=cond,
         then=then,
         scope=scope,
+        listen=listen,
         threshold=threshold,
         reset_on_fire=reset_on_fire,
     )]
