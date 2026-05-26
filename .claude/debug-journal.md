@@ -5,6 +5,14 @@
 
 ---
 
+## 2026-05-26 - extra_turn_end flag 只写不读导致双向光速特性不生效
+
+- **现象**: 粉耳星兔（双向光速特性）在场时，回合末异常效果（灼烧）仍只触发一次，而非预期的两次
+- **根因**: `extra_turn_end` flag 被正确写入 `sprite._modifiers`，但战斗引擎 `_phase_turn_end` 中无任何代码读取此 flag——`backend/sim/` 完全不存在对 `extra_turn_end` 的引用
+- **修复**: `_phase_turn_end` 中 `SkillResolver.turn_end()` 首次调用后，检查场上精灵是否有 `extra_turn_end > 0`，有则再调用一次，使异常tick/天气/印记等回合末效果额外触发一次
+- **涉及文件**: backend/sim/battle.py:804-810
+- **教训**: flag 型 stat（extra_turn_end/tick_reduce/extra_action 等）若日志显示已设置但效果不生效，直接搜 `backend/sim/` 中是否有对该 flag 的消费代码——大概率是"只写不读"
+
 ## 2026-05-26 - 观察者系统 power_mod 未写入 BattleSkill._modifiers 导致前端技能栏威力不更新
 
 - **现象**: 风滚暮虫（共鸣特性：虫鸣威力+20）换上场后，前端技能栏中虫鸣仍显示基础威力15，实际伤害也未享受+20加成
