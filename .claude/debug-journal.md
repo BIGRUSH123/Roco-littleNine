@@ -53,6 +53,14 @@
 - **涉及文件**: backend/engine/replayer.py:108-121, 171-173, 378-380
 - **教训**: 数值加成为何不限于指定技能类型时，先查 replayer 的 modifier 分发路由是否匹配了该 skill_filter 值
 
+## 2026-05-26 - 刺肤 on_damage_taken 无 of 过滤 + post_damage 视角翻转缺失导致双方双重伤害
+
+- **现象**: 石冠王蜥（刺肤特性）在场上时，双方每次攻击均出现两次伤害数字——攻击方额外受到一次反伤，受击方也额外受到一次反伤
+- **根因**: ① `on_damage_taken` 条件不检查 "of"（谁受伤），任意伤害都触发 observer；② `post_damage` 不在 owner-filter 列表中，对手攻击时 replayer 视角颠倒，`hit(sprite_opp)` 错误命中 owner 自己
+- **修复**: EventContext 新增 `damage_taken_of` 字段追踪受伤方；`on_damage_taken` 支持 `of` 参数（缺省向后兼容）；`_fire_post_event` 对 post_damage 做 owner 视角翻转；刺肤/坚韧铠甲/最好的伙伴三个 trait JSON 补上正确的 `of` 值
+- **涉及文件**: backend/vm/ctx.py:38, backend/engine/snapshot.py:64/197, backend/engine/battle.py:289-290/260-277, backend/vm/cond.py:307-310, data/traits/刺肤.json:10, data/traits/坚韧铠甲.json:19, data/traits/最好的伙伴.json:45
+- **教训**: 反伤/受击触发类特性出现"双方都受伤"或"反伤打自己"症状时，直接查两个点——条件是否含 `of` 过滤 + 对应 trigger 是否在 `_fire_post_event` 的视角翻转/owner 过滤列表中
+
 <!-- 新条目追加在此行上方，格式如下：
 
 ## YYYY-MM-DD - 简短标题
