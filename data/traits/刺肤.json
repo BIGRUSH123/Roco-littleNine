@@ -6,7 +6,8 @@
     {
       "op": "observer",
       "cond": {
-        "cond": "on_damage_taken"
+        "cond": "on_damage_taken",
+        "of": "sprite_self"
       },
       "listen": "post_damage",
       "scope": "battlefield",
