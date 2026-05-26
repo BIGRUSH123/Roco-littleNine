@@ -1,9 +1,9 @@
-﻿"""backend/sim/sprite.py — 战斗精灵实例 + 状态效果追踪"""
+"""backend/sim/sprite.py — 战斗精灵实例 + 效果追踪"""
 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from backend.common import STAT_KEYS
 from backend.common.models import SpeciesStats, StatsResult
@@ -23,59 +23,6 @@ _ENERGY_STEP = 1     # 能耗：1步=1
 
 # 非百分比型 stat_key（直接累加步数×单位，不做乘法）
 _NON_PCT_KEYS: frozenset[str] = frozenset({'power', 'priority', 'energy_cost', 'combo', 'life_drain', 'combo_mult'})
-
-# stat_key → Chinese label for display
-_STAT_LABEL: dict[str, str] = {
-    'atk': '物攻', 'sp_atk': '魔攻', 'def': '物防', 'sp_def': '魔防',
-    'speed': '速度', 'power': '威力', 'priority': '先手',
-    'energy_cost': '能耗', 'combo': '连击', 'life_drain': '吸血',
-}
-
-# stat_key → step unit for display
-_STEP_UNIT: dict[str, int] = {
-    'power': 10, 'speed': 10, 'life_drain': 10,
-    'priority': 1, 'energy_cost': 1, 'combo': 1,
-}
-
-
-def _format_stat_name(stat_key: str, steps: int) -> str:
-    """Format a stat effect name from key + steps: '物攻+30%', '威力+20', '先手+3'."""
-    label = _STAT_LABEL.get(stat_key, stat_key)
-    unit = _STEP_UNIT.get(stat_key, 10)
-    if stat_key in ('priority', 'energy_cost', 'combo'):
-        return f'{label}{steps:+d}'
-    if stat_key in ('speed', 'power', 'life_drain'):
-        sign = '+' if steps > 0 else ''
-        return f'{label}{sign}{steps * unit}'
-    sign = '+' if steps > 0 else ''
-    return f'{label}{sign}{steps * unit}%'
-
-
-@dataclass
-class StatusEffect:
-    """精灵身上的一个效果。自描述生命周期，用于换宠清除和属性计算。"""
-
-    name: str                           # "物攻+20%" / "中毒" / "防御CD"
-    category: str                       # "stat" | "abnormal" | "state"
-    stat_key: str = ''                  # 六维键 / power / priority / energy_cost
-    steps: int = 0                      # 步数（正=增益，负=减益）
-    stacks: int = 1                     # 层数
-    scope: str = 'battlefield'          # "battlefield" | "persistent" | "permanent" | "aura"
-    source: str = ''                    # 来源技能/特性名
-    ttl: int = 0                        # 存活回合数（0=永久，每回合末-1，归零自动消除）
-    cooldown: int = 0                   # 冷却次数（0=无冷却，每次触发-1，归零自动消除）
-
-    @property
-    def is_stat(self) -> bool:
-        return self.category == 'stat'
-
-    @property
-    def is_abnormal(self) -> bool:
-        return self.category == 'abnormal'
-
-    @property
-    def is_state(self) -> bool:
-        return self.category == 'state'
 
 
 @dataclass
@@ -98,11 +45,8 @@ class Sprite:
     max_hp: int = 0
     energy: int = 10            # 0-10
 
-    # 全部效果（增/减益 + 异常状态 + 特殊状态）
-    effects: list[StatusEffect] = field(default_factory=list)
-
-    # 特性驱动的 EffectObject（ObserverEffect / ModifierEffect / BehavioralEffect）
-    # 统一查询入口，由 TraitLoader 写入
+    # 全部效果（EffectObject 子类：AbnormalEffect / StatBuffEffect / StateEffect / etc.）
+    # 统一查询入口，由 replayer + trait loader 写入
     active_effects: list = field(default_factory=list)
 
     # 进场回合
@@ -129,7 +73,7 @@ class Sprite:
     # 最近一次异常 tick 的实际伤害（含属性克制），供仁心等 trait observer 查询
     _last_abnormal_dmg: dict[str, int] = field(default_factory=dict)
 
-    # 延迟生效的效果队列：[(StatusEffect, delay_remaining), ...]
+    # 延迟生效的效果队列：[(effect, delay_remaining), ...]
     _pending_effects: list = field(default_factory=list)
 
     # on_next 延迟 modifier 队列：引擎下次匹配技能时注入
@@ -158,10 +102,27 @@ class Sprite:
     def name(self) -> str:
         return self.species.name
 
+    # ── 效果查询辅助 ──
+
+    def _effects_of_type(self, effect_type: type) -> list:
+        """Return all active_effects matching effect_type."""
+        return [e for e in self.active_effects if isinstance(e, effect_type)]
+
+    def _find_abnormal(self, name: str):
+        """Find an AbnormalEffect by name in active_effects."""
+        from backend.vm.effect import AbnormalEffect
+        for e in self.active_effects:
+            if isinstance(e, AbnormalEffect) and e.name == name:
+                return e
+        return None
+
+    # ── stat 步数 ──
+
     def _sum_steps(self, stat_key: str, ignore_negative: bool = False, ignore_positive: bool = False) -> int:
+        from backend.vm.effect import StatBuffEffect
         total = 0
-        for e in self.effects:
-            if not e.is_stat or e.stat_key != stat_key:
+        for e in self.active_effects:
+            if not isinstance(e, StatBuffEffect) or e.stat_key != stat_key:
                 continue
             if ignore_negative and e.steps < 0:
                 continue
@@ -203,44 +164,53 @@ class Sprite:
 
     # ── 效果管理 ──
 
-    def add_effect(self, effect: StatusEffect) -> None:
-        """添加效果。stat 按 stat_key 合并步数；state 追加；异常按同名合并层数。"""
-        if effect.is_stat:
-            for existing in self.effects:
-                if existing.is_stat and existing.stat_key == effect.stat_key and existing.scope == effect.scope:
+    def add_effect(self, effect) -> None:
+        """添加效果。StatBuffEffect 按 stat_key 合并步数；StateEffect 追加；AbnormalEffect 合并层数。"""
+        from backend.vm.effect import AbnormalEffect, StatBuffEffect, StateEffect
+
+        if isinstance(effect, StatBuffEffect):
+            for existing in self.active_effects:
+                if isinstance(existing, StatBuffEffect) and existing.stat_key == effect.stat_key and existing.scope == effect.scope:
                     existing.steps += effect.steps
-                    existing.name = _format_stat_name(effect.stat_key, existing.steps)
                     return
-            self.effects.append(effect)
+            self.active_effects.append(effect)
             return
-        if effect.is_state:
-            self.effects.append(effect)
+        if isinstance(effect, StateEffect):
+            self.active_effects.append(effect)
             return
-        for existing in self.effects:
-            if existing.category == effect.category and existing.name == effect.name:
-                existing.stacks += effect.stacks
+        if isinstance(effect, AbnormalEffect):
+            for existing in self.active_effects:
+                if isinstance(existing, AbnormalEffect) and existing.name == effect.name:
+                    existing.stacks += effect.stacks
+                    self.check_freeze_death()
+                    return
+            self.active_effects.append(effect)
+            if effect.name == '冻结':
                 self.check_freeze_death()
-                return
-        self.effects.append(effect)
-        if effect.name == '冻结':
-            self.check_freeze_death()
+            return
+        # Generic EffectObject — just append
+        self.active_effects.append(effect)
 
     def remove_effect(self, name: str, category: str = '') -> None:
-        self.effects = [
-            e for e in self.effects
-            if e.name != name or (category and e.category != category)
+        from backend.vm.effect import AbnormalEffect, StatBuffEffect, StateEffect
+        type_map = {'stat': StatBuffEffect, 'abnormal': AbnormalEffect, 'state': StateEffect}
+        target_type = type_map.get(category)
+        self.active_effects = [
+            e for e in self.active_effects
+            if e.name != name or (target_type and not isinstance(e, target_type))
         ]
 
-    def get_effects(self, category: str = '') -> list[StatusEffect]:
-        if category:
-            return [e for e in self.effects if e.category == category]
-        return list(self.effects)
+    def get_effects(self, category: str = '') -> list:
+        from backend.vm.effect import AbnormalEffect, StatBuffEffect, StateEffect
+        type_map = {'stat': StatBuffEffect, 'abnormal': AbnormalEffect, 'state': StateEffect}
+        if category in type_map:
+            target = type_map[category]
+            return [e for e in self.active_effects if isinstance(e, target)]
+        return list(self.active_effects)
 
     def get_stacks(self, name: str) -> int:
-        for e in self.effects:
-            if e.name == name:
-                return e.stacks
-        return 0
+        ae = self._find_abnormal(name)
+        return ae.stacks if ae else 0
 
     @property
     def frozen_hp(self) -> int:
@@ -260,101 +230,108 @@ class Sprite:
 
     def update_stacks(self, name: str, stacks: int) -> None:
         """直接设置异常状态层数（如灼烧衰减）。"""
-        self.remove_effect(name, 'abnormal')
-        if stacks > 0:
-            self.add_effect(StatusEffect(
-                name=name, category='abnormal', stacks=stacks,
-                scope='battlefield', source='衰减',
-            ))
+        from backend.vm.effect import AbnormalEffect
+        ae = self._find_abnormal(name)
+        if ae is not None:
+            if stacks > 0:
+                ae.stacks = stacks
+            else:
+                self.active_effects.remove(ae)
+        elif stacks > 0:
+            # Create new AbnormalEffect from template if available
+            from backend.engine.abnormal_config import ABNORMAL_TEMPLATES
+            template = ABNORMAL_TEMPLATES.get(name)
+            if template is not None:
+                from copy import copy
+                new_ae = copy(template)
+                new_ae.stacks = stacks
+                self.active_effects.append(new_ae)
 
     def clear_effects(self, scope: str) -> None:
         """清除指定 scope 的全部效果。同步清理 _modifiers 中的不可见 key。"""
         scopes = {scope}
         if scope in ('battlefield', 'turn'):
             scopes.add('aura')
-        # 清除 StatusEffect
-        removed = [e for e in self.effects if e.scope in scopes]
-        self.effects = [e for e in self.effects if e.scope not in scopes]
-        for e in removed:
-            if e.is_stat and e.stat_key:
-                self._modifiers.pop(e.stat_key, None)
+        # 清除 active_effects 中匹配 scope 的 EffectObject
+        self.active_effects = [
+            e for e in self.active_effects
+            if getattr(e, 'scope', '') not in scopes
+        ]
         # 清除不可见 modifier（_mod_scopes 中记录的 key）
         for mod_key, mod_scope in list(self._mod_scopes.items()):
             if mod_scope == scope or (scope in ('battlefield', 'turn') and mod_scope == 'aura'):
                 self._modifiers.pop(mod_key, None)
                 del self._mod_scopes[mod_key]
-        # 清除 active_effects 中匹配 scope 的 AbnormalEffect / StatBuffEffect / StateEffect
-        from backend.vm.effect import AbnormalEffect, StatBuffEffect, StateEffect
-        self.active_effects = [
-            e for e in self.active_effects
-            if not (
-                (isinstance(e, (AbnormalEffect, StatBuffEffect)) and e.scope in scopes)
-                or (isinstance(e, StateEffect) and e.scope in scopes)
-            )
-        ]
 
     # ── 驱散 / 翻倍 ──
 
     def dispel_positive(self, count: int = -1) -> int:
         """移除正面的 stat 效果。count=-1 移除全部。permanent 效果不可驱散。"""
-        targets = [e for e in self.effects if e.is_stat and e.steps > 0 and e.scope not in ('permanent', 'aura')]
+        from backend.vm.effect import StatBuffEffect
+        targets = [e for e in self.active_effects
+                   if isinstance(e, StatBuffEffect) and e.steps > 0 and e.scope not in ('permanent', 'aura')]
         if count >= 0:
             targets = targets[:count]
         for e in targets:
-            self.effects.remove(e)
+            self.active_effects.remove(e)
         return len(targets)
 
     def dispel_negative(self, count: int = -1) -> int:
         """移除负面的 stat 效果。permanent 效果不可驱散。"""
-        targets = [e for e in self.effects if e.is_stat and e.steps < 0 and e.scope not in ('permanent', 'aura')]
+        from backend.vm.effect import StatBuffEffect
+        targets = [e for e in self.active_effects
+                   if isinstance(e, StatBuffEffect) and e.steps < 0 and e.scope not in ('permanent', 'aura')]
         if count >= 0:
             targets = targets[:count]
         for e in targets:
-            self.effects.remove(e)
+            self.active_effects.remove(e)
         return len(targets)
 
     def double_positive(self) -> int:
         """加倍全部正面 stat 效果的步数。返回影响数量。"""
+        from backend.vm.effect import StatBuffEffect
         n = 0
-        for e in self.effects:
-            if e.is_stat and e.steps > 0:
+        for e in self.active_effects:
+            if isinstance(e, StatBuffEffect) and e.steps > 0:
                 e.steps *= 2
                 n += 1
         return n
 
     def double_negative(self) -> int:
         """加倍全部负面 stat 效果的步数。返回影响数量。"""
+        from backend.vm.effect import StatBuffEffect
         n = 0
-        for e in self.effects:
-            if e.is_stat and e.steps < 0:
+        for e in self.active_effects:
+            if isinstance(e, StatBuffEffect) and e.steps < 0:
                 e.steps *= 2
                 n += 1
         return n
 
     def clear_all_effects(self) -> None:
-        self.effects.clear()
+        self.active_effects.clear()
 
     # ── 效果生命周期：TTL / Delay / Cooldown ──
 
-    def decrement_ttl(self) -> list[StatusEffect]:
+    def decrement_ttl(self) -> list:
         """回合末：所有 ttl>0 的效果 -1，ttl 归零的移除。返回被移除的效果列表。"""
         removed = []
         surviving = []
-        for e in self.effects:
-            if e.ttl > 0:
+        for e in self.active_effects:
+            ttl = getattr(e, 'ttl', 0)
+            if ttl > 0:
                 e.ttl -= 1
                 if e.ttl <= 0:
                     removed.append(e)
                     continue
             surviving.append(e)
-        self.effects = surviving
+        self.active_effects = surviving
         return removed
 
-    def add_pending_effect(self, effect: StatusEffect, delay: int) -> None:
+    def add_pending_effect(self, effect, delay: int) -> None:
         """添加延迟生效的效果。delay 回合后再生效。"""
         self._pending_effects.append((effect, delay))
 
-    def process_pending_effects(self) -> list[StatusEffect]:
+    def process_pending_effects(self) -> list:
         """回合初：所有延迟效果 delay-1，delay=0 的生效。返回本次生效的效果列表。"""
         activated = []
         remaining = []
@@ -370,11 +347,12 @@ class Sprite:
 
     def use_cooldown(self, name: str) -> int:
         """触发指定名称效果的冷却：cooldown-1。cooldown 归零时移除效果。返回剩余冷却。"""
-        for e in self.effects:
-            if e.name == name and e.cooldown > 0:
+        for e in self.active_effects:
+            cd = getattr(e, 'cooldown', 0)
+            if e.name == name and cd > 0:
                 e.cooldown -= 1
                 if e.cooldown <= 0:
-                    self.effects.remove(e)
+                    self.active_effects.remove(e)
                     return 0
                 return e.cooldown
         return 0
@@ -595,14 +573,18 @@ class Sprite:
         self._moe_chain = chain
 
     def _sync_moe_status_effect(self) -> None:
-        """同步 StatusEffect 层数与 _moe_position。"""
+        """同步 AbnormalEffect 层数与 _moe_position。"""
+        from backend.vm.effect import AbnormalEffect
+        from backend.engine.abnormal_config import ABNORMAL_TEMPLATES
+        from copy import copy
+
         self.remove_effect('萌化', 'abnormal')
         if self._moe_position > 0:
-            self.add_effect(StatusEffect(
-                name='萌化', category='abnormal',
-                stacks=self._moe_position,
-                scope='battlefield', source='萌化退化',
-            ))
+            template = ABNORMAL_TEMPLATES.get('萌化')
+            if template is not None:
+                ae = copy(template)
+                ae.stacks = self._moe_position
+                self.active_effects.append(ae)
 
     def _seal_exclusive_skills(self) -> list[str]:
         """封印不匹配当前形态的专属技能。"""

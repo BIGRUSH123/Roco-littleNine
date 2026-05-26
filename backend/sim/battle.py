@@ -643,9 +643,9 @@ class Battle(BattleMechanicsMixin):
             user._charged_skill_index = -1
             # Remove "charging" effect, add "charged" for condition checks
             user.remove_effect("charging", "state")
-            from .sprite import StatusEffect
-            user.add_effect(StatusEffect(
-                name="charged", category="state", scope="battlefield", source="charge",
+            from backend.vm.effect import StateEffect
+            user.add_effect(StateEffect(
+                name="charged", state_type="charged", scope="battlefield", source="charge",
             ))
             return None  # charge released
 
@@ -661,9 +661,9 @@ class Battle(BattleMechanicsMixin):
         if has_charge:
             user._charging = True
             user._charged_skill_index = action.skill_index
-            from .sprite import StatusEffect
-            user.add_effect(StatusEffect(
-                name="charging", category="state", scope="persistent", source="charge",
+            from backend.vm.effect import StateEffect
+            user.add_effect(StateEffect(
+                name="charging", state_type="charging", scope="persistent", source="charge",
             ))
             return True  # entering charge
 
@@ -741,11 +741,11 @@ class Battle(BattleMechanicsMixin):
                 if sprite.is_fainted:
                     continue
                 sprite.clear_effects('turn')
-                for e in list(sprite.effects):
+                for e in list(sprite.active_effects):
                     if getattr(e, 'ttl', 0) > 0:
                         e.ttl -= 1
                         if e.ttl <= 0:
-                            sprite.effects.remove(e)
+                            sprite.active_effects.remove(e)
                             events.append(f'{sprite.name} {e.name} 到期消失')
 
         # 借用还原
@@ -794,11 +794,12 @@ class Battle(BattleMechanicsMixin):
             events += SkillResolver.turn_end(sprites, self.globals)
 
         # ── 异常 tick trait 通知（只读，不修改层数/HP）──
+        from backend.vm.effect import AbnormalEffect as _AbnormalEffect
         for team, sprite in list(sprites.items()):
             opp_team = 'B' if team == 'A' else 'A'
             opp = self.get_opponent(team).active
-            for e in sprite.effects:
-                if e.category != 'abnormal':
+            for e in sprite.active_effects:
+                if not isinstance(e, _AbnormalEffect):
                     continue
                 if e.name in ('灼烧', '中毒'):
                     dmg = sprite._last_abnormal_dmg.get(e.name, 0)  # actual damage (with element multiplier)

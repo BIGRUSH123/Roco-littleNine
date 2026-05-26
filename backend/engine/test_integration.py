@@ -7,6 +7,7 @@ sys.path.insert(0, ".")
 
 from backend.engine.snapshot import build_ctx
 from backend.vm.compiler.skill_compiler import SkillCompiler
+from backend.vm.effect import AbnormalEffect, StatBuffEffect, StateEffect
 
 _compiler = SkillCompiler()
 
@@ -94,7 +95,8 @@ def test_replayer():
     # Test stat change
     journal = [StatChange(target="sprite_self", stat="atk", steps=3, scope="battlefield")]
     events = replayer.replay(journal)
-    assert any(e.stat_key == "atk" and e.steps == 3 for e in sprite.effects if e.category == "stat")
+    from backend.vm.effect import StatBuffEffect as _SB
+    assert any(e.stat_key == "atk" and e.steps == 3 for e in sprite.active_effects if isinstance(e, _SB))
     assert sprite.effective_stat("atk") == 120 * 1.3  # base * (1 + 3*0.1)
     print(f"  StatChange: {events[0]}")
     print(f"  ATK after mod: {sprite.effective_stat('atk')}")
@@ -573,8 +575,8 @@ def test_e2e_defense_counter():
                                    counter_succeeded=True)
 
     # Should have stat changes from counter_succeeded
-    atk_stages = sum(getattr(e, 'steps', 0) for e in sprite.effects if getattr(e, 'stat_key', '') == "atk")
-    sp_atk_stages = sum(getattr(e, 'steps', 0) for e in sprite.effects if getattr(e, 'stat_key', '') == "sp_atk")
+    atk_stages = sum(getattr(e, 'steps', 0) for e in sprite.active_effects if getattr(e, 'stat_key', '') == "atk")
+    sp_atk_stages = sum(getattr(e, 'steps', 0) for e in sprite.active_effects if getattr(e, 'stat_key', '') == "sp_atk")
     assert atk_stages == 4, f"Expected atk+4 from counter_succeeded, got {atk_stages}"
     assert sp_atk_stages == 4, f"Expected sp_atk+4 from counter_succeeded, got {sp_atk_stages}"
     print(f"  防反 counter: atk+{atk_stages}, sp_atk+{sp_atk_stages}")
@@ -1283,52 +1285,51 @@ def test_priority_sort_mixed_phases():
 
 def test_ttl_on_statuseffect():
     """StatusEffect can carry a ttl field for turn-limited duration."""
-    from backend.sim.sprite import StatusEffect
-    eff = StatusEffect(name="攻击+20%", category="stat", stat_key="atk", steps=2, ttl=3)
+    eff = StatBuffEffect(name="攻击+20%", source="test", stat_key="atk", steps=2, ttl=3)
     assert eff.ttl == 3
     # Default ttl = 0 means no expiry
-    eff2 = StatusEffect(name="防御+10%", category="stat", stat_key="def", steps=1)
+    eff2 = StatBuffEffect(name="防御+10%", source="test", stat_key="def", steps=1)
     assert eff2.ttl == 0
 
 
 def test_ttl_decrement_and_expiry():
     """TTL decrements at turn end; effects with ttl=0 are removed."""
     from backend.common.models import SpeciesStats
-    from backend.sim.sprite import Sprite, StatusEffect
+    from backend.sim.sprite import Sprite
     species = SpeciesStats(name="test", hp=100, atk=100, def_=100, sp_atk=100, sp_def=100, speed=100)
     sprite = Sprite(
         species=species, current_hp=100, max_hp=100,
         initial_stats={"atk": 100, "def": 100, "sp_atk": 100, "sp_def": 100, "speed": 100},
     )
-    sprite.add_effect(StatusEffect(name="攻击+20%", category="stat", stat_key="atk", steps=2, ttl=3))
-    sprite.add_effect(StatusEffect(name="永久防御", category="stat", stat_key="def", steps=1, ttl=0))
-    assert len(sprite.effects) == 2
+    sprite.add_effect(StatBuffEffect(name="攻击+20%", source="test", stat_key="atk", steps=2, ttl=3))
+    sprite.add_effect(StatBuffEffect(name="永久防御", source="test", stat_key="def", steps=1, ttl=0))
+    assert len(sprite.active_effects) == 2
 
     # Decrement TTL: effects with ttl>0 get decremented; ttl=0 (permanent) stay
     removed = sprite.decrement_ttl()
     assert len(removed) == 0  # ttl 3→2, still alive
-    assert sprite.effects[0].ttl == 2
+    assert sprite.active_effects[0].ttl == 2
 
     removed = sprite.decrement_ttl()  # 2→1
     removed = sprite.decrement_ttl()  # 1→0
     assert len(removed) == 1  # ttl hit 0, removed
-    assert len(sprite.effects) == 1  # only permanent def remains
-    assert sprite.effects[0].name == "永久防御"
+    assert len(sprite.active_effects) == 1  # only permanent def remains
+    assert sprite.active_effects[0].name == "永久防御"
 
 
 def test_delay_stores_on_sprite():
     """Effects with delay>0 are stored as pending, not applied immediately."""
     from backend.common.models import SpeciesStats
-    from backend.sim.sprite import Sprite, StatusEffect
+    from backend.sim.sprite import Sprite
     species = SpeciesStats(name="test", hp=100, atk=100, def_=100, sp_atk=100, sp_def=100, speed=100)
     sprite = Sprite(
         species=species, current_hp=100, max_hp=100,
         initial_stats={"atk": 100, "def": 100, "sp_atk": 100, "sp_def": 100, "speed": 100},
     )
     # Store a delayed effect
-    pending = StatusEffect(name="攻击+20%", category="stat", stat_key="atk", steps=2, ttl=0)
+    pending = StatBuffEffect(name="攻击+20%", source="test", stat_key="atk", steps=2, ttl=0)
     sprite.add_pending_effect(pending, delay=2)
-    assert len(sprite.effects) == 0  # Not applied yet
+    assert len(sprite.active_effects) == 0  # Not applied yet
     assert len(sprite._pending_effects) == 1
     assert sprite._pending_effects[0][0].name == "攻击+20%"
     assert sprite._pending_effects[0][1] == 2  # delay counter
@@ -1337,13 +1338,13 @@ def test_delay_stores_on_sprite():
 def test_delay_decremented_at_turn_start():
     """Pending effects decrement delay each turn; when delay=0, apply effect."""
     from backend.common.models import SpeciesStats
-    from backend.sim.sprite import Sprite, StatusEffect
+    from backend.sim.sprite import Sprite
     species = SpeciesStats(name="test", hp=100, atk=100, def_=100, sp_atk=100, sp_def=100, speed=100)
     sprite = Sprite(
         species=species, current_hp=100, max_hp=100,
         initial_stats={"atk": 100, "def": 100, "sp_atk": 100, "sp_def": 100, "speed": 100},
     )
-    pending = StatusEffect(name="攻击+20%", category="stat", stat_key="atk", steps=2)
+    pending = StatBuffEffect(name="攻击+20%", source="test", stat_key="atk", steps=2)
     sprite.add_pending_effect(pending, delay=2)
 
     # Turn 1: delay 2→1, still pending
@@ -1356,38 +1357,39 @@ def test_delay_decremented_at_turn_start():
     applied = sprite.process_pending_effects()
     assert len(applied) == 1
     assert len(sprite._pending_effects) == 0
-    assert len(sprite.effects) == 1
-    assert sprite.effects[0].name == "攻击+20%"
+    assert len(sprite.active_effects) == 1
+    assert sprite.active_effects[0].name == "攻击+20%"
 
 
 def test_cooldown_on_statuseffect():
-    """StatusEffect can carry a cooldown field."""
-    from backend.sim.sprite import StatusEffect
-    eff = StatusEffect(name="灼烧", category="abnormal", stacks=1, cooldown=3)
+    """EffectObject can carry a cooldown field (duck-typed)."""
+    eff = AbnormalEffect(name="灼烧", source="test", stacks=1)
+    eff.cooldown = 3
     assert eff.cooldown == 3
-    eff2 = StatusEffect(name="中毒", category="abnormal", stacks=1)
-    assert eff2.cooldown == 0
+    eff2 = AbnormalEffect(name="中毒", source="test", stacks=1)
+    assert getattr(eff2, 'cooldown', 0) == 0
 
 
 def test_cooldown_decrement_on_use():
     """Cooldown decrements when effect triggers; removed when cooldown hits 0."""
     from backend.common.models import SpeciesStats
-    from backend.sim.sprite import Sprite, StatusEffect
+    from backend.sim.sprite import Sprite
     species = SpeciesStats(name="test", hp=100, atk=100, def_=100, sp_atk=100, sp_def=100, speed=100)
     sprite = Sprite(
         species=species, current_hp=100, max_hp=100,
         initial_stats={"atk": 100, "def": 100, "sp_atk": 100, "sp_def": 100, "speed": 100},
     )
-    eff = StatusEffect(name="灼烧", category="abnormal", stacks=1, cooldown=2)
+    eff = AbnormalEffect(name="灼烧", source="test", stacks=1)
+    eff.cooldown = 2
     sprite.add_effect(eff)
 
     # After first use: cooldown 2→1
     assert sprite.use_cooldown("灼烧") == 1  # remaining cooldown
-    assert sprite.effects[0].cooldown == 1
+    assert sprite.active_effects[0].cooldown == 1
 
     # After second use: cooldown 1→0, effect removed
     assert sprite.use_cooldown("灼烧") == 0
-    assert len(sprite.effects) == 0  # removed on cooldown expiry
+    assert len(sprite.active_effects) == 0  # removed on cooldown expiry
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -1657,10 +1659,10 @@ def test_abnormal_change_to_sprite_opp():
 
     m = AbnormalChange(target="sprite_opp", name="中毒", delta=2)
     replayer._apply_abnormal_change(m)
-    assert len(opp.effects) == 1
-    assert opp.effects[0].name == "中毒"
-    assert opp.effects[0].stacks == 2
-    assert len(sprite.effects) == 0
+    assert len(opp.active_effects) == 1
+    assert opp.active_effects[0].name == "中毒"
+    assert opp.active_effects[0].stacks == 2
+    assert len(sprite.active_effects) == 0
 
 
 def test_abnormal_change_to_sprite_self():
@@ -1683,16 +1685,16 @@ def test_abnormal_change_to_sprite_self():
 
     m = AbnormalChange(target="sprite_self", name="灼烧", delta=1)
     replayer._apply_abnormal_change(m)
-    assert len(sprite.effects) == 1
-    assert sprite.effects[0].name == "灼烧"
-    assert len(opp.effects) == 0
+    assert len(sprite.active_effects) == 1
+    assert sprite.active_effects[0].name == "灼烧"
+    assert len(opp.active_effects) == 0
 
 
 def test_dispel_opp_positive_buffs():
     """Dispel(target='sprite_opp', what='positive') removes opponent buffs."""
     from backend.common.models import SpeciesStats
     from backend.engine.replayer import JournalReplayer
-    from backend.sim.sprite import Sprite, StatusEffect
+    from backend.sim.sprite import Sprite
     from backend.vm.journal import Dispel
     species = SpeciesStats(name="test", hp=100, atk=100, def_=100, sp_atk=100, sp_def=100, speed=100)
     sprite = Sprite(
@@ -1707,22 +1709,22 @@ def test_dispel_opp_positive_buffs():
     replayer = JournalReplayer(sprite, opp, globals_)
 
     # Give opp some buffs
-    opp.add_effect(StatusEffect(name="攻击+20%", category="stat", stat_key="atk", steps=2))
-    opp.add_effect(StatusEffect(name="速度+10%", category="stat", stat_key="speed", steps=1))
-    assert len(opp.effects) == 2
+    opp.add_effect(StatBuffEffect(name="攻击+20%", source="test", stat_key="atk", steps=2))
+    opp.add_effect(StatBuffEffect(name="速度+10%", source="test", stat_key="speed", steps=1))
+    assert len(opp.active_effects) == 2
 
     # Dispel opp buffs
     m = Dispel(target="sprite_opp", what="positive", limit=2)
     replayer._apply_dispel(m)
-    assert len(opp.effects) == 0
-    assert len(sprite.effects) == 0
+    assert len(opp.active_effects) == 0
+    assert len(sprite.active_effects) == 0
 
 
 def test_dispel_self_negative_debuffs():
     """Dispel(target='sprite_self', what='negative') clears own debuffs."""
     from backend.common.models import SpeciesStats
     from backend.engine.replayer import JournalReplayer
-    from backend.sim.sprite import Sprite, StatusEffect
+    from backend.sim.sprite import Sprite
     from backend.vm.journal import Dispel
     species = SpeciesStats(name="test", hp=100, atk=100, def_=100, sp_atk=100, sp_def=100, speed=100)
     sprite = Sprite(
@@ -1737,20 +1739,20 @@ def test_dispel_self_negative_debuffs():
     replayer = JournalReplayer(sprite, opp, globals_)
 
     # Give self some debuffs
-    sprite.add_effect(StatusEffect(name="防御-20%", category="stat", stat_key="def", steps=-2))
-    sprite.add_effect(StatusEffect(name="速度-10%", category="stat", stat_key="speed", steps=-1))
-    assert len(sprite.effects) == 2
+    sprite.add_effect(StatBuffEffect(name="防御-20%", source="test", stat_key="def", steps=-2))
+    sprite.add_effect(StatBuffEffect(name="速度-10%", source="test", stat_key="speed", steps=-1))
+    assert len(sprite.active_effects) == 2
 
     m = Dispel(target="sprite_self", what="negative", limit=2)
     replayer._apply_dispel(m)
-    assert len(sprite.effects) == 0
+    assert len(sprite.active_effects) == 0
 
 
 def test_dispel_self_abnormal():
     """Dispel(target='sprite_self', what='abnormal', name='中毒') removes specific abnormal."""
     from backend.common.models import SpeciesStats
     from backend.engine.replayer import JournalReplayer
-    from backend.sim.sprite import Sprite, StatusEffect
+    from backend.sim.sprite import Sprite
     from backend.vm.journal import Dispel
     species = SpeciesStats(name="test", hp=100, atk=100, def_=100, sp_atk=100, sp_def=100, speed=100)
     sprite = Sprite(
@@ -1764,14 +1766,14 @@ def test_dispel_self_abnormal():
     globals_ = GlobalEffects()
     replayer = JournalReplayer(sprite, opp, globals_)
 
-    sprite.add_effect(StatusEffect(name="中毒", category="abnormal", stacks=3))
-    sprite.add_effect(StatusEffect(name="灼烧", category="abnormal", stacks=1))
-    assert len(sprite.effects) == 2
+    sprite.add_effect(AbnormalEffect(name="中毒", source="test", stacks=3))
+    sprite.add_effect(AbnormalEffect(name="灼烧", source="test", stacks=1))
+    assert len(sprite.active_effects) == 2
 
     m = Dispel(target="sprite_self", what="abnormal", name="中毒")
     replayer._apply_dispel(m)
-    assert len(sprite.effects) == 1
-    assert sprite.effects[0].name == "灼烧"
+    assert len(sprite.active_effects) == 1
+    assert sprite.active_effects[0].name == "灼烧"
 
 
 def test_heal_to_sprite_self():
@@ -1890,10 +1892,10 @@ def test_stat_change_to_sprite_self():
 
     m = StatChange(target="sprite_self", stat="atk", steps=2, scope="battlefield")
     replayer._apply_stat_change(m)
-    assert len(sprite.effects) == 1
-    assert sprite.effects[0].stat_key == "atk"
-    assert sprite.effects[0].steps == 2
-    assert len(opp.effects) == 0
+    assert len(sprite.active_effects) == 1
+    assert sprite.active_effects[0].stat_key == "atk"
+    assert sprite.active_effects[0].steps == 2
+    assert len(opp.active_effects) == 0
 
 
 def test_stat_change_to_sprite_opp():
@@ -1916,10 +1918,10 @@ def test_stat_change_to_sprite_opp():
 
     m = StatChange(target="sprite_opp", stat="def", steps=-3, scope="battlefield")
     replayer._apply_stat_change(m)
-    assert len(opp.effects) == 1
-    assert opp.effects[0].stat_key == "def"
-    assert opp.effects[0].steps == -3
-    assert len(sprite.effects) == 0
+    assert len(opp.active_effects) == 1
+    assert opp.active_effects[0].stat_key == "def"
+    assert opp.active_effects[0].steps == -3
+    assert len(sprite.active_effects) == 0
 
 
 def test_damage_to_sprite_self():
@@ -1974,7 +1976,7 @@ def test_tick_to_sprite_opp():
     """Tick(target='sprite_opp') triggers abnormal tick on opponent."""
     from backend.common.models import SpeciesStats
     from backend.engine.replayer import JournalReplayer
-    from backend.sim.sprite import Sprite, StatusEffect
+    from backend.sim.sprite import Sprite
     from backend.vm.journal import Tick
     species = SpeciesStats(name="test", hp=200, atk=100, def_=100, sp_atk=100, sp_def=100, speed=100)
     sprite = Sprite(
@@ -1985,7 +1987,7 @@ def test_tick_to_sprite_opp():
         species=species, current_hp=200, max_hp=200,
         initial_stats={"atk": 100, "def": 100, "sp_atk": 100, "sp_def": 100, "speed": 100},
     )
-    opp.add_effect(StatusEffect(name="中毒", category="abnormal", stacks=3))
+    opp.add_effect(AbnormalEffect(name="中毒", source="test", stacks=3))
     globals_ = GlobalEffects()
     replayer = JournalReplayer(sprite, opp, globals_)
 
@@ -1999,7 +2001,7 @@ def test_tick_to_sprite_self():
     """Tick(target='sprite_self') triggers abnormal tick on self."""
     from backend.common.models import SpeciesStats
     from backend.engine.replayer import JournalReplayer
-    from backend.sim.sprite import Sprite, StatusEffect
+    from backend.sim.sprite import Sprite
     from backend.vm.journal import Tick
     species = SpeciesStats(name="test", hp=200, atk=100, def_=100, sp_atk=100, sp_def=100, speed=100)
     sprite = Sprite(
@@ -2010,7 +2012,7 @@ def test_tick_to_sprite_self():
         species=species, current_hp=200, max_hp=200,
         initial_stats={"atk": 100, "def": 100, "sp_atk": 100, "sp_def": 100, "speed": 100},
     )
-    sprite.add_effect(StatusEffect(name="灼烧", category="abnormal", stacks=2))
+    sprite.add_effect(AbnormalEffect(name="灼烧", source="test", stacks=2))
     globals_ = GlobalEffects()
     replayer = JournalReplayer(sprite, opp, globals_)
 
@@ -2023,7 +2025,7 @@ def test_double_on_opp():
     """Double(target='sprite_opp', what='negative') doubles opponent's debuffs."""
     from backend.common.models import SpeciesStats
     from backend.engine.replayer import JournalReplayer
-    from backend.sim.sprite import Sprite, StatusEffect
+    from backend.sim.sprite import Sprite
     from backend.vm.journal import Double
     species = SpeciesStats(name="test", hp=100, atk=100, def_=100, sp_atk=100, sp_def=100, speed=100)
     sprite = Sprite(
@@ -2034,20 +2036,20 @@ def test_double_on_opp():
         species=species, current_hp=100, max_hp=100,
         initial_stats={"atk": 100, "def": 100, "sp_atk": 100, "sp_def": 100, "speed": 100},
     )
-    opp.add_effect(StatusEffect(name="防御-20%", category="stat", stat_key="def", steps=-2))
+    opp.add_effect(StatBuffEffect(name="防御-20%", source="test", stat_key="def", steps=-2))
     globals_ = GlobalEffects()
     replayer = JournalReplayer(sprite, opp, globals_)
 
     m = Double(target="sprite_opp", what="negative")
     replayer._apply_double(m)
-    assert opp.effects[0].steps == -4  # doubled
+    assert opp.active_effects[0].steps == -4  # doubled
 
 
 def test_double_on_self():
     """Double(target='sprite_self', what='positive') doubles own buffs."""
     from backend.common.models import SpeciesStats
     from backend.engine.replayer import JournalReplayer
-    from backend.sim.sprite import Sprite, StatusEffect
+    from backend.sim.sprite import Sprite
     from backend.vm.journal import Double
     species = SpeciesStats(name="test", hp=100, atk=100, def_=100, sp_atk=100, sp_def=100, speed=100)
     sprite = Sprite(
@@ -2058,13 +2060,13 @@ def test_double_on_self():
         species=species, current_hp=100, max_hp=100,
         initial_stats={"atk": 100, "def": 100, "sp_atk": 100, "sp_def": 100, "speed": 100},
     )
-    sprite.add_effect(StatusEffect(name="攻击+20%", category="stat", stat_key="atk", steps=2))
+    sprite.add_effect(StatBuffEffect(name="攻击+20%", source="test", stat_key="atk", steps=2))
     globals_ = GlobalEffects()
     replayer = JournalReplayer(sprite, opp, globals_)
 
     m = Double(target="sprite_self", what="positive")
     replayer._apply_double(m)
-    assert sprite.effects[0].steps == 4  # doubled
+    assert sprite.active_effects[0].steps == 4  # doubled
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -2529,11 +2531,11 @@ def test_abnormal_change_e2e_through_vm():
 
     replayer = JournalReplayer(sprite, opp, globals_)
     events = replayer.replay(journal)
-    assert len(opp.effects) == 1
-    assert opp.effects[0].name == "中毒"
-    assert opp.effects[0].stacks == 2
-    assert len(sprite.effects) == 1
-    assert sprite.effects[0].name == "灼烧"
+    assert len(opp.active_effects) == 1
+    assert opp.active_effects[0].name == "中毒"
+    assert opp.active_effects[0].stacks == 2
+    assert len(sprite.active_effects) == 1
+    assert sprite.active_effects[0].name == "灼烧"
 
 
 def test_stat_change_e2e_both_directions():
@@ -2564,12 +2566,12 @@ def test_stat_change_e2e_both_directions():
 
     replayer = JournalReplayer(sprite, opp, globals_)
     replayer.replay(journal)
-    assert len(sprite.effects) == 1
-    assert sprite.effects[0].stat_key == "atk"
-    assert sprite.effects[0].steps == 2
-    assert len(opp.effects) == 1
-    assert opp.effects[0].stat_key == "def"
-    assert opp.effects[0].steps == -3
+    assert len(sprite.active_effects) == 1
+    assert sprite.active_effects[0].stat_key == "atk"
+    assert sprite.active_effects[0].steps == 2
+    assert len(opp.active_effects) == 1
+    assert opp.active_effects[0].stat_key == "def"
+    assert opp.active_effects[0].steps == -3
 
 
 if __name__ == "__main__":

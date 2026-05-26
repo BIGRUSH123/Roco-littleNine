@@ -70,16 +70,16 @@ def test_evolution_power_evolves_to_leader_form():
     sprite.current_hp = max(1, round(result.final_stats['hp'] * old_hp_ratio))
     sprite.bloodline_skills = dict(boss.bloodline_skills)
 
-    from backend.sim.sprite import StatusEffect
+    from backend.vm.effect import StatBuffEffect
     for key in ['atk', 'sp_atk', 'def', 'sp_def', 'speed']:
-        sprite.add_effect(StatusEffect(
-            name='首领化', category='stat', stat_key=key, steps=2,
+        sprite.add_effect(StatBuffEffect(
+            name='首领化', stat_key=key, steps=2,
             scope='permanent', source='进化之力',
         ))
 
     assert sprite.name == boss.display_name()
     assert sprite.species.form == boss.form
-    buffs = [e for e in sprite.effects if e.name == '首领化']
+    buffs = [e for e in sprite.active_effects if e.name == '首领化']
     assert len(buffs) == 5, f"首领化应有5条增益，实际{len(buffs)}"
     for key in ['atk', 'sp_atk', 'def', 'sp_def', 'speed']:
         stat_eff = sprite.effective_stat(key)

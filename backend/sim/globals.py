@@ -46,15 +46,18 @@ class GlobalEffects:
         """回合末天气效果。"""
         events: list[str] = []
         if self.weather == 'snow':
-            from .sprite import StatusEffect
+            from backend.engine.abnormal_config import ABNORMAL_TEMPLATES
+            from copy import copy
             for s in sprites:
                 if not s.is_fainted:
-                    s.add_effect(StatusEffect(
-                        name='冻结', category='abnormal',
-                        stacks=2, scope='persistent', source='暴风雪',
-                    ))
-                    total = s.get_stacks('冻结')
-                    events.append(f'{s.name} 暴风雪+2冻结(共{total}层)')
+                    template = ABNORMAL_TEMPLATES.get('冻结')
+                    if template is not None:
+                        ae = copy(template)
+                        ae.stacks = 2
+                        ae.source = '暴风雪'
+                        s.add_effect(ae)
+                        total = s.get_stacks('冻结')
+                        events.append(f'{s.name} 暴风雪+2冻结(共{total}层)')
         return events
 
     def tick_weather(self) -> None:

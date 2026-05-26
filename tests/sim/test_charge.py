@@ -57,7 +57,7 @@ def test_enter_charge():
     assert sprite._charging is True
     assert sprite._charged_skill_index == 0
     # charging state effect 应存在
-    charging_effs = [e for e in sprite.effects if e.name == "charging"]
+    charging_effs = [e for e in sprite.active_effects if e.name == "charging"]
     assert len(charging_effs) == 1
     print("  [OK] 进入蓄力: _charging=True, charged_skill_index=0, charging effect存在")
 
@@ -80,8 +80,8 @@ def test_release_charge():
     assert sprite._charging is False
     assert sprite._charged_skill_index == -1
     # charging 消失，charged 出现
-    charging_effs = [e for e in sprite.effects if e.name == "charging"]
-    charged_effs = [e for e in sprite.effects if e.name == "charged"]
+    charging_effs = [e for e in sprite.active_effects if e.name == "charging"]
+    charged_effs = [e for e in sprite.active_effects if e.name == "charged"]
     assert len(charging_effs) == 0, "charging应清除"
     assert len(charged_effs) == 1, "charged应存在"
     print("  [OK] 释放蓄力: _charging=False, charged effect存在")
@@ -119,7 +119,7 @@ def test_usable_while_charging():
     assert sprite._charging is False, "蓄力应取消"
     assert sprite._charged_skill_index == -1
     # charging effect 应清除
-    charging_effs = [e for e in sprite.effects if e.name == "charging"]
+    charging_effs = [e for e in sprite.active_effects if e.name == "charging"]
     assert len(charging_effs) == 0, "charging effect应清除"
     print("  [OK] usable_while_charging: 取消蓄力并正常通过")
 
@@ -218,19 +218,19 @@ def test_full_battle_charge_flow():
     r1 = b._gate_charge_vm(sprite, bs, action)
     assert r1 is True
     assert sprite._charging is True
-    charging = [e for e in sprite.effects if e.name == "charging"]
-    assert len(charging) == 1, f"T1应有charging, got {[e.name for e in sprite.effects]}"
-    print(f"  T1: charging={sprite._charging}, effects={[e.name for e in sprite.effects]}")
+    charging = [e for e in sprite.active_effects if e.name == "charging"]
+    assert len(charging) == 1, f"T1应有charging, got {[e.name for e in sprite.active_effects]}"
+    print(f"  T1: charging={sprite._charging}, effects={[e.name for e in sprite.active_effects]}")
 
     # T2: 释放蓄力
     r2 = b._gate_charge_vm(sprite, bs, action)
     assert r2 is None, "应释放蓄力"
     assert sprite._charging is False
-    charged = [e for e in sprite.effects if e.name == "charged"]
-    assert len(charged) == 1, f"T2应有charged, got {[e.name for e in sprite.effects]}"
-    charging2 = [e for e in sprite.effects if e.name == "charging"]
+    charged = [e for e in sprite.active_effects if e.name == "charged"]
+    assert len(charged) == 1, f"T2应有charged, got {[e.name for e in sprite.active_effects]}"
+    charging2 = [e for e in sprite.active_effects if e.name == "charging"]
     assert len(charging2) == 0, "T2不应有charging"
-    print(f"  T2: charging={sprite._charging}, charged={len(charged)}, effects={[e.name for e in sprite.effects]}")
+    print(f"  T2: charging={sprite._charging}, charged={len(charged)}, effects={[e.name for e in sprite.active_effects]}")
 
     print("  [OK] 完整对战蓄力流程: T1进入 T2释放")
 

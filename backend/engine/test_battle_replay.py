@@ -65,7 +65,7 @@ def test_battle1_round1_counter_defense():
     result_cui = engine.execute_skill(cui, bu, record_cui, None, GlobalEffects(), turn=1, is_first=True, team="A")
 
     # Verify stat buff was applied
-    atk_stages = sum(getattr(e, 'steps', 0) for e in cui.effects if getattr(e, 'stat_key', '') == "atk")
+    atk_stages = sum(getattr(e, 'steps', 0) for e in cui.active_effects if getattr(e, 'stat_key', '') == "atk")
     assert atk_stages > 0, f"Expected atk buff from 力量增效, got {atk_stages} stages"
     print(f"  R1-A: 翠顶夫人 力量增效 → atk+{atk_stages*10}%")
 
@@ -75,7 +75,7 @@ def test_battle1_round1_counter_defense():
                                       turn=1, is_first=True, team="B",
                                       counter_succeeded=True)
     # 错乱 reduces opp atk on counter_succeeded
-    opp_atk_stages = sum(getattr(e, 'steps', 0) for e in cui.effects
+    opp_atk_stages = sum(getattr(e, 'steps', 0) for e in cui.active_effects
                          if getattr(e, 'stat_key', '') == "atk" and getattr(e, 'steps', 0) < 0)
     print(f"  R1-B: 怖哭菇 错乱(应对成功) → events={result_bu.events[:3]}")
     print(f"       cui atk total stages: {atk_stages + opp_atk_stages}")

@@ -132,15 +132,16 @@ def _build_sprite_snapshot(sprite: Sprite) -> SpriteSnapshot:
         name = getattr(sk, 'name', '') or str(sk)
         skills.append(name)
 
+    from backend.vm.effect import AbnormalEffect, StatBuffEffect, StateEffect
     status: list[str] = []
     buffs: dict[str, int] = {}
-    for e in sprite.effects:
-        if e.category == "abnormal":
+    for e in getattr(sprite, 'active_effects', []):
+        if isinstance(e, AbnormalEffect):
             status.append(f"{e.name}×{e.stacks}" if e.stacks > 1 else e.name)
-        elif e.category == "stat":
+        elif isinstance(e, StatBuffEffect):
             label = f"{e.stat_key}{'+' if e.steps > 0 else ''}{e.steps}" if e.stat_key else e.name
             buffs[label] = buffs.get(label, 0) + e.steps
-        elif e.category == "state":
+        elif isinstance(e, StateEffect):
             status.append(e.name)
 
     element = getattr(sprite.species, 'element', '') if hasattr(sprite, 'species') else ''

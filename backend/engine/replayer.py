@@ -58,7 +58,7 @@ _RATIO_STATS: frozenset[str] = frozenset({
     "ignore_resistance", "ignore_mods", "survive",
 })
 
-# Modifier stats that should also create a visible StatusEffect.
+# Modifier stats that should also create a visible StatBuffEffect.
 # These are integer-count stats that players expect to see as buff/debuff icons.
 # (power is excluded: values are direct power amounts with per-skill scope,
 # not global sprite buffs.)
@@ -317,7 +317,6 @@ class JournalReplayer:
 
     def _apply_stat_change(self, m: StatChange) -> str:
         sprite = self._target_sprite(m.target)
-        from backend.sim.sprite import StatusEffect
         from backend.vm.effect import StatBuffEffect
         label = _STAT_LABELS.get(m.stat, m.stat)
         unit = _STEP_UNIT.get(m.stat, 10)
@@ -327,16 +326,6 @@ class JournalReplayer:
             display = f'{label}{m.steps * unit:+d}'
         else:
             display = f'{label}{m.steps * unit:+d}%'
-        effect = StatusEffect(
-            name=display,
-            category="stat",
-            stat_key=m.stat,
-            steps=m.steps,
-            scope=m.scope,
-            source=m.source or m.name or "skill",
-        )
-        sprite.add_effect(effect)
-        # Dual-write StatBuffEffect
         self._sync_stat_buff_effect(sprite, m.stat, m.steps, m.scope,
                                     m.source or m.name or "skill")
         return f"{sprite.name} {display}"
@@ -456,7 +445,6 @@ class JournalReplayer:
         label = _STAT_LABELS.get(m.stat, m.stat)
 
         if not skill_scoped and m.value != 0:
-            from backend.sim.sprite import StatusEffect
             create_visible = False
             steps = 0
             if m.stat in _VISIBLE_MOD_STATS:
@@ -464,19 +452,9 @@ class JournalReplayer:
                 create_visible = True
             # _STAGE_STATS (atk/def/sp_atk/sp_def/speed) are already applied
             # through _modifiers → build_ctx → atk_self/def_self/etc.
-            # Creating a StatusEffect here would cause double-counting:
+            # Creating a visible effect here would cause double-counting:
             # once via _modifiers and once via _extract_stat_stages.
             if create_visible and steps != 0:
-                effect = StatusEffect(
-                    name=f'{label}{steps:+.0f}',
-                    category="stat",
-                    stat_key=m.stat,
-                    steps=steps,
-                    scope=m.scope,
-                    source=m.source or m.name or "skill",
-                )
-                sprite.add_effect(effect)
-                # Dual-write StatBuffEffect
                 self._sync_stat_buff_effect(sprite, m.stat, steps, m.scope,
                                             m.source or m.name or "skill")
 
@@ -565,12 +543,13 @@ class JournalReplayer:
             return ""
 
         if m.action == "convert":
+            from backend.vm.effect import AbnormalEffect
             source_name = m.source_abnormal
             if not source_name:
                 return ""
-            effects_list = [e for e in self.self.effects
-                            if getattr(e, 'category', '') == 'abnormal'
-                            and getattr(e, 'name', '') == source_name]
+            effects_list = [e for e in self.self.active_effects
+                            if isinstance(e, AbnormalEffect)
+                            and e.name == source_name]
             total_stacks = sum(getattr(e, 'stacks', 0) for e in effects_list)
             if total_stacks <= 0:
                 return ""
@@ -595,15 +574,6 @@ class JournalReplayer:
         # 萌化: trigger form devolution via apply_moe (needs species lookup)
         if m.name == '萌化' and self._species_lookup is not None and m.delta > 0:
             return self._apply_moe_via_replayer(sprite, m)
-        from backend.sim.sprite import StatusEffect
-        effect = StatusEffect(
-            name=m.name,
-            category="abnormal",
-            stacks=m.delta,
-            scope=m.scope,
-            source="skill",
-        )
-        sprite.add_effect(effect)
         self._sync_abnormal_effect(sprite, m.name, m.delta, m.scope)
         return f"{sprite.name} {m.name} +{m.delta}层"
 
@@ -697,27 +667,31 @@ class JournalReplayer:
     @staticmethod
     def _dispel_by_source(sprite, source: str, positive_only: bool = True) -> int:
         """Remove effects from sprite matching the given source. Returns count removed."""
+        from backend.vm.effect import StatBuffEffect
         removed = 0
-        for e in list(sprite.effects):
-            if getattr(e, 'category', '') == 'stat' and getattr(e, 'source', '') == source:
+        for e in list(getattr(sprite, 'active_effects', [])):
+            if isinstance(e, StatBuffEffect) and getattr(e, 'source', '') == source:
                 if positive_only and e.steps <= 0:
                     continue
                 if not positive_only and e.steps >= 0:
                     continue
-                sprite.effects.remove(e)
+                sprite.active_effects.remove(e)
                 removed += 1
         return removed
 
     @staticmethod
     def _remove_by_source(sprite, source: str, category: str = '') -> int:
         """Remove effects matching source and optional category. Returns count removed."""
+        from backend.vm.effect import AbnormalEffect, StatBuffEffect, StateEffect
+        type_map = {'stat': StatBuffEffect, 'abnormal': AbnormalEffect, 'state': StateEffect}
+        target_type = type_map.get(category)
         removed = 0
-        for e in list(sprite.effects):
+        for e in list(getattr(sprite, 'active_effects', [])):
             if getattr(e, 'source', '') != source:
                 continue
-            if category and getattr(e, 'category', '') != category:
+            if target_type is not None and not isinstance(e, target_type):
                 continue
-            sprite.effects.remove(e)
+            sprite.active_effects.remove(e)
             removed += 1
         return removed
 
@@ -782,11 +756,12 @@ class JournalReplayer:
     def _apply_steal(self, m: Steal) -> str:
         # Steal effects/energy/marks from target to self
         if m.what == "positive":
+            from backend.vm.effect import StatBuffEffect
             target = self._target_sprite(m.from_target)
-            positives = [e for e in target.effects
-                         if getattr(e, 'category', '') == 'stat' and e.steps > 0]
+            positives = [e for e in target.active_effects
+                         if isinstance(e, StatBuffEffect) and e.steps > 0]
             for e in positives:
-                target.effects.remove(e)
+                target.active_effects.remove(e)
                 self.self.add_effect(e)
             return f"{self.self.name} 偷取 {len(positives)} 增益 from {target.name}"
         elif m.what == "energy":
@@ -852,10 +827,6 @@ class JournalReplayer:
 
     def _apply_charge(self, m: Charge) -> str:
         sprite = self._target_sprite(m.target)
-        from backend.sim.sprite import StatusEffect
-        sprite.add_effect(StatusEffect(
-            name="charging", category="state", scope="persistent", source="skill",
-        ))
         self._sync_state_effect(sprite, "charging")
         return f"{sprite.name} 开始蓄力"
 
@@ -887,7 +858,7 @@ class JournalReplayer:
                 round(self.self.current_hp / self.self.max_hp * self.opp.max_hp) if self.self.max_hp else 0
             return "交换HP比例"
         elif m.what == "effects":
-            self.self.effects, self.opp.effects = self.opp.effects, self.self.effects
+            self.self.active_effects, self.opp.active_effects = self.opp.active_effects, self.self.active_effects
             return "交换增益减益"
         elif m.what == "skills":
             self.self.skills, self.opp.skills = self.opp.skills, self.self.skills
@@ -955,7 +926,9 @@ class JournalReplayer:
         source_sprite = self.self if m.source_key == "self" else self.opp
         if source_sprite is None:
             return ""
-        inherited = [e for e in source_sprite.effects if getattr(e, 'scope', '') == m.scope]
+        from copy import copy
+        inherited = [copy(e) for e in getattr(source_sprite, 'active_effects', [])
+                     if getattr(e, 'scope', '') == m.scope]
         if not inherited:
             return ""
         if m.via_pending:

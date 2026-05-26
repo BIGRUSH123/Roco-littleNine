@@ -86,8 +86,7 @@ class BattleMechanicsMixin:
         sprite = self.get_player(team).active
         if sprite.is_fainted:
             return events
-        n = len([e for e in sprite.effects if e.scope == 'battlefield'])
-        n += len([e for e in getattr(sprite, 'active_effects', []) if getattr(e, 'scope', '') == 'battlefield'])
+        n = len([e for e in getattr(sprite, 'active_effects', []) if getattr(e, 'scope', '') == 'battlefield'])
         sprite.clear_effects('battlefield')
         sprite.first_action = True
         sprite.inc_counter('times_entered')
@@ -151,8 +150,6 @@ class BattleMechanicsMixin:
 
     def _resolve_item(self, team: str) -> str:
         """使用道具，立即应用效果。返回道具名（用于记录）。"""
-        from .sprite import StatusEffect
-
         player = self.get_player(team)
         item = player.item
         if not item or not item.can_use(self.turn):
@@ -186,9 +183,10 @@ class BattleMechanicsMixin:
             # 萌化状态在形态变化后失效
             sprite._reset_moe_state()
             sprite.remove_effect('萌化', 'abnormal')
+            from backend.vm.effect import StatBuffEffect
             for key in ['atk', 'sp_atk', 'def', 'sp_def', 'speed']:
-                sprite.add_effect(StatusEffect(
-                    name='首领化', category='stat', stat_key=key, steps=2,
+                sprite.add_effect(StatBuffEffect(
+                    name='首领化', stat_key=key, steps=2,
                     scope='permanent', source='进化之力',
                 ))
             # 进化后重新加载特性（新形态有不同 ability）
@@ -273,7 +271,8 @@ class BattleMechanicsMixin:
         replacement = agent.choose_replacement(self)
         if replacement >= 0:
             old = player.active
-            inherited = [e for e in old.effects if e.is_stat and e.steps > 0]
+            from backend.vm.effect import StatBuffEffect
+            inherited = [e for e in old.active_effects if isinstance(e, StatBuffEffect) and e.steps > 0]
             player.active_index = replacement
             new_sprite = player.active
             new_sprite.clear_effects('battlefield')

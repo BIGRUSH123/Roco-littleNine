@@ -231,15 +231,16 @@ class HumanAgent:
 
     @staticmethod
     def _print_effects(sprite: 'Sprite') -> None:
-        from .sprite import Sprite
-        s: Sprite = sprite  # type: ignore
-        if not s.effects:
+        from backend.vm.effect import AbnormalEffect
+        s = sprite
+        active = getattr(s, 'active_effects', None) or []
+        if not active:
             return
 
         # 同名去重：stat/state 合并显示，abnormal 显示层数
         seen: dict[str, str] = {}  # name -> 显示文本
-        for e in s.effects:
-            if e.category == 'abnormal':
+        for e in active:
+            if isinstance(e, AbnormalEffect):
                 seen[e.name] = f'{e.name}×{e.stacks}'
             elif e.name not in seen:
                 seen[e.name] = e.name

@@ -303,6 +303,16 @@ def _describe_skill(s: dict) -> str:
 
 # --- Helper Functions ---
 
+def _effect_category(e) -> str:
+    from backend.vm.effect import AbnormalEffect, StatBuffEffect, StateEffect
+    if isinstance(e, StatBuffEffect):
+        return 'stat'
+    if isinstance(e, AbnormalEffect):
+        return 'abnormal'
+    if isinstance(e, StateEffect):
+        return e.state_type or 'state'
+    return getattr(e, 'category', getattr(e, 'state_type', ''))
+
 def serialize_battle_state(battle: Battle, session_id: str) -> schemas.BattleState:
     pa = battle.player_a
     pb = battle.player_b
@@ -363,8 +373,11 @@ def serialize_battle_state(battle: Battle, session_id: str) -> schemas.BattleSta
             trait=s.species.ability or '',
             energy_cost_mod=s.energy_cost_mod,
             effects=[schemas.EffectSummary(
-                name=e.name, category=e.category, stacks=e.stacks, steps=e.steps,
-            ) for e in s.effects if e.name != '首领化'],
+                name=e.name,
+                category=_effect_category(e),
+                stacks=getattr(e, 'stacks', 0),
+                steps=getattr(e, 'steps', 0),
+            ) for e in getattr(s, 'active_effects', []) if e.name != '首领化'],
             skills=skills_data,
         )
 
@@ -422,8 +435,11 @@ def _build_turn_snapshot(battle, turn_log):
             energy=sprite.energy,
             is_fainted=sprite.is_fainted,
             effects=[s.EffectSummary(
-                name=e.name, category=e.category, stacks=e.stacks, steps=e.steps,
-            ) for e in sprite.effects if e.name != '首领化'],
+                name=e.name,
+                category=_effect_category(e),
+                stacks=getattr(e, 'stacks', 0),
+                steps=getattr(e, 'steps', 0),
+            ) for e in getattr(sprite, 'active_effects', []) if e.name != '首领化'],
             skills=[s.SkillSummary(
                 name=sk.name,
                 skill_index=i,

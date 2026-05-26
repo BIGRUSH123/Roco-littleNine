@@ -139,7 +139,8 @@ def test_per_hit_mod_buff():
     _run_skill(b)
 
     # 三连破: 3连击 × atk+3 steps，stat效果按stat_key合并 = 1个+9步
-    atk_effs = [e for e in user.effects if e.is_stat and e.stat_key == 'atk']
+    from backend.vm.effect import StatBuffEffect
+    atk_effs = [e for e in user.active_effects if isinstance(e, StatBuffEffect) and e.stat_key == 'atk']
     assert len(atk_effs) == 1, f"stat效果合并后应=1, got {len(atk_effs)}"
     assert atk_effs[0].steps == 9, f"总步数应=9, got {atk_effs[0].steps}"
     print(f"  [OK] 三连破 per_hit atk: {atk_effs[0].steps}步")
@@ -152,7 +153,8 @@ def test_per_hit_mod_debuff():
 
     _run_skill(b)
 
-    spd_effs = [e for e in opp.effects if e.is_stat and e.stat_key == 'speed']
+    from backend.vm.effect import StatBuffEffect
+    spd_effs = [e for e in opp.active_effects if isinstance(e, StatBuffEffect) and e.stat_key == 'speed']
     assert len(spd_effs) == 1, f"stat效果合并后应=1, got {len(spd_effs)}"
     assert spd_effs[0].steps == -12, f"总步数应=-12, got {spd_effs[0].steps}"
     print(f"  [OK] 电离爆破 per_hit speed: {spd_effs[0].steps}步")
