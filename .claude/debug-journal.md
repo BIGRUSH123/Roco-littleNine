@@ -5,6 +5,14 @@
 
 ---
 
+## 2026-05-27 - StatusEffect 删除后残留 getattr(e, 'category') 类型判断失效
+
+- **现象**: 审查 StatusEffect 移除代码时发现 3 处静默 bug——replayer 的 convert/steal 路径会 AttributeError（.effects 字段已删除），API 效果分类序列化返回空字符串
+- **根因**: 旧代码用 getattr(e, 'category', '') == 'abnormal' 做效果类型判断，但 EffectObject 子类（AbnormalEffect/StatBuffEffect/StateEffect）没有 category 属性——getattr 永远返回默认值。同时 replayer 两处仍引用已删除的 sprite.effects
+- **修复**: 全部改为 isinstance(e, AbnormalEffect) / isinstance(e, StatBuffEffect) + sprite.active_effects；API 新增 _effect_category() helper 用 isinstance 返回正确分类
+- **涉及文件**: backend/engine/replayer.py:549,759-762, backend/api/main.py:367,429
+- **教训**: 大规模迁移（类型替换）完成后，必须 grep 所有 getattr(*, 'old_field') 引用——动态属性访问绕过类型检查，删除字段后不会有 import 错误，只在运行时静默失效
+
 ## 2026-05-26 - extra_turn_end flag 只写不读导致双向光速特性不生效
 
 - **现象**: 粉耳星兔（双向光速特性）在场时，回合末异常效果（灼烧）仍只触发一次，而非预期的两次
