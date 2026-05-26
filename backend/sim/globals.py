@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
-from backend.common.skill_trait_ids import TRAIT_守望星
+
 
 
 if TYPE_CHECKING:
@@ -327,10 +327,11 @@ class GlobalEffects:
         consume = amount
 
         if sprite is not None:
-            from .traits import get_trait
-            h = get_trait(sprite)
-            if h and h.trait_id == TRAIT_守望星:
-                consume = max(1, amount // 2)
+            from backend.vm.effect import ModifierEffect
+            for e in getattr(sprite, 'active_effects', []):
+                if isinstance(e, ModifierEffect) and e.attr == "starfall_consume_ratio":
+                    consume = max(1, int(amount * e.value))
+                    break
 
         consumed = min(consume, total)
         starfall.stacks -= consumed

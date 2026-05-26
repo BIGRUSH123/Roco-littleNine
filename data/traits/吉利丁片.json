@@ -2,35 +2,40 @@
   "id": 20023,
   "name": "吉利丁片",
   "description": "离场后，更换入场的精灵获得双防+20%且免疫冻结。",
-  "passive": [
+  "effects": [
     {
       "op": "observer",
+      "cond": {
+        "cond": "sprite_left",
+        "of": "sprite_self"
+      },
       "then": [
         {
           "op": "mult_mod",
-          "target": "sprite_self",
-          "scope": "permanent",
+          "target": "ally_new",
           "attr": "def",
-          "value": 1.2
+          "value": 0.2,
+          "mode": "add",
+          "scope": "permanent"
         },
         {
           "op": "mult_mod",
-          "target": "sprite_self",
-          "scope": "permanent",
+          "target": "ally_new",
           "attr": "sp_def",
-          "value": 1.2
+          "value": 0.2,
+          "mode": "add",
+          "scope": "permanent"
         },
         {
           "op": "flag_set",
-          "target": "sprite_self",
-          "scope": "permanent",
-          "flag": "immune",
-          "value": "冻结"
+          "target": "ally_new",
+          "flag": "freeze_immune",
+          "value": true,
+          "scope": "permanent"
         }
       ],
-      "cond": {
-        "cond": "self_switched"
-      }
+      "listen": "post_leave",
+      "scope": "persistent"
     }
   ]
 }

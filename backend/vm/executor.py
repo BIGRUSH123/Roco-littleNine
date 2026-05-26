@@ -1,11 +1,7 @@
 """VM executor — pure (Ctx, effects[]) -> Journal transform.
 
-The executor processes effects sequentially, dispatching each via typed
-match/case (V2) with backward-compat dict fallback. 'when' blocks are
-handled recursively via eval_one condition evaluation.
-
-Implicit damage (from skill power + attack type) is NOT added by the
-executor — the engine handles that separately.
+Dict effects are compiled to typed SkillIROp on-the-fly via SkillParsePass,
+then dispatched by typed match/case. WhenBlocks are handled recursively.
 
 Entry points:
     execute(ctx, effects)        — sort + process all effects
@@ -87,50 +83,16 @@ from .ops.transform import op_transform
 from .ops.trait_interaction import op_trait_interaction
 from .sort import sort_effects
 
-# ── Backward compat: dict dispatch (used when raw dict is passed) ──
+# ── Cached parser for dict → typed op compilation ──
 
-_DICT_DISPATCH = {
-    "mod": op_mod,
-    "hit": op_hit,
-    "mark": op_mark,
-    "abnormal": op_abnormal,
-    "weather": op_weather,
-    "dispel": op_dispel,
-    "steal": op_steal,
-    "tick": op_tick,
-    "double": op_double,
-    "charge": op_charge,
-    "escape": op_escape,
-    "return": op_return,
-    "lock": op_lock,
-    "interrupt": op_interrupt,
-    "exchange": op_exchange,
-    "reset": op_reset,
-    "redirect": op_redirect,
-    "replay": op_replay,
-    "borrow": op_borrow,
-    "count": op_count,
-    "team_counter_write": op_team_counter_write,
-    "lives_change": op_lives_change,
-    "lives": op_lives_change,
-    "schedule": op_schedule,
-    "inherit_effects": op_inherit_effects,
-    "transform": op_transform,
-    "trait_interaction": op_trait_interaction,
-    # RISC ops — same handlers as typed match/case
-    "stat_stage": op_stat_stage,
-    "power_mod": op_power_mod,
-    "mult_mod": op_mult_mod,
-    "flag_set": op_flag_set,
-    "heal": op_heal,
-    "energize": op_energize,
-    "revive": op_revive,
-    # RISC aliases (backward compat for dict-format effects in trait then-blocks)
-    "observer": op_count,       # observer → count (same internal handler)
-    "defer": op_schedule,       # defer → schedule
-    "inherit": op_inherit_effects,  # inherit → inherit_effects
-    "branch": op_count,         # branch → count (when-block handler)
-}
+_parser = None
+
+def _get_parser():
+    global _parser
+    if _parser is None:
+        from backend.vm.compiler.passes.skill_parse import SkillParsePass
+        _parser = SkillParsePass()
+    return _parser
 
 
 def execute(ctx: Ctx, effects, *, sort: bool = True) -> Journal:
@@ -176,53 +138,29 @@ def _process_whenblock(ctx, wb: WhenBlock) -> list[Mutation]:
         return process_effects(ctx, wb.else_)
 
 
-def _process_dict_effect(ctx, effect: dict) -> list[Mutation]:
-    """Backward compat: process a raw dict effect."""
-    # ── Conditional branching: {"when": cond, "then": [...], "else": [...]} ──
+def _compile_effect(effect: dict):
+    """Compile a raw dict effect to a typed SkillIROp."""
     if "when" in effect and "op" not in effect:
         cond = effect["when"]
-        # Skip legacy kind-based conditions (not yet migrated)
         if isinstance(cond, dict) and "cond" not in cond:
-            return []
-        if eval_one(ctx, cond):
-            return process_effects(ctx, effect.get("then", []))
-        else:
-            elif_chain = effect.get("elif", []) or effect.get("else_if", [])
-            for branch in elif_chain:
-                cond_key = "cond" if "cond" in branch else "when"
-                if eval_one(ctx, branch[cond_key]):
-                    return process_effects(ctx, branch.get("then", []))
-            return process_effects(ctx, effect.get("else", []))
-
-    # ── Regular opcode ──
-    op = effect.get("op")
-    if not op:
-        if "kind" in effect:
-            return []
-        return []
-
-    handler = _DICT_DISPATCH.get(op)
-    if handler is None:
-        raise KeyError(f"Unknown opcode: {op}")
-
-    return handler(ctx, effect)
+            return None  # skip legacy kind-based conditions (dead triggers format)
+    parser = _get_parser()
+    return parser._parse_effect(effect)
 
 
 def process_one(ctx: Ctx, op) -> list[Mutation]:
     """Process a single effect and return its mutations.
 
-    V2: Typed match/case dispatch on SkillIROp types.
-    Backward compat: raw dict fallback.
-
-    Handles:
-        - WhenBlock → recursive branch evaluation
-        - All 21 op types → direct handler call
+    Dict effects are compiled to typed SkillIROp on-the-fly, then dispatched
+    via typed match/case.
     """
-    # ── Backward compat: raw dict ──
+    # ── Compile dict → typed op ──
     if isinstance(op, dict):
-        return _process_dict_effect(ctx, op)
+        op = _compile_effect(op)
+        if op is None:
+            return []
 
-    # ── V2: Typed match/case dispatch ──
+    # ── Typed match/case dispatch ──
     match op:
         case WhenBlock():
             return _process_whenblock(ctx, op)

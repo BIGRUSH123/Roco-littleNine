@@ -20,6 +20,7 @@ from backend.vm.ir_skill import (
     HitOp,
     InheritEffects,
     InterruptOp,
+    LivesChange,
     LockOp,
     MarkOp,
     ModOp,
@@ -37,7 +38,10 @@ from backend.vm.ir_skill import (
     SkillIROp,
     StatStageOp,
     StealOp,
+    TeamCounterWrite,
     TickOp,
+    TraitInteraction,
+    Transform,
     WeatherOp,
     WhenBlock,
     WhenBranch,
@@ -663,5 +667,43 @@ class SkillParsePass:
             then=then,
             else_=else_,
             elif_=elif_,
+            **self._common_fields(e),
+        )
+
+    # ── Engine-level ops (lives / transform / team_counter / trait_interaction) ──
+
+    def _parse_lives(self, e: dict) -> LivesChange:
+        return LivesChange(
+            target_team=self._str_or(e, "target_team", "own"),
+            delta=self._int_or(e, "delta", 1),
+            **self._common_fields(e),
+        )
+
+    _parse_lives_change = _parse_lives
+
+    def _parse_team_counter_write(self, e: dict) -> TeamCounterWrite:
+        return TeamCounterWrite(
+            target=self._str_or(e, "target", "own"),
+            key=self._str_or(e, "key", ""),
+            delta=self._int_or(e, "delta", 1),
+            **self._common_fields(e),
+        )
+
+    def _parse_transform(self, e: dict) -> Transform:
+        skills = e.get("skills")
+        return Transform(
+            species=self._str_or(e, "species", ""),
+            skills=tuple(skills) if skills else None,
+            reset_hp=self._bool_or(e, "reset_hp", False),
+            reset_energy=self._bool_or(e, "reset_energy", False),
+            **self._common_fields(e),
+        )
+
+    def _parse_trait_interaction(self, e: dict) -> TraitInteraction:
+        return TraitInteraction(
+            action=self._str_or(e, "action", ""),
+            target=self._str_or(e, "target", "sprite_self"),
+            copy_from=e.get("copy_from"),
+            new_ability=e.get("new_ability"),
             **self._common_fields(e),
         )

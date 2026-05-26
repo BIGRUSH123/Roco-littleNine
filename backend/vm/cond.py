@@ -195,6 +195,8 @@ CONDITION_TRIGGERS: dict[str, frozenset[str]] = {
     "on_energy_changed":       frozenset({"post_energy_change"}),
     # Turn boundaries
     "turn_end":                frozenset({"turn_end"}),
+    "turn_start":              frozenset({"turn_start"}),
+    "always":                  frozenset({"turn_start", "post_entry"}),
     # Devotion
     "devotion_triggered":      frozenset({"post_skill"}),
     # Have sub-dispatch
@@ -315,6 +317,10 @@ COND_EVAL = {
     # ── Switch ──
     "opp_switched": lambda ctx, cond: ctx.event.opp_switched,
     "self_switched": lambda ctx, cond: ctx.event.self_switched,
+    "sprite_left": lambda ctx, cond: (
+        (cond.get("of", "sprite_self") == "sprite_self" and ctx.event.self_switched)
+        or (cond.get("of") == "sprite_opp" and ctx.event.opp_switched)
+    ),
 
     # ── Skill type checks ──
     "opp_is_attack": lambda ctx, cond: ctx.skill_type_opp in ("物攻", "魔攻", "动态攻击"),
@@ -388,8 +394,10 @@ COND_EVAL = {
         ctx.event.energy_changed_of == cond.get("of", "sprite_self")
     ),
 
-    # ── Turn end ──
+    # ── Turn boundaries ──
     "turn_end": lambda ctx, cond: ctx.event.turn_end,
+    "turn_start": lambda ctx, cond: True,
+    "always": lambda ctx, cond: True,
 
     # ── Generic comparison ──
     "compare": lambda ctx, cond: compare_op(

@@ -294,6 +294,69 @@ def test_battle3_round22_final_ko():
 
 
 # ═══════════════════════════════════════════════════════════════
+# Trait: 吉利丁片 — ally_new target resolution
+# ═══════════════════════════════════════════════════════════════
+
+from backend.sim.player import Player
+
+
+def test_trait_gelatin_ally_new_target():
+    """吉利丁片: post_leave→mult_mod target=ally_new should go to incoming ally, not opponent.
+
+    椰浆布丁 (吉利丁片) switches out → incoming 粉耳星兔 should get def/sp_def +20%.
+    Opponent (双灯鱼) should NOT get the boost.
+    """
+    # Setup sprites
+    ye_species = _make_species("椰浆布丁", hp=420, def_=81, sp_def=105)
+    ye_species.ability = "吉利丁片"
+    ye_species.ability_id = 20023
+    ye = _make_sprite(ye_species, hp=420)
+
+    tu_species = _make_species("粉耳星兔", hp=400, def_=70, sp_def=70)
+    tu = _make_sprite(tu_species, hp=400)
+
+    deng_species = _make_species("双灯鱼", hp=380, def_=65, sp_def=65)
+    deng = _make_sprite(deng_species, hp=380)
+
+    # Player A: 椰浆布丁 active (index 0), 粉耳星兔 bench (index 1)
+    player_a = Player(name="A", team=[ye, tu], active_index=0)
+    player_b = Player(name="B", team=[deng], active_index=0)
+
+    from backend.sim.battle import Battle
+    battle = Battle(player_a, player_b)
+
+    # Load traits for starting sprites
+    battle._vm_engine.trait_loader.load_for_sprite(ye)
+
+    # Verify no pre-existing def modifiers on tu or deng
+    assert tu._modifiers.get("def", 0.0) == 0.0
+    assert tu._modifiers.get("sp_def", 0.0) == 0.0
+    assert deng._modifiers.get("def", 0.0) == 0.0
+    assert deng._modifiers.get("sp_def", 0.0) == 0.0
+
+    # Simulate switch: 椰浆布丁 out, 粉耳星兔 in
+    from backend.sim.action import Action
+    switch_action = Action(kind="switch", switch_index=1)
+    events = battle._resolve_switch("A", switch_action)
+
+    print(f"  Switch events: {events}")
+
+    # After switch: 粉耳星兔 (tu) should have def +20% and sp_def +20%
+    assert tu._modifiers.get("def", 0.0) == 0.2, \
+        f"粉耳星兔 def should be +0.2, got {tu._modifiers.get('def', 0.0)}"
+    assert tu._modifiers.get("sp_def", 0.0) == 0.2, \
+        f"粉耳星兔 sp_def should be +0.2, got {tu._modifiers.get('sp_def', 0.0)}"
+
+    # 双灯鱼 (deng) should NOT have the def/sp_def boost
+    assert deng._modifiers.get("def", 0.0) == 0.0, \
+        f"双灯鱼 def should be 0.0, got {deng._modifiers.get('def', 0.0)}"
+    assert deng._modifiers.get("sp_def", 0.0) == 0.0, \
+        f"双灯鱼 sp_def should be 0.0, got {deng._modifiers.get('sp_def', 0.0)}"
+
+    print("  ✓ 吉利丁片: ally_new target correctly resolved to incoming ally")
+
+
+# ═══════════════════════════════════════════════════════════════
 # Run all
 # ═══════════════════════════════════════════════════════════════
 

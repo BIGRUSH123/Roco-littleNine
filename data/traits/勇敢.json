@@ -1,15 +1,27 @@
 {
   "id": 20020,
   "name": "勇敢",
-  "description": "能耗>3的技能威力+40%。",
-  "passive": [
+  "description": "携带的能耗大于3的技能，威力+40%。",
+  "effects": [
     {
-      "op": "mult_mod",
-      "target": "sprite_self",
-      "scope": "permanent",
-      "skill_filter": "all",
-      "attr": "power_mult",
-      "value": 1.4
+      "op": "observer",
+      "cond": {
+        "cond": "compare",
+        "q": "energy_cost",
+        "of": "skill_off_0",
+        "op": "gt",
+        "value": 3
+      },
+      "then": [
+        {
+          "op": "mult_mod",
+          "target": "skill_off_0",
+          "attr": "power_mult",
+          "value": 1.4
+        }
+      ],
+      "listen": "pre_calc",
+      "scope": "battlefield"
     }
   ]
 }

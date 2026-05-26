@@ -2,19 +2,21 @@
   "id": 20014,
   "name": "养分内循环",
   "description": "回合结束时，回复6能量。",
-  "passive": [
+  "effects": [
     {
       "op": "observer",
+      "cond": {
+        "cond": "turn_end"
+      },
+      "listen": "turn_end",
+      "scope": "persistent",
       "then": [
         {
           "op": "energize",
           "target": "sprite_self",
           "delta": 6
         }
-      ],
-      "cond": {
-        "cond": "turn_end"
-      }
+      ]
     }
   ]
 }

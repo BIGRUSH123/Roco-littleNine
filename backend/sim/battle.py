@@ -8,7 +8,7 @@ from __future__ import annotations
 import random
 from typing import TYPE_CHECKING
 
-from backend.common.skill_trait_ids import TRAIT_星地善良
+
 from backend.vm.ir_skill import ChargeOp, CompiledSkill, WhenBlock, WhenBranch
 
 from .action import Action
@@ -17,15 +17,9 @@ from .battleskill import BattleSkill
 from .globals import GlobalEffects
 from .resolver import SkillResolver
 from .round_record import ActionRecord, RoundRecord, _action_short as _rr_action_short
-from .traits import (
-    dispatch_abnormal_tick,
-    dispatch_before_action,
-    dispatch_counter_success,
-    dispatch_entry,
-    dispatch_leave,
-    dispatch_turn_end,
-)
+from .traits import dispatch_entry, dispatch_leave
 from .traits.trait_engine import fire_hook_first
+from backend.common.skill_trait_ids import TRAIT_星地善良
 
 if TYPE_CHECKING:
     from .agent import Agent
@@ -250,11 +244,6 @@ class Battle(BattleMechanicsMixin):
         item_used = ''
         while True:
             action = agent.choose_action(self)
-            # before_action hook: 特性可修改/否决选技
-            sprite = self.get_player(team).active
-            modified = dispatch_before_action(sprite, action, self, team)
-            if modified is not None:
-                action = modified
             if action.kind == 'item':
                 item_used = self._resolve_item(team)
                 continue
@@ -349,13 +338,11 @@ class Battle(BattleMechanicsMixin):
             # trait: counter success hooks → 附加到对应 action
             if counter_a:
                 self.inc_team_counter('A', 'counter_success')
-                ar['A'].events += dispatch_counter_success(s_a, countered_skill_a, self, 'A')
                 # Observer: post_counter
                 ctx_ca = self._make_ctx(s_a, s_b, countered_skill_a, None, self.globals, team='A', turn=self.turn, counter_succeeded=True)
                 ar['A'].events += self._vm_engine.fire_trigger("post_counter", ctx_ca, s_a, s_b, self.globals, team='A', battle=self)
             if counter_b:
                 self.inc_team_counter('B', 'counter_success')
-                ar['B'].events += dispatch_counter_success(s_b, countered_skill_b, self, 'B')
                 # Observer: post_counter
                 ctx_cb = self._make_ctx(s_b, s_a, countered_skill_b, None, self.globals, team='B', turn=self.turn, counter_succeeded=True)
                 ar['B'].events += self._vm_engine.fire_trigger("post_counter", ctx_cb, s_b, s_a, self.globals, team='B', battle=self)
@@ -635,10 +622,6 @@ class Battle(BattleMechanicsMixin):
         elif record.skill_type not in ('物攻', '魔攻', '动态攻击'):
             self.inc_team_counter(team, 'status_skill')
 
-        # Trait dispatch
-        from .traits import dispatch_skill_use
-        events += dispatch_skill_use(user, bs, self, team)
-
         return events
 
     def _gate_charge_vm(self, user: Sprite, bs: BattleSkill, action: Action) -> bool | None:
@@ -801,6 +784,15 @@ class Battle(BattleMechanicsMixin):
 
         events += SkillResolver.turn_end(sprites, self.globals)
 
+        # 双向光速：extra_turn_end flag 让回合末效果额外触发一次
+        extra_turn = any(
+            sprite._modifiers.get("extra_turn_end", 0) > 0
+            for sprite in sprites.values()
+        )
+        if extra_turn:
+            events.append('⏳ 回合末效果额外触发 +1')
+            events += SkillResolver.turn_end(sprites, self.globals)
+
         # ── 异常 tick trait 通知（只读，不修改层数/HP）──
         for team, sprite in list(sprites.items()):
             opp_team = 'B' if team == 'A' else 'A'
@@ -810,9 +802,6 @@ class Battle(BattleMechanicsMixin):
                     continue
                 if e.name in ('灼烧', '中毒'):
                     dmg = sprite._last_abnormal_dmg.get(e.name, 0)  # actual damage (with element multiplier)
-                    events += dispatch_abnormal_tick(sprite, e.name, dmg, self, team)
-                    if not opp.is_fainted:
-                        events += dispatch_abnormal_tick(opp, e.name, dmg, self, opp_team)
                     # Observer: post_abnormal_tick — fire from both team perspectives
                     # so observers with of:sprite_opp can match
                     opp_team = 'B' if team == 'A' else 'A'
@@ -827,9 +816,8 @@ class Battle(BattleMechanicsMixin):
             for eff in expired:
                 events.append(f'{sprite.name} 效果到期: {eff.name}')
 
-        # ── trait turn end hook ──
+        # ── Observer: turn_end ──
         for team, sprite in sprites.items():
-            events += dispatch_turn_end(sprite, self, team)
             # Observer: turn_end
             opp_team = 'B' if team == 'A' else 'A'
             opp = self.get_opponent(team).active
@@ -851,6 +839,7 @@ class Battle(BattleMechanicsMixin):
             elif active.energy > 0:
                 continue
             if swap_index is None:
+                # 星地善良：auto_substitute (TODO: migrate to ObserverEffect once bench support lands)
                 for i, bench_sprite in enumerate(player.team):
                     if i == player.active_index or bench_sprite.is_fainted:
                         continue
@@ -874,7 +863,7 @@ class Battle(BattleMechanicsMixin):
                 # Observer: post_leave + post_entry
                 opp_team = 'B' if team == 'A' else 'A'
                 opp = self.get_opponent(team).active
-                ctx_leave = self._make_ctx(old, opp, None, None, self.globals, team=team, turn=self.turn)
+                ctx_leave = self._make_ctx(old, opp, None, None, self.globals, team=team, turn=self.turn, self_switched=True)
                 ctx_entry = self._make_ctx(new, opp, None, None, self.globals, team=team, turn=self.turn)
                 events += self._vm_engine.fire_trigger("post_leave", ctx_leave, old, opp, self.globals, team=team, battle=self)
                 events += self._vm_engine.fire_trigger("post_entry", ctx_entry, new, opp, self.globals, team=team, battle=self)

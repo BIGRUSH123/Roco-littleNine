@@ -631,7 +631,8 @@ def test_counter_register_production():
     journal = vm_execute(ctx, effects)
     counters = [m for m in journal if isinstance(m, CounterRegister)]
     assert len(counters) == 1, f"Expected 1 CounterRegister, got {len(counters)}"
-    assert counters[0].cond == {"cond": "devotion_triggered"}
+    from backend.vm.ir_skill import CondExpr
+    assert counters[0].cond == CondExpr(cond="devotion_triggered", params={})
     assert len(counters[0].then) == 1
     print(f"  CounterRegister: cond={counters[0].cond}, then={counters[0].then}")
 

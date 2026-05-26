@@ -2,5 +2,14 @@
   "id": 20147,
   "name": "多人宿舍",
   "description": "能量可以超过能量上限（10→15）。",
-  "triggers": []
+  "effects": [
+    {
+      "op": "power_mod",
+      "target": "sprite_self",
+      "attr": "max_energy",
+      "value": 15,
+      "mode": "set",
+      "scope": "permanent"
+    }
+  ]
 }

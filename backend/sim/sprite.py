@@ -7,9 +7,9 @@ from typing import TYPE_CHECKING
 
 from backend.common import STAT_KEYS
 from backend.common.models import SpeciesStats, StatsResult
-from backend.common.skill_trait_ids import TRAIT_多人宿舍, TRAIT_无忧无虑
+from backend.common.skill_trait_ids import TRAIT_无忧无虑
 
-from .traits.trait_engine import fire_hook_first
+
 
 if TYPE_CHECKING:
     from .battleskill import BattleSkill
@@ -100,6 +100,10 @@ class Sprite:
 
     # 全部效果（增/减益 + 异常状态 + 特殊状态）
     effects: list[StatusEffect] = field(default_factory=list)
+
+    # 特性驱动的 EffectObject（ObserverEffect / ModifierEffect / BehavioralEffect）
+    # 统一查询入口，由 TraitLoader 写入
+    active_effects: list = field(default_factory=list)
 
     # 进场回合
     entry_turn: int = 0
@@ -426,13 +430,10 @@ class Sprite:
 
     @property
     def max_energy(self) -> int:
-        override = fire_hook_first('max_energy_override', self)
-        if override is not None:
-            return override
-        from .traits import get_trait
-        h = get_trait(self)
-        if h and h.trait_id == TRAIT_多人宿舍:
-            return 15
+        from backend.vm.effect import ModifierEffect
+        for e in self.active_effects:
+            if isinstance(e, ModifierEffect) and e.attr == "max_energy":
+                return int(e.value)
         return 10
 
     def gain_energy(self, amount: int) -> int:

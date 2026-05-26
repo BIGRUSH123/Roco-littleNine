@@ -8,7 +8,7 @@ import random
 from typing import TYPE_CHECKING
 
 from .action import Action
-from .traits import dispatch_enemy_leave, dispatch_entry, dispatch_faint, dispatch_leave
+from .traits import dispatch_entry, dispatch_leave
 
 if TYPE_CHECKING:
     from .sprite import Sprite
@@ -62,14 +62,11 @@ class BattleMechanicsMixin:
         events += dispatch_entry(new, self, team)
         # 入场传动（首回合入场自动传动一次）
         events += self._apply_transmission(new)
-        # 通知敌方：观测到对手换宠（做噩梦/下黑手/珊瑚骨）
-        opp_active = self.get_opponent(team).active
-        if not opp_active.is_fainted:
-            events += dispatch_enemy_leave(opp_active, old, new, self, opp_team)
         # team counter: enemy switch (搜刮 等 pre-entry accumulator)
+        opp_active = self.get_opponent(team).active
         self.inc_team_counter(opp_team, 'enemy_switch')
         # Observer: post_leave + post_entry + post_enemy_leave
-        ctx_leave = self._make_ctx(old, opp_active, None, None, self.globals, team=team, turn=self.turn)
+        ctx_leave = self._make_ctx(old, opp_active, None, None, self.globals, team=team, turn=self.turn, self_switched=True)
         ctx_entry = self._make_ctx(new, opp_active, None, None, self.globals, team=team, turn=self.turn)
         events += self._vm_engine.fire_trigger("post_leave", ctx_leave, old, opp_active, self.globals, team=team, battle=self)
         events += self._vm_engine.fire_trigger("post_entry", ctx_entry, new, opp_active, self.globals, team=team, battle=self)
@@ -138,16 +135,12 @@ class BattleMechanicsMixin:
 
         # ── trait hooks ──
         events += dispatch_leave(old, self, team, is_faint=True)
-        events += dispatch_faint(old, None, self, team)
         events += dispatch_entry(new, self, team)
         events += self._apply_transmission(new)
-        # 通知敌方：观测到对手力竭换宠（做噩梦/下黑手/珊瑚骨）
+        # Observer: post_leave + post_entry + post_enemy_leave
         opp_team = 'B' if team == 'A' else 'A'
         opp_active = self.get_opponent(team).active
-        if not opp_active.is_fainted:
-            events += dispatch_enemy_leave(opp_active, old, new, self, opp_team)
-        # Observer: post_leave + post_entry + post_enemy_leave
-        ctx_ko_leave = self._make_ctx(old, opp_active, None, None, self.globals, team=team, turn=self.turn, target_fainted=True)
+        ctx_ko_leave = self._make_ctx(old, opp_active, None, None, self.globals, team=team, turn=self.turn, target_fainted=True, self_switched=True)
         ctx_ko_entry = self._make_ctx(new, opp_active, None, None, self.globals, team=team, turn=self.turn)
         events += self._vm_engine.fire_trigger("post_leave", ctx_ko_leave, old, opp_active, self.globals, team=team, battle=self)
         events += self._vm_engine.fire_trigger("post_entry", ctx_ko_entry, new, opp_active, self.globals, team=team, battle=self)
@@ -267,7 +260,7 @@ class BattleMechanicsMixin:
             events += dispatch_entry(new_sprite, self, team)
             # Observer: post_leave + post_entry
             opp_esc = self.get_opponent(team).active
-            ctx_esc_leave = self._make_ctx(user, opp_esc, None, None, self.globals, team=team, turn=self.turn)
+            ctx_esc_leave = self._make_ctx(user, opp_esc, None, None, self.globals, team=team, turn=self.turn, self_switched=True)
             ctx_esc_entry = self._make_ctx(new_sprite, opp_esc, None, None, self.globals, team=team, turn=self.turn)
             events += self._vm_engine.fire_trigger("post_leave", ctx_esc_leave, user, opp_esc, self.globals, team=team, battle=self)
             events += self._vm_engine.fire_trigger("post_entry", ctx_esc_entry, new_sprite, opp_esc, self.globals, team=team, battle=self)
@@ -295,7 +288,7 @@ class BattleMechanicsMixin:
             events += dispatch_entry(new_sprite, self, team)
             # Observer: post_leave + post_entry
             opp_inh = self.get_opponent(team).active
-            ctx_inh_leave = self._make_ctx(old, opp_inh, None, None, self.globals, team=team, turn=self.turn)
+            ctx_inh_leave = self._make_ctx(old, opp_inh, None, None, self.globals, team=team, turn=self.turn, self_switched=True)
             ctx_inh_entry = self._make_ctx(new_sprite, opp_inh, None, None, self.globals, team=team, turn=self.turn)
             events += self._vm_engine.fire_trigger("post_leave", ctx_inh_leave, old, opp_inh, self.globals, team=team, battle=self)
             events += self._vm_engine.fire_trigger("post_entry", ctx_inh_entry, new_sprite, opp_inh, self.globals, team=team, battle=self)

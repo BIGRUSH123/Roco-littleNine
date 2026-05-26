@@ -2,9 +2,12 @@
   "id": 20015,
   "name": "养分重吸收",
   "description": "回合结束时，回复3能量。",
-  "passive": [
+  "effects": [
     {
       "op": "observer",
+      "cond": {
+        "cond": "turn_end"
+      },
       "then": [
         {
           "op": "energize",
@@ -12,9 +15,8 @@
           "delta": 3
         }
       ],
-      "cond": {
-        "cond": "turn_end"
-      }
+      "listen": "turn_end",
+      "scope": "persistent"
     }
   ]
 }

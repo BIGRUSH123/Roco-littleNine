@@ -1,14 +1,25 @@
 {
   "id": 20021,
   "name": "双向光速",
-  "description": "在场时，所有回合结束时触发次数+1。",
-  "passive": [
+  "description": "在场时，所有回合结束时触发的效果，触发次数+1。",
+  "effects": [
     {
-      "op": "flag_set",
-      "target": "sprite_self",
+      "op": "observer",
+      "cond": {
+        "cond": "sprite_entered",
+        "of": "sprite_self"
+      },
+      "listen": "post_entry",
       "scope": "battlefield",
-      "flag": "extra_turn_end",
-      "value": 1
+      "then": [
+        {
+          "op": "flag_set",
+          "target": "sprite_self",
+          "flag": "extra_turn_end",
+          "value": 1,
+          "scope": "battlefield"
+        }
+      ]
     }
   ]
 }

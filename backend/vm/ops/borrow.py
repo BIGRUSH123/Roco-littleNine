@@ -18,5 +18,8 @@ def op_borrow(ctx: Ctx, effect) -> list[Mutation]:
 
     from_skill: "skill_opp_current"
     """
-    from_skill = _get(effect, "from", "skill_opp_current")
+    if isinstance(effect, dict):
+        from_skill = effect.get("from", "skill_opp_current")
+    else:
+        from_skill = getattr(effect, "from_", "skill_opp_current")
     return [Borrow(from_skill=from_skill)]

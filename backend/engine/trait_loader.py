@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from backend.vm.compiler.trait_to_observer import TraitToObserver
+from backend.vm.effect_factory import from_dict as effect_from_dict
 
 if TYPE_CHECKING:
     from backend.engine.observer import ObserverRegistry
@@ -64,6 +65,18 @@ class TraitLoader:
         observer_effects = [e for e in effects if e.get("op") == "observer"]
         direct_effects = [e for e in effects if e.get("op") != "observer"]
 
+        # ── EffectObject construction (identity layer, IR-transparent) ──
+        # Clear old EffectObjects from same source (reload dedup)
+        active = getattr(sprite, 'active_effects', None)
+        if active:
+            sprite.active_effects = [e for e in active if e.source != trait_source]
+        else:
+            sprite.active_effects = []
+        for e in effects:
+            obj = effect_from_dict(e, source=trait_source)
+            if obj is not None:
+                sprite.active_effects.append(obj)
+
         sources: set[str] = set()
 
         if observer_effects:
@@ -111,6 +124,11 @@ class TraitLoader:
         self._sprite_sources.pop(sprite_id, None)
         self._remove_direct_mods(sprite)
 
+        # Clear EffectObjects matching this reason
+        active = getattr(sprite, 'active_effects', None)
+        if active:
+            sprite.active_effects = [e for e in active if not e.should_clear(reason)]
+
     def reapply_all_direct_mods(self, sprites: list):
         """Re-apply trait direct modifiers to all sprites (after _PER_TURN_KEYS cleanup)."""
         for sprite in sprites:
@@ -119,6 +137,9 @@ class TraitLoader:
                 self._apply_direct_mods(sprite, effects)
 
     # ── Direct modifiers (non-observer effects like power_mod in effects[]) ──
+
+    # Attrs that apply to sprite properties, not skills (consumed by property methods)
+    _SPRITE_LEVEL_ATTRS = frozenset({'max_energy', 'starfall_consume_ratio'})
 
     def _apply_direct_mods(self, sprite, effects: list[dict]):
         """Apply non-observer trait effects as permanent modifiers to matching skills."""
@@ -130,6 +151,8 @@ class TraitLoader:
             if op != "power_mod":
                 continue
             attr = effect.get("attr", "")
+            if attr in self._SPRITE_LEVEL_ATTRS:
+                continue  # sprite-level attrs read by property methods
             delta = effect.get("delta", 0)
             if isinstance(delta, dict):
                 continue

@@ -2,9 +2,14 @@
   "id": 20025,
   "name": "吸积盘",
   "description": "回合结束时，敌方获得2层星陨印记。",
-  "passive": [
+  "effects": [
     {
       "op": "observer",
+      "cond": {
+        "cond": "turn_end"
+      },
+      "listen": "turn_end",
+      "scope": "battlefield",
       "then": [
         {
           "op": "mark",
@@ -12,10 +17,8 @@
           "name": "星陨印记",
           "stacks": 2
         }
-      ],
-      "cond": {
-        "cond": "turn_end"
-      }
+      ]
     }
-  ]
+  ],
+  "source": "rules.md"
 }

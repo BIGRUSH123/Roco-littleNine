@@ -135,11 +135,25 @@ def adjust_damage(dmg: Damage, mods: dict) -> Damage:
 def eval_skill_where(skill_where: dict | None, skill: dict) -> bool:
     """Evaluate a skill_where condition against a single skill's properties.
 
-    skill_where format: {"q": "energy_cost", "op": "gt", "value": 3}
+    Two formats supported:
+      Query format:  {"q": "energy_cost", "op": "gt", "value": 3}
+      Shorthand:     {"name": "虫鸣", "element": "虫"}
+                     All key=value pairs must match (AND logic).
+
     Returns True if the skill matches the condition (or no condition).
     """
     if not skill_where:
         return True
+
+    # Shorthand: {"name": "虫鸣"} → match all field=value pairs (equality)
+    if "q" not in skill_where and "op" not in skill_where:
+        for field, expected in skill_where.items():
+            actual = skill.get(field)
+            if actual is None or actual != expected:
+                return False
+        return True
+
+    # Query format: {"q": "energy_cost", "op": "gt", "value": 3}
     q = skill_where.get("q", "")
     op = skill_where.get("op", "eq")
     expected = skill_where.get("value")

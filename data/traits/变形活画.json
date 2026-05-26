@@ -1,16 +1,23 @@
 {
   "id": 20022,
   "name": "变形活画",
-  "description": "敌方每有1层增益，攻击威力+10%。",
-  "passive": [
+  "description": "攻击时，敌方每有1层增益，本次技能威力+10%。",
+  "effects": [
     {
       "op": "observer",
+      "cond": {
+        "cond": "compare",
+        "q": "energy",
+        "of": "sprite_self",
+        "op": "gte",
+        "value": 0
+      },
+      "listen": "pre_calc",
+      "scope": "battlefield",
       "then": [
         {
           "op": "mult_mod",
           "target": "sprite_self",
-          "scope": "permanent",
-          "skill_filter": "attack",
           "attr": "power_mult",
           "value": {
             "q": "positive_count",
@@ -19,11 +26,7 @@
             "offset": 1
           }
         }
-      ],
-      "cond": {
-        "cond": "on_positive_changed",
-        "of": "sprite_opp"
-      }
+      ]
     }
   ]
 }

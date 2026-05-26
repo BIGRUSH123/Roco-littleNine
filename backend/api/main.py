@@ -615,6 +615,10 @@ def _init_battle_impl(req: schemas.InitRequest):
     agent_b = _load_ai_agent(req.ai_agent or "RuleAgent", player_b)
     player_b.active_index = agent_b.choose_lead(battle)
 
+    # 加载特性修正到技能_modifiers，确保初始序列化时威力显示正确
+    battle._vm_engine.trait_loader.load_for_sprite(player_a.active)
+    battle._vm_engine.trait_loader.load_for_sprite(player_b.active)
+
     session_id = str(uuid.uuid4())
     sessions[session_id] = {
         "battle": battle,

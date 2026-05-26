@@ -85,9 +85,6 @@ class DataDrivenTrait(TraitHandler):
     特性效果通过 Skill VM 执行：
       - CountOp → CounterRegister mutation → Observer（带 auto-inferred listen triggers）
       - 其他 opcode → 直接 mutation 由引擎 replay
-
-    on_energy_short / on_fatal_damage / on_faint / on_before_take_damage /
-    on_before_action 委托给 engine hook 系统。
     """
 
     def __init__(self, name: str, trait_id: int = 0, effects: list[dict] = None):
@@ -130,27 +127,21 @@ class DataDrivenTrait(TraitHandler):
                 ))
         return observers
 
-    # ── Engine hook delegation ──
-
-    def on_energy_short(self, sprite, cost, battle, team):
-        result = fire_hook_first('on_energy_short', sprite, cost, battle, team)
-        return result if result is not None else 0
-
-    def on_fatal_damage(self, sprite, damage, battle, team):
-        result = fire_hook_first('on_fatal_damage', sprite, damage, battle, team)
-        return result if result is not None else False
-
-    def on_faint(self, sprite, killer, battle, team):
-        result = fire_hook_first('on_faint', sprite, killer, battle, team)
-        return result if result is not None else []
-
-    def on_before_take_damage(self, target, attacker, damage, element, battle, team):
-        result = fire_hook_first('before_take_damage', target, attacker, damage, element, battle, team)
-        return result if result is not None else None
-
-    def on_before_action(self, sprite, action, battle, team):
-        result = fire_hook_first('before_action', sprite, action, battle, team)
-        return result if result is not None else None
+    def on_turn_start(self, sprite, battle, team):
+        """Fire turn_start observers for per-turn position-based effects."""
+        events: list[str] = []
+        vm_engine = getattr(battle, '_vm_engine', None)
+        if vm_engine is None:
+            return events
+        opp_team = 'B' if team == 'A' else 'A'
+        opp = battle.get_player(opp_team).active
+        ctx = battle._make_ctx(sprite, opp, None, None, battle.globals,
+                               team=team, turn=battle.turn)
+        events += vm_engine.fire_trigger(
+            "turn_start", ctx, sprite, opp, battle.globals,
+            team=team, battle=battle,
+        )
+        return events
 
 
 # ═══════════════════════════════════════════════════════════════════
