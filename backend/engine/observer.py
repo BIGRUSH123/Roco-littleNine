@@ -68,10 +68,13 @@ class Observer:
     def should_clear(self, reason: str) -> bool:
         """Whether this observer should be cleared for the given reason.
 
+        reload: always clear (prevents duplicate registration)
         battlefield: clear on leave or faint
         persistent: clear only on faint
-        permanent: never clear
+        permanent: never clear (except on reload)
         """
+        if reason == "reload":
+            return True  # always clear to prevent duplicates
         if self.scope == "battlefield":
             return True  # clear on any removal
         if self.scope == "persistent":
