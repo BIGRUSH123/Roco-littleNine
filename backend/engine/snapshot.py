@@ -62,6 +62,7 @@ def build_ctx(
     skills_energy_changed_of: str = "",
     positive_changed_of: str = "",
     energy_changed_of: str = "",
+    damage_taken_of: str = "",
     last_tick_damage_self: int = 0,
     last_tick_damage_opp: int = 0,
     turn_end: bool = False,
@@ -195,6 +196,7 @@ def build_ctx(
         skills_energy_changed_of=skills_energy_changed_of,
         positive_changed_of=positive_changed_of,
         energy_changed_of=energy_changed_of,
+        damage_taken_of=damage_taken_of,
     )
 
     # ── Build Ctx ──

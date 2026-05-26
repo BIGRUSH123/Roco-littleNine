@@ -91,6 +91,11 @@ class MultModOp:
     mode: str = "set"
     per_hit: bool = False
     scope: str = "battlefield"
+    skill_where: dict | None = field(default=None, hash=False, compare=False)
+    skill_filter: str | None = None
+    element: str | None = None
+    name: str | None = None
+    source: str | None = None
     feeds: str = ""
     needs: str = ""
     priority: int = 0

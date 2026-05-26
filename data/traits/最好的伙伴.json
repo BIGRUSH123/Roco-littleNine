@@ -41,7 +41,8 @@
         "cond": "and",
         "conditions": [
           {
-            "cond": "on_damage_taken"
+            "cond": "on_damage_taken",
+            "of": "sprite_opp"
           },
           {
             "cond": "compare",

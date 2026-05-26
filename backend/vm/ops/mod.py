@@ -161,6 +161,11 @@ def op_mult_mod(ctx: Ctx, op) -> list[Mutation]:
     result = [ModifierInjection(
         target=target, stat=attr, value=float(value),
         mode=mode, scope=scope,
+        skill_filter=_get_field(op, "skill_filter"),
+        skill_where=_get_field(op, "skill_where"),
+        element=_get_field(op, "element"),
+        name=_get_field(op, "name"),
+        source=_get_field(op, "source"),
     )]
     if per_hit and ctx.combo_self > 1:
         result = result * ctx.combo_self

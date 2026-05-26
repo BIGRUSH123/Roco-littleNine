@@ -256,6 +256,25 @@ class BattleVMEngine:
                 if obs.owner_sprite_id is not None and owner_id is not None:
                     if obs.owner_sprite_id != owner_id:
                         continue
+            # post_damage: if owner is the defender (took damage),
+            # swap replayer AND ctx BEFORE condition evaluation so conds like
+            # on_damage_taken of=sprite_self resolve from owner's perspective
+            # and stat reads (atk_self, def_opp) use correct values
+            saved_perspective = None
+            if trigger == "post_damage" and obs.owner_sprite_id is not None:
+                opp_id = id(replayer.opp) if replayer.opp else None
+                if obs.owner_sprite_id == opp_id:
+                    saved_perspective = (
+                        replayer.self, replayer.opp,
+                        ctx,
+                    )
+                    replayer.self, replayer.opp = saved_perspective[1], saved_perspective[0]
+                    ctx = ctx.swapped_view()
+                    # flip damage_taken_of on the swapped ctx too
+                    if ctx.event.damage_taken_of == "sprite_opp":
+                        ctx.event.damage_taken_of = "sprite_self"
+                    elif ctx.event.damage_taken_of == "sprite_self":
+                        ctx.event.damage_taken_of = "sprite_opp"
             try:
                 if eval_one(ctx, obs.cond):
                     journal = process_effects(ctx, obs.then)
@@ -263,6 +282,10 @@ class BattleVMEngine:
                     events.extend(ev)
             except Exception:
                 continue
+            finally:
+                if saved_perspective is not None:
+                    replayer.self, replayer.opp = saved_perspective[0], saved_perspective[1]
+                    ctx = saved_perspective[2]
         return events
 
     def _fire_mutation_events(self, journal: Journal, ctx: Ctx, replayer: JournalReplayer) -> list[str]:
@@ -288,7 +311,11 @@ class BattleVMEngine:
             if isinstance(m, Damage):
                 trigger = "post_damage"
                 ctx.damage_taken_this_turn = m.amount
+                ctx.event.damage_taken_of = "sprite_self" if m.target in ("sprite_self",) else "sprite_opp"
             elif isinstance(m, EnergyChange):
+                target_of = "sprite_self" if m.target in ("sprite_self",) else "sprite_opp"
+                ctx.event.energy_changed_of = target_of
+                ctx.event.skills_energy_changed_of = target_of
                 trigger = "post_energy_change"
             elif isinstance(m, AbnormalChange):
                 trigger = "post_abnormal_change"

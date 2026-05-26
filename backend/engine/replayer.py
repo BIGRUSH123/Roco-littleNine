@@ -108,6 +108,22 @@ _STEP_UNIT: dict[str, int] = {
 _SKILL_DISTRIBUTE_STATS = frozenset({"energy_cost", "power", "combo", "priority"})
 
 
+_ATTACK_TYPES: frozenset[str] = frozenset({"物攻", "魔攻", "动态攻击"})
+
+
+def _matches_skill_type(skill_filter: str | None, skill_type: str) -> bool:
+    """Check if a skill's type matches the skill_filter."""
+    if not skill_filter or skill_filter == "all":
+        return True
+    if skill_filter == "attack":
+        return skill_type in _ATTACK_TYPES
+    if skill_filter == "defense":
+        return skill_type == "防御"
+    if skill_filter == "status":
+        return skill_type == "状态"
+    return True  # unknown filters pass through
+
+
 def _apply_to_all_skills(sprite, m) -> str:
     """Distribute a modifier to all BattleSkills on the sprite."""
     label = _STAT_LABELS.get(m.stat, m.stat)
@@ -154,6 +170,9 @@ def _apply_to_matching_skills(sprite, m) -> str:
             "skill_type": getattr(getattr(bs, 'base', None), 'skill_type', ''),
         }
         if not eval_skill_where(m.skill_where, skill_info):
+            continue
+        st = skill_info.get("skill_type", "")
+        if m.skill_filter and not _matches_skill_type(m.skill_filter, st):
             continue
         cur = bs_mods.get(m.stat, 0.0)
         if m.mode == "add":
@@ -356,8 +375,9 @@ class JournalReplayer:
         if not skill_scoped and m.skill_filter == "all" and m.stat in _SKILL_DISTRIBUTE_STATS:
             return _apply_to_all_skills(sprite, m)
 
-        # ── skill_where on sprite target: distribute to matching BattleSkills ──
-        if not skill_scoped and m.skill_where is not None:
+        # ── skill_where or skill_filter (attack/defense/status/...) on sprite target ──
+        if not skill_scoped and (m.skill_where is not None or
+                                (m.skill_filter and m.skill_filter != "all")):
             return _apply_to_matching_skills(sprite, m)
 
         if skill_scoped:

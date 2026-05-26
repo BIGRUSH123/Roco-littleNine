@@ -35,6 +35,7 @@ class EventContext:
     skills_energy_changed_of: str = ""
     positive_changed_of: str = ""
     energy_changed_of: str = ""
+    damage_taken_of: str = ""
 
 
 @dataclass
@@ -158,6 +159,62 @@ class Ctx:
 
     # ── 计次器快照 ──
     counter_values: dict[str, int] = field(default_factory=dict)  # {name: count}
+
+    def swapped_view(self) -> "Ctx":
+        """Return a new Ctx with self ↔ opp and own ↔ opp fields swapped.
+
+        Used for post_damage observer replay: when the observer's owner is the
+        defender, the replayer swaps self/opp so that "sprite_opp" resolves to
+        the attacker. The ctx must be swapped too so stat reads (atk_self,
+        def_opp, etc.) match the replayer's perspective.
+        """
+        import copy
+
+        other = copy.copy(self)
+        other.event = copy.copy(self.event)
+
+        # --- self ↔ opp (mirrored fields) ---
+        for suffix_self, suffix_opp in [
+            ("_self", "_opp"),
+        ]:
+            for base in ("hp", "hp_max", "hp_ratio", "energy",
+                         "atk", "def", "sp_atk", "sp_def", "speed",
+                         "damage_reduction", "abnormal_count", "positive_count",
+                         "charged", "skills_energy_sum",
+                         "power_mult", "damage_mult",
+                         "last_tick_damage", "prev_damage_taken"):
+                field_self = f"{base}{suffix_self}"
+                field_opp = f"{base}{suffix_opp}"
+                if hasattr(other, field_self) and hasattr(other, field_opp):
+                    setattr(other, field_self, getattr(self, field_opp))
+                    setattr(other, field_opp, getattr(self, field_self))
+
+        # --- dict fields ---
+        other.abnormal_stacks_self = dict(self.abnormal_stacks_opp)
+        other.abnormal_stacks_opp = dict(self.abnormal_stacks_self)
+        other.stat_stages_self = dict(self.stat_stages_opp)
+        other.stat_stages_opp = dict(self.stat_stages_self)
+        other.skill_elements_self = frozenset(self.skill_elements_opp)
+        other.skill_elements_opp = frozenset(self.skill_elements_self)
+
+        # --- skill fields ---
+        other.power_self, other.power_opp = self.power_opp, self.power_self
+        other.skill_type_self, other.skill_type_opp = self.skill_type_opp, self.skill_type_self
+        other.element_self, other.element_opp = self.element_opp, self.element_self
+        other.energy_cost_self, other.energy_cost_opp = self.energy_cost_opp, self.energy_cost_self
+
+        # --- team own ↔ opp ---
+        other.mark_count_own, other.mark_count_opp = self.mark_count_opp, self.mark_count_own
+        other.mark_stacks_own = dict(self.mark_stacks_opp)
+        other.mark_stacks_opp = dict(self.mark_stacks_own)
+        other.team_counters_own = dict(self.team_counters_opp)
+        other.team_counters_opp = dict(self.team_counters_own)
+        other.devotion_own = dict(self.devotion_opp)
+        other.devotion_opp = dict(self.devotion_own)
+        other.fainted_own, other.fainted_opp = self.fainted_opp, self.fainted_own
+        other.lives_own, other.lives_opp = self.lives_opp, self.lives_own
+
+        return other
 
 
 # ── ADDRESS_MAP ──

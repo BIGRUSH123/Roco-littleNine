@@ -304,7 +304,10 @@ COND_EVAL = {
     "on_self_ko": lambda ctx, cond: ctx.event.self_koed,
 
     # ── Damage ──
-    "on_damage_taken": lambda ctx, cond: ctx.damage_taken_this_turn > 0,
+    "on_damage_taken": lambda ctx, cond: (
+        ctx.damage_taken_this_turn > 0
+        and ("of" not in cond or ctx.event.damage_taken_of == cond["of"])
+    ),
     "prev_damage_taken": lambda ctx, cond: (
         _sprite_of(ctx, cond.get("of", "sprite_self"))["prev_damage_taken"]
     ),

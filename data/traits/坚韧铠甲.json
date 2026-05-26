@@ -15,7 +15,8 @@
       ],
       "scope": "persistent",
       "cond": {
-        "cond": "on_damage_taken"
+        "cond": "on_damage_taken",
+        "of": "sprite_self"
       }
     }
   ]

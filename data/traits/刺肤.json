@@ -1,6 +1,23 @@
 {
   "id": 20145,
   "name": "刺肤",
-  "description": "每受1次攻击，对攻击者造成50威力物理伤害。",
-  "triggers": []
+  "description": "每受到1次攻击，对攻击自己的精灵造成50威力物理伤害。",
+  "effects": [
+    {
+      "op": "observer",
+      "cond": {
+        "cond": "on_damage_taken"
+      },
+      "listen": "post_damage",
+      "scope": "battlefield",
+      "then": [
+        {
+          "op": "hit",
+          "power": 50,
+          "type": "物攻",
+          "target": "sprite_opp"
+        }
+      ]
+    }
+  ]
 }

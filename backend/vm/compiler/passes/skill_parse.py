@@ -524,6 +524,11 @@ class SkillParsePass:
             mode=self._str_or(e, "mode", "set"),
             per_hit=self._bool_or(e, "per_hit", False),
             scope=self._str_or(e, "scope", "battlefield"),
+            skill_where=e.get("skill_where"),
+            skill_filter=e.get("skill_filter"),
+            element=e.get("element"),
+            name=e.get("name"),
+            source=e.get("source"),
             **self._common_fields(e),
         )
 
