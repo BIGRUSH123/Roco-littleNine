@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
-from backend.common.skill_trait_ids import TRAIT_吟游之弦, TRAIT_守望星
+from backend.common.skill_trait_ids import TRAIT_守望星
 
 from .traits.trait_engine import fire_hook_first
 
@@ -271,9 +271,9 @@ class GlobalEffects:
     # ── 印记增删 ──
 
     def apply_mark(self, team: str, name: str, category: str, stacks: int = 1,
-                   user: Sprite | None = None) -> list[str]:
+                   coexist: bool = False) -> list[str]:
         """应用印记。
-        若 user 有吟游之弦特性 → 共存（同名叠加，异名新增）。
+        若 coexist=True → 共存（同名叠加，异名新增）。
         否则 → 替换（同类别清空后新增）。
         返回事件列表。"""
         mark = Mark(name=name, category=category, stacks=stacks)
@@ -285,15 +285,7 @@ class GlobalEffects:
         target_list = pos_list if category == 'positive' else neg_list
         events: list[str] = []
 
-        # Hook: before_apply_mark — 返回 'coexist' 启用共存模式
-        hook_mode = fire_hook_first('before_apply_mark', team, name, category, stacks, user)
-        has_bard = (hook_mode == 'coexist')
-        if not has_bard and user is not None:
-            from .traits import get_trait
-            h = get_trait(user)
-            has_bard = h and h.trait_id == TRAIT_吟游之弦
-
-        if has_bard:
+        if coexist:
             # 共存模式：同名叠加，异名新增
             existing = next((m for m in target_list if m.name == name), None)
             if existing:

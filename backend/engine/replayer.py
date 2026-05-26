@@ -94,6 +94,7 @@ _STAT_LABELS: dict[str, str] = {
     "ignore_resistance": "无视抗性",
     "ignore_mods": "无视修正",
     "survive": "不屈",
+    "drive": "传动",
 }
 
 # Step unit for display conversion: steps → display value
@@ -231,11 +232,13 @@ class JournalReplayer:
         self._species_lookup = species_lookup  # callable(number) -> SpeciesStats | None
         self._self_skill = self_skill
         self._battle = battle  # optional ref for trait-level ops
+        self._cleared_position_stats: set[str] = set()  # per-replay batch cleanup tracking
 
     # ── Main entry ──
 
     def replay(self, journal: Journal) -> list[str]:
         """Replay all mutations. Returns event strings for logging."""
+        self._cleared_position_stats.clear()
         events: list[str] = []
         for mutation in journal:
             ev = self._apply(mutation)
@@ -381,7 +384,28 @@ class JournalReplayer:
             return _apply_to_matching_skills(sprite, m)
 
         if skill_scoped:
-            if self._self_skill is not None:
+            if m.target.startswith("skill_at_"):
+                # Route to specific skill position (1-indexed: skill_at_1 → skills[0])
+                # Before first occurrence of each stat per replay batch, clear old
+                # position-based modifiers from all skills (prevents stacking across turns).
+                if m.stat not in self._cleared_position_stats:
+                    self._cleared_position_stats.add(m.stat)
+                    for bs in sprite.skills:
+                        bs._modifiers.pop(m.stat, None)
+                        if m.stat == "drive":
+                            bs._transmission = bs.base.transmission
+                try:
+                    pos = int(m.target.rsplit("_", 1)[-1]) - 1
+                    if 0 <= pos < len(sprite.skills):
+                        target_mods = sprite.skills[pos]._modifiers
+                        # drive flag → _transmission on the target skill
+                        if m.stat == "drive":
+                            sprite.skills[pos]._transmission = int(m.value) if m.value else 0
+                    else:
+                        target_mods = sprite._modifiers
+                except (ValueError, IndexError):
+                    target_mods = sprite._modifiers
+            elif self._self_skill is not None:
                 target_mods = self._self_skill._modifiers
                 if m.scope == "permanent" and self._self_skill.skill:
                     skill_name = getattr(self._self_skill.skill, 'name', '')
@@ -496,7 +520,8 @@ class JournalReplayer:
         if m.action == "apply":
             team = self.team if m.target_team == "own" else ("B" if self.team == "A" else "A")
             category = self.globals.classify_mark(m.name)
-            self.globals.apply_mark(team, m.name, category, m.delta)
+            coexist = bool(self.self._modifiers.get("mark_coexist", False))
+            self.globals.apply_mark(team, m.name, category, m.delta, coexist=coexist)
             return f"{team}队 {m.name} {m.delta:+d}层"
 
         if m.action == "dispel":
@@ -523,7 +548,8 @@ class JournalReplayer:
                     removed = min(mark.stacks, count)
                     mark.stacks -= removed
                     category = self.globals.classify_mark(m.name)
-                    self.globals.apply_mark(team, m.name, category, removed)
+                    coexist = bool(self.self._modifiers.get("mark_coexist", False))
+                    self.globals.apply_mark(team, m.name, category, removed, coexist=coexist)
                     return f"{self.self.name} 偷取{m.name}×{removed}"
             return ""
 
@@ -547,7 +573,8 @@ class JournalReplayer:
                     break
             team = self.team if m.target_team == "own" else ("B" if self.team == "A" else "A")
             category = self.globals.classify_mark(m.name)
-            self.globals.apply_mark(team, m.name, category, marks)
+            coexist = bool(self.self._modifiers.get("mark_coexist", False))
+            self.globals.apply_mark(team, m.name, category, marks, coexist=coexist)
             return f"{self.self.name} {source_name}→{m.name}×{marks}"
 
         return ""
@@ -675,7 +702,8 @@ class JournalReplayer:
                     if mark in src_list:
                         src_list.remove(mark)
                     # Apply to own team
-                    self.globals.apply_mark(to_team_key, name, category, stacks)
+                    coexist = bool(self.self._modifiers.get("mark_coexist", False))
+                    self.globals.apply_mark(to_team_key, name, category, stacks, coexist=coexist)
                     return f"{self.self.name} 偷取 {name} x{stacks}"
             return ""
         return ""
@@ -891,8 +919,14 @@ class JournalReplayer:
     # ── Helpers ──
 
     def _target_sprite(self, target: str) -> Sprite:
+        if target.startswith("skill_at_"):
+            return self.self
         if target in ("sprite_self", "self", "team_own", "skill_off_0"):
             return self.self
+        if target == "ally_new" and self._battle is not None:
+            return self._battle.get_player(self.team).active
+        if target == "enemy_new" and self._battle is not None:
+            return self._battle.get_opponent(self.team).active
         return self.opp
 
     @staticmethod

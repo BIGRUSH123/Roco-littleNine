@@ -2066,6 +2066,215 @@ def test_double_on_self():
     assert sprite.effects[0].steps == 4  # doubled
 
 
+# ═══════════════════════════════════════════════════════════════════
+# 吟游之弦 (id=20146): mark_coexist — 印记共存模式测试
+# ═══════════════════════════════════════════════════════════════════
+
+
+def _make_bard_sprite(name="吟游诗人", hp=200):
+    """创建一个拥有吟游之弦(20146)特性的测试精灵。
+
+    DataDrivenTrait observer 在 pre_calc 时通过 flag_set 设置
+    _modifiers["mark_coexist"] = True。测试中直接预置此 flag
+    模拟 observer 执行后的状态。
+    """
+    species = SpeciesStats(
+        name=name, hp=hp, atk=100, def_=100,
+        sp_atk=100, sp_def=100, speed=100,
+    )
+    species.ability_id = 20146
+    sprite = Sprite(
+        species=species, current_hp=hp, max_hp=hp,
+        initial_stats={"atk": 100, "def": 100, "sp_atk": 100, "sp_def": 100, "speed": 100},
+    )
+    sprite._modifiers["mark_coexist"] = True
+    return sprite
+
+
+def _make_normal_sprite(name="普通精灵", hp=200):
+    """创建一个无特性的普通精灵。"""
+    species = SpeciesStats(
+        name=name, hp=hp, atk=100, def_=100,
+        sp_atk=100, sp_def=100, speed=100,
+    )
+    sprite = Sprite(
+        species=species, current_hp=hp, max_hp=hp,
+        initial_stats={"atk": 100, "def": 100, "sp_atk": 100, "sp_def": 100, "speed": 100},
+    )
+    return sprite
+
+
+def test_bard_mark_coexist_different_marks():
+    """吟游之弦: applying different-name marks → both coexist (no replace)."""
+    globals_ = GlobalEffects()
+    bard = _make_bard_sprite()
+    team = "A"
+
+    # Apply first mark
+    globals_.apply_mark(team, "攻击印记", "positive", 1, coexist=True)
+    pos_a, _ = globals_.get_marks(team)
+    assert len(pos_a) == 1
+    assert pos_a[0].name == "攻击印记"
+
+    # Apply second DIFFERENT mark → should coexist, not replace
+    globals_.apply_mark(team, "光合印记", "positive", 1, coexist=True)
+    pos_a, _ = globals_.get_marks(team)
+    assert len(pos_a) == 2, f"Expected 2 coexisting marks, got {len(pos_a)}"
+    mark_names = {m.name for m in pos_a}
+    assert mark_names == {"攻击印记", "光合印记"}
+
+
+def test_bard_mark_coexist_same_name_stacks():
+    """吟游之弦: applying same-name mark → stacks increase."""
+    globals_ = GlobalEffects()
+    bard = _make_bard_sprite()
+    team = "A"
+
+    globals_.apply_mark(team, "攻击印记", "positive", 2, coexist=True)
+    pos_a, _ = globals_.get_marks(team)
+    assert len(pos_a) == 1
+    assert pos_a[0].stacks == 2
+
+    # Reapply same name → stacks add up
+    globals_.apply_mark(team, "攻击印记", "positive", 3, coexist=True)
+    pos_a, _ = globals_.get_marks(team)
+    assert len(pos_a) == 1, "Same-name mark should not duplicate"
+    assert pos_a[0].stacks == 5
+
+
+def test_bard_mark_three_different_marks():
+    """吟游之弦: three different marks all coexist."""
+    globals_ = GlobalEffects()
+    bard = _make_bard_sprite()
+    team = "A"
+
+    for name in ["攻击印记", "光合印记", "润泽印记"]:
+        globals_.apply_mark(team, name, "positive", 1, coexist=True)
+
+    pos_a, _ = globals_.get_marks(team)
+    assert len(pos_a) == 3, f"Expected 3 coexisting marks, got {len(pos_a)}"
+    assert {m.name for m in pos_a} == {"攻击印记", "光合印记", "润泽印记"}
+
+
+def test_bard_mark_coexist_mixed_stacks():
+    """吟游之弦: different marks with stacking coexist correctly."""
+    globals_ = GlobalEffects()
+    bard = _make_bard_sprite()
+    team = "A"
+
+    globals_.apply_mark(team, "攻击印记", "positive", 2, coexist=True)
+    globals_.apply_mark(team, "光合印记", "positive", 1, coexist=True)
+    globals_.apply_mark(team, "攻击印记", "positive", 3, coexist=True)
+
+    pos_a, _ = globals_.get_marks(team)
+    assert len(pos_a) == 2
+    atk_mark = next(m for m in pos_a if m.name == "攻击印记")
+    assert atk_mark.stacks == 5
+    photo_mark = next(m for m in pos_a if m.name == "光合印记")
+    assert photo_mark.stacks == 1
+
+
+def test_normal_sprite_mark_replace():
+    """Without 吟游之弦: different-name mark replaces existing (default behavior)."""
+    globals_ = GlobalEffects()
+    normal = _make_normal_sprite()
+    team = "A"
+
+    globals_.apply_mark(team, "攻击印记", "positive", 1)
+    pos_a, _ = globals_.get_marks(team)
+    assert len(pos_a) == 1
+    assert pos_a[0].name == "攻击印记"
+
+    # Different name without bard → replaces
+    globals_.apply_mark(team, "光合印记", "positive", 1)
+    pos_a, _ = globals_.get_marks(team)
+    assert len(pos_a) == 1, "Without bard, new mark should replace old"
+    assert pos_a[0].name == "光合印记"
+
+
+def test_normal_sprite_mark_same_name_stacks():
+    """Without 吟游之弦: same-name mark still stacks (compatible behavior)."""
+    globals_ = GlobalEffects()
+    normal = _make_normal_sprite()
+    team = "A"
+
+    globals_.apply_mark(team, "攻击印记", "positive", 2)
+    globals_.apply_mark(team, "攻击印记", "positive", 3)
+    pos_a, _ = globals_.get_marks(team)
+    assert len(pos_a) == 1
+    assert pos_a[0].stacks == 5
+
+
+def test_bard_mark_teams_independent():
+    """吟游之弦: marks on team A and team B are independent."""
+    globals_ = GlobalEffects()
+    bard = _make_bard_sprite()
+
+    globals_.apply_mark("A", "攻击印记", "positive", 1, coexist=True)
+    globals_.apply_mark("A", "光合印记", "positive", 1, coexist=True)
+    globals_.apply_mark("B", "减速", "negative", 1, coexist=True)
+
+    pos_a, neg_a = globals_.get_marks("A")
+    pos_b, neg_b = globals_.get_marks("B")
+
+    assert len(pos_a) == 2  # bard coexists on team A
+    assert len(neg_a) == 0
+    assert len(pos_b) == 0
+    assert len(neg_b) == 1
+    assert neg_b[0].name == "减速"
+
+
+def test_bard_mark_positive_negative_independent():
+    """吟游之弦: positive and negative marks are tracked separately."""
+    globals_ = GlobalEffects()
+    bard = _make_bard_sprite()
+    team = "A"
+
+    globals_.apply_mark(team, "攻击印记", "positive", 1, coexist=True)
+    globals_.apply_mark(team, "减速", "negative", 1, coexist=True)
+
+    pos, neg = globals_.get_marks(team)
+    assert len(pos) == 1 and pos[0].name == "攻击印记"
+    assert len(neg) == 1 and neg[0].name == "减速"
+
+
+def test_bard_mark_coexist_non_bard_user_does_not_replace():
+    """吟游之弦在场时，无特性精灵施加印记也应正常替换（按默认逻辑）。"""
+    globals_ = GlobalEffects()
+    normal = _make_normal_sprite()
+    team = "A"
+
+    globals_.apply_mark(team, "攻击印记", "positive", 1)
+    globals_.apply_mark(team, "光合印记", "positive", 1)
+
+    pos_a, _ = globals_.get_marks(team)
+    assert len(pos_a) == 1, "Non-bard user: new mark should replace old"
+    assert pos_a[0].name == "光合印记"
+
+
+def test_bard_mark_coexist_flag_is_consumed_by_replayer():
+    """吟游之弦 observer 设置的 mark_coexist flag 被 replayer 正确消费。
+
+    replayer._apply_mark_change 读取 self.self._modifiers["mark_coexist"]
+    并传递 coexist=True 给 apply_mark，无需 hook 或 get_trait 查找。
+    """
+    globals_ = GlobalEffects()
+
+    # coexist=True → 共存模式（模拟 replayer 读取 flag 后传递）
+    globals_.apply_mark("A", "攻击印记", "positive", 1, coexist=True)
+    globals_.apply_mark("A", "光合印记", "positive", 1, coexist=True)
+
+    pos_a, _ = globals_.get_marks("A")
+    assert len(pos_a) == 2  # coexistence works via flag
+
+    # coexist=False (default) → 默认替换模式
+    globals2 = GlobalEffects()
+    globals2.apply_mark("A", "攻击印记", "positive", 1, coexist=False)
+    globals2.apply_mark("A", "光合印记", "positive", 1, coexist=False)
+    pos_a2, _ = globals2.get_marks("A")
+    assert len(pos_a2) == 1  # no coexist flag → default replace
+
+
 def test_steal_mark_from_opp():
     """Steal(from_target='team_opp', what='mark') transfers marks from opp."""
     from backend.common.models import SpeciesStats
