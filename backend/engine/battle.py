@@ -239,17 +239,20 @@ class BattleVMEngine:
     def _fire_post_event(self, trigger: str, ctx: Ctx, replayer: JournalReplayer) -> list[str]:
         """Fire post-event observers and replay their mutations.
 
-        Observers are filtered by listen set. For entry/leave triggers,
-        owner filtering ensures each sprite's observers only fire for
-        their own entry/leave events (not the opponent's).
+        Observers are filtered by listen set. For per-sprite triggers
+        (entry/leave/turn_end/post_abnormal_tick), owner filtering ensures
+        each sprite's observers only fire for their own events.
         """
         events: list[str] = []
         owner_id = id(replayer.self) if replayer.self else None
         for obs in self.registry._observers:
             if obs.listen and trigger not in obs.listen:
                 continue
-            # Owner filter: only for triggers where "which sprite" matters
-            if trigger in ("post_entry", "post_leave", "post_skill"):
+            # Owner filter: only for triggers where "which sprite" matters.
+            # turn_end and post_abnormal_tick are fired per-sprite in a loop,
+            # so sprite-owned observers must only fire for their owner.
+            if trigger in ("post_entry", "post_leave", "post_skill",
+                           "turn_end", "post_abnormal_tick"):
                 if obs.owner_sprite_id is not None and owner_id is not None:
                     if obs.owner_sprite_id != owner_id:
                         continue
