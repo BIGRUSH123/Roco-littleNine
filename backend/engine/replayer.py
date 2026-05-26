@@ -451,6 +451,8 @@ class JournalReplayer:
 
         if m.stat in _RATIO_STATS:
             return f"{sprite.name} {label}={final:.0%}"
+        if m.stat in _STAGE_STATS:
+            return f"{sprite.name} {label}{final:+.0%}"
         if m.stat == "energy_cost":
             return ""
         return f"{sprite.name} {label}{final:+.0f}"
