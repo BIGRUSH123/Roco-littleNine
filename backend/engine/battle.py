@@ -186,6 +186,15 @@ class BattleVMEngine:
                 (skill_name, list(vm_effects), {"tag": getattr(self_skill, 'tag', '')})
             )
 
+        # 6.7 Trigger starfall mark: non-幻系 attack → consume marks + deal 幻系 damage
+        skill_type = getattr(self_skill, 'skill_type', '')
+        skill_element = getattr(self_skill, 'element', '')
+        if skill_type in ('物攻', '魔攻') and skill_element != '幻' and globals_:
+            opp_team = 'B' if team == 'A' else 'A'
+            sf_dmg = globals_.trigger_starfall(opp_team, self_sprite, opp_sprite)
+            if sf_dmg > 0:
+                events.append(f'星陨印记引爆: {opp_sprite.name} -{sf_dmg}HP')
+
         # 7. Fire post-skill observers
         ctx.just_acted_self = True  # for sprite_acted condition
         post_ev = self._fire_post_event("post_skill", ctx, replayer)
@@ -252,7 +261,7 @@ class BattleVMEngine:
             # turn_end and post_abnormal_tick are fired per-sprite in a loop,
             # so sprite-owned observers must only fire for their owner.
             if trigger in ("post_entry", "post_leave", "post_skill",
-                           "turn_end", "post_abnormal_tick"):
+                           "turn_end", "post_abnormal_tick", "turn_start"):
                 if obs.owner_sprite_id is not None and owner_id is not None:
                     if obs.owner_sprite_id != owner_id:
                         continue

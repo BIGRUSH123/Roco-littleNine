@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING
 
 from backend.common.skill_trait_ids import TRAIT_守望星
 
-from .traits.trait_engine import fire_hook_first
 
 if TYPE_CHECKING:
     from .skill import Skill
@@ -86,6 +85,7 @@ _MARK_EFFECTS: dict[str, dict] = {
     },
     '星陨印记': {
         'category': 'negative',
+        'starfall_damage': 30,       # 每层 30 威力幻系魔法伤害
     },
 }
 
@@ -326,11 +326,7 @@ class GlobalEffects:
         total = starfall.stacks
         consume = amount
 
-        # Hook: before_consume_starfall — 返回调整后的消耗量
-        hook_consume = fire_hook_first('before_consume_starfall', team, amount, sprite, starfall)
-        if hook_consume is not None:
-            consume = hook_consume
-        elif sprite is not None:
+        if sprite is not None:
             from .traits import get_trait
             h = get_trait(sprite)
             if h and h.trait_id == TRAIT_守望星:
@@ -341,6 +337,29 @@ class GlobalEffects:
         if starfall.stacks <= 0:
             neg.remove(starfall)
         return consumed
+
+    def trigger_starfall(self, team: str, attacker: Sprite, defender: Sprite) -> int:
+        """触发星陨印记：消耗全部层数，造成幻系魔法伤害。
+        返回实际伤害值（0=无星陨或非攻击技能）。
+        """
+        _, neg = self.get_marks(team)
+        starfall = next((m for m in neg if m.name == '星陨印记'), None)
+        if not starfall or starfall.stacks <= 0:
+            return 0
+
+        total_stacks = starfall.stacks
+        cfg = self._get_mark_config('星陨印记')
+        dmg_per_stack = cfg.get('starfall_damage', 30)
+
+        # 守望星: 消耗减半但造成满层伤害
+        consumed = self.consume_starfall_stacks(team, total_stacks, defender)
+        if consumed <= 0:
+            return 0
+
+        raw = round(attacker.effective_stat('sp_atk') * (total_stacks * dmg_per_stack)
+                    / max(1, defender.effective_stat('sp_def')))
+        dealt = defender.take_damage(raw)
+        return dealt
 
     def set_weather(self, weather: str, turns: int = WEATHER_DURATION) -> None:
         self.weather = weather

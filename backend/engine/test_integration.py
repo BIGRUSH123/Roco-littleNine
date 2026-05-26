@@ -2275,6 +2275,74 @@ def test_bard_mark_coexist_flag_is_consumed_by_replayer():
     assert len(pos_a2) == 1  # no coexist flag → default replace
 
 
+# ═══════════════════════════════════════════════════════════════════
+# 星陨印记: trigger_starfall — 非幻系攻击触发消耗和伤害
+# ═══════════════════════════════════════════════════════════════════
+
+
+def test_starfall_trigger_basic():
+    """非幻系攻击触发星陨: 消耗全部层数 + 造成幻系魔法伤害。"""
+    g = GlobalEffects()
+    attacker = _make_normal_sprite("攻击方", hp=300)
+    defender = _make_normal_sprite("防御方", hp=300)
+
+    # 给防御方上 3 层星陨
+    g.apply_mark("A", "星陨印记", "negative", 3)
+
+    # 触发星陨: team=A (防御方阵营), attacker → defender
+    dmg = g.trigger_starfall("A", attacker, defender)
+    assert dmg > 0, "星陨应造成伤害"
+
+    # 检查星陨消耗: 全部层数应被清除
+    _, neg = g.get_marks("A")
+    assert len(neg) == 0, f"星陨应被全部消耗，剩余: {neg}"
+
+    # 检查防御方 HP 减少
+    assert defender.current_hp < 300, f"防御方应受到伤害: {defender.current_hp}"
+
+
+def test_starfall_no_trigger_without_marks():
+    """无星陨时 trigger_starfall 返回 0。"""
+    g = GlobalEffects()
+    attacker = _make_normal_sprite("攻击方", hp=300)
+    defender = _make_normal_sprite("防御方", hp=300)
+
+    dmg = g.trigger_starfall("A", attacker, defender)
+    assert dmg == 0
+
+
+def test_starfall_consume_stacks_correctly():
+    """星陨消耗后层数归零。"""
+    g = GlobalEffects()
+    attacker = _make_normal_sprite("攻击方", hp=300)
+    defender = _make_normal_sprite("防御方", hp=300)
+
+    g.apply_mark("B", "星陨印记", "negative", 5)
+    _, neg_before = g.get_marks("B")
+    assert neg_before[0].stacks == 5
+
+    g.trigger_starfall("B", attacker, defender)
+    _, neg_after = g.get_marks("B")
+    assert len(neg_after) == 0
+
+
+def test_starfall_damage_scales_with_stacks():
+    """星陨伤害随层数增长。"""
+    g1 = GlobalEffects()
+    g2 = GlobalEffects()
+    attacker = _make_normal_sprite("攻击方", hp=300)
+    d1 = _make_normal_sprite("防御方1", hp=300)
+    d2 = _make_normal_sprite("防御方2", hp=300)
+
+    g1.apply_mark("A", "星陨印记", "negative", 2)
+    dmg_2 = g1.trigger_starfall("A", attacker, d1)
+
+    g2.apply_mark("A", "星陨印记", "negative", 4)
+    dmg_4 = g2.trigger_starfall("A", attacker, d2)
+
+    assert dmg_4 > dmg_2, f"4层伤害({dmg_4})应大于2层伤害({dmg_2})"
+
+
 def test_steal_mark_from_opp():
     """Steal(from_target='team_opp', what='mark') transfers marks from opp."""
     from backend.common.models import SpeciesStats
