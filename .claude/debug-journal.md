@@ -270,6 +270,14 @@
 - **涉及文件**: backend/vm/ops/schedule.py:16-36
 - **教训**: defer 延时效果不触发时，先查两个点——turns 值是否被 Python falsy 逻辑篡改（0、空字符串），以及 phase 值是否匹配引擎检查的 key
 
+## 2026-05-27 - post_counter 缺少 owner 过滤导致观察者从错误精灵视角执行
+
+- **现象**: 对手（黑羽夫人）使用偷袭成功应对后，错误触发了好象坏象特性的形态变换，对手变成了棋绮后
+- **根因**: 两个独立 bug 组合：① `engine/battle.py:303` owner 过滤列表漏掉了 `"post_counter"`，所有监听 post_counter 的 observer 无论属于哪个精灵都会触发；② `sim/battle.py:343,348` ctx 的 `self_skill` 传了被应对技能而非应对技能，`skill_type` 条件检查了错误的技能类型
+- **修复**: `engine/battle.py:303` 加入 `"post_counter"`；`sim/battle.py:343,348` 将 `countered_skill_a`/`countered_skill_b` 改为 `skill_a`/`skill_b`
+- **涉及文件**: backend/engine/battle.py:303, backend/sim/battle.py:343,348
+- **教训**: 特性效果出现在错误目标（对手）身上时，先查 `_fire_post_event` 的 owner 过滤列表是否包含对应 trigger——漏掉的 trigger 导致所有 observer 无差别触发，`sprite_self` 指向 replayer.self 而非 trait holder
+
 <!-- 新条目追加在此行上方，格式如下：
 
 ## YYYY-MM-DD - 简短标题
