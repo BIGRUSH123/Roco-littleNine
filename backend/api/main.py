@@ -313,6 +313,68 @@ def _effect_category(e) -> str:
         return e.state_type or 'state'
     return getattr(e, 'category', getattr(e, 'state_type', ''))
 
+
+def _is_trait_metadata_effect(e) -> bool:
+    """Return True for effects that are trait metadata, not visible buffs."""
+    from backend.vm.effect import ModifierEffect, ObserverEffect
+    if isinstance(e, ObserverEffect):
+        return True
+    if isinstance(e, ModifierEffect):
+        return True
+    return False
+
+
+def _is_display_stat_effect(e) -> bool:
+    """Return True for StatBuffEffect that is display-only (steps==0, has display_mult)."""
+    from backend.vm.effect import StatBuffEffect
+    if isinstance(e, StatBuffEffect) and e.steps == 0 and e.display_mult is not None:
+        return True
+    return False
+
+
+def _extract_display_effects(sprite) -> list[schemas.EffectSummary]:
+    """Extract display-only StatBuffEffects for trait tooltip display."""
+    from backend.vm.effect import StatBuffEffect
+    result = []
+    for e in getattr(sprite, 'active_effects', []):
+        if isinstance(e, StatBuffEffect) and e.steps == 0 and e.display_mult is not None:
+            result.append(schemas.EffectSummary(
+                name=e.name,
+                category='stat',
+                stacks=1,
+                steps=0,
+                display_mult=e.display_mult,
+                source=getattr(e, 'source', ''),
+            ))
+    return result
+
+def _compute_trait_info(sprite) -> schemas.TraitInfo | None:
+    """Load trait definition and return TraitInfo for API serialization."""
+    species = getattr(sprite, 'species', None)
+    if not species:
+        return None
+    trait_name = species.ability or ''
+    trait_id = getattr(species, 'ability_id', 0) if species else 0
+    if not trait_name and not trait_id:
+        return None
+
+    from backend.engine.trait_loader import _trait_cache
+    if trait_id and trait_id in _trait_cache:
+        data = _trait_cache[trait_id]
+    else:
+        data_dir = Path(__file__).parent.parent.parent / "data" / "traits"
+        fpath = data_dir / f"{trait_name}.json"
+        if fpath.exists():
+            data = json.loads(fpath.read_text("utf-8"))
+        else:
+            return schemas.TraitInfo(name=trait_name, description="", display_effects=[])
+
+    return schemas.TraitInfo(
+        name=data.get("name", trait_name),
+        description=data.get("description", ""),
+        display_effects=_extract_display_effects(sprite),
+    )
+
 def serialize_battle_state(battle: Battle, session_id: str) -> schemas.BattleState:
     pa = battle.player_a
     pb = battle.player_b
@@ -370,14 +432,19 @@ def serialize_battle_state(battle: Battle, session_id: str) -> schemas.BattleSta
             energy=s.energy,
             is_fainted=s.is_fainted,
             charging=charged_name if charging else '',
-            trait=s.species.ability or '',
+            trait=_compute_trait_info(s),
             energy_cost_mod=s.energy_cost_mod,
             effects=[schemas.EffectSummary(
                 name=e.name,
                 category=_effect_category(e),
                 stacks=getattr(e, 'stacks', 0),
                 steps=getattr(e, 'steps', 0),
-            ) for e in getattr(s, 'active_effects', []) if e.name != '首领化'],
+                display_mult=getattr(e, 'display_mult', None),
+                source=getattr(e, 'source', ''),
+            ) for e in getattr(s, 'active_effects', [])
+             if e.name != '首领化'
+             and not _is_trait_metadata_effect(e)
+             and not _is_display_stat_effect(e)],
             skills=skills_data,
         )
 
@@ -439,7 +506,12 @@ def _build_turn_snapshot(battle, turn_log):
                 category=_effect_category(e),
                 stacks=getattr(e, 'stacks', 0),
                 steps=getattr(e, 'steps', 0),
-            ) for e in getattr(sprite, 'active_effects', []) if e.name != '首领化'],
+                display_mult=getattr(e, 'display_mult', None),
+                source=getattr(e, 'source', ''),
+            ) for e in getattr(sprite, 'active_effects', [])
+             if e.name != '首领化'
+             and not _is_trait_metadata_effect(e)
+             and not _is_display_stat_effect(e)],
             skills=[s.SkillSummary(
                 name=sk.name,
                 skill_index=i,
@@ -631,9 +703,17 @@ def _init_battle_impl(req: schemas.InitRequest):
     agent_b = _load_ai_agent(req.ai_agent or "RuleAgent", player_b)
     player_b.active_index = agent_b.choose_lead(battle)
 
-    # 加载特性修正到技能_modifiers，确保初始序列化时威力显示正确
-    battle._vm_engine.trait_loader.load_for_sprite(player_a.active)
-    battle._vm_engine.trait_loader.load_for_sprite(player_b.active)
+    # ── 回合 0: 静默触发 entry 效果 ──
+    # entry trait（地脉/囤积等）在此时生效，初始序列化状态直接反映进场后数值
+    from backend.sim.traits import dispatch_entry
+
+    s_a, s_b = player_a.active, player_b.active
+    dispatch_entry(s_a, battle, 'A')
+    dispatch_entry(s_b, battle, 'B')
+    ctx_a = battle._make_ctx(s_a, s_b, None, None, battle.globals, team='A', turn=battle.turn)
+    ctx_b = battle._make_ctx(s_b, s_a, None, None, battle.globals, team='B', turn=battle.turn)
+    battle._vm_engine.fire_trigger("post_entry", ctx_a, s_a, s_b, battle.globals, team='A', battle=battle)
+    battle._vm_engine.fire_trigger("post_entry", ctx_b, s_b, s_a, battle.globals, team='B', battle=battle)
 
     session_id = str(uuid.uuid4())
     sessions[session_id] = {

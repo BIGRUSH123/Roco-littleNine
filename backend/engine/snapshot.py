@@ -244,7 +244,7 @@ def build_ctx(
         skills_energy_sum_self=sum(
             getattr(s, 'energy_cost', 0) for s in (ss.skills or [])
         ),
-        just_entered=getattr(ss, 'entry_turn', -1) == turn and turn > 0,
+        just_entered=getattr(ss, 'entry_turn', -1) == turn and turn >= 0,
         skill_elements_self=skill_elements_self,
         stat_stages_self=stat_stages_self,
         energy_cost_sum_self=ecs,

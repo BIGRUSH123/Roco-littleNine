@@ -181,16 +181,6 @@ class Battle(BattleMechanicsMixin):
             sprite_b=s_b.name,
         )
 
-        # 0. 首发入场（回合1触发 entry trait）
-        if self.turn == 1:
-            rec.turn_start_events += dispatch_entry(self.player_a.active, self, 'A')
-            rec.turn_start_events += dispatch_entry(self.player_b.active, self, 'B')
-            # Observer: post_entry
-            ctx_a = self._make_ctx(self.player_a.active, self.player_b.active, None, None, self.globals, team='A', turn=self.turn)
-            ctx_b = self._make_ctx(self.player_b.active, self.player_a.active, None, None, self.globals, team='B', turn=self.turn)
-            rec.turn_start_events += self._vm_engine.fire_trigger("post_entry", ctx_a, self.player_a.active, self.player_b.active, self.globals, team='A', battle=self)
-            rec.turn_start_events += self._vm_engine.fire_trigger("post_entry", ctx_b, self.player_b.active, self.player_a.active, self.globals, team='B', battle=self)
-
         # 1. 回合开始阶段（已内含 >>>PHASE:TURN_START 标记）
         ts_events = self._phase_turn_start()
         rec.turn_start_events += ts_events
@@ -543,22 +533,12 @@ class Battle(BattleMechanicsMixin):
         if hasattr(bs.base, 'element') and bs.base.element and self.globals.weather:
             cost = round(cost * self.globals.weather_energy_mod(bs.base.element))
         cost = max(0, cost)
-        if cost > 0 and user.energy >= cost:
-            user.lose_energy(cost)
-        elif cost > 0 and user.energy < cost:
-            # Try HP substitution
-            deficit = cost - user.energy
-            hp_sub = min(deficit * 10, user.current_hp - 1)
-            if hp_sub > 0:
-                user.take_damage(hp_sub)
-                user.lose_energy(user.energy)
-                events.append(f'{user.name} 消耗{hp_sub}HP代替{deficit}E')
-            else:
-                events.append(f'[能量不足] {user.name} E={user.energy} < {cost}')
-                return events
-        else:
-            if cost > 0:
+        if cost > 0:
+            if user.energy >= cost:
                 user.lose_energy(cost)
+            else:
+                events.append(f'{user.name} E不足{user.energy}<{cost}')
+                return events
 
         # Fire post_energy_change for traits like 囤积
         if cost > 0:
