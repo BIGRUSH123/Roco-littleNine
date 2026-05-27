@@ -278,6 +278,30 @@
 - **涉及文件**: backend/engine/battle.py:303, backend/sim/battle.py:343,348
 - **教训**: 特性效果出现在错误目标（对手）身上时，先查 `_fire_post_event` 的 owner 过滤列表是否包含对应 trigger——漏掉的 trigger 导致所有 observer 无差别触发，`sprite_self` 指向 replayer.self 而非 trait holder
 
+## 2026-05-28 - display-only effect 创建在 skill_scoped 守卫内导致 skill_off_0 目标的 trait tooltip 不显示
+
+- **现象**: 嫁祸特性的连击加成在战斗日志中正常显示，但特性 tooltip 悬停时看不到连击数值
+- **根因**: display-only StatBuffEffect 创建在 `if not skill_scoped` 块内，observer 的 power_mod 以 skill_off_0 为目标时 skill_scoped=True，整个 tooltip 效果创建被跳过
+- **修复**: 将 display-only 效果创建逻辑移出 skill_scoped 守卫，使其对 skill_scoped 目标同样生效
+- **涉及文件**: backend/engine/replayer.py:498-513
+- **教训**: tooltip 不显示但日志有数值 → 查效果是否因 target 类型（skill_scoped vs sprite）被跳过创建
+
+## 2026-05-28 - life_drain 不在 _VISIBLE_MOD_STATS 导致吸血 buff 不显示在精灵 buff 栏
+
+- **现象**: 「贪婪」技能设置吸血100%，伤害中吸血效果生效但精灵 buff 栏无吸血图标
+- **根因**: _VISIBLE_MOD_STATS 仅含 combo/priority，replayer 不为 life_drain 创建可见 StatBuffEffect。同时 display-only 效果创建时 source 为空回退到 species.ability，skill 的 life_drain 被误归入 trait tooltip
+- **修复**: life_drain 加入 _VISIBLE_MOD_STATS；ratio 类 stat 的 step 用 `value * _STEP_UNIT` 转换；display_name 加 % 后缀；移除 display-only 效果的 species.ability 回退
+- **涉及文件**: backend/engine/replayer.py:67/485-489/498-513, backend/vm/effect.py:180-183
+- **教训**: buff 栏有数值生效但无图标 → 先查 _VISIBLE_MOD_STATS 是否包含该 stat；效果出现在错误归属（skill→trait）→ 查 source 回退逻辑
+
+## 2026-05-28 - hp_missing_ratio 派生查询 per 量化在 (1-x) 变换之前导致连击值为负
+
+- **现象**: 朔夜伊芙「嫁祸」特性（每失去25%生命连击+2）满血时连击显示-6，血量越低连击负值越小，完全不正确
+- **根因**: 编译器路径 hp_missing_ratio 派生查询将 (1-hp_ratio) 变换混入 scale/offset，但 resolve() 先执行 per 的 int() 量化再执行 scale/offset → `int(hp_ratio/0.25)*-2+2`（满血=-6）而非 `int((1-hp_ratio)/0.25)*2`（满血=0）
+- **修复**: Query 新增 pre_scale/pre_offset 字段（在 per 前应用）；hp_missing_ratio 改用 pre 变换；嫁祸 power_mod 加 mode="set" 防止跨回合累加
+- **涉及文件**: backend/vm/ir_values.py:22-23, backend/vm/resolve.py:70-71, backend/vm/compiler/passes/skill_parse.py:164-182, data/traits/嫁祸.json:22
+- **教训**: 派生查询使用 per 量化时，检查变换顺序——若 (1-x) 这类派生变换在 per 之后才执行，int() 会量化错误的值
+
 <!-- 新条目追加在此行上方，格式如下：
 
 ## YYYY-MM-DD - 简短标题
