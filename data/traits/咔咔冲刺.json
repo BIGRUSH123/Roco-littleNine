@@ -2,9 +2,20 @@
   "id": 20026,
   "name": "咔咔冲刺",
   "description": "先于敌方行动时，行动后连击数+1。",
-  "passive": [
+  "effects": [
     {
       "op": "observer",
+      "cond": {
+        "cond": "and",
+        "conditions": [
+          {
+            "cond": "skill_use"
+          },
+          {
+            "cond": "is_first"
+          }
+        ]
+      },
       "then": [
         {
           "op": "power_mod",
@@ -13,17 +24,8 @@
           "delta": 1
         }
       ],
-      "cond": {
-        "cond": "and",
-        "conds": [
-          {
-            "cond": "skill_use"
-          },
-          {
-            "cond": "is_first"
-          }
-        ]
-      }
+      "listen": "post_skill",
+      "scope": "battlefield"
     }
   ]
 }

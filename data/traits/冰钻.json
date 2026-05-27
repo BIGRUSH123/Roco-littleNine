@@ -2,7 +2,7 @@
   "id": 20017,
   "name": "冰钻",
   "description": "敌方技能总能耗每1点 → 攻击威力+10%。",
-  "passive": [
+  "effects": [
     {
       "op": "observer",
       "then": [

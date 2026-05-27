@@ -2,7 +2,7 @@
   "id": 20028,
   "name": "图书守卫者",
   "description": "入场时若己方魔力值为1，获得双攻+50%。",
-  "passive": [
+  "effects": [
     {
       "op": "observer",
       "then": [
@@ -23,7 +23,7 @@
       ],
       "cond": {
         "cond": "and",
-        "conds": [
+        "conditions": [
           {
             "cond": "sprite_entered"
           },

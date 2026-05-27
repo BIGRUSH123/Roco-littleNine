@@ -2,7 +2,7 @@
   "id": 20027,
   "name": "囤积",
   "description": "每有1能量，获得双防+10%。动态更新。",
-  "passive": [
+  "effects": [
     {
       "op": "observer",
       "then": [
