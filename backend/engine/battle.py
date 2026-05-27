@@ -239,11 +239,31 @@ class BattleVMEngine:
                     continue
             try:
                 if eval_one(ctx, obs.cond):
-                    result = process_effects(ctx, obs.then)
+                    then = self._inject_source(obs.then, obs.source) if obs.source else obs.then
+                    result = process_effects(ctx, then)
                     mutations.extend(result)
             except Exception:
                 continue
         return mutations
+
+    def _inject_source(self, effects: list[dict], source: str) -> list[dict]:
+        """Inject source into effects that don't have their own.
+
+        Recursively handles when/then/else nesting so observer child effects
+        carry the observer's source for trait tooltip display.
+        """
+        import copy
+        result = []
+        for eff in effects:
+            eff = copy.copy(eff)
+            if "op" in eff and "source" not in eff:
+                eff["source"] = source
+            if isinstance(eff.get("then"), list):
+                eff["then"] = self._inject_source(eff["then"], source)
+            if isinstance(eff.get("else"), list):
+                eff["else"] = self._inject_source(eff["else"], source)
+            result.append(eff)
+        return result
 
     def _inject_default_scope(self, effects: list[dict], scope: str) -> list[dict]:
         """Inject a default scope into effects that don't have their own.
@@ -282,7 +302,7 @@ class BattleVMEngine:
             # so sprite-owned observers must only fire for their owner.
             if trigger in ("post_entry", "post_leave", "post_skill",
                            "turn_end", "post_abnormal_tick", "turn_start",
-                           "post_energy_change"):
+                           "post_energy_change", "post_counter"):
                 if obs.owner_sprite_id is not None and owner_id is not None:
                     if obs.owner_sprite_id != owner_id:
                         continue
@@ -308,6 +328,8 @@ class BattleVMEngine:
             try:
                 if eval_one(ctx, obs.cond):
                     then = self._inject_default_scope(obs.then, obs.scope)
+                    if obs.source:
+                        then = self._inject_source(then, obs.source)
                     journal = process_effects(ctx, then)
                     ev = replayer.replay(journal)
                     events.extend(ev)

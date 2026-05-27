@@ -169,6 +169,7 @@ class Battle(BattleMechanicsMixin):
         })
         _SKILL_PER_TURN_KEYS = _PER_TURN_KEYS | {"combo", "combo_mult"}
         for sprite in self.player_a.team + self.player_b.team:
+            sprite.interrupted = False
             for key in _PER_TURN_KEYS:
                 sprite._modifiers.pop(key, None)
             for skill in (sprite.skills or []):
@@ -340,12 +341,12 @@ class Battle(BattleMechanicsMixin):
             if counter_a:
                 self.inc_team_counter('A', 'counter_success')
                 # Observer: post_counter
-                ctx_ca = self._make_ctx(s_a, s_b, countered_skill_a, None, self.globals, team='A', turn=self.turn, counter_succeeded=True)
+                ctx_ca = self._make_ctx(s_a, s_b, skill_a, None, self.globals, team='A', turn=self.turn, counter_succeeded=True)
                 ar['A'].events += self._vm_engine.fire_trigger("post_counter", ctx_ca, s_a, s_b, self.globals, team='A', battle=self)
             if counter_b:
                 self.inc_team_counter('B', 'counter_success')
                 # Observer: post_counter
-                ctx_cb = self._make_ctx(s_b, s_a, countered_skill_b, None, self.globals, team='B', turn=self.turn, counter_succeeded=True)
+                ctx_cb = self._make_ctx(s_b, s_a, skill_b, None, self.globals, team='B', turn=self.turn, counter_succeeded=True)
                 ar['B'].events += self._vm_engine.fire_trigger("post_counter", ctx_cb, s_b, s_a, self.globals, team='B', battle=self)
             return []
 
@@ -558,6 +559,12 @@ class Battle(BattleMechanicsMixin):
                 "post_energy_change", energy_ctx, user, target, self.globals,
                 team=team, battle=self,
             )
+
+        # ═══ Gate: 打断 ═══
+        if user.interrupted:
+            bs.nullified = True
+            events.append(f'{user.name} 被打断，技能无效')
+            return events
 
         user.inc_counter(f'skill_used:{bs.name}')
         user.inc_counter('skills_used')
