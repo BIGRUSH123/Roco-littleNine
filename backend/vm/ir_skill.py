@@ -96,6 +96,8 @@ class MultModOp:
     element: str | None = None
     name: str | None = None
     source: str | None = None
+    on_next: bool = False
+    if_type: str | None = None
     feeds: str = ""
     needs: str = ""
     priority: int = 0

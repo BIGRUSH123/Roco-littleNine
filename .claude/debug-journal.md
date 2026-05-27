@@ -5,6 +5,14 @@
 
 ---
 
+## 2026-05-27 - 圣火骑士 post_counter observer 产生的 power_mult 跨回合不生效 + on_next 全链路补齐
+
+- **现象**: 炽心勇狮（圣火骑士："应对成功后，下次攻击威力翻倍"）应对成功后，下回合攻击威力与普通攻击相同，完全不触发。首次修复（persistent scope 跳过 `_PER_TURN_KEYS`）后 modifier 永不被消耗，后续攻击全部翻倍
+- **根因**: 两阶段。① observer `scope: "persistent"` 未传播到子效果 `mult_mod`（默认 scope "battlefield"）；② `_PER_TURN_KEYS` 每回合开始无条件 pop `power_mult`，Round 1 应对后写入的 modifier 在 Round 2 攻击前被清除。最终方案用 `on_next`：modifier 入 `_pending_modifiers`，下次攻击 `consume_pending_modifiers` 消耗后 `_PER_TURN_KEYS` 清残值。修复中 `_inject_default_scope` 漏 `self.` 导致 NameError 被 `except Exception: continue` 静默吞掉
+- **修复**: `battle.py` 新增 `_inject_default_scope()` 将 observer scope 注入子效果；`ir_skill.py` `MultModOp`、`skill_parse.py` parser、`mod.py` `op_mult_mod` 全链路补齐 `on_next`/`if_type` 字段；`圣火骑士.json` mult_mod 添加 `on_next: true, if_type: attack`
+- **涉及文件**: backend/engine/battle.py:248-266, backend/vm/ir_skill.py:98-99, backend/vm/compiler/passes/skill_parse.py:534-535, backend/vm/ops/mod.py:169-170, data/traits/圣火骑士.json:14-15
+- **教训**: "下次攻击生效"用 `on_next` 机制；新增字段须补全 JSON→parser→IR op→handler→Mutation 全链路；漏 `self.` 导致 NameError 被 `except Exception: continue` 静默吞掉
+
 ## 2026-05-27 - 图书守卫者 q="energy" 查精灵技能能量而非玩家魔力值导致条件永远不满足
 
 - **现象**: 古卷执政官（图书守卫者特性）在玩家魔力值为1时换上场，双攻+50%效果不触发

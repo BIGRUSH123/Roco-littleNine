@@ -166,6 +166,8 @@ def op_mult_mod(ctx: Ctx, op) -> list[Mutation]:
         element=_get_field(op, "element"),
         name=_get_field(op, "name"),
         source=_get_field(op, "source"),
+        on_next=_get_field(op, "on_next", False),
+        if_type=_get_field(op, "if_type"),
     )]
     if per_hit and ctx.combo_self > 1:
         result = result * ctx.combo_self

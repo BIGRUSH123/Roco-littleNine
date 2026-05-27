@@ -2,19 +2,24 @@
   "id": 20029,
   "name": "圣火骑士",
   "description": "应对成功后，下次攻击威力翻倍。",
-  "triggers": [
+  "effects": [
     {
-      "on": "counter_success",
-      "battleskill_mut": [
+      "op": "observer",
+      "cond": {
+        "cond": "counter_succeeded"
+      },
+      "then": [
         {
-          "filter": {
-            "is_attack": true
-          },
-          "field": "next_attack_mult",
-          "op": "set",
-          "value": 2.0
+          "op": "mult_mod",
+          "target": "sprite_self",
+          "attr": "power_mult",
+          "value": 2,
+          "on_next": true,
+          "if_type": "attack"
         }
-      ]
+      ],
+      "listen": "post_counter",
+      "scope": "persistent"
     }
   ]
 }

@@ -245,6 +245,26 @@ class BattleVMEngine:
                 continue
         return mutations
 
+    def _inject_default_scope(self, effects: list[dict], scope: str) -> list[dict]:
+        """Inject a default scope into effects that don't have their own.
+
+        Recursively handles when/then/else nesting so observer child effects
+        inherit the observer's scope (e.g. persistent → mult_mod survives
+        _PER_TURN_KEYS cleanup).
+        """
+        import copy
+        result = []
+        for eff in effects:
+            eff = copy.copy(eff)
+            if "op" in eff and "scope" not in eff:
+                eff["scope"] = scope
+            if isinstance(eff.get("then"), list):
+                eff["then"] = self._inject_default_scope(eff["then"], scope)
+            if isinstance(eff.get("else"), list):
+                eff["else"] = self._inject_default_scope(eff["else"], scope)
+            result.append(eff)
+        return result
+
     def _fire_post_event(self, trigger: str, ctx: Ctx, replayer: JournalReplayer) -> list[str]:
         """Fire post-event observers and replay their mutations.
 
@@ -261,7 +281,8 @@ class BattleVMEngine:
             # turn_end and post_abnormal_tick are fired per-sprite in a loop,
             # so sprite-owned observers must only fire for their owner.
             if trigger in ("post_entry", "post_leave", "post_skill",
-                           "turn_end", "post_abnormal_tick", "turn_start"):
+                           "turn_end", "post_abnormal_tick", "turn_start",
+                           "post_energy_change"):
                 if obs.owner_sprite_id is not None and owner_id is not None:
                     if obs.owner_sprite_id != owner_id:
                         continue
@@ -286,7 +307,8 @@ class BattleVMEngine:
                         ctx.event.damage_taken_of = "sprite_opp"
             try:
                 if eval_one(ctx, obs.cond):
-                    journal = process_effects(ctx, obs.then)
+                    then = self._inject_default_scope(obs.then, obs.scope)
+                    journal = process_effects(ctx, then)
                     ev = replayer.replay(journal)
                     events.extend(ev)
             except Exception:
