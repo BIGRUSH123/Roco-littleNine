@@ -222,6 +222,14 @@
 - **涉及文件**: `api/main.py:706-714`, `battle.py:184-192`, `snapshot.py:247`
 - **教训**: 初始状态显示异常→检查 entry/init 阶段的效果触发时序，observer 注册 ≠ 触发
 
+## 2026-05-27 - 坠星特性 mark_stacks 查询不在 ADDRESS_MAP 导致加成永不生效
+
+- **现象**: 祭礼巨像「坠星」特性（敌方每有1层星陨印记→技能威力+15%）完全不触发，无论对手有无印记伤害都一样
+- **根因**: 两个断点。① ADDRESS_MAP 只有 team_own/team_opp 的 mark_count 映射，缺少 mark_stacks → `_resolve_dict_query` 查 `("team_opp", "mark_stacks")` 抛 KeyError，被 `except Exception: continue` 静默吞掉；② `_NAMED_DICT_QUERIES` 不含 `"mark_stacks"`，即使修复①，`name: "星陨印记"` 子键查找也不会执行
+- **修复**: ctx.py ADDRESS_MAP 新增 `(team_own, mark_stacks)` → `mark_stacks_own` 和 `(team_opp, mark_stacks)` → `mark_stacks_opp`；resolve.py `_NAMED_DICT_QUERIES` 添加 `"mark_stacks"`
+- **涉及文件**: backend/vm/ctx.py:285,295, backend/vm/resolve.py:17
+- **教训**: 与图书守卫者同模式——trait 完全不触发时，先 grep 查询键是否在 ADDRESS_MAP 和 _NAMED_DICT_QUERIES 中注册；未注册的 KeyError 被 observer/battle 的 except Exception: continue 静默吞掉
+
 <!-- 新条目追加在此行上方，格式如下：
 
 ## YYYY-MM-DD - 简短标题
