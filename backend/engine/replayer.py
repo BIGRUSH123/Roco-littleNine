@@ -468,6 +468,9 @@ class JournalReplayer:
             # Create display-only StatBuffEffect for trait tooltip
             # (steps=0 so _extract_stat_stages ignores it, no double-counting)
             source = m.source or m.name or ""
+            if not source:
+                species = getattr(sprite, 'species', None)
+                source = species.ability if species else ""
             if source:
                 if m.stat in _STAGE_STATS:
                     # Percentage stats: display_mult = ratio value (e.g., 0.5 = +50%)
