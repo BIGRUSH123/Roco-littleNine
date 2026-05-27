@@ -432,7 +432,9 @@ class JournalReplayer:
             delta = m.value
             if m.stat == "energy_cost":
                 delta *= sprite._modifiers.get("energy_cost_delta_mult", 1.0)
-            target_mods[m.stat] = (cur or 0.0) + delta
+            if cur is None:
+                cur = 1.0 if m.stat in _RATIO_STATS else 0.0
+            target_mods[m.stat] = cur + delta
         elif m.mode == "multiply":
             target_mods[m.stat] = (cur or 1.0) * m.value if cur is not None else m.value
         else:
@@ -457,6 +459,14 @@ class JournalReplayer:
             if create_visible and steps != 0:
                 self._sync_stat_buff_effect(sprite, m.stat, steps, m.scope,
                                             m.source or m.name or "skill")
+            # mult_mod on stage stats → create display-only StatBuffEffect
+            # (steps=0 so _extract_stat_stages ignores it, no double-counting)
+            if m.stat in _STAGE_STATS:
+                source = m.source or m.name or ""
+                if not source:
+                    species = getattr(sprite, 'species', None)
+                    source = species.ability if species else ""
+                self._sync_mult_display_effect(sprite, m.stat, m.value, m.scope, source)
 
         if m.stat in _RATIO_STATS:
             return f"{sprite.name} {label}={final:.0%}"
@@ -734,6 +744,38 @@ class JournalReplayer:
         active.append(StatBuffEffect(
             name=f'{stat_key}', source=source, scope=scope,
             stat_key=stat_key, steps=steps,
+        ))
+
+    @staticmethod
+    def _sync_mult_display_effect(sprite, stat_key: str, mult_value: float,
+                                   scope: str, source: str) -> None:
+        """Create or update display-only StatBuffEffect for mult_mod values.
+
+        Sets steps=0 so _extract_stat_stages ignores it (no double-counting).
+        The display_mult field carries the ratio for UI display only.
+        """
+        if not source:
+            return
+        from backend.vm.effect import StatBuffEffect
+        active = getattr(sprite, 'active_effects', None)
+        if active is None:
+            return
+
+        existing = next(
+            (e for e in active
+             if isinstance(e, StatBuffEffect) and e.stat_key == stat_key
+             and e.source == source and e.steps == 0),
+            None,
+        )
+        if existing is not None:
+            existing.display_mult = mult_value
+            return
+
+        from backend.vm.effect import _STAT_LABELS
+        active.append(StatBuffEffect(
+            name=_STAT_LABELS.get(stat_key, stat_key),
+            source=source, scope=scope,
+            stat_key=stat_key, steps=0, display_mult=mult_value,
         ))
 
     @staticmethod
