@@ -173,6 +173,14 @@
 - **修复**: 四个 JSON passive→effects；咔咔冲刺和图书守卫者 conds→conditions
 - **涉及文件**: data/traits/咔咔冲刺.json, data/traits/囤积.json, data/traits/冰钻.json, data/traits/图书守卫者.json
 - **教训**: 特性完全不触发时，先查 trait JSON 键名是否匹配加载器——grep 确认加载器读的键（effects）和文件实际用的键（passive）是否一致
+
+## 2026-05-27 - BattleSkill._modifiers combo 未逐回合清理导致日志连击数累加
+
+- **现象**: 疾风刺等含 combo 加成的技能，第二次使用时日志显示"连击+6"而非"+3"——数值逐回合累加（+3 → +6 → +9...）
+- **根因**: `_PER_TURN_KEYS` 不含 "combo" 和 "combo_mult"，设计注释误认为"跨回合持久键不清空"。技能效果 `power_mod(target="skill_off_0", combo+3)` 写入 BattleSkill._modifiers，但该 dict 未在回合初清理，旧值残留导致累加。精灵级 `sprite._modifiers["combo"]` 则需要保留（特性加成跨回合有效），两者不能共用同一清空集合
+- **修复**: battle.py 新增 `_SKILL_PER_TURN_KEYS = _PER_TURN_KEYS | {"combo", "combo_mult"}`，技能级用扩展集合清理，精灵级保持原集合
+- **涉及文件**: backend/sim/battle.py:156-168
+- **教训**: 技能日志数值呈等差数列累加（+3,+6,+9...）时，直接查该 stat 是否在回合初清理集合中——且确认清理的是 sprite._modifiers 还是 skill._modifiers，两者生命周期不同
 <!-- 新条目追加在此行上方，格式如下：
 
 ## YYYY-MM-DD - 简短标题
