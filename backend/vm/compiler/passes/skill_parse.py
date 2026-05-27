@@ -494,7 +494,12 @@ class SkillParsePass:
         """RISC: power_mod → PowerModOp."""
         attr = self._str_or(e, "attr", "")
         delta = self._parse_value_optional(e, "delta")
-        if delta is None:
+        # Only parse "value" if explicitly present — _parse_value_optional
+        # returns Literal(0) for missing keys, which shadows delta for
+        # JSON that only provides delta (the majority case).
+        value = self._parse_value(e["value"]) if "value" in e else None
+        mode = self._str_or(e, "mode", "add")
+        if delta is None and value is None:
             delta_val = e.get("delta", 0)
             if isinstance(delta_val, dict):
                 delta = self._parse_value(delta_val)
@@ -504,13 +509,15 @@ class SkillParsePass:
             target=self._str_or(e, "target", "sprite_self"),
             attr=attr,
             delta=delta,
+            value=value,
+            mode=mode,
             per_hit=self._bool_or(e, "per_hit", False),
             scope=self._str_or(e, "scope", "battlefield"),
             skill_where=e.get("skill_where"),
             skill_filter=e.get("skill_filter"),
             element=e.get("element"),
             ttl=self._int_or(e, "ttl", 0),
-            source=e.get("source"),
+            source=e.get("source") or e.get("name"),
             **self._common_fields(e),
         )
 
@@ -531,8 +538,7 @@ class SkillParsePass:
             skill_where=e.get("skill_where"),
             skill_filter=e.get("skill_filter"),
             element=e.get("element"),
-            name=e.get("name"),
-            source=e.get("source"),
+            source=e.get("source") or e.get("name"),
             on_next=self._bool_or(e, "on_next", False),
             if_type=e.get("if_type"),
             **self._common_fields(e),

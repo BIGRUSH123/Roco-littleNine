@@ -83,13 +83,13 @@ def _metadata(effect) -> dict:
     """Extract optional engine-level metadata common to StatChange and ModifierInjection."""
     meta = {}
     if isinstance(effect, dict):
-        for key in ("name", "element", "per_element", "skill_filter", "skill_where",
+        for key in ("element", "per_element", "skill_filter", "skill_where",
                      "on_next", "if_type", "source"):
             if key in effect:
                 meta[key] = effect[key]
     else:
         # Typed ModOp
-        for key in ("name", "element", "per_element", "skill_filter", "skill_where",
+        for key in ("element", "per_element", "skill_filter", "skill_where",
                      "if_type", "source"):
             val = getattr(effect, key, None)
             if val is not None:
@@ -134,16 +134,20 @@ def op_power_mod(ctx: Ctx, op) -> list[Mutation]:
     attr = _get_field(op, "attr", "")
     scope = _get_field(op, "scope", "battlefield")
     per_hit = _get_field(op, "per_hit", False)
-    delta_raw = _get_field(op, "delta")
-    delta = resolve(ctx, delta_raw) if delta_raw is not None else 0
+    mode = _get_field(op, "mode", "add")
+    value_raw = _get_field(op, "value")
+    if value_raw is not None:
+        value = resolve(ctx, value_raw)
+    else:
+        delta_raw = _get_field(op, "delta")
+        value = resolve(ctx, delta_raw) if delta_raw is not None else 0
     result = [ModifierInjection(
-        target=target, stat=attr, value=float(delta), mode="add",
+        target=target, stat=attr, value=float(value), mode=mode,
         scope=scope,
         skill_filter=_get_field(op, "skill_filter"),
         skill_where=_get_field(op, "skill_where"),
         element=_get_field(op, "element"),
         source=_get_field(op, "source"),
-        name=_get_field(op, "name"),
     )]
     if per_hit and ctx.combo_self > 1:
         result = result * ctx.combo_self
@@ -165,7 +169,6 @@ def op_mult_mod(ctx: Ctx, op) -> list[Mutation]:
         skill_filter=_get_field(op, "skill_filter"),
         skill_where=_get_field(op, "skill_where"),
         element=_get_field(op, "element"),
-        name=_get_field(op, "name"),
         source=_get_field(op, "source"),
         on_next=_get_field(op, "on_next", False),
         if_type=_get_field(op, "if_type"),

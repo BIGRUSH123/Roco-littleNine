@@ -327,11 +327,11 @@ class JournalReplayer:
         else:
             display = f'{label}{m.steps * unit:+d}%'
         self._sync_stat_buff_effect(sprite, m.stat, m.steps, m.scope,
-                                    m.source or m.name or "skill")
+                                    m.source or "skill")
         # Stage stats from traits: create display-only effect for trait tooltip
         # (percentage stats only; speed is absolute points, not meaningful as display_mult)
         if m.stat in _STAGE_STATS and m.stat != "speed":
-            source = m.source or m.name or ""
+            source = m.source or ""
             mult_value = m.steps * (_STEP_PCT / 100)
             self._sync_mult_display_effect(sprite, m.stat, mult_value, m.scope, source)
         return f"{sprite.name} {display}"
@@ -447,6 +447,30 @@ class JournalReplayer:
             target_mods[m.stat] = m.value
         final = target_mods[m.stat]
 
+        # Sync sprite-level attrs (max_energy, starfall_consume_ratio) to active_effects.
+        # Observer-triggered power_mod writes to _modifiers but property methods read
+        # from active_effects → ModifierEffect (see Sprite.max_energy).
+        from backend.engine.trait_loader import TraitLoader
+        from backend.vm.effect import ModifierEffect
+        if not skill_scoped and m.stat in TraitLoader._SPRITE_LEVEL_ATTRS:
+            existing = None
+            for e in sprite.active_effects:
+                if isinstance(e, ModifierEffect) and e.attr == m.stat:
+                    existing = e
+                    break
+            if existing is not None:
+                existing.value = m.value
+            else:
+                sprite.active_effects.append(ModifierEffect(
+                    name=f"{m.source or 'trait'}-{m.stat}",
+                    source=m.source or "trait",
+                    attr=m.stat,
+                    value=m.value,
+                    mode=m.mode,
+                    target=m.target,
+                    scope=m.scope,
+                ))
+
         # Track invisible modifiers for scope cleanup
         if not skill_scoped and m.scope in ("turn", "battlefield", "persistent"):
             sprite._mod_scopes[m.stat] = m.scope
@@ -464,10 +488,10 @@ class JournalReplayer:
             # once via _modifiers and once via _extract_stat_stages.
             if create_visible and steps != 0:
                 self._sync_stat_buff_effect(sprite, m.stat, steps, m.scope,
-                                            m.source or m.name or "skill")
+                                            m.source or "skill", mode=m.mode)
             # Create display-only StatBuffEffect for trait tooltip
             # (steps=0 so _extract_stat_stages ignores it, no double-counting)
-            source = m.source or m.name or ""
+            source = m.source or ""
             if not source:
                 species = getattr(sprite, 'species', None)
                 source = species.ability if species else ""
@@ -737,8 +761,11 @@ class JournalReplayer:
 
     @staticmethod
     def _sync_stat_buff_effect(sprite, stat_key: str, steps: int, scope: str,
-                               source: str) -> None:
-        """Create or update StatBuffEffect on sprite.active_effects (dual-write)."""
+                               source: str, mode: str = "add") -> None:
+        """Create or update StatBuffEffect on sprite.active_effects (dual-write).
+
+        When mode="set", existing steps are replaced instead of accumulated.
+        """
         from backend.vm.effect import StatBuffEffect
         active = getattr(sprite, 'active_effects', None)
         if active is None:
@@ -750,7 +777,10 @@ class JournalReplayer:
             None,
         )
         if existing is not None:
-            existing.steps += steps
+            if mode == "set":
+                existing.steps = steps
+            else:
+                existing.steps += steps
             return
 
         active.append(StatBuffEffect(
@@ -785,12 +815,13 @@ class JournalReplayer:
             existing.display_mult = mult_value
             if display_value is not None:
                 existing.display_value = display_value
+            existing.scope = "battlefield"
             return
 
         from backend.vm.effect import _STAT_LABELS
         active.append(StatBuffEffect(
             name=_STAT_LABELS.get(stat_key, stat_key),
-            source=source, scope=scope,
+            source=source, scope="battlefield",
             stat_key=stat_key, steps=0, display_mult=mult_value,
             display_value=display_value,
         ))

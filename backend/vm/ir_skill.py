@@ -71,6 +71,8 @@ class PowerModOp:
     target: str = "sprite_self"
     attr: str = ""
     delta: IRValue | None = None
+    value: IRValue | None = None
+    mode: str = "add"
     per_hit: bool = False
     scope: str = "battlefield"
     skill_where: dict | None = field(default=None, hash=False, compare=False)
@@ -94,7 +96,6 @@ class MultModOp:
     skill_where: dict | None = field(default=None, hash=False, compare=False)
     skill_filter: str | None = None
     element: str | None = None
-    name: str | None = None
     source: str | None = None
     on_next: bool = False
     if_type: str | None = None
