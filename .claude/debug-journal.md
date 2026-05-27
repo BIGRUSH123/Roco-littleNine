@@ -190,6 +190,14 @@
 - **涉及文件**: `backend/sim/battle.py:464,548`, `backend/sim/traits/__init__.py:88`, `backend/engine/battle.py:263`
 - **教训**: VM 外部直接修改状态的操作不会产生 journal mutation，依赖 mutation 触发的 observer 不会感知到此类变更。排查 observer 不触发时，先检查触发源是否在 journal 中
 
+## 2026-05-27 - 特性元数据效果错误显示在前端 buff 栏
+
+- **现象**: 精灵 buff 栏中显示了"囤积、物防、魔防"三个效果——它们属于特性元数据或仅供 tooltip 使用的展示效果，不应出现在 buff 栏
+- **根因**: ① `TraitLoader.load_for_sprite()` 将 trait JSON 的 observer op 通过 `effect_from_dict()` 转为 `ObserverEffect` 插入 `active_effects`；② `_sync_mult_display_effect` 创建的展示用 `StatBuffEffect`（steps=0, display_mult≠null）也写入 `active_effects`。API 将所有这些效果序列化到 `effects[]`，前端 `BattleArena` 无差别遍历渲染 `EffectCard`
+- **修复**: API 新增 `_is_trait_metadata_effect()`（过滤 ObserverEffect/ModifierEffect）和 `_is_display_stat_effect()`（过滤 steps=0 的展示 StatBuffEffect）；展示效果改为写入 `TraitInfo.display_effects` 新字段；`TraitTooltip` 改为从 `trait.display_effects` 读取
+- **涉及文件**: `backend/api/main.py:316-340`, `backend/api/schemas.py:75`, `frontend/src/components/TraitTooltip.vue:19-25`
+- **教训**: buff 栏出现不该有的条目时，先查 `active_effects` 中是否有 `ObserverEffect`/`ModifierEffect` 等非可见类型——它们通过 `effect_from_dict` 或 replayer 的 `_sync_*` 方法写入，需要在 API 序列化层过滤
+
 <!-- 新条目追加在此行上方，格式如下：
 
 ## YYYY-MM-DD - 简短标题
