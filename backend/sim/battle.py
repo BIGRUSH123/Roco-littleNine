@@ -152,16 +152,18 @@ class Battle(BattleMechanicsMixin):
 
         # 每回合开始时，清空双方精灵的"每回合临时" VM modifier
         # （power_mult/damage_mult 等由 VM 每回合重新注入）
-        # combo/combo_mult 等跨回合持久键不清空
+        # combo/combo_mult 等跨回合持久键不清空 sprite 级别（特性加成需保留），
+        # 但技能级 _modifiers 的 combo/priority 每次使用由 effects 重新产生，必须清空。
         _PER_TURN_KEYS = frozenset({
             "power", "power_mult", "damage_mult", "damage_reduction",
             "energy_cost", "energy_cost_mult", "priority",
         })
+        _SKILL_PER_TURN_KEYS = _PER_TURN_KEYS | {"combo", "combo_mult"}
         for sprite in self.player_a.team + self.player_b.team:
             for key in _PER_TURN_KEYS:
                 sprite._modifiers.pop(key, None)
             for skill in (sprite.skills or []):
-                for key in _PER_TURN_KEYS:
+                for key in _SKILL_PER_TURN_KEYS:
                     skill._modifiers.pop(key, None)
         # Re-apply trait direct modifiers cleared by _PER_TURN_KEYS
         self._vm_engine.trait_loader.reapply_all_direct_mods(
