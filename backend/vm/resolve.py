@@ -67,6 +67,8 @@ def resolve(ctx: Ctx, value) -> int | float | str:
         if value.sub_key_field == "mark_count_both":
             raw = (raw if isinstance(raw, (int, float)) else 0) + ctx.mark_count_opp
         result = raw
+        if value.pre_scale != 1.0 or value.pre_offset != 0.0:
+            result = result * value.pre_scale + value.pre_offset
         if value.per is not None and value.per != 0:
             result = int(result / value.per) if isinstance(result, (int, float)) else result
         if isinstance(result, (int, float)):

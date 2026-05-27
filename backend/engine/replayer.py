@@ -64,7 +64,7 @@ _RATIO_STATS: frozenset[str] = frozenset({
 # (power is excluded: values are direct power amounts with per-skill scope,
 # not global sprite buffs.)
 _VISIBLE_MOD_STATS: frozenset[str] = frozenset({
-    "combo", "priority",
+    "combo", "priority", "life_drain",
 })
 
 _STEP_PCT = 10        # 非速度六维：1步=10%
@@ -483,7 +483,10 @@ class JournalReplayer:
             create_visible = False
             steps = 0
             if m.stat in _VISIBLE_MOD_STATS:
-                steps = int(m.value)
+                if m.stat in _RATIO_STATS:
+                    steps = int(m.value * _STEP_UNIT.get(m.stat, 10))
+                else:
+                    steps = int(m.value)
                 create_visible = True
             # _STAGE_STATS (atk/def/sp_atk/sp_def/speed) are already applied
             # through _modifiers → build_ctx → atk_self/def_self/etc.
@@ -492,18 +495,20 @@ class JournalReplayer:
             if create_visible and steps != 0:
                 self._sync_stat_buff_effect(sprite, m.stat, steps, m.scope,
                                             m.source or "skill", mode=m.mode)
-            # Create display-only StatBuffEffect for trait tooltip
-            # (steps=0 so _extract_stat_stages ignores it, no double-counting)
-            source = m.source or ""
-            if not source:
-                species = getattr(sprite, 'species', None)
-                source = species.ability if species else ""
-            if source:
-                if m.stat in _STAGE_STATS:
-                    # Percentage stats: display_mult = ratio value (e.g., 0.5 = +50%)
+        # Create display-only StatBuffEffect for trait tooltip
+        # (steps=0 so _extract_stat_stages ignores it, no double-counting).
+        # Only created when m.source is explicitly set (trait-injected),
+        # never fall back to species.ability — that would misattribute
+        # skill effects as trait effects.
+        source = m.source or ""
+        if source:
+            if m.stat in _STAGE_STATS:
+                # Percentage stats: display_mult = ratio value (e.g., 0.5 = +50%)
+                self._sync_mult_display_effect(sprite, m.stat, m.value, m.scope, source)
+            elif m.stat in _VISIBLE_MOD_STATS:
+                if m.stat in _RATIO_STATS:
                     self._sync_mult_display_effect(sprite, m.stat, m.value, m.scope, source)
-                elif m.stat in _VISIBLE_MOD_STATS:
-                    # Absolute-value stats (combo, priority): display_value = raw value
+                else:
                     self._sync_mult_display_effect(sprite, m.stat, 0, m.scope, source,
                                                    display_value=float(m.value))
 

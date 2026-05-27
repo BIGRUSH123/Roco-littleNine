@@ -162,22 +162,21 @@ class SkillParsePass:
 
         # ── Derived queries ──
         if q == "hp_missing_ratio":
-            # 1.0 - hp_ratio → redirect to hp_ratio with scale=-1, offset=1
+            # hp_missing_ratio = 1.0 - hp_ratio, then apply user transforms.
+            # Use pre_scale/pre_offset so the derived (1-x) is computed BEFORE
+            # per/scale/offset — otherwise int(x/per) quantises the wrong value.
             base_of = of
             map_key = (base_of, "hp_ratio")
             if map_key not in ADDRESS_MAP:
                 raise KeyError(f"Unknown query address (of={of}, q=hp_ratio)")
             field = ADDRESS_MAP[map_key]
-            user_scale = value.get("scale", 1.0)
-            user_offset = value.get("offset", 0)
-            # result = (raw * user_scale + user_offset)
-            # But we want: (1.0 - raw) * user_scale + user_offset
-            # = raw * (-user_scale) + (user_scale + user_offset)
             return Query(
                 field=field,
-                scale=-user_scale,
-                offset=user_scale + user_offset,
+                scale=value.get("scale", 1.0),
+                offset=value.get("offset", 0),
                 per=value.get("per"),
+                pre_scale=-1.0,
+                pre_offset=1.0,
                 default=value.get("default"),
             )
         if q == "mark_count_both":

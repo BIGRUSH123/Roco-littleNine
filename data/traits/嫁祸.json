@@ -2,5 +2,32 @@
   "id": 20150,
   "name": "嫁祸",
   "description": "每失去25%生命，连击数+2。",
-  "triggers": []
+  "effects": [
+    {
+      "op": "observer",
+      "cond": {
+        "cond": "compare",
+        "q": "energy",
+        "of": "sprite_self",
+        "op": "gte",
+        "value": 0
+      },
+      "listen": "pre_calc",
+      "scope": "battlefield",
+      "then": [
+        {
+          "op": "power_mod",
+          "target": "skill_off_0",
+          "attr": "combo",
+          "mode": "set",
+          "delta": {
+            "q": "hp_missing_ratio",
+            "of": "sprite_self",
+            "per": 0.25,
+            "scale": 2
+          }
+        }
+      ]
+    }
+  ]
 }

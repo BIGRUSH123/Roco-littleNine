@@ -177,9 +177,12 @@ class StatBuffEffect(EffectObject):
         unit = _STEP_UNITS.get(self.stat_key, 10)
         if self.stat_key in ('priority', 'energy_cost', 'combo'):
             return f'{label}{self.steps:+d}'
-        if self.stat_key in ('speed', 'power', 'life_drain'):
+        if self.stat_key in ('speed', 'power'):
             sign = '+' if self.steps > 0 else ''
             return f'{label}{sign}{self.steps * unit}'
+        if self.stat_key == 'life_drain':
+            sign = '+' if self.steps > 0 else ''
+            return f'{label}{sign}{self.steps * unit}%'
         sign = '+' if self.steps > 0 else ''
         return f'{label}{sign}{self.steps * unit}%'
 
