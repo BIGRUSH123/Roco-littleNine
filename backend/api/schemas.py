@@ -65,6 +65,15 @@ class EffectSummary(BaseModel):
     category: str
     stacks: int = 1
     steps: int = 0
+    display_mult: float | None = None
+    display_value: float | None = None  # absolute-value display (combo, priority, etc.)
+    source: str = ''
+
+
+class TraitInfo(BaseModel):
+    name: str
+    description: str
+    display_effects: list[EffectSummary] = []
 
 
 class SpriteState(BaseModel):
@@ -78,7 +87,7 @@ class SpriteState(BaseModel):
     energy: int
     is_fainted: bool
     charging: str
-    trait: str
+    trait: TraitInfo | None = None
     energy_cost_mod: int
     effects: list[EffectSummary]
     skills: list[SkillSummary]

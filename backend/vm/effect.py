@@ -153,19 +153,27 @@ class StatBuffEffect(EffectObject):
 
     stat_key: str = ""                    # atk | def | sp_atk | sp_def | speed | power | combo | priority | energy_cost
     steps: int = 0                        # positive = buff, negative = debuff
+    display_mult: float | None = None     # mult_mod ratio value for display only (not used in calculation)
+    display_value: float | None = None    # absolute value for display only (combo, priority, etc.)
 
     @property
     def is_positive(self) -> bool:
+        if self.display_mult is not None:
+            return self.display_mult > 0
         return self.steps > 0
 
     @property
     def is_negative(self) -> bool:
+        if self.display_mult is not None:
+            return self.display_mult < 0
         return self.steps < 0
 
     @property
     def display_name(self) -> str:
         """Human-readable label for UI: '物攻+30%', '先手+3', etc."""
         label = _STAT_LABELS.get(self.stat_key, self.stat_key)
+        if self.display_mult is not None:
+            return f'{label}{self.display_mult:+.0%}'
         unit = _STEP_UNITS.get(self.stat_key, 10)
         if self.stat_key in ('priority', 'energy_cost', 'combo'):
             return f'{label}{self.steps:+d}'

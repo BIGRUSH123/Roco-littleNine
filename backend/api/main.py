@@ -350,15 +350,17 @@ def _extract_display_effects(sprite) -> list[schemas.EffectSummary]:
     from backend.vm.effect import StatBuffEffect
     result = []
     for e in getattr(sprite, 'active_effects', []):
-        if isinstance(e, StatBuffEffect) and e.steps == 0 and e.display_mult is not None:
-            result.append(schemas.EffectSummary(
-                name=e.name,
-                category='stat',
-                stacks=1,
-                steps=0,
-                display_mult=e.display_mult,
-                source=getattr(e, 'source', ''),
-            ))
+        if isinstance(e, StatBuffEffect) and e.steps == 0:
+            if e.display_mult is not None or e.display_value is not None:
+                result.append(schemas.EffectSummary(
+                    name=e.name,
+                    category='stat',
+                    stacks=1,
+                    steps=0,
+                    display_mult=e.display_mult,
+                    display_value=e.display_value,
+                    source=getattr(e, 'source', ''),
+                ))
     return result
 
 def _compute_trait_info(sprite) -> schemas.TraitInfo | None:

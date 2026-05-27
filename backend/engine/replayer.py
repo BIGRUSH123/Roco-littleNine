@@ -465,14 +465,17 @@ class JournalReplayer:
             if create_visible and steps != 0:
                 self._sync_stat_buff_effect(sprite, m.stat, steps, m.scope,
                                             m.source or m.name or "skill")
-            # mult_mod on stage stats → create display-only StatBuffEffect
+            # Create display-only StatBuffEffect for trait tooltip
             # (steps=0 so _extract_stat_stages ignores it, no double-counting)
-            if m.stat in _STAGE_STATS:
-                source = m.source or m.name or ""
-                if not source:
-                    species = getattr(sprite, 'species', None)
-                    source = species.ability if species else ""
-                self._sync_mult_display_effect(sprite, m.stat, m.value, m.scope, source)
+            source = m.source or m.name or ""
+            if source:
+                if m.stat in _STAGE_STATS:
+                    # Percentage stats: display_mult = ratio value (e.g., 0.5 = +50%)
+                    self._sync_mult_display_effect(sprite, m.stat, m.value, m.scope, source)
+                elif m.stat in _VISIBLE_MOD_STATS:
+                    # Absolute-value stats (combo, priority): display_value = raw value
+                    self._sync_mult_display_effect(sprite, m.stat, 0, m.scope, source,
+                                                   display_value=float(m.value))
 
         if m.stat in _RATIO_STATS:
             return f"{sprite.name} {label}={final:.0%}"
@@ -754,11 +757,13 @@ class JournalReplayer:
 
     @staticmethod
     def _sync_mult_display_effect(sprite, stat_key: str, mult_value: float,
-                                   scope: str, source: str) -> None:
+                                   scope: str, source: str,
+                                   display_value: float | None = None) -> None:
         """Create or update display-only StatBuffEffect for mult_mod values.
 
         Sets steps=0 so _extract_stat_stages ignores it (no double-counting).
         The display_mult field carries the ratio for UI display only.
+        The display_value field carries absolute values (combo, priority, etc.).
         """
         if not source:
             return
@@ -775,6 +780,8 @@ class JournalReplayer:
         )
         if existing is not None:
             existing.display_mult = mult_value
+            if display_value is not None:
+                existing.display_value = display_value
             return
 
         from backend.vm.effect import _STAT_LABELS
@@ -782,6 +789,7 @@ class JournalReplayer:
             name=_STAT_LABELS.get(stat_key, stat_key),
             source=source, scope=scope,
             stat_key=stat_key, steps=0, display_mult=mult_value,
+            display_value=display_value,
         ))
 
     @staticmethod
