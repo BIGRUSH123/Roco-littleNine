@@ -1,4 +1,4 @@
-# Debug Journal
+﻿# Debug Journal
 
 > 历次 debug 经验积累。SessionStart 自动加载到上下文，`/debug-save` 追加新条目。
 > 条目按时间倒序排列，最新的在最上面。
@@ -165,6 +165,14 @@
 - **修复**: globals.py 新增 `trigger_starfall(team, attacker, defender)` 方法（计算伤害 → 消耗层数 → take_damage）；`_MARK_EFFECTS` 添加 `starfall_damage: 30`；battle.py execute_skill() step 6.7 新增非幻系攻击触发检查；清理 consume_starfall_stacks 中已删除的 before_consume_starfall hook 调用
 - **涉及文件**: backend/sim/globals.py:87-89/318-357, backend/engine/battle.py:189-193
 - **教训**: 印记类机制排查先从三个点入手——配置是否有伤害/效果字段、消耗/触发方法是否有调用者、触发条件门（元素/技能类型）是否在引擎中存在
+
+## 2026-05-27 - passive→effects 键名不匹配导致四个 DataDrivenTrait 从未加载
+
+- **现象**: 咔咔鸟（咔咔冲刺）特性"先手时连击+1"完全不触发；囤积、冰钻、图书守卫者同样静默失效
+- **根因**: trait JSON 使用旧键名 "passive" 存放效果列表，但 load_data_trait() 和 TraitLoader 只读 "effects"——data.get("effects", []) 返回空列表，特性从未加载、Observer 从未注册。咔咔冲刺和图书守卫者的 and 条件额外使用 "conds" 子键，cond.py 求值器用 cond["conditions"] 直接访问→KeyError 被静默吞掉
+- **修复**: 四个 JSON passive→effects；咔咔冲刺和图书守卫者 conds→conditions
+- **涉及文件**: data/traits/咔咔冲刺.json, data/traits/囤积.json, data/traits/冰钻.json, data/traits/图书守卫者.json
+- **教训**: 特性完全不触发时，先查 trait JSON 键名是否匹配加载器——grep 确认加载器读的键（effects）和文件实际用的键（passive）是否一致
 <!-- 新条目追加在此行上方，格式如下：
 
 ## YYYY-MM-DD - 简短标题
