@@ -214,6 +214,14 @@
 - **涉及文件**: `backend/api/main.py:316-340`, `backend/api/schemas.py:75`, `frontend/src/components/TraitTooltip.vue:19-25`
 - **教训**: buff 栏出现不该有的条目时，先查 `active_effects` 中是否有 `ObserverEffect`/`ModifierEffect` 等非可见类型——它们通过 `effect_from_dict` 或 replayer 的 `_sync_*` 方法写入，需要在 API 序列化层过滤
 
+## 2026-05-27 - 首发精灵 entry 特性在回合0未触发导致初始状态显示错误
+
+- **现象**: 首发「布克棱岩」（地脉）初始能量显示为10而非0；「囤积」特性加成在首次行动后才显示
+- **根因**: `_init_battle_impl` 只 `load_for_sprite` 注册 observer，不触发 entry 效果。`post_entry` 在 `execute_turn` turn 1 才触发，但 `serialize_battle_state` 在此之前已调用。`snapshot.py:247` 的 `turn > 0` 守卫阻止回合 0 时 `sprite_entered` 生效
+- **修复**: 增加回合 0——`_init_battle_impl` 序列化前调用 `dispatch_entry` + `fire_trigger("post_entry")` 静默触发 entry 效果；移除 `execute_turn` turn-1 冗余分支；`turn > 0` → `turn >= 0`
+- **涉及文件**: `api/main.py:706-714`, `battle.py:184-192`, `snapshot.py:247`
+- **教训**: 初始状态显示异常→检查 entry/init 阶段的效果触发时序，observer 注册 ≠ 触发
+
 <!-- 新条目追加在此行上方，格式如下：
 
 ## YYYY-MM-DD - 简短标题
