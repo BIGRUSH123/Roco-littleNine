@@ -332,6 +332,19 @@ def _is_display_stat_effect(e) -> bool:
     return False
 
 
+def _is_trait_stat_effect(e, ability: str) -> bool:
+    """Return True for StatBuffEffect whose source is the sprite's trait/ability.
+
+    These are already shown in the trait tooltip and should be hidden from the buff bar.
+    """
+    from backend.vm.effect import StatBuffEffect
+    if not ability:
+        return False
+    if isinstance(e, StatBuffEffect) and e.steps != 0 and getattr(e, 'source', '') == ability:
+        return True
+    return False
+
+
 def _extract_display_effects(sprite) -> list[schemas.EffectSummary]:
     """Extract display-only StatBuffEffects for trait tooltip display."""
     from backend.vm.effect import StatBuffEffect
@@ -444,7 +457,8 @@ def serialize_battle_state(battle: Battle, session_id: str) -> schemas.BattleSta
             ) for e in getattr(s, 'active_effects', [])
              if e.name != '首领化'
              and not _is_trait_metadata_effect(e)
-             and not _is_display_stat_effect(e)],
+             and not _is_display_stat_effect(e)
+             and not _is_trait_stat_effect(e, getattr(s.species, 'ability', ''))],
             skills=skills_data,
         )
 
@@ -511,7 +525,8 @@ def _build_turn_snapshot(battle, turn_log):
             ) for e in getattr(sprite, 'active_effects', [])
              if e.name != '首领化'
              and not _is_trait_metadata_effect(e)
-             and not _is_display_stat_effect(e)],
+             and not _is_display_stat_effect(e)
+             and not _is_trait_stat_effect(e, getattr(sprite.species, 'ability', ''))],
             skills=[s.SkillSummary(
                 name=sk.name,
                 skill_index=i,
