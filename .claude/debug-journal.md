@@ -262,6 +262,14 @@
 - **涉及文件**: backend/vm/ir_skill.py:73-74, backend/vm/compiler/passes/skill_parse.py:498-501, backend/vm/ops/mod.py:137-143, backend/engine/replayer.py:450-471
 - **教训**: trait 数值效果不生效时，排查三连环——① 检查 parser/op 是否读取了 JSON 中使用的字段名（delta vs value），② 检查数据写入目标（_modifiers vs active_effects）是否与 consumer（property 方法）一致，③ 任何 `except Exception: continue` 都是静默失败的黑洞——加新代码后务必确认无异常被吞
 
+## 2026-05-27 - defer opcode turns=0 被 falsy 短路吞掉 + at="turn_end" 未规范化为 "end"
+
+- **现象**: 奔波鼠（奔波命特性）使用防御技能后，回合结束时没有触发脱离；日志显示"延时效果(1回合后)"而非当前回合
+- **根因**: op_schedule() 两个独立 bug：① `turns = _get(e, "turns") or _get(e, "delay_turns", 1)` — 0 是 falsy 短路变成 1；② `at: "turn_end"` 直接透传，引擎 `_execute_scheduled_effects` 只匹配 `"end"/"start"`，phase 永不相配
+- **修复**: turns 改用 `is None` 判断；at 增加 `"turn_end"→"end"` / `"turn_start"→"start"` 规范化
+- **涉及文件**: backend/vm/ops/schedule.py:16-36
+- **教训**: defer 延时效果不触发时，先查两个点——turns 值是否被 Python falsy 逻辑篡改（0、空字符串），以及 phase 值是否匹配引擎检查的 key
+
 <!-- 新条目追加在此行上方，格式如下：
 
 ## YYYY-MM-DD - 简短标题
