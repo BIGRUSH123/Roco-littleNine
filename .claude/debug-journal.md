@@ -246,6 +246,14 @@
 - **涉及文件**: backend/vm/cond.py:412-418, backend/vm/ctx.py:119-120/212-213/292/302, backend/engine/snapshot.py:82-83/290-291, backend/sim/battle.py:129-143
 - **教训**: 特性完全不触发且 observer 已注册时，直接 grep COND_EVAL 确认条件键是否已注册——缺少就是 KeyError 被静默吞掉
 
+## 2026-05-27 - display-only StatBuffEffect scope="turn" 被回合结束清理导致特性 tooltip 不显示
+
+- **现象**: 厉毒修萝「侵蚀」特性连击+N 在战斗日志中正常显示，但特性 tooltip 始终不显示效果数值
+- **根因**: replayer `_apply_modifier` 创建的 display-only `StatBuffEffect`（steps=0, display_value=N）继承了 mutation 的 `scope="turn"`。`_phase_turn_end()` (battle.py:757) 在 API 序列化前调用 `sprite.clear_effects('turn')` 将其清除，`_extract_display_effects` 读不到任何展示效果。同时 `_is_display_stat_effect` 只检查 `display_mult` 导致 combo 的 display_value 效果泄露到 buff 栏
+- **修复**: `replayer.py:793` `_sync_mult_display_effect` — display-only 效果改用 `scope="battlefield"`（回合结束不清除，离场时清除），更新现有效果时同步修改 scope；`main.py:327` `_is_display_stat_effect` — 同时检查 `display_value` 防止泄露到 buff 栏
+- **涉及文件**: backend/engine/replayer.py:784-796, backend/api/main.py:327-332
+- **教训**: 效果不显示但日志有 → 先查效果生命周期。效果被创建但 API 看不到，大概率是被回合结束/回合开始的清理逻辑在序列化之前清掉了；直接搜 `clear_effects` 调用点确认时序
+
 <!-- 新条目追加在此行上方，格式如下：
 
 ## YYYY-MM-DD - 简短标题
