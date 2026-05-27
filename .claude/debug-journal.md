@@ -1,9 +1,17 @@
-﻿# Debug Journal
+# Debug Journal
 
 > 历次 debug 经验积累。SessionStart 自动加载到上下文，`/debug-save` 追加新条目。
 > 条目按时间倒序排列，最新的在最上面。
 
 ---
+
+## 2026-05-27 - 图书守卫者 q="energy" 查精灵技能能量而非玩家魔力值导致条件永远不满足
+
+- **现象**: 古卷执政官（图书守卫者特性）在玩家魔力值为1时换上场，双攻+50%效果不触发
+- **根因**: trait JSON 使用 `q: "energy"` 查询 → ADDRESS_MAP 映射到 `energy_self`（精灵技能能量，默认10），而非 `lives_own`（玩家魔力值）。同时 `lives_own`/`lives_opp` 不在 ADDRESS_MAP 中，`build_ctx` 从未从 Player 对象填充这两个字段。`10 eq 1` 永远为 False。同问题导致构装契约者的 `opponent.lives` 因不在 ADDRESS_MAP 而 KeyError 被静默吞掉
+- **修复**: ctx.py ADDRESS_MAP 新增 `(sprite_self, lives)`/`(sprite_opp, lives)` 等 4 条映射；snapshot.py build_ctx 新增 lives_own/lives_opp 参数；battle.py _make_ctx 从 own_player.lives 填入；图书守卫者.json q: "energy"→"lives"；构装契约者.json q: "opponent.lives"→"lives"+of 改为 sprite_opp
+- **涉及文件**: backend/vm/ctx.py:289-296, backend/engine/snapshot.py:80-81/293-294, backend/sim/battle.py:138-139, data/traits/图书守卫者.json:17, data/traits/构装契约者.json:35-36
+- **教训**: trait 条件不触发时，先 grep ADDRESS_MAP 确认查询键是否已注册——未注册的 KeyError 被 `ObserverRegistry.fire()` 中 `except Exception: continue` 静默吞掉
 
 ## 2026-05-27 - StatusEffect 删除后残留 getattr(e, 'category') 类型判断失效
 
