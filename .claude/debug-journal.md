@@ -181,6 +181,15 @@
 - **修复**: battle.py 新增 `_SKILL_PER_TURN_KEYS = _PER_TURN_KEYS | {"combo", "combo_mult"}`，技能级用扩展集合清理，精灵级保持原集合
 - **涉及文件**: backend/sim/battle.py:156-168
 - **教训**: 技能日志数值呈等差数列累加（+3,+6,+9...）时，直接查该 stat 是否在回合初清理集合中——且确认清理的是 sprite._modifiers 还是 skill._modifiers，两者生命周期不同
+
+## 2026-05-27 - 特性效果 tooltip 不显示 —— observer 从未触发
+
+- **现象**: 鼠标悬停特性名称时 tooltip 显示"暂无效果数据"，即使精灵拥有囤积等特性也不展示具体数值
+- **根因**: 囤积特性的 observer 监听 `post_energy_change` 触发器，但该触发器仅在 `_fire_mutation_events` 扫描到 journal 中有 `EnergyChange` 时才会触发。技能能耗（`user.lose_energy`）、聚能回能（`user.gain_energy`）均在 VM 外部直接修改 sprite 属性，不经过 journal，因此 observer 从未被触发，`_sync_mult_display_effect` 从未被调用
+- **修复**: 在 3 个能量变化点手动构建 ctx 并调用 `fire_trigger("post_energy_change")`：① `dispatch_entry` 特性加载后（初始能量）② `_execute_skill_vm` 技能能耗支付后 ③ `_execute_skill_vm` 聚能回能后。同时将 `post_energy_change` 加入 `_fire_post_event` 的 owner 过滤列表
+- **涉及文件**: `backend/sim/battle.py:464,548`, `backend/sim/traits/__init__.py:88`, `backend/engine/battle.py:263`
+- **教训**: VM 外部直接修改状态的操作不会产生 journal mutation，依赖 mutation 触发的 observer 不会感知到此类变更。排查 observer 不触发时，先检查触发源是否在 journal 中
+
 <!-- 新条目追加在此行上方，格式如下：
 
 ## YYYY-MM-DD - 简短标题
