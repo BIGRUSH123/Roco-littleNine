@@ -117,6 +117,8 @@ class Ctx:
     skill_count_own: dict[str, int] = field(default_factory=dict)  # {skill_name: count}
     team_counters_own: dict[str, int] = field(default_factory=dict)  # {key: count}
     team_counters_opp: dict[str, int] = field(default_factory=dict)  # {key: count}
+    team_elements_own: frozenset = frozenset()  # elements of all sprites on own team
+    team_elements_opp: frozenset = frozenset()  # elements of all sprites on opponent team
     devotion_own: dict[str, int] = field(default_factory=dict)     # {name: stacks}
     devotion_opp: dict[str, int] = field(default_factory=dict)
     abnormal_stacks_battle: dict[str, int] = field(default_factory=dict)  # {name: total across both sides}
@@ -209,6 +211,8 @@ class Ctx:
         other.mark_stacks_opp = dict(self.mark_stacks_own)
         other.team_counters_own = dict(self.team_counters_opp)
         other.team_counters_opp = dict(self.team_counters_own)
+        other.team_elements_own = frozenset(self.team_elements_opp)
+        other.team_elements_opp = frozenset(self.team_elements_own)
         other.devotion_own = dict(self.devotion_opp)
         other.devotion_opp = dict(self.devotion_own)
         other.fainted_own, other.fainted_opp = self.fainted_opp, self.fainted_own
@@ -289,6 +293,7 @@ ADDRESS_MAP: dict[tuple[str, str], str] = {
     ("team_own", "fainted"):              "fainted_own",
     ("team_own", "burst_triggered_count"): "burst_triggered_count_own",
     ("team_own", "lives"):               "lives_own",
+    ("team_own", "elements"):              "team_elements_own",
     ("sprite_self", "lives"):            "lives_own",
 
     # team_opp
@@ -298,6 +303,7 @@ ADDRESS_MAP: dict[tuple[str, str], str] = {
     ("team_opp", "devotion"):              "devotion_opp",
     ("team_opp", "fainted"):              "fainted_opp",
     ("team_opp", "lives"):               "lives_opp",
+    ("team_opp", "elements"):              "team_elements_opp",
     ("sprite_opp", "lives"):             "lives_opp",
 
     # skill_off_0 (current attacking skill)

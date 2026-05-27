@@ -328,6 +328,12 @@ class JournalReplayer:
             display = f'{label}{m.steps * unit:+d}%'
         self._sync_stat_buff_effect(sprite, m.stat, m.steps, m.scope,
                                     m.source or m.name or "skill")
+        # Stage stats from traits: create display-only effect for trait tooltip
+        # (percentage stats only; speed is absolute points, not meaningful as display_mult)
+        if m.stat in _STAGE_STATS and m.stat != "speed":
+            source = m.source or m.name or ""
+            mult_value = m.steps * (_STEP_PCT / 100)
+            self._sync_mult_display_effect(sprite, m.stat, mult_value, m.scope, source)
         return f"{sprite.name} {display}"
 
     def _apply_modifier(self, m: ModifierInjection) -> str:

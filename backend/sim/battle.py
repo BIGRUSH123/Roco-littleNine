@@ -126,6 +126,11 @@ class Battle(BattleMechanicsMixin):
         # Count fainted sprites on each team
         fainted_own = sum(1 for s in own_player.team if s.is_fainted)
         fainted_opp = sum(1 for s in opp_player.team if s.is_fainted)
+        # Collect elements of all sprites (alive and fainted) on each team
+        team_elements_own = frozenset(
+            e for s in own_player.team for e in s.species.elements)
+        team_elements_opp = frozenset(
+            e for s in opp_player.team for e in s.species.elements)
         return self._build_ctx(
             self_sprite, opp_sprite, self_skill, opp_skill, globals_,
             team=team,
@@ -137,6 +142,8 @@ class Battle(BattleMechanicsMixin):
             fainted_opp=fainted_opp,
             lives_own=getattr(own_player, 'lives', 5),
             lives_opp=getattr(opp_player, 'lives', 5),
+            team_elements_own=team_elements_own,
+            team_elements_opp=team_elements_opp,
             **kwargs,
         )
 

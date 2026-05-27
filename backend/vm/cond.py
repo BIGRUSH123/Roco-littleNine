@@ -408,6 +408,13 @@ COND_EVAL = {
     # ── Devotion ──
     "devotion_triggered": lambda ctx, cond: ctx.event.devotion_triggered,
 
+    # ── Team composition ──
+    "team_has_element": lambda ctx, cond: (
+        resolve(ctx, cond["element"]) in ctx.team_elements_own
+        if isinstance(cond.get("element"), dict)
+        else cond["element"] in ctx.team_elements_own
+    ),
+
     # ── Logic gates — recursive combinators ──
     "and": lambda ctx, cond: all(eval_one(ctx, c) for c in cond["conditions"]),
     "or": lambda ctx, cond: any(eval_one(ctx, c) for c in cond["conditions"]),
@@ -552,7 +559,7 @@ def _resolve_trait_path_value(ctx: Ctx, path: str):
     if path == "self._burst_extended_once":
         return ctx.counter_values.get("_burst_extended_once", False)
     if path == "team_elements":
-        return list(ctx.skill_elements_self) if ctx.skill_elements_self else []
+        return list(ctx.team_elements_own) if ctx.team_elements_own else []
     if path == "effect.is_stat":
         return getattr(ctx, "effect_is_stat", False)
 

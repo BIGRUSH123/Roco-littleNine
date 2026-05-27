@@ -230,6 +230,22 @@
 - **涉及文件**: backend/vm/ctx.py:285,295, backend/vm/resolve.py:17, backend/engine/modifiers.py:50-53, backend/engine/replayer.py:432-435
 - **教训**: 数值加成从"完全不生效"到"数值不对"的逐层排查链——① 查 ADDRESS_MAP+_NAMED_DICT_QUERIES（静默吞掉）→ ② 查 modifier 收集逻辑的 mode 分发 → ③ 查 replayer 默认值（倍率 stat 基值 1.0 不是 0.0）
 
+## 2026-05-27 - stat_stage 特性未创建展示效果导致 trait tooltip 显示"暂无效果数据"
+
+- **现象**: 壮胆特性修复后 buff 栏正确显示双攻加成，但特性 tooltip 悬停仍显示"暂无效果数据"
+- **根因**: `_apply_stat_change` 只创建真实 `StatBuffEffect`（steps≠0，显示在 buff 栏），未创建展示用 `StatBuffEffect`（steps=0 + display_mult，用于 tooltip）。对比 `_apply_modifier` 对 stage stats 会同时调用 `_sync_mult_display_effect` 创建 tooltip 展示效果
+- **修复**: `_apply_stat_change` 中对百分比类 stage stats（atk/def/sp_atk/sp_def）调用 `_sync_mult_display_effect`，display_mult = steps × 0.1
+- **涉及文件**: backend/engine/replayer.py:329-336
+- **教训**: tooltip 不显示但 buff 栏正常时，查对应 mutation handler 是否同时创建了展示效果（`_sync_mult_display_effect`）——`_apply_stat_change` 和 `_apply_modifier` 需保持一致
+
+## 2026-05-27 - team_has_element 条件未在 COND_EVAL 注册导致壮胆特性完全不触发
+
+- **现象**: 伏地兽（壮胆特性：队伍存在虫系精灵时双攻+50%）在队伍中有虫系精灵时完全不触发
+- **根因**: trait JSON 使用 `cond: "team_has_element"` 但该条件键未在 `COND_EVAL` 调度表中注册，`eval_one()` 抛出 KeyError 被 `except Exception: continue` 静默吞掉。同时 `team_elements` 路径解析器错误返回 `skill_elements_self`（技能元素）而非队伍成员元素
+- **修复**: cond.py 新增 `team_has_element` handler；ctx.py 新增 `team_elements_own/opp` 字段 + ADDRESS_MAP；snapshot.py/battle.py 从 `own_player.team` 收集 `species.elements` 传入 build_ctx；修复 `team_elements` 路径指向 `ctx.team_elements_own`
+- **涉及文件**: backend/vm/cond.py:412-418, backend/vm/ctx.py:119-120/212-213/292/302, backend/engine/snapshot.py:82-83/290-291, backend/sim/battle.py:129-143
+- **教训**: 特性完全不触发且 observer 已注册时，直接 grep COND_EVAL 确认条件键是否已注册——缺少就是 KeyError 被静默吞掉
+
 <!-- 新条目追加在此行上方，格式如下：
 
 ## YYYY-MM-DD - 简短标题
