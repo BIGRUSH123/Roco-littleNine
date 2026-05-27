@@ -282,6 +282,7 @@ ADDRESS_MAP: dict[tuple[str, str], str] = {
 
     # team_own
     ("team_own", "mark_count"):            "mark_count_own",
+    ("team_own", "mark_stacks"):          "mark_stacks_own",
     ("team_own", "skill_count"):           "skill_count_own",
     ("team_own", "team_counter"):          "team_counters_own",
     ("team_own", "devotion"):              "devotion_own",
@@ -292,6 +293,7 @@ ADDRESS_MAP: dict[tuple[str, str], str] = {
 
     # team_opp
     ("team_opp", "mark_count"):            "mark_count_opp",
+    ("team_opp", "mark_stacks"):          "mark_stacks_opp",
     ("team_opp", "team_counter"):          "team_counters_opp",
     ("team_opp", "devotion"):              "devotion_opp",
     ("team_opp", "fainted"):              "fainted_opp",

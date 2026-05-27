@@ -222,13 +222,13 @@
 - **涉及文件**: `api/main.py:706-714`, `battle.py:184-192`, `snapshot.py:247`
 - **教训**: 初始状态显示异常→检查 entry/init 阶段的效果触发时序，observer 注册 ≠ 触发
 
-## 2026-05-27 - 坠星特性 mark_stacks 查询不在 ADDRESS_MAP 导致加成永不生效
+## 2026-05-27 - 坠星特性两个断点：ADDRESS_MAP 缺 key + power_mult mode:add 被忽略
 
-- **现象**: 祭礼巨像「坠星」特性（敌方每有1层星陨印记→技能威力+15%）完全不触发，无论对手有无印记伤害都一样
-- **根因**: 两个断点。① ADDRESS_MAP 只有 team_own/team_opp 的 mark_count 映射，缺少 mark_stacks → `_resolve_dict_query` 查 `("team_opp", "mark_stacks")` 抛 KeyError，被 `except Exception: continue` 静默吞掉；② `_NAMED_DICT_QUERIES` 不含 `"mark_stacks"`，即使修复①，`name: "星陨印记"` 子键查找也不会执行
-- **修复**: ctx.py ADDRESS_MAP 新增 `(team_own, mark_stacks)` → `mark_stacks_own` 和 `(team_opp, mark_stacks)` → `mark_stacks_opp`；resolve.py `_NAMED_DICT_QUERIES` 添加 `"mark_stacks"`
-- **涉及文件**: backend/vm/ctx.py:285,295, backend/vm/resolve.py:17
-- **教训**: 与图书守卫者同模式——trait 完全不触发时，先 grep 查询键是否在 ADDRESS_MAP 和 _NAMED_DICT_QUERIES 中注册；未注册的 KeyError 被 observer/battle 的 except Exception: continue 静默吞掉
+- **现象**: 祭礼巨像「坠星」特性（敌方每有1层星陨印记→技能威力+15%）完全不触发，修复查询后威力显示 30% 而非 130%
+- **根因**: 三个断点。① ADDRESS_MAP 缺少 `(team_opp, mark_stacks)` 映射 → KeyError 被静默吞掉，加成完全不生效；② `_NAMED_DICT_QUERIES` 不含 `"mark_stacks"` → `name` 子键查找不执行；③ `modifiers.py collect_modifiers()` 对 `power_mult` 忽略 `mode` 字段永远 `*=` —— `mode: "add"` + `value=0.3` 被算成 `1.0 * 0.3 = 0.3`（30%）而非 `1.0 + 0.3 = 1.3`（+30%）。坠星是唯一用 `mult_mod` + `power_mult` + `mode: "add"` 的特性
+- **修复**: ① ctx.py ADDRESS_MAP 新增 mark_stacks_own/opp 映射；② resolve.py `_NAMED_DICT_QUERIES` 添加 `"mark_stacks"`；③ modifiers.py `power_mult` 分支支持 mode add/set/multiply
+- **涉及文件**: backend/vm/ctx.py:285,295, backend/vm/resolve.py:17, backend/engine/modifiers.py:50-53
+- **教训**: ① 查询键不存在→静默吞掉→查 ADDRESS_MAP + _NAMED_DICT_QUERIES；② 数值修复后显示异常（30% vs 130%）→查 modifier 收集逻辑是否正确处理 mode 字段，对比同类 stat（damage_reduction/combo/power）的模式分发
 
 <!-- 新条目追加在此行上方，格式如下：
 

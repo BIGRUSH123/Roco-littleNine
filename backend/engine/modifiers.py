@@ -48,7 +48,12 @@ def collect_modifiers(journal: Journal, ctx: Ctx) -> dict:
         mode = m.mode
 
         if stat == "power_mult":
-            mods["power_mult"] *= value
+            if mode == "add":
+                mods["power_mult"] += value
+            elif mode == "set":
+                mods["power_mult"] = value
+            else:
+                mods["power_mult"] *= value
         elif stat == "damage_mult":
             mods["damage_mult"] *= value
         elif stat == "damage_reduction":
