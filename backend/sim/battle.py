@@ -135,6 +135,8 @@ class Battle(BattleMechanicsMixin):
             devotion_opp=dict(getattr(opp_player, 'devotion', {})),
             fainted_own=fainted_own,
             fainted_opp=fainted_opp,
+            lives_own=getattr(own_player, 'lives', 5),
+            lives_opp=getattr(opp_player, 'lives', 5),
             **kwargs,
         )
 
@@ -461,6 +463,17 @@ class Battle(BattleMechanicsMixin):
             events.append(f'{user.name} 聚能+{gained}E(→{user.energy})')
             opp_team = 'B' if team == 'A' else 'A'
             self.inc_team_counter(opp_team, 'enemy_gather')
+            # Fire post_energy_change for traits like 囤积
+            if gained > 0:
+                gather_ctx = self._make_ctx(
+                    user, target, None, None, self.globals,
+                    team=team, turn=self.turn,
+                    energy_changed_of="sprite_self",
+                )
+                self._vm_engine.fire_trigger(
+                    "post_energy_change", gather_ctx, user, target, self.globals,
+                    team=team, battle=self,
+                )
             return events
 
         if action.kind != 'skill' or action.skill_index is None:
@@ -546,6 +559,18 @@ class Battle(BattleMechanicsMixin):
         else:
             if cost > 0:
                 user.lose_energy(cost)
+
+        # Fire post_energy_change for traits like 囤积
+        if cost > 0:
+            energy_ctx = self._make_ctx(
+                user, target, None, None, self.globals,
+                team=team, turn=self.turn,
+                energy_changed_of="sprite_self",
+            )
+            self._vm_engine.fire_trigger(
+                "post_energy_change", energy_ctx, user, target, self.globals,
+                team=team, battle=self,
+            )
 
         user.inc_counter(f'skill_used:{bs.name}')
         user.inc_counter('skills_used')

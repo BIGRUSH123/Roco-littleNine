@@ -77,6 +77,8 @@ def build_ctx(
     burst_triggered_count_own: int = 0,
     fainted_own: int = 0,
     fainted_opp: int = 0,
+    lives_own: int = 5,
+    lives_opp: int = 5,
     devotion_own: dict[str, int] | None = None,
     devotion_opp: dict[str, int] | None = None,
     abnormal_stacks_battle: dict[str, int] | None = None,
@@ -288,6 +290,8 @@ def build_ctx(
         abnormal_stacks_battle=abnormal_stacks_battle or {},
         fainted_own=fainted_own,
         fainted_opp=fainted_opp,
+        lives_own=lives_own,
+        lives_opp=lives_opp,
         burst_triggered_count_own=burst_triggered_count_own,
 
         # Skill

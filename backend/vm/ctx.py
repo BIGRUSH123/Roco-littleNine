@@ -287,12 +287,16 @@ ADDRESS_MAP: dict[tuple[str, str], str] = {
     ("team_own", "devotion"):              "devotion_own",
     ("team_own", "fainted"):              "fainted_own",
     ("team_own", "burst_triggered_count"): "burst_triggered_count_own",
+    ("team_own", "lives"):               "lives_own",
+    ("sprite_self", "lives"):            "lives_own",
 
     # team_opp
     ("team_opp", "mark_count"):            "mark_count_opp",
     ("team_opp", "team_counter"):          "team_counters_opp",
     ("team_opp", "devotion"):              "devotion_opp",
     ("team_opp", "fainted"):              "fainted_opp",
+    ("team_opp", "lives"):               "lives_opp",
+    ("sprite_opp", "lives"):             "lives_opp",
 
     # skill_off_0 (current attacking skill)
     ("skill_off_0", "power_base"):         "power_self",
