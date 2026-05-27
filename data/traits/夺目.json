@@ -2,20 +2,48 @@
   "id": 20038,
   "name": "夺目",
   "description": "额外获得三个未携带的随机技能，非光系技能威力+25%。",
-  "triggers": [
+  "effects": [
     {
-      "on": "modifier",
-      "condition": {
-        "path": "skill.element",
-        "op": "neq",
-        "value": "光"
+      "op": "observer",
+      "cond": {
+        "cond": "sprite_entered",
+        "of": "sprite_self"
       },
-      "use_modifiers": {
-        "power_mult": {
-          "op": "add",
-          "value": 0.25
+      "listen": "post_entry",
+      "scope": "battlefield",
+      "then": [
+        {
+          "op": "gain_skills",
+          "count": 3,
+          "exclude_carried": true,
+          "source": "learnset"
         }
-      }
+      ]
+    },
+    {
+      "op": "observer",
+      "name": "非光增幅",
+      "scope": "permanent",
+      "cond": {
+        "cond": "not",
+        "condition": {
+          "cond": "compare",
+          "q": "element",
+          "of": "skill_off_0",
+          "op": "eq",
+          "value": "光"
+        }
+      },
+      "listen": "pre_calc",
+      "then": [
+        {
+          "op": "mult_mod",
+          "target": "skill_off_0",
+          "attr": "power_mult",
+          "value": 0.25,
+          "mode": "add"
+        }
+      ]
     }
   ]
 }

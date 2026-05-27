@@ -23,6 +23,7 @@ from .ir_skill import (
     EnergizeOp,
     EscapeOp,
     ExchangeOp,
+    GainSkills,
     FlagSetOp,
     HealOp,
     HitOp,
@@ -57,6 +58,7 @@ from .ops.count import op_count
 from .ops.dispel import op_dispel
 from .ops.double import op_double
 from .ops.escape import op_escape
+from .ops.gain_skills import op_gain_skills
 from .ops.exchange import op_exchange
 from .ops.hit import op_hit
 from .ops.interrupt import op_interrupt
@@ -234,6 +236,8 @@ def process_one(ctx: Ctx, op) -> list[Mutation]:
             return op_transform(ctx, op)
         case TraitInteraction():
             return op_trait_interaction(ctx, op)
+        case GainSkills():
+            return op_gain_skills(ctx, op)
         case _:
             return []
 

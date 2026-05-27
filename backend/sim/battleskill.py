@@ -24,6 +24,7 @@ class BattleSkill:
     next_attack_mult: float = 1.0   # 下次攻击威力倍率（热身），使用后重置为 1
     nullified: bool = False         # 打断标记：技能被无效化但不破坏 base
     sealed: bool = False            # 封印标记：此槽位不可选用（宝剑王牌/正位宝剑）
+    is_temporary: bool = False      # 临时技能标记（gain_skills 等，战斗结束后清理）
     _transmission: int = 0          # 传动等级：-1=主轴，0=普通，1+=传动
     _element_override: str = ''     # 属性覆写（元素转换特性）
 

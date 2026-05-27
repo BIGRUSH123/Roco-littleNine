@@ -160,7 +160,32 @@ class SimFactory:
         battle = Battle(player_a=player_a, player_b=player_b, weather=weather)
         battle.species_db = self.sprite_db
         battle.skill_loader = self._build_skill_list
+        battle.list_all_skill_names = self._list_all_skill_names
+        battle.skill_element_map = self._skill_element_map
         return battle
+
+    def _list_all_skill_names(self) -> list[str]:
+        """Return all skill names from the skills directory."""
+        names = []
+        if self._skills_dir.is_dir():
+            for fpath in sorted(self._skills_dir.glob('*.json')):
+                names.append(fpath.stem)
+        return names
+
+    def _skill_element_map(self) -> dict[str, list[str]]:
+        """Return a mapping of skill_name → [element] for all skills."""
+        import json
+        elem_map: dict[str, list[str]] = {}
+        if self._skills_dir.is_dir():
+            for fpath in sorted(self._skills_dir.glob('*.json')):
+                try:
+                    data = json.loads(fpath.read_text(encoding='utf-8'))
+                    name = data.get('name', fpath.stem)
+                    element = data.get('element', '')
+                    elem_map[name] = [element] if element else []
+                except (json.JSONDecodeError, OSError):
+                    pass
+        return elem_map
 
     @classmethod
     def default_style(cls, archetype: str = 'balanced') -> PlayStyle:

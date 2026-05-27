@@ -406,6 +406,18 @@ class Transform:
     priority: int = 0
 
 @dataclass(frozen=True)
+class GainSkills:
+    """Grant temporary skills to a sprite from a skill pool (learnset or global)."""
+    count: int = 1
+    exclude_carried: bool = True
+    source: str = "learnset"   # "learnset" | "global"
+    target: str = "sprite_self"
+    feeds: str = ""
+    needs: str = ""
+    priority: int = 0
+
+
+@dataclass(frozen=True)
 class TraitInteraction:
     """Suppress, remove, or copy a trait."""
     action: str         # "suppress" | "remove" | "copy"
@@ -430,7 +442,8 @@ SkillIROp = (
     ExchangeOp | ResetOp | RedirectOp | ReplayOp |
     BorrowOp | CountOp | WhenBlock |
     TeamCounterWrite | LivesChange | Schedule |
-    InheritEffects | Transform | TraitInteraction
+    InheritEffects | Transform | TraitInteraction |
+    GainSkills
 )
 
 

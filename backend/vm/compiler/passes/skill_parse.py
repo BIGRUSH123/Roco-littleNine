@@ -16,6 +16,7 @@ from backend.vm.ir_skill import (
     EscapeOp,
     ExchangeOp,
     FlagSetOp,
+    GainSkills,
     HealOp,
     HitOp,
     InheritEffects,
@@ -440,6 +441,15 @@ class SkillParsePass:
         from_ = e.get("from") or e.get("from_", "")
         return BorrowOp(
             from_=str(from_),
+            **self._common_fields(e),
+        )
+
+    def _parse_gain_skills(self, e: dict) -> GainSkills:
+        return GainSkills(
+            count=self._int_or(e, "count", 1),
+            exclude_carried=self._bool_or(e, "exclude_carried", True),
+            source=self._str_or(e, "source", "learnset"),
+            target=self._str_or(e, "target", "sprite_self"),
             **self._common_fields(e),
         )
 

@@ -16,7 +16,6 @@ class StatChange:
     steps: int        # positive = buff, negative = debuff
     scope: str = "battlefield"  # "battlefield" | "persistent" | "permanent"
     # Optional metadata for engine-side resolution
-    name: str | None = None           # exact skill name filter
     source: str | None = None         # trait/skill name for replace-mode clearing
     element: str | None = None        # element filter ("火", "each", etc.)
     per_element: int | None = None    # max per element when element="each"
@@ -255,6 +254,15 @@ class TraitInteractionMutation:
     new_ability: str | None = None
 
 
+@dataclass(frozen=True)
+class GainSkillsMutation:
+    """Grant temporary skills to a sprite from a skill pool."""
+    count: int = 1
+    exclude_carried: bool = True
+    source: str = "learnset"   # "learnset" | "global"
+    target: str = "sprite_self"
+
+
 @dataclass
 class CounterRegister:
     """Register a persistent counter/watcher on the skill."""
@@ -275,6 +283,7 @@ Mutation = Union[
     Reset, Redirect, Replay, Borrow, CounterRegister,
     TeamCounterDelta, LivesDelta, ScheduleEntry,
     InheritEffectsMutation, TransformMutation, TraitInteractionMutation,
+    GainSkillsMutation,
 ]
 
 # Journal is an ordered list of mutations

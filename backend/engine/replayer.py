@@ -20,6 +20,7 @@ from backend.vm.journal import (
     EnergyChange,
     Escape,
     Exchange,
+    GainSkillsMutation,
     Heal,
     InheritEffectsMutation,
     Interrupt,
@@ -310,6 +311,8 @@ class JournalReplayer:
             return self._apply_transform_mutation(m)
         elif cls == "TraitInteractionMutation":
             return self._apply_trait_interaction_mutation(m)
+        elif cls == "GainSkillsMutation":
+            return self._apply_gain_skills(m)
 
         return f"Unknown mutation: {cls}"
 
@@ -1089,6 +1092,58 @@ class JournalReplayer:
             target._trait_suppressed = False
             return f'{target.name} 复制特性 → {source_ability}'
         return ""
+
+    def _apply_gain_skills(self, m: GainSkillsMutation) -> str:
+        """Grant temporary skills to a sprite from a skill pool.
+
+        Picks count random skills not already carried by the sprite,
+        builds BattleSkill instances, and appends them to the sprite's
+        skill bar as temporary skills (cleared after battle).
+        """
+        import random
+        sprite = self._target_sprite(m.target)
+        if sprite is None:
+            return ""
+
+        # Build candidate pool
+        if self._battle is not None and hasattr(self._battle, 'list_all_skill_names'):
+            all_names = self._battle.list_all_skill_names()
+        else:
+            return f"{sprite.name} gain_skills: no skill pool available"
+
+        if not all_names:
+            return f"{sprite.name} gain_skills: empty skill pool"
+
+        carried = {getattr(bs.base, 'name', '') for bs in (sprite.skills or []) if bs.base}
+
+        candidates = all_names
+        if m.exclude_carried:
+            candidates = [n for n in all_names if n not in carried]
+
+        if m.source == "learnset":
+            species_elements = set(getattr(sprite.species, 'elements', []))
+            if species_elements and self._battle is not None and hasattr(self._battle, 'skill_element_map'):
+                elem_map = self._battle.skill_element_map()
+                candidates = [n for n in candidates
+                              if set(elem_map.get(n, [])) & species_elements]
+
+        if not candidates:
+            return f"{sprite.name} gain_skills: no candidates"
+
+        count = min(m.count, len(candidates))
+        chosen = random.sample(candidates, count)
+
+        if self._battle is not None and self._battle.skill_loader is not None:
+            new_skills = self._battle.skill_loader(chosen)
+        else:
+            return f"{sprite.name} gain_skills: no skill loader"
+
+        for bs in new_skills:
+            bs.is_temporary = True
+            sprite.skills.append(bs)
+
+        names = ', '.join(getattr(bs, 'name', str(bs)) for bs in new_skills)
+        return f"{sprite.name} 获得临时技能: {names}"
 
     def _apply_counter_register(self, m: CounterRegister) -> str:
         # Counter registration is handled by _register_counters_from_journal
