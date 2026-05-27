@@ -254,6 +254,14 @@
 - **涉及文件**: backend/engine/replayer.py:784-796, backend/api/main.py:327-332
 - **教训**: 效果不显示但日志有 → 先查效果生命周期。效果被创建但 API 看不到，大概率是被回合结束/回合开始的清理逻辑在序列化之前清掉了；直接搜 `clear_effects` 调用点确认时序
 
+## 2026-05-27 - 多人宿舍（九幽菇）max_energy 不生效导致聚能不能超过10E
+
+- **现象**: 九幽菇特性"多人宿舍"（能量上限+5→15）不生效，聚能始终+0E(→10)，能量无法超过默认上限
+- **根因**: 三个独立断点。① `_parse_power_mod` / `PowerModOp` / `op_power_mod` 全链路只支持 `delta`（add 模式），trait JSON 使用 `value: 15, mode: "set"` → delta 未解析，value=0；② observer 触发的 `power_mod` 经 replayer 写入 `sprite._modifiers`，但 `Sprite.max_energy` property 从 `sprite.active_effects` → `ModifierEffect` 读取——两个不同数据结构；③ `ModifierEffect` 构造漏了必需参数 `name` → `TypeError` 被 `_fire_post_event` 的 `except Exception: continue` 静默吞掉
+- **修复**: `ir_skill.py` PowerModOp 新增 value/mode 字段；`skill_parse.py` _parse_power_mod 读取 value/mode；`mod.py` op_power_mod 优先用 value/mode，回退 delta 保持向后兼容；`replayer.py` _apply_modifier 将 _SPRITE_LEVEL_ATTRS（max_energy、starfall_consume_ratio）同步为 ModifierEffect 写入 active_effects
+- **涉及文件**: backend/vm/ir_skill.py:73-74, backend/vm/compiler/passes/skill_parse.py:498-501, backend/vm/ops/mod.py:137-143, backend/engine/replayer.py:450-471
+- **教训**: trait 数值效果不生效时，排查三连环——① 检查 parser/op 是否读取了 JSON 中使用的字段名（delta vs value），② 检查数据写入目标（_modifiers vs active_effects）是否与 consumer（property 方法）一致，③ 任何 `except Exception: continue` 都是静默失败的黑洞——加新代码后务必确认无异常被吞
+
 <!-- 新条目追加在此行上方，格式如下：
 
 ## YYYY-MM-DD - 简短标题
