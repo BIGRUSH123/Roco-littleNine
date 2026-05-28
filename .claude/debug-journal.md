@@ -334,6 +334,14 @@
 - **涉及文件**: backend/engine/battle.py:130, backend/engine/replayer.py:455, backend/vm/damage.py:68, backend/sim/resolver.py:116, backend/engine/modifiers.py:132
 - **教训**: 防御方 observer 需在 attacker ctx 中额外触发（owner filter 过滤掉非 owner 的 observer）；max(1, ...) 兜底有三处（damage.py、resolver.py、modifiers.py adjust_damage），缺一不可
 
+## 2026-05-28 - power_mod 缺 _STAT_LABELS + skill_where 路径绕开显示格式化导致日志/tooltip 不显示
+
+- **现象**: 波多西「定向精炼」特性入场时日志显示 power_mod+1（原始 key 名、整数格式），特性 tooltip 不显示威力加成
+- **根因**: 四重缺失。① power_mod 不在 replayer.py 和 effect.py 的 _STAT_LABELS 中 → 日志和 tooltip 均显示原始 key；② mult_mod 带 skill_where（元素过滤）走 _apply_to_matching_skills 函数，该路径无 display-only 效果创建逻辑 → tooltip 无数据；③ _apply_to_matching_skills 格式固定为 {delta:+.0f} → 步数值显示为整数而非百分比；④ 日志不含元素名，两个系别效果相同无法区分
+- **修复**: effect.py _STAT_LABELS 加 power_mod；replayer.py _STAT_LABELS + _VISIBLE_MOD_STATS 加 power_mod；_apply_to_matching_skills 新增 power_mod 分支：用 _STEP_PCT 换算百分比显示 + skill_where.element 前缀 + 创建 display-only StatBuffEffect；_apply_modifier 主路径同样加 power_mod 格式分支
+- **涉及文件**: backend/engine/replayer.py:67,99,206-230,525-528,535-536, backend/vm/effect.py:208
+- **教训**: 带 skill_where/skill_filter 的 modifier 走 _apply_to_matching_skills（replayer.py:393-395），完全绕开 _apply_modifier 的格式化和 display-only 逻辑——排查「改了 _apply_modifier 但不生效」时直接检查是否被 skill_where 分支提前 return
+
 <!-- 新条目追加在此行上方，格式如下：
 
 ## YYYY-MM-DD - 简短标题
