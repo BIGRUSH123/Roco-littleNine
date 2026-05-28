@@ -358,6 +358,22 @@
 - **涉及文件**: backend/sim/battle_mechanics.py:145-150, backend/engine/battle.py:327/337, backend/engine/replayer.py:1080-1081
 - **教训**: 特性完全不触发且 observer 条件在 COND_EVAL 已注册时，grep 对应 trigger 是否在 sim 层所有力竭/切换/入场路径中都有 `fire_trigger`——缺少就是静默不触发
 
+## 2026-05-28 - 思维之盾 on_next 能耗减免"不触发"——全链路正确但日志和前端双静默
+
+- **现象**: 游蛇魔使应对成功后，下次行动能耗未减5，日志无任何反馈
+- **根因**: Observer → pending → consume 全链路实际正常工作（debug 日志确认）。三处静默：① `replayer.py` on_next 加入 pending 返回 `""`；② `battle.py` energy_cost 消费被 `continue` 跳过；③ `main.py` 前端只读 `sk._modifiers`（BattleSkill 级），on_next 写入 `s._modifiers`（Sprite 级），显示不匹配；④ 消费后 `_modifiers` 残留到回合末才清，API 调用无法区分"已消费"和"未消费"
+- **修复**: ① replayer on_next 输出"获得待机效果: 能耗-N"事件；② battle.py energy_cost 消费输出"触发待机效果: 能耗-N"事件；③ main.py 前端公式加上 `_pending_modifiers` + `s._modifiers` 两处 energy_cost；④ battle.py 能耗支付后立即 `pop("energy_cost")` 清除一次性 modifier
+- **涉及文件**: backend/engine/replayer.py:408-412, backend/sim/battle.py:549-553/583-586, backend/api/main.py:426-427
+- **教训**: `on_next` 特性"不触发"时，加 debug 日志确认 observer→pending→consume 三阶段链路——大概率触发了但日志和前端都静默
+
+## 2026-05-28 - 湿润印记不减费——MARK_TEMPLATES 名称不匹配（湿润 vs 润泽）
+
+- **现象**: 使用"打湿"技能获得湿润印记后，技能能耗没有减少
+- **根因**: `mark_config.py` 的 `MARK_TEMPLATES` 只有 "润泽印记"（`润`），技能 JSON 用的是 "湿润印记"（`湿`），字形相近但不匹配。未命中 template 时 `energy_mod` 默认为 0
+- **修复**: 在 `MARK_TEMPLATES` 新增 "湿润印记" 条目，`energy_mod=1`
+- **涉及文件**: backend/engine/mark_config.py:26-29
+- **教训**: 印记效果不生效 → grep `MARK_TEMPLATES` 确认印记名是否**逐字**匹配（润≠湿）
+
 <!-- 新条目追加在此行上方，格式如下：
 
 ## YYYY-MM-DD - 简短标题
