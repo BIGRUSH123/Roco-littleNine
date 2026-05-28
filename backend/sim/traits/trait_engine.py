@@ -14,7 +14,6 @@ from pathlib import Path
 
 from . import TraitHandler
 
-
 # ═══════════════════════════════════════════════════════════════════
 # Hook 注册机制 (Layer 3b)
 # ═══════════════════════════════════════════════════════════════════
@@ -105,10 +104,10 @@ class DataDrivenTrait(TraitHandler):
 
     def _effects_to_observers(self) -> list:
         """Process effects through Skill VM, convert CounterRegister → Observer."""
+        from backend.engine.observer import Observer
         from backend.vm.cond import infer_triggers
         from backend.vm.ctx import Ctx
         from backend.vm.executor import process_effects
-        from backend.engine.observer import Observer
         from backend.vm.journal import CounterRegister
 
         ctx = Ctx()

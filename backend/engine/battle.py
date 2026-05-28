@@ -238,9 +238,8 @@ class BattleVMEngine:
             if obs.listen and trigger not in obs.listen:
                 continue
             # Owner filter: observers with an owner only fire for their sprite
-            if obs.owner_sprite_id is not None and sprite_id != 0:
-                if obs.owner_sprite_id != sprite_id:
-                    continue
+            if obs.owner_sprite_id is not None and sprite_id != 0 and obs.owner_sprite_id != sprite_id:
+                continue
             try:
                 if eval_one(ctx, obs.cond):
                     then = self._inject_source(obs.then, obs.source) if obs.source else obs.then
@@ -259,6 +258,7 @@ class BattleVMEngine:
         Handles both raw dict effects and already-compiled typed IR objects.
         """
         import copy
+
         from backend.vm.ir_skill import WhenBlock
         result = []
         for eff in effects:
@@ -288,6 +288,7 @@ class BattleVMEngine:
         Handles both raw dict effects and already-compiled typed IR objects.
         """
         import copy
+
         from backend.vm.ir_skill import WhenBlock
         result = []
         for eff in effects:
@@ -386,7 +387,10 @@ class BattleVMEngine:
           - StatChange(positive) → post_positive_change
         """
         from backend.vm.journal import (
-            AbnormalChange, Damage, EnergyChange, StatChange,
+            AbnormalChange,
+            Damage,
+            EnergyChange,
+            StatChange,
         )
 
         events: list[str] = []
@@ -495,6 +499,7 @@ class BattleVMEngine:
         exists, skips registration.
         """
         from backend.vm.cond import infer_triggers
+
         from .observer import Observer
         owner_id = id(owner_sprite) if owner_sprite else None
         # Check for duplicate
@@ -628,7 +633,7 @@ class BattleVMEngine:
         extra: Journal = []
         for r in replay_muts:
             if r.from_ == "team_burst":
-                for skill_name, effects in self._burst_effects.get(team, []):
+                for _skill_name, effects in self._burst_effects.get(team, []):
                     extra.extend(vm_execute(ctx, effects))
             elif r.from_ == "sprite_self":
                 extra.extend(self._collect_sprite_self_replay(ctx, r.skill_filter))
@@ -662,7 +667,7 @@ class BattleVMEngine:
         """
         accumulated: Journal = []
         # Try all sprite histories (most battles have 2 sprites)
-        for sprite_id, history in self._skill_history.items():
+        for _sprite_id, history in self._skill_history.items():
             for skill_name, effects, tags in history:
                 if skill_filter and not self._matches_skill_filter(
                     skill_name, effects, tags, skill_filter
@@ -677,15 +682,10 @@ class BattleVMEngine:
     ) -> bool:
         """Check if a historical skill matches the replay filter."""
         # tag filter
-        if "tag" in skill_filter:
-            if tags.get("tag", "") != skill_filter["tag"]:
-                return False
+        if "tag" in skill_filter and tags.get("tag", "") != skill_filter["tag"]:
+            return False
         # skill_type filter
-        if "skill_type" in skill_filter:
-            if tags.get("skill_type", "") != skill_filter["skill_type"]:
-                return False
+        if "skill_type" in skill_filter and tags.get("skill_type", "") != skill_filter["skill_type"]:
+            return False
         # element filter
-        if "element" in skill_filter:
-            if tags.get("element", "") != skill_filter["element"]:
-                return False
-        return True
+        return not ("element" in skill_filter and tags.get("element", "") != skill_filter["element"])

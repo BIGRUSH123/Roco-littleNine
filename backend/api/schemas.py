@@ -6,7 +6,6 @@ API 层不应直接暴露 domain 对象（Sprite, BattleSkill 等），
 """
 
 
-from typing import Optional
 
 from pydantic import BaseModel
 
@@ -211,7 +210,7 @@ class DebugInitResponse(BattleState):
 
 class BatchRequest(BaseModel):
     team: list[SpriteSelection]
-    ai_agent: Optional[str] = None
+    ai_agent: str | None = None
     rounds: int = 10
 
 

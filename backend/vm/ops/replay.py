@@ -20,10 +20,7 @@ def op_replay(ctx: Ctx, effect) -> list[Mutation]:
     skill_filter: optional dict with tag/skill_type/element to filter history
     what: "burst" (when from="team_burst")
     """
-    if isinstance(effect, dict):
-        from_ = effect.get("from")
-    else:
-        from_ = getattr(effect, "from_", None)
+    from_ = effect.get("from") if isinstance(effect, dict) else getattr(effect, "from_", None)
     return [Replay(
         from_=from_,
         skill_filter=_get(effect, "skill_filter"),

@@ -47,8 +47,8 @@ def _apply(sprite, battle=None):
 
 def test_single_block_rotate():
     """传动1×4：单块右旋。ABCD → DABC"""
-    from backend.sim.sprite import Sprite
     from backend.common.models import SpeciesStats
+    from backend.sim.sprite import Sprite
     s = Sprite(SpeciesStats(name="t", hp=1, atk=1, def_=1, sp_atk=1, sp_def=1, speed=1),
                current_hp=1, max_hp=1, energy=0)
     s.skills = [
@@ -66,8 +66,8 @@ def test_single_block_rotate():
 
 def test_two_separate_blocks():
     """传动1×2块：AB(传动) C(普通) DE(传动) → 各自右旋。"""
-    from backend.sim.sprite import Sprite
     from backend.common.models import SpeciesStats
+    from backend.sim.sprite import Sprite
     s = Sprite(SpeciesStats(name="t", hp=1, atk=1, def_=1, sp_atk=1, sp_def=1, speed=1),
                current_hp=1, max_hp=1, energy=0)
     s.skills = [
@@ -88,8 +88,8 @@ def test_two_separate_blocks():
 
 def test_single_skill_swap_right():
     """传动1单技能：块大小1，与右侧邻居交换。A(t0) B(t1) C(t0) → A C B"""
-    from backend.sim.sprite import Sprite
     from backend.common.models import SpeciesStats
+    from backend.sim.sprite import Sprite
     s = Sprite(SpeciesStats(name="t", hp=1, atk=1, def_=1, sp_atk=1, sp_def=1, speed=1),
                current_hp=1, max_hp=1, energy=0)
     s.skills = [
@@ -107,8 +107,8 @@ def test_single_skill_swap_right():
 
 def test_no_transmission():
     """无传动技能：不变。"""
-    from backend.sim.sprite import Sprite
     from backend.common.models import SpeciesStats
+    from backend.sim.sprite import Sprite
     s = Sprite(SpeciesStats(name="t", hp=1, atk=1, def_=1, sp_atk=1, sp_def=1, speed=1),
                current_hp=1, max_hp=1, energy=0)
     s.skills = [
@@ -129,8 +129,8 @@ def test_no_transmission():
 
 def test_circular_merge():
     """传动1块跨越首尾：A(t1) B(t1) C(t0) D(t1) → 块(0,1)+(3,3)合并为(3,1)，C被挤出到3。"""
-    from backend.sim.sprite import Sprite
     from backend.common.models import SpeciesStats
+    from backend.sim.sprite import Sprite
     s = Sprite(SpeciesStats(name="t", hp=1, atk=1, def_=1, sp_atk=1, sp_def=1, speed=1),
                current_hp=1, max_hp=1, energy=0)
     s.skills = [
@@ -150,8 +150,8 @@ def test_circular_merge():
 
 def test_full_circle():
     """全部传动1环绕：应合并为单块右旋。"""
-    from backend.sim.sprite import Sprite
     from backend.common.models import SpeciesStats
+    from backend.sim.sprite import Sprite
     s = Sprite(SpeciesStats(name="t", hp=1, atk=1, def_=1, sp_atk=1, sp_def=1, speed=1),
                current_hp=1, max_hp=1, energy=0)
     s.skills = [
@@ -173,8 +173,8 @@ def test_full_circle():
 
 def test_main_axis_passthrough():
     """主轴不参与不阻挡：A(t1) M(t-1) B(t1) C(t1) → M 如不存在。"""
-    from backend.sim.sprite import Sprite
     from backend.common.models import SpeciesStats
+    from backend.sim.sprite import Sprite
     s = Sprite(SpeciesStats(name="t", hp=1, atk=1, def_=1, sp_atk=1, sp_def=1, speed=1),
                current_hp=1, max_hp=1, energy=0)
     s.skills = [
@@ -194,8 +194,8 @@ def test_main_axis_passthrough():
 
 def test_multiple_main_axes():
     """多个主轴：各自被跳过，传动技能正常旋转。"""
-    from backend.sim.sprite import Sprite
     from backend.common.models import SpeciesStats
+    from backend.sim.sprite import Sprite
     s = Sprite(SpeciesStats(name="t", hp=1, atk=1, def_=1, sp_atk=1, sp_def=1, speed=1),
                current_hp=1, max_hp=1, energy=0)
     s.skills = [
@@ -215,8 +215,8 @@ def test_multiple_main_axes():
 
 def test_main_axis_at_boundary():
     """主轴在首尾：传动技能仍正常形成块跨越。"""
-    from backend.sim.sprite import Sprite
     from backend.common.models import SpeciesStats
+    from backend.sim.sprite import Sprite
     s = Sprite(SpeciesStats(name="t", hp=1, atk=1, def_=1, sp_atk=1, sp_def=1, speed=1),
                current_hp=1, max_hp=1, energy=0)
     s.skills = [
@@ -240,8 +240,8 @@ def test_main_axis_at_boundary():
 
 def test_multi_level_transmission():
     """传动2+传动1混合：传2参与两次 pass。"""
-    from backend.sim.sprite import Sprite
     from backend.common.models import SpeciesStats
+    from backend.sim.sprite import Sprite
     s = Sprite(SpeciesStats(name="t", hp=1, atk=1, def_=1, sp_atk=1, sp_def=1, speed=1),
                current_hp=1, max_hp=1, energy=0)
     s.skills = [
@@ -252,7 +252,7 @@ def test_multi_level_transmission():
     ]
     battle = _make_battle()
     battle._apply_transmission(s)
-    names = [bs.name for bs in s.skills]
+    [bs.name for bs in s.skills]
 
     # Pass 0: 传2+传1 都参与
     #   虚拟数组: [A(t2) B(t1) C(t2)]  跳过D
@@ -275,8 +275,8 @@ def test_multi_level_transmission():
 
 def test_transmission_2_double_shift():
     """纯传动2×3：两个 pass 右旋两次。ABC → pass1: CAB → pass2: BCA"""
-    from backend.sim.sprite import Sprite
     from backend.common.models import SpeciesStats
+    from backend.sim.sprite import Sprite
     s = Sprite(SpeciesStats(name="t", hp=1, atk=1, def_=1, sp_atk=1, sp_def=1, speed=1),
                current_hp=1, max_hp=1, energy=0)
     s.skills = [
@@ -297,8 +297,8 @@ def test_transmission_2_double_shift():
 
 def test_repeated_transmission_stable():
     """多次传动不应产生重复技能。"""
-    from backend.sim.sprite import Sprite
     from backend.common.models import SpeciesStats
+    from backend.sim.sprite import Sprite
     s = Sprite(SpeciesStats(name="t", hp=1, atk=1, def_=1, sp_atk=1, sp_def=1, speed=1),
                current_hp=1, max_hp=1, energy=0)
     s.skills = [
@@ -326,8 +326,8 @@ def test_repeated_transmission_stable():
 
 def test_empty_skills():
     """空技能列表不报错。"""
-    from backend.sim.sprite import Sprite
     from backend.common.models import SpeciesStats
+    from backend.sim.sprite import Sprite
     s = Sprite(SpeciesStats(name="t", hp=1, atk=1, def_=1, sp_atk=1, sp_def=1, speed=1),
                current_hp=1, max_hp=1, energy=0)
     s.skills = []
@@ -338,8 +338,8 @@ def test_empty_skills():
 
 def test_single_transmission_skill():
     """单个传动技能在仅有的非主轴槽位中：无其他技能可旋转，不变。"""
-    from backend.sim.sprite import Sprite
     from backend.common.models import SpeciesStats
+    from backend.sim.sprite import Sprite
     s = Sprite(SpeciesStats(name="t", hp=1, atk=1, def_=1, sp_atk=1, sp_def=1, speed=1),
                current_hp=1, max_hp=1, energy=0)
     s.skills = [_make_skill("X", transmission=1)]
@@ -352,7 +352,7 @@ def test_single_transmission_skill():
 if __name__ == "__main__":
     test_single_block_rotate()
     test_two_separate_blocks()
-    test_single_skill_no_rotation()
+    test_single_transmission_skill()
     test_no_transmission()
     test_circular_merge()
     test_full_circle()
@@ -363,5 +363,5 @@ if __name__ == "__main__":
     test_transmission_2_double_shift()
     test_repeated_transmission_stable()
     test_empty_skills()
-    test_single_skill_transmission()
+    test_single_skill_swap_right()
     print("\n  [ALL TRANSMISSION TESTS PASSED]")

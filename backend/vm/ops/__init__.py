@@ -19,8 +19,14 @@ from .lives_change import op_lives_change
 from .lock import op_lock
 from .mark import op_mark
 from .mod import (
-    op_energize, op_flag_set, op_heal, op_mod, op_mult_mod,
-    op_power_mod, op_revive, op_stat_stage,
+    op_energize,
+    op_flag_set,
+    op_heal,
+    op_mod,
+    op_mult_mod,
+    op_power_mod,
+    op_revive,
+    op_stat_stage,
 )
 from .redirect import op_redirect
 from .replay import op_replay

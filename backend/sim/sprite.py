@@ -3,13 +3,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from backend.common import STAT_KEYS
 from backend.common.models import SpeciesStats, StatsResult
 from backend.common.skill_trait_ids import TRAIT_无忧无虑
-
-
 
 if TYPE_CHECKING:
     from .battleskill import BattleSkill
@@ -230,7 +228,6 @@ class Sprite:
 
     def update_stacks(self, name: str, stacks: int) -> None:
         """直接设置异常状态层数（如灼烧衰减）。"""
-        from backend.vm.effect import AbnormalEffect
         ae = self._find_abnormal(name)
         if ae is not None:
             if stacks > 0:
@@ -574,9 +571,9 @@ class Sprite:
 
     def _sync_moe_status_effect(self) -> None:
         """同步 AbnormalEffect 层数与 _moe_position。"""
-        from backend.vm.effect import AbnormalEffect
-        from backend.engine.abnormal_config import ABNORMAL_TEMPLATES
         from copy import copy
+
+        from backend.engine.abnormal_config import ABNORMAL_TEMPLATES
 
         self.remove_effect('萌化', 'abnormal')
         if self._moe_position > 0:

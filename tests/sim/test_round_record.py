@@ -16,7 +16,6 @@ from backend.sim.round_record import (
     _action_short,
 )
 
-
 # ═══════════════════════════════════════════════════════════════
 # to_message / from_message 往返
 # ═══════════════════════════════════════════════════════════════
@@ -179,7 +178,7 @@ def test_from_message_missing_header():
     """缺少回合头应抛异常。"""
     try:
         RoundRecord.from_message('垃圾文本\n>>>TURN_START\n<<<TURN_START')
-        assert False, '应抛 ValueError'
+        raise AssertionError('应抛 ValueError')
     except ValueError as e:
         assert '回合头' in str(e)
     print('  [OK] 缺少回合头抛异常')
@@ -195,7 +194,7 @@ def test_from_message_bad_action_header():
     )
     try:
         RoundRecord.from_message(msg)
-        assert False, '应抛 ValueError'
+        raise AssertionError('应抛 ValueError')
     except ValueError as e:
         assert 'ACTION' in str(e)
     print('  [OK] 损坏ACTION头抛异常')

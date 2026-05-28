@@ -29,10 +29,7 @@ def op_count(ctx: Ctx, effect) -> list[Mutation]:
     listen = None
     listen_raw = _get(effect, "listen")
     if listen_raw is not None:
-        if isinstance(listen_raw, str):
-            listen = frozenset([listen_raw])
-        else:
-            listen = frozenset(listen_raw)
+        listen = frozenset([listen_raw]) if isinstance(listen_raw, str) else frozenset(listen_raw)
 
     return [CounterRegister(
         name=name,

@@ -212,7 +212,7 @@ def _describe_skill(s: dict) -> str:
     """Generate human-readable skill description from JSON data."""
     parts: list[str] = []
     skill_type = s.get('skill_type', '')
-    power = s.get('power', 0)
+    s.get('power', 0)
     combo = s.get('combo', 1)
     effects: list[dict] = s.get('effects', [])
 
@@ -319,9 +319,7 @@ def _is_trait_metadata_effect(e) -> bool:
     from backend.vm.effect import ModifierEffect, ObserverEffect
     if isinstance(e, ObserverEffect):
         return True
-    if isinstance(e, ModifierEffect):
-        return True
-    return False
+    return bool(isinstance(e, ModifierEffect))
 
 
 def _is_display_stat_effect(e) -> bool:
@@ -341,9 +339,7 @@ def _is_trait_stat_effect(e, ability: str) -> bool:
     from backend.vm.effect import StatBuffEffect
     if not ability:
         return False
-    if isinstance(e, StatBuffEffect) and e.steps != 0 and getattr(e, 'source', '') == ability:
-        return True
-    return False
+    return bool(isinstance(e, StatBuffEffect) and e.steps != 0 and getattr(e, 'source', '') == ability)
 
 
 def _extract_display_effects(sprite) -> list[schemas.EffectSummary]:
@@ -671,12 +667,12 @@ def get_type_chart():
 def init_battle(req: schemas.InitRequest):
     try:
         return _init_battle_impl(req)
-    except Exception:
+    except Exception as err:
         import sys
         import traceback
         tb = traceback.format_exc()
         print(f"[ERROR] init_battle failed:\n{tb}", file=sys.stderr)
-        raise HTTPException(status_code=500, detail=tb[:500])
+        raise HTTPException(status_code=500, detail=tb[:500]) from err
 
 
 def _init_battle_impl(req: schemas.InitRequest):
@@ -737,6 +733,8 @@ def _init_battle_impl(req: schemas.InitRequest):
 def battle_action(req: schemas.ActionRequest):
     if req.session_id not in sessions:
         raise HTTPException(status_code=404, detail="Battle session not found — it may have expired. Start a new battle via POST /api/battle/init.")
+
+    from backend.sim.agent import RuleAgent
 
     session = sessions[req.session_id]
     battle: Battle = session["battle"]
@@ -809,12 +807,12 @@ def battle_action(req: schemas.ActionRequest):
     # Execute turn
     try:
         battle.execute_turn(agent_a, agent_b)
-    except Exception:
+    except Exception as err:
         import sys
         import traceback
         tb = traceback.format_exc()
         print(f"[ERROR] battle.execute_turn failed:\n{tb}", file=sys.stderr)
-        raise HTTPException(status_code=500, detail=tb[:500])
+        raise HTTPException(status_code=500, detail=tb[:500]) from err
     
     # Get the latest turn record
     turn_log = []

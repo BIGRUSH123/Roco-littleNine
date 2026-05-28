@@ -23,8 +23,8 @@ from .ir_skill import (
     EnergizeOp,
     EscapeOp,
     ExchangeOp,
-    GainSkills,
     FlagSetOp,
+    GainSkills,
     HealOp,
     HitOp,
     InheritEffects,
@@ -58,31 +58,37 @@ from .ops.count import op_count
 from .ops.dispel import op_dispel
 from .ops.double import op_double
 from .ops.escape import op_escape
-from .ops.gain_skills import op_gain_skills
 from .ops.exchange import op_exchange
+from .ops.gain_skills import op_gain_skills
 from .ops.hit import op_hit
+from .ops.inherit_effects import op_inherit_effects
 from .ops.interrupt import op_interrupt
+from .ops.lives_change import op_lives_change
 from .ops.lock import op_lock
 from .ops.mark import op_mark
 
 # Import all op handlers
 from .ops.mod import (
-    op_energize, op_flag_set, op_heal, op_mod, op_mult_mod,
-    op_power_mod, op_revive, op_stat_stage,
+    op_energize,
+    op_flag_set,
+    op_heal,
+    op_mod,
+    op_mult_mod,
+    op_power_mod,
+    op_revive,
+    op_stat_stage,
 )
 from .ops.redirect import op_redirect
 from .ops.replay import op_replay
 from .ops.reset import op_reset
 from .ops.return_ import op_return
-from .ops.steal import op_steal
-from .ops.tick import op_tick
-from .ops.weather import op_weather
-from .ops.team_counter_write import op_team_counter_write
-from .ops.lives_change import op_lives_change
 from .ops.schedule import op_schedule
-from .ops.inherit_effects import op_inherit_effects
-from .ops.transform import op_transform
+from .ops.steal import op_steal
+from .ops.team_counter_write import op_team_counter_write
+from .ops.tick import op_tick
 from .ops.trait_interaction import op_trait_interaction
+from .ops.transform import op_transform
+from .ops.weather import op_weather
 from .sort import sort_effects
 
 # ── Cached parser for dict → typed op compilation ──

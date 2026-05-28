@@ -25,10 +25,7 @@ class Item:
         """当前回合是否可使用。"""
         if self.is_exhausted:
             return False
-        if self.cooldown_turns and self.uses > 0:
-            if current_turn - self.last_use_turn < self.cooldown_turns:
-                return False
-        return True
+        return not (self.cooldown_turns and self.uses > 0 and current_turn - self.last_use_turn < self.cooldown_turns)
 
     def use(self, turn: int) -> None:
         self.uses += 1

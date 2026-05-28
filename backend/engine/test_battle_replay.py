@@ -62,7 +62,7 @@ def test_battle1_round1_counter_defense():
 
     # 翠顶夫人: 力量增效 → self atk+100% (steps-based stat mod)
     record_cui = _load_skill("data/skills/力量增效.json")
-    result_cui = engine.execute_skill(cui, bu, record_cui, None, GlobalEffects(), turn=1, is_first=True, team="A")
+    engine.execute_skill(cui, bu, record_cui, None, GlobalEffects(), turn=1, is_first=True, team="A")
 
     # Verify stat buff was applied
     atk_stages = sum(getattr(e, 'steps', 0) for e in cui.active_effects if getattr(e, 'stat_key', '') == "atk")
@@ -97,7 +97,7 @@ def test_battle1_round6_switch_counter():
 
     # 龙息帕尔 uses 蝙蝠 (attack)
     record_bat = _load_skill("data/skills/蝙蝠.json")
-    result_atk = engine.execute_skill(longxi, cui, record_bat, None, GlobalEffects(),
+    engine.execute_skill(longxi, cui, record_bat, None, GlobalEffects(),
                                        turn=8, is_first=True, team="A",
                                        was_countered=True)
     dmg_to_cui = 501 - cui.current_hp
@@ -137,7 +137,7 @@ def test_battle2_round1_poison_counter():
     # Load skills — 愿力冲击 and 地陷 are RISC IR skills
     # 千棘盔 uses attack (愿力冲击 is modified by 愿力强化)
     record_hit = _load_skill("data/skills/地陷.json")
-    result = engine.execute_skill(shi, qian, record_hit, None, GlobalEffects(),
+    engine.execute_skill(shi, qian, record_hit, None, GlobalEffects(),
                                    turn=1, is_first=False, team="B")
     dmg = 486 - qian.current_hp
     print(f"  R1: 嗜波螺 地陷 → 千棘盔 HP: {qian.current_hp}/{486} (-{dmg})")
@@ -160,7 +160,7 @@ def test_battle2_round5_death_and_switch():
     li = _make_sprite(_make_species("利灯鱼", hp=439, sp_atk=140))
 
     record_sg = _load_skill("data/skills/水光冲击.json")
-    result = engine.execute_skill(li, qi, record_sg, None, GlobalEffects(),
+    engine.execute_skill(li, qi, record_sg, None, GlobalEffects(),
                                    turn=5, is_first=True, team="B",
                                    was_countered=False)
     print(f"  R5: 利灯鱼 水光冲击 → 棋齐垒 HP: {qi.current_hp}/{qi.max_hp}")
@@ -183,7 +183,7 @@ def test_battle2_round7_counter_chain():
 
     # 利灯鱼 uses 落雷
     record_ll = _load_skill("data/skills/落雷.json")
-    result_atk = engine.execute_skill(li, liuli, record_ll, None, GlobalEffects(),
+    engine.execute_skill(li, liuli, record_ll, None, GlobalEffects(),
                                        turn=7, is_first=True, team="B",
                                        was_countered=True)
     dmg = 519 - liuli.current_hp
@@ -213,7 +213,7 @@ def test_battle2_round8_burst_ko():
 
     # 小皮球 uses 大爆炸 (high power hit)
     record_dbz = _load_skill("data/skills/大爆炸.json")
-    result = engine.execute_skill(pi, qiu, record_dbz, None, GlobalEffects(),
+    engine.execute_skill(pi, qiu, record_dbz, None, GlobalEffects(),
                                    turn=8, is_first=True, team="B")
     print(f"  R8: 小皮球 大爆炸 → 裘卡 HP: {qiu.current_hp}/{qiu.max_hp}")
     assert qiu.current_hp < 200, f"大爆炸 should deal heavy damage, HP={qiu.current_hp}"
@@ -238,7 +238,7 @@ def test_battle3_round6_burst_ko():
     yu = _make_sprite(_make_species("圆号鱼", hp=380, def_=90), hp=120)
 
     record_sj = _load_skill("data/skills/闪击.json")
-    result = engine.execute_skill(lan, yu, record_sj, None, GlobalEffects(),
+    engine.execute_skill(lan, yu, record_sj, None, GlobalEffects(),
                                    turn=6, is_first=True, team="A")
     print(f"  R6: 岚鸟 闪击 → 圆号鱼 HP: {yu.current_hp}/{yu.max_hp}")
     assert yu.current_hp < 120, f"闪击 should deal damage, HP={yu.current_hp}"
@@ -258,7 +258,7 @@ def test_battle3_round9_counter_exchange():
 
     # 灵羽骑士 uses 水刃
     record_sr = _load_skill("data/skills/水刃.json")
-    result_a = engine.execute_skill(lingyu, papa, record_sr, None, GlobalEffects(),
+    engine.execute_skill(lingyu, papa, record_sr, None, GlobalEffects(),
                                      turn=9, is_first=True, team="A")
     dmg_a = 380 - papa.current_hp
     print(f"  R9-A: 灵羽骑士 水刃 → 化蝶 HP: {papa.current_hp}/{380} (-{dmg_a})")
@@ -266,7 +266,7 @@ def test_battle3_round9_counter_exchange():
 
     # 化蝶 uses 破罐破摔
     record_pg = _load_skill("data/skills/破罐破摔.json")
-    result_b = engine.execute_skill(papa, lingyu, record_pg, None, GlobalEffects(),
+    engine.execute_skill(papa, lingyu, record_pg, None, GlobalEffects(),
                                      turn=9, is_first=False, team="B")
     dmg_b = 400 - lingyu.current_hp
     print(f"  R9-B: 化蝶 破罐破摔 → 灵羽骑士 HP: {lingyu.current_hp}/{400} (-{dmg_b})")
@@ -286,7 +286,7 @@ def test_battle3_round22_final_ko():
     maomao = _make_sprite(_make_species("化蝶", hp=320, def_=90), hp=80)
 
     record_cl = _load_skill("data/skills/齿轮切开.json")
-    result = engine.execute_skill(shengjian, maomao, record_cl, None, GlobalEffects(),
+    engine.execute_skill(shengjian, maomao, record_cl, None, GlobalEffects(),
                                    turn=22, is_first=True, team="A")
     print(f"  R22: 圣剑X 齿轮切开 → 化蝶 HP: {maomao.current_hp}/{maomao.max_hp}")
     assert maomao.current_hp < 80, f"齿轮切开 should deal damage, HP={maomao.current_hp}"

@@ -5,10 +5,11 @@
 
 from __future__ import annotations
 
+import contextlib
 import random
 from typing import TYPE_CHECKING
 
-
+from backend.common.skill_trait_ids import TRAIT_星地善良
 from backend.vm.ir_skill import ChargeOp, CompiledSkill, WhenBlock, WhenBranch
 
 from .action import Action
@@ -16,10 +17,10 @@ from .battle_mechanics import BattleMechanicsMixin
 from .battleskill import BattleSkill
 from .globals import GlobalEffects
 from .resolver import SkillResolver
-from .round_record import ActionRecord, RoundRecord, _action_short as _rr_action_short
+from .round_record import ActionRecord, RoundRecord
+from .round_record import _action_short as _rr_action_short
 from .traits import dispatch_entry, dispatch_leave
 from .traits.trait_engine import fire_hook_first
-from backend.common.skill_trait_ids import TRAIT_星地善良
 
 if TYPE_CHECKING:
     from .agent import Agent
@@ -90,10 +91,8 @@ class Battle(BattleMechanicsMixin):
             dispatch_entry(sprite, self, team)
             opp_team = 'B' if team == 'A' else 'A'
             opp = None
-            try:
+            with contextlib.suppress(IndexError, AttributeError):
                 opp = self.get_player(opp_team).active
-            except (IndexError, AttributeError):
-                pass
             ctx_entry = self._make_ctx(
                 sprite, opp, None, None, self.globals,
                 team=team, turn=self.turn,
@@ -235,7 +234,7 @@ class Battle(BattleMechanicsMixin):
         rec.action_b = self._build_action_record('B', action_b, item_b)
 
         # 3. 行动结算阶段
-        resolve_events = self._phase_resolve(action_a, action_b, rec)
+        self._phase_resolve(action_a, action_b, rec)
 
         # 4. 回合结束阶段（已内含 >>>PHASE:TURN_END 标记）
         te_events = self._phase_turn_end()
@@ -621,10 +620,9 @@ class Battle(BattleMechanicsMixin):
         if si is not None:
             for offset in (-1, 1):
                 ni = si + offset
-                if 0 <= ni < len(user.skills):
-                    if user.skills[ni].name == '轴承支撑':
-                        cost -= 1
-                        break
+                if 0 <= ni < len(user.skills) and user.skills[ni].name == '轴承支撑':
+                    cost -= 1
+                    break
         # Weather energy cost modifier
         if hasattr(bs.base, 'element') and bs.base.element and self.globals.weather:
             cost = round(cost * self.globals.weather_energy_mod(bs.base.element))
@@ -875,10 +873,9 @@ class Battle(BattleMechanicsMixin):
         新格式（Skill IR Schedule opcode）: effects 列表走 VM → Replay。
         旧格式（trait_name/hook）: 已废弃，跳过。
         """
-        from backend.vm.ctx import Ctx as VmCtx
-        from backend.vm.executor import process_effects
-        from backend.engine.snapshot import build_ctx
         from backend.engine.replayer import JournalReplayer
+        from backend.engine.snapshot import build_ctx
+        from backend.vm.executor import process_effects
 
         events: list[str] = []
         due = [s for s in self.scheduled_effects

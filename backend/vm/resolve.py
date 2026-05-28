@@ -9,7 +9,7 @@ QueryRef is a pre-indexed query for O(1) runtime lookup (used by SkillLoader).
 
 from dataclasses import dataclass
 
-from .ctx import ADDRESS_MAP, Ctx, EventContext
+from .ctx import ADDRESS_MAP, Ctx
 from .ir_values import Literal, Query, RefExpr
 
 # Dict-type register queries that require a 'name' key for sub-indexing
@@ -187,10 +187,7 @@ def _resolve_ref(ctx: Ctx, ref: RefExpr) -> int | float | str:
     for key in ref.path:
         if current is None:
             return ref.offset
-        if isinstance(current, dict):
-            current = current.get(key)
-        else:
-            current = getattr(current, key, None)
+        current = current.get(key) if isinstance(current, dict) else getattr(current, key, None)
 
     if current is None:
         return ref.offset

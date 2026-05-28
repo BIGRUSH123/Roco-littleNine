@@ -15,8 +15,8 @@ _PROJ = Path(__file__).resolve().parent.parent.parent
 if str(_PROJ) not in sys.path:
     sys.path.insert(0, str(_PROJ))
 
-from backend.sim.factory import SimFactory
 from backend.sim.battle import Battle
+from backend.sim.factory import SimFactory
 
 factory = SimFactory()
 
@@ -63,12 +63,12 @@ def test_apply_moe_two_stacks():
     b = _make_battle()
     sprite = b.player_a.active
 
-    events = sprite.apply_moe(2, b)
+    sprite.apply_moe(2, b)
     assert sprite.name == "水蓝蓝", f"应退化为水蓝蓝，实际{sprite.name}"
     assert sprite._moe_position == 2
     moe_effs = [e for e in sprite.active_effects if e.name == "萌化"]
     assert moe_effs[0].stacks == 2
-    print(f"  [OK] 2层萌化: 水灵→水蓝蓝(层数2)")
+    print("  [OK] 2层萌化: 水灵→水蓝蓝(层数2)")
 
 
 def test_apply_moe_cumulative():

@@ -6,6 +6,7 @@ TraitHandler 基类 + DataDrivenTrait 查找 + 3 个保留 dispatch 函数。
 
 from __future__ import annotations
 
+import contextlib
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -84,10 +85,8 @@ def dispatch_entry(sprite: Sprite, battle: Battle, team: str) -> list[str]:
         sprite.entry_turn = battle.turn
 
     # IR_RISC trait pipeline: load trait JSON → compile observers → register
-    try:
+    with contextlib.suppress(Exception):
         battle._vm_engine.trait_loader.load_for_sprite(sprite)
-    except Exception:
-        pass
 
     # Fire post_energy_change for initial energy state (traits like 囤积)
     try:
@@ -125,10 +124,8 @@ def dispatch_leave(sprite: Sprite, battle: Battle, team: str,
     sprite.clear_effects('turn')
 
     reason = "faint" if is_faint else "leave"
-    try:
+    with contextlib.suppress(Exception):
         battle._vm_engine.trait_loader.unload_for_sprite(sprite, reason)
-    except Exception:
-        pass
 
     sprite._trait_handler = None
     return events

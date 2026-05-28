@@ -7,6 +7,8 @@ TODO: 接入大模型 API（如 Claude/DeepSeek），将 battle 状态序列化�
   - 延迟与成本控制（缓存、fallback 到 RuleAgent）
 """
 
+from __future__ import annotations
+
 from typing import TYPE_CHECKING, Protocol
 
 from .action import Action
@@ -15,6 +17,7 @@ from .battleskill import SkillUse
 if TYPE_CHECKING:
     from .battle import Battle
     from .player import Player
+    from .sprite import Sprite
 
 
 class Agent(Protocol):
@@ -230,7 +233,7 @@ class HumanAgent:
         return f'[{bar}]'
 
     @staticmethod
-    def _print_effects(sprite: 'Sprite') -> None:
+    def _print_effects(sprite: Sprite) -> None:
         from backend.vm.effect import AbnormalEffect
         s = sprite
         active = getattr(s, 'active_effects', None) or []
@@ -266,8 +269,8 @@ class HumanAgent:
         while True:
             try:
                 raw = input(prompt)
-            except EOFError:
-                raise SystemExit()
+            except EOFError as err:
+                raise SystemExit() from err
             try:
                 v = int(raw.strip())
                 if min_val <= v <= max_val:

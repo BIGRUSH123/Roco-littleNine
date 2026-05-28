@@ -129,10 +129,9 @@ class SkillValidatePass:
                         f"Invalid from_ '{op.from_}'", idx, "from_")
 
         # Validate stat field for ModOp and ResetOp
-        if isinstance(op, (ModOp, ResetOp)):
-            if op.stat:  # empty stat is allowed for damage marker
-                self._check(op.stat in VALID_STATS,
-                            f"Invalid stat '{op.stat}'", idx, "stat")
+        if isinstance(op, (ModOp, ResetOp)) and op.stat:  # empty stat is allowed for damage marker
+            self._check(op.stat in VALID_STATS,
+                        f"Invalid stat '{op.stat}'", idx, "stat")
 
         # Validate scope field
         if hasattr(op, "scope") and isinstance(op.scope, str):
@@ -146,44 +145,38 @@ class SkillValidatePass:
             self._check(op.type in VALID_SKILL_TYPES,
                         f"Invalid skill_type '{op.type}'", idx, "type")
 
-        if isinstance(op, AbnormalOp):
-            if op.name:
-                self._check(len(op.name) > 0,
-                            "AbnormalOp name cannot be empty", idx, "name")
+        if isinstance(op, AbnormalOp) and op.name:
+            self._check(len(op.name) > 0,
+                        "AbnormalOp name cannot be empty", idx, "name")
 
         # RISC op validation
-        if isinstance(op, StatStageOp):
-            if op.stat:
-                self._check(op.stat in VALID_STAGE_STATS,
-                            f"Invalid stat_stage stat '{op.stat}'", idx, "stat")
-        if isinstance(op, PowerModOp):
-            if op.attr:
-                self._check(op.attr in VALID_POWER_ATTRS,
-                            f"Invalid power_mod attr '{op.attr}'", idx, "attr")
-        if isinstance(op, MultModOp):
-            if op.attr:
-                self._check(op.attr in VALID_MULT_ATTRS,
-                            f"Invalid mult_mod attr '{op.attr}'", idx, "attr")
-        if isinstance(op, HealOp):
-            if op.ratio is not None:
-                self._check(0.0 <= op.ratio <= 1.0,
-                            f"heal ratio must be 0-1, got {op.ratio}", idx, "ratio")
+        if isinstance(op, StatStageOp) and op.stat:
+            self._check(op.stat in VALID_STAGE_STATS,
+                        f"Invalid stat_stage stat '{op.stat}'", idx, "stat")
+        if isinstance(op, PowerModOp) and op.attr:
+            self._check(op.attr in VALID_POWER_ATTRS,
+                        f"Invalid power_mod attr '{op.attr}'", idx, "attr")
+        if isinstance(op, MultModOp) and op.attr:
+            self._check(op.attr in VALID_MULT_ATTRS,
+                        f"Invalid mult_mod attr '{op.attr}'", idx, "attr")
+        if isinstance(op, HealOp) and op.ratio is not None:
+            self._check(0.0 <= op.ratio <= 1.0,
+                        f"heal ratio must be 0-1, got {op.ratio}", idx, "ratio")
         if isinstance(op, EnergizeOp):
             pass  # delta validated by IRValue resolution
         if isinstance(op, ReviveOp):
             pass  # hp_ratio validated by IRValue resolution
-        if isinstance(op, FlagSetOp):
-            if op.flag:
-                self._check(len(op.flag) > 0,
-                            "flag_set flag cannot be empty", idx, "flag")
+        if isinstance(op, FlagSetOp) and op.flag:
+            self._check(len(op.flag) > 0,
+                        "flag_set flag cannot be empty", idx, "flag")
 
     def _validate_when_block(self, wb: WhenBlock, idx: int) -> None:
-        for j, child in enumerate(wb.then):
+        for _j, child in enumerate(wb.then):
             self._validate_op(child, idx)
-        for j, child in enumerate(wb.else_):
+        for _j, child in enumerate(wb.else_):
             self._validate_op(child, idx)
         for branch in wb.elif_:
-            for j, child in enumerate(branch.then):
+            for _j, child in enumerate(branch.then):
                 self._validate_op(child, idx)
 
     def _check(self, condition: bool, message: str, idx: int, field: str) -> None:

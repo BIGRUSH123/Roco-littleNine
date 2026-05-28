@@ -50,9 +50,7 @@ class SkillResolver:
             return True
         if def_skill.counter == '防御' and atk_skill.is_defense:
             return True
-        if def_skill.counter == '状态' and atk_skill.is_status:
-            return True
-        return False
+        return bool(def_skill.counter == '状态' and atk_skill.is_status)
 
     @staticmethod
     def calc_damage(
@@ -182,10 +180,7 @@ class SkillResolver:
                 name = ae.name
                 stacks = ae.stacks
                 pct = ae.tick_damage_pct
-                if ae.tick_per_stack:
-                    raw = max(1, round(s.max_hp * pct * stacks))
-                else:
-                    raw = max(1, round(s.max_hp * pct))
+                raw = max(1, round(s.max_hp * pct * stacks)) if ae.tick_per_stack else max(1, round(s.max_hp * pct))
                 mult = SkillResolver._tick_multiplier(s, name, ae.tick_element)
                 dmg = max(1, round(raw * mult))
                 actual = s.take_damage(dmg)

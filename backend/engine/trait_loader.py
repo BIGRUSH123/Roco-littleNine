@@ -69,7 +69,7 @@ class TraitLoader:
         # Clear old ObserverEffect/ModifierEffect from same source (reload dedup).
         # Preserve StatBuffEffect — those are created by the battle replayer
         # during combat and must survive trait reload (e.g. permanent stat stages).
-        from backend.vm.effect import ObserverEffect, ModifierEffect
+        from backend.vm.effect import ModifierEffect, ObserverEffect
         active = getattr(sprite, 'active_effects', None)
         if active:
             sprite.active_effects = [

@@ -5,9 +5,6 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
-
-
-
 if TYPE_CHECKING:
     from .skill import Skill
     from .sprite import Sprite
@@ -46,8 +43,9 @@ class GlobalEffects:
         """回合末天气效果。"""
         events: list[str] = []
         if self.weather == 'snow':
-            from backend.engine.abnormal_config import ABNORMAL_TEMPLATES
             from copy import copy
+
+            from backend.engine.abnormal_config import ABNORMAL_TEMPLATES
             for s in sprites:
                 if not s.is_fainted:
                     template = ABNORMAL_TEMPLATES.get('冻结')
@@ -267,7 +265,7 @@ class GlobalEffects:
     @staticmethod
     def classify_mark(name: str) -> str:
         """根据名称判断印记正负。"""
-        from backend.engine.mark_config import POSITIVE_MARK_NAMES, NEGATIVE_MARK_NAMES
+        from backend.engine.mark_config import NEGATIVE_MARK_NAMES, POSITIVE_MARK_NAMES
         if name in POSITIVE_MARK_NAMES:
             return 'positive'
         if name in NEGATIVE_MARK_NAMES:

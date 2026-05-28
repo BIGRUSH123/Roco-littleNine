@@ -7,7 +7,7 @@ sys.path.insert(0, ".")
 
 from backend.engine.snapshot import build_ctx
 from backend.vm.compiler.skill_compiler import SkillCompiler
-from backend.vm.effect import AbnormalEffect, StatBuffEffect, StateEffect
+from backend.vm.effect import AbnormalEffect, StatBuffEffect
 
 _compiler = SkillCompiler()
 
@@ -425,7 +425,7 @@ def test_counter_refs_opp_power():
     journal = apply_modifiers_to_journal(journal, ctx)
 
     replayer = JournalReplayer(counter_sprite, attacker, globals_)
-    events = replayer.replay(journal)
+    replayer.replay(journal)
 
     # Damage should be based on countered skill's power=120
     hp_lost = 180 - attacker.current_hp
@@ -571,7 +571,7 @@ def test_e2e_defense_counter():
                  initial_stats={"atk": 115, "def": 90, "sp_atk": 105, "sp_def": 85, "speed": 95})
 
     record = _load_skill("data/skills/防反.json")
-    result = engine.execute_skill(sprite, opp, record, None, GlobalEffects(), turn=1, is_first=False, team="B",
+    engine.execute_skill(sprite, opp, record, None, GlobalEffects(), turn=1, is_first=False, team="B",
                                    counter_succeeded=True)
 
     # Should have stat changes from counter_succeeded
@@ -986,7 +986,7 @@ def test_interrupt_sets_sprite_flag():
 
     replayer = JournalReplayer(sprite, opp, GlobalEffects())
     journal = [Interrupt(target="sprite_opp")]
-    events = replayer.replay(journal)
+    replayer.replay(journal)
     assert opp.interrupted, "Opp sprite should have interrupted=True"
     print(f"  Interrupt flag: opp.interrupted={opp.interrupted}")
 
@@ -1065,7 +1065,7 @@ def test_lock_sets_sprite_flag():
 
     replayer = JournalReplayer(sprite, opp, GlobalEffects())
     journal = [Lock(target="sprite_opp", turns=3)]
-    events = replayer.replay(journal)
+    replayer.replay(journal)
     assert opp.locked_turns == 3, f"Opp should have lock_turns=3, got {opp.locked_turns}"
     print(f"  Lock flag: opp.locked_turns={opp.locked_turns}")
 
@@ -1184,7 +1184,7 @@ def test_steal_energy():
 
     replayer = JournalReplayer(sprite, opp, GlobalEffects())
     journal = [Steal(from_target="sprite_opp", what="energy", amount=3)]
-    events = replayer.replay(journal)
+    replayer.replay(journal)
     assert opp.energy == 2, f"Opp should have 2 energy (5-3), got {opp.energy}"
     assert sprite.energy == 10, f"Sprite should have 10 energy (8+3 capped at max 10), got {sprite.energy}"
     print(f"  Steal energy: sprite={sprite.energy}E, opp={opp.energy}E")
@@ -1443,7 +1443,7 @@ def test_on_next_modifier_applied_on_matching_skill():
         initial_stats={"atk": 100, "def": 100, "sp_atk": 100, "sp_def": 100, "speed": 100},
     )
     globals_ = GlobalEffects()
-    replayer = JournalReplayer(sprite, opp, globals_)
+    JournalReplayer(sprite, opp, globals_)
 
     # Store a pending on_next modifier
     m = ModifierInjection(
@@ -2110,7 +2110,7 @@ def _make_normal_sprite(name="普通精灵", hp=200):
 def test_bard_mark_coexist_different_marks():
     """吟游之弦: applying different-name marks → both coexist (no replace)."""
     globals_ = GlobalEffects()
-    bard = _make_bard_sprite()
+    _make_bard_sprite()
     team = "A"
 
     # Apply first mark
@@ -2130,7 +2130,7 @@ def test_bard_mark_coexist_different_marks():
 def test_bard_mark_coexist_same_name_stacks():
     """吟游之弦: applying same-name mark → stacks increase."""
     globals_ = GlobalEffects()
-    bard = _make_bard_sprite()
+    _make_bard_sprite()
     team = "A"
 
     globals_.apply_mark(team, "攻击印记", "positive", 2, coexist=True)
@@ -2148,7 +2148,7 @@ def test_bard_mark_coexist_same_name_stacks():
 def test_bard_mark_three_different_marks():
     """吟游之弦: three different marks all coexist."""
     globals_ = GlobalEffects()
-    bard = _make_bard_sprite()
+    _make_bard_sprite()
     team = "A"
 
     for name in ["攻击印记", "光合印记", "润泽印记"]:
@@ -2162,7 +2162,7 @@ def test_bard_mark_three_different_marks():
 def test_bard_mark_coexist_mixed_stacks():
     """吟游之弦: different marks with stacking coexist correctly."""
     globals_ = GlobalEffects()
-    bard = _make_bard_sprite()
+    _make_bard_sprite()
     team = "A"
 
     globals_.apply_mark(team, "攻击印记", "positive", 2, coexist=True)
@@ -2180,7 +2180,7 @@ def test_bard_mark_coexist_mixed_stacks():
 def test_normal_sprite_mark_replace():
     """Without 吟游之弦: different-name mark replaces existing (default behavior)."""
     globals_ = GlobalEffects()
-    normal = _make_normal_sprite()
+    _make_normal_sprite()
     team = "A"
 
     globals_.apply_mark(team, "攻击印记", "positive", 1)
@@ -2198,7 +2198,7 @@ def test_normal_sprite_mark_replace():
 def test_normal_sprite_mark_same_name_stacks():
     """Without 吟游之弦: same-name mark still stacks (compatible behavior)."""
     globals_ = GlobalEffects()
-    normal = _make_normal_sprite()
+    _make_normal_sprite()
     team = "A"
 
     globals_.apply_mark(team, "攻击印记", "positive", 2)
@@ -2211,7 +2211,7 @@ def test_normal_sprite_mark_same_name_stacks():
 def test_bard_mark_teams_independent():
     """吟游之弦: marks on team A and team B are independent."""
     globals_ = GlobalEffects()
-    bard = _make_bard_sprite()
+    _make_bard_sprite()
 
     globals_.apply_mark("A", "攻击印记", "positive", 1, coexist=True)
     globals_.apply_mark("A", "光合印记", "positive", 1, coexist=True)
@@ -2230,7 +2230,7 @@ def test_bard_mark_teams_independent():
 def test_bard_mark_positive_negative_independent():
     """吟游之弦: positive and negative marks are tracked separately."""
     globals_ = GlobalEffects()
-    bard = _make_bard_sprite()
+    _make_bard_sprite()
     team = "A"
 
     globals_.apply_mark(team, "攻击印记", "positive", 1, coexist=True)
@@ -2244,7 +2244,7 @@ def test_bard_mark_positive_negative_independent():
 def test_bard_mark_coexist_non_bard_user_does_not_replace():
     """吟游之弦在场时，无特性精灵施加印记也应正常替换（按默认逻辑）。"""
     globals_ = GlobalEffects()
-    normal = _make_normal_sprite()
+    _make_normal_sprite()
     team = "A"
 
     globals_.apply_mark(team, "攻击印记", "positive", 1)
@@ -2530,7 +2530,7 @@ def test_abnormal_change_e2e_through_vm():
     assert len(journal) == 2
 
     replayer = JournalReplayer(sprite, opp, globals_)
-    events = replayer.replay(journal)
+    replayer.replay(journal)
     assert len(opp.active_effects) == 1
     assert opp.active_effects[0].name == "中毒"
     assert opp.active_effects[0].stacks == 2

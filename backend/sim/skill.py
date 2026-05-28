@@ -52,7 +52,7 @@ class Skill:
                 import warnings
                 warnings.warn(
                     f"Skill {data.get('name', '?')}: main_axis=true conflicts with "
-                    f"transmission={transmission}, using -1"
+                    f"transmission={transmission}, using -1", stacklevel=2
                 )
             transmission = -1
 

@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
-from typing import Optional
 
 
 @dataclass
@@ -32,8 +31,8 @@ class RoundRecord:
     sprite_b: str = ''  # "蹦蹦草"
     first_team: str = ''  # "A" or "B"
     turn_start_events: list[str] = field(default_factory=list)
-    action_a: Optional[ActionRecord] = None
-    action_b: Optional[ActionRecord] = None
+    action_a: ActionRecord | None = None
+    action_b: ActionRecord | None = None
     faint_check_events: list[str] = field(default_factory=list)
     turn_end_events: list[str] = field(default_factory=list)
 
@@ -89,7 +88,7 @@ class RoundRecord:
     _WEATHER_RE = re.compile(r'>>>WEATHER:(.+)')
 
     @classmethod
-    def from_message(cls, text: str) -> 'RoundRecord':
+    def from_message(cls, text: str) -> RoundRecord:
         """从 to_message() 输出的文本解析回 RoundRecord。
 
         解析失败抛 ValueError 带行号，方便定位损坏的日志文件。
@@ -250,7 +249,7 @@ def _unindent(line: str) -> str:
     return line
 
 
-def _action_short(ar: Optional[ActionRecord]) -> str:
+def _action_short(ar: ActionRecord | None) -> str:
     """行动简短描述，用于回合标题。"""
     if ar is None:
         return '—'

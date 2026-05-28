@@ -16,10 +16,7 @@ def _get(effect, key, default=None):
 def op_schedule(ctx: Ctx, effect) -> list[Mutation]:
     # Support both old (delay_turns/phase/effects) and new RISC (turns/at/then) field names
     turns = _get(effect, "turns", None)
-    if turns is None:
-        turns = int(_get(effect, "delay_turns", 1))
-    else:
-        turns = int(turns)
+    turns = int(_get(effect, "delay_turns", 1)) if turns is None else int(turns)
 
     at = _get(effect, "at", None) or _get(effect, "phase", None) or "start"
     # normalize: turn_end → end, turn_start → start (engine uses short form)

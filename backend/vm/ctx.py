@@ -114,6 +114,7 @@ class Ctx:
     mark_stacks_own: dict[str, int] = field(default_factory=dict)  # {name: stacks}
     mark_count_opp: int = 0              # total mark stacks on opponent team
     mark_stacks_opp: dict[str, int] = field(default_factory=dict)  # {name: stacks}
+    mark_count_both: int = 0             # mark_count_own + mark_count_opp
     skill_count_own: dict[str, int] = field(default_factory=dict)  # {skill_name: count}
     team_counters_own: dict[str, int] = field(default_factory=dict)  # {key: count}
     team_counters_opp: dict[str, int] = field(default_factory=dict)  # {key: count}
@@ -286,6 +287,9 @@ ADDRESS_MAP: dict[tuple[str, str], str] = {
     # battle
     ("battle", "abnormal_stacks"):         "abnormal_stacks_battle",
     ("battle", "weather"):                 "weather",
+
+    # team_both
+    ("team_both", "mark_count"):           "mark_count_both",
 
     # team_own
     ("team_own", "mark_count"):            "mark_count_own",

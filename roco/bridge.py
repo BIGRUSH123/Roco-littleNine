@@ -13,6 +13,7 @@ from roco.ai.observation import Action as SdkAction
 from roco.ai.observation import ActionKind, BattleObservation, SpriteSnapshot
 
 if TYPE_CHECKING:
+    from backend.sim.action import Action as SimAction
     from backend.sim.agent import Agent as SimAgent
     from backend.sim.battle import Battle
     from backend.sim.player import Player
@@ -83,7 +84,7 @@ def adapt_agent(agent: BattleAgent, team: str) -> SimAgent:
                 return result.switch_index
             return alive[0]
 
-        def choose_action(self, battle: Battle) -> backend.sim.action.Action:
+        def choose_action(self, battle: Battle) -> SimAction:
             obs = build_observation(battle, team)
             result = agent.select_action(obs, obs.legal_actions)
             return _to_sim_action(result)
@@ -198,7 +199,7 @@ def _compute_legal_actions(battle: Battle, team: str) -> list[SdkAction]:
     return actions
 
 
-def _to_sim_action(action: SdkAction) -> backend.sim.action.Action:
+def _to_sim_action(action: SdkAction) -> SimAction:
     """Convert SDK Action to sim Action."""
     from backend.sim.action import Action as SimAction
 

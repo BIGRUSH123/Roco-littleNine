@@ -14,10 +14,9 @@ _PROJ = Path(__file__).resolve().parent.parent.parent
 if str(_PROJ) not in sys.path:
     sys.path.insert(0, str(_PROJ))
 
+from backend.sim.action import Action
 from backend.sim.battle import Battle
 from backend.sim.factory import SimFactory
-from backend.sim.player import Player
-from backend.sim.action import Action
 
 
 def _make_battle(skills_a=None, skills_b=None):
@@ -219,9 +218,9 @@ def test_per_hit_heal_energy():
 def test_combo_mult_snapshot():
     """snapshot combo_self = base+add（不含mult）；combo_mult 留给 adjust_damage。"""
     from backend.engine.snapshot import build_ctx
-    from backend.sim.sprite import Sprite, SpeciesStats
-    from backend.sim.skill import Skill
     from backend.sim.battleskill import BattleSkill
+    from backend.sim.skill import Skill
+    from backend.sim.sprite import SpeciesStats, Sprite
 
     stats = SpeciesStats(name="t", hp=100, atk=100, def_=100, sp_atk=100, sp_def=100, speed=100)
     user = Sprite(stats, current_hp=100, max_hp=100, energy=10)

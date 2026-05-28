@@ -18,7 +18,6 @@ if str(_PROJ) not in sys.path:
 
 from backend.sim.battle import Battle
 from backend.sim.factory import SimFactory
-from backend.sim.player import Player
 
 
 def _make_battle(skills_a=None, skills_b=None):

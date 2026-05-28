@@ -209,7 +209,8 @@ def _apply_to_matching_skills(sprite, m) -> str:
             # Create display-only StatBuffEffect for trait tooltip
             source = m.source or ""
             if source:
-                from backend.vm.effect import StatBuffEffect, _STAT_LABELS as _EFF_LABELS
+                from backend.vm.effect import _STAT_LABELS as _EFF_LABELS
+                from backend.vm.effect import StatBuffEffect
                 eff_name = _EFF_LABELS.get(m.stat, m.stat)
                 existing = next(
                     (e for e in getattr(sprite, 'active_effects', [])
@@ -351,7 +352,6 @@ class JournalReplayer:
 
     def _apply_stat_change(self, m: StatChange) -> str:
         sprite = self._target_sprite(m.target)
-        from backend.vm.effect import StatBuffEffect
         label = _STAT_LABELS.get(m.stat, m.stat)
         unit = _STEP_UNIT.get(m.stat, 10)
         if m.stat in ('priority', 'energy_cost', 'combo'):
@@ -401,6 +401,7 @@ class JournalReplayer:
             devotion_name = m.name or ""
             if not devotion_name or devotion_name == "random":
                 import random
+
                 from backend.engine.devotion_config import DEVOTION_TYPES
                 if not DEVOTION_TYPES:
                     return ""
@@ -504,10 +505,7 @@ class JournalReplayer:
             if cur is None:
                 # damage_reduction base is 0.0 (0%=no reduction), unlike
                 # most ratio stats whose base is 1.0 (1.0×=no change).
-                if m.stat == "damage_reduction":
-                    cur = 0.0
-                else:
-                    cur = 1.0 if m.stat in _RATIO_STATS else 0.0
+                cur = 0.0 if m.stat == "damage_reduction" else 1.0 if m.stat in _RATIO_STATS else 0.0
             target_mods[m.stat] = cur + delta
         elif m.mode == "multiply":
             target_mods[m.stat] = (cur or 1.0) * m.value if cur is not None else m.value
@@ -548,10 +546,7 @@ class JournalReplayer:
             create_visible = False
             steps = 0
             if m.stat in _VISIBLE_MOD_STATS:
-                if m.stat in _RATIO_STATS:
-                    steps = int(m.value * _STEP_UNIT.get(m.stat, 10))
-                else:
-                    steps = int(m.value)
+                steps = int(m.value * _STEP_UNIT.get(m.stat, 10)) if m.stat in _RATIO_STATS else int(m.value)
                 create_visible = True
             # _STAGE_STATS (atk/def/sp_atk/sp_def/speed) are already applied
             # through _modifiers → build_ctx → atk_self/def_self/etc.
@@ -875,9 +870,7 @@ class JournalReplayer:
         for e in active:
             if not isinstance(e, AbnormalEffect):
                 continue
-            if name and e.name == name:
-                to_remove.append(e)
-            elif source and e.source == source:
+            if name and e.name == name or source and e.source == source:
                 to_remove.append(e)
         for e in to_remove:
             active.remove(e)
@@ -1142,7 +1135,6 @@ class JournalReplayer:
             return ""
         if m.delta < 0 and player.lives <= 0:
             return ""
-        prev = player.lives
         player.lives += m.delta
         label = f"奉献{m.delta}" if m.delta > 0 else f"魔力{m.delta}"
         return f"{self.self.name} {label}→{player.lives}" if self.self else ""
@@ -1187,6 +1179,7 @@ class JournalReplayer:
         if source_sprite is None:
             return ""
         from copy import copy
+
         from backend.vm.effect import StatBuffEffect
         if m.inherit_stat_effects:
             inherited = [copy(e) for e in getattr(source_sprite, 'active_effects', [])

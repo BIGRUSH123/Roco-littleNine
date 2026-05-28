@@ -190,10 +190,7 @@ def build_ctx(
     combo_set = int(ss._modifiers.get("combo_set", 0))
     # combo_mult 不在 snapshot 阶段乘入 — 留给 adjust_damage 在
     # 同技能 combo 修改（set/add）之后再乘，确保正确的执行顺序。
-    if combo_set > 0:
-        combo_self = max(1, combo_set)
-    else:
-        combo_self = max(1, combo_base + combo_mod)
+    combo_self = max(1, combo_set) if combo_set > 0 else max(1, combo_base + combo_mod)
     energy_cost_reduction_self = 0  # engine tracks this
 
     # ── Opp skill ──
@@ -305,6 +302,7 @@ def build_ctx(
         mark_count_opp=mark_count_opp,
         mark_stacks_opp=mark_stacks_opp,
         mark_bonus_own=mark_bonus_own,
+        mark_count_both=mark_count_own + mark_count_opp,
         skill_count_own=skill_count_own or {},
         team_counters_own=team_counters_own or {},
         team_counters_opp=team_counters_opp or {},

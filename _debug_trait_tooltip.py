@@ -1,12 +1,11 @@
 """Debug: verify the mult_mod → display effect pipeline end-to-end."""
-import json
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 
-from backend.sim.sprite import Sprite
 from backend.sim.factory import SimFactory
+
 
 def main():
     # Create a battle with a sprite that has the 囤积 trait
@@ -75,15 +74,12 @@ def main():
     print(f"\n  -- Changing energy from {sprite.energy}...")
     # The observer fires on energy_changed. Let's simulate by changing energy directly
     # and manually firing the observer
-    from backend.engine.observer import ObserverRegistry
 
     # Check if observer was registered
-    print(f"  ObserverRegistry has observers? (need battle context)")
+    print("  ObserverRegistry has observers? (need battle context)")
 
     # Let's try a full battle simulation
     print("\n--- Full battle test ---")
-    from backend.sim.battle import Battle
-    from backend.sim.player import Player
 
     p1 = Player("Test", [sprite], play_style=PlayStyle.MANUAL)
     # Create a dummy opponent

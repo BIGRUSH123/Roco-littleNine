@@ -6,7 +6,6 @@ Usage:
 """
 
 import json
-import os
 import sys
 from pathlib import Path
 
@@ -485,7 +484,7 @@ def _convert_triggers(traits_data: dict) -> int:
 
 def convert_file(filepath: Path, dry_run: bool = False) -> int:
     """Convert a single JSON file. Returns number of conversions made."""
-    with open(filepath, "r", encoding="utf-8") as f:
+    with open(filepath, encoding="utf-8") as f:
         original = f.read()
         data = json.loads(original)
 

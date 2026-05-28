@@ -23,10 +23,7 @@ def op_abnormal(ctx: Ctx, effect) -> list[Mutation]:
     name = _get(effect, "name")
 
     if isinstance(effect, dict):
-        if "stacks" in effect:
-            delta = effect["stacks"]
-        else:
-            delta = resolve(ctx, effect.get("value", 1))
+        delta = effect["stacks"] if "stacks" in effect else resolve(ctx, effect.get("value", 1))
     else:
         delta = resolve(ctx, effect.value) if effect.value is not None else effect.stacks
 

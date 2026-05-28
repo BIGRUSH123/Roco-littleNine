@@ -123,17 +123,14 @@ def adjust_damage(dmg: Damage, mods: dict) -> Damage:
     combo_set = mods.get("combo_set", 0)
     combo_base = mods.get("combo_base", 1)
     combo_mult = mods.get("combo_mult", 0.0)
-    damage_reduction = mods.get("damage_reduction", 0.0)
+    mods.get("damage_reduction", 0.0)
 
     # Only adjust for same-skill modifier deltas
     amount = dmg.amount
     amount = round(amount * power_mult * damage_mult)
 
     # combo: set overrides base, add adds to it
-    if combo_set > 0:
-        effective_combo = max(1, combo_set + combo_add)
-    else:
-        effective_combo = max(1, combo_base + combo_add)
+    effective_combo = max(1, combo_set + combo_add) if combo_set > 0 else max(1, combo_base + combo_add)
 
     # combo_mult 在最后乘入（跨技能倍率，排序在 set/add 之后）
     if combo_mult > 0:

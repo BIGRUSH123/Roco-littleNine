@@ -20,7 +20,6 @@ from .ir_skill import (
 from .ir_trait import FnCond
 from .resolve import resolve
 
-
 # ── Function condition registry ──
 
 _FN_COND_REGISTRY: dict[str, callable] = {}
@@ -133,18 +132,13 @@ def _skill_use_matches(ctx: Ctx, cond: dict) -> bool:
         if ctx.element_self != element:
             return False
     # skill_type filter
-    if "skill_type" in cond:
-        if ctx.skill_type_self != cond["skill_type"]:
-            return False
+    if "skill_type" in cond and ctx.skill_type_self != cond["skill_type"]:
+        return False
     # tag filter
-    if "tag" in cond:
-        if ctx.skill_tag_self != cond["tag"]:
-            return False
+    if "tag" in cond and ctx.skill_tag_self != cond["tag"]:
+        return False
     # energy_cost filter
-    if "energy_cost" in cond:
-        if ctx.energy_cost_self != cond["energy_cost"]:
-            return False
-    return True
+    return not ("energy_cost" in cond and ctx.energy_cost_self != cond["energy_cost"])
 
 
 # ── Condition → Trigger point inference ──

@@ -184,7 +184,7 @@ class SkillParsePass:
             # Use mark_count_own as primary, resolve.py adds mark_count_opp
             own_key = ("team_own", "mark_count")
             if own_key not in ADDRESS_MAP:
-                raise KeyError(f"Unknown query address (of=team_own, q=mark_count)")
+                raise KeyError("Unknown query address (of=team_own, q=mark_count)")
             field = ADDRESS_MAP[own_key]
             return Query(
                 field=field,
@@ -490,9 +490,7 @@ class SkillParsePass:
         raw_steps = e.get("steps", 0)
         value = None
         steps = 0
-        if isinstance(raw_steps, dict) and "q" in raw_steps:
-            value = self._parse_value(raw_steps)
-        elif isinstance(raw_steps, str) and raw_steps.startswith("="):
+        if isinstance(raw_steps, dict) and "q" in raw_steps or isinstance(raw_steps, str) and raw_steps.startswith("="):
             value = self._parse_value(raw_steps)
         elif isinstance(raw_steps, str) and raw_steps.lstrip("-").isdigit():
             steps = int(raw_steps)
@@ -520,10 +518,7 @@ class SkillParsePass:
         mode = self._str_or(e, "mode", "add")
         if delta is None and value is None:
             delta_val = e.get("delta", 0)
-            if isinstance(delta_val, dict):
-                delta = self._parse_value(delta_val)
-            else:
-                delta = Literal(value=int(delta_val))
+            delta = self._parse_value(delta_val) if isinstance(delta_val, dict) else Literal(value=int(delta_val))
         return PowerModOp(
             target=self._str_or(e, "target", "sprite_self"),
             attr=attr,
@@ -602,10 +597,7 @@ class SkillParsePass:
         delta = self._parse_value_optional(e, "delta")
         if delta is None:
             d = e.get("delta", 0)
-            if isinstance(d, dict):
-                delta = self._parse_value(d)
-            else:
-                delta = Literal(value=int(d))
+            delta = self._parse_value(d) if isinstance(d, dict) else Literal(value=int(d))
         return EnergizeOp(
             target=self._str_or(e, "target", "sprite_self"),
             delta=delta,
