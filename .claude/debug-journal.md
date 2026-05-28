@@ -398,6 +398,62 @@
 - **涉及文件**: backend/engine/replayer.py:398-404
 - **教训**: 随机效果叠加时，先确认语义是"对同一目标叠加 N 次"还是"N 次独立随机"
 
+## 2026-05-28 - 拨浪鼓特性完全不生效 + power_mod 日志/tooltip 显示为百分比
+
+- **现象**: 古钟蛇（拨浪鼓特性）换上场后，特性完全不触发——战斗日志和特性 tooltip 均无任何效果显示。修复键名后日志显示"毒威力+30%"，tooltip 仍显示百分比
+- **根因**: 三个独立断点。① trait JSON 使用 "triggers" 键名，load_data_trait() 只读 "effects" → 返回 None → 特性从未注册（与 passive→effects 同模式）；② power_mod 在战斗日志和 tooltip 中均被当作百分比（display_mult）显示，但实际是步数制固定威力（1步=10威力），显示格式与语义不一致；③ effect.py is_positive/is_negative 只检查 display_mult，漏掉 display_value
+- **修复**: 拨浪鼓.json triggers→effects；replayer.py 两处日志显示去 % 改为 flat 值 + 两处 tooltip 效果改用 display_value；effect.py is_positive/is_negative 补 display_value 检查；resolve.py @ref 正则补 (?:\[[^\]]*\])? 支持 @key[sub] 无点号方括号（附带修复）
+- **涉及文件**: data/traits/拨浪鼓.json, backend/engine/replayer.py:206-228/570-573/231/581, backend/vm/effect.py:161-176, backend/vm/resolve.py:325
+- **教训**: ① 特性完全不触发→先 grep 确认 JSON 键名是否匹配 loader（effects vs triggers/passive）；② power_mod 是步数制（1步=10威力），不是倍率 stat——日志和 tooltip 都应显示为固定值，排查"加成数值看起来不对"时先确认 stat 类型是 ratio 还是 step-based
+
+## 2026-05-28 - 指挥家特性退场后再入场永久 buff 丢失
+
+- **现象**: 绅士鸡（指挥家特性）应对成功后获得双攻+20%，切换下场再上场后，特性 tooltip 和 buff 栏均不显示已获得的加成
+- **根因**: 双重断点。① `trait_loader.py:72` — re-entry 时 `load_for_sprite` 用 `e.source != trait_source` 清除所有同源 EffectObject（含 permanent StatBuffEffect），仅应清除 ObserverEffect/ModifierEffect；② `replayer.py:936/942` — `_sync_mult_display_effect` 将 display-only StatBuffEffect scope 硬编码为 `"battlefield"`，离场时被 `clear_effects('battlefield')` 清除，tooltip 无数据
+- **修复**: trait_loader.py 改为 `isinstance(e, (ObserverEffect, ModifierEffect)) and e.source == trait_source` 精准过滤；replayer.py display effect scope 改用调用者传入的 `scope` 参数（permanent → permanent）
+- **涉及文件**: backend/engine/trait_loader.py:70-80, backend/engine/replayer.py:932-942
+- **教训**: 永久效果退场再入场后丢失，排查两个点——① load_for_sprite reload 时是否精准清理（只删元数据不删战斗效果）② display-only 效果的 scope 是否与真实效果一致（不一致则 tooltip 静默消失）
+
+## 2026-05-28 - 无差别过滤 combo_set 固定值被 combo_mod 叠加
+
+- **现象**: 特性"在场时连击数固定为2"触发后，实际连击为3而非2
+- **根因**: snapshot.py:178 `combo_set + combo_mod` 公式——combo_set=2 后，奉献系统等来源的 combo_mod=1 仍会叠加，2+1=3
+- **修复**: snapshot.py 改为 `combo_self = max(1, combo_set)` 忽略 combo_mod；replayer.py 加 combo_set 中文标签 + 日志显示"固定为2"而非"+2"
+- **涉及文件**: `backend/engine/snapshot.py:177-178`, `backend/engine/replayer.py:88,595-596`
+- **教训**: combo_set 是"固定覆盖"语义，不应叠加任何其他连击修改；modifiers.py 中同名的 combo_set 是技能日志路径（set/add 叠加），两条路径语义不同
+
+## 2026-05-28 - 斗技 power 加成显示为百分比而非绝对值
+
+- **现象**: 武者鸡斗技触发后，战斗日志显示"威力+20%"（应为"+20"），特性tooltip无加成显示，前端技能栏威力不变
+- **根因**: replayer.py `_apply_stat_change` 中 power 未列入绝对显示分支（走入 else 显示%），也未列入 display effect 分支（不写 tooltip）；api/main.py effective_power 只读 sk._modifiers["power"] 忽略 sprite.power_mod
+- **修复**: replayer.py power 加入绝对显示分支 + display effect 分支；api 两处加 `+ sprite.power_mod * 10`；effect.py display_name 加 power display_value 判断
+- **涉及文件**: `backend/engine/replayer.py:355-373`, `backend/api/main.py:417,539`, `backend/vm/effect.py:186-190`
+- **教训**: 非六维非百分比的新 stat（power/priority/combo）要同时加到 replayer 的绝对显示分支、display effect 分支、前端 API 的 effective 计算三处
+
+## 2026-05-28 - damage_restraint 条件缺失导致"最好的伙伴"特性完全不触发
+
+- **现象**: 最好的伙伴特性（造成克制伤害后获得增益）配置后游戏中从未触发
+- **根因**: JSON 中原用 `compare` + `q: "type_mult"` 查询，但 ADDRESS_MAP 中不存在该地址，导致条件静默失败。引擎缺少 `damage_restraint` 条件的基础设施（`element_advantage` 字段 + VM cond 判断 + snapshot 计算）
+- **修复**: 在 `ctx.py` 新增 `element_advantage` 字段及 ADDRESS_MAP；`cond.py` 新增 `damage_restraint` 条件（`element_advantage >= 2.0`）；`snapshot.py` 新增 `_get_element_advantage()` 计算属性克制乘积
+- **涉及文件**: `backend/vm/ctx.py`, `backend/vm/cond.py`, `backend/engine/snapshot.py`
+- **教训**: 新条件类型需同时检查 ADDRESS_MAP 注册、cond 触发器和 eval、snapshot 计算三项，缺一不可
+
+## 2026-05-28 - 特性 tooltip 数值始终显示 20% 不叠加
+
+- **现象**: 最好的伙伴触发多次后，特性 tooltip 始终显示"+20%"而非叠加后的"+40%"
+- **根因**: `replayer.py:_sync_mult_display_effect` 默认 `additive=False`，每次触发时用新值覆盖旧 display_mult 而非累加
+- **修复**: 新增 `additive` 参数，`_apply_stat_change` 调用处传入 `additive=True`，实现 `display_mult += mult_value` 累加
+- **涉及文件**: `backend/engine/replayer.py:_sync_mult_display_effect`, `:_apply_stat_change`
+- **教训**: 显示层和逻辑层叠加行为不一致时，先查显示层是覆盖还是累加
+
+## 2026-05-28 - 速度加成不显示在特性 tooltip + 百分比速度特例
+
+- **现象**: 最好的伙伴的速度加成不显示在特性 tooltip 中；且该特性需要百分比速度（+20%）而全局速度公式是绝对数值（每步+10点）
+- **根因**: ① `_apply_stat_change` 中 speed 被跳过不创建 display effect；② 全局 `effective_stat` 速度公式为 `base + steps * 10`，无法表达百分比加成
+- **修复**: ① 移除 speed 排除并新增 display_value 路径；② 将 JSON 中速度改为 `mult_mod { attr:"speed", value:0.2, mode:"add" }`，写入 `_modifiers["speed"]` 经 `_compute_speed_self` 做 `base * (1 + speed_mod)` 乘算；③ `_apply_modifier` 中 `_STAGE_STATS` 的 display effect 传入 `additive=(m.mode == "add")` 确保 tooltip 叠加
+- **涉及文件**: `data/traits/最好的伙伴.json`, `backend/engine/replayer.py`
+- **教训**: `stat_stage` 适合绝对数值增益，百分比增益用 `mult_mod`，两者走不同的 sprite 存储路径（`active_effects` vs `_modifiers`），显示路径也不同
+
 <!-- 新条目追加在此行上方，格式如下：
 
 ## YYYY-MM-DD - 简短标题
