@@ -342,6 +342,14 @@
 - **涉及文件**: backend/engine/replayer.py:67,99,206-230,525-528,535-536, backend/vm/effect.py:208
 - **教训**: 带 skill_where/skill_filter 的 modifier 走 _apply_to_matching_skills（replayer.py:393-395），完全绕开 _apply_modifier 的格式化和 display-only 逻辑——排查「改了 _apply_modifier 但不生效」时直接检查是否被 skill_where 分支提前 return
 
+## 2026-05-28 - 宝剑王牌传动后封印位置不跟随
+
+- **现象**: 传动后，被封印的仍是传动前在2/4号位的技能，传动到2/4号位的技能可正常使用
+- **根因**: TraitLoader._trait_cache 是模块级 dict，修改 data/traits/*.json 后 uvicorn --reload 不会重启（只监控 .py 文件），导致旧版 trait（无 turn_start 监听）仍在缓存中
+- **修复**: 重启后端服务器；后端逻辑经验证正确——turn_start 观察者会在传动后重新封印当前2/4号位
+- **涉及文件**: `data/traits/宝剑王牌.json`, `backend/engine/trait_loader.py:22`
+- **教训**: 修改 JSON 数据文件后必须手动重启服务器；排查"数据不刷新"问题时优先检查模块级缓存是否过期
+
 <!-- 新条目追加在此行上方，格式如下：
 
 ## YYYY-MM-DD - 简短标题
