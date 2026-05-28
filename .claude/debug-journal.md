@@ -302,6 +302,38 @@
 - **涉及文件**: backend/vm/ir_values.py:22-23, backend/vm/resolve.py:70-71, backend/vm/compiler/passes/skill_parse.py:164-182, data/traits/嫁祸.json:22
 - **教训**: 派生查询使用 per 量化时，检查变换顺序——若 (1-x) 这类派生变换在 per 之后才执行，int() 会量化错误的值
 
+## 2026-05-28 - 守护者特性 @player_moe_stacks 公式变量未注册 + 解析器 int() 静默失败 + display-only 效果缺失
+
+- **现象**: 卡洛儿「守护者」特性不触发——己方有萌化 buff 时入场，技能能耗未减少。第一轮修复（添加变量）后仍不触发；第二轮修复后能耗减少生效，但特性 tooltip 不显示效果数值。
+- **根因**: 四个独立断点：(1) `@player_moe_stacks` 不在 `_FORMULA_PATH_MAP` 中，`_resolve_trait_ref` fallback 返回 0；(2) `_parse_stat_stage` 对公式字符串 `"=@player_moe_stacks * -1"` 直接 `int()` → ValueError，被 `ObserverRegistry.fire()` 的 `except Exception: continue` 静默吞掉；(3) `resolve()` 对 `Literal(value="=@...")` 直接返回原始字符串而非解析公式，`int()` 再次失败；(4) `_apply_stat_change` 只为 `_STAGE_STATS` 创建 tooltip 展示效果，漏掉 `energy_cost`。
+- **修复**: (1) ctx.py + resolve.py + snapshot.py + battle.py：新增 `moe_team_stacks` 字段+FORMULA_PATH_MAP+ADDRESS_MAP+计算逻辑；(2) skill_parse.py：`_parse_stat_stage` 识别 `=` 前缀，转为 `Literal` 存储；(3) resolve.py：`Literal` 分支检测 `=` 前缀调用 `_resolve_formula_string`；(4) replayer.py：`_apply_stat_change` 对 `energy_cost`/`priority`/`combo` 创建 display-only 效果。
+- **涉及文件**: backend/vm/ctx.py:128,296, backend/vm/resolve.py:55-61,250, backend/engine/snapshot.py:85,300, backend/sim/battle.py:133-140,153, backend/vm/compiler/passes/skill_parse.py:489-492, backend/engine/replayer.py:341-345
+- **教训**: trait 完全不触发时按三阶段排查——① 查公式变量是否在 `_FORMULA_PATH_MAP`/ADDRESS_MAP 中注册；② 查 trait 加载路径是 `TraitToObserver`（保持 dict）还是 `DataDrivenTrait`（编译为 IR），dict 路径的 parser 对公式字符串可能 `int()` 失败；③ 任意 `_parse_*` 方法的字符串处理出错都被 `except Exception: continue` 静默吞掉——加 print 或日志确认效果是否被执行到。
+
+## 2026-05-28 - 守护者特性第二次入场不触发
+
+- **现象**: 守护者特性第一次入场正常减能耗，第二次入场完全不触发
+- **根因**: 三个问题叠加：(1) `_resolve_return` 缺少 `entry_turn` 赋值，返场时 `just_entered` 为 False；(2) trait 从 `stat_stage` 改成 `power_mod` 后写入 `sprite._modifiers`，被 `_PER_TURN_KEYS` 每回合清理；(3) 萌化 scope 为 `battlefield`，离场时被清除，`moe_team_stacks` 变为 0
+- **修复**: (1) `battle_mechanics.py:92` 补上 `entry_turn = self.turn`；(2) 守护者.json `power_mod` → `stat_stage`；(3) `abnormal_config.py:46` 萌化 scope → `persistent`
+- **涉及文件**: `backend/sim/battle_mechanics.py:92`, `data/traits/守护者.json`, `backend/engine/abnormal_config.py:46`
+- **教训**: 入场触发类 observer 不生效时，先检查三个入场路径（switch/return/faint）是否都设置了 `entry_turn`；能量修正优先用 `stat_stage` 而非 `power_mod`，后者会被 `_PER_TURN_KEYS` 误伤
+
+## 2026-05-28 - 暮星辰特性触发对面星陨印记时消耗全部层数
+
+- **现象**: 暮星辰触发对面星陨印记时消耗了全部层数，而非一半
+- **根因**: trigger_starfall 调用 consume_starfall_stacks 时传了 defender 而非 attacker，starfall_consume_ratio 设在 attacker（暮星辰）身上，检查了错误的精灵
+- **修复**: globals.py:255 将 defender 改为 attacker
+- **涉及文件**: backend/sim/globals.py:255
+- **教训**: consume/trigger 类方法传入 sprite 时，确认是 attacker 还是 defender——ratio 类 buff 通常设在特性持有者身上
+
+## 2026-05-28 - 钻石蜗完全偏振特性无法免疫对应系别伤害
+
+- **现象**: 钻石蜗携带水炮盾，对面水系技能仍造成伤害（最终-1HP），减伤一度显示200%
+- **根因**: 四重问题 — ① owner filter 阻止 defender 的 pre_calc observer 在 attacker 回合触发；② damage_reduction 在 _RATIO_STATS 中默认值 1.0，add 模式 1.0+1.0=2.0 显示 200%；③ calc_damage 的 max(1, round(core)) 将 100%减伤后的 0 伤害兜底为 1；④ adjust_damage 的 max(1, amount) 再次将 0 兜底为 1
+- **修复**: ① battle.py 新增第二次 _fire_pre_calc(..., id(opp_sprite))；② replayer.py 对 damage_reduction 特殊处理 add 模式默认值 0.0；③ damage.py 和 resolver.py 在 damage_reduction>=1.0 时提前返回 0；④ modifiers.py adjust_damage 在原始 damage<=0 时提前返回 0
+- **涉及文件**: backend/engine/battle.py:130, backend/engine/replayer.py:455, backend/vm/damage.py:68, backend/sim/resolver.py:116, backend/engine/modifiers.py:132
+- **教训**: 防御方 observer 需在 attacker ctx 中额外触发（owner filter 过滤掉非 owner 的 observer）；max(1, ...) 兜底有三处（damage.py、resolver.py、modifiers.py adjust_damage），缺一不可
+
 <!-- 新条目追加在此行上方，格式如下：
 
 ## YYYY-MM-DD - 简短标题
