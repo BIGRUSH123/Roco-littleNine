@@ -78,6 +78,31 @@ class Battle(BattleMechanicsMixin):
         self.species_db = None  # 由 SimFactory 注入，供形态变换查询
         self.skill_loader = None  # 由 SimFactory 注入，供形态变换加载技能
 
+        # ── 回合 0: 首发精灵 entry 特性 ──
+        from backend.sim.traits import dispatch_entry
+        for team, player in (('A', player_a), ('B', player_b)):
+            try:
+                sprite = player.active
+            except (IndexError, AttributeError):
+                continue
+            if sprite is None:
+                continue
+            dispatch_entry(sprite, self, team)
+            opp_team = 'B' if team == 'A' else 'A'
+            opp = None
+            try:
+                opp = self.get_player(opp_team).active
+            except (IndexError, AttributeError):
+                pass
+            ctx_entry = self._make_ctx(
+                sprite, opp, None, None, self.globals,
+                team=team, turn=self.turn,
+            )
+            self._vm_engine.fire_trigger(
+                "post_entry", ctx_entry, sprite, opp, self.globals,
+                team=team, battle=self,
+            )
+
     def lookup_species(self, name: str, form: str = ''):
         """形态变换时查询目标物种。由 SimFactory 注入数据库后可用。"""
         if self.species_db is None:
@@ -131,6 +156,13 @@ class Battle(BattleMechanicsMixin):
             e for s in own_player.team for e in s.species.elements)
         team_elements_opp = frozenset(
             e for s in opp_player.team for e in s.species.elements)
+        # Count 萌化 stacks on own team sprites (excluding self)
+        moe_team_stacks = 0
+        for s in own_player.team:
+            if s is not self_sprite and not s.is_fainted:
+                for e in getattr(s, 'active_effects', []):
+                    if getattr(e, 'name', '') == '萌化':
+                        moe_team_stacks += getattr(e, 'stacks', 0)
         return self._build_ctx(
             self_sprite, opp_sprite, self_skill, opp_skill, globals_,
             team=team,
@@ -144,6 +176,7 @@ class Battle(BattleMechanicsMixin):
             lives_opp=getattr(opp_player, 'lives', 5),
             team_elements_own=team_elements_own,
             team_elements_opp=team_elements_opp,
+            moe_team_stacks=moe_team_stacks,
             **kwargs,
         )
 
@@ -165,7 +198,7 @@ class Battle(BattleMechanicsMixin):
         # 但技能级 _modifiers 的 combo/priority 每次使用由 effects 重新产生，必须清空。
         _PER_TURN_KEYS = frozenset({
             "power", "power_mult", "damage_mult", "damage_reduction",
-            "energy_cost", "energy_cost_mult", "priority",
+            "energy_cost", "energy_cost_mult", "priority", "combo_set",
         })
         _SKILL_PER_TURN_KEYS = _PER_TURN_KEYS | {"combo", "combo_mult"}
         for sprite in self.player_a.team + self.player_b.team:
@@ -272,19 +305,19 @@ class Battle(BattleMechanicsMixin):
                     record.action_a.events = self._resolve_switch('A', action_a)
             return []
 
-        # 单方换宠 + 单方技能/聚能 → 先换宠，后技能
+        # 单方换宠 + 单方技能/聚能 → 先换宠，后技能（含迅捷自动出招）
         if a_kind == 'switch':
             record.action_a.events = self._resolve_switch('A', action_a)
             record.first_team = 'A'
             if not self.is_finished and not self.player_b.active.is_fainted:
-                record.action_b.events = self._resolve_single_action('B', action_b, opponent_switched=True)
+                self._resolve_after_switch('A', 'B', action_b, record)
             return []
 
         if b_kind == 'switch':
             record.action_b.events = self._resolve_switch('B', action_b)
             record.first_team = 'B'
             if not self.is_finished and not self.player_a.active.is_fainted:
-                record.action_a.events = self._resolve_single_action('A', action_a, opponent_switched=True)
+                self._resolve_after_switch('B', 'A', action_a, record)
             return []
 
         # 双方技能/聚能 → 优先级判定
@@ -514,9 +547,64 @@ class Battle(BattleMechanicsMixin):
             consumed = user.consume_pending_modifiers(skill_type)
             for m in consumed:
                 if m.stat == 'energy_cost':
-                    continue  # suppress: energy bar already shows cost
+                    events.append(f'{user.name} 触发待机效果: 能耗{m.value:+}')
+                    continue
                 label = {'power': '威力', 'combo': '连击'}.get(m.stat, m.stat)
                 events.append(f'{user.name} 触发待机效果: {label}{m.value:+}')
+
+        # ═══ Devotion consumption ═══
+        devotion_triggered = False
+        # Load skill record early so devotion can affect energy cost
+        try:
+            record = self._get_skill_record(bs.base.name)
+        except FileNotFoundError:
+            events.append(f'[错误] 技能JSON未找到: {bs.base.name}')
+            return events
+
+        if getattr(record, 'use_devotion', False):
+            devotion_stacks = dict(player.devotion)
+            if devotion_stacks:
+                from backend.engine.devotion_config import DEVOTION_TYPES
+                from backend.vm.journal import AbnormalChange
+
+                # Save pre-devotion modifier values so we can restore them
+                # after the skill (devotion effects are per-skill-use only).
+                _devotion_saved = {}
+                for _key in ("combo", "power", "life_drain", "energy_cost"):
+                    if _key in user._modifiers:
+                        _devotion_saved[_key] = user._modifiers[_key]
+
+                abnormal_mods: list = []
+                for dname, dcount in devotion_stacks.items():
+                    if dcount <= 0:
+                        continue
+                    dtype = DEVOTION_TYPES.get(dname)
+                    if not dtype:
+                        continue
+                    if "combo" in dtype:
+                        user._modifiers["combo"] = user._modifiers.get("combo", 0) + dtype["combo"] * dcount
+                    if "energy_cost" in dtype:
+                        user._modifiers["energy_cost"] = user._modifiers.get("energy_cost", 0) + dtype["energy_cost"] * dcount
+                    if "power" in dtype:
+                        user._modifiers["power"] = user._modifiers.get("power", 0) + dtype["power"] * dcount
+                    if "life_drain" in dtype:
+                        user._modifiers["life_drain"] = user._modifiers.get("life_drain", 0) + dtype["life_drain"] * dcount
+                    if "abnormal" in dtype:
+                        ab = dtype["abnormal"]
+                        abnormal_mods.append(AbnormalChange(
+                            target="sprite_opp", name=ab["name"],
+                            delta=ab["stacks"] * dcount,
+                        ))
+
+                if abnormal_mods:
+                    from backend.engine.replayer import JournalReplayer as _DevR
+                    _dev_r = _DevR(user, target, self.globals,
+                                   self._vm_engine.registry, team=team, battle=self)
+                    devotion_events = _dev_r.replay(abnormal_mods)
+                    events.extend(devotion_events)
+
+                player.devotion.clear()
+                devotion_triggered = True
 
         # ═══ Gate: 能量支付 ═══
         cost = bs.energy_cost
@@ -548,6 +636,11 @@ class Battle(BattleMechanicsMixin):
                 events.append(f'{user.name} E不足{user.energy}<{cost}')
                 return events
 
+        # Clear one-shot on_next energy_cost modifier after consumption.
+        # Only on_next writes to sprite._modifiers["energy_cost"];
+        # non-on_next modifiers write to BattleSkill._modifiers (per-skill).
+        user._modifiers.pop("energy_cost", None)
+
         # Fire post_energy_change for traits like 囤积
         if cost > 0:
             energy_ctx = self._make_ctx(
@@ -570,11 +663,7 @@ class Battle(BattleMechanicsMixin):
         user.inc_counter('skills_used')
 
         # ═══ Load CompiledSkill + execute VM ═══
-        try:
-            record = self._get_skill_record(bs.base.name)
-        except FileNotFoundError:
-            events.append(f'[错误] 技能JSON未找到: {bs.base.name}')
-            return events
+        # (record already loaded above for devotion check)
 
         opp_skill = countered_skill or countering_skill
         opp_team = 'B' if team == 'A' else 'A'
@@ -613,8 +702,19 @@ class Battle(BattleMechanicsMixin):
             team_counters_own=dict(self.team_counters.get(team, {})),
             team_counters_opp=dict(self.team_counters.get(opp_team, {})),
             battle=self,
+            devotion_triggered=devotion_triggered,
         )
         events.extend(result.events)
+
+        # ═══ Clean up devotion modifiers after skill ═══
+        # Restore pre-devotion modifier values — devotion effects are
+        # per-skill-use only and must not persist.
+        if devotion_triggered:
+            for _key in ("combo", "life_drain", "power", "energy_cost"):
+                if _key in _devotion_saved:
+                    user._modifiers[_key] = _devotion_saved[_key]
+                else:
+                    user._modifiers.pop(_key, None)
 
         # ═══ Escape / Return handling ═══
         from backend.vm.journal import Escape
@@ -699,6 +799,65 @@ class Battle(BattleMechanicsMixin):
         if action.skill_index < len(sprite.skills):
             return sprite.skills[action.skill_index]
         return None
+
+    def _find_first_swift_skill(self, sprite) -> tuple[int, BattleSkill | None]:
+        """Find the first usable swift-tagged skill on a sprite.
+
+        Returns (skill_index, BattleSkill) or (0, None) if none found.
+        """
+        for i, bs in enumerate(sprite.skills):
+            if (bs._modifiers.get("swift")
+                and not bs.sealed
+                and bs.cooldown <= 0):
+                return i, bs
+        return 0, None
+
+    def _resolve_after_switch(self, switch_team: str, opp_team: str,
+                              opp_action: Action, record: RoundRecord) -> None:
+        """Handle swift auto-fire and opponent's action after an active switch."""
+        ar = {'A': record.action_a, 'B': record.action_b}
+        new_sprite = self.get_player(switch_team).active
+
+        if new_sprite.is_fainted:
+            return
+
+        swift_idx, swift_bs = self._find_first_swift_skill(new_sprite)
+        if swift_bs is None:
+            ar[opp_team].events = self._resolve_single_action(opp_team, opp_action, opponent_switched=True)
+            return
+
+        # Detect if swift skill counters opponent's skill
+        opp_bs = None
+        swift_countered_opp = False
+        if opp_action.kind == 'skill' and opp_action.skill_index is not None:
+            opp_bs = self._get_skill(opp_team, opp_action)
+            if opp_bs and opp_bs.cooldown <= 0:
+                swift_countered_opp = SkillResolver.resolve_counter(opp_bs, swift_bs)
+
+        # Execute swift skill first
+        swift_action = Action(kind='skill', skill_index=swift_idx)
+        swift_countered_skill = opp_bs if swift_countered_opp else None
+        ar[switch_team].events += self._execute_skill_vm(
+            switch_team, swift_action,
+            is_countered=False,
+            countered_skill=swift_countered_skill,
+            is_first=True,
+        )
+        self._check_faint_interrupt(switch_team, ar[switch_team].events)
+        self._check_faint_interrupt(opp_team, ar[switch_team].events)
+
+        # Execute opponent's skill (possibly countered by swift)
+        if not self.is_finished and not self.get_player(opp_team).active.is_fainted:
+            if swift_countered_opp:
+                ar[opp_team].events = self._execute_single_action(
+                    opp_team, opp_action,
+                    is_countered=True,
+                    countering_skill=swift_bs,
+                    is_first=False,
+                    opponent_switched=True,
+                )
+            else:
+                ar[opp_team].events = self._resolve_single_action(opp_team, opp_action, opponent_switched=True)
 
     def _effective_priority(self, team: str, action: Action) -> int:
         """计算有效先手等级（聚能=0，技能=基础+修正）。"""

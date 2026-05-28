@@ -64,7 +64,7 @@ _RATIO_STATS: frozenset[str] = frozenset({
 # (power is excluded: values are direct power amounts with per-skill scope,
 # not global sprite buffs.)
 _VISIBLE_MOD_STATS: frozenset[str] = frozenset({
-    "combo", "priority", "life_drain",
+    "combo", "priority", "life_drain", "power_mod",
 })
 
 _STEP_PCT = 10        # 非速度六维：1步=10%
@@ -85,6 +85,7 @@ _STAT_LABELS: dict[str, str] = {
     "energy_cost": "能耗",
     "power": "威力",
     "combo": "连击",
+    "combo_set": "连击固定",
     "priority": "先手",
     "power_mult": "威力倍率",
     "damage_mult": "伤害倍率",
@@ -96,6 +97,8 @@ _STAT_LABELS: dict[str, str] = {
     "ignore_mods": "无视修正",
     "survive": "不屈",
     "drive": "传动",
+    "power_mod": "威力",
+    "swift": "迅捷",
 }
 
 # Step unit for display conversion: steps → display value
@@ -202,6 +205,31 @@ def _apply_to_matching_skills(sprite, m) -> str:
     if applied:
         if m.stat == "energy_cost":
             return ""
+        if m.stat == "power_mod":
+            # Create display-only StatBuffEffect for trait tooltip
+            source = m.source or ""
+            if source:
+                from backend.vm.effect import StatBuffEffect, _STAT_LABELS as _EFF_LABELS
+                eff_name = _EFF_LABELS.get(m.stat, m.stat)
+                existing = next(
+                    (e for e in getattr(sprite, 'active_effects', [])
+                     if isinstance(e, StatBuffEffect) and e.stat_key == m.stat
+                     and e.source == source and e.steps == 0),
+                    None,
+                )
+                if existing is not None:
+                    existing.display_value = delta * 10
+                    existing.scope = "battlefield"
+                else:
+                    active = getattr(sprite, 'active_effects', None)
+                    if active is not None:
+                        active.append(StatBuffEffect(
+                            name=eff_name, source=source, scope="battlefield",
+                            stat_key=m.stat, steps=0, display_value=delta * 10,
+                        ))
+            element = (m.skill_where or {}).get("element", "")
+            prefix = f"{element}" if element else ""
+            return f"{sprite.name} {prefix}{label}{delta * 10:+.0f}"
         return f"{sprite.name} {label}{delta:+.0f}"
     return ""
 
@@ -224,6 +252,7 @@ class JournalReplayer:
         species_lookup = None,
         self_skill = None,
         battle = None,
+        leaving_sprite: Sprite | None = None,
     ):
         self.self = self_sprite
         self.opp = opp_sprite
@@ -233,6 +262,8 @@ class JournalReplayer:
         self._species_lookup = species_lookup  # callable(number) -> SpeciesStats | None
         self._self_skill = self_skill
         self._battle = battle  # optional ref for trait-level ops
+        self._leaving = leaving_sprite  # for post_enemy_leave: the sprite that left
+        self._trait_sourcing: bool = False  # True during trait observer then-effect replay
         self._cleared_position_stats: set[str] = set()  # per-replay batch cleanup tracking
 
     # ── Main entry ──
@@ -325,18 +356,23 @@ class JournalReplayer:
         unit = _STEP_UNIT.get(m.stat, 10)
         if m.stat in ('priority', 'energy_cost', 'combo'):
             display = f'{label}{m.steps * unit:+d}' if m.steps != 0 else f'{label}{m.steps:+d}'
-        elif m.stat == 'speed':
+        elif m.stat in ('speed', 'power'):
             display = f'{label}{m.steps * unit:+d}'
         else:
             display = f'{label}{m.steps * unit:+d}%'
         self._sync_stat_buff_effect(sprite, m.stat, m.steps, m.scope,
-                                    m.source or "skill")
+                                    m.source or "skill",
+                                    is_inherent=self._trait_sourcing)
         # Stage stats from traits: create display-only effect for trait tooltip
         # (percentage stats only; speed is absolute points, not meaningful as display_mult)
         if m.stat in _STAGE_STATS and m.stat != "speed":
             source = m.source or ""
             mult_value = m.steps * (_STEP_PCT / 100)
             self._sync_mult_display_effect(sprite, m.stat, mult_value, m.scope, source)
+        # Non-stage stats (power, energy_cost, priority, combo): display as absolute values
+        elif m.source and m.stat in ('power', 'energy_cost', 'priority', 'combo') and m.steps != 0:
+            self._sync_mult_display_effect(sprite, m.stat, 0.0, m.scope, m.source,
+                                           display_value=float(m.steps * unit))
         return f"{sprite.name} {display}"
 
     def _apply_modifier(self, m: ModifierInjection) -> str:
@@ -358,6 +394,18 @@ class JournalReplayer:
             if player is None:
                 return ""
             devotion_name = m.name or ""
+            if not devotion_name or devotion_name == "random":
+                import random
+                from backend.engine.devotion_config import DEVOTION_TYPES
+                if not DEVOTION_TYPES:
+                    return ""
+                if m.mode == "add":
+                    total = int(m.value)
+                    for _ in range(total):
+                        pick = random.choice(list(DEVOTION_TYPES.keys()))
+                        player.devotion[pick] = player.devotion.get(pick, 0) + 1
+                    return f"{t}队 获得{total}次随机奉献"
+                devotion_name = random.choice(list(DEVOTION_TYPES.keys()))
             cur = player.devotion.get(devotion_name, 0)
             if m.mode == "set":
                 player.devotion[devotion_name] = int(m.value)
@@ -372,7 +420,10 @@ class JournalReplayer:
 
         if m.on_next:
             sprite._pending_modifiers.append(m)
-            return ""  # suppress verbose pending modifier log
+            if m.stat == 'energy_cost':
+                return f"{sprite.name} 获得待机效果: 能耗{m.value:+}"
+            label = _STAT_LABELS.get(m.stat, m.stat)
+            return f"{sprite.name} 获得待机效果: {label}{m.value:+}"
 
         skill_scoped = m.target.startswith("skill_") if m.target else False
 
@@ -396,6 +447,8 @@ class JournalReplayer:
                         bs._modifiers.pop(m.stat, None)
                         if m.stat == "drive":
                             bs._transmission = bs.base.transmission
+                        elif m.stat == "sealed":
+                            bs.sealed = False
                 try:
                     pos = int(m.target.rsplit("_", 1)[-1]) - 1
                     if 0 <= pos < len(sprite.skills):
@@ -403,6 +456,8 @@ class JournalReplayer:
                         # drive flag → _transmission on the target skill
                         if m.stat == "drive":
                             sprite.skills[pos]._transmission = int(m.value) if m.value else 0
+                        elif m.stat == "sealed":
+                            sprite.skills[pos].sealed = bool(m.value)
                     else:
                         target_mods = sprite._modifiers
                 except (ValueError, IndexError):
@@ -442,7 +497,12 @@ class JournalReplayer:
             if m.stat == "energy_cost":
                 delta *= sprite._modifiers.get("energy_cost_delta_mult", 1.0)
             if cur is None:
-                cur = 1.0 if m.stat in _RATIO_STATS else 0.0
+                # damage_reduction base is 0.0 (0%=no reduction), unlike
+                # most ratio stats whose base is 1.0 (1.0×=no change).
+                if m.stat == "damage_reduction":
+                    cur = 0.0
+                else:
+                    cur = 1.0 if m.stat in _RATIO_STATS else 0.0
             target_mods[m.stat] = cur + delta
         elif m.mode == "multiply":
             target_mods[m.stat] = (cur or 1.0) * m.value if cur is not None else m.value
@@ -508,16 +568,33 @@ class JournalReplayer:
             elif m.stat in _VISIBLE_MOD_STATS:
                 if m.stat in _RATIO_STATS:
                     self._sync_mult_display_effect(sprite, m.stat, m.value, m.scope, source)
+                elif m.stat == "power_mod":
+                    # power_mod is step-based (1步=10威力), use display_value for flat power display
+                    self._sync_mult_display_effect(
+                        sprite, m.stat, 0.0, m.scope, source,
+                        display_value=float(m.value) * 10)
                 else:
                     self._sync_mult_display_effect(sprite, m.stat, 0, m.scope, source,
                                                    display_value=float(m.value))
 
         if m.stat in _RATIO_STATS:
             return f"{sprite.name} {label}={final:.0%}"
+        if m.stat == "power_mod":
+            return f"{sprite.name} {label}{final * 10:+.0f}"
+        if m.stat == "sealed":
+            if m.target.startswith("skill_at_"):
+                try:
+                    pos = int(m.target.rsplit("_", 1)[-1])
+                except ValueError:
+                    pos = "?"
+                return f"{sprite.name} {pos}号位封印"
+            return f"{sprite.name} 技能封印"
         if m.stat in _STAGE_STATS:
             return f"{sprite.name} {label}{final:+.0%}"
         if m.stat == "energy_cost":
             return ""
+        if m.stat == "combo_set":
+            return f"{sprite.name} 连击固定为{final:.0f}"
         return f"{sprite.name} {label}{final:+.0f}"
 
     def _apply_damage(self, m: Damage) -> str:
@@ -584,16 +661,30 @@ class JournalReplayer:
             pos, neg = self.globals.get_marks(from_team)
             all_marks = pos + neg
             count = m.delta or 1
-            for mark in all_marks:
-                if mark.name == m.name and mark.stacks > 0:
+            if m.name:
+                for mark in all_marks:
+                    if mark.name == m.name and mark.stacks > 0:
+                        removed = min(mark.stacks, count)
+                        mark.stacks -= removed
+                        if mark.stacks <= 0:
+                            self.globals.mark_effects.get(from_team, []).remove(mark)
+                        category = self.globals.classify_mark(m.name)
+                        coexist = bool(self.self._modifiers.get("mark_coexist", False))
+                        self.globals.apply_mark(team, m.name, category, removed, coexist=coexist)
+                        return f"{self.self.name} 偷取{m.name}×{removed}"
+            else:
+                import random
+                available = [mk for mk in all_marks if mk.stacks > 0]
+                if available:
+                    mark = random.choice(available)
                     removed = min(mark.stacks, count)
                     mark.stacks -= removed
                     if mark.stacks <= 0:
                         self.globals.mark_effects.get(from_team, []).remove(mark)
-                    category = self.globals.classify_mark(m.name)
+                    category = self.globals.classify_mark(mark.name)
                     coexist = bool(self.self._modifiers.get("mark_coexist", False))
-                    self.globals.apply_mark(team, m.name, category, removed, coexist=coexist)
-                    return f"{self.self.name} 偷取{m.name}×{removed}"
+                    self.globals.apply_mark(team, mark.name, category, removed, coexist=coexist)
+                    return f"{self.self.name} 偷取{mark.name}×{removed}"
             return ""
 
         if m.action == "convert":
@@ -711,11 +802,29 @@ class JournalReplayer:
             self._remove_abnormal_effect(sprite, name=m.name)
             return f"{sprite.name} 驱散异常 {m.name}"
         elif m.what == "mark":
-            self.globals.remove_mark(
-                self.team if m.target == "team_own" else ("B" if self.team == "A" else "A"),
-                "positive" if self.globals.classify_mark(m.name or "") == "positive" else "negative"
-            )
-            return f"驱散印记 {m.name}"
+            team = self.team if m.target == "team_own" else ("B" if self.team == "A" else "A")
+            pos, neg = self.globals.get_marks(team)
+            all_marks = pos + neg
+            count = m.limit or 1
+            if m.name:
+                for mark in all_marks:
+                    if mark.name == m.name and mark.stacks > 0:
+                        removed = min(mark.stacks, count)
+                        mark.stacks -= removed
+                        if mark.stacks <= 0:
+                            self.globals.mark_effects.get(team, []).remove(mark)
+                        return f"{team}队 驱散印记 {m.name}×{removed}"
+                return f"驱散印记失败：{team}队无{m.name}"
+            import random
+            available = [mk for mk in all_marks if mk.stacks > 0]
+            if not available:
+                return "驱散印记失败：无印记"
+            mark = random.choice(available)
+            removed = min(mark.stacks, count)
+            mark.stacks -= removed
+            if mark.stacks <= 0:
+                self.globals.mark_effects.get(team, []).remove(mark)
+            return f"{team}队 驱散印记 {mark.name}×{removed}"
         return ""
 
     @staticmethod
@@ -769,10 +878,12 @@ class JournalReplayer:
 
     @staticmethod
     def _sync_stat_buff_effect(sprite, stat_key: str, steps: int, scope: str,
-                               source: str, mode: str = "add") -> None:
+                               source: str, mode: str = "add",
+                               is_inherent: bool = False) -> None:
         """Create or update StatBuffEffect on sprite.active_effects (dual-write).
 
         When mode="set", existing steps are replaced instead of accumulated.
+        is_inherent=True marks effects from traits that should not be inherited.
         """
         from backend.vm.effect import StatBuffEffect
         active = getattr(sprite, 'active_effects', None)
@@ -789,11 +900,14 @@ class JournalReplayer:
                 existing.steps = steps
             else:
                 existing.steps += steps
+            # Propagate is_inherent to existing effect if not already set
+            if is_inherent and not getattr(existing, 'is_inherent', False):
+                existing.is_inherent = True
             return
 
         active.append(StatBuffEffect(
             name=f'{stat_key}', source=source, scope=scope,
-            stat_key=stat_key, steps=steps,
+            stat_key=stat_key, steps=steps, is_inherent=is_inherent,
         ))
 
     @staticmethod
@@ -823,13 +937,15 @@ class JournalReplayer:
             existing.display_mult = mult_value
             if display_value is not None:
                 existing.display_value = display_value
-            existing.scope = "battlefield"
+            # Preserve the effect's actual scope so permanent display effects
+            # survive leave/re-entry (e.g. 指挥家 permanent stat stages).
+            existing.scope = scope
             return
 
         from backend.vm.effect import _STAT_LABELS
         active.append(StatBuffEffect(
             name=_STAT_LABELS.get(stat_key, stat_key),
-            source=source, scope="battlefield",
+            source=source, scope=scope,
             stat_key=stat_key, steps=0, display_mult=mult_value,
             display_value=display_value,
         ))
@@ -863,8 +979,21 @@ class JournalReplayer:
                 self.self.add_effect(e)
             return f"{self.self.name} 偷取 {len(positives)} 增益 from {target.name}"
         elif m.what == "energy":
-            target = self._target_sprite(m.from_target)
             amount = m.amount or 0
+            if m.from_target == "team_opp" and self._battle is not None:
+                opp_player = self._battle.get_opponent(self.team)
+                total_stolen = 0
+                names: list[str] = []
+                for s in opp_player.team:
+                    if s.energy <= 0:
+                        continue
+                    s_stolen = min(s.energy, amount)
+                    s.lose_energy(s_stolen)
+                    total_stolen += s_stolen
+                    names.append(f"{s.name}({s_stolen})")
+                self.self.gain_energy(total_stolen)
+                return f"{self.self.name} 偷取 {total_stolen}E from {', '.join(names)}"
+            target = self._target_sprite(m.from_target)
             stolen = min(target.energy, amount)
             target.lose_energy(stolen)
             self.self.gain_energy(stolen)
@@ -1000,9 +1129,10 @@ class JournalReplayer:
             return ""
         if m.delta < 0 and player.lives <= 0:
             return ""
+        prev = player.lives
         player.lives += m.delta
         label = f"奉献{m.delta}" if m.delta > 0 else f"魔力{m.delta}"
-        return f"{self.self.name} {label}" if self.self else ""
+        return f"{self.self.name} {label}→{player.lives}" if self.self else ""
 
     def _apply_schedule_entry(self, m: ScheduleEntry) -> str:
         """Register delayed effects. Requires battle reference."""
@@ -1017,16 +1147,41 @@ class JournalReplayer:
         })
         return f"{self.self.name}: 延时效果({m.turns}回合后)" if self.self else ""
 
+    def _resolve_source(self, source_key: str):
+        """Resolve a source key to a sprite reference.
+
+        "self" → replayer.self (attacker / trait bearer / leaving sprite)
+        "sprite_opp" → replayer._leaving in post_enemy_leave context,
+                       otherwise replayer.opp
+        anything else → replayer.opp
+        """
+        if source_key == "self":
+            return self.self
+        if source_key == "sprite_opp" and self._leaving is not None:
+            return self._leaving
+        return self.opp
+
     def _apply_inherit_effects_mutation(self, m: InheritEffectsMutation) -> str:
-        """Transfer effects between sprites. Requires battle reference."""
+        """Transfer effects between sprites. Requires battle reference.
+
+        When inherit_stat_effects=True: copy all StatBuffEffect objects
+        (六维/连击/威力/吸血等) regardless of scope.
+        Otherwise: filter by scope (legacy behavior).
+        """
         if self._battle is None:
             return ""
-        source_sprite = self.self if m.source_key == "self" else self.opp
+        source_sprite = self._resolve_source(m.source_key)
         if source_sprite is None:
             return ""
         from copy import copy
-        inherited = [copy(e) for e in getattr(source_sprite, 'active_effects', [])
-                     if getattr(e, 'scope', '') == m.scope]
+        from backend.vm.effect import StatBuffEffect
+        if m.inherit_stat_effects:
+            inherited = [copy(e) for e in getattr(source_sprite, 'active_effects', [])
+                         if isinstance(e, StatBuffEffect)
+                         and not getattr(e, 'is_inherent', False)]
+        else:
+            inherited = [copy(e) for e in getattr(source_sprite, 'active_effects', [])
+                         if getattr(e, 'scope', '') == m.scope]
         if not inherited:
             return ""
         if m.via_pending:

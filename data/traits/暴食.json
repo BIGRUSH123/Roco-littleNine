@@ -2,17 +2,36 @@
   "id": 20067,
   "name": "暴食",
   "description": "携带的龙系技能获得迅捷。",
-  "triggers": [
+  "effects": [
     {
-      "on": "entry",
-      "battleskill_mut": [
-        {
-          "filter": {
-            "element": "龙"
+      "op": "observer",
+      "cond": {
+        "cond": "or",
+        "conditions": [
+          {
+            "cond": "sprite_entered",
+            "of": "sprite_self"
           },
-          "field": "priority",
-          "op": "add",
-          "value": 1
+          {
+            "cond": "always"
+          }
+        ]
+      },
+      "listen": [
+        "post_entry",
+        "turn_start"
+      ],
+      "scope": "battlefield",
+      "then": [
+        {
+          "op": "mult_mod",
+          "target": "sprite_self",
+          "attr": "swift",
+          "value": 1,
+          "mode": "set",
+          "skill_where": {
+            "element": "龙"
+          }
         }
       ]
     }
