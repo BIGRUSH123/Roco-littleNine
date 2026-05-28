@@ -5,18 +5,22 @@
   "effects": [
     {
       "op": "observer",
-      "then": [
-        {
-          "target": "sprite_self",
-          "op": "special"
-        }
+      "listen": [
+        "post_entry"
       ],
-      "scope": "persistent",
       "cond": {
         "cond": "sprite_entered",
         "of": "sprite_self"
       },
-      "listen": "post_entry"
+      "scope": "persistent",
+      "then": [
+        {
+          "op": "steal",
+          "target": "sprite_opp",
+          "what": "energy",
+          "amount": 2
+        }
+      ]
     }
   ]
 }

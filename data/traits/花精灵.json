@@ -7,8 +7,11 @@
       "op": "observer",
       "then": [
         {
-          "target": "sprite_self",
-          "op": "special"
+          "op": "mod",
+          "stat": "devotion",
+          "target": "team_own",
+          "value": 1,
+          "mode": "add"
         }
       ],
       "scope": "persistent",

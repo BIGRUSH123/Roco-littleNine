@@ -290,6 +290,7 @@ class SkillParsePass:
             element=e.get("element"),
             per_element=self._int_or(e, "per_element", 0),
             name=e.get("name"),
+            then=e.get("then"),
             delay=self._int_or(e, "delay", 0),
             ttl=self._int_or(e, "ttl", 0),
             cooldown=self._int_or(e, "cooldown", 0),
@@ -316,6 +317,10 @@ class SkillParsePass:
             stacks=self._int_or(e, "stacks", 1),
             value=value,
             per_hit=self._bool_or(e, "per_hit", False),
+            action=self._str_or(e, "action", "apply"),
+            ratio=self._float_or(e, "ratio", 1.0),
+            target_team=self._str_or(e, "target_team", "opp"),
+            source=e.get("source"),
             then=self._parse_then(e),
             **self._common_fields(e),
         )
@@ -325,6 +330,7 @@ class SkillParsePass:
             target=self._str_or(e, "target", "sprite_self"),
             name=self._str_or(e, "name", ""),
             stacks=self._int_or(e, "stacks", 1),
+            value=self._parse_value(e["value"]) if "value" in e else None,
             scope=self._str_or(e, "scope", "battlefield"),
             per_hit=self._bool_or(e, "per_hit", False),
             heal_pct=self._float_or(e, "heal_pct", 0.0),
@@ -486,8 +492,12 @@ class SkillParsePass:
         steps = 0
         if isinstance(raw_steps, dict) and "q" in raw_steps:
             value = self._parse_value(raw_steps)
+        elif isinstance(raw_steps, str) and raw_steps.startswith("="):
+            value = self._parse_value(raw_steps)
+        elif isinstance(raw_steps, str) and raw_steps.lstrip("-").isdigit():
+            steps = int(raw_steps)
         else:
-            steps = int(raw_steps)  # stat_stage steps are always integer
+            steps = int(raw_steps)
         return StatStageOp(
             target=self._str_or(e, "target", "sprite_self"),
             stat=stat,

@@ -1,7 +1,7 @@
 {
   "id": 20155,
   "name": "张弛有度",
-  "description": "周末双攻+40%，其他时间双防+40%。",
+  "description": "周末双攻+40%，其他时间双防+40%。//pass",
   "effects": [
     {
       "op": "observer",

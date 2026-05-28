@@ -112,7 +112,8 @@ class DataDrivenTrait(TraitHandler):
         from backend.vm.journal import CounterRegister
 
         ctx = Ctx()
-        journal = process_effects(ctx, self._effects)
+        effects = _inject_source_json(self._effects, self.name)
+        journal = process_effects(ctx, effects)
 
         observers = []
         for m in journal:
@@ -144,6 +145,26 @@ class DataDrivenTrait(TraitHandler):
         return events
 
 
+def _inject_source_json(effects: list[dict], source: str) -> list[dict]:
+    """Inject source into raw JSON effects recursively before compilation.
+
+    Observer then-effects are compiled to frozen IR dataclasses by process_effects,
+    so source must be injected at the JSON level BEFORE compilation.
+    """
+    import copy
+    result = []
+    for eff in effects:
+        eff = copy.copy(eff)
+        if "op" in eff and "source" not in eff:
+            eff["source"] = source
+        if isinstance(eff.get("then"), list):
+            eff["then"] = _inject_source_json(eff["then"], source)
+        if isinstance(eff.get("else"), list):
+            eff["else"] = _inject_source_json(eff["else"], source)
+        result.append(eff)
+    return result
+
+
 # ═══════════════════════════════════════════════════════════════════
 # JSON 加载 & 注册
 # ═══════════════════════════════════════════════════════════════════
@@ -164,7 +185,11 @@ def load_data_trait(filepath: str) -> DataDrivenTrait | None:
     trait_id = data.get('id', 0)
     effects = data.get('effects', [])
 
-    if not name or not effects:
+    if not name:
+        return None
+    # traits with engine-level behavior (e.g. 无忧无虑 checked in apply_moe)
+    # may have no effects — still register them so get_trait() works
+    if not effects and not trait_id:
         return None
 
     return DataDrivenTrait(name, trait_id=trait_id, effects=effects)

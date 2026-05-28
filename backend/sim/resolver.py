@@ -113,6 +113,8 @@ class SkillResolver:
         core *= use.multi_hit
         core *= use.damage_mult
 
+        if use.damage_reduction >= 1.0:
+            return 0, events
         damage = max(1, round(core))
         return damage, events
 

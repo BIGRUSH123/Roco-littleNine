@@ -5,20 +5,20 @@
   "effects": [
     {
       "op": "observer",
-      "then": [
-        {
-          "target": "sprite_self",
-          "scope": "next_use",
-          "source": "思维之盾",
-          "op": "stat_stage",
-          "stat": "energy_cost",
-          "steps": -5
-        }
-      ],
-      "scope": "persistent",
       "cond": {
         "cond": "counter_succeeded"
-      }
+      },
+      "then": [
+        {
+          "op": "mult_mod",
+          "target": "sprite_self",
+          "attr": "energy_cost",
+          "value": -5,
+          "on_next": true
+        }
+      ],
+      "listen": "post_counter",
+      "scope": "persistent"
     }
   ]
 }

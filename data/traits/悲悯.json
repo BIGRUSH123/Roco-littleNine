@@ -5,30 +5,38 @@
   "effects": [
     {
       "op": "observer",
+      "cond": {
+        "cond": "always"
+      },
+      "listen": [
+        "turn_start",
+        "post_entry"
+      ],
       "then": [
         {
+          "op": "mult_mod",
           "target": "sprite_self",
-          "scope": "battlefield",
-          "source": "悲悯",
-          "op": "stat_stage",
-          "stat": "atk",
-          "steps": "=@player_fainted_count * 3"
+          "attr": "atk",
+          "value": {
+            "q": "fainted",
+            "of": "team_own",
+            "scale": 0.3
+          },
+          "mode": "set"
         },
         {
+          "op": "mult_mod",
           "target": "sprite_self",
-          "scope": "battlefield",
-          "source": "悲悯",
-          "op": "stat_stage",
-          "stat": "sp_atk",
-          "steps": "=@player_fainted_count * 3"
+          "attr": "sp_atk",
+          "value": {
+            "q": "fainted",
+            "of": "team_own",
+            "scale": 0.3
+          },
+          "mode": "set"
         }
       ],
-      "scope": "battlefield",
-      "cond": {
-        "cond": "sprite_entered",
-        "of": "sprite_self"
-      },
-      "listen": "post_entry"
+      "scope": "battlefield"
     }
   ]
 }

@@ -2,5 +2,23 @@
   "id": 20154,
   "name": "对流",
   "description": "自己的能耗增加变为降低；降低变为增加。",
-  "triggers": []
+  "effects": [
+    {
+      "op": "observer",
+      "listen": ["post_entry"],
+      "cond": {
+        "cond": "sprite_entered",
+        "of": "sprite_self"
+      },
+      "then": [
+        {
+          "op": "mult_mod",
+          "target": "sprite_self",
+          "attr": "energy_cost_delta_mult",
+          "value": -1,
+          "scope": "permanent"
+        }
+      ]
+    }
+  ]
 }

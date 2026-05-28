@@ -7,12 +7,18 @@
       "op": "observer",
       "then": [
         {
-          "target": "sprite_self",
-          "op": "special"
+          "op": "mark",
+          "action": "steal",
+          "target": "team_own",
+          "target_team": "own",
+          "stacks": 1
         },
         {
-          "target": "sprite_self",
-          "op": "special"
+          "op": "mod",
+          "stat": "devotion",
+          "target": "team_own",
+          "value": 1,
+          "mode": "add"
         }
       ],
       "scope": "persistent",

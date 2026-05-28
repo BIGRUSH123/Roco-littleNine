@@ -4,12 +4,23 @@
   "description": "触发星陨时消耗一半层数，仍造成满层伤害。",
   "effects": [
     {
-      "op": "power_mod",
-      "target": "sprite_self",
-      "attr": "starfall_consume_ratio",
-      "value": 0.5,
-      "mode": "set",
-      "scope": "permanent"
+      "op": "observer",
+      "cond": {
+        "cond": "sprite_entered",
+        "of": "sprite_self"
+      },
+      "then": [
+        {
+          "op": "power_mod",
+          "target": "sprite_self",
+          "attr": "starfall_consume_ratio",
+          "value": 0.5,
+          "mode": "set",
+          "scope": "battlefield"
+        }
+      ],
+      "listen": "post_entry",
+      "scope": "battlefield"
     }
   ]
 }

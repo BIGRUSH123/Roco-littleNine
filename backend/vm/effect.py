@@ -155,17 +155,22 @@ class StatBuffEffect(EffectObject):
     steps: int = 0                        # positive = buff, negative = debuff
     display_mult: float | None = None     # mult_mod ratio value for display only (not used in calculation)
     display_value: float | None = None    # absolute value for display only (combo, priority, etc.)
+    is_inherent: bool = False             # True = from trait (not inherited by other traits)
 
     @property
     def is_positive(self) -> bool:
         if self.display_mult is not None:
             return self.display_mult > 0
+        if self.display_value is not None:
+            return self.display_value > 0
         return self.steps > 0
 
     @property
     def is_negative(self) -> bool:
         if self.display_mult is not None:
             return self.display_mult < 0
+        if self.display_value is not None:
+            return self.display_value < 0
         return self.steps < 0
 
     @property
@@ -178,6 +183,9 @@ class StatBuffEffect(EffectObject):
         if self.stat_key in ('priority', 'energy_cost', 'combo'):
             return f'{label}{self.steps:+d}'
         if self.stat_key in ('speed', 'power'):
+            if self.display_value is not None:
+                sign = '+' if self.display_value > 0 else ''
+                return f'{label}{sign}{self.display_value:.0f}'
             sign = '+' if self.steps > 0 else ''
             return f'{label}{sign}{self.steps * unit}'
         if self.stat_key == 'life_drain':
@@ -204,6 +212,7 @@ _STAT_LABELS: dict[str, str] = {
     'atk': '物攻', 'sp_atk': '魔攻', 'def': '物防', 'sp_def': '魔防',
     'speed': '速度', 'power': '威力', 'priority': '先手',
     'energy_cost': '能耗', 'combo': '连击', 'life_drain': '吸血',
+    'power_mod': '威力',
 }
 
 _STEP_UNITS: dict[str, int] = {

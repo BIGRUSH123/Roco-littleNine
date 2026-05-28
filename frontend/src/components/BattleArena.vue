@@ -5,6 +5,7 @@ import { useSpriteAssetStore } from '../stores/spriteAssets.js'
 import SpriteCard from './SpriteCard.vue'
 import EffectCard from './EffectCard.vue'
 import SkillButton from './SkillButton.vue'
+import TraitTooltip from './TraitTooltip.vue'
 
 const props = defineProps({
   skillMap: { type: Object, default: () => ({}) },
@@ -28,9 +29,9 @@ const player = computed(() => ({
 const active = computed(() => store.selfSprite)
 const activeOpp = computed(() => store.oppSprite)
 const isCharging = computed(() => !!active.value?.charging)
-const hasJealousy = computed(() => active.value?.trait === '嫉妒')
+const hasJealousy = computed(() => active.value?.trait?.name === '嫉妒')
 const isChargingOpp = computed(() => !!activeOpp.value?.charging)
-const hasJealousyOpp = computed(() => activeOpp.value?.trait === '嫉妒')
+const hasJealousyOpp = computed(() => activeOpp.value?.trait?.name === '嫉妒')
 const skillCount = computed(() => active.value?.skills?.length || 0)
 const skillCountOpp = computed(() => activeOpp.value?.skills?.length || 0)
 const gridCols = computed(() => {
@@ -61,11 +62,12 @@ function getSpriteSkill(sprite, name) {
 
 const canUseSkill = (sprite, skillName) => {
   const charging = !!sprite?.charging
-  const jealousy = sprite?.trait === '嫉妒'
+  const jealousy = sprite?.trait?.name === '嫉妒'
   if (!charging) {
     const ss = getSpriteSkill(sprite, skillName)
     if (!ss) return false
     if (ss.cooldown > 0) return false
+    if (ss.sealed) return false
     return (sprite?.energy ?? 0) >= ss.effective_energy_cost
   }
   if (jealousy) return true
@@ -218,6 +220,7 @@ const debugActionLabel = (action) => {
               <span class="text-lg font-bold text-[#4A3B5C] font-[family-name:var(--font-title)]">
                 {{ activeOpp?.name || '???' }}
               </span>
+              <TraitTooltip :trait="activeOpp?.trait" :effects="activeOpp?.effects || []" />
             </div>
             <div class="flex items-center justify-center gap-3 text-[10px] text-[#6B5E4F]">
               <span>Lv.100</span>
@@ -448,6 +451,7 @@ const debugActionLabel = (action) => {
             <span class="text-lg font-bold text-[#3D2B1F] font-[family-name:var(--font-title)]">
               {{ active?.name || '???' }}
             </span>
+            <TraitTooltip :trait="active?.trait" :effects="active?.effects || []" />
             <span class="text-[10px] text-[#6B5E4F]">Lv.100</span>
             <span class="text-[10px] text-[#D4534A]">魔力 {{ store.selfLives }}</span>
             <span v-if="active?.is_fainted" class="text-[#D4534A] text-xs font-bold">(力竭)</span>

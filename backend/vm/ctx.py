@@ -127,6 +127,7 @@ class Ctx:
     lives_own: int = 5                   # own team lives (魔力值)
     lives_opp: int = 5                   # opponent team lives
     burst_triggered_count_own: int = 0   # distinct burst types triggered by own team
+    moe_team_stacks: int = 0             # total 萌化 stacks on own team (excluding self)
 
     # ── 技能（当前发动的技能） ──
     power_self: int = 0                  # skill base power
@@ -136,6 +137,7 @@ class Ctx:
     skill_type_opp: str = ""             # opponent skill type
     element_self: str = ""               # current skill element
     element_opp: str = ""                # opponent current skill element
+    element_advantage: float = 1.0       # type effectiveness: 0.5=resist, 1.0=neutral, 2.0=SE
     skill_tag_self: str = ""             # current skill tag
     combo_self: int = 0                  # current combo count
     energy_cost_self: int = 0            # current skill energy cost
@@ -252,6 +254,7 @@ ADDRESS_MAP: dict[tuple[str, str], str] = {
     ("sprite_self", "charged"):            "charged_self",
     ("sprite_self", "is_charging"):        "is_charging_self",
     ("sprite_self", "first_action"):       "first_action_self",
+    ("sprite_self", "element_advantage"):  "element_advantage",
     ("sprite_self", "energy_cost_sum"):    "energy_cost_sum_self",
     ("sprite_self", "power_mult"):         "power_mult_self",
     ("sprite_self", "damage_mult"):        "damage_mult_self",
@@ -294,6 +297,7 @@ ADDRESS_MAP: dict[tuple[str, str], str] = {
     ("team_own", "burst_triggered_count"): "burst_triggered_count_own",
     ("team_own", "lives"):               "lives_own",
     ("team_own", "elements"):              "team_elements_own",
+    ("team_own", "moe_stacks"):          "moe_team_stacks",
     ("sprite_self", "lives"):            "lives_own",
 
     # team_opp

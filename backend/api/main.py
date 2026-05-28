@@ -325,10 +325,11 @@ def _is_trait_metadata_effect(e) -> bool:
 
 
 def _is_display_stat_effect(e) -> bool:
-    """Return True for StatBuffEffect that is display-only (steps==0, has display_mult)."""
+    """Return True for StatBuffEffect that is display-only (steps==0, has display_mult or display_value)."""
     from backend.vm.effect import StatBuffEffect
-    if isinstance(e, StatBuffEffect) and e.steps == 0 and e.display_mult is not None:
-        return True
+    if isinstance(e, StatBuffEffect) and e.steps == 0:
+        if e.display_mult is not None or e.display_value is not None:
+            return True
     return False
 
 
@@ -413,7 +414,7 @@ def serialize_battle_state(battle: Battle, session_id: str) -> schemas.BattleSta
             base_p = sk.base.power
             base_e = sk.base.energy_cost
             pos_bonus = pos_bonus_map.get((team, i), 0)
-            perm_p = base_p + int(sk._modifiers.get("power", 0))
+            perm_p = base_p + int(sk._modifiers.get("power", 0)) + s.power_mod * 10
             eff_p = perm_p + battle.globals.mark_power_bonus(team, sk.base) + pos_bonus
             # 轴承支撑被动：两侧技能能耗-1
             adj_ec = 0
@@ -422,7 +423,8 @@ def serialize_battle_state(battle: Battle, session_id: str) -> schemas.BattleSta
                 if 0 <= ni < len(s.skills) and s.skills[ni].name == '轴承支撑':
                     adj_ec = 1
                     break
-            eff_e = max(0, base_e + s.energy_cost_mod + int(sk._modifiers.get("energy_cost", 0)) - mark_e_mod - adj_ec)
+            pending_ec = int(sum(m.value for m in s._pending_modifiers if getattr(m, 'stat', '') == 'energy_cost'))
+            eff_e = max(0, base_e + s.energy_cost_mod + pending_ec + int(s._modifiers.get("energy_cost", 0)) + int(sk._modifiers.get("energy_cost", 0)) - mark_e_mod - adj_ec)
             skills_data.append(schemas.SkillSummary(
                 name=sk.name,
                 skill_index=i,
@@ -432,6 +434,7 @@ def serialize_battle_state(battle: Battle, session_id: str) -> schemas.BattleSta
                 base_energy_cost=base_e,
                 effective_energy_cost=eff_e,
                 cooldown=sk.cooldown,
+                sealed=sk.sealed,
                 transmission=getattr(sk, '_transmission', 0),
                 main_axis=(getattr(sk, '_transmission', 0) == -1),
                 usable_while_charging=getattr(sk.base, 'usable_while_charging', False),
@@ -533,11 +536,12 @@ def _build_turn_snapshot(battle, turn_log):
                 name=sk.name,
                 skill_index=i,
                 base_power=sk.base.power,
-                effective_power=sk.base.power + int(sk._modifiers.get("power", 0)),
+                effective_power=sk.base.power + int(sk._modifiers.get("power", 0)) + sprite.power_mod * 10,
                 position_power_bonus=0,
                 base_energy_cost=sk.base.energy_cost,
                 effective_energy_cost=sk.base.energy_cost + int(sk._modifiers.get("energy_cost", 0)),
                 cooldown=sk.cooldown,
+                sealed=sk.sealed,
                 transmission=0,
                 main_axis=False,
             ) for i, sk in enumerate(sprite.skills)],
@@ -720,18 +724,6 @@ def _init_battle_impl(req: schemas.InitRequest):
     agent_b = _load_ai_agent(req.ai_agent or "RuleAgent", player_b)
     player_b.active_index = agent_b.choose_lead(battle)
 
-    # ── 回合 0: 静默触发 entry 效果 ──
-    # entry trait（地脉/囤积等）在此时生效，初始序列化状态直接反映进场后数值
-    from backend.sim.traits import dispatch_entry
-
-    s_a, s_b = player_a.active, player_b.active
-    dispatch_entry(s_a, battle, 'A')
-    dispatch_entry(s_b, battle, 'B')
-    ctx_a = battle._make_ctx(s_a, s_b, None, None, battle.globals, team='A', turn=battle.turn)
-    ctx_b = battle._make_ctx(s_b, s_a, None, None, battle.globals, team='B', turn=battle.turn)
-    battle._vm_engine.fire_trigger("post_entry", ctx_a, s_a, s_b, battle.globals, team='A', battle=battle)
-    battle._vm_engine.fire_trigger("post_entry", ctx_b, s_b, s_a, battle.globals, team='B', battle=battle)
-
     session_id = str(uuid.uuid4())
     sessions[session_id] = {
         "battle": battle,
@@ -767,9 +759,12 @@ def battle_action(req: schemas.ActionRequest):
     if req.action_type == "skill":
         if not req.skill_name:
             raise HTTPException(status_code=400, detail="Missing skill_name — required when action_type is 'skill'. Provide the name of a skill your active sprite knows.")
-        found = any(skill.name == req.skill_name for skill in battle.player_a.active.skills)
+        found = any(skill.name == req.skill_name and not skill.sealed for skill in battle.player_a.active.skills)
         if not found:
-            raise HTTPException(status_code=400, detail=f"Skill {req.skill_name!r} not available — your active sprite does not know this skill or it is sealed.")
+            matched_sealed = any(skill.name == req.skill_name and skill.sealed for skill in battle.player_a.active.skills)
+            if matched_sealed:
+                raise HTTPException(status_code=400, detail=f"Skill {req.skill_name!r} is sealed and cannot be used.")
+            raise HTTPException(status_code=400, detail=f"Skill {req.skill_name!r} not available — your active sprite does not know this skill.")
     elif req.action_type == "switch":
         if req.switch_index is None:
             raise HTTPException(status_code=400, detail="Missing switch_index — required when action_type is 'switch'. Provide the bench index of the sprite to switch to.")

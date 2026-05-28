@@ -1,65 +1,15 @@
 {
   "id": 20046,
   "name": "御驾亲征",
-  "description": "棋契陛下大幅提升种族资质，力竭时扣除4魔力。",
+  "description": "力竭时扣除4魔力。",
   "effects": [
     {
       "op": "observer",
       "then": [
         {
-          "target": "sprite_self",
-          "scope": "permanent",
-          "source": "御驾亲征",
-          "op": "stat_stage",
-          "stat": "atk",
-          "steps": 3
-        },
-        {
-          "target": "sprite_self",
-          "scope": "permanent",
-          "source": "御驾亲征",
-          "op": "stat_stage",
-          "stat": "sp_atk",
-          "steps": 3
-        },
-        {
-          "target": "sprite_self",
-          "scope": "permanent",
-          "source": "御驾亲征",
-          "op": "stat_stage",
-          "stat": "def",
-          "steps": 3
-        },
-        {
-          "target": "sprite_self",
-          "scope": "permanent",
-          "source": "御驾亲征",
-          "op": "stat_stage",
-          "stat": "sp_def",
-          "steps": 3
-        },
-        {
-          "target": "sprite_self",
-          "scope": "permanent",
-          "source": "御驾亲征",
-          "op": "stat_stage",
-          "stat": "speed",
-          "steps": 3
-        }
-      ],
-      "scope": "persistent",
-      "cond": {
-        "cond": "sprite_entered",
-        "of": "sprite_self"
-      },
-      "listen": "post_entry"
-    },
-    {
-      "op": "observer",
-      "then": [
-        {
-          "target": "sprite_self",
-          "op": "special"
+          "op": "lives",
+          "target_team": "own",
+          "delta": -3
         }
       ],
       "scope": "persistent",

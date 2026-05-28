@@ -1,6 +1,33 @@
 {
   "id": 20149,
   "name": "好象坏象",
-  "description": "状态技能应对1次后，回满状态，变为棋绮后。",
-  "triggers": []
+  "description": "自身使用状态技能应对成功一次后，回满状态，变为棋绮后。",
+  "effects": [
+    {
+      "op": "observer",
+      "cond": {
+        "cond": "counter_succeeded",
+        "skill_type": "状态"
+      },
+      "then": [
+        {
+          "op": "heal",
+          "target": "sprite_self",
+          "ratio": 1
+        },
+        {
+          "op": "energize",
+          "target": "sprite_self",
+          "delta": 15
+        },
+        {
+          "op": "transform",
+          "target": "sprite_self",
+          "species": "棋绮后"
+        }
+      ],
+      "listen": "post_counter",
+      "scope": "persistent"
+    }
+  ]
 }

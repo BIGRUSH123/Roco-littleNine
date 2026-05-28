@@ -55,6 +55,7 @@ class SkillSummary(BaseModel):
     base_energy_cost: int
     effective_energy_cost: int  # 含轴承支撑被动 / 印记减费
     cooldown: int
+    sealed: bool = False        # 封印标记：此槽位不可选用（宝剑王牌）
     transmission: int           # 传动等级（0=不传动）
     main_axis: bool             # 主轴：不参与传动
     usable_while_charging: bool = False  # 蓄力期间是否可使用

@@ -1,29 +1,42 @@
 {
   "id": 20043,
   "name": "定向精炼",
-  "description": "入场时，根据己方队伍防御技能使用次数提升机械系和地系技能威力。",
-  "triggers": [
+  "description": "己方精灵每使用1次防御技能，自己入场时机械系和地面系技能威力+10%。",
+  "effects": [
     {
-      "on": "entry",
-      "effects_mode": "replace",
-      "battleskill_mut": [
+      "op": "observer",
+      "cond": {
+        "cond": "sprite_entered",
+        "of": "sprite_self"
+      },
+      "then": [
         {
-          "filter": {
+          "op": "mult_mod",
+          "target": "sprite_self",
+          "attr": "power_mod",
+          "value": "=@team_counters[defense_skill]",
+          "mode": "set",
+          "skill_where": {
             "element": "机械"
           },
-          "field": "power_mod",
-          "op": "add",
-          "value": "=@team_counters[defense_skill]"
+          "scope": "battlefield",
+          "source": "定向精炼"
         },
         {
-          "filter": {
+          "op": "mult_mod",
+          "target": "sprite_self",
+          "attr": "power_mod",
+          "value": "=@team_counters[defense_skill]",
+          "mode": "set",
+          "skill_where": {
             "element": "地"
           },
-          "field": "power_mod",
-          "op": "add",
-          "value": "=@team_counters[defense_skill]"
+          "scope": "battlefield",
+          "source": "定向精炼"
         }
-      ]
+      ],
+      "listen": "post_entry",
+      "scope": "battlefield"
     }
   ]
 }

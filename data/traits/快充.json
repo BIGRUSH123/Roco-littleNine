@@ -5,30 +5,18 @@
   "effects": [
     {
       "op": "observer",
+      "cond": {
+        "cond": "self_switched"
+      },
       "then": [
         {
+          "op": "energize",
           "target": "sprite_self",
-          "op": "special"
+          "delta": 10
         }
       ],
-      "scope": "persistent",
-      "cond": {
-        "cond": "and",
-        "conditions": [
-          {
-            "cond": "sprite_left",
-            "of": "sprite_self"
-          },
-          {
-            "cond": "compare",
-            "q": "is_faint",
-            "of": "sprite_self",
-            "op": "eq",
-            "value": false
-          }
-        ]
-      },
-      "listen": "post_leave"
+      "listen": "post_leave",
+      "scope": "persistent"
     }
   ]
 }

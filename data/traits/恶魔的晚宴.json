@@ -5,28 +5,26 @@
   "effects": [
     {
       "op": "observer",
-      "then": [
-        {
-          "target": "sprite_self",
-          "scope": "battlefield",
-          "source": "恶魔的晚宴",
-          "op": "stat_stage",
-          "stat": "atk",
-          "steps": 5
-        },
-        {
-          "target": "sprite_self",
-          "scope": "battlefield",
-          "source": "恶魔的晚宴",
-          "op": "stat_stage",
-          "stat": "sp_atk",
-          "steps": 5
-        }
-      ],
-      "scope": "persistent",
       "cond": {
         "cond": "on_ko"
-      }
+      },
+      "then": [
+        {
+          "op": "mult_mod",
+          "target": "sprite_self",
+          "attr": "atk",
+          "value": 0.5,
+          "mode": "set"
+        },
+        {
+          "op": "mult_mod",
+          "target": "sprite_self",
+          "attr": "sp_atk",
+          "value": 0.5,
+          "mode": "set"
+        }
+      ],
+      "scope": "battlefield"
     }
   ]
 }

@@ -2,20 +2,21 @@
   "id": 20061,
   "name": "挺起胸脯",
   "description": "能耗为1的技能威力+50%。",
-  "triggers": [
+  "effects": [
     {
-      "on": "modifier",
-      "condition": {
-        "path": "skill.energy_cost",
-        "op": "eq",
-        "value": 1
-      },
-      "use_modifiers": {
-        "power_mult": {
-          "op": "add",
-          "value": 0.5
+      "op": "observer",
+      "cond": {"cond": "always"},
+      "scope": "persistent",
+      "then": [
+        {
+          "op": "mult_mod",
+          "attr": "power_mult",
+          "target": "sprite_self",
+          "value": 1.5,
+          "mode": "set",
+          "skill_where": {"energy_cost": 1}
         }
-      }
+      ]
     }
   ]
 }

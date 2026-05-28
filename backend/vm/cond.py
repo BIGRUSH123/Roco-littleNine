@@ -172,6 +172,7 @@ CONDITION_TRIGGERS: dict[str, frozenset[str]] = {
     "on_ko":                   frozenset({"post_ko"}),
     "on_self_ko":              frozenset({"post_ko"}),
     "on_damage_taken":         frozenset({"post_damage"}),
+    "damage_restraint":        frozenset({"post_damage"}),
     "prev_damage_taken":       frozenset({"post_damage"}),
     # HP / Energy thresholds
     "hp_below":                frozenset({"post_damage", "post_entry", "post_heal"}),
@@ -310,6 +311,7 @@ COND_EVAL = {
         ctx.damage_taken_this_turn > 0
         and ("of" not in cond or ctx.event.damage_taken_of == cond["of"])
     ),
+    "damage_restraint": lambda ctx, cond: ctx.element_advantage >= 2.0,
     "prev_damage_taken": lambda ctx, cond: (
         _sprite_of(ctx, cond.get("of", "sprite_self"))["prev_damage_taken"]
     ),

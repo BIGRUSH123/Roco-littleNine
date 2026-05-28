@@ -1,7 +1,7 @@
 {
   "id": 20063,
   "name": "搜刮",
-  "description": "入场时，根据敌方队伍采集和换宠次数之和获得魔攻强化（每层+2）。",
+  "description": "敌方每使用1次【聚能】技能或更换精灵，自己入场时获得魔攻+20%。",
   "effects": [
     {
       "op": "observer",
@@ -12,7 +12,7 @@
           "source": "搜刮",
           "op": "stat_stage",
           "stat": "sp_atk",
-          "steps": "=(@opponent.team_counters[enemy_gather] + @opponent.team_counters[enemy_switch]) * 2"
+          "steps": "=(@team_counters[enemy_gather] + @team_counters[enemy_switch]) * 2"
         }
       ],
       "scope": "battlefield",

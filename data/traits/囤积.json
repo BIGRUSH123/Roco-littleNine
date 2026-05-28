@@ -1,7 +1,7 @@
 {
   "id": 20027,
   "name": "囤积",
-  "description": "每有1能量，获得双防+10%。动态更新。",
+  "description": "每有1能量，获得双防+10%。",
   "effects": [
     {
       "op": "observer",
@@ -15,7 +15,7 @@
             "q": "energy",
             "of": "sprite_self",
             "scale": 0.1,
-            "offset": 1
+            "offset": 0
           }
         },
         {
@@ -27,7 +27,7 @@
             "q": "energy",
             "of": "sprite_self",
             "scale": 0.1,
-            "offset": 1
+            "offset": 0
           }
         }
       ],

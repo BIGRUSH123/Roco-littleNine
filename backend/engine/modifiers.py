@@ -28,6 +28,10 @@ def collect_modifiers(journal: Journal, ctx: Ctx) -> dict:
 
     Returns a dict of modifier category → effective value. Uses ctx for
     base values and the journal for same-skill adjustments.
+
+    Two-pass processing ensures deterministic mode priority regardless of
+    journal entry order: all 'set' baselines are collected first, then
+    'add' and 'multiply' are applied on top.
     """
     mods: dict[str, float] = {
         "power_mult": 1.0,
@@ -40,6 +44,29 @@ def collect_modifiers(journal: Journal, ctx: Ctx) -> dict:
         "power_add": 0,
     }
 
+    # ── Pass 1: collect set baselines (last set in journal wins) ──
+    power_mult_base = 1.0
+    dr_base = ctx.damage_reduction_opp
+
+    for m in journal:
+        if not isinstance(m, ModifierInjection):
+            continue
+        if m.mode != "set":
+            continue
+
+        if m.stat == "power_mult":
+            power_mult_base = m.value
+        elif m.stat == "damage_reduction":
+            dr_base = m.value
+        elif m.stat == "combo":
+            mods["combo_set"] = int(m.value)
+        elif m.stat == "power" and m.value != 0:
+            mods["power_base"] = m.value
+
+    mods["power_mult"] = power_mult_base
+    mods["damage_reduction"] = dr_base
+
+    # ── Pass 2: apply adds and multiplies on top of baselines ──
     for m in journal:
         if not isinstance(m, ModifierInjection):
             continue
@@ -50,31 +77,23 @@ def collect_modifiers(journal: Journal, ctx: Ctx) -> dict:
         if stat == "power_mult":
             if mode == "add":
                 mods["power_mult"] += value
-            elif mode == "set":
-                mods["power_mult"] = value
-            else:
+            elif mode != "set":
                 mods["power_mult"] *= value
         elif stat == "damage_mult":
             mods["damage_mult"] *= value
         elif stat == "damage_reduction":
             if mode == "add":
                 mods["damage_reduction"] = min(1.0, mods["damage_reduction"] + value)
-            elif mode == "set":
-                mods["damage_reduction"] = value
             elif mode == "multiply":
                 mods["damage_reduction"] = 1.0 - (1.0 - mods["damage_reduction"]) * (1.0 - value)
         elif stat == "combo":
             if mode == "add":
-                mods["combo_add"] += int(value)
-            elif mode == "set":
-                mods["combo_set"] = int(value)
+                mods["combo_add"] += int(m.value)
         elif stat == "power":
             if mode == "add":
                 mods["power_add"] += value
             elif mode == "multiply":
                 mods["power_mult"] *= value
-            elif mode == "set" and value != 0:
-                mods["power_base"] = value
 
     # Convert power_add to equivalent power_mult multiplier
     if mods.get("power_add", 0) > 0 and ctx.power_self > 0:
@@ -128,6 +147,16 @@ def adjust_damage(dmg: Damage, mods: dict) -> Damage:
     extra_dr = mods.get("damage_reduction_delta", 0.0)
     if extra_dr > 0:
         amount = round(amount * (1.0 - extra_dr))
+
+    # If damage was already fully negated by op_hit (via calc_damage's
+    # damage_reduction >= 1.0 early return), keep it at 0.
+    if dmg.amount <= 0:
+        return Damage(
+            target=dmg.target,
+            amount=0,
+            element=dmg.element,
+            type=dmg.type,
+        )
 
     return Damage(
         target=dmg.target,

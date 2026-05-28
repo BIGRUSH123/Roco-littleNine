@@ -2,16 +2,23 @@
   "id": 20065,
   "name": "斗技",
   "description": "应对成功后，全技能威力永久+20。",
-  "triggers": [
+  "effects": [
     {
-      "on": "counter_success",
-      "battleskill_mut": [
+      "op": "observer",
+      "cond": {
+        "cond": "counter_succeeded"
+      },
+      "then": [
         {
-          "field": "power_mod",
-          "op": "add",
-          "value": 20
+          "op": "stat_stage",
+          "stat": "power",
+          "target": "sprite_self",
+          "steps": 2,
+          "scope": "permanent",
+          "source": "斗技"
         }
-      ]
+      ],
+      "scope": "persistent"
     }
   ]
 }

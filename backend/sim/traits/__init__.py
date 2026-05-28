@@ -89,6 +89,22 @@ def dispatch_entry(sprite: Sprite, battle: Battle, team: str) -> list[str]:
     except Exception:
         pass
 
+    # Fire post_energy_change for initial energy state (traits like 囤积)
+    try:
+        opp_team = 'B' if team == 'A' else 'A'
+        opp = battle.get_player(opp_team).active
+        init_ctx = battle._make_ctx(
+            sprite, opp, None, None, battle.globals,
+            team=team, turn=battle.turn,
+            energy_changed_of="sprite_self",
+        )
+        battle._vm_engine.fire_trigger(
+            "post_energy_change", init_ctx, sprite, opp, battle.globals,
+            team=team, battle=battle,
+        )
+    except Exception:
+        pass
+
     # Engine hooks: post_entry
     from .trait_engine import fire_hook
     hook_events = fire_hook('post_entry', sprite, battle, team)

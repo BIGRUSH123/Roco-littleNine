@@ -66,10 +66,16 @@ class TraitLoader:
         direct_effects = [e for e in effects if e.get("op") != "observer"]
 
         # ── EffectObject construction (identity layer, IR-transparent) ──
-        # Clear old EffectObjects from same source (reload dedup)
+        # Clear old ObserverEffect/ModifierEffect from same source (reload dedup).
+        # Preserve StatBuffEffect — those are created by the battle replayer
+        # during combat and must survive trait reload (e.g. permanent stat stages).
+        from backend.vm.effect import ObserverEffect, ModifierEffect
         active = getattr(sprite, 'active_effects', None)
         if active:
-            sprite.active_effects = [e for e in active if e.source != trait_source]
+            sprite.active_effects = [
+                e for e in active
+                if not (isinstance(e, (ObserverEffect, ModifierEffect)) and e.source == trait_source)
+            ]
         else:
             sprite.active_effects = []
         for e in effects:

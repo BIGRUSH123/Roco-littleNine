@@ -58,7 +58,6 @@ class BattleMechanicsMixin:
         events.append(f'{old.name}↓ {new.name}↑')
 
         # ── trait hooks ──
-        events += dispatch_leave(old, self, team)
         events += dispatch_entry(new, self, team)
         # 入场传动（首回合入场自动传动一次）
         events += self._apply_transmission(new)
@@ -66,13 +65,16 @@ class BattleMechanicsMixin:
         opp_active = self.get_opponent(team).active
         self.inc_team_counter(opp_team, 'enemy_switch')
         # Observer: post_leave + post_entry + post_enemy_leave
+        # (dispatch_leave delayed until after fire_trigger so inherit ops
+        #  can read effects from the departing sprite before they are cleared)
         ctx_leave = self._make_ctx(old, opp_active, None, None, self.globals, team=team, turn=self.turn, self_switched=True)
         ctx_entry = self._make_ctx(new, opp_active, None, None, self.globals, team=team, turn=self.turn)
         events += self._vm_engine.fire_trigger("post_leave", ctx_leave, old, opp_active, self.globals, team=team, battle=self)
         events += self._vm_engine.fire_trigger("post_entry", ctx_entry, new, opp_active, self.globals, team=team, battle=self)
         if not opp_active.is_fainted:
             ctx_enemy_leave = self._make_ctx(opp_active, new, None, None, self.globals, team=opp_team, turn=self.turn, opp_switched=True)
-            events += self._vm_engine.fire_trigger("post_enemy_leave", ctx_enemy_leave, opp_active, new, self.globals, team=opp_team, battle=self)
+            events += self._vm_engine.fire_trigger("post_enemy_leave", ctx_enemy_leave, opp_active, new, self.globals, team=opp_team, battle=self, leaving_sprite=old)
+        events += dispatch_leave(old, self, team)
 
         if faint_events is not None:
             self._check_faint_interrupt(team, faint_events)
@@ -88,6 +90,7 @@ class BattleMechanicsMixin:
             return events
         n = len([e for e in getattr(sprite, 'active_effects', []) if getattr(e, 'scope', '') == 'battlefield'])
         sprite.clear_effects('battlefield')
+        sprite.entry_turn = self.turn
         sprite.first_action = True
         sprite.inc_counter('times_entered')
         events.append(f'{sprite.name} 返场(-{n}效果)')
@@ -134,19 +137,24 @@ class BattleMechanicsMixin:
         events.append(f'{old.name} 力竭↓ {new.name}↑')
 
         # ── trait hooks ──
-        events += dispatch_leave(old, self, team, is_faint=True)
         events += dispatch_entry(new, self, team)
         events += self._apply_transmission(new)
-        # Observer: post_leave + post_entry + post_enemy_leave
+        # Observer: post_ko + post_leave + post_entry + post_enemy_leave
         opp_team = 'B' if team == 'A' else 'A'
         opp_active = self.get_opponent(team).active
         ctx_ko_leave = self._make_ctx(old, opp_active, None, None, self.globals, team=team, turn=self.turn, target_fainted=True, self_switched=True)
+        events += self._vm_engine.fire_trigger("post_ko", ctx_ko_leave, old, opp_active, self.globals, team=team, battle=self)
+        if player.lives <= 0:
+            self.winner = 'B' if team == 'A' else 'A'
+            events.append(f'{player.name} 魔力耗尽 → {self.get_opponent(team).name} 胜')
+            return
         ctx_ko_entry = self._make_ctx(new, opp_active, None, None, self.globals, team=team, turn=self.turn)
         events += self._vm_engine.fire_trigger("post_leave", ctx_ko_leave, old, opp_active, self.globals, team=team, battle=self)
         events += self._vm_engine.fire_trigger("post_entry", ctx_ko_entry, new, opp_active, self.globals, team=team, battle=self)
         if not opp_active.is_fainted:
             ctx_ko_enemy = self._make_ctx(opp_active, new, None, None, self.globals, team=opp_team, turn=self.turn, opp_switched=True)
-            events += self._vm_engine.fire_trigger("post_enemy_leave", ctx_ko_enemy, opp_active, new, self.globals, team=opp_team, battle=self)
+            events += self._vm_engine.fire_trigger("post_enemy_leave", ctx_ko_enemy, opp_active, new, self.globals, team=opp_team, battle=self, leaving_sprite=old)
+        events += dispatch_leave(old, self, team, is_faint=True)
 
     def _resolve_item(self, team: str) -> str:
         """使用道具，立即应用效果。返回道具名（用于记录）。"""

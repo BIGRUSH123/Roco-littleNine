@@ -2,5 +2,24 @@
   "id": 20151,
   "name": "嫉妒",
   "description": "蓄力状态下可使用任一携带技能。",
-  "triggers": []
+  "effects": [
+    {
+      "op": "observer",
+      "cond": {
+        "cond": "sprite_entered",
+        "of": "sprite_self"
+      },
+      "listen": "post_entry",
+      "scope": "battlefield",
+      "then": [
+        {
+          "op": "flag_set",
+          "target": "sprite_self",
+          "flag": "charge_any_skill",
+          "value": true,
+          "scope": "battlefield"
+        }
+      ]
+    }
+  ]
 }

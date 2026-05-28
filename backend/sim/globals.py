@@ -252,7 +252,7 @@ class GlobalEffects:
             if isinstance(me, MarkEffect) and me.name == '星陨印记' and me.stacks > 0:
                 total_stacks = me.stacks
                 dmg_per_stack = me.starfall_damage or 30
-                consumed = self.consume_starfall_stacks(team, total_stacks, defender)
+                consumed = self.consume_starfall_stacks(team, total_stacks, attacker)
                 if consumed <= 0:
                     return 0
                 raw = round(attacker.effective_stat('sp_atk') * (total_stacks * dmg_per_stack)

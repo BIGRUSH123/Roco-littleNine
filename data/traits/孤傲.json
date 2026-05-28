@@ -1,24 +1,24 @@
 {
   "id": 20127,
-  "name": "贪婪",
+  "name": "孤傲",
   "description": "敌方精灵离场后，其增益/减益被换上来的精灵继承。",
   "effects": [
     {
       "op": "observer",
+      "cond": {
+        "cond": "sprite_left",
+        "of": "sprite_opp"
+      },
+      "listen": "post_enemy_leave",
       "scope": "persistent",
       "then": [
         {
           "op": "inherit",
-          "source": "target",
-          "inherit_target": "enemy_new",
-          "inherit_stat_effects": true,
-          "via_pending": true
+          "target": "enemy_new",
+          "source": "sprite_opp",
+          "inherit_stat_effects": true
         }
-      ],
-      "cond": {
-        "cond": "sprite_left",
-        "of": "sprite_opp"
-      }
+      ]
     }
   ]
 }

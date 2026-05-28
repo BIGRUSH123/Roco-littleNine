@@ -1,27 +1,34 @@
 {
   "id": 20058,
   "name": "拨浪鼓",
-  "description": "入场时，根据己方队伍状态技能使用次数提升毒系和萌系技能威力。",
-  "triggers": [
+  "description": "己方精灵每使用1次状态技能，自己入场时毒系和萌系技能威力+10。",
+  "effects": [
     {
-      "on": "entry",
-      "effects_mode": "replace",
-      "battleskill_mut": [
+      "op": "observer",
+      "listen": "post_entry",
+      "scope": "battlefield",
+      "cond": {
+        "cond": "sprite_entered",
+        "of": "sprite_self"
+      },
+      "then": [
         {
-          "filter": {
-            "element": "毒"
-          },
-          "field": "power_mod",
-          "op": "add",
-          "value": "=@team_counters[status_skill]"
+          "op": "mult_mod",
+          "attr": "power_mod",
+          "target": "sprite_self",
+          "value": "=@team_counters[status_skill]",
+          "mode": "set",
+          "skill_where": {"element": "毒"},
+          "source": "拨浪鼓"
         },
         {
-          "filter": {
-            "element": "萌"
-          },
-          "field": "power_mod",
-          "op": "add",
-          "value": "=@team_counters[status_skill]"
+          "op": "mult_mod",
+          "attr": "power_mod",
+          "target": "sprite_self",
+          "value": "=@team_counters[status_skill]",
+          "mode": "set",
+          "skill_where": {"element": "萌"},
+          "source": "拨浪鼓"
         }
       ]
     }

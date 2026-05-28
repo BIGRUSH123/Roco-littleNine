@@ -35,6 +35,10 @@ def op_mark(ctx: Ctx, effect) -> list[Mutation]:
 
     # Normalize: 5 target values → own/opp
     team = "own" if target in ("team_own", "own_team", "sprite_self") else "opp"
+    # Allow explicit target_team override (used by steal/conversion ops)
+    explicit_team = _get(effect, "target_team", None)
+    if explicit_team is not None:
+        team = "own" if explicit_team in ("own", "own_team", "team_own") else "opp"
 
     result = [MarkChange(
         target_team=team,

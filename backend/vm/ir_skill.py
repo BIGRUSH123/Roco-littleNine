@@ -166,6 +166,7 @@ class ModOp:
     cooldown: int = 0
     source: str | None = None
     mutate: bool = False
+    then: list | None = None
     feeds: str = ""
     needs: str = ""
     priority: int = 0

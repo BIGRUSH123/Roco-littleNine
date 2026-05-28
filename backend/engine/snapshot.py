@@ -18,6 +18,22 @@ if TYPE_CHECKING:
     from backend.sim.sprite import Sprite
 
 
+def _get_element_advantage(atk_element: str, def_elements: list[str]) -> float:
+    """Calculate type effectiveness: product of attacker element vs each defender element.
+
+    Returns 0.5 (resist), 1.0 (neutral), 2.0 (super effective), etc.
+    """
+    from backend.sim.resolver import _TYPE_CHART
+
+    if not atk_element or not def_elements:
+        return 1.0
+    chart = _TYPE_CHART.get(atk_element, {})
+    mult = 1.0
+    for de in def_elements:
+        mult *= chart.get(de, 1.0)
+    return mult
+
+
 def _compute_speed_self(ss: Sprite) -> int:
     """Compute ctx speed_self from sprite, applying _modifiers multiplier."""
     base = ss.effective_stat("speed") if hasattr(ss, 'effective_stat') else ss.initial_stats.get("speed", 100)
@@ -84,6 +100,7 @@ def build_ctx(
     devotion_own: dict[str, int] | None = None,
     devotion_opp: dict[str, int] | None = None,
     abnormal_stacks_battle: dict[str, int] | None = None,
+    moe_team_stacks: int = 0,
     # BattleSkill reference (for _modifiers and synthesized power/energy/combo)
     battle_skill: Any = None,
 ) -> Ctx:
@@ -170,9 +187,13 @@ def build_ctx(
         combo_base = sk.combo if hasattr(sk, 'combo') else 1
         energy_cost_self = sk.energy_cost if hasattr(sk, 'energy_cost') else 0
     combo_mod = int(ss._modifiers.get("combo", 0))
+    combo_set = int(ss._modifiers.get("combo_set", 0))
     # combo_mult 不在 snapshot 阶段乘入 — 留给 adjust_damage 在
     # 同技能 combo 修改（set/add）之后再乘，确保正确的执行顺序。
-    combo_self = max(1, combo_base + combo_mod)
+    if combo_set > 0:
+        combo_self = max(1, combo_set)
+    else:
+        combo_self = max(1, combo_base + combo_mod)
     energy_cost_reduction_self = 0  # engine tracks this
 
     # ── Opp skill ──
@@ -297,6 +318,7 @@ def build_ctx(
         lives_own=lives_own,
         lives_opp=lives_opp,
         burst_triggered_count_own=burst_triggered_count_own,
+        moe_team_stacks=moe_team_stacks,
 
         # Skill
         power_self=power_self,
@@ -308,6 +330,10 @@ def build_ctx(
         element_opp=getattr(osk, 'element', "") if osk else "",
         skill_tag_self=getattr(sk, 'tag', ""),
         combo_self=combo_self,
+        element_advantage=_get_element_advantage(
+            getattr(sk, 'element', ''),
+            [e.strip() for e in (getattr(os.species, 'attributes', '') or '').split(',') if e.strip()]
+        ) if sk else 1.0,
         energy_cost_self=energy_cost_self,
         energy_cost_reduction_self=energy_cost_reduction_self,
         energy_cost_opp=energy_cost_opp,

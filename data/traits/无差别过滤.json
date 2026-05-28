@@ -2,15 +2,44 @@
   "id": 20066,
   "name": "无差别过滤",
   "description": "在场时，所有精灵连击数固定为2。",
-  "triggers": [
+  "effects": [
     {
-      "on": "modifier",
-      "use_modifiers": {
-        "multi_hit": {
-          "op": "set",
-          "value": 2
+      "op": "observer",
+      "cond": {"cond": "always"},
+      "scope": "battlefield",
+      "then": [
+        {
+          "op": "mod",
+          "stat": "combo_set",
+          "target": "sprite_self",
+          "value": 2,
+          "mode": "set",
+          "source": "无差别过滤"
+        },
+        {
+          "op": "mod",
+          "stat": "combo_set",
+          "target": "sprite_opp",
+          "value": 2,
+          "mode": "set",
+          "source": "无差别过滤"
         }
-      }
+      ]
+    },
+    {
+      "op": "observer",
+      "cond": {"cond": "opp_switched"},
+      "scope": "battlefield",
+      "then": [
+        {
+          "op": "mod",
+          "stat": "combo_set",
+          "target": "sprite_opp",
+          "value": 2,
+          "mode": "set",
+          "source": "无差别过滤"
+        }
+      ]
     }
   ]
 }

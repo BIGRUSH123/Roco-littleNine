@@ -364,11 +364,16 @@ class JournalReplayer:
                                     m.source or "skill",
                                     is_inherent=self._trait_sourcing)
         # Stage stats from traits: create display-only effect for trait tooltip
-        # (percentage stats only; speed is absolute points, not meaningful as display_mult)
-        if m.stat in _STAGE_STATS and m.stat != "speed":
+        if m.stat in _STAGE_STATS:
             source = m.source or ""
-            mult_value = m.steps * (_STEP_PCT / 100)
-            self._sync_mult_display_effect(sprite, m.stat, mult_value, m.scope, source)
+            if m.stat == "speed":
+                self._sync_mult_display_effect(sprite, m.stat, 0.0, m.scope, source,
+                                                display_value=float(m.steps * _SPEED_STEP),
+                                                additive=True)
+            else:
+                mult_value = m.steps * (_STEP_PCT / 100)
+                self._sync_mult_display_effect(sprite, m.stat, mult_value, m.scope, source,
+                                                additive=True)
         # Non-stage stats (power, energy_cost, priority, combo): display as absolute values
         elif m.source and m.stat in ('power', 'energy_cost', 'priority', 'combo') and m.steps != 0:
             self._sync_mult_display_effect(sprite, m.stat, 0.0, m.scope, m.source,
@@ -564,7 +569,8 @@ class JournalReplayer:
         if source:
             if m.stat in _STAGE_STATS:
                 # Percentage stats: display_mult = ratio value (e.g., 0.5 = +50%)
-                self._sync_mult_display_effect(sprite, m.stat, m.value, m.scope, source)
+                self._sync_mult_display_effect(sprite, m.stat, m.value, m.scope, source,
+                                                additive=(m.mode == "add"))
             elif m.stat in _VISIBLE_MOD_STATS:
                 if m.stat in _RATIO_STATS:
                     self._sync_mult_display_effect(sprite, m.stat, m.value, m.scope, source)
@@ -913,12 +919,16 @@ class JournalReplayer:
     @staticmethod
     def _sync_mult_display_effect(sprite, stat_key: str, mult_value: float,
                                    scope: str, source: str,
-                                   display_value: float | None = None) -> None:
+                                   display_value: float | None = None,
+                                   additive: bool = False) -> None:
         """Create or update display-only StatBuffEffect for mult_mod values.
 
         Sets steps=0 so _extract_stat_stages ignores it (no double-counting).
         The display_mult field carries the ratio for UI display only.
         The display_value field carries absolute values (combo, priority, etc.).
+
+        When additive=True, mult_value and display_value are added to existing
+        values instead of replacing them (used for cumulative stat_stage triggers).
         """
         if not source:
             return
@@ -934,11 +944,14 @@ class JournalReplayer:
             None,
         )
         if existing is not None:
-            existing.display_mult = mult_value
-            if display_value is not None:
-                existing.display_value = display_value
-            # Preserve the effect's actual scope so permanent display effects
-            # survive leave/re-entry (e.g. 指挥家 permanent stat stages).
+            if additive:
+                existing.display_mult += mult_value
+                if display_value is not None:
+                    existing.display_value = (existing.display_value or 0) + display_value
+            else:
+                existing.display_mult = mult_value
+                if display_value is not None:
+                    existing.display_value = display_value
             existing.scope = scope
             return
 

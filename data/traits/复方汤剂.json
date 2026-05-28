@@ -1,17 +1,10 @@
 {
   "id": 20035,
   "name": "复方汤剂",
-  "description": "回合结束时，敌方中毒效果额外触发一次伤害。",
+  "description": "回合结束时，中毒效果触发次数+1。",
   "effects": [
     {
       "op": "observer",
-      "then": [
-        {
-          "target": "sprite_self",
-          "op": "special"
-        }
-      ],
-      "scope": "persistent",
       "cond": {
         "cond": "and",
         "conditions": [
@@ -25,7 +18,16 @@
             "name": "中毒"
           }
         ]
-      }
+      },
+      "then": [
+        {
+          "op": "tick",
+          "target": "sprite_opp",
+          "name": "中毒"
+        }
+      ],
+      "listen": "turn_end",
+      "scope": "persistent"
     }
   ]
 }

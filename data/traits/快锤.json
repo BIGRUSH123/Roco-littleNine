@@ -2,17 +2,30 @@
   "id": 20048,
   "name": "快锤",
   "description": "能耗<3的技能获得迅捷。",
-  "triggers": [
+  "effects": [
     {
-      "on": "entry",
-      "battleskill_mut": [
+      "op": "observer",
+      "cond": {
+        "cond": "or",
+        "conditions": [
+          {"cond": "sprite_entered", "of": "sprite_self"},
+          {"cond": "always"}
+        ]
+      },
+      "listen": ["post_entry", "turn_start"],
+      "scope": "battlefield",
+      "then": [
         {
-          "filter": {
-            "energy_cost_lt": 3
-          },
-          "field": "priority",
-          "op": "add",
-          "value": 1
+          "op": "mult_mod",
+          "target": "sprite_self",
+          "attr": "swift",
+          "value": 1,
+          "mode": "set",
+          "skill_where": {
+            "q": "energy_cost",
+            "op": "lt",
+            "value": 3
+          }
         }
       ]
     }

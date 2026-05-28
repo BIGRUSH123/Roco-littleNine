@@ -1,15 +1,26 @@
 {
   "id": 20147,
   "name": "多人宿舍",
-  "description": "能量可以超过能量上限（10→15）。",
+  "description": "自己的能量可以超过能量上限。",
   "effects": [
     {
-      "op": "power_mod",
-      "target": "sprite_self",
-      "attr": "max_energy",
-      "value": 15,
-      "mode": "set",
-      "scope": "permanent"
+      "op": "observer",
+      "cond": {
+        "cond": "sprite_entered",
+        "of": "sprite_self"
+      },
+      "listen": "post_entry",
+      "scope": "permanent",
+      "then": [
+        {
+          "op": "power_mod",
+          "target": "sprite_self",
+          "attr": "max_energy",
+          "value": 15,
+          "mode": "set",
+          "scope": "permanent"
+        }
+      ]
     }
   ]
 }

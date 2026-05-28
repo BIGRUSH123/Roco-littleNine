@@ -124,6 +124,10 @@ class BattleVMEngine:
         # 2. Fire pre-calc observers → apply to sprite → rebuild ctx
         # so trait buffs like专注力's atk+100% are visible in the snapshot
         pre_calc_mods = self._fire_pre_calc(ctx, id(self_sprite))
+        # Also fire defender's pre_calc observers (e.g. 完全偏振) —
+        # uses attacker's ctx so conditions referencing sprite_opp resolve
+        # to the defending sprite correctly.
+        pre_calc_mods.extend(self._fire_pre_calc(ctx, id(opp_sprite)))
         pre_calc_events: list[str] = []
         if pre_calc_mods:
             from .replayer import JournalReplayer as _JR
@@ -251,17 +255,26 @@ class BattleVMEngine:
 
         Recursively handles when/then/else nesting so observer child effects
         carry the observer's source for trait tooltip display.
+
+        Handles both raw dict effects and already-compiled typed IR objects.
         """
         import copy
+        from backend.vm.ir_skill import WhenBlock
         result = []
         for eff in effects:
-            eff = copy.copy(eff)
-            if "op" in eff and "source" not in eff:
-                eff["source"] = source
-            if isinstance(eff.get("then"), list):
-                eff["then"] = self._inject_source(eff["then"], source)
-            if isinstance(eff.get("else"), list):
-                eff["else"] = self._inject_source(eff["else"], source)
+            if isinstance(eff, dict):
+                eff = copy.copy(eff)
+                if "op" in eff and "source" not in eff:
+                    eff["source"] = source
+                if isinstance(eff.get("then"), list):
+                    eff["then"] = self._inject_source(eff["then"], source)
+                if isinstance(eff.get("else"), list):
+                    eff["else"] = self._inject_source(eff["else"], source)
+            elif isinstance(eff, WhenBlock):
+                eff = copy.copy(eff)
+                eff.then = tuple(self._inject_source(list(eff.then), source))
+                if eff.else_:
+                    eff.else_ = tuple(self._inject_source(list(eff.else_), source))
             result.append(eff)
         return result
 
@@ -271,17 +284,26 @@ class BattleVMEngine:
         Recursively handles when/then/else nesting so observer child effects
         inherit the observer's scope (e.g. persistent → mult_mod survives
         _PER_TURN_KEYS cleanup).
+
+        Handles both raw dict effects and already-compiled typed IR objects.
         """
         import copy
+        from backend.vm.ir_skill import WhenBlock
         result = []
         for eff in effects:
-            eff = copy.copy(eff)
-            if "op" in eff and "scope" not in eff:
-                eff["scope"] = scope
-            if isinstance(eff.get("then"), list):
-                eff["then"] = self._inject_default_scope(eff["then"], scope)
-            if isinstance(eff.get("else"), list):
-                eff["else"] = self._inject_default_scope(eff["else"], scope)
+            if isinstance(eff, dict):
+                eff = copy.copy(eff)
+                if "op" in eff and "scope" not in eff:
+                    eff["scope"] = scope
+                if isinstance(eff.get("then"), list):
+                    eff["then"] = self._inject_default_scope(eff["then"], scope)
+                if isinstance(eff.get("else"), list):
+                    eff["else"] = self._inject_default_scope(eff["else"], scope)
+            elif isinstance(eff, WhenBlock):
+                eff = copy.copy(eff)
+                eff.then = tuple(self._inject_default_scope(list(eff.then), scope))
+                if eff.else_:
+                    eff.else_ = tuple(self._inject_default_scope(list(eff.else_), scope))
             result.append(eff)
         return result
 
@@ -300,18 +322,27 @@ class BattleVMEngine:
             # Owner filter: only for triggers where "which sprite" matters.
             # turn_end and post_abnormal_tick are fired per-sprite in a loop,
             # so sprite-owned observers must only fire for their owner.
-            if trigger in ("post_entry", "post_leave", "post_skill",
+            # post_ko: allow observers owned by EITHER the fainted sprite (self)
+            # or the killer (opp). For killer-owned observers, perspective swap
+            # below re-orients replayer.self → killer before condition eval.
+            if trigger == "post_ko":
+                opp_id = id(replayer.opp) if replayer.opp else None
+                if obs.owner_sprite_id is not None:
+                    if obs.owner_sprite_id != owner_id and obs.owner_sprite_id != opp_id:
+                        continue
+            elif trigger in ("post_entry", "post_leave", "post_skill",
                            "turn_end", "post_abnormal_tick", "turn_start",
-                           "post_energy_change", "post_counter"):
+                           "post_energy_change", "post_counter",
+                           "post_enemy_leave"):
                 if obs.owner_sprite_id is not None and owner_id is not None:
                     if obs.owner_sprite_id != owner_id:
                         continue
-            # post_damage: if owner is the defender (took damage),
-            # swap replayer AND ctx BEFORE condition evaluation so conds like
-            # on_damage_taken of=sprite_self resolve from owner's perspective
-            # and stat reads (atk_self, def_opp) use correct values
+            # post_damage / post_ko: if owner is the defender / killer (not the
+            # replayer.self), swap replayer AND ctx BEFORE condition evaluation
+            # so conds like on_damage_taken / on_ko resolve from owner's perspective
+            # and stat reads (atk_self, def_opp) use correct values.
             saved_perspective = None
-            if trigger == "post_damage" and obs.owner_sprite_id is not None:
+            if trigger in ("post_damage", "post_ko") and obs.owner_sprite_id is not None:
                 opp_id = id(replayer.opp) if replayer.opp else None
                 if obs.owner_sprite_id == opp_id:
                     saved_perspective = (
@@ -331,7 +362,9 @@ class BattleVMEngine:
                     if obs.source:
                         then = self._inject_source(then, obs.source)
                     journal = process_effects(ctx, then)
+                    replayer._trait_sourcing = True
                     ev = replayer.replay(journal)
+                    replayer._trait_sourcing = False
                     events.extend(ev)
             except Exception:
                 continue
@@ -419,6 +452,7 @@ class BattleVMEngine:
         species_lookup = None,
         self_skill = None,
         battle = None,
+        leaving_sprite: Sprite | None = None,
     ) -> list[str]:
         """Public hook: fire a trigger point and replay results as events.
 
@@ -431,6 +465,7 @@ class BattleVMEngine:
             species_lookup=species_lookup,
             self_skill=self_skill,
             battle=battle,
+            leaving_sprite=leaving_sprite,
         )
         return self._fire_post_event(trigger, ctx, replayer)
 

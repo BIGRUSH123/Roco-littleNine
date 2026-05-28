@@ -1,70 +1,28 @@
 {
   "id": 20045,
   "name": "得寸进尺",
-  "description": "天气为雨天或水系环境时，双攻+100%。天气不满足时效果消失。",
+  "description": "天气为雨天时，双攻+100%。",
   "effects": [
     {
       "op": "observer",
-      "then": [
-        {
-          "target": "sprite_self",
-          "scope": "battlefield",
-          "source": "得寸进尺",
-          "op": "stat_stage",
-          "stat": "atk",
-          "steps": 10
-        },
-        {
-          "target": "sprite_self",
-          "scope": "battlefield",
-          "source": "得寸进尺",
-          "op": "stat_stage",
-          "stat": "sp_atk",
-          "steps": 10
-        }
-      ],
-      "scope": "battlefield",
       "cond": {
-        "cond": "sprite_entered",
-        "of": "sprite_self"
-      },
-      "listen": "post_entry"
-    },
-    {
-      "op": "observer",
-      "cond": {
-        "cond": "not",
-        "condition": {
-          "cond": "weather_is",
-          "weather": "rain"
-        }
+        "cond": "weather_is",
+        "weather": "rain"
       },
       "then": [
         {
-          "op": "dispel",
-          "target": "sprite_self"
-        }
-      ],
-      "scope": "persistent"
-    },
-    {
-      "op": "observer",
-      "then": [
-        {
+          "op": "mult_mod",
           "target": "sprite_self",
-          "scope": "battlefield",
-          "source": "得寸进尺",
-          "op": "stat_stage",
-          "stat": "atk",
-          "steps": 10
+          "attr": "atk",
+          "value": 1,
+          "mode": "set"
         },
         {
+          "op": "mult_mod",
           "target": "sprite_self",
-          "scope": "battlefield",
-          "source": "得寸进尺",
-          "op": "stat_stage",
-          "stat": "sp_atk",
-          "steps": 10
+          "attr": "sp_atk",
+          "value": 1,
+          "mode": "set"
         }
       ],
       "scope": "battlefield"
@@ -80,11 +38,21 @@
       },
       "then": [
         {
-          "op": "dispel",
-          "target": "sprite_self"
+          "op": "mult_mod",
+          "target": "sprite_self",
+          "attr": "atk",
+          "value": 0,
+          "mode": "set"
+        },
+        {
+          "op": "mult_mod",
+          "target": "sprite_self",
+          "attr": "sp_atk",
+          "value": 0,
+          "mode": "set"
         }
       ],
-      "scope": "persistent"
+      "scope": "battlefield"
     }
   ]
 }

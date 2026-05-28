@@ -43,6 +43,6 @@ ABNORMAL_TEMPLATES: dict[str, AbnormalEffect] = {
     "萌化": AbnormalEffect(
         name="萌化",
         source="萌化",
-        scope="battlefield",
+        scope="persistent",
     ),
 }

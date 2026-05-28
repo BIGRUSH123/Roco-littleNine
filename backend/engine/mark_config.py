@@ -23,6 +23,10 @@ MARK_TEMPLATES: dict[str, MarkEffect] = {
         name="润泽印记", source="印记", category="positive", scope="persistent",
         energy_mod=1,
     ),
+    "湿润印记": MarkEffect(
+        name="湿润印记", source="印记", category="positive", scope="persistent",
+        energy_mod=1,
+    ),
     "风起": MarkEffect(
         name="风起", source="印记", category="positive", scope="persistent",
         damage_mult=0.20, condition="is_first",

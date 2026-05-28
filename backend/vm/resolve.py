@@ -55,7 +55,10 @@ def resolve(ctx: Ctx, value) -> int | float | str:
     """
     # ── Typed IRValue dispatch (V2) ──
     if isinstance(value, Literal):
-        return value.value
+        v = value.value
+        if isinstance(v, str) and v.startswith("="):
+            return _resolve_formula_string(ctx, v)
+        return v
     if isinstance(value, Query):
         raw = getattr(ctx, value.field, value.default)
         if raw is None:
@@ -247,6 +250,7 @@ _FORMULA_PATH_MAP: dict[str, str] = {
     "battle.globals.weather": "weather",
     "opponent.lives": "lives_opp",
     "effect_name": "abnormal_applied_name",
+    "player_moe_stacks": "moe_team_stacks",
 }
 
 
@@ -318,7 +322,7 @@ def _resolve_formula_string(ctx: Ctx, formula: str) -> int | float:
             return str(val) if val is not None else '0'
 
         resolved = re.sub(
-            r'@[a-zA-Z_]\w*(?:\.[a-zA-Z_]\w*(?:\[[^\]]*\])?)*',
+            r'@[a-zA-Z_]\w*(?:\[[^\]]*\])?(?:\.[a-zA-Z_]\w*(?:\[[^\]]*\])?)*',
             replace_ref, expr,
         )
 

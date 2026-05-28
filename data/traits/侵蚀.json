@@ -7,14 +7,15 @@
       "op": "observer",
       "then": [
         {
-          "op": "power_mod",
+          "op": "mult_mod",
           "target": "sprite_self",
           "attr": "combo",
-          "delta": {
+          "value": {
             "q": "abnormal_stacks",
             "of": "sprite_opp",
             "name": "中毒"
           },
+          "mode": "set",
           "scope": "turn"
         }
       ],
@@ -27,7 +28,8 @@
         "value": 1
       },
       "listen": [
-        "pre_calc"
+        "pre_calc",
+        "post_damage"
       ]
     }
   ]

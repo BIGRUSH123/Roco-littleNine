@@ -1,29 +1,10 @@
 {
   "id": 20034,
   "name": "壮胆",
-  "description": "队伍存在虫系精灵 → 双攻+50%。",
+  "description": "队伍存在虫系精灵，自己获得双攻+50%",
   "effects": [
     {
       "op": "observer",
-      "then": [
-        {
-          "target": "sprite_self",
-          "scope": "battlefield",
-          "source": "壮胆",
-          "op": "stat_stage",
-          "stat": "atk",
-          "steps": 5
-        },
-        {
-          "target": "sprite_self",
-          "scope": "battlefield",
-          "source": "壮胆",
-          "op": "stat_stage",
-          "stat": "sp_atk",
-          "steps": 5
-        }
-      ],
-      "scope": "persistent",
       "cond": {
         "cond": "and",
         "conditions": [
@@ -37,7 +18,26 @@
           }
         ]
       },
-      "listen": "post_entry"
+      "then": [
+        {
+          "op": "stat_stage",
+          "target": "sprite_self",
+          "stat": "atk",
+          "steps": 5,
+          "scope": "battlefield",
+          "source": "壮胆"
+        },
+        {
+          "op": "stat_stage",
+          "target": "sprite_self",
+          "stat": "sp_atk",
+          "steps": 5,
+          "scope": "battlefield",
+          "source": "壮胆"
+        }
+      ],
+      "listen": "post_entry",
+      "scope": "persistent"
     }
   ]
 }

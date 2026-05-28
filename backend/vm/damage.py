@@ -65,4 +65,6 @@ def calc_damage(
     core *= (1.0 + atk_stage - def_stage + mark_bonus)
     core *= combo_count * damage_mult
 
+    if damage_reduction >= 1.0:
+        return 0
     return max(1, round(core))

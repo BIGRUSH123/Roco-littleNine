@@ -5,54 +5,53 @@
   "effects": [
     {
       "op": "observer",
+      "cond": {
+        "cond": "damage_restraint"
+      },
+      "scope": "persistent",
       "then": [
         {
-          "target": "sprite_self",
-          "scope": "battlefield",
-          "source": "最好的伙伴",
           "op": "stat_stage",
+          "target": "sprite_self",
           "stat": "atk",
-          "steps": 2
+          "steps": 2,
+          "source": "最好的伙伴"
         },
         {
-          "target": "sprite_self",
-          "scope": "battlefield",
-          "source": "最好的伙伴",
           "op": "stat_stage",
+          "target": "sprite_self",
           "stat": "def",
-          "steps": 2
+          "steps": 2,
+          "source": "最好的伙伴"
         },
         {
-          "target": "sprite_self",
-          "scope": "battlefield",
-          "source": "最好的伙伴",
           "op": "stat_stage",
-          "stat": "speed",
-          "steps": 2
+          "target": "sprite_self",
+          "stat": "sp_atk",
+          "steps": 2,
+          "source": "最好的伙伴"
         },
         {
+          "op": "stat_stage",
           "target": "sprite_self",
+          "stat": "sp_def",
+          "steps": 2,
+          "source": "最好的伙伴"
+        },
+        {
+          "op": "mult_mod",
+          "target": "sprite_self",
+          "attr": "speed",
+          "value": 0.2,
+          "mode": "add",
+          "source": "最好的伙伴"
+        },
+        {
           "op": "energize",
+          "target": "sprite_self",
           "delta": 2
         }
-      ],
-      "scope": "persistent",
-      "cond": {
-        "cond": "and",
-        "conditions": [
-          {
-            "cond": "on_damage_taken",
-            "of": "sprite_opp"
-          },
-          {
-            "cond": "compare",
-            "q": "type_mult",
-            "of": "sprite_self",
-            "op": "gt",
-            "value": 1.0
-          }
-        ]
-      }
+      ]
     }
   ]
 }

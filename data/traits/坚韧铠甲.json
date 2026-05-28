@@ -1,7 +1,7 @@
 {
   "id": 20032,
   "name": "坚韧铠甲",
-  "description": "每受1次攻击，己方队伍获得1次随机奉献。",
+  "description": "每受到1次攻击伤害，己方队伍获得1次随机奉献。",
   "effects": [
     {
       "op": "observer",
