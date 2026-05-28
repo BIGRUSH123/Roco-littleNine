@@ -374,6 +374,30 @@
 - **涉及文件**: backend/engine/mark_config.py:26-29
 - **教训**: 印记效果不生效 → grep `MARK_TEMPLATES` 确认印记名是否**逐字**匹配（润≠湿）
 
+## 2026-05-28 - 奉献修饰器（combo/life_drain）残留到 buff 栏
+
+- **现象**: 女王蜂使用虫群后，特性栏显示连击+1/吸血+10% 的永久 buff
+- **根因**: 奉献消耗走 replayer 写 `sprite._modifiers`，同时 combo/life_drain 在 `_VISIBLE_MOD_STATS` 中，replayer 自动创建 `StatBuffEffect` 显示在 buff 栏。pop `_modifiers` 清不掉 `active_effects` 里的 `StatBuffEffect`
+- **修复**: 修饰器直接写入 `user._modifiers`（绕过 replayer，不创建 StatBuffEffect），技能结束后恢复奉献前的值（而非粗暴 pop，避免误清其他特性给的永久 buff）
+- **涉及文件**: backend/sim/battle.py:564-616, 716-724
+- **教训**: 临时效果不要走 replayer 的 `_apply_modifier`——它会创建可见的 `StatBuffEffect`；直接写 `_modifiers` + 事后恢复原值即可
+
+## 2026-05-28 - Trait 回合末奉献 +1 变成 -1（覆盖已有层数）
+
+- **现象**: 扫拖一体/花精灵回合末日志显示"奉献XX -1层"而非"+1层"
+- **根因**: trait JSON 中 devotion mod op 未指定 mode，`op_mod` 默认 `mode="set"`，将已有层数设回 1（2→1 = -1）
+- **修复**: 四个 trait JSON 的 devotion mod 添加 `"mode": "add"`
+- **涉及文件**: data/traits/扫拖一体.json, 花精灵.json, 特殊清洁场景.json, 振奋虫心.json
+- **教训**: 数值叠加效果缺少 mode 字段时，先查 op handler 的默认值——默认 set 而非 add
+
+## 2026-05-28 - 随机奉献 value>1 时 N 层叠加到同一类型，而非 N 次独立随机
+
+- **现象**: 虫群智慧（value:2, name:"random"）获得 2 层同一奉献类型，而非两次独立随机选取
+- **根因**: replayer.py `_apply_modifier` 奉献分支先 `random.choice` 选一个类型，再把全部 value 层数加到该类型上
+- **修复**: `mode="add"` + `name="random"` 时循环 `value` 次，每次独立随机选取一个类型 +1
+- **涉及文件**: backend/engine/replayer.py:398-404
+- **教训**: 随机效果叠加时，先确认语义是"对同一目标叠加 N 次"还是"N 次独立随机"
+
 <!-- 新条目追加在此行上方，格式如下：
 
 ## YYYY-MM-DD - 简短标题
