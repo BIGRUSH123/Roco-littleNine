@@ -350,6 +350,14 @@
 - **涉及文件**: `data/traits/宝剑王牌.json`, `backend/engine/trait_loader.py:22`
 - **教训**: 修改 JSON 数据文件后必须手动重启服务器；排查"数据不刷新"问题时优先检查模块级缓存是否过期
 
+## 2026-05-28 - 御驾亲征 on_self_ko observer 不触发：sim 层 _check_faint_interrupt 未触发 post_ko
+
+- **现象**: 棋契陛下（御驾亲征特性：力竭时额外扣魔力）力竭时只损失1点魔力，特性完全不触发。修复后魔力扣到0但未判负
+- **根因**: `battle_mechanics.py:_check_faint_interrupt` 处理力竭流程时只触发 `post_leave`/`post_entry`/`post_enemy_leave`，完全没触发 `post_ko`。`on_self_ko` 条件对应的 observer 在 sim 层永不激活。连带问题：`player.lives <= 0` 战败判定在 `post_ko` 之前执行，特性扣完魔力到0后不判负
+- **修复**: ① `battle_mechanics.py` 在力竭切换流程中新增 `fire_trigger("post_ko", ...)` 并在其后追加战败检查；② `battle.py` 将 `post_ko` 加入 owner filter 列表 + 视角翻转逻辑，防止对手 on_self_ko 误触发；③ `replayer.py` lives 事件格式改为 `魔力Δ→最终值` 便于确认
+- **涉及文件**: backend/sim/battle_mechanics.py:145-150, backend/engine/battle.py:327/337, backend/engine/replayer.py:1080-1081
+- **教训**: 特性完全不触发且 observer 条件在 COND_EVAL 已注册时，grep 对应 trigger 是否在 sim 层所有力竭/切换/入场路径中都有 `fire_trigger`——缺少就是静默不触发
+
 <!-- 新条目追加在此行上方，格式如下：
 
 ## YYYY-MM-DD - 简短标题
