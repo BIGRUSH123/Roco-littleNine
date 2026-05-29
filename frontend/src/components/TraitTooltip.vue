@@ -25,7 +25,7 @@ const traitEffects = computed(() => {
   // Fallback: search effects array by source (old API)
   const all = props.effects || []
   return all.filter(
-    e => e.source === traitName.value && e.display_mult != null
+    e => e.source === traitName.value && (e.display_mult != null || e.display_value != null)
   )
 })
 

@@ -135,7 +135,7 @@ def _matches_skill_type(skill_filter: str | None, skill_type: str) -> bool:
     return True  # unknown filters pass through
 
 
-def _apply_to_all_skills(sprite, m) -> str:
+def _apply_to_all_skills(sprite, m, replayer=None) -> str:
     """Distribute a modifier to all BattleSkills on the sprite."""
     label = _STAT_LABELS.get(m.stat, m.stat)
     delta = m.value
@@ -160,6 +160,12 @@ def _apply_to_all_skills(sprite, m) -> str:
                 sprite._modifiers[key] = bs_mods[m.stat]
             else:
                 sprite._modifiers[key] = bs_mods[m.stat]
+    # Create display-only effect for trait tooltip (energy_cost, combo, priority, etc.)
+    source = m.source or ""
+    if source and replayer is not None:
+        replayer._sync_mult_display_effect(
+            sprite, m.stat, 0.0, m.scope, source,
+            display_value=float(delta))
     if m.stat == "energy_cost":
         return f"{sprite.name} 全技能能耗{delta:+.0f}"
     return f"{sprite.name} 全技能{label}{delta:+.0f}"
@@ -519,7 +525,7 @@ class JournalReplayer:
 
         # ── skill_filter "all" on sprite target: distribute to every BattleSkill ──
         if not skill_scoped and m.skill_filter == "all" and m.stat in _SKILL_DISTRIBUTE_STATS:
-            return _apply_to_all_skills(sprite, m)
+            return _apply_to_all_skills(sprite, m, replayer=self)
 
         # ── skill_where or skill_filter (attack/defense/status/...) on sprite target ──
         if not skill_scoped and (m.skill_where is not None or
