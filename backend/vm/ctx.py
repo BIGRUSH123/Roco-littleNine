@@ -88,6 +88,10 @@ class Ctx:
     life_drain_self: float = 0.0
     mark_bonus_own: float = 0.0  # damage bonus from own team marks
 
+    # ── 血脉 ──
+    bloodline_self: str = ""             # own sprite bloodline (e.g. "草", "首领")
+    bloodline_opp: str = ""              # opponent sprite bloodline
+
     # ── 敌方精灵 ──
     hp_opp: int = 0
     hp_opp_ratio: float = 1.0
@@ -187,7 +191,8 @@ class Ctx:
                          "damage_reduction", "abnormal_count", "positive_count",
                          "charged", "skills_energy_sum",
                          "power_mult", "damage_mult",
-                         "last_tick_damage", "prev_damage_taken"):
+                         "last_tick_damage", "prev_damage_taken",
+                         "bloodline"):
                 field_self = f"{base}{suffix_self}"
                 field_opp = f"{base}{suffix_opp}"
                 if hasattr(other, field_self) and hasattr(other, field_opp):
@@ -255,6 +260,7 @@ ADDRESS_MAP: dict[tuple[str, str], str] = {
     ("sprite_self", "charged"):            "charged_self",
     ("sprite_self", "is_charging"):        "is_charging_self",
     ("sprite_self", "first_action"):       "first_action_self",
+    ("sprite_self", "bloodline"):          "bloodline_self",
     ("sprite_self", "element_advantage"):  "element_advantage",
     ("sprite_self", "energy_cost_sum"):    "energy_cost_sum_self",
     ("sprite_self", "power_mult"):         "power_mult_self",
@@ -265,6 +271,7 @@ ADDRESS_MAP: dict[tuple[str, str], str] = {
     ("sprite_self", "mark_bonus"):         "mark_bonus_own",
 
     # sprite_opp
+    ("sprite_opp", "bloodline"):           "bloodline_opp",
     ("sprite_opp", "hp"):                  "hp_opp",
     ("sprite_opp", "hp_ratio"):            "hp_opp_ratio",
     ("sprite_opp", "energy"):             "energy_opp",

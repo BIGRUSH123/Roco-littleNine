@@ -25,20 +25,20 @@ class Agent(Protocol):
 
     team: str
 
-    def choose_lead(self, battle: 'Battle') -> int: ...
-    def choose_action(self, battle: 'Battle') -> Action: ...
-    def choose_replacement(self, battle: 'Battle') -> int: ...
+    def choose_lead(self, battle: Battle) -> int: ...
+    def choose_action(self, battle: Battle) -> Action: ...
+    def choose_replacement(self, battle: Battle) -> int: ...
     def on_game_end(self, winner: str) -> None: ...
 
 
 class RuleAgent:
     """基于 PlayStyle 的规则 AI。"""
 
-    def __init__(self, team: str, player: 'Player'):
+    def __init__(self, team: str, player: Player):
         self.team = team
         self.player = player
 
-    def choose_lead(self, battle: 'Battle') -> int:
+    def choose_lead(self, battle: Battle) -> int:
         """选择出场精灵：选对对手威胁最大的。"""
         opponent = battle.get_opponent(self.team).active
         best_idx = 0
@@ -61,7 +61,7 @@ class RuleAgent:
                 best_idx = i
         return best_idx
 
-    def choose_action(self, battle: 'Battle') -> Action:
+    def choose_action(self, battle: Battle) -> Action:
         p = self.player
         s = p.active
         style = p.style
@@ -152,7 +152,7 @@ class RuleAgent:
             return Action(kind='switch', switch_index=replacement)
         return Action(kind='gather')
 
-    def choose_replacement(self, battle: 'Battle') -> int:
+    def choose_replacement(self, battle: Battle) -> int:
         """力竭换宠：选对对手威胁最大的存活精灵。"""
         p = self.player
         opponent = battle.get_opponent(self.team).active
@@ -189,14 +189,14 @@ class RuleAgent:
 class HumanAgent:
     """终端人机交互代理。"""
 
-    def __init__(self, team: str, player: 'Player', name: str = ''):
+    def __init__(self, team: str, player: Player, name: str = ''):
         self.team = team
         self.player = player
         self.name = name or player.name
 
     # ── 显示 ──
 
-    def _render(self, battle: 'Battle') -> None:
+    def _render(self, battle: Battle) -> None:
         p = self.player
         opp = battle.get_opponent(self.team)
         s = p.active
@@ -252,7 +252,7 @@ class HumanAgent:
             print(f'  效果: {", ".join(seen.values())}')
 
     @staticmethod
-    def _print_marks(battle: 'Battle', team: str) -> None:
+    def _print_marks(battle: Battle, team: str) -> None:
         pos, neg = battle.globals.get_marks(team)
         if pos or neg:
             parts = []
@@ -279,7 +279,7 @@ class HumanAgent:
             except ValueError:
                 print('  请输入数字', end=' ')
 
-    def _choose_switch_action(self, battle: 'Battle') -> Action:
+    def _choose_switch_action(self, battle: Battle) -> Action:
         """力竭/无可用行动时强制换宠。"""
         p = self.player
         alive = [i for i in p.alive_sprites if i != p.active_index]
@@ -295,14 +295,14 @@ class HumanAgent:
 
     # ── 决策 ──
 
-    def choose_lead(self, battle: 'Battle') -> int:
+    def choose_lead(self, battle: Battle) -> int:
         print(f'\n{self.name} 选择首发精灵:')
         for i, sprite in enumerate(self.player.team):
             skills_str = ' '.join(s.name for s in sprite.skills)
             print(f'  [{i}] {sprite.name}  HP {sprite.current_hp}/{sprite.max_hp}  技能: {skills_str}')
         return self._input_int('选择 > ', 0, len(self.player.team) - 1)
 
-    def choose_action(self, battle: 'Battle') -> Action:
+    def choose_action(self, battle: Battle) -> Action:
         p = self.player
         s = p.active
 
@@ -374,7 +374,7 @@ class HumanAgent:
             return self.choose_action(battle)
         return action
 
-    def choose_replacement(self, battle: 'Battle') -> int:
+    def choose_replacement(self, battle: Battle) -> int:
         p = self.player
         alive = [i for i in p.alive_sprites if i != p.active_index]
 

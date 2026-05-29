@@ -2,30 +2,26 @@
   "id": 20069,
   "name": "月光审判",
   "description": "攻击时若敌方血脉是首领血脉，威力+100%。",
-  "triggers": [
+  "effects": [
     {
-      "on": "modifier",
-      "condition": {
-        "kind": "and",
-        "conditions": [
-          {
-            "path": "skill.is_attack",
-            "op": "eq",
-            "value": true
-          },
-          {
-            "path": "target_bloodline",
-            "op": "eq",
-            "value": "首领"
-          }
-        ]
+      "op": "observer",
+      "cond": {
+        "cond": "compare",
+        "q": "bloodline",
+        "of": "sprite_opp",
+        "op": "eq",
+        "value": "首领"
       },
-      "use_modifiers": {
-        "power_mult": {
-          "op": "add",
-          "value": 1.0
+      "listen": "pre_calc",
+      "scope": "battlefield",
+      "then": [
+        {
+          "op": "mult_mod",
+          "target": "sprite_self",
+          "attr": "power_mult",
+          "value": 2.0
         }
-      }
+      ]
     }
   ]
 }

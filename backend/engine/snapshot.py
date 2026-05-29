@@ -225,6 +225,9 @@ def build_ctx(
     # ── Build Ctx ──
     return Ctx(
         event=event_ctx,
+        # Bloodline
+        bloodline_self=getattr(ss, 'bloodline', ''),
+        bloodline_opp=getattr(os, 'bloodline', ''),
         # Self sprite
         hp_self=hp_self,
         hp_self_ratio=hp_self_ratio,
