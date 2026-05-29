@@ -515,6 +515,22 @@
 - **涉及文件**: `backend/engine/trait_loader.py:191`
 - **教训**: 特性修改器在 reapply 路径和首次 apply 路径必须用同一套乘数逻辑；`energy_cost_delta_mult` 是 sprite 级持久键，排查能耗异常时优先检查它
 
+## 2026-05-29 - 洁癖特性继承效果在换宠后 buff 栏不显示
+
+- **现象**: 翠顶夫人（洁癖特性：离场后增益/减益被换上精灵继承）换宠后，新上场精灵 buff 栏无任何继承效果。日志显示"继承1个效果"和"威力倍率=130%"，但 buff 栏为空
+- **根因**: dispatch_entry（消费 battle.pending_effects）在 fire_trigger("post_leave")（洁癖 observer 通过 via_pending 写入继承效果）之前调用。5 处离场/换宠流程均有此时序：① _resolve_switch ② _check_faint_interrupt ③ _handle_escape ④ _handle_escape_inherit ⑤ battle.py 能量归零强制换宠。dispatch_entry 读 pending_effects 时为空，post_leave 写后无人再消费
+- **修复**: 5 处 fire_trigger("post_leave") 之后立即消费 battle.pending_effects[team]，将继承的 StatBuffEffect 写入新上场精灵
+- **涉及文件**: backend/sim/battle_mechanics.py:75,161,287,322, backend/sim/battle.py:1064
+- **教训**: via_pending 继承效果不显示时，直接检查 dispatch_entry 和 fire_trigger("post_leave") 的调用顺序——dispatch_entry 消费 pending_effects 必须在所有能写入 pending_effects 的 trigger 之后
+
+## 2026-05-29 - 龙鱼洄游特性不触发 + 架势 pre_charged 不生效
+
+- **现象**: 龙鱼的洄游特性（每次进入蓄力全技能能耗永久-1）完全不触发，日志无能耗变化；架势技能虽设置 pre_charged 标志但蓄力门控不读取，下一发蓄力技能仍需等一回合
+- **根因**: ① `eval_one` 不处理裸字符串条件（如 `"always"`），observer cond 为 plain string 时直接走 `return False` 分支——洄游、悼亡、悲悯、暴食、水翼飞升等特性均受此影响；② `_gate_charge_vm` 只写不读 pre_charged——架势设置后无人消费，蓄力门控照常进入 charging；③ observer 触发的 `scope=permanent` power_mod 在每回合 `_SKILL_PER_TURN_KEYS` 清理后未被恢复，能耗减益一回合就丢失
+- **修复**: ① `cond.py:457-461` — eval_one 增加 `isinstance(cond, str)` 分支，调用 COND_EVAL 字典；② `battle.py:800-811` — _gate_charge_vm 在 has_charge 分支检查并消费 pre_charged 标志；③ `battle.py:219-222` — execute_turn 在 reapply 后调用 skill.load_permanent_mods；④ `replayer.py:155-162` — _apply_to_all_skills 对 permanent scope 持久化到 sprite._modifiers[skill.<name>.<stat>]
+- **涉及文件**: backend/vm/cond.py:457, backend/sim/battle.py:800/219, backend/engine/replayer.py:155
+- **教训**: 特性 observer 不触发 → 先查 eval_one 是否认识该 cond 类型（plain string vs dict）；permanent scope 数值跨回合丢失 → 查 per-turn cleanup 后是否有 restore 环节；flag 型 stat 日志写入但不生效 → 检查消费端是否只写不读
+
 <!-- 新条目追加在此行上方，格式如下：
 
 ## YYYY-MM-DD - 简短标题
