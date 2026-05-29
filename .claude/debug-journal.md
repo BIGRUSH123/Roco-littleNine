@@ -507,6 +507,14 @@
 - **涉及文件**: `pipeline.py:60-74`
 - **教训**: 管线重复触发点排查：搜索 `fire_trigger("trigger_name")` 出现位置，确认是否被不同入口重复调用
 
+## 2026-05-29 - 泛音列特性能耗方向在回合间翻转
+
+- **现象**: 泛音列给对方攻击技能+3能耗，第一回合反而降能耗，第二回合能耗暴涨耗光所有能量
+- **根因**: trait_loader.py `_apply_direct_mods` 重新应用修改器时未乘以 sprite 的 `energy_cost_delta_mult`（由对方「对流」特性设为 -1），导致首次应用 delta=-3（降能耗），回合重新应用 delta=+3（升能耗），方向翻转
+- **修复**: `trait_loader.py:191` 增加 `if attr == "energy_cost": delta *= sprite._modifiers.get("energy_cost_delta_mult", 1.0)`，与 replayer.py `_apply_to_matching_skills` 行为一致
+- **涉及文件**: `backend/engine/trait_loader.py:191`
+- **教训**: 特性修改器在 reapply 路径和首次 apply 路径必须用同一套乘数逻辑；`energy_cost_delta_mult` 是 sprite 级持久键，排查能耗异常时优先检查它
+
 <!-- 新条目追加在此行上方，格式如下：
 
 ## YYYY-MM-DD - 简短标题
