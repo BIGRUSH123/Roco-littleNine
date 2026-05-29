@@ -152,8 +152,16 @@ def _apply_to_all_skills(sprite, m) -> str:
             bs_mods[m.stat] = delta
         elif m.mode == "multiply":
             bs_mods[m.stat] = cur * delta if cur else delta
+        # Permanent scope: persist to sprite._modifiers so load_permanent_mods()
+        # can restore after _SKILL_PER_TURN_KEYS cleanup each turn.
+        if m.scope == "permanent" and bs.name:
+            key = f"skill.{bs.name}.{m.stat}"
+            if m.mode == "add":
+                sprite._modifiers[key] = bs_mods[m.stat]
+            else:
+                sprite._modifiers[key] = bs_mods[m.stat]
     if m.stat == "energy_cost":
-        return ""  # energy bar shows cost visually
+        return f"{sprite.name} 全技能能耗{delta:+.0f}"
     return f"{sprite.name} 全技能{label}{delta:+.0f}"
 
 
@@ -204,7 +212,15 @@ def _apply_to_matching_skills(sprite, m, mark_energy_mod: int = 0) -> str:
             "delta": m.value,
             "mode": m.mode,
             "skill_where": m.skill_where,
+            "skill_filter": m.skill_filter,
+            "source": m.source,
         }
+        if not m.skill_filter:
+            del effect_dict["skill_filter"]
+        if not m.source:
+            del effect_dict["source"]
+        if m.ttl > 0:
+            effect_dict["ttl"] = m.ttl
         direct_effects = getattr(sprite, '_trait_direct_effects', None)
         if direct_effects is None:
             sprite._trait_direct_effects = []
@@ -230,6 +246,8 @@ def _apply_to_matching_skills(sprite, m, mark_energy_mod: int = 0) -> str:
                 if existing is not None:
                     existing.display_value = display_val
                     existing.scope = m.scope or "battlefield"
+                    if m.ttl > 0:
+                        existing.ttl = max(existing.ttl, m.ttl)
                 else:
                     active = getattr(sprite, 'active_effects', None)
                     if active is not None:
@@ -238,18 +256,22 @@ def _apply_to_matching_skills(sprite, m, mark_energy_mod: int = 0) -> str:
                             scope=m.scope or "battlefield",
                             stat_key=m.stat, steps=0,
                             display_value=display_val,
+                            ttl=m.ttl,
                         ))
                 return ""  # energy bar shows cost visually
             elif m.stat == "power_mod":
                 if existing is not None:
                     existing.display_value = delta * 10
                     existing.scope = "battlefield"
+                    if m.ttl > 0:
+                        existing.ttl = max(existing.ttl, m.ttl)
                 else:
                     active = getattr(sprite, 'active_effects', None)
                     if active is not None:
                         active.append(StatBuffEffect(
                             name=eff_name, source=source, scope="battlefield",
                             stat_key=m.stat, steps=0, display_value=delta * 10,
+                            ttl=m.ttl,
                         ))
                 element = (m.skill_where or {}).get("element", "")
                 prefix = f"{element}" if element else ""
@@ -259,6 +281,8 @@ def _apply_to_matching_skills(sprite, m, mark_energy_mod: int = 0) -> str:
                 if existing is not None:
                     existing.display_mult = display_bonus
                     existing.scope = m.scope or "battlefield"
+                    if m.ttl > 0:
+                        existing.ttl = max(existing.ttl, m.ttl)
                 else:
                     active = getattr(sprite, 'active_effects', None)
                     if active is not None:
@@ -266,6 +290,7 @@ def _apply_to_matching_skills(sprite, m, mark_energy_mod: int = 0) -> str:
                             name=eff_name, source=source,
                             scope=m.scope or "battlefield",
                             stat_key=m.stat, steps=0, display_mult=display_bonus,
+                            ttl=m.ttl,
                         ))
                 return f"{sprite.name} {label}={delta:.0%}"
             else:
@@ -273,6 +298,8 @@ def _apply_to_matching_skills(sprite, m, mark_energy_mod: int = 0) -> str:
                 if existing is not None:
                     existing.display_value = delta
                     existing.scope = m.scope or "battlefield"
+                    if m.ttl > 0:
+                        existing.ttl = max(existing.ttl, m.ttl)
                 else:
                     active = getattr(sprite, 'active_effects', None)
                     if active is not None:
@@ -280,6 +307,7 @@ def _apply_to_matching_skills(sprite, m, mark_energy_mod: int = 0) -> str:
                             name=eff_name, source=source,
                             scope=m.scope or "battlefield",
                             stat_key=m.stat, steps=0, display_value=delta,
+                            ttl=m.ttl,
                         ))
                 return f"{sprite.name} {label}{delta:+.0f}"
         # No source → just log, no display effect

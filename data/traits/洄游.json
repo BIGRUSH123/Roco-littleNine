@@ -5,32 +5,20 @@
   "effects": [
     {
       "op": "observer",
+      "listen": "post_charge",
+      "scope": "persistent",
+      "cond": "always",
       "then": [
         {
+          "op": "power_mod",
           "target": "sprite_self",
+          "attr": "energy_cost",
+          "delta": -1,
+          "skill_filter": "all",
           "scope": "permanent",
-          "source": "洄游",
-          "op": "stat_stage",
-          "stat": "energy_cost",
-          "steps": -1
+          "source": "洄游"
         }
-      ],
-      "scope": "persistent",
-      "cond": {
-        "cond": "and",
-        "conditions": [
-          {
-            "cond": "skill_use"
-          },
-          {
-            "cond": "compare",
-            "q": "",
-            "of": "sprite_self",
-            "op": "eq",
-            "value": null
-          }
-        ]
-      }
+      ]
     }
   ]
 }

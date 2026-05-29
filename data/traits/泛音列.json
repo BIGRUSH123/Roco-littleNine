@@ -5,32 +5,26 @@
   "effects": [
     {
       "op": "observer",
-      "then": [
-        {
-          "target": "target",
-          "scope": "battlefield",
-          "source": "泛音列",
-          "op": "abnormal",
-          "name": "聒噪",
-          "stacks": 1
-        }
+      "listen": [
+        "post_skill"
       ],
       "scope": "persistent",
       "cond": {
-        "cond": "and",
-        "conditions": [
-          {
-            "cond": "skill_use"
-          },
-          {
-            "cond": "compare",
-            "q": "",
-            "of": "sprite_self",
-            "op": "eq",
-            "value": null
-          }
-        ]
-      }
+        "cond": "skill_use",
+        "skill_type": "状态"
+      },
+      "then": [
+        {
+          "op": "power_mod",
+          "target": "sprite_opp",
+          "scope": "persistent",
+          "skill_filter": "attack",
+          "ttl": 3,
+          "attr": "energy_cost",
+          "delta": 3,
+          "source": "泛音列"
+        }
+      ]
     }
   ]
 }

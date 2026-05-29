@@ -334,7 +334,7 @@ class BattleVMEngine:
             elif trigger in ("post_entry", "post_leave", "post_skill",
                            "turn_end", "post_abnormal_tick", "turn_start",
                            "post_energy_change", "post_counter",
-                           "post_enemy_leave"):
+                           "post_enemy_leave", "post_charge"):
                 if obs.owner_sprite_id is not None and owner_id is not None:
                     if obs.owner_sprite_id != owner_id:
                         continue

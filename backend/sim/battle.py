@@ -215,6 +215,11 @@ class Battle(BattleMechanicsMixin):
             mark_mods[id(s)] = self.globals.mark_energy_mod("B")
         self._vm_engine.trait_loader.reapply_all_direct_mods(
             self.player_a.team + self.player_b.team, mark_mods)
+        # Restore permanent skill-scoped modifiers (observer-triggered
+        # power_mod with scope=permanent, e.g. 洄游 energy_cost -1).
+        for sprite in self.player_a.team + self.player_b.team:
+            for skill in (sprite.skills or []):
+                skill.load_permanent_mods(sprite._modifiers)
 
         s_a = self.player_a.active
         s_b = self.player_b.active
@@ -793,6 +798,17 @@ class Battle(BattleMechanicsMixin):
             return False  # blocked: must use charge skill
 
         if has_charge:
+            # pre_charged flag (架势等): bypass first charge
+            pre_charged = user._modifiers.get("pre_charged", 0)
+            if pre_charged > 0:
+                user._modifiers["pre_charged"] = pre_charged - 1
+                if user._modifiers["pre_charged"] <= 0:
+                    user._modifiers.pop("pre_charged", None)
+                from backend.vm.effect import StateEffect
+                user.add_effect(StateEffect(
+                    name="charged", state_type="charged", scope="battlefield", source="charge",
+                ))
+                return None  # charge bypassed, execute immediately as charged
             user._charging = True
             user._charged_skill_index = action.skill_index
             from backend.vm.effect import StateEffect

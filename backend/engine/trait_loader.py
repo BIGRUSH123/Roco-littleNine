@@ -140,6 +140,20 @@ class TraitLoader:
         for sprite in sprites:
             effects = getattr(sprite, '_trait_direct_effects', None)
             if effects:
+                # Decrement ttl before re-applying; remove expired effects
+                expired = []
+                for e in effects:
+                    ttl = e.get("ttl", 0)
+                    if ttl > 0:
+                        e["ttl"] = ttl - 1
+                        if e["ttl"] <= 0:
+                            expired.append(e)
+                for e in expired:
+                    effects.remove(e)
+                    # Clean up display StatBuffEffect when modifier expires
+                    self._remove_display_effect(sprite, e)
+                if not effects:
+                    continue
                 mark_mod = (mark_mods or {}).get(id(sprite), 0)
                 self._apply_direct_mods(sprite, effects, mark_energy_mod=mark_mod)
 
@@ -177,21 +191,36 @@ class TraitLoader:
             delta = effect.get("delta", 0)
             if isinstance(delta, dict):
                 continue
+            if attr == "energy_cost":
+                delta *= sprite._modifiers.get("energy_cost_delta_mult", 1.0)
             skill_where = effect.get("skill_where")
+            skill_filter = effect.get("skill_filter")
             for bs in (sprite.skills or []):
                 bs_mods = getattr(bs, '_modifiers', None)
                 if bs_mods is None:
                     continue
                 bs_name = getattr(bs, 'name', '')
-                if skill_where:
+                if skill_where or skill_filter:
                     skill_info = {
                         "name": bs_name,
                         "energy_cost": max(0, getattr(bs, 'energy_cost', 0) - mark_energy_mod),
                         "element": getattr(getattr(bs, 'base', None), 'element', ''),
                         "skill_type": getattr(getattr(bs, 'base', None), 'skill_type', ''),
                     }
+                if skill_where:
                     if not eval_skill_where(skill_where, skill_info):
                         continue
+                if skill_filter and skill_filter != "all":
+                    st = skill_info.get("skill_type", "")
+                    if skill_filter == "attack":
+                        if st not in ("物攻", "魔攻", "动态攻击"):
+                            continue
+                    elif skill_filter == "defense":
+                        if st != "防御":
+                            continue
+                    elif skill_filter == "status":
+                        if st != "状态":
+                            continue
                 mode = effect.get("mode", "add")
                 if mode == "set":
                     bs_mods[attr] = delta
@@ -216,6 +245,23 @@ class TraitLoader:
                 for attr, delta in tracked[bs_name].items():
                     bs_mods[attr] = bs_mods.get(attr, 0.0) - delta
         sprite._direct_mod_tracked = None
+
+    def _remove_display_effect(self, sprite, effect: dict):
+        """Remove the StatBuffEffect matching an expired effect_dict."""
+        from backend.vm.effect import StatBuffEffect
+        attr = effect.get("attr", "")
+        source = effect.get("source", "")
+        active = getattr(sprite, 'active_effects', None)
+        if not active or not source:
+            return
+        to_remove = [
+            e for e in active
+            if isinstance(e, StatBuffEffect) and e.stat_key == attr
+            and e.source == source and e.steps == 0
+        ]
+        for e in to_remove:
+            if e in active:
+                active.remove(e)
 
     # ── Internal ──
 

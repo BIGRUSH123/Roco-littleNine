@@ -47,6 +47,7 @@ class ModifierInjection:
     if_type: str | None = None        # "attack" | "defense" | "status"
     skill_filter: str | None = None   # "attack" | "defense" | "status" | "all" | "others" | "adjacent" | "bare_*"
     skill_where: dict | None = None   # per-skill conditional {"q": ..., "op": ..., "value": ...}
+    ttl: int = 0                      # remaining turns (0 = no expiry)
     then: list | None = None          # chained effects (devotion then-block)
 
 

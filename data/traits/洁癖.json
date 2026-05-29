@@ -5,19 +5,20 @@
   "effects": [
     {
       "op": "observer",
-      "then": [
-        {
-          "target": "sprite_self",
-          "scope": "battlefield",
-          "op": "special"
-        }
-      ],
-      "scope": "persistent",
       "cond": {
         "cond": "sprite_left",
         "of": "sprite_self"
       },
-      "listen": "post_leave"
+      "listen": "post_leave",
+      "scope": "persistent",
+      "then": [
+        {
+          "op": "inherit",
+          "source": "self",
+          "via_pending": true,
+          "inherit_stat_effects": true
+        }
+      ]
     }
   ]
 }

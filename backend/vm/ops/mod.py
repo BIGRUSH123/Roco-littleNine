@@ -148,6 +148,7 @@ def op_power_mod(ctx: Ctx, op) -> list[Mutation]:
         skill_where=_get_field(op, "skill_where"),
         element=_get_field(op, "element"),
         source=_get_field(op, "source"),
+        ttl=_get_field(op, "ttl", 0),
     )]
     if per_hit and ctx.combo_self > 1:
         result = result * ctx.combo_self
@@ -172,6 +173,7 @@ def op_mult_mod(ctx: Ctx, op) -> list[Mutation]:
         source=_get_field(op, "source"),
         on_next=_get_field(op, "on_next", False),
         if_type=_get_field(op, "if_type"),
+        ttl=_get_field(op, "ttl", 0),
     )]
     if per_hit and ctx.combo_self > 1:
         result = result * ctx.combo_self
@@ -190,6 +192,7 @@ def op_flag_set(ctx: Ctx, op) -> list[Mutation]:
         mode="set", scope=scope,
         name=_get_field(op, "name"),
         source=_get_field(op, "source"),
+        ttl=_get_field(op, "ttl", 0),
     )]
 
 
@@ -315,6 +318,7 @@ def op_mod(ctx: Ctx, effect) -> list[Mutation]:
             scope=scope, mode=mode,
             name=_get_field(effect, "name"),
             then=_get_field(effect, "then"),
+            ttl=_get_field(effect, "ttl", 0),
         )]
 
     # ── Stage / skill mod / flag stats ──
@@ -322,6 +326,7 @@ def op_mod(ctx: Ctx, effect) -> list[Mutation]:
         result = [ModifierInjection(
             target=target, stat=stat, value=value,
             scope=scope, mode=mode, **meta,
+            ttl=_get_field(effect, "ttl", 0),
         )]
 
     # Unknown stat — default to ModifierInjection
@@ -329,6 +334,7 @@ def op_mod(ctx: Ctx, effect) -> list[Mutation]:
         result = [ModifierInjection(
             target=target, stat=stat, value=value,
             scope=scope, mode=mode, **meta,
+            ttl=_get_field(effect, "ttl", 0),
         )]
 
     # ── per_hit: repeat mutations for each combo hit ──

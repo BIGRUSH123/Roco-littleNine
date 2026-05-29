@@ -454,6 +454,12 @@ def eval_one(ctx: Ctx, cond) -> bool:
         fn = _FN_COND_REGISTRY.get(cond.name)
         return fn(ctx) if fn else False
 
+    # ── Plain string condition (e.g. "always", "sprite_entered") ──
+    if isinstance(cond, str):
+        if cond in COND_EVAL:
+            return COND_EVAL[cond](ctx, {"cond": cond})
+        return False
+
     # ── Backward compat: raw dict ──
     if isinstance(cond, dict):
         key = cond["cond"]
