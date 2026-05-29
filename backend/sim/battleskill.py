@@ -27,6 +27,7 @@ class BattleSkill:
     is_temporary: bool = False      # 临时技能标记（gain_skills 等，战斗结束后清理）
     _transmission: int = 0          # 传动等级：-1=主轴，0=普通，1+=传动
     _element_override: str = ''     # 属性覆写（元素转换特性）
+    _mech_energy_reduction: int = 0 # 机械变式：传动后位置变化技能能耗-1
 
     def __post_init__(self) -> None:
         if self.base.transmission:
@@ -107,7 +108,7 @@ class BattleSkill:
 
     @property
     def energy_cost(self) -> int:
-        return self.skill.energy_cost + int(self._modifiers.get("energy_cost", 0))
+        return self.skill.energy_cost + int(self._modifiers.get("energy_cost", 0)) + self._mech_energy_reduction
 
 
 @dataclass

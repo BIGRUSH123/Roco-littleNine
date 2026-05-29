@@ -5,25 +5,6 @@
   "effects": [
     {
       "op": "observer",
-      "then": [
-        {
-          "target": "sprite_self",
-          "scope": "battlefield",
-          "source": "构装契约者",
-          "op": "stat_stage",
-          "stat": "def",
-          "steps": 5
-        },
-        {
-          "target": "sprite_self",
-          "scope": "battlefield",
-          "source": "构装契约者",
-          "op": "stat_stage",
-          "stat": "sp_def",
-          "steps": 5
-        }
-      ],
-      "scope": "persistent",
       "cond": {
         "cond": "and",
         "conditions": [
@@ -40,7 +21,24 @@
           }
         ]
       },
-      "listen": "post_entry"
+      "then": [
+        {
+          "op": "mult_mod",
+          "target": "sprite_self",
+          "attr": "def",
+          "value": 0.5,
+          "mode": "add"
+        },
+        {
+          "op": "mult_mod",
+          "target": "sprite_self",
+          "attr": "sp_def",
+          "value": 0.5,
+          "mode": "add"
+        }
+      ],
+      "listen": "post_entry",
+      "scope": "battlefield"
     }
   ]
 }

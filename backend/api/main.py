@@ -421,7 +421,7 @@ def serialize_battle_state(battle: Battle, session_id: str) -> schemas.BattleSta
                     adj_ec = 1
                     break
             pending_ec = int(sum(m.value for m in s._pending_modifiers if getattr(m, 'stat', '') == 'energy_cost'))
-            eff_e = max(0, base_e + s.energy_cost_mod + pending_ec + int(s._modifiers.get("energy_cost", 0)) + int(sk._modifiers.get("energy_cost", 0)) - mark_e_mod - adj_ec)
+            eff_e = max(0, base_e + s.energy_cost_mod + pending_ec + int(s._modifiers.get("energy_cost", 0)) + int(sk._modifiers.get("energy_cost", 0)) + getattr(sk, '_mech_energy_reduction', 0) - mark_e_mod - adj_ec)
             skills_data.append(schemas.SkillSummary(
                 name=sk.name,
                 skill_index=i,
@@ -536,10 +536,10 @@ def _build_turn_snapshot(battle, turn_log):
                 effective_power=sk.base.power + int(sk._modifiers.get("power", 0)) + sprite.power_mod * 10,
                 position_power_bonus=0,
                 base_energy_cost=sk.base.energy_cost,
-                effective_energy_cost=sk.base.energy_cost + int(sk._modifiers.get("energy_cost", 0)),
+                effective_energy_cost=sk.base.energy_cost + int(sk._modifiers.get("energy_cost", 0)) + getattr(sk, '_mech_energy_reduction', 0),
                 cooldown=sk.cooldown,
                 sealed=sk.sealed,
-                transmission=0,
+                transmission=getattr(sk, '_transmission', 0),
                 main_axis=False,
             ) for i, sk in enumerate(sprite.skills)],
         )

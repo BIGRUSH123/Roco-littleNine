@@ -530,13 +530,50 @@ class Battle(BattleMechanicsMixin):
         if charge_result is False:
             return events  # blocked
 
-        # ═══ 应对日志 ═══
+        # ═══ 应对：被应对的技能不执行效果，但仍消耗能量 ═══
         if is_countered and countering_skill:
             opp_sprite = opponent.active
             events.append(
                 f'{opp_sprite.name}应对{user.name}：{user.name}使用了'
                 f'{bs.name}，但被{opp_sprite.name}（{countering_skill.name}）应对了！'
             )
+            # 注入应对方直接效果（非 when-block）
+            opp_team = 'B' if team == 'A' else 'A'
+            try:
+                counter_record = self._get_skill_record(countering_skill.base.name)
+                counter_effects = self._vm_engine._get_effects(counter_record)
+                direct_effects = [e for e in counter_effects
+                                  if not (hasattr(e, 'when') and e.when) and 'when' not in (e if isinstance(e, dict) else {})]
+                if direct_effects:
+                    opp_ctx = self._build_ctx(
+                        target, user, counter_record, None, self.globals,
+                        team=opp_team, turn=self.turn,
+                    )
+                    counter_journal = self._vm_engine.execute_effects(opp_ctx, direct_effects)
+                    from backend.engine.replayer import JournalReplayer as _CR
+                    _cr = _CR(target, user, self.globals, self._vm_engine.registry, team=opp_team, battle=self)
+                    events += _cr.replay(counter_journal)
+            except Exception:
+                pass
+            # 消耗能量（仅基础 + 轴承支撑 + 天气，不含 trait 修饰）
+            cost = bs.energy_cost
+            si = action.skill_index
+            if si is not None:
+                for offset in (-1, 1):
+                    ni = si + offset
+                    if 0 <= ni < len(user.skills) and user.skills[ni].name == '轴承支撑':
+                        cost -= 1
+                        break
+            if hasattr(bs.base, 'element') and bs.base.element and self.globals.weather:
+                cost = round(cost * self.globals.weather_energy_mod(bs.base.element))
+            cost = max(0, cost)
+            if cost > 0:
+                if user.energy >= cost:
+                    user.lose_energy(cost)
+                else:
+                    events.append(f'{user.name} E不足{user.energy}<{cost}')
+                    return events
+            return events
 
         # ═══ Consume on_next pending modifiers ═══
         # Must happen BEFORE energy gate so on_next energy_cost modifiers
@@ -665,26 +702,6 @@ class Battle(BattleMechanicsMixin):
 
         opp_skill = countered_skill or countering_skill
         opp_team = 'B' if team == 'A' else 'A'
-
-        # Inject countering skill's effects into defender BEFORE damage calc
-        if is_countered and countering_skill:
-            try:
-                counter_record = self._get_skill_record(countering_skill.base.name)
-                counter_effects = self._vm_engine._get_effects(counter_record)
-                # Filter: skip when-block effects (they run separately on counter success)
-                direct_effects = [e for e in counter_effects
-                                  if not (hasattr(e, 'when') and e.when) and 'when' not in (e if isinstance(e, dict) else {})]
-                if direct_effects:
-                    opp_ctx = self._build_ctx(
-                        target, user, counter_record, None, self.globals,
-                        team=opp_team, turn=self.turn,
-                    )
-                    counter_journal = self._vm_engine.execute_effects(opp_ctx, direct_effects)
-                    from backend.engine.replayer import JournalReplayer as _CR
-                    _cr = _CR(target, user, self.globals, self._vm_engine.registry, team=opp_team, battle=self)
-                    events += _cr.replay(counter_journal)
-            except Exception:
-                pass
 
         result = self._vm_engine.execute_skill(
             user, target,

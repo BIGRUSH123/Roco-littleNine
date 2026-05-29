@@ -341,6 +341,9 @@ class BattleMechanicsMixin:
             return events
 
         for pass_num in range(max_lv):
+            # Snapshot pre-pass positions (id→index) for move tracking
+            pre_pos: dict[int, int] = {id(bs): i for i, bs in enumerate(skills)}
+
             # ── 第一步：提取非主轴技能组成虚拟数组 ──
             # 主轴不参与传动，也不阻挡——如同不存在
             active_map: list[int] = []  # virtual_index → original_index
@@ -406,6 +409,12 @@ class BattleMechanicsMixin:
             # ── 第五步：映射回原始 skills 数组 ──
             for vi, oi in enumerate(active_map):
                 skills[oi] = active[vi]
+
+            # ── 第六步：统计本 pass 位置变化（机械变式）──
+            for i, bs in enumerate(skills):
+                if pre_pos.get(id(bs), -1) != i:
+                    prev_count = getattr(bs, '_transmission_move_count', 0)
+                    bs._transmission_move_count = prev_count + 1
 
             names = '/'.join(bs.name for bs in skills)
             events.append(f'{sprite.name} 传动→ {names}')

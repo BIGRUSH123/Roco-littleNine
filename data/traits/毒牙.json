@@ -1,36 +1,32 @@
 {
   "id": 20073,
   "name": "毒牙",
-  "description": "使敌方获得中毒时，魔攻和魔防-40%。",
+  "description": "使敌方获得中毒时，也会使其获得魔攻和魔防-40%。",
   "effects": [
     {
       "op": "observer",
+      "cond": {
+        "cond": "on_abnormal_applied",
+        "name": "中毒",
+        "of": "sprite_opp"
+      },
       "then": [
         {
-          "target": "target",
-          "scope": "battlefield",
-          "source": "毒牙",
-          "op": "stat_stage",
-          "stat": "sp_atk",
-          "steps": -4
+          "op": "mult_mod",
+          "target": "sprite_opp",
+          "attr": "sp_atk",
+          "value": -0.4,
+          "mode": "add"
         },
         {
-          "target": "target",
-          "scope": "battlefield",
-          "source": "毒牙",
-          "op": "stat_stage",
-          "stat": "sp_def",
-          "steps": -4
+          "op": "mult_mod",
+          "target": "sprite_opp",
+          "attr": "sp_def",
+          "value": -0.4,
+          "mode": "add"
         }
       ],
-      "scope": "persistent",
-      "cond": {
-        "cond": "compare",
-        "q": "effect_name",
-        "of": "sprite_self",
-        "op": "eq",
-        "value": "中毒"
-      }
+      "scope": "battlefield"
     }
   ]
 }

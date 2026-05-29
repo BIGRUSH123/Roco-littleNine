@@ -2,5 +2,38 @@
   "id": 20160,
   "name": "正位宝剑",
   "description": "仅可使用1号位技能（封印2/3/4号位）。",
-  "triggers": []
+  "effects": [
+    {
+      "op": "observer",
+      "cond": {
+        "cond": "sprite_entered",
+        "of": "sprite_self"
+      },
+      "listen": "post_entry",
+      "scope": "battlefield",
+      "then": [
+        {
+          "op": "flag_set",
+          "target": "skill_at_2",
+          "flag": "sealed",
+          "value": true,
+          "scope": "battlefield"
+        },
+        {
+          "op": "flag_set",
+          "target": "skill_at_3",
+          "flag": "sealed",
+          "value": true,
+          "scope": "battlefield"
+        },
+        {
+          "op": "flag_set",
+          "target": "skill_at_4",
+          "flag": "sealed",
+          "value": true,
+          "scope": "battlefield"
+        }
+      ]
+    }
+  ]
 }
