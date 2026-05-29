@@ -478,6 +478,35 @@
 - **涉及文件**: backend/vm/resolve.py:110-112
 - **教训**: trait 条件用 compare + q 字段时，grep ADDRESS_MAP 确认 (of, q) 键是否存在——不存在就是 KeyError 被静默吞掉
 
+## 2026-05-29 - 水翼飞升：印记能耗减免未在支付中生效 + skill_where 识别不到
+
+- **现象**: 水翼飞升特性减费显示为0，但实际支付仍消耗能量；2层印记+2层特性时威力加成不生效，3层才生效
+- **根因**: 
+  1. `battle.py` 支付阶段未扣除 `globals.mark_energy_mod(team)`
+  2. `_apply_to_matching_skills` / `_apply_direct_mods` 中 `skill_where={"energy_cost":0}` 检查使用 `bs.energy_cost`，该属性只含 `_modifiers["energy_cost"]`（特性减费），不含印记减费
+- **修复**: 
+  1. `battle.py` 应对路径和正常路径均加 `cost -= self.globals.mark_energy_mod(team)`
+  2. `replayer.py` — `_apply_to_matching_skills` 接受 `mark_energy_mod` 参数，`skill_info["energy_cost"]` 计算时减去
+  3. `trait_loader.py` — `_apply_direct_mods` 同样接受并使用 `mark_energy_mod`；`battle.py:211` 按队伍计算传入
+- **涉及文件**: `battle.py:564-576`, `replayer.py:160-183`, `replayer.py:495-500`, `trait_loader.py:138-143`, `trait_loader.py:150-196`
+- **教训**: 支付时扣减但不写入 `_modifiers` 的数值，对依赖 `bs.energy_cost` 属性的 `skill_where` 过滤是透明的——要么写入 `_modifiers`，要么传递到过滤逻辑
+
+## 2026-05-29 - 水翼飞升：特性 tooltip 显示威力倍率+130%
+
+- **现象**: 特性 tooltip 显示"威力倍率+130%"而非"+30%"
+- **根因**: `power_mult`/`damage_mult` 的 `ModifierInjection.value` 存的是总值(1.3)，但 `display_mult` 直接透传，前端 `formatMult(val)` 做 `Math.round(val*100)` 得出130%
+- **修复**: `replayer.py:64-66` 新增 `_TOTAL_BASED_RATIO_STATS`，对 `power_mult`/`damage_mult` 在创建 `StatBuffEffect` 时 `display_mult = delta - 1.0`
+- **涉及文件**: `replayer.py:54-66`, `replayer.py:255-266`
+- **教训**: 比率型 stat 要区分"存总值"还是"存增量"——`_RATIO_STATS` 中 `power_mult`/`damage_mult` 是总值，`damage_reduction` 等是增量，显示转换需分别处理
+
+## 2026-05-29 - 水翼飞升：turn_start 观察者每回合触发两次
+
+- **现象**: 战斗日志中每回合显示两次"威力倍率=130%"
+- **根因**: `pipeline.py` Step 5 (`DataDrivenTrait.on_turn_start`) 和 Step 5b (直接 `fire_trigger("turn_start")`) 都调用了同一个 `vm_engine.fire_trigger("turn_start")`，导致所有 `listen:["turn_start"]` 的 observer 被执行两次
+- **修复**: 删除 `pipeline.py:60-74` 的 Step 5b（Step 5 已覆盖）
+- **涉及文件**: `pipeline.py:60-74`
+- **教训**: 管线重复触发点排查：搜索 `fire_trigger("trigger_name")` 出现位置，确认是否被不同入口重复调用
+
 <!-- 新条目追加在此行上方，格式如下：
 
 ## YYYY-MM-DD - 简短标题
