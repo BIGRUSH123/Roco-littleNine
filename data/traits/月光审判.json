@@ -19,7 +19,7 @@
           "op": "mult_mod",
           "target": "sprite_self",
           "attr": "power_mult",
-          "value": 2.0
+          "value": 2
         }
       ]
     }

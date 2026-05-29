@@ -5,22 +5,41 @@
   "effects": [
     {
       "op": "observer",
+      "cond": {
+        "cond": "and",
+        "conditions": [
+          {
+            "cond": "trait_path",
+            "path": "skill.is_attack",
+            "op": "eq",
+            "value": true
+          },
+          {
+            "cond": "compare",
+            "q": "abnormal_stacks",
+            "of": "sprite_opp",
+            "name": "冻结",
+            "op": "gte",
+            "value": 1
+          }
+        ]
+      },
+      "listen": [
+        "pre_calc"
+      ],
+      "scope": "battlefield",
       "then": [
         {
-          "target": "sprite_self",
           "op": "mark",
           "name": "星陨印记",
-          "stacks": "=@target.effects[name=冻结].stacks"
+          "target": "sprite_opp",
+          "value": {
+            "q": "abnormal_stacks",
+            "of": "sprite_opp",
+            "name": "冻结"
+          }
         }
-      ],
-      "scope": "persistent",
-      "cond": {
-        "cond": "compare",
-        "q": "skill.is_attack",
-        "of": "sprite_self",
-        "op": "eq",
-        "value": true
-      }
+      ]
     }
   ]
 }

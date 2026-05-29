@@ -113,6 +113,9 @@ def _resolve_dict_query(ctx: Ctx, value: dict) -> int | float | str:
         return _apply_transforms(1.0 - ratio, value)
     if q == "mark_count_both":
         return _apply_transforms(ctx.mark_count_own + ctx.mark_count_opp, value)
+    if q == "is_fainted":
+        val = ctx.event.self_koed if of == "sprite_self" else ctx.event.target_fainted
+        return val
 
     # ADDRESS_MAP lookup
     map_key = (of, q)

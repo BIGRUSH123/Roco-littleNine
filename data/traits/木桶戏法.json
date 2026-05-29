@@ -1,7 +1,7 @@
 {
   "id": 20071,
   "name": "木桶戏法",
-  "description": "离场后，换上来的精灵以木桶状态登场。",
+  "description": "离场后，换上来的精灵以木桶状态登场。//pass",
   "triggers": [
     {
       "on": "leave",

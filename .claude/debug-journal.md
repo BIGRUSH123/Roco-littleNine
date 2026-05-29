@@ -454,6 +454,22 @@
 - **涉及文件**: `data/traits/最好的伙伴.json`, `backend/engine/replayer.py`
 - **教训**: `stat_stage` 适合绝对数值增益，百分比增益用 `mult_mod`，两者走不同的 sprite 存储路径（`active_effects` vs `_modifiers`），显示路径也不同
 
+## 2026-05-29 - 月牙雪糕特性星陨伤害不触发
+
+- **现象**: 月牙雪熊攻击有冻结的敌方时，没有额外星陨伤害
+- **根因**: trait JSON 用 compare + q:"skill.is_attack" 查 ADDRESS_MAP，该 computed path 不在映射中。skill.is_attack 只能通过 trait_path 条件类型访问，compare 条件走的是 ADDRESS_MAP 查找路径
+- **修复**: 月牙雪糕.json 将 skill.is_attack 子条件从 cond:"compare" + q → cond:"trait_path" + path
+- **涉及文件**: data/traits/月牙雪糕.json:20-22
+- **教训**: trait 条件中 computed path（skill.is_attack/skill.is_defense/target.is_fainted 等）只能用 trait_path 条件类型，compare 类型只支持 ADDRESS_MAP 中的直接字段
+
+## 2026-05-29 - 抓到你了特性入场冰冻不触发
+
+- **现象**: 雪影娃娃进化之力首领化为雪影冰灵后，对方没有获得2层冻结
+- **根因**: trait JSON 用 compare + q:"is_fainted" 查 ADDRESS_MAP，("sprite_self", "is_fainted") 不存在 → KeyError 被 _fire_post_event 的 except Exception: continue 静默吞掉
+- **修复**: resolve.py 新增 is_fainted 派生查询，sprite_self→ctx.event.self_koed，sprite_opp→ctx.event.target_fainted
+- **涉及文件**: backend/vm/resolve.py:110-112
+- **教训**: trait 条件用 compare + q 字段时，grep ADDRESS_MAP 确认 (of, q) 键是否存在——不存在就是 KeyError 被静默吞掉
+
 <!-- 新条目追加在此行上方，格式如下：
 
 ## YYYY-MM-DD - 简短标题
