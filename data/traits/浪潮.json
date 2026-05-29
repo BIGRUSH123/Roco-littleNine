@@ -5,29 +5,23 @@
   "effects": [
     {
       "op": "observer",
-      "then": [
-        {
-          "target": "sprite_self",
-          "scope": "battlefield",
-          "source": "浪潮",
-          "op": "stat_stage",
-          "stat": "energy_cost",
-          "steps": -2
-        }
-      ],
+      "listen": "post_skill",
       "scope": "persistent",
       "cond": {
-        "cond": "and",
-        "conditions": [
-          {
-            "cond": "skill_use"
-          },
-          {
-            "cond": "skill_use",
-            "element": "水"
-          }
-        ]
-      }
+        "cond": "skill_use",
+        "element": "水"
+      },
+      "then": [
+        {
+          "op": "power_mod",
+          "target": "sprite_self",
+          "attr": "energy_cost",
+          "delta": -2,
+          "skill_filter": "all",
+          "scope": "permanent",
+          "source": "浪潮"
+        }
+      ]
     }
   ]
 }
