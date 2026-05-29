@@ -319,7 +319,7 @@ class SkillParsePass:
             per_hit=self._bool_or(e, "per_hit", False),
             action=self._str_or(e, "action", "apply"),
             ratio=self._float_or(e, "ratio", 1.0),
-            target_team=self._str_or(e, "target_team", "opp"),
+            target_team=self._str_or(e, "target_team", ""),
             source=e.get("source"),
             then=self._parse_then(e),
             **self._common_fields(e),

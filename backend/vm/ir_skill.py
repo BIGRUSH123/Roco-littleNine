@@ -191,7 +191,7 @@ class MarkOp:
     then: tuple[SkillIROp, ...] = ()
     action: str = "apply"           # "apply" | "dispel" | "steal" | "convert"
     ratio: float = 1.0              # convert: abnormal→mark conversion ratio
-    target_team: str = "opp"        # for dispel/steal: which team to target
+    target_team: str = ""           # for dispel/steal/conversion: which team to target
     source: str | None = None       # trait/skill name for tracking/dispel
     feeds: str = ""
     needs: str = ""

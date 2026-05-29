@@ -5,16 +5,19 @@
   "effects": [
     {
       "op": "observer",
-      "then": [
-        {
-          "target": "sprite_self",
-          "op": "special"
-        }
-      ],
-      "scope": "persistent",
       "cond": {
         "cond": "turn_end"
-      }
+      },
+      "listen": "turn_end",
+      "scope": "persistent",
+      "then": [
+        {
+          "op": "steal",
+          "target": "sprite_opp",
+          "what": "energy",
+          "amount": 1
+        }
+      ]
     }
   ]
 }

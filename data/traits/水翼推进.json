@@ -1,18 +1,20 @@
 {
   "id": 20077,
   "name": "水翼推进",
-  "description": "入场时，根据己方队伍水系技能使用次数，降低全技能能耗。",
+  "description": "己方精灵每使用1次水系技能，自己入场时获得全技能能耗-1。",
   "effects": [
     {
       "op": "observer",
       "then": [
         {
+          "op": "mult_mod",
           "target": "sprite_self",
+          "attr": "energy_cost",
+          "value": "=0 - @team_counters[element:水]",
+          "mode": "add",
           "scope": "battlefield",
           "source": "水翼推进",
-          "op": "stat_stage",
-          "stat": "energy_cost",
-          "steps": "=0 - @team_counters[element:水]"
+          "skill_where": {}
         }
       ],
       "scope": "battlefield",

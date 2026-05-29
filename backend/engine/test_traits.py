@@ -257,3 +257,115 @@ def test_trait_孤傲_does_not_inherit_trait_sourced_stat_effects():
     assert len(_active_effects_of(new_active, "atk")) == 1
     # Trait-sourced sp_atk buff → NOT inherited
     assert len(_active_effects_of(new_active, "sp_atk")) == 0
+
+
+# ═══════════════════════════════════════════════════════════════════
+# 水翼飞升 (ID 20078): power boost for 0-cost skills + energy_cost reduction
+# ═══════════════════════════════════════════════════════════════════
+
+
+def test_trait_水翼飞升_energy_reduction_and_power_mult():
+    """水翼飞升: entry with team_counters[element:水]=3 should
+    reduce all skills' energy_cost by 3 and give power_mult=1.3 to 0-cost skills."""
+    p1 = factory.build_player("A", [
+        {"name": "神谕鲨", "skills": ["甩水", "水花四溅"]},
+    ])
+    # Set trait
+    p1.team[0].species.ability = "水翼飞升"
+    p1.team[0].species.ability_id = 20078
+
+    p2 = factory.build_player("B", [
+        {"name": "花衣蝶", "skills": ["猛烈撞击"]},
+    ])
+
+    battle = Battle(p1, p2, verbose=False)
+    battle.player_a.active_index = 0
+    battle.player_b.active_index = 0
+
+    sprite = p1.team[0]
+    # Simulate 3 water skills already used → team_counters[element:水]=3
+    for _ in range(3):
+        battle.inc_team_counter("A", "element:水")
+
+    # Fire post_entry observer with current team_counters
+    dispatch_entry(sprite, battle, "A")
+    opp = p2.team[0]
+    ctx = battle._make_ctx(sprite, opp, None, None, battle.globals, team="A", turn=0)
+    battle._vm_engine.fire_trigger("post_entry", ctx, sprite, opp, battle.globals, team="A", battle=battle)
+
+    # Verify energy_cost reduced on all skills
+    for bs in (sprite.skills or []):
+        ec_mod = bs._modifiers.get("energy_cost", 0)
+        bs_name = bs.name
+        base_cost = bs.base.energy_cost
+        effective = bs.energy_cost
+        # energy_cost should be base - 3
+        assert ec_mod == -3.0, f"{bs_name}: expected energy_cost mod=-3.0, got {ec_mod}"
+        assert effective == base_cost - 3, f"{bs_name}: expected effective cost={base_cost-3}, got {effective}"
+
+    # Verify power_mult=1.3 on 0-cost skills (both 甩水 base=0 and 水花四溅 now effective=0)
+    for bs in (sprite.skills or []):
+        pm = bs._modifiers.get("power_mult", 1.0)
+        assert pm == 1.3, f"{bs.name}: expected power_mult=1.3 (energy_cost=0), got {pm}"
+
+    # Verify _trait_direct_effects is populated for re-application
+    assert sprite._trait_direct_effects is not None
+    assert len(sprite._trait_direct_effects) >= 2
+
+    # Simulate turn re-application flow
+    _PER_TURN_KEYS = frozenset({"power", "power_mult", "damage_mult", "damage_reduction",
+                                 "energy_cost", "energy_cost_mult", "priority", "combo_set"})
+    _SKILL_PER_TURN_KEYS = _PER_TURN_KEYS | {"combo", "combo_mult"}
+    for key in _PER_TURN_KEYS:
+        sprite._modifiers.pop(key, None)
+    for skill in (sprite.skills or []):
+        for key in _SKILL_PER_TURN_KEYS:
+            skill._modifiers.pop(key, None)
+
+    battle._vm_engine.trait_loader.reapply_all_direct_mods([sprite])
+
+    # After re-apply: energy_cost should still be -3, power_mult should still be 1.3
+    for bs in (sprite.skills or []):
+        assert bs._modifiers.get("energy_cost", 0) == -3.0, (
+            f"{bs.name}: after re-apply energy_cost should be -3.0, got {bs._modifiers.get('energy_cost', 0)}"
+        )
+        assert bs._modifiers.get("power_mult", 1.0) == 1.3, (
+            f"{bs.name}: after re-apply power_mult should be 1.3 (cost=0), got {bs._modifiers.get('power_mult', 1.0)}"
+        )
+
+
+def test_trait_水翼飞升_zero_cost_energy_not_consumed():
+    """水翼飞升: energy payment should be 0 when effective cost is 0."""
+    p1 = factory.build_player("A", [
+        {"name": "神谕鲨", "skills": ["水花四溅"]},
+    ])
+    p1.team[0].species.ability = "水翼飞升"
+    p1.team[0].species.ability_id = 20078
+
+    p2 = factory.build_player("B", [
+        {"name": "花衣蝶", "skills": ["猛烈撞击"]},
+    ])
+
+    battle = Battle(p1, p2, verbose=False)
+    battle.player_a.active_index = 0
+    battle.player_b.active_index = 0
+
+    sprite = p1.team[0]
+    for _ in range(3):
+        battle.inc_team_counter("A", "element:水")
+
+    dispatch_entry(sprite, battle, "A")
+    opp = p2.team[0]
+    ctx = battle._make_ctx(sprite, opp, None, None, battle.globals, team="A", turn=0)
+    battle._vm_engine.fire_trigger("post_entry", ctx, sprite, opp, battle.globals, team="A", battle=battle)
+
+    # Verify bs.energy_cost is 0 (3 base - 3 trait = 0)
+    bs = sprite.skills[0]  # 水花四溅
+    assert bs.name == "水花四溅", f"Expected 水花四溅 as first skill, got {bs.name}"
+    assert bs.base.energy_cost == 3
+    assert bs.energy_cost == 0, f"Expected effective energy_cost=0, got {bs.energy_cost}"
+
+    # Verify user._modifiers["energy_cost"] is clean (no on_next/dedication spam)
+    assert sprite._modifiers.get("energy_cost", 0) == 0, (
+        f"sprite-level energy_cost should be 0, got {sprite._modifiers.get('energy_cost', 0)}"
+    )

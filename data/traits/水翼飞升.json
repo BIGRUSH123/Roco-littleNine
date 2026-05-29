@@ -1,26 +1,41 @@
 {
   "id": 20078,
   "name": "水翼飞升",
-  "description": "入场时，根据己方队伍水系技能使用次数降低全技能能耗，0能耗技能威力+30%。",
+  "description": "己方精灵每使用1次水系技能，自己入场时获得全技能能耗-1，且能耗为0的技能威力+30%。",
   "effects": [
     {
       "op": "observer",
-      "then": [
-        {
-          "target": "sprite_self",
-          "scope": "battlefield",
-          "source": "水翼飞升",
-          "op": "stat_stage",
-          "stat": "energy_cost",
-          "steps": "=0 - @team_counters[element:水]"
-        }
+      "cond": {
+        "cond": "always"
+      },
+      "listen": [
+        "post_entry"
       ],
       "scope": "battlefield",
-      "cond": {
-        "cond": "sprite_entered",
-        "of": "sprite_self"
-      },
-      "listen": "post_entry"
+      "then": [
+        {
+          "op": "mult_mod",
+          "target": "sprite_self",
+          "attr": "energy_cost",
+          "value": "=0 - @team_counters[element:水]",
+          "mode": "set",
+          "scope": "battlefield",
+          "source": "水翼飞升",
+          "skill_where": {}
+        },
+        {
+          "op": "mult_mod",
+          "target": "sprite_self",
+          "attr": "power_mult",
+          "value": 1.3,
+          "mode": "set",
+          "scope": "battlefield",
+          "source": "水翼飞升",
+          "skill_where": {
+            "energy_cost": 0
+          }
+        }
+      ]
     }
   ]
 }

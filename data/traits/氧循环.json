@@ -5,25 +5,19 @@
   "effects": [
     {
       "op": "observer",
+      "cond": {
+        "cond": "skill_use",
+        "element": "草"
+      },
+      "listen": "post_skill",
+      "scope": "persistent",
       "then": [
         {
+          "op": "heal",
           "target": "sprite_self",
-          "op": "special"
+          "value": "=@self.max_hp * 0.1"
         }
-      ],
-      "scope": "persistent",
-      "cond": {
-        "cond": "and",
-        "conditions": [
-          {
-            "cond": "skill_use"
-          },
-          {
-            "cond": "skill_use",
-            "element": "草"
-          }
-        ]
-      }
+      ]
     }
   ]
 }
