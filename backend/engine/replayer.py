@@ -59,6 +59,12 @@ _RATIO_STATS: frozenset[str] = frozenset({
     "ignore_resistance", "ignore_mods", "survive",
 })
 
+# Ratio stats where the modifier stores the TOTAL (1.0 + bonus), not the bonus.
+# When creating display effects, we convert: display_mult = delta - 1.0.
+_TOTAL_BASED_RATIO_STATS: frozenset[str] = frozenset({
+    "power_mult", "damage_mult",
+})
+
 # Modifier stats that should also create a visible StatBuffEffect.
 # These are integer-count stats that players expect to see as buff/debuff icons.
 # (power is excluded: values are direct power amounts with per-skill scope,
@@ -151,11 +157,13 @@ def _apply_to_all_skills(sprite, m) -> str:
     return f"{sprite.name} 全技能{label}{delta:+.0f}"
 
 
-def _apply_to_matching_skills(sprite, m) -> str:
+def _apply_to_matching_skills(sprite, m, mark_energy_mod: int = 0) -> str:
     """Apply a modifier to BattleSkills matching skill_where.
 
     Also registers the effect in sprite._trait_direct_effects so
     reapply_all_direct_mods() can restore it after _PER_TURN_KEYS cleanup.
+
+    mark_energy_mod: team-level mark energy reduction (not in bs.energy_cost property).
     """
     from backend.engine.modifiers import eval_skill_where
 
@@ -170,7 +178,7 @@ def _apply_to_matching_skills(sprite, m) -> str:
             continue
         skill_info = {
             "name": getattr(bs, 'name', ''),
-            "energy_cost": getattr(bs, 'energy_cost', 0),
+            "energy_cost": max(0, getattr(bs, 'energy_cost', 0) - mark_energy_mod),
             "element": getattr(getattr(bs, 'base', None), 'element', ''),
             "skill_type": getattr(getattr(bs, 'base', None), 'skill_type', ''),
         }
@@ -189,11 +197,12 @@ def _apply_to_matching_skills(sprite, m) -> str:
         applied = True
 
     # Register for turn-to-turn persistence (survives _PER_TURN_KEYS cleanup)
-    if applied and m.scope != "turn" and m.mode == "add":
+    if applied and m.scope != "turn" and m.mode in ("add", "set"):
         effect_dict = {
             "op": "power_mod",
             "attr": m.stat,
             "delta": m.value,
+            "mode": m.mode,
             "skill_where": m.skill_where,
         }
         direct_effects = getattr(sprite, '_trait_direct_effects', None)
@@ -203,21 +212,35 @@ def _apply_to_matching_skills(sprite, m) -> str:
             sprite._trait_direct_effects.append(effect_dict)
 
     if applied:
-        if m.stat == "energy_cost":
-            return ""
-        if m.stat == "power_mod":
-            # Create display-only StatBuffEffect for trait tooltip
-            source = m.source or ""
-            if source:
-                from backend.vm.effect import _STAT_LABELS as _EFF_LABELS
-                from backend.vm.effect import StatBuffEffect
-                eff_name = _EFF_LABELS.get(m.stat, m.stat)
-                existing = next(
-                    (e for e in getattr(sprite, 'active_effects', [])
-                     if isinstance(e, StatBuffEffect) and e.stat_key == m.stat
-                     and e.source == source and e.steps == 0),
-                    None,
-                )
+        source = m.source or ""
+        # Create display-only StatBuffEffect for trait tooltip
+        if source:
+            from backend.vm.effect import _STAT_LABELS as _EFF_LABELS
+            from backend.vm.effect import StatBuffEffect
+            eff_name = _EFF_LABELS.get(m.stat, m.stat)
+            existing = next(
+                (e for e in getattr(sprite, 'active_effects', [])
+                 if isinstance(e, StatBuffEffect) and e.stat_key == m.stat
+                 and e.source == source and e.steps == 0),
+                None,
+            )
+            if m.stat == "energy_cost":
+                # Absolute value: show cost reduction (negative delta = reduction)
+                display_val = float(delta)
+                if existing is not None:
+                    existing.display_value = display_val
+                    existing.scope = m.scope or "battlefield"
+                else:
+                    active = getattr(sprite, 'active_effects', None)
+                    if active is not None:
+                        active.append(StatBuffEffect(
+                            name=eff_name, source=source,
+                            scope=m.scope or "battlefield",
+                            stat_key=m.stat, steps=0,
+                            display_value=display_val,
+                        ))
+                return ""  # energy bar shows cost visually
+            elif m.stat == "power_mod":
                 if existing is not None:
                     existing.display_value = delta * 10
                     existing.scope = "battlefield"
@@ -228,9 +251,42 @@ def _apply_to_matching_skills(sprite, m) -> str:
                             name=eff_name, source=source, scope="battlefield",
                             stat_key=m.stat, steps=0, display_value=delta * 10,
                         ))
-            element = (m.skill_where or {}).get("element", "")
-            prefix = f"{element}" if element else ""
-            return f"{sprite.name} {prefix}{label}{delta * 10:+.0f}"
+                element = (m.skill_where or {}).get("element", "")
+                prefix = f"{element}" if element else ""
+                return f"{sprite.name} {prefix}{label}{delta * 10:+.0f}"
+            elif m.stat in _RATIO_STATS:
+                display_bonus = delta - 1.0 if m.stat in _TOTAL_BASED_RATIO_STATS else delta
+                if existing is not None:
+                    existing.display_mult = display_bonus
+                    existing.scope = m.scope or "battlefield"
+                else:
+                    active = getattr(sprite, 'active_effects', None)
+                    if active is not None:
+                        active.append(StatBuffEffect(
+                            name=eff_name, source=source,
+                            scope=m.scope or "battlefield",
+                            stat_key=m.stat, steps=0, display_mult=display_bonus,
+                        ))
+                return f"{sprite.name} {label}={delta:.0%}"
+            else:
+                # Non-ratio, non-stage stats: display as absolute delta
+                if existing is not None:
+                    existing.display_value = delta
+                    existing.scope = m.scope or "battlefield"
+                else:
+                    active = getattr(sprite, 'active_effects', None)
+                    if active is not None:
+                        active.append(StatBuffEffect(
+                            name=eff_name, source=source,
+                            scope=m.scope or "battlefield",
+                            stat_key=m.stat, steps=0, display_value=delta,
+                        ))
+                return f"{sprite.name} {label}{delta:+.0f}"
+        # No source → just log, no display effect
+        if m.stat == "energy_cost":
+            return ""
+        if m.stat in _RATIO_STATS:
+            return f"{sprite.name} {label}={delta:.0%}"
         return f"{sprite.name} {label}{delta:+.0f}"
     return ""
 
@@ -440,7 +496,10 @@ class JournalReplayer:
         # ── skill_where or skill_filter (attack/defense/status/...) on sprite target ──
         if not skill_scoped and (m.skill_where is not None or
                                 (m.skill_filter and m.skill_filter != "all")):
-            return _apply_to_matching_skills(sprite, m)
+            mark_mod = 0
+            if self._battle is not None and self.team:
+                mark_mod = self._battle.globals.mark_energy_mod(self.team)
+            return _apply_to_matching_skills(sprite, m, mark_energy_mod=mark_mod)
 
         if skill_scoped:
             if m.target.startswith("skill_at_"):

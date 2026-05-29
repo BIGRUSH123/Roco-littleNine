@@ -135,24 +135,39 @@ class TraitLoader:
         if active:
             sprite.active_effects = [e for e in active if not e.should_clear(reason)]
 
-    def reapply_all_direct_mods(self, sprites: list):
+    def reapply_all_direct_mods(self, sprites: list, mark_mods: dict[int, int] | None = None):
         """Re-apply trait direct modifiers to all sprites (after _PER_TURN_KEYS cleanup)."""
         for sprite in sprites:
             effects = getattr(sprite, '_trait_direct_effects', None)
             if effects:
-                self._apply_direct_mods(sprite, effects)
+                mark_mod = (mark_mods or {}).get(id(sprite), 0)
+                self._apply_direct_mods(sprite, effects, mark_energy_mod=mark_mod)
 
     # ── Direct modifiers (non-observer effects like power_mod in effects[]) ──
 
     # Attrs that apply to sprite properties, not skills (consumed by property methods)
     _SPRITE_LEVEL_ATTRS = frozenset({'max_energy', 'starfall_consume_ratio'})
 
-    def _apply_direct_mods(self, sprite, effects: list[dict]):
-        """Apply non-observer trait effects as permanent modifiers to matching skills."""
+    def _apply_direct_mods(self, sprite, effects: list[dict], mark_energy_mod: int = 0):
+        """Apply non-observer trait effects as permanent modifiers to matching skills.
+
+        Processes energy_cost effects first so that other attr effects
+        (e.g. power_mult with skill_where={"energy_cost": 0}) see the
+        correctly reduced energy_cost values.
+
+        mark_energy_mod: team-level mark energy reduction to include in
+        skill_where energy_cost checks.
+        """
         from backend.engine.modifiers import eval_skill_where
 
+        # Sort: energy_cost first, then everything else
+        sorted_effects = sorted(
+            effects,
+            key=lambda e: 0 if e.get("attr") == "energy_cost" else 1,
+        )
+
         tracked: dict[str, dict[str, float]] = {}
-        for effect in effects:
+        for effect in sorted_effects:
             op = effect.get("op", "")
             if op != "power_mod":
                 continue
@@ -171,15 +186,20 @@ class TraitLoader:
                 if skill_where:
                     skill_info = {
                         "name": bs_name,
-                        "energy_cost": getattr(bs, 'energy_cost', 0),
+                        "energy_cost": max(0, getattr(bs, 'energy_cost', 0) - mark_energy_mod),
                         "element": getattr(getattr(bs, 'base', None), 'element', ''),
                         "skill_type": getattr(getattr(bs, 'base', None), 'skill_type', ''),
                     }
                     if not eval_skill_where(skill_where, skill_info):
                         continue
-                cur = bs_mods.get(attr, 0.0)
-                bs_mods[attr] = cur + delta
-                tracked.setdefault(bs_name, {})[attr] = tracked.get(bs_name, {}).get(attr, 0.0) + delta
+                mode = effect.get("mode", "add")
+                if mode == "set":
+                    bs_mods[attr] = delta
+                    tracked.setdefault(bs_name, {})[attr] = delta
+                else:
+                    cur = bs_mods.get(attr, 0.0)
+                    bs_mods[attr] = cur + delta
+                    tracked.setdefault(bs_name, {})[attr] = tracked.get(bs_name, {}).get(attr, 0.0) + delta
         sprite._direct_mod_tracked = tracked
 
     def _remove_direct_mods(self, sprite):

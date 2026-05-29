@@ -212,7 +212,11 @@ _STAT_LABELS: dict[str, str] = {
     'atk': '物攻', 'sp_atk': '魔攻', 'def': '物防', 'sp_def': '魔防',
     'speed': '速度', 'power': '威力', 'priority': '先手',
     'energy_cost': '能耗', 'combo': '连击', 'life_drain': '吸血',
-    'power_mod': '威力',
+    'power_mod': '威力', 'power_mult': '威力倍率', 'damage_mult': '伤害倍率',
+    'damage_reduction': '减伤', 'energy_cost_mult': '能耗倍率',
+    'heal_reverse': '回复反转', 'ignore_resistance': '无视抗性',
+    'ignore_mods': '无视修正', 'survive': '不屈', 'combo_set': '连击固定',
+    'swift': '迅捷', 'drive': '传动',
 }
 
 _STEP_UNITS: dict[str, int] = {

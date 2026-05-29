@@ -208,8 +208,13 @@ class Battle(BattleMechanicsMixin):
                 for key in _SKILL_PER_TURN_KEYS:
                     skill._modifiers.pop(key, None)
         # Re-apply trait direct modifiers cleared by _PER_TURN_KEYS
+        mark_mods: dict[int, int] = {}
+        for s in self.player_a.team:
+            mark_mods[id(s)] = self.globals.mark_energy_mod("A")
+        for s in self.player_b.team:
+            mark_mods[id(s)] = self.globals.mark_energy_mod("B")
         self._vm_engine.trait_loader.reapply_all_direct_mods(
-            self.player_a.team + self.player_b.team)
+            self.player_a.team + self.player_b.team, mark_mods)
 
         s_a = self.player_a.active
         s_b = self.player_b.active
@@ -566,6 +571,8 @@ class Battle(BattleMechanicsMixin):
                         break
             if hasattr(bs.base, 'element') and bs.base.element and self.globals.weather:
                 cost = round(cost * self.globals.weather_energy_mod(bs.base.element))
+            # 印记能耗减免
+            cost -= self.globals.mark_energy_mod(team)
             cost = max(0, cost)
             if cost > 0:
                 if user.energy >= cost:
@@ -663,6 +670,8 @@ class Battle(BattleMechanicsMixin):
         # Weather energy cost modifier
         if hasattr(bs.base, 'element') and bs.base.element and self.globals.weather:
             cost = round(cost * self.globals.weather_energy_mod(bs.base.element))
+        # 印记能耗减免
+        cost -= self.globals.mark_energy_mod(team)
         cost = max(0, cost)
         if cost > 0:
             if user.energy >= cost:
