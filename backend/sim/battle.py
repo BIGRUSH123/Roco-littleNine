@@ -531,56 +531,25 @@ class Battle(BattleMechanicsMixin):
         charge_result = self._gate_charge_vm(user, bs, action)
         if charge_result is True:
             events.append(f'{user.name} 开始蓄力')
+            charge_ctx = self._make_ctx(
+                user, target, None, None, self.globals,
+                team=team, turn=self.turn,
+            )
+            events += self._vm_engine.fire_trigger(
+                "post_charge", charge_ctx, user, target, self.globals,
+                team=team, battle=self,
+            )
             return events  # entering charge
         if charge_result is False:
             return events  # blocked
 
-        # ═══ 应对：被应对的技能不执行效果，但仍消耗能量 ═══
+        # ═══ 应对日志 ═══
         if is_countered and countering_skill:
             opp_sprite = opponent.active
             events.append(
                 f'{opp_sprite.name}应对{user.name}：{user.name}使用了'
                 f'{bs.name}，但被{opp_sprite.name}（{countering_skill.name}）应对了！'
             )
-            # 注入应对方直接效果（非 when-block）
-            opp_team = 'B' if team == 'A' else 'A'
-            try:
-                counter_record = self._get_skill_record(countering_skill.base.name)
-                counter_effects = self._vm_engine._get_effects(counter_record)
-                direct_effects = [e for e in counter_effects
-                                  if not (hasattr(e, 'when') and e.when) and 'when' not in (e if isinstance(e, dict) else {})]
-                if direct_effects:
-                    opp_ctx = self._build_ctx(
-                        target, user, counter_record, None, self.globals,
-                        team=opp_team, turn=self.turn,
-                    )
-                    counter_journal = self._vm_engine.execute_effects(opp_ctx, direct_effects)
-                    from backend.engine.replayer import JournalReplayer as _CR
-                    _cr = _CR(target, user, self.globals, self._vm_engine.registry, team=opp_team, battle=self)
-                    events += _cr.replay(counter_journal)
-            except Exception:
-                pass
-            # 消耗能量（仅基础 + 轴承支撑 + 天气，不含 trait 修饰）
-            cost = bs.energy_cost
-            si = action.skill_index
-            if si is not None:
-                for offset in (-1, 1):
-                    ni = si + offset
-                    if 0 <= ni < len(user.skills) and user.skills[ni].name == '轴承支撑':
-                        cost -= 1
-                        break
-            if hasattr(bs.base, 'element') and bs.base.element and self.globals.weather:
-                cost = round(cost * self.globals.weather_energy_mod(bs.base.element))
-            # 印记能耗减免
-            cost -= self.globals.mark_energy_mod(team)
-            cost = max(0, cost)
-            if cost > 0:
-                if user.energy >= cost:
-                    user.lose_energy(cost)
-                else:
-                    events.append(f'{user.name} E不足{user.energy}<{cost}')
-                    return events
-            return events
 
         # ═══ Consume on_next pending modifiers ═══
         # Must happen BEFORE energy gate so on_next energy_cost modifiers
@@ -705,6 +674,26 @@ class Battle(BattleMechanicsMixin):
 
         user.inc_counter(f'skill_used:{bs.name}')
         user.inc_counter('skills_used')
+
+        # ═══ 应对效果注入：应对方直接效果在伤害计算前生效 ═══
+        if is_countered and countering_skill:
+            opp_team = 'B' if team == 'A' else 'A'
+            try:
+                counter_record = self._get_skill_record(countering_skill.base.name)
+                counter_effects = self._vm_engine._get_effects(counter_record)
+                direct_effects = [e for e in counter_effects
+                                  if not (hasattr(e, 'when') and e.when) and 'when' not in (e if isinstance(e, dict) else {})]
+                if direct_effects:
+                    opp_ctx = self._build_ctx(
+                        target, user, counter_record, None, self.globals,
+                        team=opp_team, turn=self.turn,
+                    )
+                    counter_journal = self._vm_engine.execute_effects(opp_ctx, direct_effects)
+                    from backend.engine.replayer import JournalReplayer as _CR
+                    _cr = _CR(target, user, self.globals, self._vm_engine.registry, team=opp_team, battle=self)
+                    events += _cr.replay(counter_journal)
+            except Exception:
+                pass
 
         # ═══ Load CompiledSkill + execute VM ═══
         # (record already loaded above for devotion check)
@@ -937,19 +926,13 @@ class Battle(BattleMechanicsMixin):
         # 延时效果结算（phase=end）
         events += self._execute_scheduled_effects('end')
 
-        # scope="turn" 效果清除 + ttl 递减（包括候补精灵）
+        # scope="turn" 效果清除（不包括 ttl 衰减——ttl 由下方统一处理）
         for team in ('A', 'B'):
             player = self.get_player(team)
             for sprite in player.team:
                 if sprite.is_fainted:
                     continue
                 sprite.clear_effects('turn')
-                for e in list(sprite.active_effects):
-                    if getattr(e, 'ttl', 0) > 0:
-                        e.ttl -= 1
-                        if e.ttl <= 0:
-                            sprite.active_effects.remove(e)
-                            events.append(f'{sprite.name} {e.name} 到期消失')
 
         # 借用还原
         for (team, si), original in self._borrowed_restore.items():
@@ -1014,11 +997,14 @@ class Battle(BattleMechanicsMixin):
                     events += self._vm_engine.fire_trigger("post_abnormal_tick", ctx_tick_self, sprite, opp, self.globals, team=team, battle=self)
                     events += self._vm_engine.fire_trigger("post_abnormal_tick", ctx_tick_opp, opp, sprite, self.globals, team=opp_team, battle=self)
 
-        # ── TTL 衰减：双方精灵 decrement_ttl ──
-        for team, sprite in sprites.items():
-            expired = sprite.decrement_ttl()
-            for eff in expired:
-                events.append(f'{sprite.name} 效果到期: {eff.name}')
+        # ── TTL 衰减：双方所有精灵（含候补）decrement_ttl ──
+        for team in ('A', 'B'):
+            for sprite in self.get_player(team).team:
+                if sprite.is_fainted:
+                    continue
+                expired = sprite.decrement_ttl()
+                for eff in expired:
+                    events.append(f'{sprite.name} {eff.name} 到期消失')
 
         # ── Observer: turn_end ──
         for team, sprite in sprites.items():
@@ -1070,6 +1056,12 @@ class Battle(BattleMechanicsMixin):
                 ctx_leave = self._make_ctx(old, opp, None, None, self.globals, team=team, turn=self.turn, self_switched=True)
                 ctx_entry = self._make_ctx(new, opp, None, None, self.globals, team=team, turn=self.turn)
                 events += self._vm_engine.fire_trigger("post_leave", ctx_leave, old, opp, self.globals, team=team, battle=self)
+                # 洁癖等 post_leave observer 可能写入新的 pending_effects
+                pending = self.pending_effects.get(team, [])
+                for e in pending:
+                    new.add_effect(e)
+                if pending:
+                    self.pending_effects[team] = []
                 events += self._vm_engine.fire_trigger("post_entry", ctx_entry, new, opp, self.globals, team=team, battle=self)
 
         # 冻结斩杀检查
