@@ -3,12 +3,15 @@ import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { useSpriteAssetStore } from '../stores/spriteAssets.js'
 import { useSpriteAnim } from '../composables/useSpriteAnim.js'
 
+const ELEMENTAL = ['普通','火','水','草','电','冰','地','石','武','虫','翼','萌','毒','幽','恶','幻','光','龙','机械']
+
 const props = defineProps({
   sprite: { type: Object, default: null },
   size: { type: String, default: 'md' },
   showHp: { type: Boolean, default: false },
   showEnergy: { type: Boolean, default: false },
   isFainted: { type: Boolean, default: false },
+  showBloodline: { type: Boolean, default: false },
 })
 
 const spriteAssets = useSpriteAssetStore()
@@ -53,6 +56,16 @@ const hpPct = computed(() => {
 const primaryElement = computed(() => {
   return props.sprite?.element?.split(',')[0]?.trim() || ''
 })
+
+const bloodlineClass = computed(() => {
+  const bl = props.sprite?.bloodline || ''
+  if (!bl) return ''
+  if (ELEMENTAL.includes(bl)) {
+    const map = { '石': '石' }
+    return `element-${map[bl] || bl}`
+  }
+  return `bloodline-${bl}`
+})
 </script>
 
 <template>
@@ -80,6 +93,11 @@ const primaryElement = computed(() => {
     </div>
 
     <div ref="shadowEl" class="sprite-shadow"></div>
+
+    <span
+      v-if="showBloodline && sprite?.bloodline"
+      :class="['elem-tag', bloodlineClass]"
+    >{{ sprite.bloodline }}</span>
 
     <div v-if="showHp && sprite" class="w-full max-w-40">
       <div class="flex justify-between text-xs text-[#6B5E4F] mb-0.5">

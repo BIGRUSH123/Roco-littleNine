@@ -15,6 +15,7 @@ const selectedTeam = ref([null, null, null, null, null, null])
 const teamSkills = ref([[], [], [], [], [], []])
 const teamBloodlines = ref(['', '', '', '', '', ''])   // 血脉选择（每槽位）
 const teamBloodlineOptions = ref([[], [], [], [], [], []]) // 每个槽位的可选血脉列表
+const teamLockedBloodlines = ref([[], [], [], [], [], []]) // 每个槽位的锁定血脉
 const loading = ref(true)
 const error = ref('')
 
@@ -66,6 +67,7 @@ async function loadSprites() {
                 ;(async () => {
                   const blData = await loadSpriteBloodlines(sprite.name)
                   teamBloodlineOptions.value[index] = blData.bloodlines
+                  teamLockedBloodlines.value[index] = blData.locked
                   const savedBL = member.bloodline
                   teamBloodlines.value[index] = (savedBL && blData.bloodlines.includes(savedBL)) ? savedBL : blData.default
                 })()
@@ -148,10 +150,14 @@ async function loadSpriteBloodlines(spriteName) {
     const res = await fetch(`${API_BASE}/sprites/${encodeURIComponent(spriteName)}/bloodlines`)
     if (res.ok) {
       const data = await res.json()
-      return { bloodlines: data.available_bloodlines || [], default: data.default_bloodline || '' }
+      return {
+        bloodlines: data.available_bloodlines || [],
+        default: data.default_bloodline || '',
+        locked: data.locked_bloodlines || [],
+      }
     }
   } catch (e) { /* ignore */ }
-  return { bloodlines: [], default: '' }
+  return { bloodlines: [], default: '', locked: [] }
 }
 
 async function checkEvolutionEligibility() {
@@ -168,6 +174,10 @@ async function checkEvolutionEligibility() {
   }
   return false
 }
+
+const hasBossBloodline = computed(() => {
+  return teamBloodlines.value.some(bl => bl === '首领')
+})
 
 function skillDesc(name) {
   const s = props.skillMap[name]
@@ -226,6 +236,7 @@ const selectSprite = async (sprite) => {
   // 加载血脉选项
   const blData = await loadSpriteBloodlines(sprite.name)
   teamBloodlineOptions.value[idx] = blData.bloodlines
+  teamLockedBloodlines.value[idx] = blData.locked
   teamBloodlines.value[idx] = blData.default
   evolutionEligible.value = await checkEvolutionEligibility()
 }
@@ -235,6 +246,7 @@ const clearSlot = async (idx) => {
   teamSkills.value[idx] = []
   teamBloodlines.value[idx] = ''
   teamBloodlineOptions.value[idx] = []
+  teamLockedBloodlines.value[idx] = []
   if (leadSlot.value === idx) {
     leadSlot.value = selectedTeam.value.findIndex(s => s !== null)
   }
@@ -424,7 +436,7 @@ const startBattle = () => {
                     v-model="teamBloodlines[idx]"
                     class="bloodline-select bg-[#F5F2EC] border border-[#D4C8B8] rounded-lg px-2 py-0.5 text-[11px] text-[#3D2B1F] outline-none focus:border-[#C9A96E] flex-1 min-w-0"
                   >
-                    <option v-for="bl in teamBloodlineOptions[idx]" :key="bl" :value="bl">{{ bl }}</option>
+                    <option v-for="bl in teamBloodlineOptions[idx]" :key="bl" :value="bl" :disabled="teamLockedBloodlines[idx].includes(bl)">{{ bl }}{{ teamLockedBloodlines[idx].includes(bl) ? ' (锁定)' : '' }}</option>
                   </select>
                 </div>
                 <div class="text-[10px] text-[#6B5E4F] mt-2">
@@ -461,12 +473,12 @@ const startBattle = () => {
               v-for="item in availableItems"
               :key="item.name"
               @click="selectedItem = item.name"
-              :disabled="item.name === '进化之力' && !evolutionEligible"
+              :disabled="item.name === '进化之力' && (!evolutionEligible || !hasBossBloodline)"
               :class="[
                 'group relative px-4 py-2 text-xs rounded-lg border transition-colors',
                 selectedItem === item.name
                   ? 'border-[#5C8D6E] bg-[#5C8D6E]/10 text-[#5C8D6E]'
-                  : item.name === '进化之力' && !evolutionEligible
+                  : item.name === '进化之力' && (!evolutionEligible || !hasBossBloodline)
                     ? 'border-[#D4C8B8] bg-[#F5F2EC] text-[#A89A8A] cursor-not-allowed opacity-50'
                     : 'border-[#D4C8B8] bg-[#F5F2EC] text-[#6B5E4F] hover:border-[#C9A96E]'
               ]"
@@ -475,6 +487,9 @@ const startBattle = () => {
               <!-- 进化之力不可用的提示 -->
               <span v-if="item.name === '进化之力' && !evolutionEligible" class="block text-[10px] text-[#E0A030] mt-0.5">
                 队伍中无精灵可进化
+              </span>
+              <span v-else-if="item.name === '进化之力' && !hasBossBloodline" class="block text-[10px] text-[#E0A030] mt-0.5">
+                需将血脉设为"首领"
               </span>
             </button>
           </div>

@@ -14,6 +14,7 @@ if str(BASE) not in sys.path:
     sys.path.insert(0, str(BASE))
 
 from backend.api import schemas
+from backend.common.constants import LOCKED_BLOODLINES, SPECIAL_BLOODLINES
 from backend.common.models import SpeciesStats
 from backend.sim.action import Action
 from backend.sim.battle import Battle
@@ -623,13 +624,14 @@ def get_bloodlines(name: str):
     species = db.get(name, '')
     if species is None:
         raise HTTPException(status_code=404, detail=f"Sprite {name!r} not found in the Pokedex. Check the name spelling or consult /api/sprites for available sprites.")
-    # 默认血脉=第一属性，可选=bloodline_skills的所有key
+    # 默认血脉=第一属性，可选=bloodline_skills的所有key + 特殊血脉
     bl_skills = species.bloodline_skills or {}
     return {
         "sprite": name,
         "default_bloodline": species.elements[0] if species.elements else '',
-        "available_bloodlines": list(bl_skills.keys()),
+        "available_bloodlines": list(bl_skills.keys()) + SPECIAL_BLOODLINES,
         "bloodline_skills": bl_skills,
+        "locked_bloodlines": list(LOCKED_BLOODLINES),
     }
 
 @app.get("/api/items")
@@ -643,14 +645,17 @@ def get_items():
                 "max_uses": 2,
                 "cooldown_turns": 4,
                 "cooldown_description": "两次使用需间隔3回合",
+                "requirement": "",
+                "bloodline_requirement": "elemental",
             },
             {
                 "name": "进化之力",
-                "description": "进化为同编号的首领形态，全属性+2级",
+                "description": "使具有特殊血脉的精灵进化为对应的首领形态，获得更强大的力量！",
                 "max_uses": 1,
                 "cooldown_turns": 0,
                 "cooldown_description": "全场仅可使用一次",
-                "requirement": "仅限与首领形态同编号的精灵使用",
+                "requirement": "需将精灵血脉设为\"首领\"",
+                "bloodline_requirement": "首领",
             },
         ]
     }

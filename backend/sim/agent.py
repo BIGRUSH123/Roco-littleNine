@@ -11,6 +11,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Protocol
 
+from backend.common.constants import ELEMENTAL_BLOODLINES
+
 from .action import Action
 from .battleskill import SkillUse
 
@@ -73,14 +75,14 @@ class RuleAgent:
                 return Action(kind='switch', switch_index=replacement)
             return Action(kind='gather')
 
-        # 道具使用（进化之力早期用，愿力强化低HP用）
+        # 道具使用（进化之力仅首领血脉可用，愿力仅元素血脉可用）
         item = p.item
         if item and item.can_use(battle.turn):
-            if item.name == '进化之力' and battle.turn <= 2:
+            if item.name == '进化之力' and battle.turn <= 2 and s.bloodline == '首领':
                 return Action(kind='item')
             if item.name == '愿力':
                 hp_ratio = s.current_hp / s.max_hp if s.max_hp > 0 else 0
-                if hp_ratio < 0.5 and style.aggression > 0.4:
+                if hp_ratio < 0.5 and style.aggression > 0.4 and s.bloodline in ELEMENTAL_BLOODLINES:
                     return Action(kind='item')
 
         # 低 HP → 可能换宠

@@ -26,3 +26,8 @@
   font-weight: 600;
   letter-spacing: 0.5px;
 }
+
+/* 特殊血脉 */
+.bloodline-首领 { --elem-color: #C9A96E; background: linear-gradient(135deg, #FFD700, #C9A96E); color: #3D2B1F; }
+.bloodline-污染 { --elem-color: #7B1FA2; background: #4A148C; color: #E1BEE7; }
+.bloodline-奇异 { --elem-color: #00838F; background: #006064; color: #B2EBF2; }

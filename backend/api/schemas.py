@@ -180,6 +180,7 @@ class BloodlineResponse(BaseModel):
     default_bloodline: str
     available_bloodlines: list[str]
     bloodline_skills: dict[str, int]
+    locked_bloodlines: list[str] = []
 
 
 class ItemInfo(BaseModel):
@@ -189,6 +190,7 @@ class ItemInfo(BaseModel):
     cooldown_turns: int
     cooldown_description: str
     requirement: str = ''
+    bloodline_requirement: str = ''
 
 
 class ItemListResponse(BaseModel):

@@ -77,9 +77,10 @@ def test_choose_action_fainted_no_replacement_gathers():
 
 
 def test_choose_action_evolution_power_early():
-    """Evolution power item used on turn <= 2."""
+    """Evolution power item used on turn <= 2 (requires 首领 bloodline)."""
     b = _make_battle(p1_item=Item.leader())
     b.turn = 2
+    b.player_a.active.bloodline = '首领'
     agent = RuleAgent("A", b.player_a)
 
     action = agent.choose_action(b)

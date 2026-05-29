@@ -4,6 +4,7 @@ import json
 import sys
 from pathlib import Path
 
+from backend.common.constants import BLOODLINES
 from backend.common.sprite_db import SpriteDB
 
 from .battle import Battle
@@ -86,7 +87,7 @@ class SimFactory:
         # Load permanent skill-scoped modifiers from previous battles
         for bs in sprite.skills:
             bs.load_permanent_mods(sprite._modifiers)
-        if bloodline and bloodline in sprite.bloodline_skills:
+        if bloodline and bloodline in BLOODLINES:
             sprite.bloodline = bloodline
         elif species.elements:
             sprite.bloodline = species.elements[0]

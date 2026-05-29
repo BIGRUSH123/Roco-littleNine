@@ -7,6 +7,8 @@
 import random
 from typing import TYPE_CHECKING
 
+from backend.common.constants import ELEMENTAL_BLOODLINES
+
 from .action import Action
 from .traits import dispatch_entry, dispatch_leave
 
@@ -165,6 +167,12 @@ class BattleMechanicsMixin:
 
         sprite = player.active
 
+        # 血脉限制
+        if item.name == '进化之力' and sprite.bloodline != '首领':
+            return ''
+        if item.name == '愿力' and sprite.bloodline not in ELEMENTAL_BLOODLINES:
+            return ''
+
         if item.name == '进化之力':
             # 进化之力：同编号有首领形态的精灵可进化为首领形态
             if self.species_db is None:
@@ -191,12 +199,6 @@ class BattleMechanicsMixin:
             # 萌化状态在形态变化后失效
             sprite._reset_moe_state()
             sprite.remove_effect('萌化', 'abnormal')
-            from backend.vm.effect import StatBuffEffect
-            for key in ['atk', 'sp_atk', 'def', 'sp_def', 'speed']:
-                sprite.add_effect(StatBuffEffect(
-                    name='首领化', stat_key=key, steps=2,
-                    scope='permanent', source='进化之力',
-                ))
             # 进化后重新加载特性（新形态有不同 ability）
             sprite.entry_turn = self.turn  # 让 sprite_entered 条件生效
             self._vm_engine.trait_loader.load_for_sprite(sprite)

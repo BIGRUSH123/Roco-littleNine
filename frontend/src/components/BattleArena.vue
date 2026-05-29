@@ -53,6 +53,9 @@ const canUseItem = computed(() => {
   const item = player.value?.item
   if (!item || item.is_exhausted) return false
   if (item.last_use_turn > 0 && store.turn - item.last_use_turn < item.cooldown_turns) return false
+  const bl = active.value?.bloodline || ''
+  if (item.name === '进化之力' && bl !== '首领') return false
+  if (item.name === '愿力' && !ELEMENTAL.includes(bl)) return false
   return true
 })
 
@@ -136,6 +139,13 @@ function switchEffectivenessClass(benchElem, oppElem) {
 
 const elementColorClass = (elem) => elem ? `element-${elem.split(',')[0].trim()}` : ''
 
+const ELEMENTAL = ['普通','火','水','草','电','冰','地','石','武','虫','翼','萌','毒','幽','恶','幻','光','龙','机械']
+const bloodlineClass = (bl) => {
+  if (!bl) return ''
+  if (ELEMENTAL.includes(bl)) return `element-${bl}`
+  return `bloodline-${bl}`
+}
+
 const hpPct = (current, max) => max === 0 ? 0 : Math.max(0, Math.min(100, (current / max) * 100))
 const hpColorClass = (current, max) => {
   if (max === 0) return 'bg-[#D4C8B8]'
@@ -217,6 +227,7 @@ const debugActionLabel = (action) => {
           <div class="text-center mb-4">
             <div class="flex items-center justify-center gap-2 mb-1">
               <span v-if="activeOpp?.element" :class="['elem-tag', elementColorClass(activeOpp.element)]">{{ activeOpp.element.split(',')[0].trim() }}</span>
+              <span v-if="activeOpp?.bloodline" :class="['elem-tag', bloodlineClass(activeOpp.bloodline)]">{{ activeOpp.bloodline }}</span>
               <span class="text-lg font-bold text-[#4A3B5C] font-[family-name:var(--font-title)]">
                 {{ activeOpp?.name || '???' }}
               </span>
@@ -235,6 +246,7 @@ const debugActionLabel = (action) => {
             :sprite="activeOpp || {}"
             size="lg"
             :is-fainted="activeOpp?.is_fainted ?? false"
+            :show-bloodline="true"
           />
 
           <!-- HP Bar -->
@@ -442,12 +454,14 @@ const debugActionLabel = (action) => {
           :sprite="active || {}"
           size="md"
           :is-fainted="active?.is_fainted ?? false"
+          :show-bloodline="true"
         />
 
         <!-- Name + Stats -->
         <div class="flex-1 min-w-0">
           <div class="flex items-center gap-2 mb-2">
             <span v-if="active?.element" :class="['elem-tag', elementColorClass(active.element)]">{{ active.element.split(',')[0].trim() }}</span>
+            <span v-if="active?.bloodline" :class="['elem-tag', bloodlineClass(active.bloodline)]">{{ active.bloodline }}</span>
             <span class="text-lg font-bold text-[#3D2B1F] font-[family-name:var(--font-title)]">
               {{ active?.name || '???' }}
             </span>
@@ -576,6 +590,8 @@ const debugActionLabel = (action) => {
                 <template v-else-if="player.item.last_use_turn > 0 && store.turn - player.item.last_use_turn < player.item.cooldown_turns">
                   冷却中({{ player.item.cooldown_turns - (store.turn - player.item.last_use_turn) }}回合后可用)
                 </template>
+                <template v-else-if="player.item.name === '进化之力' && active?.bloodline !== '首领'">需要首领血脉</template>
+                <template v-else-if="player.item.name === '愿力' && !ELEMENTAL.includes(active?.bloodline || '')">需要元素血脉</template>
                 <template v-else>使用道具</template>
               </div>
             </button>
