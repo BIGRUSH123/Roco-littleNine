@@ -4,17 +4,17 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "roco"
-version = "0.1.0"
-description = "格斗小九 — Battle VM as a Platform: programmable turn-based sprite battle SDK"
+version = "1.0.0"
+description = "格斗小九 — 洛克王国 PVP 对战模拟器"
 requires-python = ">=3.10"
 license = {text = "MIT"}
 authors = [
     {name = "BIGRUSH123"},
 ]
 readme = "README.md"
-keywords = ["battle", "simulation", "ai", "turn-based", "genetic-algorithm", "pokemon-like"]
+keywords = ["roco", "battle", "pvp", "simulator", "turn-based", "洛克王国"]
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3.10",
@@ -27,9 +27,6 @@ classifiers = [
 dev = [
     "pytest>=7.0",
     "ruff>=0.4",
-]
-ga = [
-    "numpy>=1.24",
 ]
 
 [project.urls]
