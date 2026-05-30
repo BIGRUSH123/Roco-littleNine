@@ -643,6 +643,14 @@
 - **涉及文件**: backend/engine/battle.py:159
 - **教训**: 特性效果施加到对手时，直接查 `_fire_pre_event` / `_fire_post_event` 调用处是否漏传 sprite_id/owner_id——pre_modifier 是唯一漏掉的 pre_event
 
+## 2026-05-30 - Steal action=copy 不生效：IR 类型和 Parser 未传递 action 字段
+
+- **现象**: 衡量特性入场时 `steal` 操作设置 `action=copy`，但实际仍表现为偷取（移除了对手的增益）
+- **根因**: `ir_skill.py:StealOp` 缺少 `action` 属性，`skill_parse.py:_parse_steal` 未从 JSON 提取 `action` 字段。`op_steal` 中的 `getattr(effect, "action", "steal")` 因属性不存在而静默回退到默认值 `"steal"`
+- **修复**: `StealOp` 新增 `action: str = "steal"`；`_parse_steal` 新增 `action=e.get("action", "steal")`
+- **涉及文件**: `backend/vm/ir_skill.py:246`, `backend/vm/compiler/passes/skill_parse.py:379`
+- **教训**: JSON 字段值未生效时，先检查 op_steal 的 `_get` 辅助函数——它用 `getattr` 取对象属性，属性不存在时静默回退默认值，不会报错。追溯到 IR 类型定义和 parser 是否传递了该字段
+
 <!-- 新条目追加在此行上方，格式如下：
 
 ## YYYY-MM-DD - 简短标题
