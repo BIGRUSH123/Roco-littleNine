@@ -595,6 +595,14 @@
 - **涉及文件**: backend/vm/ctx.py:126-127/214-215, backend/engine/snapshot.py:136-139/163-166, backend/vm/resolve.py:300
 - **教训**: frozenset 只能做包含判断，聚合计数必须用 dict——公式解析路径中用了什么数据结构直接决定返回值语义
 
+## 2026-05-30 - 灰色肖像 observer 不触发：compare+q 查 computed path + post_skill 当条件用
+
+- **现象**: 画间法师手（灰色肖像）攻击后敌方中毒层数未+3，observer 完全不触发
+- **根因**: trait JSON 两个条件写法错误。① `compare`+`q:"skill.is_attack"` 走 ADDRESS_MAP 查找，computed path 不在映射中→KeyError；② `{"cond":"post_skill"}` 是 trigger point 名，不在 COND_EVAL 中→KeyError。两处均被 `_fire_post_event` 的 `except Exception: continue` 静默吞掉
+- **修复**: ① compare→trait_path + path；② 移除 and+post_skill 子条件，改用显式 `listen:["post_skill"]`；③ 新增 `effect_delta` opcode 实现遍历所有减益+层数
+- **涉及文件**: data/traits/灰色肖像.json:14-21
+- **教训**: observer 不触发时两个排查点——compare+q 字段是否在 ADDRESS_MAP（computed path 必须用 trait_path），and 块每个子条件是否在 COND_EVAL（trigger point 名不是条件）
+
 <!-- 新条目追加在此行上方，格式如下：
 
 ## YYYY-MM-DD - 简短标题
