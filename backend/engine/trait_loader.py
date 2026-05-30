@@ -266,11 +266,7 @@ class TraitLoader:
                     continue
             if skill_filter and skill_filter != "all":
                 st = getattr(getattr(bs, 'base', None), 'skill_type', '')
-                if skill_filter == "attack" and st not in self._ATTACK_TYPES:
-                    continue
-                elif skill_filter == "defense" and st != "防御":
-                    continue
-                elif skill_filter == "status" and st != "状态":
+                if skill_filter == "attack" and st not in self._ATTACK_TYPES or skill_filter == "defense" and st != "防御" or skill_filter == "status" and st != "状态":
                     continue
             # Remove existing burst effects from same source before re-adding
             bs._burst_effects = [e for e in bs._burst_effects

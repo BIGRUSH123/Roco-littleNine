@@ -331,10 +331,7 @@ class SkillParsePass:
         raw_stacks = e.get("stacks", 1)
         stacks = 1
         value = self._parse_value(e["value"]) if "value" in e else None
-        if isinstance(raw_stacks, dict) and "q" in raw_stacks:
-            value = self._parse_value(raw_stacks)
-            stacks = 0
-        elif isinstance(raw_stacks, str) and str(raw_stacks).startswith("="):
+        if isinstance(raw_stacks, dict) and "q" in raw_stacks or isinstance(raw_stacks, str) and str(raw_stacks).startswith("="):
             value = self._parse_value(raw_stacks)
             stacks = 0
         elif isinstance(raw_stacks, str) and raw_stacks.lstrip("-").isdigit():

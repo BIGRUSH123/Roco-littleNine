@@ -14,7 +14,7 @@ from ..journal import Mutation, ScheduleEntry
 from ..resolve import resolve
 
 if TYPE_CHECKING:
-    from ..ir_skill import SkillIROp
+    pass
 
 
 def _get(effect, key, default=None):
@@ -88,10 +88,7 @@ def _freeze_op(op, ctx: Ctx):
     """Freeze IRValues in a SkillIROp dataclass, recursing into nested containers."""
     from ..ir_skill import (
         AbnormalOp,
-        BurstGrantOp,
-        CountOp,
         EnergizeOp,
-        EscapeOp,
         FlagSetOp,
         HealOp,
         HitOp,
@@ -100,9 +97,7 @@ def _freeze_op(op, ctx: Ctx):
         MultModOp,
         PowerModOp,
         ReviveOp,
-        Schedule,
         StatStageOp,
-        WhenBlock,
     )
 
     # Recurse into nested then/else_/elif_ first

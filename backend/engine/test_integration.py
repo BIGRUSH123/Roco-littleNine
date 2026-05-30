@@ -2629,11 +2629,10 @@ def test_trait_系统发育_energy_to_bench():
     """系统发育: gaining energy → bench ally receives equal energy."""
     from backend.common.models import SpeciesStats
     from backend.engine.battle import BattleVMEngine
-    from backend.engine.observer import ObserverRegistry
+    from backend.engine.observer import Observer, ObserverRegistry
     from backend.engine.replayer import JournalReplayer
     from backend.sim.battle import Battle
     from backend.sim.factory import SimFactory
-    from backend.engine.observer import Observer
     from backend.vm.compiler.trait_to_observer import TraitToObserver
     from backend.vm.ctx import Ctx
     from backend.vm.journal import EnergyChange
@@ -2701,11 +2700,10 @@ def test_trait_系统发育_heal_to_bench():
     """系统发育: being healed → bench ally receives equal HP."""
     from backend.common.models import SpeciesStats
     from backend.engine.battle import BattleVMEngine
-    from backend.engine.observer import ObserverRegistry
+    from backend.engine.observer import Observer, ObserverRegistry
     from backend.engine.replayer import JournalReplayer
     from backend.sim.battle import Battle
     from backend.sim.factory import SimFactory
-    from backend.engine.observer import Observer
     from backend.vm.compiler.trait_to_observer import TraitToObserver
     from backend.vm.ctx import Ctx
     from backend.vm.journal import Heal
@@ -2769,11 +2767,10 @@ def test_trait_系统发育_negative_delta_ignored():
     """系统发育: losing energy (negative delta) does NOT redirect to bench."""
     from backend.common.models import SpeciesStats
     from backend.engine.battle import BattleVMEngine
-    from backend.engine.observer import ObserverRegistry
+    from backend.engine.observer import Observer, ObserverRegistry
     from backend.engine.replayer import JournalReplayer
     from backend.sim.battle import Battle
     from backend.sim.factory import SimFactory
-    from backend.engine.observer import Observer
     from backend.vm.compiler.trait_to_observer import TraitToObserver
     from backend.vm.ctx import Ctx
     from backend.vm.journal import EnergyChange

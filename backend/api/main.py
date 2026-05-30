@@ -10,6 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 # Ensure we can import from backend
 BASE = Path(__file__).resolve().parent.parent.parent
+WIKI_ROOT = BASE / 'wiki'
 if str(BASE) not in sys.path:
     sys.path.insert(0, str(BASE))
 
@@ -605,17 +606,17 @@ def _load_ai_agent(name: str, player):
         else:
             try:
                 from roco.bridge import adapt_agent
-            except ImportError:
-                raise ImportError("roco package not installed — AI agent support will be added in a future version")
+            except ImportError as err:
+                raise ImportError("roco package not installed — AI agent support will be added in a future version") from err
             instance = cls() if isinstance(cls, type) else cls
             return adapt_agent(instance, "B")
     elif source in ("example", "demo"):
         file_path = info.get("file", "")
         try:
-            from roco.tournament import load_agent
             from roco.bridge import adapt_agent
-        except ImportError:
-            raise ImportError("roco package not installed — AI agent support will be added in a future version")
+            from roco.tournament import load_agent
+        except ImportError as err:
+            raise ImportError("roco package not installed — AI agent support will be added in a future version") from err
         agent = load_agent(file_path)
         return adapt_agent(agent, "B")
     else:

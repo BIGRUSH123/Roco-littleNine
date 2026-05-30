@@ -107,7 +107,6 @@ _STAT_LABELS: dict[str, str] = {
     "drive": "传动",
     "power_mod": "威力",
     "swift": "迅捷",
-    "priority": "先手",
 }
 
 # Step unit for display conversion: steps → display value
@@ -1129,6 +1128,7 @@ class JournalReplayer:
         # Steal effects/energy/marks from target to self
         if m.what == "positive":
             from copy import copy
+
             from backend.vm.effect import StatBuffEffect
             target = self._target_sprite(m.from_target)
             positives = [e for e in target.active_effects
@@ -1270,7 +1270,6 @@ class JournalReplayer:
     @staticmethod
     def _match_stat_effect(e, what: str) -> int:
         """返回累加方向: +1 表示 steps+=delta, -1 表示 steps-=delta, 0 不匹配."""
-        from backend.vm.effect import StatBuffEffect
 
         if e.stat_key == 'energy_cost':
             if what == "negative" and e.steps > 0:
