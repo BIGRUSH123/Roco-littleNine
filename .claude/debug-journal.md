@@ -5,6 +5,14 @@
 
 ---
 
+## 2026-05-30 - compare 条件 q="counters[times_entered]" 路径语法不被 _resolve_dict_query 支持导致静默失败
+
+- **现象**: 鳗尾兽的铃兰晚钟特性（首次入场失去一半当前生命）完全不触发，战斗日志无任何痕迹
+- **根因**: `compare` 条件的 `q: "counters[times_entered]"` 走 `_resolve_dict_query` → ADDRESS_MAP 中不存在 `("sprite_self", "counters[times_entered]")` → `KeyError` 被 `observer.py:171` 的 `except Exception: continue` 静默吞掉。公式串 `=@self.counters[times_entered]` 走 `_resolve_trait_ref`（有独立正则处理），所以 `then` 块能用但 `cond` 块不行
+- **修复**: `铃兰晚钟.json`/`蓄电池.json`/`超级电池.json` 的 `q: "counters[times_entered]"` → `q: "times_entered"`（ADDRESS_MAP 已注册）
+- **涉及文件**: `data/traits/铃兰晚钟.json:25`, `data/traits/蓄电池.json:36`, `data/traits/超级电池.json:36`
+- **教训**: `compare` 条件的 `q` 只支持 ADDRESS_MAP 简单键名，不支持 `counters[key]` 语法——和公式串 `=@self.counters[key]` 解析路径不同。特性完全不触发时先搜 `"q": "counters\[`
+
 ## 2026-05-29 - 应对穿透修复（8abc1ad）误将应对当打断导致被应对技能完全无效
 
 - **现象**: 被防御等技能应对后，攻击技能完全不造成伤害，而非只减伤70%
@@ -650,6 +658,22 @@
 - **修复**: `StealOp` 新增 `action: str = "steal"`；`_parse_steal` 新增 `action=e.get("action", "steal")`
 - **涉及文件**: `backend/vm/ir_skill.py:246`, `backend/vm/compiler/passes/skill_parse.py:379`
 - **教训**: JSON 字段值未生效时，先检查 op_steal 的 `_get` 辅助函数——它用 `getattr` 取对象属性，属性不存在时静默回退默认值，不会报错。追溯到 IR 类型定义和 parser 是否传递了该字段
+
+## 2026-05-30 - replayer._apply_escape 用错属性名导致 escape 测试崩溃
+
+- **现象**: test_e2e_escape_skill 报 AttributeError: 'JournalReplayer' object has no attribute 'battle'
+- **根因**: _apply_escape 实现时用了 `self.battle`，JournalReplayer 的属性名是私有形式 `self._battle`（带下划线），同时 engine/battle.py 引用 replayer 时也写了 `replayer.battle`
+- **修复**: replayer.py:1272 → `self._battle`，engine/battle.py:392 → `replayer._battle`
+- **涉及文件**: backend/engine/replayer.py:1272, backend/engine/battle.py:392
+- **教训**: 给对象加新属性前先 grep 确认已有属性的命名约定（self.x vs self._x）
+
+## 2026-05-30 - 脱离后前端不弹出换宠选择界面
+
+- **现象**: 警惕特性触发脱离，战斗日志显示"遁地鼠 脱离"但前端没弹出替补选择 UI
+- **根因**: 前端 store 从未读取 API 返回的 `pending_escape` 字段——后端设置状态并正确序列化，但前端 battle.js updateFromResponse 不包含该字段，数据断链
+- **修复**: battle.js 新增 pendingEscape ref 并在 updateFromResponse 中读取；BattleArena.vue 新增 forced escape menu（无取消按钮，显示脱离提示）；App.vue 新增 handleResolveEscape 调用 POST /resolve-escape
+- **涉及文件**: frontend/src/stores/battle.js, frontend/src/components/BattleArena.vue, frontend/src/App.vue
+- **教训**: 后端新增 API 字段后必须同步检查前端 store 的 updateFromResponse 是否读取——grep 字段名前后端都要出现
 
 <!-- 新条目追加在此行上方，格式如下：
 
