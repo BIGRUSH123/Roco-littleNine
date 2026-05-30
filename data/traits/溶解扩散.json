@@ -5,31 +5,21 @@
   "effects": [
     {
       "op": "observer",
-      "then": [
-        {
-          "target": "target",
-          "source": "溶解扩散",
-          "op": "abnormal",
-          "name": "中毒",
-          "stacks": "=@self.skills[element=毒].count"
-        }
-      ],
+      "listen": "post_skill",
       "scope": "persistent",
       "cond": {
-        "cond": "and",
-        "conditions": [
-          {
-            "cond": "skill_use"
-          },
-          {
-            "cond": "compare",
-            "q": "",
-            "of": "sprite_self",
-            "op": "eq",
-            "value": null
-          }
-        ]
-      }
+        "cond": "skill_use",
+        "element": "水"
+      },
+      "then": [
+        {
+          "op": "abnormal",
+          "target": "sprite_opp",
+          "name": "中毒",
+          "stacks": "=@self.skills[element=毒].count",
+          "source": "溶解扩散"
+        }
+      ]
     }
   ]
 }

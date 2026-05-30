@@ -5,31 +5,21 @@
   "effects": [
     {
       "op": "observer",
+      "cond": {
+        "cond": "skill_use",
+        "element": "草"
+      },
+      "listen": "post_skill",
+      "scope": "persistent",
       "then": [
         {
-          "target": "target",
-          "source": "生物碱",
           "op": "abnormal",
+          "target": "sprite_opp",
           "name": "中毒",
-          "stacks": 2
+          "stacks": 2,
+          "source": "生物碱"
         }
-      ],
-      "scope": "persistent",
-      "cond": {
-        "cond": "and",
-        "conditions": [
-          {
-            "cond": "skill_use"
-          },
-          {
-            "cond": "compare",
-            "q": "",
-            "of": "sprite_self",
-            "op": "eq",
-            "value": null
-          }
-        ]
-      }
+      ]
     }
   ]
 }

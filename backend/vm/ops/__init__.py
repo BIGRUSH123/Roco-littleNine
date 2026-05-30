@@ -6,10 +6,12 @@ removed. Individual handler functions remain importable for direct use.
 
 from .abnormal import op_abnormal
 from .borrow import op_borrow
+from .burst_grant import op_burst_grant
 from .charge import op_charge
 from .count import op_count
 from .dispel import op_dispel
 from .double import op_double
+from .effect_delta import op_effect_delta
 from .escape import op_escape
 from .exchange import op_exchange
 from .hit import op_hit

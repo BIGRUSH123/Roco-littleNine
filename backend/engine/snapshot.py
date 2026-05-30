@@ -133,6 +133,12 @@ def build_ctx(
     skill_elements_self = frozenset(
         sk.element for sk in (ss.skills or []) if getattr(sk, 'element', None)
     ) if hasattr(ss, 'skills') else frozenset()
+    skill_element_counts_self: dict[str, int] = {}
+    if hasattr(ss, 'skills'):
+        for sk in ss.skills:
+            el = getattr(sk, 'element', None)
+            if el:
+                skill_element_counts_self[el] = skill_element_counts_self.get(el, 0) + 1
 
     # Energy cost sum by type/element/tag — accumulated by engine
     ecs = energy_cost_sum_self or {}
@@ -145,9 +151,21 @@ def build_ctx(
 
     stat_stages_opp = _extract_stat_stages(os)
     abnormal_stacks_opp = _extract_abnormal_stacks(os)
+    is_charging_opp = any(
+        isinstance(e, _StateEffect) and e.state_type == "charging" for e in getattr(os, 'active_effects', [])
+    )
+    charged_opp = any(
+        isinstance(e, _StateEffect) and e.state_type == "charged" for e in getattr(os, 'active_effects', [])
+    )
     skill_elements_opp = frozenset(
         sk.element for sk in (os.skills or []) if getattr(sk, 'element', None)
     ) if hasattr(os, 'skills') else frozenset()
+    skill_element_counts_opp: dict[str, int] = {}
+    if hasattr(os, 'skills'):
+        for sk in os.skills:
+            el = getattr(sk, 'element', None)
+            if el:
+                skill_element_counts_opp[el] = skill_element_counts_opp.get(el, 0) + 1
 
     # ── Teams (from GlobalEffects) ──
     g = globals_
@@ -225,9 +243,11 @@ def build_ctx(
     # ── Build Ctx ──
     return Ctx(
         event=event_ctx,
-        # Bloodline
+        # Bloodline / Elements
         bloodline_self=getattr(ss, 'bloodline', ''),
-        bloodline_opp=getattr(os, 'bloodline', ''),
+        bloodline_opp=getattr(os, 'bloodline', '') if os else '',
+        elements_self=tuple(getattr(ss, 'species', None).elements) if getattr(ss, 'species', None) else (),
+        elements_opp=tuple(getattr(os, 'species', None).elements) if os and getattr(os, 'species', None) else (),
         # Self sprite
         hp_self=hp_self,
         hp_self_ratio=hp_self_ratio,
@@ -261,6 +281,7 @@ def build_ctx(
         first_action_self=getattr(ss, 'first_action', True),
         charged_self=charged_self,
         is_charging_self=is_charging_self,
+        is_charging_opp=is_charging_opp,
         times_entered_self=ss.counters.get("times_entered", 0),
         times_left_self=ss.counters.get("times_left", 0),
         elements_used_count_self=elements_used_count_self,
@@ -269,6 +290,7 @@ def build_ctx(
         ),
         just_entered=getattr(ss, 'entry_turn', -1) == turn and turn >= 0,
         skill_elements_self=skill_elements_self,
+        skill_element_counts_self=skill_element_counts_self,
         stat_stages_self=stat_stages_self,
         energy_cost_sum_self=ecs,
         zero_cost_skill_count_self=sum(
@@ -292,8 +314,9 @@ def build_ctx(
         abnormal_count_opp=sum(abnormal_stacks_opp.values()),
         abnormal_stacks_opp=abnormal_stacks_opp,
         positive_count_opp=_count_positive(os),
-        charged_opp=False,
+        charged_opp=charged_opp,
         skill_elements_opp=skill_elements_opp,
+        skill_element_counts_opp=skill_element_counts_opp,
         stat_stages_opp=stat_stages_opp,
         skills_energy_sum_opp=sum(
             getattr(s, 'energy_cost', 0) for s in (os.skills or [])

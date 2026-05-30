@@ -188,10 +188,21 @@ class SkillResolver:
                 events.append(f'{s.name} {name}-{actual}HP')
 
                 if ae.decay_on_tick:
-                    new_stacks = ae.apply_decay()
-                    ae.stacks = new_stacks
-                    s.update_stacks(name, new_stacks)
-                    events.append(f'{s.name} {name}衰减至{new_stacks}层')
+                    # 煤渣草：在场时灼烧衰减变为增长
+                    cinder = any(
+                        sp._modifiers.get("_cinder_grass", False)
+                        for sp in all_sprites if not sp.is_fainted
+                    )
+                    if cinder and name == "灼烧":
+                        growth = ae.stacks // 2
+                        ae.stacks += growth
+                        s.update_stacks(name, ae.stacks)
+                        events.append(f'{s.name} {name}增长至{ae.stacks}层')
+                    else:
+                        new_stacks = ae.apply_decay()
+                        ae.stacks = new_stacks
+                        s.update_stacks(name, new_stacks)
+                        events.append(f'{s.name} {name}衰减至{new_stacks}层')
 
             for bs in s.skills:
                 if bs.cooldown > 0:

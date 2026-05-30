@@ -87,6 +87,7 @@ class SpriteState(BaseModel):
     energy: int
     is_fainted: bool
     charging: str
+    charge_any_skill: bool = False
     trait: TraitInfo | None = None
     energy_cost_mod: int
     effects: list[EffectSummary]

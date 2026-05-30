@@ -4,25 +4,21 @@
   "description": "攻击技能获得迸发：敌方全技能能耗+1。",
   "effects": [
     {
-      "op": "observer",
+      "op": "burst_grant",
+      "target": "sprite_self",
+      "skill_filter": "attack",
       "then": [
         {
-          "target": "target",
-          "scope": "battlefield",
-          "source": "超负荷",
-          "op": "stat_stage",
-          "stat": "energy_cost",
-          "steps": 1
+          "op": "power_mod",
+          "target": "sprite_opp",
+          "attr": "energy_cost",
+          "delta": 1,
+          "skill_filter": "all",
+          "scope": "permanent",
+          "source": "超负荷"
         }
       ],
-      "scope": "persistent",
-      "cond": {
-        "cond": "compare",
-        "q": "",
-        "of": "sprite_self",
-        "op": "eq",
-        "value": null
-      }
+      "source": "超负荷"
     }
   ]
 }

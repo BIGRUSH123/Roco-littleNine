@@ -105,8 +105,8 @@ class AbnormalEffect(EffectObject):
         }
 
     def apply_decay(self) -> int:
-        """Burn decay: (stacks + 1) // 2. Returns new stack count."""
-        return (self.stacks + 1) // 2
+        """Burn decay: stacks // 2 (floor). Returns new stack count."""
+        return self.stacks // 2
 
 
 @dataclass

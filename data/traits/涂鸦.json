@@ -2,30 +2,41 @@
   "id": 20084,
   "name": "涂鸦",
   "description": "使用非本系技能时威力+50%。",
-  "triggers": [
+  "effects": [
     {
-      "on": "modifier",
-      "condition": {
-        "kind": "and",
+      "op": "observer",
+      "listen": "pre_calc",
+      "scope": "persistent",
+      "cond": {
+        "cond": "and",
         "conditions": [
           {
+            "cond": "trait_path",
             "path": "skill.is_attack",
             "op": "eq",
             "value": true
           },
           {
-            "path": "skill.element",
+            "cond": "compare",
+            "q": "element",
+            "of": "skill_off_0",
             "op": "not_in",
-            "value": "=@self.species.elements"
+            "value": {
+              "of": "sprite_self",
+              "q": "elements"
+            }
           }
         ]
       },
-      "use_modifiers": {
-        "power_mult": {
-          "op": "add",
-          "value": 0.5
+      "then": [
+        {
+          "op": "mult_mod",
+          "target": "skill_off_0",
+          "attr": "power_mult",
+          "value": 0.5,
+          "mode": "add"
         }
-      }
+      ]
     }
   ]
 }

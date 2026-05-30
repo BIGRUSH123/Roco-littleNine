@@ -183,6 +183,9 @@ class TraitLoader:
         tracked: dict[str, dict[str, float]] = {}
         for effect in sorted_effects:
             op = effect.get("op", "")
+            if op == "burst_grant":
+                self._apply_burst_grant_direct(sprite, effect)
+                continue
             if op != "power_mod":
                 continue
             attr = effect.get("attr", "")
@@ -230,6 +233,43 @@ class TraitLoader:
                     bs_mods[attr] = cur + delta
                     tracked.setdefault(bs_name, {})[attr] = tracked.get(bs_name, {}).get(attr, 0.0) + delta
         sprite._direct_mod_tracked = tracked
+
+    _ATTACK_TYPES: frozenset[str] = frozenset({"物攻", "魔攻", "动态攻击"})
+
+    def _apply_burst_grant_direct(self, sprite, effect: dict):
+        """Apply burst_grant direct effect: write then[] to matching skills' _burst_effects."""
+        from backend.engine.modifiers import eval_skill_where
+
+        skill_where = effect.get("skill_where")
+        skill_filter = effect.get("skill_filter")
+        then_effects = effect.get("then", [])
+        source = effect.get("source", "")
+        if not then_effects:
+            return
+
+        for bs in (sprite.skills or []):
+            if skill_where:
+                skill_info = {
+                    "name": getattr(bs, 'name', ''),
+                    "energy_cost": getattr(bs, 'energy_cost', 0),
+                    "element": getattr(getattr(bs, 'base', None), 'element', ''),
+                    "skill_type": getattr(getattr(bs, 'base', None), 'skill_type', ''),
+                }
+                if not eval_skill_where(skill_where, skill_info):
+                    continue
+            if skill_filter and skill_filter != "all":
+                st = getattr(getattr(bs, 'base', None), 'skill_type', '')
+                if skill_filter == "attack" and st not in self._ATTACK_TYPES:
+                    continue
+                elif skill_filter == "defense" and st != "防御":
+                    continue
+                elif skill_filter == "status" and st != "状态":
+                    continue
+            # Remove existing burst effects from same source before re-adding
+            bs._burst_effects = [e for e in bs._burst_effects
+                                if e.get("source") != source]
+            bs._burst_effects.extend(then_effects)
+            bs._modifiers["burst"] = float(len(bs._burst_effects) > 0)
 
     def _remove_direct_mods(self, sprite):
         """Remove direct modifiers previously applied to a sprite's skills."""

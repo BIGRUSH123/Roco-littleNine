@@ -5,21 +5,23 @@
   "effects": [
     {
       "op": "observer",
-      "then": [
-        {
-          "target": "sprite_self",
-          "scope": "permanent",
-          "source": "珊瑚骨",
-          "op": "stat_stage",
-          "stat": "energy_cost",
-          "steps": -3
-        }
-      ],
-      "scope": "persistent",
       "cond": {
         "cond": "sprite_left",
         "of": "sprite_opp"
-      }
+      },
+      "listen": "post_enemy_leave",
+      "scope": "persistent",
+      "then": [
+        {
+          "op": "power_mod",
+          "target": "sprite_self",
+          "attr": "energy_cost",
+          "delta": -3,
+          "skill_filter": "all",
+          "scope": "permanent",
+          "source": "珊瑚骨"
+        }
+      ]
     }
   ]
 }

@@ -1,15 +1,19 @@
 {
   "id": 20095,
   "name": "特殊清洁场景",
-  "description": "回合结束时偷取敌方1层印记，己方队伍获得1次随机奉献。",
+  "description": "回合结束时随机偷取敌方1层印记，己方队伍获得1次随机奉献。",
   "effects": [
     {
       "op": "observer",
+      "cond": {
+        "cond": "turn_end"
+      },
+      "listen": "turn_end",
+      "scope": "persistent",
       "then": [
         {
           "op": "mark",
           "action": "steal",
-          "target": "team_own",
           "target_team": "own",
           "stacks": 1
         },
@@ -20,11 +24,7 @@
           "value": 1,
           "mode": "add"
         }
-      ],
-      "scope": "persistent",
-      "cond": {
-        "cond": "turn_end"
-      }
+      ]
     }
   ]
 }

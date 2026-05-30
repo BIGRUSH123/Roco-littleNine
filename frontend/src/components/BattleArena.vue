@@ -29,9 +29,9 @@ const player = computed(() => ({
 const active = computed(() => store.selfSprite)
 const activeOpp = computed(() => store.oppSprite)
 const isCharging = computed(() => !!active.value?.charging)
-const hasJealousy = computed(() => active.value?.trait?.name === '嫉妒')
+const hasChargeAnySkill = computed(() => !!active.value?.charge_any_skill)
 const isChargingOpp = computed(() => !!activeOpp.value?.charging)
-const hasJealousyOpp = computed(() => activeOpp.value?.trait?.name === '嫉妒')
+const hasChargeAnySkillOpp = computed(() => !!activeOpp.value?.charge_any_skill)
 const skillCount = computed(() => active.value?.skills?.length || 0)
 const skillCountOpp = computed(() => activeOpp.value?.skills?.length || 0)
 const gridCols = computed(() => {
@@ -65,7 +65,6 @@ function getSpriteSkill(sprite, name) {
 
 const canUseSkill = (sprite, skillName) => {
   const charging = !!sprite?.charging
-  const jealousy = sprite?.trait?.name === '嫉妒'
   if (!charging) {
     const ss = getSpriteSkill(sprite, skillName)
     if (!ss) return false
@@ -73,7 +72,7 @@ const canUseSkill = (sprite, skillName) => {
     if (ss.sealed) return false
     return (sprite?.energy ?? 0) >= ss.effective_energy_cost
   }
-  if (jealousy) return true
+  if (sprite?.charge_any_skill) return true
   const ss = getSpriteSkill(sprite, skillName)
   if (ss?.usable_while_charging) return true
   return skillName === sprite.charging
@@ -328,7 +327,7 @@ const debugActionLabel = (action) => {
             <div class="flex gap-1.5">
               <button
                 @click="selectDebugAction('B', 'gather')"
-                :disabled="(activeOpp?.is_fainted ?? true) || (isChargingOpp && !hasJealousyOpp)"
+                :disabled="(activeOpp?.is_fainted ?? true) || (isChargingOpp && !hasChargeAnySkillOpp)"
                 class="flex-1 bg-white hover:bg-[#F5F2EC] disabled:opacity-40 border text-xs font-medium py-2 rounded transition-colors"
                 :class="debugActionB?.type === 'gather' ? 'border-[#EF6C00] text-[#EF6C00]' : 'border-[#D4C8B8] text-[#6B5E4F]'"
               >
@@ -559,7 +558,7 @@ const debugActionLabel = (action) => {
           <div class="flex gap-2">
             <button
               @click="handleAction('gather')"
-              :disabled="(active?.is_fainted ?? true) || (isCharging && !hasJealousy)"
+              :disabled="(active?.is_fainted ?? true) || (isCharging && !hasChargeAnySkill)"
               class="flex-1 bg-white hover:bg-[#F5F2EC] disabled:opacity-40 border text-xs font-medium py-2.5 rounded-xl transition-colors"
               :class="[
                 debugMode && debugActionA?.type === 'gather'

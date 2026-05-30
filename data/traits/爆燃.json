@@ -5,37 +5,30 @@
   "effects": [
     {
       "op": "observer",
+      "cond": {
+        "cond": "skill_use",
+        "element": "火"
+      },
+      "listen": "post_skill",
+      "scope": "persistent",
       "then": [
         {
-          "target": "sprite_self",
-          "scope": "battlefield",
-          "source": "爆燃",
           "op": "stat_stage",
+          "target": "sprite_self",
           "stat": "atk",
-          "steps": 3
+          "steps": 3,
+          "scope": "permanent",
+          "source": "爆燃"
         },
         {
-          "target": "sprite_self",
-          "scope": "battlefield",
-          "source": "爆燃",
           "op": "stat_stage",
+          "target": "sprite_self",
           "stat": "sp_atk",
-          "steps": 3
+          "steps": 3,
+          "scope": "permanent",
+          "source": "爆燃"
         }
-      ],
-      "scope": "persistent",
-      "cond": {
-        "cond": "and",
-        "conditions": [
-          {
-            "cond": "skill_use"
-          },
-          {
-            "cond": "skill_use",
-            "element": "火"
-          }
-        ]
-      }
+      ]
     }
   ]
 }

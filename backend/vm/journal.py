@@ -137,6 +137,14 @@ class Double:
 
 
 @dataclass(frozen=True)
+class EffectDelta:
+    """Add delta to all matching effects (positive/negative) on a target."""
+    target: str       # "sprite_self" | "sprite_opp"
+    what: str         # "positive" | "negative"
+    delta: int        # stacks/steps to add
+
+
+@dataclass(frozen=True)
 class Charge:
     """Enter charging state."""
     target: str       # "sprite_self"
@@ -188,6 +196,16 @@ class Reset:
 class Redirect:
     """Redirect the next action to a different target."""
     target: str
+
+
+@dataclass(frozen=True)
+class BurstGrant:
+    """Grant burst effects to matching skills."""
+    target: str                         # "sprite_self"
+    skill_where: dict | None = None     # per-skill conditional filter
+    skill_filter: str | None = None     # "attack" | "defense" | "status" | "all"
+    effects: tuple = ()                 # burst effect dicts to execute on first_action
+    source: str = ""                    # trait name
 
 
 @dataclass(frozen=True)
@@ -280,8 +298,8 @@ class CounterRegister:
 Mutation = Union[
     StatChange, ModifierInjection, Damage, Heal, EnergyChange,
     MarkChange, AbnormalChange, WeatherSet, Dispel, Steal, Tick,
-    Double, Charge, Escape, Return, Lock, Interrupt, Exchange,
-    Reset, Redirect, Replay, Borrow, CounterRegister,
+    Double, EffectDelta, Charge, Escape, Return, Lock, Interrupt, Exchange,
+    Reset, Redirect, Replay, Borrow, CounterRegister, BurstGrant,
     TeamCounterDelta, LivesDelta, ScheduleEntry,
     InheritEffectsMutation, TransformMutation, TraitInteractionMutation,
     GainSkillsMutation,

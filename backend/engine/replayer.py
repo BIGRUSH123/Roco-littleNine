@@ -12,11 +12,13 @@ from typing import TYPE_CHECKING
 from backend.vm.journal import (
     AbnormalChange,
     Borrow,
+    BurstGrant,
     Charge,
     CounterRegister,
     Damage,
     Dispel,
     Double,
+    EffectDelta,
     EnergyChange,
     Escape,
     Exchange,
@@ -399,6 +401,8 @@ class JournalReplayer:
             return self._apply_tick(m)
         elif cls == "Double":
             return self._apply_double(m)
+        elif cls == "EffectDelta":
+            return self._apply_effect_delta(m)
         elif cls == "Charge":
             return self._apply_charge(m)
         elif cls == "Escape":
@@ -419,6 +423,8 @@ class JournalReplayer:
             return self._apply_replay(m)
         elif cls == "Borrow":
             return self._apply_borrow(m)
+        elif cls == "BurstGrant":
+            return self._apply_burst_grant(m)
         elif cls == "CounterRegister":
             return self._apply_counter_register(m)
         elif cls == "TeamCounterDelta":
@@ -596,9 +602,9 @@ class JournalReplayer:
             if m.stat == "energy_cost":
                 delta *= sprite._modifiers.get("energy_cost_delta_mult", 1.0)
             if cur is None:
-                # damage_reduction base is 0.0 (0%=no reduction), unlike
-                # most ratio stats whose base is 1.0 (1.0×=no change).
-                cur = 0.0 if m.stat == "damage_reduction" else 1.0 if m.stat in _RATIO_STATS else 0.0
+                # damage_reduction and life_drain base is 0.0 (0%=none),
+                # unlike multiplier ratio stats whose base is 1.0 (1.0×=no change).
+                cur = 0.0 if m.stat in ("damage_reduction", "life_drain") else 1.0 if m.stat in _RATIO_STATS else 0.0
             target_mods[m.stat] = cur + delta
         elif m.mode == "multiply":
             target_mods[m.stat] = (cur or 1.0) * m.value if cur is not None else m.value
@@ -1114,16 +1120,17 @@ class JournalReplayer:
         return ""
 
     def _apply_tick(self, m: Tick) -> str:
-        # Trigger abnormal tick damage
+        # Trigger abnormal tick damage — matches turn_end() formula
         sprite = self._target_sprite(m.target)
         stacks = sprite.get_stacks(m.abnormal_name)
         if stacks <= 0:
             return ""
 
-        # Read tick params from AbnormalEffect if available; fall back to hardcoded
-        dmg_pct = 0.03
         from backend.vm.effect import AbnormalEffect
         active = getattr(sprite, 'active_effects', None)
+        dmg_pct = 0.03
+        tick_element = ""
+        tick_per_stack = True
         if active:
             ae = next(
                 (e for e in active if isinstance(e, AbnormalEffect) and e.name == m.abnormal_name),
@@ -1131,10 +1138,26 @@ class JournalReplayer:
             )
             if ae is not None:
                 dmg_pct = ae.tick_damage_pct or dmg_pct
+                tick_element = ae.tick_element
+                tick_per_stack = ae.tick_per_stack
 
-        dmg = max(1, round(sprite.max_hp * dmg_pct * stacks))
+        raw = max(1, round(sprite.max_hp * dmg_pct * stacks)) if tick_per_stack else max(1, round(sprite.max_hp * dmg_pct))
+        mult = self._tick_element_mult(sprite, tick_element)
+        dmg = max(1, round(raw * mult))
         sprite.take_damage(dmg)
         return f"{sprite.name} {m.abnormal_name} tick -{dmg}HP"
+
+    @staticmethod
+    def _tick_element_mult(sprite, element: str) -> float:
+        """元素克制乘数，与 SkillResolver._tick_multiplier 一致。"""
+        if not element:
+            return 1.0
+        from backend.sim.resolver import _TYPE_CHART
+        attrs = getattr(sprite.species, 'attributes', '')
+        mult = 1.0
+        for attr in (attrs.split(',') if attrs else []):
+            mult *= _TYPE_CHART.get(element, {}).get(attr, 1.0)
+        return mult
 
     def _apply_double(self, m: Double) -> str:
         sprite = self._target_sprite(m.target)
@@ -1150,6 +1173,44 @@ class JournalReplayer:
                 sprite.update_stacks(m.name or "", stacks * 2)
                 return f"{sprite.name} {m.name} ×2"
         return ""
+
+    def _apply_effect_delta(self, m: EffectDelta) -> str:
+        from backend.vm.effect import AbnormalEffect, StatBuffEffect
+
+        sprite = self._target_sprite(m.target)
+        n = 0
+        for e in list(getattr(sprite, 'active_effects', [])):
+            if isinstance(e, AbnormalEffect):
+                if m.what == "negative":
+                    new_stacks = e.stacks + m.delta
+                    if e.max_stacks and new_stacks > e.max_stacks:
+                        new_stacks = e.max_stacks
+                    e.stacks = new_stacks
+                    n += 1
+            elif isinstance(e, StatBuffEffect):
+                direction = self._match_stat_effect(e, m.what)
+                if direction:
+                    e.steps += direction * m.delta
+                    n += 1
+        tag = "增益" if m.what == "positive" else "减益"
+        return f"{sprite.name} {tag} +{m.delta}层 ({n})"
+
+    @staticmethod
+    def _match_stat_effect(e, what: str) -> int:
+        """返回累加方向: +1 表示 steps+=delta, -1 表示 steps-=delta, 0 不匹配."""
+        from backend.vm.effect import StatBuffEffect
+
+        if e.stat_key == 'energy_cost':
+            if what == "negative" and e.steps > 0:
+                return 1
+            if what == "positive" and e.steps < 0:
+                return -1
+        else:
+            if what == "positive" and e.steps > 0:
+                return 1
+            if what == "negative" and e.steps < 0:
+                return -1
+        return 0
 
     def _apply_charge(self, m: Charge) -> str:
         sprite = self._target_sprite(m.target)
@@ -1209,6 +1270,33 @@ class JournalReplayer:
 
     def _apply_borrow(self, m: Borrow) -> str:
         return f"借用技能 from={m.from_skill}"
+
+    def _apply_burst_grant(self, m: BurstGrant) -> str:
+        """Write burst effects to matching BattleSkills on the target sprite."""
+        from backend.engine.modifiers import eval_skill_where
+
+        sprite = self._target_sprite(m.target)
+        applied = 0
+        for bs in (sprite.skills or []):
+            if m.skill_where:
+                skill_info = {
+                    "name": getattr(bs, 'name', ''),
+                    "energy_cost": getattr(bs, 'energy_cost', 0),
+                    "element": getattr(getattr(bs, 'base', None), 'element', ''),
+                    "skill_type": getattr(getattr(bs, 'base', None), 'skill_type', ''),
+                }
+                if not eval_skill_where(m.skill_where, skill_info):
+                    continue
+            if m.skill_filter and m.skill_filter != "all":
+                st = getattr(getattr(bs, 'base', None), 'skill_type', '')
+                if not _matches_skill_type(m.skill_filter, st):
+                    continue
+            bs._burst_effects.extend(list(m.effects))
+            bs._modifiers["burst"] = float(len(bs._burst_effects) > 0)
+            applied += 1
+        if applied:
+            return f"{sprite.name} {m.source} 迸发赋予 {applied} 技能"
+        return ""
 
     def _apply_team_counter_delta(self, m: TeamCounterDelta) -> str:
         """Write to a team-level counter. Requires battle reference."""

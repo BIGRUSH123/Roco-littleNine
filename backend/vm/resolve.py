@@ -296,8 +296,8 @@ def _resolve_trait_ref(ref: str, ctx: Ctx):
     m = re.match(r'(self|target)\.skills\[element=([^\]]+)\]\.count', path)
     if m:
         target, element = m.group(1), m.group(2)
-        elements = ctx.skill_elements_self if target == "self" else ctx.skill_elements_opp
-        return 1 if element in elements else 0
+        counts = ctx.skill_element_counts_self if target == "self" else ctx.skill_element_counts_opp
+        return counts.get(element, 0)
 
     return 0
 

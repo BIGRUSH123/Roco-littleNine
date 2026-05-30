@@ -262,6 +262,15 @@ class DoubleOp:
     priority: int = 0
 
 @dataclass(frozen=True)
+class EffectDeltaOp:
+    target: str
+    what: str = "negative"
+    delta: int = 1
+    feeds: str = ""
+    needs: str = ""
+    priority: int = 0
+
+@dataclass(frozen=True)
 class ChargeOp:
     target: str = "sprite_self"
     feeds: str = ""
@@ -430,6 +439,19 @@ class TraitInteraction:
     priority: int = 0
 
 
+@dataclass(frozen=True)
+class BurstGrantOp:
+    """Grant burst effects to matching skills (trait direct effect)."""
+    target: str = "sprite_self"
+    skill_where: dict | None = field(default=None, hash=False, compare=False)
+    skill_filter: str | None = None
+    then: tuple[SkillIROp, ...] = ()
+    source: str | None = None
+    feeds: str = ""
+    needs: str = ""
+    priority: int = 0
+
+
 SkillIROp = (
     # RISC register-modifying ops
     StatStageOp | PowerModOp | MultModOp | FlagSetOp |
@@ -438,13 +460,13 @@ SkillIROp = (
     ModOp |
     # Specialist ops
     HitOp | MarkOp | AbnormalOp | WeatherOp |
-    DispelOp | StealOp | TickOp | DoubleOp | ChargeOp |
+    DispelOp | StealOp | TickOp | DoubleOp | EffectDeltaOp | ChargeOp |
     EscapeOp | ReturnOp | LockOp | InterruptOp |
     ExchangeOp | ResetOp | RedirectOp | ReplayOp |
     BorrowOp | CountOp | WhenBlock |
     TeamCounterWrite | LivesChange | Schedule |
     InheritEffects | Transform | TraitInteraction |
-    GainSkills
+    GainSkills | BurstGrantOp
 )
 
 

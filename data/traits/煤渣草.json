@@ -1,19 +1,25 @@
 {
   "id": 20093,
   "name": "煤渣草",
-  "description": "在场时，所有灼烧的衰减变为增长。Layer 3b: 需注入 battle._cinder_grass_active flag。",
-  "triggers": [
+  "description": "在场时，所有灼烧的衰减变为增长。",
+  "effects": [
     {
-      "on": "entry",
-      "flags": {
-        "_cinder_grass_active": true
-      }
-    },
-    {
-      "on": "leave",
-      "flags": {
-        "_cinder_grass_active": false
-      }
+      "op": "observer",
+      "cond": {
+        "cond": "sprite_entered",
+        "of": "sprite_self"
+      },
+      "listen": "post_entry",
+      "scope": "battlefield",
+      "then": [
+        {
+          "op": "flag_set",
+          "target": "sprite_self",
+          "flag": "_cinder_grass",
+          "value": true,
+          "scope": "battlefield"
+        }
+      ]
     }
   ]
 }

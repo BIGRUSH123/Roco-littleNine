@@ -623,6 +623,19 @@ class Battle(BattleMechanicsMixin):
                 player.devotion.clear()
                 devotion_triggered = True
 
+        # ═══ Burst trigger: first_action + skill has burst effects ═══
+        if user.first_action and bs._burst_effects:
+            burst_ctx = self._make_ctx(
+                user, target, None, None, self.globals,
+                team=team, turn=self.turn,
+            )
+            burst_journal = self._vm_engine.execute_effects(burst_ctx, bs._burst_effects)
+            from backend.engine.replayer import JournalReplayer as _BurstReplayer
+            _burst_r = _BurstReplayer(user, target, self.globals, self._vm_engine.registry, team=team, battle=self)
+            burst_events = _burst_r.replay(burst_journal)
+            events.extend(burst_events)
+            events.append(f'💥 {user.name} {bs.name} 迸发!')
+
         # ═══ Gate: 能量支付 ═══
         cost = bs.energy_cost
         # Energy cost modifier from VM pipeline (accumulated via ModifierInjection)
@@ -789,7 +802,7 @@ class Battle(BattleMechanicsMixin):
             return None  # charge released
 
         if is_charging:
-            if bs.base.usable_while_charging:
+            if bs.base.usable_while_charging or user._modifiers.get("charge_any_skill", 0) > 0:
                 # Cancel charging — the sprite used a different skill instead of releasing the charged one
                 user._charging = False
                 user._charged_skill_index = -1

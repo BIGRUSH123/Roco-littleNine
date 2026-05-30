@@ -5,28 +5,17 @@
   "effects": [
     {
       "op": "observer",
-      "then": [
-        {
-          "target": "target",
-          "op": "mutate_effect"
-        }
-      ],
-      "scope": "persistent",
       "cond": {
-        "cond": "and",
-        "conditions": [
-          {
-            "cond": "skill_use"
-          },
-          {
-            "cond": "compare",
-            "q": "skill.is_attack",
-            "of": "sprite_self",
-            "op": "eq",
-            "value": true
-          }
-        ]
-      }
+        "cond": "trait_path",
+        "path": "skill.is_attack",
+        "op": "eq",
+        "value": true
+      },
+      "listen": ["post_skill"],
+      "then": [
+        {"op": "effect_delta", "target": "sprite_opp", "what": "negative", "delta": 3}
+      ],
+      "scope": "persistent"
     }
   ]
 }

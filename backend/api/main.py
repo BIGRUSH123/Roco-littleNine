@@ -447,6 +447,7 @@ def serialize_battle_state(battle: Battle, session_id: str) -> schemas.BattleSta
             energy=s.energy,
             is_fainted=s.is_fainted,
             charging=charged_name if charging else '',
+            charge_any_skill=s._modifiers.get("charge_any_skill", 0) > 0,
             trait=_compute_trait_info(s),
             energy_cost_mod=s.energy_cost_mod,
             effects=[schemas.EffectSummary(

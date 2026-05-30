@@ -16,10 +16,12 @@ from .ctx import Ctx
 from .ir_skill import (
     AbnormalOp,
     BorrowOp,
+    BurstGrantOp,
     ChargeOp,
     CountOp,
     DispelOp,
     DoubleOp,
+    EffectDeltaOp,
     EnergizeOp,
     EscapeOp,
     ExchangeOp,
@@ -53,10 +55,12 @@ from .ir_skill import (
 from .journal import Journal, Mutation
 from .ops.abnormal import op_abnormal
 from .ops.borrow import op_borrow
+from .ops.burst_grant import op_burst_grant
 from .ops.charge import op_charge
 from .ops.count import op_count
 from .ops.dispel import op_dispel
 from .ops.double import op_double
+from .ops.effect_delta import op_effect_delta
 from .ops.escape import op_escape
 from .ops.exchange import op_exchange
 from .ops.gain_skills import op_gain_skills
@@ -208,6 +212,8 @@ def process_one(ctx: Ctx, op) -> list[Mutation]:
             return op_tick(ctx, op)
         case DoubleOp():
             return op_double(ctx, op)
+        case EffectDeltaOp():
+            return op_effect_delta(ctx, op)
         case ChargeOp():
             return op_charge(ctx, op)
         case EscapeOp():
@@ -244,6 +250,8 @@ def process_one(ctx: Ctx, op) -> list[Mutation]:
             return op_trait_interaction(ctx, op)
         case GainSkills():
             return op_gain_skills(ctx, op)
+        case BurstGrantOp():
+            return op_burst_grant(ctx, op)
         case _:
             return []
 

@@ -4,22 +4,22 @@
   "description": "携带的电系技能获得迸发：能耗-2。",
   "effects": [
     {
-      "op": "observer",
+      "op": "burst_grant",
+      "target": "sprite_self",
+      "skill_where": {
+        "element": "电"
+      },
       "then": [
         {
+          "op": "power_mod",
           "target": "sprite_self",
-          "op": "energize",
-          "delta": 2
+          "attr": "energy_cost",
+          "delta": -2,
+          "scope": "turn",
+          "source": "生物电"
         }
       ],
-      "scope": "persistent",
-      "cond": {
-        "cond": "compare",
-        "q": "",
-        "of": "sprite_self",
-        "op": "eq",
-        "value": null
-      }
+      "source": "生物电"
     }
   ]
 }

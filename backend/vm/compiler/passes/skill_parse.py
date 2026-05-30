@@ -7,11 +7,13 @@ from backend.vm.ir_skill import (
     AbnormalOp,
     AndCond,
     BorrowOp,
+    BurstGrantOp,
     ChargeOp,
     CondExpr,
     CountOp,
     DispelOp,
     DoubleOp,
+    EffectDeltaOp,
     EnergizeOp,
     EscapeOp,
     ExchangeOp,
@@ -326,11 +328,24 @@ class SkillParsePass:
         )
 
     def _parse_abnormal(self, e: dict) -> AbnormalOp:
+        raw_stacks = e.get("stacks", 1)
+        stacks = 1
+        value = self._parse_value(e["value"]) if "value" in e else None
+        if isinstance(raw_stacks, dict) and "q" in raw_stacks:
+            value = self._parse_value(raw_stacks)
+            stacks = 0
+        elif isinstance(raw_stacks, str) and str(raw_stacks).startswith("="):
+            value = self._parse_value(raw_stacks)
+            stacks = 0
+        elif isinstance(raw_stacks, str) and raw_stacks.lstrip("-").isdigit():
+            stacks = int(raw_stacks)
+        else:
+            stacks = int(raw_stacks)
         return AbnormalOp(
             target=self._str_or(e, "target", "sprite_self"),
             name=self._str_or(e, "name", ""),
-            stacks=self._int_or(e, "stacks", 1),
-            value=self._parse_value(e["value"]) if "value" in e else None,
+            stacks=stacks,
+            value=value,
             scope=self._str_or(e, "scope", "battlefield"),
             per_hit=self._bool_or(e, "per_hit", False),
             heal_pct=self._float_or(e, "heal_pct", 0.0),
@@ -377,6 +392,14 @@ class SkillParsePass:
             target=self._str_or(e, "target", "sprite_self"),
             what=self._str_or(e, "what", ""),
             name=e.get("name"),
+            **self._common_fields(e),
+        )
+
+    def _parse_effect_delta(self, e: dict) -> EffectDeltaOp:
+        return EffectDeltaOp(
+            target=self._str_or(e, "target", "sprite_opp"),
+            what=self._str_or(e, "what", "negative"),
+            delta=self._int_or(e, "delta", 1),
             **self._common_fields(e),
         )
 
@@ -571,6 +594,18 @@ class SkillParsePass:
             value=value,
             scope=self._str_or(e, "scope", "battlefield"),
             name=e.get("name"),
+            source=e.get("source"),
+            **self._common_fields(e),
+        )
+
+    def _parse_burst_grant(self, e: dict) -> BurstGrantOp:
+        """RISC: burst_grant → BurstGrantOp."""
+        then_effects = tuple(self._parse_effect(sub) for sub in e.get("then", []))
+        return BurstGrantOp(
+            target=self._str_or(e, "target", "sprite_self"),
+            skill_where=e.get("skill_where"),
+            skill_filter=e.get("skill_filter"),
+            then=then_effects,
             source=e.get("source"),
             **self._common_fields(e),
         )

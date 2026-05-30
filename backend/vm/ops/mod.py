@@ -31,7 +31,7 @@ _SKILL_MOD_STATS = frozenset({
 _FLAG_STATS = frozenset({
     "pre_charged", "ignore_mods", "ignore_resistance", "cooldown",
     "life_as_energy", "survive", "extra_action", "extra_turn_end",
-    "heal_reverse", "immune", "drive", "swift",
+    "heal_reverse", "immune", "drive", "swift", "burst",
 })
 
 # Stats with special handling

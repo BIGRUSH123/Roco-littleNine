@@ -1,26 +1,28 @@
 {
   "id": 20086,
   "name": "渗透",
-  "description": "入场时，根据己方队伍武系和地系技能使用次数之和获得物攻和物防强化。",
+  "description": "己方精灵每使用1次武系或地系技能，自己入场时获得攻防+5%。",
   "effects": [
     {
       "op": "observer",
       "then": [
         {
+          "op": "mult_mod",
           "target": "sprite_self",
+          "attr": "atk",
+          "value": "=(@team_counters[element:武] + @team_counters[element:地]) * 0.05",
+          "mode": "add",
           "scope": "battlefield",
-          "source": "渗透",
-          "op": "stat_stage",
-          "stat": "atk",
-          "steps": "=@team_counters[element:武] * 0.5 + @team_counters[element:地] * 0.5"
+          "source": "渗透"
         },
         {
+          "op": "mult_mod",
           "target": "sprite_self",
+          "attr": "def",
+          "value": "=(@team_counters[element:武] + @team_counters[element:地]) * 0.05",
+          "mode": "add",
           "scope": "battlefield",
-          "source": "渗透",
-          "op": "stat_stage",
-          "stat": "def",
-          "steps": "=@team_counters[element:武] * 0.5 + @team_counters[element:地] * 0.5"
+          "source": "渗透"
         }
       ],
       "scope": "battlefield",

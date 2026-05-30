@@ -70,6 +70,7 @@ class Ctx:
     first_action_self: bool = False
     charged_self: bool = False
     is_charging_self: bool = False       # charging (not yet released)
+    is_charging_opp: bool = False
     times_entered_self: int = 0          # cumulative entry count
     times_left_self: int = 0             # cumulative leave count
     elements_used_count_self: int = 0    # distinct elements used
@@ -88,9 +89,11 @@ class Ctx:
     life_drain_self: float = 0.0
     mark_bonus_own: float = 0.0  # damage bonus from own team marks
 
-    # ── 血脉 ──
-    bloodline_self: str = ""             # own sprite bloodline (e.g. "草", "首领")
+    # ── 血脉 / 属性 ──
+    bloodline_self: str = ""             # own sprite bloodline (e.g. "首领")
     bloodline_opp: str = ""              # opponent sprite bloodline
+    elements_self: tuple[str, ...] = ()  # own sprite species elements (e.g. ("水", "冰"))
+    elements_opp: tuple[str, ...] = ()   # opponent sprite species elements
 
     # ── 敌方精灵 ──
     hp_opp: int = 0
@@ -120,6 +123,8 @@ class Ctx:
     mark_stacks_opp: dict[str, int] = field(default_factory=dict)  # {name: stacks}
     mark_count_both: int = 0             # mark_count_own + mark_count_opp
     skill_count_own: dict[str, int] = field(default_factory=dict)  # {skill_name: count}
+    skill_element_counts_self: dict[str, int] = field(default_factory=dict)  # {element: count}
+    skill_element_counts_opp: dict[str, int] = field(default_factory=dict)  # {element: count}
     team_counters_own: dict[str, int] = field(default_factory=dict)  # {key: count}
     team_counters_opp: dict[str, int] = field(default_factory=dict)  # {key: count}
     team_elements_own: frozenset = frozenset()  # elements of all sprites on own team
@@ -192,7 +197,7 @@ class Ctx:
                          "charged", "skills_energy_sum",
                          "power_mult", "damage_mult",
                          "last_tick_damage", "prev_damage_taken",
-                         "bloodline"):
+                         "bloodline", "elements"):
                 field_self = f"{base}{suffix_self}"
                 field_opp = f"{base}{suffix_opp}"
                 if hasattr(other, field_self) and hasattr(other, field_opp):
@@ -206,6 +211,8 @@ class Ctx:
         other.stat_stages_opp = dict(self.stat_stages_self)
         other.skill_elements_self = frozenset(self.skill_elements_opp)
         other.skill_elements_opp = frozenset(self.skill_elements_self)
+        other.skill_element_counts_self = dict(self.skill_element_counts_opp)
+        other.skill_element_counts_opp = dict(self.skill_element_counts_self)
 
         # --- skill fields ---
         other.power_self, other.power_opp = self.power_opp, self.power_self
@@ -259,8 +266,12 @@ ADDRESS_MAP: dict[tuple[str, str], str] = {
     ("sprite_self", "last_tick_damage"):   "last_tick_damage_self",
     ("sprite_self", "charged"):            "charged_self",
     ("sprite_self", "is_charging"):        "is_charging_self",
+    ("sprite_self", "_charging"):          "is_charging_self",
+    ("sprite_opp",  "is_charging"):        "is_charging_opp",
+    ("sprite_opp",  "_charging"):          "is_charging_opp",
     ("sprite_self", "first_action"):       "first_action_self",
     ("sprite_self", "bloodline"):          "bloodline_self",
+    ("sprite_self", "elements"):           "elements_self",
     ("sprite_self", "element_advantage"):  "element_advantage",
     ("sprite_self", "energy_cost_sum"):    "energy_cost_sum_self",
     ("sprite_self", "power_mult"):         "power_mult_self",
@@ -272,6 +283,7 @@ ADDRESS_MAP: dict[tuple[str, str], str] = {
 
     # sprite_opp
     ("sprite_opp", "bloodline"):           "bloodline_opp",
+    ("sprite_opp", "elements"):            "elements_opp",
     ("sprite_opp", "hp"):                  "hp_opp",
     ("sprite_opp", "hp_ratio"):            "hp_opp_ratio",
     ("sprite_opp", "energy"):             "energy_opp",
