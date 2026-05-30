@@ -555,6 +555,30 @@
 - **涉及文件**: data/traits/深层氧循环.json
 - **教训**: 描述和数值不一致时，先 grep 同类特性确认正确系数再改
 
+## 2026-05-30 - 伊兰龙 ability_id 写错导致特性始终为嫉妒
+
+- **现象**: 修改游弋.json 并重启后端前端后，伊兰龙特性仍显示为嫉妒
+- **根因**: sprite JSON 中 `ability_id: 20151`（嫉妒）而非 `20088`（游弋），后端按 ability_id 加载特性，ability 字段仅用于展示
+- **修复**: 204_伊兰龙.json — ability_id 20151→20088，ability 嫉妒→游弋
+- **涉及文件**: data/sprites/204_伊兰龙.json:14-15
+- **教训**: 特性名和效果对不上时，先查 sprite JSON 的 ability_id 是否正确——ability 字段只是展示名，ability_id 才是实际加载的 key
+
+## 2026-05-30 - 游弋 charge_any_skill flag 只写不读 + 前端硬编码嫉妒
+
+- **现象**: 伊兰龙蓄力期间其他技能仍为灰色不可选
+- **根因**: 三重断点。① 后端 `_gate_charge_vm` 只检查 `usable_while_charging`（技能级），不读 sprite 级 `charge_any_skill` flag；② 前端 `canUseSkill` 硬编码 `trait.name === '嫉妒'`；③ API 不返回 `charge_any_skill` 字段
+- **修复**: battle.py gate 加 `charge_any_skill` 检查；schemas.py/main.py 新增字段；BattleArena.vue 用 `charge_any_skill` 替代硬编码嫉妒
+- **涉及文件**: backend/sim/battle.py:792, backend/api/schemas.py:90, backend/api/main.py:450, frontend/src/components/BattleArena.vue:32-80
+- **教训**: flag 型 trait 效果不生效时，直接搜 flag 名在所有层的引用——后端 gate、API 序列化、前端 UI 各有一层过滤，缺一不可
+
+## 2026-05-30 - 游弋 permanent scope mult_mod 重复入场叠加到 +200%
+
+- **现象**: 伊兰龙换下再换上场后，双防显示 +200% 而非 +100%
+- **根因**: mult_mod 用 `scope: "permanent"` + `mode: "add"`，退场不清除 modifier，再入场时 post_entry 再次触发叠加
+- **修复**: scope 改为 "battlefield"，退场自动清除，再入场重新加到 100%
+- **涉及文件**: data/traits/游弋.json:28,36
+- **教训**: 入场触发类永久 buff 用 `scope: "battlefield"` 而非 `"permanent"`——后者退场不清理，搭配 mode:"add" 会导致跨入场累加
+
 <!-- 新条目追加在此行上方，格式如下：
 
 ## YYYY-MM-DD - 简短标题
