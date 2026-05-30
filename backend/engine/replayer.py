@@ -358,12 +358,14 @@ class JournalReplayer:
         self._leaving = leaving_sprite  # for post_enemy_leave: the sprite that left
         self._trait_sourcing: bool = False  # True during trait observer then-effect replay
         self._cleared_position_stats: set[str] = set()  # per-replay batch cleanup tracking
+        self._energy_deltas: dict[int, int] = {}  # id(m) -> actual delta (capped by max_energy/floor 0)
 
     # ── Main entry ──
 
     def replay(self, journal: Journal) -> list[str]:
         """Replay all mutations. Returns event strings for logging."""
         self._cleared_position_stats.clear()
+        self._energy_deltas.clear()
         events: list[str] = []
         for mutation in journal:
             ev = self._apply(mutation)
@@ -735,9 +737,11 @@ class JournalReplayer:
         sprite = self._target_sprite(m.target)
         if m.delta > 0:
             actual = sprite.gain_energy(m.delta)
+            self._energy_deltas[id(m)] = actual
             return f"{sprite.name} +{actual}E"
         else:
             actual = sprite.lose_energy(-m.delta)
+            self._energy_deltas[id(m)] = -actual
             return f"{sprite.name} -{actual}E"
 
     def _apply_mark_change(self, m: MarkChange) -> str:
@@ -1217,6 +1221,20 @@ class JournalReplayer:
                 direction = self._match_stat_effect(e, m.what)
                 if direction:
                     e.steps += direction * m.delta
+                    n += 1
+        # Also handle sprite._modifiers for increment-style positive stats
+        _INC_STATS = frozenset({"combo", "power", "priority"})
+        _DEC_STATS = frozenset({"energy_cost"})
+        if m.what == "positive":
+            for key in _INC_STATS:
+                val = sprite._modifiers.get(key, 0)
+                if val > 0:
+                    sprite._modifiers[key] = val + m.delta
+                    n += 1
+            for key in _DEC_STATS:
+                val = sprite._modifiers.get(key, 0)
+                if val < 0:
+                    sprite._modifiers[key] = val - m.delta
                     n += 1
         tag = "增益" if m.what == "positive" else "减益"
         return f"{sprite.name} {tag} +{m.delta}层 ({n})"

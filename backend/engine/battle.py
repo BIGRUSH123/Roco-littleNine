@@ -45,6 +45,20 @@ class SkillExecutionResult:
         )
 
 
+
+def _is_positive_modifier(m) -> bool:
+    """Check if a ModifierInjection represents a beneficial change."""
+    if m.mode == "add":
+        if m.stat == "energy_cost":
+            return m.value < 0
+        return m.value > 0
+    if m.mode == "set":
+        return False
+    if m.mode == "multiply":
+        return m.value > 1.0
+    return False
+
+
 class BattleVMEngine:
     """VM-powered skill execution engine.
 
@@ -390,13 +404,14 @@ class BattleVMEngine:
           - KO (target_fainted) → post_ko
           - EnergyChange → post_energy_change
           - AbnormalChange → post_abnormal_change / post_abnormal_apply
-          - StatChange(positive) → post_positive_change
+          - ModifierInjection(positive) → post_positive_change
         """
         from backend.vm.journal import (
             AbnormalChange,
             Damage,
             EnergyChange,
             Heal,
+            ModifierInjection,
             StatChange,
         )
 
@@ -414,7 +429,7 @@ class BattleVMEngine:
                 ctx.event.energy_changed_of = target_of
                 ctx.event.skills_energy_changed_of = target_of
                 if target_of == "sprite_self":
-                    ctx.energy_delta_self = m.delta
+                    ctx.energy_delta_self = getattr(replayer, '_energy_deltas', {}).get(id(m), m.delta)
                 else:
                     ctx.energy_delta_self = 0
                 trigger = "post_energy_change"
@@ -443,6 +458,11 @@ class BattleVMEngine:
             elif isinstance(m, StatChange):
                 if getattr(m, 'is_positive', False):
                     trigger = "post_positive_change"
+                    ctx.event.positive_changed_of = "sprite_self" if m.target in ("sprite_self",) else "sprite_opp"
+            elif isinstance(m, ModifierInjection):
+                if _is_positive_modifier(m):
+                    trigger = "post_positive_change"
+                    ctx.event.positive_changed_of = "sprite_self" if m.target in ("sprite_self",) else "sprite_opp"
 
             if trigger and trigger not in fired:
                 fired.add(trigger)

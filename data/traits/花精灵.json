@@ -5,6 +5,11 @@
   "effects": [
     {
       "op": "observer",
+      "cond": {
+        "cond": "turn_end"
+      },
+      "listen": "turn_end",
+      "scope": "persistent",
       "then": [
         {
           "op": "mod",
@@ -13,11 +18,7 @@
           "value": 1,
           "mode": "add"
         }
-      ],
-      "scope": "persistent",
-      "cond": {
-        "cond": "turn_end"
-      }
+      ]
     }
   ]
 }

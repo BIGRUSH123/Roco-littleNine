@@ -1,18 +1,18 @@
 {
   "id": 20116,
   "name": "蒸汽膨胀",
-  "description": "入场时，根据己方队伍火系技能使用次数提升全技能威力（每层+10）。",
+  "description": "己方精灵每使用1次火系技能，自己入场时获得全技能威力+10。",
   "triggers": [
     {
       "on": "entry",
-      "effects_mode": "replace",
       "battleskill_mut": [
         {
           "field": "power_mod",
           "op": "add",
           "value": "=@team_counters[element:火] * 10"
         }
-      ]
+      ],
+      "effects_mode": "replace"
     }
   ]
 }

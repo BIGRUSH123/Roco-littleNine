@@ -2,5 +2,41 @@
   "id": 20164,
   "name": "腾挪",
   "description": "攻击技能应对1次后，回满状态，变为棋绮后。",
-  "triggers": []
+  "effects": [
+    {
+      "op": "observer",
+      "cond": {
+        "cond": "or",
+        "conditions": [
+          {
+            "cond": "counter_succeeded",
+            "skill_type": "物攻"
+          },
+          {
+            "cond": "counter_succeeded",
+            "skill_type": "魔攻"
+          }
+        ]
+      },
+      "then": [
+        {
+          "op": "heal",
+          "target": "sprite_self",
+          "ratio": 1
+        },
+        {
+          "op": "energize",
+          "target": "sprite_self",
+          "delta": 15
+        },
+        {
+          "op": "transform",
+          "target": "sprite_self",
+          "species": "棋绮后"
+        }
+      ],
+      "listen": "post_counter",
+      "scope": "persistent"
+    }
+  ]
 }

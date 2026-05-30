@@ -523,7 +523,8 @@ class Battle(BattleMechanicsMixin):
                     team=team, turn=self.turn,
                     energy_changed_of="sprite_self",
                 )
-                self._vm_engine.fire_trigger(
+                gather_ctx.energy_delta_self = gained
+                events += self._vm_engine.fire_trigger(
                     "post_energy_change", gather_ctx, user, target, self.globals,
                     team=team, battle=self,
                 )

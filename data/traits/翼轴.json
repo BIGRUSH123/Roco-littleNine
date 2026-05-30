@@ -2,29 +2,40 @@
   "id": 20109,
   "name": "翼轴",
   "description": "1号位技能获得迅捷和传动1。",
-  "triggers": [
+  "effects": [
     {
-      "on": "entry",
-      "battleskill_mut": [
-        {
-          "filter": {
-            "slot": [
-              0
-            ]
+      "op": "observer",
+      "cond": {
+        "cond": "or",
+        "conditions": [
+          {
+            "cond": "sprite_entered",
+            "of": "sprite_self"
           },
-          "field": "_transmission",
-          "op": "set",
-          "value": 1
+          {
+            "cond": "always"
+          }
+        ]
+      },
+      "listen": [
+        "post_entry",
+        "turn_start"
+      ],
+      "scope": "battlefield",
+      "then": [
+        {
+          "op": "flag_set",
+          "target": "skill_at_1",
+          "flag": "swift",
+          "value": true,
+          "scope": "battlefield"
         },
         {
-          "filter": {
-            "slot": [
-              0
-            ]
-          },
-          "field": "priority",
-          "op": "add",
-          "value": 1
+          "op": "flag_set",
+          "target": "skill_at_1",
+          "flag": "drive",
+          "value": true,
+          "scope": "battlefield"
         }
       ]
     }

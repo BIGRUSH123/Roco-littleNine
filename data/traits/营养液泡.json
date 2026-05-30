@@ -5,26 +5,20 @@
   "effects": [
     {
       "op": "observer",
+      "cond": {
+        "cond": "on_positive_changed",
+        "of": "sprite_self"
+      },
+      "listen": "post_positive_change",
+      "scope": "persistent",
       "then": [
         {
-          "target": "self",
-          "op": "mutate_effect",
-          "filter": {
-            "is_stat": true,
-            "steps>0": true
-          },
-          "delta_steps": 2,
-          "limit_to_effect": true
+          "op": "effect_delta",
+          "target": "sprite_self",
+          "what": "positive",
+          "delta": 2
         }
-      ],
-      "scope": "persistent",
-      "cond": {
-        "cond": "compare",
-        "q": "effect.is_stat",
-        "of": "sprite_self",
-        "op": "eq",
-        "value": true
-      }
+      ]
     }
   ]
 }

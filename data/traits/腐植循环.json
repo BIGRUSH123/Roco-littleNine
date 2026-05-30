@@ -5,29 +5,29 @@
   "effects": [
     {
       "op": "observer",
-      "then": [
-        {
-          "target": "sprite_self",
-          "op": "heal",
-          "value": "=@self.max_hp * 0.05 * delta"
-        }
-      ],
       "scope": "persistent",
       "cond": {
-        "cond": "and",
-        "conditions": [
-          {
-            "cond": "on_energy_changed"
-          },
-          {
+        "cond": "on_energy_changed",
+        "of": "sprite_self"
+      },
+      "then": [
+        {
+          "when": {
             "cond": "compare",
-            "q": "delta",
+            "q": "energy_delta",
             "of": "sprite_self",
             "op": "gt",
             "value": 0
-          }
-        ]
-      }
+          },
+          "then": [
+            {
+              "op": "heal",
+              "target": "sprite_self",
+              "value": "=@self.max_hp * 0.05 * @delta"
+            }
+          ]
+        }
+      ]
     }
   ]
 }

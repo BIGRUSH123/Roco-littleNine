@@ -5,29 +5,21 @@
   "effects": [
     {
       "op": "observer",
+      "cond": {
+        "cond": "on_abnormal_tick",
+        "of": "sprite_opp",
+        "name": "中毒"
+      },
       "then": [
         {
-          "target": "sprite_self",
           "op": "heal",
-          "value": "=@damage"
-        }
-      ],
-      "scope": "persistent",
-      "cond": {
-        "cond": "and",
-        "conditions": [
-          {
-            "cond": "on_abnormal_tick"
-          },
-          {
-            "cond": "compare",
-            "q": "effect_name",
-            "of": "sprite_self",
-            "op": "eq",
-            "value": "中毒"
+          "target": "sprite_self",
+          "value": {
+            "q": "last_tick_damage",
+            "of": "sprite_opp"
           }
-        ]
-      }
+        }
+      ]
     }
   ]
 }
