@@ -12,6 +12,7 @@
       "then": [
         {
           "op": "abnormal",
+          "target": "sprite_opp",
           "name": "中毒",
           "stacks": 5
         }

@@ -2,30 +2,34 @@
   "id": 20138,
   "name": "顺风",
   "description": "先于敌方攻击时，威力+50%。",
-  "triggers": [
+  "effects": [
     {
-      "on": "modifier",
-      "condition": {
-        "kind": "and",
+      "op": "observer",
+      "cond": {
+        "cond": "and",
         "conditions": [
           {
+            "cond": "trait_path",
             "path": "skill.is_attack",
             "op": "eq",
             "value": true
           },
           {
-            "path": "use.is_first",
-            "op": "eq",
-            "value": true
+            "cond": "is_first"
           }
         ]
       },
-      "use_modifiers": {
-        "power_mult": {
-          "op": "add",
-          "value": 0.5
+      "listen": "pre_calc",
+      "scope": "persistent",
+      "then": [
+        {
+          "op": "mult_mod",
+          "attr": "power_mult",
+          "value": 0.5,
+          "mode": "add",
+          "scope": "turn"
         }
-      }
+      ]
     }
   ]
 }

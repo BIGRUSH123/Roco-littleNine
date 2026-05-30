@@ -32,6 +32,25 @@
         ]
       },
       "listen": "post_entry"
+    },
+    {
+      "op": "observer",
+      "cond": {
+        "cond": "on_abnormal_applied",
+        "name": "冻结",
+        "of": "sprite_opp"
+      },
+      "listen": "post_abnormal_apply",
+      "scope": "battlefield",
+      "then": [
+        {
+          "op": "power_mod",
+          "target": "sprite_opp",
+          "attr": "energy_cost",
+          "delta": 1,
+          "skill_filter": "all"
+        }
+      ]
     }
   ]
 }

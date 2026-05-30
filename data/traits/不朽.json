@@ -8,11 +8,13 @@
       "cond": {
         "cond": "on_self_ko"
       },
-      "then": {
-        "op": "revive",
-        "hp_ratio": 1,
-        "delay_turns": 3
-      }
+      "then": [
+        {
+          "op": "revive",
+          "hp_ratio": 1,
+          "delay_turns": 3
+        }
+      ]
     }
   ]
 }
