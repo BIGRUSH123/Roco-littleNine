@@ -611,6 +611,22 @@
 - **涉及文件**: `backend/vm/compiler/passes/skill_parse.py:690`, `backend/vm/ops/schedule.py`, `backend/vm/ctx.py`, `backend/vm/cond.py`, `backend/vm/resolve.py`, `backend/sim/battle.py`, `data/traits/石天平.json`
 - **教训**: `except Exception: continue` 是静默杀手——observer/trait 不触发时，优先去 `_fire_post_event` 和 `ObserverRegistry.fire()` 里临时移除 try/except 或加 print，而不是逐层猜。多轮修复后仍不生效，直接怀疑还有一层被静默吞掉
 
+## 2026-05-30 - 腐植循环聚能不触发 + heal 用名义能量而非实际能量
+
+- **现象**: 伊贝粉粉使用聚能回复能量后，腐植循环特性（每回复1能量回复5%生命）不触发；使用藤绞回复4点能量，却按技能描述中的5点能量计算治疗量
+- **根因**: 三个断点。① sim/battle.py 聚能路径 fire_trigger("post_energy_change") 未设置 ctx.energy_delta_self（默认0）→ observer 的 when:compare energy_delta>0 过滤掉；② fire_trigger 返回的日志事件被丢弃（未 append 到 events）；③ EnergyChange.delta 存的是 JSON 名义值(5)，gain_energy(5) 被 max_energy cap 到 4，但 _fire_mutation_events 仍读原始 m.delta(5) → heal 多算
+- **修复**: ① sim/battle.py 设置 gather_ctx.energy_delta_self = gained + 捕获 fire_trigger 返回事件 append 到 events；② replayer.py _apply_energy_change 将实际 capped 值存入 _energy_deltas dict；③ battle.py _fire_mutation_events 从 _energy_deltas 读取实际值而非 m.delta
+- **涉及文件**: backend/sim/battle.py:526-530, backend/engine/replayer.py:737-743, backend/engine/battle.py:417
+- **教训**: VM 外部操作（聚能、技能能耗）不经过 journal → observer 依赖的 ctx 字段可能未设置 + 返回值被丢弃 → 双重静默。排查时先 grep fire_trigger 调用点确认 ctx 字段是否填充 + 返回值是否捕获
+
+## 2026-05-30 - 营养液泡特性不触发：post_positive_change 只覆盖 StatChange 不含 ModifierInjection
+
+- **现象**: 白发路路使用热身运动（combo+3）后，营养液泡特性（获得增益时额外层数+2）完全不触发，日志无任何额外效果
+- **根因**: 三重断点。① 热身运动 combo+3 走 power_mod → ModifierInjection，而 post_positive_change 仅在 _fire_mutation_events 扫描到 StatChange(is_positive=True) 时发射——ModifierInjection 不在扫描范围；② ctx.event.positive_changed_of 从未被设置（连 StatChange 分支都没设），on_positive_changed 条件永远为 False——即使 StatChange 触发了 post_positive_change，observer 条件也通不过；③ effect_delta 只处理 active_effects 中的 StatBuffEffect/AbnormalEffect，不处理 sprite._modifiers 中的 combo/power/priority
+- **修复**: ① battle.py _fire_mutation_events 新增 ModifierInjection 分支 + _is_positive_modifier() 辅助函数（mode=add 时 value>0 为正向，energy_cost 反向）；② StatChange 和 ModifierInjection 分支均设置 positive_changed_of；③ replayer.py _apply_effect_delta 新增 _modifiers 处理（combo/power/priority 增量 + energy_cost 减量）
+- **涉及文件**: backend/engine/battle.py:48-61/396-402/455-461, backend/engine/replayer.py:1225-1234
+- **教训**: observer 不触发时三连查——① trigger 发射是否覆盖所有 mutation 类型（grep 对应 isinstance 检查）② ctx.event 字段是否被设置（grep 字段名确认赋值点）③ effect op 是否处理目标数据结构（active_effects vs _modifiers）。post_positive_change 之前只覆盖 StatChange 是设计盲区——power_mod/mult_mod 的增益同样应视为 positive change
+
 <!-- 新条目追加在此行上方，格式如下：
 
 ## YYYY-MM-DD - 简短标题
