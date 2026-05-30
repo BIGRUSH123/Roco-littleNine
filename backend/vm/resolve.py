@@ -231,6 +231,8 @@ _FORMULA_PATH_MAP: dict[str, str] = {
     "target.max_hp": "hp_opp_max",
     "target.positive_count": "positive_count_opp",
     "target.abnormal_count": "abnormal_count_opp",
+    "self.skill_element_count": "skill_element_count_self",
+    "target.skill_element_count": "skill_element_count_opp",
     "target.energy_cost": "energy_cost_opp",
     "target.energy_cost_total": "skills_energy_sum_opp",
     "target.speed": "speed_opp",
@@ -252,6 +254,8 @@ _FORMULA_PATH_MAP: dict[str, str] = {
     "opponent.lives": "lives_opp",
     "effect_name": "abnormal_applied_name",
     "player_moe_stacks": "moe_team_stacks",
+    "positive_changed_stat": "positive_changed_stat",
+    "positive_changed_steps": "positive_changed_steps",
 }
 
 

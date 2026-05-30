@@ -1,21 +1,29 @@
 {
   "id": 20122,
   "name": "血型吸引",
-  "description": "敌方每携带1种系别的技能，攻击威力+10%。",
-  "triggers": [
+  "description": "敌方每携带1种系别的技能，自己攻击时威力+10。",
+  "effects": [
     {
-      "on": "modifier",
-      "condition": {
-        "path": "skill.is_attack",
-        "op": "eq",
-        "value": true
+      "op": "observer",
+      "listen": "pre_modifier",
+      "scope": "persistent",
+      "cond": {
+        "cond": "or",
+        "conditions": [
+          {"cond": "skill_use", "skill_type": "物攻"},
+          {"cond": "skill_use", "skill_type": "魔攻"}
+        ]
       },
-      "use_modifiers": {
-        "power_mult": {
-          "op": "add",
-          "value": "=@enemy_unique_elements * 0.1"
+      "then": [
+        {
+          "op": "power_mod",
+          "target": "sprite_self",
+          "attr": "power",
+          "value": "=@target.skill_element_count * 10",
+          "mode": "add",
+          "skill_filter": "all"
         }
-      }
+      ]
     }
   ]
 }

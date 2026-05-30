@@ -377,6 +377,7 @@ class SkillParsePass:
             what=self._str_or(e, "what", ""),
             name=e.get("name"),
             amount=self._int_or(e, "amount", 0),
+            action=e.get("action", "steal"),
             **self._common_fields(e),
         )
 

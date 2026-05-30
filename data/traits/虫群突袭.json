@@ -5,47 +5,35 @@
   "effects": [
     {
       "op": "observer",
-      "then": [
-        {
-          "target": "sprite_self",
-          "scope": "battlefield",
-          "source": "虫群突袭",
-          "op": "stat_stage",
-          "stat": "atk",
-          "steps": "=@player_bug_count * 1.5"
-        },
-        {
-          "target": "sprite_self",
-          "scope": "battlefield",
-          "source": "虫群突袭",
-          "op": "stat_stage",
-          "stat": "def",
-          "steps": "=@player_bug_count * 1.5"
-        },
-        {
-          "target": "sprite_self",
-          "scope": "battlefield",
-          "source": "虫群突袭",
-          "op": "stat_stage",
-          "stat": "speed",
-          "steps": "=@player_bug_count * 1.5"
-        }
-      ],
+      "listen": "post_entry",
       "scope": "battlefield",
       "cond": {
-        "cond": "and",
-        "conditions": [
-          {
-            "cond": "sprite_entered",
-            "of": "sprite_self"
-          },
-          {
-            "cond": "team_has_element",
-            "element": "虫"
-          }
-        ]
+        "cond": "sprite_entered",
+        "of": "sprite_self"
       },
-      "listen": "post_entry"
+      "then": [
+        {
+          "op": "mult_mod",
+          "target": "sprite_self",
+          "attr": "atk",
+          "value": "=(@team_counters[element:虫] - 1) * 0.15",
+          "mode": "set"
+        },
+        {
+          "op": "mult_mod",
+          "target": "sprite_self",
+          "attr": "def",
+          "value": "=(@team_counters[element:虫] - 1) * 0.15",
+          "mode": "set"
+        },
+        {
+          "op": "mult_mod",
+          "target": "sprite_self",
+          "attr": "speed",
+          "value": "=(@team_counters[element:虫] - 1) * 0.15",
+          "mode": "set"
+        }
+      ]
     }
   ]
 }

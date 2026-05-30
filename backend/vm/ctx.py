@@ -34,6 +34,8 @@ class EventContext:
     abnormal_applied_target: str = ""
     skills_energy_changed_of: str = ""
     positive_changed_of: str = ""
+    positive_changed_stat: str = ""
+    positive_changed_steps: int = 0
     energy_changed_of: str = ""
     heal_of: str = ""
     damage_taken_of: str = ""
@@ -112,6 +114,8 @@ class Ctx:
     positive_count_opp: int = 0
     charged_opp: bool = False
     skill_elements_opp: frozenset = frozenset()
+    skill_element_count_self: int = 0     # distinct skill elements carried
+    skill_element_count_opp: int = 0
     stat_stages_opp: dict[str, int] = field(default_factory=dict)  # {stat: stage} positive=boost
     skills_energy_sum_opp: int = 0
     power_mult_opp: float = 1.0
@@ -217,6 +221,8 @@ class Ctx:
         other.skill_elements_opp = frozenset(self.skill_elements_self)
         other.skill_element_counts_self = dict(self.skill_element_counts_opp)
         other.skill_element_counts_opp = dict(self.skill_element_counts_self)
+        other.skill_element_count_self, other.skill_element_count_opp = (
+            self.skill_element_count_opp, self.skill_element_count_self)
 
         # --- skill fields ---
         other.power_self, other.power_opp = self.power_opp, self.power_self

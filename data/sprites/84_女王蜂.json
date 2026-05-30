@@ -12,8 +12,8 @@
   "def": 42,
   "sp_def": 42,
   "speed": 40,
-  "ability": "虫群鼓舞",
-  "ability_id": 20120,
+  "ability": "虫群突袭",
+  "ability_id": 20119,
   "pre_species": "84",
   "skills": [
     10376,

@@ -242,6 +242,7 @@ class StealOp:
     what: str
     name: str | None = None
     amount: int = 0
+    action: str = "steal"
     feeds: str = ""
     needs: str = ""
     priority: int = 0

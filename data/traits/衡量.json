@@ -5,19 +5,37 @@
   "effects": [
     {
       "op": "observer",
-      "then": [
-        {
-          "target": "sprite_self",
-          "scope": "battlefield",
-          "op": "special"
-        }
-      ],
-      "scope": "persistent",
+      "listen": "post_entry",
+      "scope": "battlefield",
       "cond": {
         "cond": "sprite_entered",
         "of": "sprite_self"
       },
-      "listen": "post_entry"
+      "then": [
+        {
+          "op": "steal",
+          "target": "sprite_opp",
+          "what": "positive",
+          "action": "copy"
+        }
+      ]
+    },
+    {
+      "op": "observer",
+      "listen": "post_positive_change",
+      "scope": "persistent",
+      "cond": {
+        "cond": "on_positive_changed",
+        "of": "sprite_opp"
+      },
+      "then": [
+        {
+          "op": "stat_stage",
+          "target": "sprite_self",
+          "stat": "=@positive_changed_stat",
+          "steps": "=@positive_changed_steps"
+        }
+      ]
     }
   ]
 }

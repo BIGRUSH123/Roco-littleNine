@@ -110,6 +110,8 @@ def op_stat_stage(ctx: Ctx, op) -> list[Mutation]:
     """RISC: stat_stage → StatChange."""
     target = _get_field(op, "target", "sprite_self")
     stat = _get_field(op, "stat", "")
+    if isinstance(stat, str) and stat.startswith("="):
+        stat = str(resolve(ctx, stat))
     scope = _get_field(op, "scope", "battlefield")
     source = _get_field(op, "source")
     per_hit = _get_field(op, "per_hit", False)

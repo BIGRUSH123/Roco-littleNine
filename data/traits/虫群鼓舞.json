@@ -5,47 +5,14 @@
   "effects": [
     {
       "op": "observer",
-      "then": [
-        {
-          "target": "sprite_self",
-          "scope": "battlefield",
-          "source": "虫群鼓舞",
-          "op": "stat_stage",
-          "stat": "atk",
-          "steps": "=@player_bug_count"
-        },
-        {
-          "target": "sprite_self",
-          "scope": "battlefield",
-          "source": "虫群鼓舞",
-          "op": "stat_stage",
-          "stat": "def",
-          "steps": "=@player_bug_count"
-        },
-        {
-          "target": "sprite_self",
-          "scope": "battlefield",
-          "source": "虫群鼓舞",
-          "op": "stat_stage",
-          "stat": "speed",
-          "steps": "=@player_bug_count"
-        }
-      ],
+      "listen": "post_entry",
       "scope": "battlefield",
-      "cond": {
-        "cond": "and",
-        "conditions": [
-          {
-            "cond": "sprite_entered",
-            "of": "sprite_self"
-          },
-          {
-            "cond": "team_has_element",
-            "element": "虫"
-          }
-        ]
-      },
-      "listen": "post_entry"
+      "cond": {"cond": "sprite_entered", "of": "sprite_self"},
+      "then": [
+        {"op": "stat_stage", "target": "sprite_self", "stat": "atk",   "steps": "=@team_counters[element:虫] - 1", "scope": "permanent"},
+        {"op": "stat_stage", "target": "sprite_self", "stat": "def",   "steps": "=@team_counters[element:虫] - 1", "scope": "permanent"},
+        {"op": "stat_stage", "target": "sprite_self", "stat": "speed", "steps": "=@team_counters[element:虫] - 1", "scope": "permanent"}
+      ]
     }
   ]
 }

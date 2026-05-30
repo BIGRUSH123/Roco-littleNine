@@ -156,7 +156,7 @@ class BattleVMEngine:
                 **kwargs,
             )
         # pre_calc_mods already applied to sprite via _pre_r.replay above
-        pre_mods = self._fire_pre_event("pre_modifier", ctx)
+        pre_mods = self._fire_pre_event("pre_modifier", ctx, id(self_sprite))
 
         # 3. Execute VM on the skill's effects
         vm_effects = effects if effects is not None else self._get_effects(self_skill)
@@ -459,6 +459,8 @@ class BattleVMEngine:
                 if getattr(m, 'is_positive', False):
                     trigger = "post_positive_change"
                     ctx.event.positive_changed_of = "sprite_self" if m.target in ("sprite_self",) else "sprite_opp"
+                    ctx.event.positive_changed_stat = m.stat
+                    ctx.event.positive_changed_steps = m.steps
             elif isinstance(m, ModifierInjection):
                 if _is_positive_modifier(m):
                     trigger = "post_positive_change"

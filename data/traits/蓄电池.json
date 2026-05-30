@@ -35,7 +35,7 @@
             "cond": "compare",
             "q": "counters[times_entered]",
             "of": "sprite_self",
-            "op": "gt",
+            "op": "gte",
             "value": 1
           }
         ]

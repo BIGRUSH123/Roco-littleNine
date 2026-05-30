@@ -1105,10 +1105,15 @@ class JournalReplayer:
     def _apply_steal(self, m: Steal) -> str:
         # Steal effects/energy/marks from target to self
         if m.what == "positive":
+            from copy import copy
             from backend.vm.effect import StatBuffEffect
             target = self._target_sprite(m.from_target)
             positives = [e for e in target.active_effects
                          if isinstance(e, StatBuffEffect) and e.steps > 0]
+            if m.action == "copy":
+                for e in positives:
+                    self.self.add_effect(copy(e))
+                return f"{self.self.name} 复制 {len(positives)} 增益 from {target.name}"
             for e in positives:
                 target.active_effects.remove(e)
                 self.self.add_effect(e)

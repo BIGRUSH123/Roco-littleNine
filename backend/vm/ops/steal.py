@@ -27,4 +27,5 @@ def op_steal(ctx: Ctx, effect) -> list[Mutation]:
         what=what,
         name=_get(effect, "name"),
         amount=_get(effect, "amount"),
+        action=_get(effect, "action", "steal"),
     )]

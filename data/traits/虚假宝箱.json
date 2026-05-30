@@ -5,40 +5,27 @@
   "effects": [
     {
       "op": "observer",
-      "then": [
-        {
-          "target": "killer",
-          "scope": "battlefield",
-          "source": "虚假宝箱",
-          "op": "stat_stage",
-          "stat": "atk",
-          "steps": 2
-        },
-        {
-          "target": "killer",
-          "scope": "battlefield",
-          "source": "虚假宝箱",
-          "op": "stat_stage",
-          "stat": "def",
-          "steps": 2
-        }
-      ],
+      "listen": "post_ko",
       "scope": "persistent",
       "cond": {
-        "cond": "and",
-        "conditions": [
-          {
-            "cond": "on_self_ko"
-          },
-          {
-            "cond": "compare",
-            "q": "killer",
-            "of": "sprite_self",
-            "op": "neq",
-            "value": null
-          }
-        ]
-      }
+        "cond": "on_self_ko"
+      },
+      "then": [
+        {
+          "op": "stat_stage",
+          "target": "sprite_opp",
+          "stat": "atk",
+          "steps": 2,
+          "scope": "permanent"
+        },
+        {
+          "op": "stat_stage",
+          "target": "sprite_opp",
+          "stat": "def",
+          "steps": 2,
+          "scope": "permanent"
+        }
+      ]
     }
   ]
 }

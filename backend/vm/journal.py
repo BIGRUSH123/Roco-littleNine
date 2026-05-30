@@ -119,6 +119,7 @@ class Steal:
     what: str         # "positive" | "mark" | "energy"
     name: str | None = None
     amount: int | None = None
+    action: str = "steal"  # "steal" | "copy"
 
 
 @dataclass(frozen=True)

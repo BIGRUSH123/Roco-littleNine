@@ -167,6 +167,9 @@ def build_ctx(
             if el:
                 skill_element_counts_opp[el] = skill_element_counts_opp.get(el, 0) + 1
 
+    skill_element_count_self = len(skill_elements_self)
+    skill_element_count_opp = len(skill_elements_opp)
+
     # ── Teams (from GlobalEffects) ──
     g = globals_
     own_team = team
@@ -291,6 +294,7 @@ def build_ctx(
         just_entered=getattr(ss, 'entry_turn', -1) == turn and turn >= 0,
         skill_elements_self=skill_elements_self,
         skill_element_counts_self=skill_element_counts_self,
+        skill_element_count_self=skill_element_count_self,
         stat_stages_self=stat_stages_self,
         energy_cost_sum_self=ecs,
         zero_cost_skill_count_self=sum(
@@ -317,6 +321,7 @@ def build_ctx(
         charged_opp=charged_opp,
         skill_elements_opp=skill_elements_opp,
         skill_element_counts_opp=skill_element_counts_opp,
+        skill_element_count_opp=skill_element_count_opp,
         stat_stages_opp=stat_stages_opp,
         skills_energy_sum_opp=sum(
             getattr(s, 'energy_cost', 0) for s in (os.skills or [])

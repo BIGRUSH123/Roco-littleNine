@@ -5,28 +5,26 @@
   "effects": [
     {
       "op": "observer",
-      "then": [
-        {
-          "target": "sprite_self",
-          "op": "special"
-        }
-      ],
+      "listen": "turn_end",
       "scope": "persistent",
       "cond": {
-        "cond": "and",
-        "conditions": [
-          {
-            "cond": "turn_end"
-          },
-          {
-            "cond": "compare",
-            "q": "effects[name=中毒].stacks",
-            "of": "sprite_self",
-            "op": "gte",
-            "value": 2
-          }
-        ]
-      }
+        "cond": "always"
+      },
+      "then": [
+        {
+          "op": "abnormal",
+          "target": "sprite_opp",
+          "name": "中毒",
+          "value": "=-(int(@target.effects[name=中毒].stacks / 2) * 2)"
+        },
+        {
+          "op": "mark",
+          "target": "sprite_opp",
+          "name": "中毒印记",
+          "action": "apply",
+          "value": "=int(@target.effects[name=中毒].stacks / 2)"
+        }
+      ]
     }
   ]
 }

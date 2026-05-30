@@ -449,3 +449,276 @@ def test_trait_石天平_self_lower_cost_no_trigger():
     assert len(battle.scheduled_effects) == 0, (
         f"expected 0 scheduled effects when self_cost <= opp_cost, got {len(battle.scheduled_effects)}"
     )
+
+
+# ═══════════════════════════════════════════════════════════════════
+# 血型吸引 (ID 20122)
+# ═══════════════════════════════════════════════════════════════════
+
+
+def test_trait_血型吸引_power_boost_by_enemy_skill_elements():
+    """血型吸引: +10 power per distinct skill element the enemy carries."""
+    p1 = factory.build_player("A", [
+        {"name": "草衣虫", "skills": ["猛烈撞击"]},
+    ])
+    p1.team[0].species.ability = "血型吸引"
+    p1.team[0].species.ability_id = 20122
+
+    # Enemy carries 3 distinct elements: 水, 火, 草
+    p2 = factory.build_player("B", [
+        {"name": "花衣蝶", "skills": ["甩水", "火苗", "种子弹"]},
+    ])
+
+    battle = Battle(p1, p2, verbose=False)
+    battle.player_a.active_index = 0
+    battle.player_b.active_index = 0
+
+    dispatch_entry(p1.team[0], battle, "A")
+    dispatch_entry(p2.team[0], battle, "B")
+
+    sprite = p1.team[0]
+    opp = p2.team[0]
+    sk = sprite.skills[0]
+
+    # Verify ctx counts 3 distinct enemy skill elements
+    ctx = battle._make_ctx(sprite, opp, sk, None, battle.globals, team="A", turn=0)
+    assert ctx.skill_element_count_opp == 3, (
+        f"expected 3 distinct elements, got {ctx.skill_element_count_opp}"
+    )
+
+    # Fire pre_modifier → power_mod = 3 * 10 = 30
+    battle._vm_engine.fire_trigger("pre_modifier", ctx, sprite, opp, battle.globals, team="A", battle=battle)
+
+    # power_mod applies to all skills via skill_filter:"all"
+    for bs in (sprite.skills or []):
+        pow_mod = bs._modifiers.get("power", 0)
+        assert pow_mod == 30, f"{bs.name}: expected power=30, got {pow_mod}"
+
+
+def test_trait_血型吸引_single_element_enemy():
+    """血型吸引: enemy has only 1 element type → power +10."""
+    p1 = factory.build_player("A", [
+        {"name": "草衣虫", "skills": ["猛烈撞击"]},
+    ])
+    p1.team[0].species.ability = "血型吸引"
+    p1.team[0].species.ability_id = 20122
+
+    # Enemy: all skills share the same element (普通)
+    p2 = factory.build_player("B", [
+        {"name": "花衣蝶", "skills": ["猛烈撞击"]},
+    ])
+
+    battle = Battle(p1, p2, verbose=False)
+    battle.player_a.active_index = 0
+    battle.player_b.active_index = 0
+
+    dispatch_entry(p1.team[0], battle, "A")
+    dispatch_entry(p2.team[0], battle, "B")
+
+    sprite = p1.team[0]
+    opp = p2.team[0]
+
+    ctx = battle._make_ctx(sprite, opp, sprite.skills[0], None, battle.globals, team="A", turn=0)
+    assert ctx.skill_element_count_opp == 1
+
+    battle._vm_engine.fire_trigger("pre_modifier", ctx, sprite, opp, battle.globals, team="A", battle=battle)
+
+    for bs in (sprite.skills or []):
+        assert bs._modifiers.get("power", 0) == 10, (
+            f"{bs.name}: expected power=10 (1 element), got {bs._modifiers.get('power', 0)}"
+        )
+
+
+def test_trait_血型吸引_no_skill_elements():
+    """血型吸引: enemy has no skills with elements → power +0."""
+    p1 = factory.build_player("A", [
+        {"name": "草衣虫", "skills": ["猛烈撞击"]},
+    ])
+    p1.team[0].species.ability = "血型吸引"
+    p1.team[0].species.ability_id = 20122
+
+    # Enemy has skills but the factory loads them; we'll test ctx directly
+    p2 = factory.build_player("B", [
+        {"name": "花衣蝶", "skills": ["猛烈撞击"]},
+    ])
+
+    battle = Battle(p1, p2, verbose=False)
+    battle.player_a.active_index = 0
+    battle.player_b.active_index = 0
+
+    dispatch_entry(p1.team[0], battle, "A")
+    dispatch_entry(p2.team[0], battle, "B")
+
+    sprite = p1.team[0]
+    opp = p2.team[0]
+
+    ctx = battle._make_ctx(sprite, opp, sprite.skills[0], None, battle.globals, team="A", turn=0)
+
+    # Verify skill_element_count_opp is computed correctly
+    assert ctx.skill_element_count_opp >= 0
+
+    # Fire pre_modifier → should apply whatever count * 10
+    battle._vm_engine.fire_trigger("pre_modifier", ctx, sprite, opp, battle.globals, team="A", battle=battle)
+
+    expected = ctx.skill_element_count_opp * 10
+    for bs in (sprite.skills or []):
+        assert bs._modifiers.get("power", 0) == expected, (
+            f"{bs.name}: expected power={expected}, got {bs._modifiers.get('power', 0)}"
+        )
+
+
+def test_trait_血型吸引_swapped_view():
+    """血型吸引: skill_element_count swaps correctly in swapped_view."""
+    p1 = factory.build_player("A", [
+        {"name": "草衣虫", "skills": ["猛烈撞击"]},
+    ])
+    p1.team[0].species.ability = "血型吸引"
+    p1.team[0].species.ability_id = 20122
+
+    p2 = factory.build_player("B", [
+        {"name": "花衣蝶", "skills": ["甩水", "火苗", "种子弹"]},
+    ])
+
+    battle = Battle(p1, p2, verbose=False)
+    battle.player_a.active_index = 0
+    battle.player_b.active_index = 0
+
+    dispatch_entry(p1.team[0], battle, "A")
+    dispatch_entry(p2.team[0], battle, "B")
+
+    sprite = p1.team[0]
+    opp = p2.team[0]
+
+    ctx = battle._make_ctx(sprite, opp, sprite.skills[0], None, battle.globals, team="A", turn=0)
+    swapped = ctx.swapped_view()
+
+    # Swapped view: self becomes opp → counts swap
+    assert swapped.skill_element_count_self == ctx.skill_element_count_opp
+    assert swapped.skill_element_count_opp == ctx.skill_element_count_self
+
+
+# ═══════════════════════════════════════════════════════════════════
+# 衡量 (ID 20123)
+# ═══════════════════════════════════════════════════════════════════
+
+
+def test_trait_衡量_copy_positive_on_entry():
+    """衡量: on post_entry, copy opponent's positive effects (steal action=copy)."""
+    p1 = factory.build_player("A", [
+        {"name": "草衣虫", "skills": ["猛烈撞击"]},
+    ])
+    p1.team[0].species.ability = "衡量"
+    p1.team[0].species.ability_id = 20123
+
+    p2 = factory.build_player("B", [
+        {"name": "花衣蝶", "skills": ["猛烈撞击"]},
+    ])
+
+    battle = Battle(p1, p2, verbose=False)
+    battle.player_a.active_index = 0
+    battle.player_b.active_index = 0
+
+    sprite = p1.team[0]
+    opp = p2.team[0]
+
+    # Give opponent positive buffs
+    opp.add_effect(_make_buff("atk", 2))
+    opp.add_effect(_make_buff("speed", 1))
+    assert len([e for e in opp.active_effects
+                if isinstance(e, StatBuffEffect) and e.steps > 0]) == 2
+
+    # Load trait and fire post_entry
+    dispatch_entry(sprite, battle, "A")
+    ctx = battle._make_ctx(sprite, opp, None, None, battle.globals, team="A", turn=0)
+    battle._vm_engine.fire_trigger("post_entry", ctx, sprite, opp, battle.globals, team="A", battle=battle)
+
+    # Verify copies on self
+    self_atk = [e for e in sprite.active_effects
+                if isinstance(e, StatBuffEffect) and e.stat_key == "atk" and e.steps > 0]
+    self_speed = [e for e in sprite.active_effects
+                  if isinstance(e, StatBuffEffect) and e.stat_key == "speed" and e.steps > 0]
+    assert len(self_atk) >= 1, f"expected atk buff copied to self, got {len(self_atk)}"
+    assert self_atk[0].steps == 2, f"expected atk+2, got {self_atk[0].steps}"
+    assert len(self_speed) >= 1, f"expected speed buff copied to self, got {len(self_speed)}"
+
+    # Original effects should still be on opponent (copy, not steal)
+    opp_atk = [e for e in opp.active_effects
+               if isinstance(e, StatBuffEffect) and e.stat_key == "atk"]
+    assert len(opp_atk) >= 1, "opponent should still have their buffs after copy"
+
+
+def test_trait_衡量_mirror_opp_positive_change():
+    """衡量: when opponent gains a positive stat stage, self mirrors it."""
+    p1 = factory.build_player("A", [
+        {"name": "草衣虫", "skills": ["猛烈撞击"]},
+    ])
+    p1.team[0].species.ability = "衡量"
+    p1.team[0].species.ability_id = 20123
+
+    p2 = factory.build_player("B", [
+        {"name": "花衣蝶", "skills": ["猛烈撞击"]},
+    ])
+
+    battle = Battle(p1, p2, verbose=False)
+    battle.player_a.active_index = 0
+    battle.player_b.active_index = 0
+
+    sprite = p1.team[0]
+    opp = p2.team[0]
+
+    dispatch_entry(sprite, battle, "A")
+    ctx = battle._make_ctx(sprite, opp, None, None, battle.globals, team="A", turn=0)
+
+    # Simulate opponent gaining atk+2
+    ctx.event.positive_changed_of = "sprite_opp"
+    ctx.event.positive_changed_stat = "atk"
+    ctx.event.positive_changed_steps = 2
+
+    battle._vm_engine.fire_trigger("post_positive_change", ctx, sprite, opp, battle.globals, team="A", battle=battle)
+
+    # Verify self mirrored atk+2
+    self_buffs = [e for e in sprite.active_effects
+                  if isinstance(e, StatBuffEffect) and e.stat_key == "atk" and e.steps > 0]
+    assert len(self_buffs) >= 1, f"expected atk buff mirrored on self, got {len(self_buffs)}"
+    assert sum(e.steps for e in self_buffs) >= 2, (
+        f"expected atk+2 mirrored, got steps={[e.steps for e in self_buffs]}"
+    )
+
+
+def test_trait_衡量_no_copy_when_self_gains():
+    """衡量: does NOT mirror when self gains (only opp gains trigger it)."""
+    p1 = factory.build_player("A", [
+        {"name": "草衣虫", "skills": ["猛烈撞击"]},
+    ])
+    p1.team[0].species.ability = "衡量"
+    p1.team[0].species.ability_id = 20123
+
+    p2 = factory.build_player("B", [
+        {"name": "花衣蝶", "skills": ["猛烈撞击"]},
+    ])
+
+    battle = Battle(p1, p2, verbose=False)
+    battle.player_a.active_index = 0
+    battle.player_b.active_index = 0
+
+    sprite = p1.team[0]
+    opp = p2.team[0]
+
+    dispatch_entry(sprite, battle, "A")
+    ctx = battle._make_ctx(sprite, opp, None, None, battle.globals, team="A", turn=0)
+
+    # Self gains a buff — should NOT trigger copy
+    ctx.event.positive_changed_of = "sprite_self"
+    ctx.event.positive_changed_stat = "def"
+    ctx.event.positive_changed_steps = 1
+
+    before = len([e for e in sprite.active_effects
+                  if isinstance(e, StatBuffEffect) and e.stat_key == "def" and e.steps > 0])
+
+    battle._vm_engine.fire_trigger("post_positive_change", ctx, sprite, opp, battle.globals, team="A", battle=battle)
+
+    after = len([e for e in sprite.active_effects
+                 if isinstance(e, StatBuffEffect) and e.stat_key == "def" and e.steps > 0])
+    assert after == before, (
+        f"self gaining buff should not trigger mirror; before={before}, after={after}"
+    )
