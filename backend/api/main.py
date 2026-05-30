@@ -103,67 +103,77 @@ def get_agent(name: str):
     }
 
 
-WIKI_ROOT = BASE / "wiki"
 SKILLS_DIR = BASE / "data" / "skills"
+SPRITES_DIR = BASE / "data" / "sprites"
 
 # In-memory session store
 sessions: dict[str, dict] = {}
 debug_sessions: dict[str, dict] = {}
 
-def load_sprite_skills() -> list[schemas.SpriteEntry]:
-    available = {p.stem for p in SKILLS_DIR.glob("*.json")}
-    entries: list[schemas.SpriteEntry] = []
+def _build_skill_id_map() -> dict[int, str]:
+    """Build a mapping from skill ID to skill name."""
+    id_map: dict[int, str] = {}
+    for skill_file in SKILLS_DIR.glob("*.json"):
+        try:
+            data = json.loads(skill_file.read_text(encoding="utf-8"))
+            sid = data.get("id")
+            name = data.get("name")
+            if sid is not None and name:
+                id_map[sid] = name
+        except (json.JSONDecodeError, KeyError):
+            continue
+    return id_map
 
-    sprite_dir = WIKI_ROOT / "精灵图鉴"
-    if not sprite_dir.is_dir():
+SKILL_ID_MAP = _build_skill_id_map()
+
+def load_sprite_skills() -> list[schemas.SpriteEntry]:
+    entries: list[schemas.SpriteEntry] = []
+    seen: set[str] = set()
+
+    if not SPRITES_DIR.is_dir():
         return entries
 
-    for md in sorted(sprite_dir.rglob("*.md")):
-        if md.name.startswith("_") or md.stem == "index":
+    for sprite_file in sorted(SPRITES_DIR.glob("*.json")):
+        try:
+            data = json.loads(sprite_file.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
             continue
-        text = md.read_text(encoding="utf-8", errors="ignore")
 
-        # Parse frontmatter
-        frontmatter = {}
-        fm_match = re.search(r'^---\s*\n(.*?)\n---', text, re.DOTALL)
-        if fm_match:
-            for line in fm_match.group(1).split("\n"):
-                kv = re.match(r'^(\w+):\s*(.+)$', line.strip())
-                if kv:
-                    frontmatter[kv.group(1)] = kv.group(2).strip()
+        name = data.get("name")
+        if not name:
+            continue
 
-        name_m = re.search(r'^name:\s*"(.+?)"', text, re.MULTILINE)
-        sprite_name = name_m.group(1) if name_m else md.stem
+        # Deduplicate by name (one JSON per sprite — form variants in same file)
+        if name in seen:
+            continue
+        seen.add(name)
 
-        element = ""
-        attrs_raw = frontmatter.get("attributes", "")
-        attr_m = re.search(r'\[(\w+)', attrs_raw)
-        if attr_m:
-            element = attr_m.group(1)
+        number = data.get("number", 0)
+        number = int(number) if number else 0
 
+        # Resolve attributes (element list)
+        attrs = data.get("attributes", [])
+        element = ", ".join(attrs) if attrs else ""
+
+        # Resolve skill IDs → names (base + stone skills; bloodline excluded)
+        all_ids = set(data.get("skills", []))
+        for sid in data.get("stone_skills", []):
+            all_ids.add(sid)
         skills = []
-        in_section = False
-        for line in text.split("\n"):
-            if re.match(r"## 技能", line):
-                in_section = True
-                continue
-            if in_section:
-                if line.startswith("## "):
-                    break
-                m = re.search(r"\[(?:[*]*)([^]]+?)(?:[*]*)\]\(([^)]+)\)", line)
-                if m:
-                    name = m.group(1).strip("*")
-                    if name in available:
-                        skills.append(name)
+        for sid in sorted(all_ids):
+            skill_name = SKILL_ID_MAP.get(sid)
+            if skill_name:
+                skills.append(skill_name)
 
-        if skills:
-            entries.append(schemas.SpriteEntry(
-                name=sprite_name,
-                element=element,
-                number=int(frontmatter.get("number", 0)),
-                skills=skills,
-            ))
+        entries.append(schemas.SpriteEntry(
+            name=name,
+            element=element,
+            number=number,
+            skills=skills,
+        ))
 
+    # Sort by number
+    entries.sort(key=lambda e: e.number)
     return entries
 
 SPRITE_ENTRIES = load_sprite_skills()
@@ -488,6 +498,28 @@ def serialize_battle_state(battle: Battle, session_id: str) -> schemas.BattleSta
     marks_a_pos, marks_a_neg = battle.globals.get_marks("A")
     marks_b_pos, marks_b_neg = battle.globals.get_marks("B")
 
+    # ── Pending escape (non-urgent) — player needs to choose bench ──
+    pending_escape = None
+    if battle.pending_escape:
+        pe = battle.pending_escape
+        pe_player = pa if pe["team"] == "A" else pb
+        bench = []
+        for i, s in enumerate(pe_player.team):
+            if i != pe_player.active_index and not s.is_fainted:
+                bench.append({
+                    "index": i,
+                    "name": s.name,
+                    "element": getattr(s.species, 'attributes', '') if hasattr(s, 'species') else '',
+                    "current_hp": s.current_hp,
+                    "max_hp": s.max_hp,
+                })
+        pending_escape = schemas.PendingEscape(
+            team=pe["team"],
+            inherit=pe.get("inherit", False),
+            user_name=pe.get("user_name", ""),
+            bench_options=bench,
+        )
+
     return schemas.BattleState(
         session_id=session_id,
         turn=battle.turn,
@@ -503,6 +535,7 @@ def serialize_battle_state(battle: Battle, session_id: str) -> schemas.BattleSta
                 + [schemas.MarkSummary(name=m.name, stacks=m.stacks, type='negative') for m in marks_b_neg],
         mark_energy_mod_a=battle.globals.mark_energy_mod("A"),
         mark_energy_mod_b=battle.globals.mark_energy_mod("B"),
+        pending_escape=pending_escape,
     )
 
 def _build_turn_snapshot(battle, turn_log):
@@ -838,6 +871,29 @@ def battle_action(req: schemas.ActionRequest):
         "state": serialize_battle_state(battle, req.session_id),
         "log": turn_log,
         "turn_snapshot": turn_snap,
+    }
+
+# ── Escape Resolution ──────────────────────────────────────────────
+
+@app.post("/api/battle/resolve-escape")
+def resolve_escape(req: schemas.ResolveEscapeRequest):
+    """Resolve a pending non-urgent escape with the player's chosen bench index."""
+    if req.session_id not in sessions:
+        raise HTTPException(status_code=404, detail="Battle session not found.")
+
+    session = sessions[req.session_id]
+    battle: Battle = session["battle"]
+
+    if not battle.pending_escape or battle.pending_escape.get("urgent"):
+        raise HTTPException(status_code=400, detail="No pending escape to resolve.")
+
+    events = battle.resolve_escape("A", req.switch_index)
+    if not events:
+        raise HTTPException(status_code=400, detail="Invalid switch_index — sprite is fainted or same as active.")
+
+    return {
+        "state": serialize_battle_state(battle, req.session_id),
+        "log": events,
     }
 
 # ── Batch Battle Endpoint ──────────────────────────────────────────

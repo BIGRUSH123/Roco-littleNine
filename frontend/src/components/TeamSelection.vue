@@ -289,7 +289,8 @@ const filteredSprites = computed(() => {
     )
   }
 
-  return list
+  // 按编号排序
+  return [...list].sort((a, b) => (a.number || 0) - (b.number || 0))
 })
 
 const isReady = computed(() => {
@@ -595,7 +596,7 @@ const startBattle = () => {
                   <button
                     v-for="el in availableElements"
                     :key="el"
-                    @click="elementFilter = elementFilter === el ? '' : el"
+                    @click="elementFilter = elementFilter === el ? '' : el; searchText = ''"
                     class="px-2 py-0.5 text-[11px] rounded-lg border transition-colors"
                     :class="elementFilter === el
                       ? [elementClass(el), 'border-transparent']
