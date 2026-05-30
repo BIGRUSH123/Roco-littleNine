@@ -635,6 +635,14 @@
 - **涉及文件**: data/traits/蚀刻.json:10
 - **教训**: observer 完全不触发且 JSON 中无明显错误时，先检查是否有 cond 字段——缺失不报错，eval_one 对 None 静默返回 False
 
+## 2026-05-30 - pre_modifier observer 缺少 sprite_id 导致特性效果施加到对手
+
+- **现象**: 窃光蚊（血型吸引）攻击时对手双灯鱼也获得全技能威力+30
+- **根因**: battle.py:159 `_fire_pre_event("pre_modifier", ctx)` 未传 sprite_id（默认0），owner 过滤条件 `sprite_id != 0` 为 False 导致跳过过滤，窃光蚊的 observer 在双灯鱼攻击时也被触发，sprite_self 被解析为双灯鱼
+- **修复**: 补上 `id(self_sprite)` → `_fire_pre_event("pre_modifier", ctx, id(self_sprite))`，与同文件 pre_calc/pre_defend 调用保持一致
+- **涉及文件**: backend/engine/battle.py:159
+- **教训**: 特性效果施加到对手时，直接查 `_fire_pre_event` / `_fire_post_event` 调用处是否漏传 sprite_id/owner_id——pre_modifier 是唯一漏掉的 pre_event
+
 <!-- 新条目追加在此行上方，格式如下：
 
 ## YYYY-MM-DD - 简短标题
