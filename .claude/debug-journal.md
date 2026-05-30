@@ -579,6 +579,22 @@
 - **涉及文件**: data/traits/游弋.json:28,36
 - **教训**: 入场触发类永久 buff 用 `scope: "battlefield"` 而非 `"permanent"`——后者退场不清理，搭配 mode:"add" 会导致跨入场累加
 
+## 2026-05-30 - 溶解扩散/溶解腐蚀 _parse_abnormal 对公式字符串 int() 失败
+
+- **现象**: 千棘盔携带5个毒系技能，使用水系技能后对方完全没中毒
+- **根因**: trait JSON 的 `stacks: "=@self.skills[element=毒].count"` 是公式字符串，`_parse_abnormal` 用 `_int_or` 直接 `int()` → ValueError → `except Exception: continue` 静默吞掉。与 2026-05-28 守护者 `_parse_stat_stage` 同模式
+- **修复**: `_parse_abnormal` 仿照 `_parse_stat_stage` 识别 `=` 前缀公式字符串，路由到 `_parse_value` 转为 Literal 走运行时 resolve
+- **涉及文件**: backend/vm/compiler/passes/skill_parse.py:328-345
+- **教训**: trait JSON 中任何带 `=` 前缀的公式字符串，在 parser 层都要确认对应的 `_parse_*` 方法是否识别——直接 `int()` 就会 ValueError 被静默吞掉
+
+## 2026-05-30 - skills[element=X].count 返回布尔值而非实际数量
+
+- **现象**: 修复解析后，5个毒系技能只能上1层中毒（预期5层）
+- **根因**: `_resolve_trait_ref` 中 `skills[element=X].count` 读的是 `skill_elements_self`（frozenset，去重集合），返回 `1 if element in elements else 0`——布尔值而非实际技能数量
+- **修复**: Ctx 新增 `skill_element_counts_self/opp: dict[str, int]`；snapshot 遍历技能累加计数；resolve 公式改为 `counts.get(element, 0)`
+- **涉及文件**: backend/vm/ctx.py:126-127/214-215, backend/engine/snapshot.py:136-139/163-166, backend/vm/resolve.py:300
+- **教训**: frozenset 只能做包含判断，聚合计数必须用 dict——公式解析路径中用了什么数据结构直接决定返回值语义
+
 <!-- 新条目追加在此行上方，格式如下：
 
 ## YYYY-MM-DD - 简短标题
