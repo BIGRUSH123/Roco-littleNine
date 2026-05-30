@@ -531,6 +531,30 @@
 - **涉及文件**: backend/vm/cond.py:457, backend/sim/battle.py:800/219, backend/engine/replayer.py:155
 - **教训**: 特性 observer 不触发 → 先查 eval_one 是否认识该 cond 类型（plain string vs dict）；permanent scope 数值跨回合丢失 → 查 per-turn cleanup 后是否有 restore 环节；flag 型 stat 日志写入但不生效 → 检查消费端是否只写不读
 
+## 2026-05-30 - 洄游特性能耗减免在特性 tooltip 中不显示
+
+- **现象**: 龙鱼洄游特性触发后，战斗日志显示"全技能能耗-1"且能耗确实减少，但鼠标悬停特性名称时 tooltip 仍显示"暂无效果数据"
+- **根因**: ① `_apply_to_all_skills` 分发 `energy_cost` modifier 到各 BattleSkill._modifiers 后直接 return，未创建 display-only StatBuffEffect（tooltip 数据源）；② `_apply_modifier` 在此路径提前 return，跳过所有 tooltip 展示效果创建代码；③ 前端 TraitTooltip fallback 路径只过滤 `display_mult != null`，遗漏 `display_value`
+- **修复**: ① `replayer.py` _apply_to_all_skills 加 `replayer` 参数，分发后调用 `_sync_mult_display_effect` 创建 display_value 效果；② TraitTooltip.vue fallback 加上 `display_value != null` 检查
+- **涉及文件**: backend/engine/replayer.py:138/522, frontend/src/components/TraitTooltip.vue:28
+- **教训**: skill_filter="all" 路径的 tooltip 不显示 → 直接查 `_apply_to_all_skills` 是否创建了 display effect——它绕开了 `_apply_modifier` 的所有展示逻辑
+
+## 2026-05-30 - 渗透 1使用显示0%、2使用显示10% —— stat_stage int()截断 + 模块级缓存
+
+- **现象**: 渗透特性（每使用1次武/地技能→入场攻防+5%）用1次技能后换上场无加成，用2次才显示10%
+- **根因**: ① `stat_stage` 的 `steps` 在 `mod.py:119-121` 被 `int()` 截断（0.5→0，1.0→1），最小粒度为10%；② 改为 `mult_mod` 后仍不生效，因为 `trait_loader.py:22` 的 `_trait_cache` 是模块级 dict，修改 JSON 不重启服务器不会重读文件
+- **修复**: `渗透.json` — `stat_stage`→`mult_mod`，`steps: "* 0.5"`→`value: "* 0.05"`，绕过 int() 截断；重启后端清除 _trait_cache
+- **涉及文件**: data/traits/渗透.json, backend/vm/ops/mod.py:119-121, backend/engine/trait_loader.py:22/270
+- **教训**: 百分比数值 <10% 时优先用 `mult_mod` 而非 `stat_stage`（后者 steps=int() 仅支持 10% 粒度）；修改 JSON 后必须重启服务器清除 `_trait_cache`
+
+## 2026-05-30 - 深层氧循环回复10%而非15%
+
+- **现象**: 深层氧循环描述为"回复15%生命"，实际只回复10%
+- **根因**: JSON 中 heal value 写的是 `max_hp * 0.1`（10%），应为 `0.15`
+- **修复**: `深层氧循环.json` — `0.1` → `0.15`
+- **涉及文件**: data/traits/深层氧循环.json
+- **教训**: 描述和数值不一致时，先 grep 同类特性确认正确系数再改
+
 <!-- 新条目追加在此行上方，格式如下：
 
 ## YYYY-MM-DD - 简短标题
