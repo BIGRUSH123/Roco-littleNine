@@ -1,1 +1,0 @@
-{"_comment": "查询日志。每条查询追加一行。由 wiki-query 自动写入，wiki-tidy 读取分析。", "_format": "ts=ISO时间戳 query=用户查询原文 mode=fast|standard|deep files_read=读取的文件路径数组 satisfied=是否在wiki中找到答案"}

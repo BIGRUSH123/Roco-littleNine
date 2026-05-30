@@ -603,15 +603,20 @@ def _load_ai_agent(name: str, player):
         if cls_name == "RuleAgent":
             return cls("B", player)
         else:
-            # SDK agent: adapt via bridge
-            from roco.bridge import adapt_agent
+            try:
+                from roco.bridge import adapt_agent
+            except ImportError:
+                raise ImportError("roco package not installed — AI agent support will be added in a future version")
             instance = cls() if isinstance(cls, type) else cls
             return adapt_agent(instance, "B")
     elif source in ("example", "demo"):
         file_path = info.get("file", "")
-        from roco.tournament import load_agent
+        try:
+            from roco.tournament import load_agent
+            from roco.bridge import adapt_agent
+        except ImportError:
+            raise ImportError("roco package not installed — AI agent support will be added in a future version")
         agent = load_agent(file_path)
-        from roco.bridge import adapt_agent
         return adapt_agent(agent, "B")
     else:
         from backend.sim.agent import RuleAgent

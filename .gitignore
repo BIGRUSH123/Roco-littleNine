@@ -13,3 +13,11 @@ __pycache__
 
 # pip editable install artifacts
 roco.egg-info/
+
+# Excluded from v1.0 (future work)
+wiki/
+roco/
+examples/
+scripts/
+docs/
+tests/
