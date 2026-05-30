@@ -603,6 +603,14 @@
 - **涉及文件**: data/traits/灰色肖像.json:14-21
 - **教训**: observer 不触发时两个排查点——compare+q 字段是否在 ADDRESS_MAP（computed path 必须用 trait_path），and 块每个子条件是否在 COND_EVAL（trigger point 名不是条件）
 
+## 2026-05-30 - 石天平特性不触发：schedule op 未在 parser 注册被静默吞掉（第7层）
+
+- **现象**: 巨灵石使用高能耗技能后，回合末敌方未损失能量
+- **根因**: `skill_parse.py` 只认 `op="defer"`（`_parse_defer`），JSON 用 `op="schedule"`，`_parse_effect` dispatch 找不到 `_parse_schedule` → `ValueError` 被 `_fire_post_event` 的 `except Exception: continue` 静默吞掉。此前已修复 6 层问题（ADDRESS_MAP 缺 energy_cost、compare handler 未 resolve 公式值、FORMULA_PATH_MAP 缺 target.energy_cost、opp_skill 未传递、opp_skill_for_second 逻辑反了、JSON 公式语义错误），全部被同一静默 catch 掩盖
+- **修复**: `skill_parse.py:690` 添加 `_parse_schedule = _parse_defer` 别名
+- **涉及文件**: `backend/vm/compiler/passes/skill_parse.py:690`, `backend/vm/ops/schedule.py`, `backend/vm/ctx.py`, `backend/vm/cond.py`, `backend/vm/resolve.py`, `backend/sim/battle.py`, `data/traits/石天平.json`
+- **教训**: `except Exception: continue` 是静默杀手——observer/trait 不触发时，优先去 `_fire_post_event` 和 `ObserverRegistry.fire()` 里临时移除 try/except 或加 print，而不是逐层猜。多轮修复后仍不生效，直接怀疑还有一层被静默吞掉
+
 <!-- 新条目追加在此行上方，格式如下：
 
 ## YYYY-MM-DD - 简短标题
