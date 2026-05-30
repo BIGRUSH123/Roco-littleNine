@@ -2,35 +2,29 @@
   "id": 20105,
   "name": "绒粉星光",
   "description": "攻击时若敌方血脉是非本系的系别血脉，威力+100%。",
-  "triggers": [
+  "effects": [
     {
-      "on": "modifier",
-      "condition": {
-        "kind": "and",
-        "conditions": [
-          {
-            "path": "skill.is_attack",
-            "op": "eq",
-            "value": true
-          },
-          {
-            "path": "target_bloodline",
-            "op": "neq",
-            "value": ""
-          },
-          {
-            "path": "target_bloodline",
-            "op": "not_in",
-            "value": "=@self.species.elements"
-          }
-        ]
-      },
-      "use_modifiers": {
-        "power_mult": {
-          "op": "add",
-          "value": 1.0
+      "op": "observer",
+      "listen": "pre_modifier",
+      "scope": "persistent",
+      "cond": {
+        "cond": "compare",
+        "q": "bloodline",
+        "of": "sprite_opp",
+        "op": "not_in",
+        "value": {
+          "q": "elements",
+          "of": "sprite_opp"
         }
-      }
+      },
+      "then": [
+        {
+          "op": "power_mod",
+          "target": "sprite_self",
+          "attr": "power_mult",
+          "delta": 1
+        }
+      ]
     }
   ]
 }

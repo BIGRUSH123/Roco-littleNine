@@ -80,6 +80,7 @@ class PowerModOp:
     element: str | None = None
     ttl: int = 0
     source: str | None = None
+    name: str | None = None
     feeds: str = ""
     needs: str = ""
     priority: int = 0
@@ -99,6 +100,7 @@ class MultModOp:
     source: str | None = None
     on_next: bool = False
     if_type: str | None = None
+    name: str | None = None
     feeds: str = ""
     needs: str = ""
     priority: int = 0

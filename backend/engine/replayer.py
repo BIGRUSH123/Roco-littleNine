@@ -448,6 +448,10 @@ class JournalReplayer:
 
     def _apply_stat_change(self, m: StatChange) -> str:
         sprite = self._target_sprite(m.target)
+        # Immunity gate: block stat debuffs (steps < 0) on stage stats
+        if m.steps < 0 and m.stat in _STAGE_STATS:
+            if self._check_immune(sprite, "immune_stat_down", m.stat):
+                return f"{sprite.name} 免疫{_STAT_LABELS.get(m.stat, m.stat)}降低"
         label = _STAT_LABELS.get(m.stat, m.stat)
         unit = _STEP_UNIT.get(m.stat, 10)
         if m.stat in ('priority', 'energy_cost', 'combo'):
@@ -625,9 +629,14 @@ class JournalReplayer:
                     break
             if existing is not None:
                 existing.value = m.value
+                # Update name for immunity attrs (may change from blanket → specific)
+                if m.stat.startswith("immune_") and m.name:
+                    existing.name = m.name
             else:
+                # Immunity attrs: use raw name from JSON (empty = blanket immunity)
+                effect_name = (m.name or "") if m.stat.startswith("immune_") else f"{m.source or 'trait'}-{m.stat}"
                 sprite.active_effects.append(ModifierEffect(
-                    name=f"{m.source or 'trait'}-{m.stat}",
+                    name=effect_name,
                     source=m.source or "trait",
                     attr=m.stat,
                     value=m.value,
@@ -814,11 +823,28 @@ class JournalReplayer:
 
         return ""
 
+    @staticmethod
+    def _check_immune(sprite, immune_type: str, target_name: str = "") -> bool:
+        """Check if sprite has immunity to a specific abnormal or stat debuff.
+
+        immune_type: "immune_abnormal" or "immune_stat_down"
+        target_name: specific name ("灼烧", "atk") — empty name on effect = blanket immunity
+        """
+        from backend.vm.effect import ModifierEffect
+        for e in getattr(sprite, 'active_effects', []):
+            if isinstance(e, ModifierEffect) and e.attr == immune_type:
+                if not e.name or e.name == target_name:
+                    return True
+        return False
+
     def _apply_abnormal_change(self, m: AbnormalChange) -> str:
         sprite = self._target_sprite(m.target)
         # 萌化: trigger form devolution via apply_moe (needs species lookup)
         if m.name == '萌化' and self._species_lookup is not None and m.delta > 0:
             return self._apply_moe_via_replayer(sprite, m)
+        # Immunity gate: only block application (delta > 0), never block removal
+        if m.delta > 0 and self._check_immune(sprite, "immune_abnormal", m.name):
+            return f"{sprite.name} 免疫{m.name}"
         self._sync_abnormal_effect(sprite, m.name, m.delta, m.scope)
         return f"{sprite.name} {m.name} +{m.delta}层"
 
@@ -1511,6 +1537,13 @@ class JournalReplayer:
             return self._battle.get_player(self.team).active
         if target == "enemy_new" and self._battle is not None:
             return self._battle.get_opponent(self.team).active
+        if target == "sprite_bench" and self._battle is not None:
+            player = self._battle.get_player(self.team)
+            bench = [s for i, s in enumerate(player.team) if i != player.active_index and not s.is_fainted]
+            if bench:
+                import random
+                return random.choice(bench)
+            return self.self
         return self.opp
 
     @staticmethod

@@ -2,5 +2,577 @@
   "id": 20162,
   "name": "稀兽花宝",
   "description": "根据自己的血脉，入场时获得不同效果。",
-  "triggers": []
+  "effects": [
+    {
+      "op": "observer",
+      "listen": "post_entry",
+      "scope": "battlefield",
+      "cond": {
+        "cond": "and",
+        "conditions": [
+          {
+            "cond": "sprite_entered",
+            "of": "sprite_self"
+          },
+          {
+            "cond": "compare",
+            "q": "bloodline",
+            "of": "sprite_self",
+            "op": "eq",
+            "value": "恶"
+          }
+        ]
+      },
+      "then": [
+        {
+          "op": "mult_mod",
+          "target": "sprite_self",
+          "attr": "life_drain",
+          "value": 0.5,
+          "mode": "add",
+          "scope": "battlefield",
+          "source": "稀兽花宝"
+        }
+      ]
+    },
+    {
+      "op": "observer",
+      "listen": "post_entry",
+      "scope": "battlefield",
+      "cond": {
+        "cond": "and",
+        "conditions": [
+          {
+            "cond": "sprite_entered",
+            "of": "sprite_self"
+          },
+          {
+            "cond": "compare",
+            "q": "bloodline",
+            "of": "sprite_self",
+            "op": "eq",
+            "value": "武"
+          }
+        ]
+      },
+      "then": [
+        {
+          "op": "stat_stage",
+          "target": "sprite_self",
+          "stat": "atk",
+          "steps": 8,
+          "scope": "battlefield",
+          "source": "稀兽花宝"
+        }
+      ]
+    },
+    {
+      "op": "observer",
+      "listen": "post_entry",
+      "scope": "battlefield",
+      "cond": {
+        "cond": "and",
+        "conditions": [
+          {
+            "cond": "sprite_entered",
+            "of": "sprite_self"
+          },
+          {
+            "cond": "compare",
+            "q": "bloodline",
+            "of": "sprite_self",
+            "op": "eq",
+            "value": "光"
+          }
+        ]
+      },
+      "then": [
+        {
+          "op": "stat_stage",
+          "target": "sprite_self",
+          "stat": "sp_atk",
+          "steps": 8,
+          "scope": "battlefield",
+          "source": "稀兽花宝"
+        }
+      ]
+    },
+    {
+      "op": "observer",
+      "listen": "post_entry",
+      "scope": "battlefield",
+      "cond": {
+        "cond": "and",
+        "conditions": [
+          {
+            "cond": "sprite_entered",
+            "of": "sprite_self"
+          },
+          {
+            "cond": "compare",
+            "q": "bloodline",
+            "of": "sprite_self",
+            "op": "eq",
+            "value": "普"
+          }
+        ]
+      },
+      "then": [
+        {
+          "op": "power_mod",
+          "target": "sprite_self",
+          "attr": "power",
+          "delta": 40,
+          "skill_filter": "all",
+          "scope": "battlefield",
+          "source": "稀兽花宝"
+        }
+      ]
+    },
+    {
+      "op": "observer",
+      "listen": "post_entry",
+      "scope": "battlefield",
+      "cond": {
+        "cond": "and",
+        "conditions": [
+          {
+            "cond": "sprite_entered",
+            "of": "sprite_self"
+          },
+          {
+            "cond": "compare",
+            "q": "bloodline",
+            "of": "sprite_self",
+            "op": "eq",
+            "value": "翼"
+          }
+        ]
+      },
+      "then": [
+        {
+          "op": "stat_stage",
+          "target": "sprite_self",
+          "stat": "combo",
+          "steps": 3,
+          "scope": "battlefield",
+          "source": "稀兽花宝"
+        }
+      ]
+    },
+    {
+      "op": "observer",
+      "listen": "post_entry",
+      "scope": "battlefield",
+      "cond": {
+        "cond": "and",
+        "conditions": [
+          {
+            "cond": "sprite_entered",
+            "of": "sprite_self"
+          },
+          {
+            "cond": "compare",
+            "q": "bloodline",
+            "of": "sprite_self",
+            "op": "eq",
+            "value": "电"
+          }
+        ]
+      },
+      "then": [
+        {
+          "op": "stat_stage",
+          "target": "sprite_self",
+          "stat": "speed",
+          "steps": 10,
+          "scope": "battlefield",
+          "source": "稀兽花宝"
+        }
+      ]
+    },
+    {
+      "op": "observer",
+      "listen": "post_entry",
+      "scope": "battlefield",
+      "cond": {
+        "cond": "and",
+        "conditions": [
+          {
+            "cond": "sprite_entered",
+            "of": "sprite_self"
+          },
+          {
+            "cond": "compare",
+            "q": "bloodline",
+            "of": "sprite_self",
+            "op": "eq",
+            "value": "草"
+          }
+        ]
+      },
+      "then": [
+        {
+          "op": "heal",
+          "target": "sprite_self",
+          "ratio": 0.2
+        }
+      ]
+    },
+    {
+      "op": "observer",
+      "listen": "post_entry",
+      "scope": "battlefield",
+      "cond": {
+        "cond": "and",
+        "conditions": [
+          {
+            "cond": "sprite_entered",
+            "of": "sprite_self"
+          },
+          {
+            "cond": "compare",
+            "q": "bloodline",
+            "of": "sprite_self",
+            "op": "eq",
+            "value": "水"
+          }
+        ]
+      },
+      "then": [
+        {
+          "op": "power_mod",
+          "target": "sprite_self",
+          "attr": "energy_cost",
+          "delta": -2,
+          "skill_filter": "all",
+          "scope": "battlefield",
+          "source": "稀兽花宝"
+        }
+      ]
+    },
+    {
+      "op": "observer",
+      "listen": "post_entry",
+      "scope": "battlefield",
+      "cond": {
+        "cond": "and",
+        "conditions": [
+          {
+            "cond": "sprite_entered",
+            "of": "sprite_self"
+          },
+          {
+            "cond": "compare",
+            "q": "bloodline",
+            "of": "sprite_self",
+            "op": "eq",
+            "value": "萌"
+          }
+        ]
+      },
+      "then": [
+        {
+          "op": "stat_stage",
+          "target": "sprite_opp",
+          "stat": "atk",
+          "steps": -6,
+          "scope": "battlefield",
+          "source": "稀兽花宝"
+        },
+        {
+          "op": "stat_stage",
+          "target": "sprite_opp",
+          "stat": "sp_atk",
+          "steps": -6,
+          "scope": "battlefield",
+          "source": "稀兽花宝"
+        }
+      ]
+    },
+    {
+      "op": "observer",
+      "listen": "post_entry",
+      "scope": "battlefield",
+      "cond": {
+        "cond": "and",
+        "conditions": [
+          {
+            "cond": "sprite_entered",
+            "of": "sprite_self"
+          },
+          {
+            "cond": "compare",
+            "q": "bloodline",
+            "of": "sprite_self",
+            "op": "eq",
+            "value": "地"
+          }
+        ]
+      },
+      "then": [
+        {
+          "op": "stat_stage",
+          "target": "sprite_opp",
+          "stat": "speed",
+          "steps": -6,
+          "scope": "battlefield",
+          "source": "稀兽花宝"
+        },
+        {
+          "op": "stat_stage",
+          "target": "sprite_opp",
+          "stat": "combo",
+          "steps": -3,
+          "scope": "battlefield",
+          "source": "稀兽花宝"
+        }
+      ]
+    },
+    {
+      "op": "observer",
+      "listen": "post_entry",
+      "scope": "battlefield",
+      "cond": {
+        "cond": "and",
+        "conditions": [
+          {
+            "cond": "sprite_entered",
+            "of": "sprite_self"
+          },
+          {
+            "cond": "compare",
+            "q": "bloodline",
+            "of": "sprite_self",
+            "op": "eq",
+            "value": "虫"
+          }
+        ]
+      },
+      "then": [
+        {
+          "op": "stat_stage",
+          "target": "sprite_opp",
+          "stat": "def",
+          "steps": -8,
+          "scope": "battlefield",
+          "source": "稀兽花宝"
+        }
+      ]
+    },
+    {
+      "op": "observer",
+      "listen": "post_entry",
+      "scope": "battlefield",
+      "cond": {
+        "cond": "and",
+        "conditions": [
+          {
+            "cond": "sprite_entered",
+            "of": "sprite_self"
+          },
+          {
+            "cond": "compare",
+            "q": "bloodline",
+            "of": "sprite_self",
+            "op": "eq",
+            "value": "龙"
+          }
+        ]
+      },
+      "then": [
+        {
+          "op": "stat_stage",
+          "target": "sprite_opp",
+          "stat": "sp_def",
+          "steps": -8,
+          "scope": "battlefield",
+          "source": "稀兽花宝"
+        }
+      ]
+    },
+    {
+      "op": "observer",
+      "listen": "post_entry",
+      "scope": "battlefield",
+      "cond": {
+        "cond": "and",
+        "conditions": [
+          {
+            "cond": "sprite_entered",
+            "of": "sprite_self"
+          },
+          {
+            "cond": "compare",
+            "q": "bloodline",
+            "of": "sprite_self",
+            "op": "eq",
+            "value": "幽"
+          }
+        ]
+      },
+      "then": [
+        {
+          "op": "energize",
+          "target": "sprite_opp",
+          "delta": -2
+        }
+      ]
+    },
+    {
+      "op": "observer",
+      "listen": "post_entry",
+      "scope": "battlefield",
+      "cond": {
+        "cond": "and",
+        "conditions": [
+          {
+            "cond": "sprite_entered",
+            "of": "sprite_self"
+          },
+          {
+            "cond": "compare",
+            "q": "bloodline",
+            "of": "sprite_self",
+            "op": "eq",
+            "value": "火"
+          }
+        ]
+      },
+      "then": [
+        {
+          "op": "abnormal",
+          "target": "sprite_opp",
+          "name": "灼烧",
+          "stacks": 6
+        }
+      ]
+    },
+    {
+      "op": "observer",
+      "listen": "post_entry",
+      "scope": "battlefield",
+      "cond": {
+        "cond": "and",
+        "conditions": [
+          {
+            "cond": "sprite_entered",
+            "of": "sprite_self"
+          },
+          {
+            "cond": "compare",
+            "q": "bloodline",
+            "of": "sprite_self",
+            "op": "eq",
+            "value": "冰"
+          }
+        ]
+      },
+      "then": [
+        {
+          "op": "abnormal",
+          "target": "sprite_opp",
+          "name": "冻结",
+          "stacks": 2
+        }
+      ]
+    },
+    {
+      "op": "observer",
+      "listen": "post_entry",
+      "scope": "battlefield",
+      "cond": {
+        "cond": "and",
+        "conditions": [
+          {
+            "cond": "sprite_entered",
+            "of": "sprite_self"
+          },
+          {
+            "cond": "compare",
+            "q": "bloodline",
+            "of": "sprite_self",
+            "op": "eq",
+            "value": "毒"
+          }
+        ]
+      },
+      "then": [
+        {
+          "op": "abnormal",
+          "target": "sprite_opp",
+          "name": "中毒",
+          "stacks": 2
+        }
+      ]
+    },
+    {
+      "op": "observer",
+      "listen": "post_entry",
+      "scope": "battlefield",
+      "cond": {
+        "cond": "and",
+        "conditions": [
+          {
+            "cond": "sprite_entered",
+            "of": "sprite_self"
+          },
+          {
+            "cond": "compare",
+            "q": "bloodline",
+            "of": "sprite_self",
+            "op": "eq",
+            "value": "幻"
+          }
+        ]
+      },
+      "then": [
+        {
+          "op": "abnormal",
+          "target": "sprite_opp",
+          "name": "星陨印记",
+          "stacks": 2
+        }
+      ]
+    },
+    {
+      "op": "observer",
+      "listen": "post_entry",
+      "scope": "battlefield",
+      "cond": {
+        "cond": "and",
+        "conditions": [
+          {
+            "cond": "sprite_entered",
+            "of": "sprite_self"
+          },
+          {
+            "cond": "compare",
+            "q": "bloodline",
+            "of": "sprite_self",
+            "op": "eq",
+            "value": "机械"
+          }
+        ]
+      },
+      "then": [
+        {
+          "op": "stat_stage",
+          "target": "sprite_self",
+          "stat": "def",
+          "steps": 6,
+          "scope": "battlefield",
+          "source": "稀兽花宝"
+        },
+        {
+          "op": "stat_stage",
+          "target": "sprite_self",
+          "stat": "sp_def",
+          "steps": 6,
+          "scope": "battlefield",
+          "source": "稀兽花宝"
+        }
+      ]
+    }
+  ]
 }

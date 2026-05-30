@@ -38,6 +38,7 @@ TRIGGER_POINTS = frozenset({
     "post_abnormal_change",# after abnormal stacks change
     "post_abnormal_apply", # after abnormal applied
     "post_energy_change",  # after energy changes
+    "post_heal",           # after HP heal
     "post_positive_change",# after positive effect count changes
     # Turn boundaries
     "turn_end",            # at turn-end settlement

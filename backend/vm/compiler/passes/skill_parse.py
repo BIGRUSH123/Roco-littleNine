@@ -555,6 +555,7 @@ class SkillParsePass:
             element=e.get("element"),
             ttl=self._int_or(e, "ttl", 0),
             source=e.get("source") or e.get("name"),
+            name=e.get("name"),
             **self._common_fields(e),
         )
 
@@ -578,6 +579,7 @@ class SkillParsePass:
             source=e.get("source") or e.get("name"),
             on_next=self._bool_or(e, "on_next", False),
             if_type=e.get("if_type"),
+            name=e.get("name"),
             **self._common_fields(e),
         )
 

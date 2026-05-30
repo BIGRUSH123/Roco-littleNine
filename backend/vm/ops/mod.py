@@ -148,6 +148,7 @@ def op_power_mod(ctx: Ctx, op) -> list[Mutation]:
         skill_where=_get_field(op, "skill_where"),
         element=_get_field(op, "element"),
         source=_get_field(op, "source"),
+        name=_get_field(op, "name"),
         ttl=_get_field(op, "ttl", 0),
     )]
     if per_hit and ctx.combo_self > 1:
@@ -171,6 +172,7 @@ def op_mult_mod(ctx: Ctx, op) -> list[Mutation]:
         skill_where=_get_field(op, "skill_where"),
         element=_get_field(op, "element"),
         source=_get_field(op, "source"),
+        name=_get_field(op, "name"),
         on_next=_get_field(op, "on_next", False),
         if_type=_get_field(op, "if_type"),
         ttl=_get_field(op, "ttl", 0),

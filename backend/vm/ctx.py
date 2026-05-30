@@ -35,6 +35,7 @@ class EventContext:
     skills_energy_changed_of: str = ""
     positive_changed_of: str = ""
     energy_changed_of: str = ""
+    heal_of: str = ""
     damage_taken_of: str = ""
 
 
@@ -154,6 +155,8 @@ class Ctx:
     energy_cost_reduction_self: int = 0  # cumulative energy cost reduction (base - current)
     energy_cost_opp: int = 0             # opponent skill total energy cost
     energy_delta_self: int = 0           # energy change delta this event
+    heal_delta_self: int = 0             # heal delta this event
+    heal_delta_opp: int = 0              # opponent heal delta this event
     skill_name_self: str = ""            # current skill name
     damage_taken_this_turn: int = 0      # number of hits taken this turn (accumulated)
     damage_reduced_self: int = 0         # damage reduced this turn (accumulated)
@@ -197,7 +200,8 @@ class Ctx:
                          "charged", "skills_energy_sum",
                          "power_mult", "damage_mult",
                          "last_tick_damage", "prev_damage_taken",
-                         "bloodline", "elements"):
+                         "bloodline", "elements",
+                         "heal_delta", "energy_delta"):
                 field_self = f"{base}{suffix_self}"
                 field_opp = f"{base}{suffix_opp}"
                 if hasattr(other, field_self) and hasattr(other, field_opp):
@@ -281,6 +285,8 @@ ADDRESS_MAP: dict[tuple[str, str], str] = {
     ("sprite_self", "combo_mult"):         "combo_mult_self",
     ("sprite_self", "life_drain"):         "life_drain_self",
     ("sprite_self", "mark_bonus"):         "mark_bonus_own",
+    ("sprite_self", "energy_delta"):       "energy_delta_self",
+    ("sprite_self", "heal_delta"):         "heal_delta_self",
 
     # sprite_opp
     ("sprite_opp", "bloodline"):           "bloodline_opp",
@@ -304,6 +310,7 @@ ADDRESS_MAP: dict[tuple[str, str], str] = {
     ("sprite_opp", "skills_energy_sum"):   "skills_energy_sum_opp",
     ("sprite_opp", "power_mult"):          "power_mult_opp",
     ("sprite_opp", "damage_mult"):         "damage_mult_opp",
+    ("sprite_opp", "heal_delta"):          "heal_delta_opp",
 
     # battle
     ("battle", "abnormal_stacks"):         "abnormal_stacks_battle",

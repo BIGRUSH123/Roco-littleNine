@@ -2574,6 +2574,565 @@ def test_stat_change_e2e_both_directions():
     assert opp.active_effects[0].steps == -3
 
 
+# ═══════════════════════════════════════════════════════════════════
+# sprite_bench target + 系统发育 trait
+# ═══════════════════════════════════════════════════════════════════
+
+
+def test_target_sprite_bench_with_battle():
+    """sprite_bench resolves to a random non-fainted benched ally."""
+    from backend.common.models import SpeciesStats
+    from backend.engine.replayer import JournalReplayer
+    from backend.sim.battle import Battle
+    from backend.sim.factory import SimFactory
+    from backend.sim.player import Player
+
+    factory = SimFactory()
+    p1 = factory.build_player("A", [
+        {"name": "草衣虫", "skills": ["猛烈撞击"]},
+        {"name": "草衣虫", "skills": ["猛烈撞击"]},
+        {"name": "草衣虫", "skills": ["猛烈撞击"]},
+    ])
+    p2 = factory.build_player("B", [
+        {"name": "草衣虫", "skills": ["猛烈撞击"]},
+    ])
+    battle = Battle(p1, p2, verbose=False)
+
+    species = SpeciesStats(name="test", hp=100, atk=100, def_=100, sp_atk=100, sp_def=100, speed=100)
+    sprite = p1.team[0]
+    opp = p2.team[0]
+    globals_ = GlobalEffects()
+    replayer = JournalReplayer(sprite, opp, globals_, battle=battle, team="A")
+
+    # Both bench sprites (indices 1 and 2) are alive → sprite_bench returns one
+    result = replayer._target_sprite("sprite_bench")
+    assert result in (p1.team[1], p1.team[2]), (
+        f"Expected one of the bench sprites, got {result.name}"
+    )
+
+    # Faint bench index 1 → only index 2 remains
+    p1.team[1].current_hp = 0  # trigger is_fainted
+    result2 = replayer._target_sprite("sprite_bench")
+    assert result2 is p1.team[2], (
+        f"Expected only alive bench sprite, got {result2.name}"
+    )
+
+    # All bench fainted → fallback to self
+    p1.team[2].current_hp = 0  # trigger is_fainted
+    result3 = replayer._target_sprite("sprite_bench")
+    assert result3 is sprite, (
+        f"Expected fallback to self when no bench alive, got {result3.name}"
+    )
+
+
+def test_trait_系统发育_energy_to_bench():
+    """系统发育: gaining energy → bench ally receives equal energy."""
+    from backend.common.models import SpeciesStats
+    from backend.engine.battle import BattleVMEngine
+    from backend.engine.observer import ObserverRegistry
+    from backend.engine.replayer import JournalReplayer
+    from backend.sim.battle import Battle
+    from backend.sim.factory import SimFactory
+    from backend.engine.observer import Observer
+    from backend.vm.compiler.trait_to_observer import TraitToObserver
+    from backend.vm.ctx import Ctx
+    from backend.vm.journal import EnergyChange
+
+    factory = SimFactory()
+    p1 = factory.build_player("A", [
+        {"name": "草衣虫", "skills": ["猛烈撞击"]},   # active, has trait
+        {"name": "花衣蝶", "skills": ["甩水"]},        # bench
+    ])
+    p2 = factory.build_player("B", [
+        {"name": "草衣虫", "skills": ["猛烈撞击"]},
+    ])
+    battle = Battle(p1, p2, verbose=False)
+
+    # Load trait → observers
+    import json
+    trait_path = Path(__file__).resolve().parent.parent.parent / "data" / "traits" / "系统发育.json"
+    trait_data = json.loads(trait_path.read_text(encoding="utf-8"))
+
+    compiler = TraitToObserver()
+    obs_specs = compiler.compile(trait_data["effects"])
+    assert len(obs_specs) >= 1, "Expected at least 1 observer from 系统发育"
+
+    # Only test the energy observer (first one)
+    energy_spec = obs_specs[0]
+    energy_observer = Observer(
+        cond=energy_spec["cond"],
+        then=energy_spec["then"],
+        scope=energy_spec["scope"],
+        listen=energy_spec["listen"],
+        name=energy_spec.get("name", ""),
+        threshold=energy_spec.get("threshold", 1),
+        reset_on_fire=energy_spec.get("reset_on_fire", True),
+    )
+
+    engine = BattleVMEngine()
+    engine.registry.register(energy_observer)
+
+    sprite = p1.team[0]  # active, has trait
+    bench = p1.team[1]   # bench ally
+    opp = p2.team[0]
+    globals_ = GlobalEffects()
+    replayer = JournalReplayer(sprite, opp, globals_, battle=battle, team="A")
+
+    ctx = Ctx()
+    ctx.event.energy_changed_of = "sprite_self"
+    ctx.energy_delta_self = 3
+
+    # Lower bench energy so gain_energy() has room (max_energy=10)
+    bench.energy = 3
+    bench_energy_before = bench.energy
+    sprite.energy = 8
+
+    # Fire mutation → should trigger observer → redirect energy to bench
+    journal = [EnergyChange(target="sprite_self", delta=3)]
+    engine._fire_mutation_events(journal, ctx, replayer)
+
+    # Bench should receive +3 energy
+    assert bench.energy == bench_energy_before + 3, (
+        f"Expected bench energy {bench_energy_before + 3}, got {bench.energy}"
+    )
+
+
+def test_trait_系统发育_heal_to_bench():
+    """系统发育: being healed → bench ally receives equal HP."""
+    from backend.common.models import SpeciesStats
+    from backend.engine.battle import BattleVMEngine
+    from backend.engine.observer import ObserverRegistry
+    from backend.engine.replayer import JournalReplayer
+    from backend.sim.battle import Battle
+    from backend.sim.factory import SimFactory
+    from backend.engine.observer import Observer
+    from backend.vm.compiler.trait_to_observer import TraitToObserver
+    from backend.vm.ctx import Ctx
+    from backend.vm.journal import Heal
+
+    factory = SimFactory()
+    p1 = factory.build_player("A", [
+        {"name": "草衣虫", "skills": ["猛烈撞击"]},
+        {"name": "花衣蝶", "skills": ["甩水"]},        # bench, will receive HP
+    ])
+    p2 = factory.build_player("B", [
+        {"name": "草衣虫", "skills": ["猛烈撞击"]},
+    ])
+    battle = Battle(p1, p2, verbose=False)
+
+    import json
+    trait_path = Path(__file__).resolve().parent.parent.parent / "data" / "traits" / "系统发育.json"
+    trait_data = json.loads(trait_path.read_text(encoding="utf-8"))
+
+    compiler = TraitToObserver()
+    obs_specs = compiler.compile(trait_data["effects"])
+
+    # Get the heal observer (second one)
+    heal_spec = obs_specs[1]
+    heal_observer = Observer(
+        cond=heal_spec["cond"],
+        then=heal_spec["then"],
+        scope=heal_spec["scope"],
+        listen=heal_spec["listen"],
+        name=heal_spec.get("name", ""),
+        threshold=heal_spec.get("threshold", 1),
+        reset_on_fire=heal_spec.get("reset_on_fire", True),
+    )
+
+    engine = BattleVMEngine()
+    engine.registry.register(heal_observer)
+
+    sprite = p1.team[0]
+    bench = p1.team[1]
+    opp = p2.team[0]
+    globals_ = GlobalEffects()
+    replayer = JournalReplayer(sprite, opp, globals_, battle=battle, team="A")
+
+    # Damage bench first so we can see the heal
+    bench.current_hp = 50
+    bench_hp_before = bench.current_hp
+
+    ctx = Ctx()
+    ctx.event.heal_of = "sprite_self"
+    ctx.heal_delta_self = 15
+
+    journal = [Heal(target="sprite_self", amount=15)]
+    engine._fire_mutation_events(journal, ctx, replayer)
+
+    # Bench should receive +15 HP
+    assert bench.current_hp == bench_hp_before + 15, (
+        f"Expected bench HP {bench_hp_before + 15}, got {bench.current_hp}"
+    )
+
+
+def test_trait_系统发育_negative_delta_ignored():
+    """系统发育: losing energy (negative delta) does NOT redirect to bench."""
+    from backend.common.models import SpeciesStats
+    from backend.engine.battle import BattleVMEngine
+    from backend.engine.observer import ObserverRegistry
+    from backend.engine.replayer import JournalReplayer
+    from backend.sim.battle import Battle
+    from backend.sim.factory import SimFactory
+    from backend.engine.observer import Observer
+    from backend.vm.compiler.trait_to_observer import TraitToObserver
+    from backend.vm.ctx import Ctx
+    from backend.vm.journal import EnergyChange
+
+    factory = SimFactory()
+    p1 = factory.build_player("A", [
+        {"name": "草衣虫", "skills": ["猛烈撞击"]},
+        {"name": "花衣蝶", "skills": ["甩水"]},
+    ])
+    p2 = factory.build_player("B", [
+        {"name": "草衣虫", "skills": ["猛烈撞击"]},
+    ])
+    battle = Battle(p1, p2, verbose=False)
+
+    import json
+    trait_path = Path(__file__).resolve().parent.parent.parent / "data" / "traits" / "系统发育.json"
+    trait_data = json.loads(trait_path.read_text(encoding="utf-8"))
+
+    compiler = TraitToObserver()
+    obs_specs = compiler.compile(trait_data["effects"])
+    energy_spec = obs_specs[0]
+    energy_observer = Observer(
+        cond=energy_spec["cond"],
+        then=energy_spec["then"],
+        scope=energy_spec["scope"],
+        listen=energy_spec["listen"],
+        name=energy_spec.get("name", ""),
+        threshold=energy_spec.get("threshold", 1),
+        reset_on_fire=energy_spec.get("reset_on_fire", True),
+    )
+
+    engine = BattleVMEngine()
+    engine.registry.register(energy_observer)
+
+    sprite = p1.team[0]
+    bench = p1.team[1]
+    opp = p2.team[0]
+    globals_ = GlobalEffects()
+    replayer = JournalReplayer(sprite, opp, globals_, battle=battle, team="A")
+
+    bench_energy_before = bench.energy
+
+    ctx = Ctx()
+    ctx.event.energy_changed_of = "sprite_self"
+    ctx.energy_delta_self = -5  # energy LOSS
+
+    journal = [EnergyChange(target="sprite_self", delta=-5)]
+    engine._fire_mutation_events(journal, ctx, replayer)
+
+    # Bench should NOT receive energy on negative delta
+    assert bench.energy == bench_energy_before, (
+        f"Expected bench energy unchanged ({bench_energy_before}), got {bench.energy}"
+    )
+
+
+# ═══════════════════════════════════════════════════════════════
+# Immunity system tests
+# ═══════════════════════════════════════════════════════════════
+
+def test_immunity_abnormal_specific_blocks_target():
+    """Specific 灼烧 immunity blocks 灼烧 but not 中毒."""
+    from backend.common.models import SpeciesStats
+    from backend.engine.replayer import JournalReplayer
+    from backend.sim.sprite import Sprite
+    from backend.vm.effect import ModifierEffect
+    from backend.vm.journal import AbnormalChange
+
+    species = SpeciesStats(name="test", hp=100, atk=100, def_=100, sp_atk=100, sp_def=100, speed=100)
+    sprite = Sprite(
+        species=species, current_hp=100, max_hp=100,
+        initial_stats={"atk": 100, "def": 100, "sp_atk": 100, "sp_def": 100, "speed": 100},
+    )
+    opp = Sprite(
+        species=species, current_hp=100, max_hp=100,
+        initial_stats={"atk": 100, "def": 100, "sp_atk": 100, "sp_def": 100, "speed": 100},
+    )
+    globals_ = GlobalEffects()
+    replayer = JournalReplayer(sprite, opp, globals_)
+
+    # Give sprite specific immunity to 灼烧
+    sprite.active_effects.append(ModifierEffect(
+        name="灼烧", source="test", attr="immune_abnormal", value=1.0,
+        target="sprite_self",
+    ))
+
+    # 灼烧 should be blocked
+    replayer._apply_abnormal_change(AbnormalChange(target="sprite_self", name="灼烧", delta=1))
+    assert len([e for e in sprite.active_effects if getattr(e, 'name', None) == "灼烧" and hasattr(e, 'stacks')]) == 0, (
+        "灼烧 should be blocked by specific immunity"
+    )
+
+    # 中毒 should NOT be blocked
+    replayer._apply_abnormal_change(AbnormalChange(target="sprite_self", name="中毒", delta=1))
+    poison_effects = [e for e in sprite.active_effects if getattr(e, 'name', None) == "中毒"]
+    assert len(poison_effects) == 1, "中毒 should NOT be blocked by 灼烧 immunity"
+    assert poison_effects[0].stacks == 1
+
+
+def test_immunity_abnormal_blanket_blocks_all():
+    """Blanket immunity (empty name) blocks any abnormal."""
+    from backend.common.models import SpeciesStats
+    from backend.engine.replayer import JournalReplayer
+    from backend.sim.sprite import Sprite
+    from backend.vm.effect import ModifierEffect
+    from backend.vm.journal import AbnormalChange
+
+    species = SpeciesStats(name="test", hp=100, atk=100, def_=100, sp_atk=100, sp_def=100, speed=100)
+    sprite = Sprite(
+        species=species, current_hp=100, max_hp=100,
+        initial_stats={"atk": 100, "def": 100, "sp_atk": 100, "sp_def": 100, "speed": 100},
+    )
+    opp = Sprite(
+        species=species, current_hp=100, max_hp=100,
+        initial_stats={"atk": 100, "def": 100, "sp_atk": 100, "sp_def": 100, "speed": 100},
+    )
+    globals_ = GlobalEffects()
+    replayer = JournalReplayer(sprite, opp, globals_)
+
+    # Blanket immunity: name="" means all abnormals
+    sprite.active_effects.append(ModifierEffect(
+        name="", source="test", attr="immune_abnormal", value=1.0,
+        target="sprite_self",
+    ))
+
+    for ab_name in ("灼烧", "中毒", "冻结", "麻痹"):
+        replayer._apply_abnormal_change(AbnormalChange(target="sprite_self", name=ab_name, delta=1))
+        stacks = [e for e in sprite.active_effects if getattr(e, 'name', None) == ab_name and hasattr(e, 'stacks')]
+        assert len(stacks) == 0, f"{ab_name} should be blocked by blanket immunity"
+
+
+def test_immunity_abnormal_removal_not_blocked():
+    """Immunity does NOT block abnormal removal (delta < 0)."""
+    from backend.common.models import SpeciesStats
+    from backend.engine.replayer import JournalReplayer
+    from backend.sim.sprite import Sprite
+    from backend.vm.effect import ModifierEffect
+    from backend.vm.journal import AbnormalChange
+
+    species = SpeciesStats(name="test", hp=100, atk=100, def_=100, sp_atk=100, sp_def=100, speed=100)
+    sprite = Sprite(
+        species=species, current_hp=100, max_hp=100,
+        initial_stats={"atk": 100, "def": 100, "sp_atk": 100, "sp_def": 100, "speed": 100},
+    )
+    opp = Sprite(
+        species=species, current_hp=100, max_hp=100,
+        initial_stats={"atk": 100, "def": 100, "sp_atk": 100, "sp_def": 100, "speed": 100},
+    )
+    globals_ = GlobalEffects()
+    replayer = JournalReplayer(sprite, opp, globals_)
+
+    # Give sprite immunity to 灼烧
+    sprite.active_effects.append(ModifierEffect(
+        name="灼烧", source="test", attr="immune_abnormal", value=1.0,
+        target="sprite_self",
+    ))
+
+    # First apply 灼烧 (should be blocked)
+    replayer._apply_abnormal_change(AbnormalChange(target="sprite_self", name="灼烧", delta=1))
+    burn_effects = [e for e in sprite.active_effects if getattr(e, 'name', None) == "灼烧" and hasattr(e, 'stacks')]
+    assert len(burn_effects) == 0, "灼烧 application should be blocked"
+
+    # Now manually add 灼烧 to simulate it was applied before immunity
+    from backend.vm.effect import AbnormalEffect
+    sprite.active_effects.append(AbnormalEffect(name="灼烧", source="skill", stacks=2))
+
+    # Removal (delta < 0) should NOT be blocked
+    replayer._apply_abnormal_change(AbnormalChange(target="sprite_self", name="灼烧", delta=-1))
+    burn_after = [e for e in sprite.active_effects if getattr(e, 'name', None) == "灼烧" and hasattr(e, 'stacks')]
+    assert len(burn_after) == 1, "灼烧 removal should NOT be blocked by immunity"
+    assert burn_after[0].stacks == 1, f"Expected 1 stack after removal, got {burn_after[0].stacks}"
+
+
+def test_immunity_stat_down_specific():
+    """Specific atk immunity blocks atk debuff but not def debuff."""
+    from backend.common.models import SpeciesStats
+    from backend.engine.replayer import JournalReplayer
+    from backend.sim.sprite import Sprite
+    from backend.vm.effect import ModifierEffect
+    from backend.vm.journal import StatChange
+
+    species = SpeciesStats(name="test", hp=100, atk=100, def_=100, sp_atk=100, sp_def=100, speed=100)
+    sprite = Sprite(
+        species=species, current_hp=100, max_hp=100,
+        initial_stats={"atk": 100, "def": 100, "sp_atk": 100, "sp_def": 100, "speed": 100},
+    )
+    opp = Sprite(
+        species=species, current_hp=100, max_hp=100,
+        initial_stats={"atk": 100, "def": 100, "sp_atk": 100, "sp_def": 100, "speed": 100},
+    )
+    globals_ = GlobalEffects()
+    replayer = JournalReplayer(sprite, opp, globals_)
+
+    # Specific atk debuff immunity
+    sprite.active_effects.append(ModifierEffect(
+        name="atk", source="test", attr="immune_stat_down", value=1.0,
+        target="sprite_self",
+    ))
+
+    # atk debuff should be blocked
+    replayer._apply_stat_change(StatChange(target="sprite_self", stat="atk", steps=-2, scope="battlefield"))
+    atk_effects = [e for e in sprite.active_effects if getattr(e, 'stat_key', None) == "atk"]
+    assert len(atk_effects) == 0, "atk debuff should be blocked by specific immunity"
+
+    # def debuff should NOT be blocked
+    replayer._apply_stat_change(StatChange(target="sprite_self", stat="def", steps=-2, scope="battlefield"))
+    def_effects = [e for e in sprite.active_effects if getattr(e, 'stat_key', None) == "def"]
+    assert len(def_effects) == 1, "def debuff should NOT be blocked by atk immunity"
+    assert def_effects[0].steps == -2
+
+
+def test_immunity_stat_down_blanket():
+    """Blanket stat immunity blocks all stat debuffs."""
+    from backend.common.models import SpeciesStats
+    from backend.engine.replayer import JournalReplayer
+    from backend.sim.sprite import Sprite
+    from backend.vm.effect import ModifierEffect
+    from backend.vm.journal import StatChange
+
+    species = SpeciesStats(name="test", hp=100, atk=100, def_=100, sp_atk=100, sp_def=100, speed=100)
+    sprite = Sprite(
+        species=species, current_hp=100, max_hp=100,
+        initial_stats={"atk": 100, "def": 100, "sp_atk": 100, "sp_def": 100, "speed": 100},
+    )
+    opp = Sprite(
+        species=species, current_hp=100, max_hp=100,
+        initial_stats={"atk": 100, "def": 100, "sp_atk": 100, "sp_def": 100, "speed": 100},
+    )
+    globals_ = GlobalEffects()
+    replayer = JournalReplayer(sprite, opp, globals_)
+
+    # Blanket stat down immunity
+    sprite.active_effects.append(ModifierEffect(
+        name="", source="test", attr="immune_stat_down", value=1.0,
+        target="sprite_self",
+    ))
+
+    for stat in ("atk", "def", "sp_atk", "sp_def", "speed"):
+        replayer._apply_stat_change(StatChange(target="sprite_self", stat=stat, steps=-2, scope="battlefield"))
+        effects = [e for e in sprite.active_effects if getattr(e, 'stat_key', None) == stat]
+        assert len(effects) == 0, f"{stat} debuff should be blocked by blanket immunity"
+
+
+def test_immunity_stat_buff_not_blocked():
+    """Immunity does NOT block stat buffs (steps > 0)."""
+    from backend.common.models import SpeciesStats
+    from backend.engine.replayer import JournalReplayer
+    from backend.sim.sprite import Sprite
+    from backend.vm.effect import ModifierEffect
+    from backend.vm.journal import StatChange
+
+    species = SpeciesStats(name="test", hp=100, atk=100, def_=100, sp_atk=100, sp_def=100, speed=100)
+    sprite = Sprite(
+        species=species, current_hp=100, max_hp=100,
+        initial_stats={"atk": 100, "def": 100, "sp_atk": 100, "sp_def": 100, "speed": 100},
+    )
+    opp = Sprite(
+        species=species, current_hp=100, max_hp=100,
+        initial_stats={"atk": 100, "def": 100, "sp_atk": 100, "sp_def": 100, "speed": 100},
+    )
+    globals_ = GlobalEffects()
+    replayer = JournalReplayer(sprite, opp, globals_)
+
+    # Blanket stat down immunity
+    sprite.active_effects.append(ModifierEffect(
+        name="", source="test", attr="immune_stat_down", value=1.0,
+        target="sprite_self",
+    ))
+
+    # atk buff (steps > 0) should NOT be blocked
+    replayer._apply_stat_change(StatChange(target="sprite_self", stat="atk", steps=2, scope="battlefield"))
+    atk_effects = [e for e in sprite.active_effects if getattr(e, 'stat_key', None) == "atk"]
+    assert len(atk_effects) == 1, "atk buff should NOT be blocked by stat-down immunity"
+    assert atk_effects[0].steps == 2
+
+    # sp_atk buff should also pass through
+    replayer._apply_stat_change(StatChange(target="sprite_self", stat="sp_atk", steps=1, scope="battlefield"))
+    spa_effects = [e for e in sprite.active_effects if getattr(e, 'stat_key', None) == "sp_atk"]
+    assert len(spa_effects) == 1, "sp_atk buff should NOT be blocked"
+
+
+def test_trait_美拉德反应_immunity():
+    """美拉德反应: leaving field grants bench ally ATK/SP_ATK+20% and 灼烧 immunity."""
+    from backend.common.models import SpeciesStats
+    from backend.engine.battle import BattleVMEngine
+    from backend.engine.observer import Observer
+    from backend.engine.replayer import JournalReplayer
+    from backend.sim.battle import Battle
+    from backend.sim.factory import SimFactory
+    from backend.vm.compiler.trait_to_observer import TraitToObserver
+    from backend.vm.ctx import Ctx
+    from backend.vm.journal import AbnormalChange
+
+    factory = SimFactory()
+    p1 = factory.build_player("A", [
+        {"name": "秩序鱿墨", "skills": ["猛烈撞击"]},  # active, has 美拉德反应
+        {"name": "花衣蝶", "skills": ["甩水"]},         # bench
+    ])
+    p2 = factory.build_player("B", [
+        {"name": "草衣虫", "skills": ["猛烈撞击"]},
+    ])
+    battle = Battle(p1, p2, verbose=False)
+
+    trait_path = Path(__file__).resolve().parent.parent.parent / "data" / "traits" / "美拉德反应.json"
+    trait_data = json.loads(trait_path.read_text(encoding="utf-8"))
+
+    compiler = TraitToObserver()
+    obs_specs = compiler.compile(trait_data["effects"])
+    assert len(obs_specs) >= 1, "Expected at least 1 observer from 美拉德反应"
+
+    obs_spec = obs_specs[0]
+    observer = Observer(
+        cond=obs_spec["cond"],
+        then=obs_spec["then"],
+        scope=obs_spec["scope"],
+        listen=obs_spec["listen"],
+        name=obs_spec.get("name", ""),
+        threshold=obs_spec.get("threshold", 1),
+        reset_on_fire=obs_spec.get("reset_on_fire", True),
+    )
+
+    engine = BattleVMEngine()
+    engine.registry.register(observer)
+
+    sprite = p1.team[0]  # active with trait
+    bench = p1.team[1]   # bench ally
+    opp = p2.team[0]
+    globals_ = GlobalEffects()
+    replayer = JournalReplayer(sprite, opp, globals_, battle=battle, team="A")
+
+    # Fire post_leave observer directly (simulating sprite leaving)
+    ctx = Ctx()
+    ctx.event.sprite_left_of = "sprite_self"
+    ctx.event.self_switched = True
+
+    engine._fire_post_event("post_leave", ctx, replayer)
+
+    # Check bench got immunity ModifierEffect
+    from backend.vm.effect import ModifierEffect
+    immune_effects = [
+        e for e in bench.active_effects
+        if isinstance(e, ModifierEffect) and e.attr == "immune_abnormal"
+    ]
+    assert len(immune_effects) == 1, f"Expected 1 immunity effect on bench, got {len(immune_effects)}"
+    assert immune_effects[0].name == "灼烧", (
+        f"Expected immunity name='灼烧', got '{immune_effects[0].name}'"
+    )
+
+    # Verify bench is now immune to 灼烧
+    bench_replayer = JournalReplayer(bench, opp, globals_, battle=battle, team="A")
+    bench_replayer._apply_abnormal_change(AbnormalChange(target="sprite_self", name="灼烧", delta=1))
+    burn_effects = [e for e in bench.active_effects if getattr(e, 'name', None) == "灼烧" and hasattr(e, 'stacks')]
+    assert len(burn_effects) == 0, "Bench should be immune to 灼烧 after 美拉德反应"
+
+    # But NOT immune to 中毒
+    bench_replayer._apply_abnormal_change(AbnormalChange(target="sprite_self", name="中毒", delta=1))
+    poison_effects = [e for e in bench.active_effects if getattr(e, 'name', None) == "中毒"]
+    assert len(poison_effects) == 1, "Bench should NOT be immune to 中毒"
+
+
 if __name__ == "__main__":
     test_snapshot()
     test_replayer()
@@ -2664,4 +3223,16 @@ if __name__ == "__main__":
     test_target_sprite_resolution_edge_cases()
     test_abnormal_change_e2e_through_vm()
     test_stat_change_e2e_both_directions()
+    test_target_sprite_bench_with_battle()
+    test_trait_系统发育_energy_to_bench()
+    test_trait_系统发育_heal_to_bench()
+    test_trait_系统发育_negative_delta_ignored()
+    # ── Immunity system ──
+    test_immunity_abnormal_specific_blocks_target()
+    test_immunity_abnormal_blanket_blocks_all()
+    test_immunity_abnormal_removal_not_blocked()
+    test_immunity_stat_down_specific()
+    test_immunity_stat_down_blanket()
+    test_immunity_stat_buff_not_blocked()
+    test_trait_美拉德反应_immunity()
     print("\nAll engine integration tests passed!")

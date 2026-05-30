@@ -188,6 +188,7 @@ CONDITION_TRIGGERS: dict[str, frozenset[str]] = {
     "on_skills_energy_changed": frozenset({"post_energy_change"}),
     "on_positive_changed":     frozenset({"post_positive_change"}),
     "on_energy_changed":       frozenset({"post_energy_change"}),
+    "on_heal":                 frozenset({"post_heal"}),
     # Turn boundaries
     "turn_end":                frozenset({"turn_end"}),
     "turn_start":              frozenset({"turn_start"}),
@@ -388,6 +389,10 @@ COND_EVAL = {
     ),
     "on_energy_changed": lambda ctx, cond: (
         ctx.event.energy_changed_of == cond.get("of", "sprite_self")
+    ),
+    "on_heal": lambda ctx, cond: (
+        ctx.event.heal_of == cond.get("of", "sprite_self")
+        and ctx.heal_delta_self > 0
     ),
 
     # ── Turn boundaries ──

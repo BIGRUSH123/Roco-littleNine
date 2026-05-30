@@ -2,19 +2,19 @@
   "id": 20107,
   "name": "缩壳",
   "description": "携带的防御技能能耗-2。",
-  "triggers": [
+  "effects": [
     {
-      "on": "entry",
-      "battleskill_mut": [
-        {
-          "filter": {
-            "is_defense": true
-          },
-          "field": "energy_cost",
-          "op": "add",
-          "value": -2
-        }
-      ]
+      "op": "power_mod",
+      "target": "sprite_self",
+      "attr": "energy_cost",
+      "delta": -2,
+      "skill_where": {
+        "q": "skill_type",
+        "op": "eq",
+        "value": "防御"
+      },
+      "scope": "permanent",
+      "source": "缩壳"
     }
   ]
 }

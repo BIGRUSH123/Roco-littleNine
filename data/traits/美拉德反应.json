@@ -2,30 +2,36 @@
   "id": 20108,
   "name": "美拉德反应",
   "description": "离场后，更换入场的精灵获得双攻+20%且免疫灼烧。",
-  "triggers": [
+  "effects": [
     {
-      "on": "leave",
-      "pending_effects": [
+      "op": "observer",
+      "listen": "post_leave",
+      "scope": "persistent",
+      "cond": {
+        "cond": "sprite_left",
+        "of": "sprite_self"
+      },
+      "then": [
         {
-          "kind": "stat",
-          "name": "双攻+20%",
+          "op": "stat_stage",
+          "target": "sprite_bench",
           "stat": "atk",
-          "steps": 2,
-          "scope": "battlefield",
-          "source": "美拉德反应"
+          "delta": 2,
+          "scope": "permanent"
         },
         {
-          "kind": "stat",
-          "name": "双攻+20%",
+          "op": "stat_stage",
+          "target": "sprite_bench",
           "stat": "sp_atk",
-          "steps": 2,
-          "scope": "battlefield",
-          "source": "美拉德反应"
+          "delta": 2,
+          "scope": "permanent"
         },
         {
-          "kind": "state",
-          "name": "免疫灼烧",
-          "source": "美拉德反应"
+          "op": "mult_mod",
+          "target": "sprite_bench",
+          "attr": "immune_abnormal",
+          "name": "灼烧",
+          "value": 1
         }
       ]
     }

@@ -160,7 +160,7 @@ class TraitLoader:
     # ── Direct modifiers (non-observer effects like power_mod in effects[]) ──
 
     # Attrs that apply to sprite properties, not skills (consumed by property methods)
-    _SPRITE_LEVEL_ATTRS = frozenset({'max_energy', 'starfall_consume_ratio'})
+    _SPRITE_LEVEL_ATTRS = frozenset({'max_energy', 'starfall_consume_ratio', 'immune_abnormal', 'immune_stat_down'})
 
     # Ratio stats whose default value is 1.0 (not 0.0)
     _RATIO_BASE_STATS: frozenset[str] = frozenset({

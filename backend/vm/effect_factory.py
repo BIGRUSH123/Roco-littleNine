@@ -49,8 +49,10 @@ def from_dict(d: dict, *, source: str = "") -> EffectObject | None:
     if op in ("power_mod", "mult_mod", "stat_stage"):
         attr = d.get("attr", d.get("stat", ""))
         value = d.get("value", d.get("delta", d.get("steps", 0)))
+        # Immunity attrs: preserve raw name from JSON (empty = blanket immunity)
+        effective_name = name if attr.startswith("immune_") else (name or f"{source}-{attr}")
         return ModifierEffect(
-            name=name or f"{source}-{attr}",
+            name=effective_name,
             source=source,
             scope=scope,
             ttl=ttl,

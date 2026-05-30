@@ -5,28 +5,19 @@
   "effects": [
     {
       "op": "observer",
-      "then": [
-        {
-          "target": "target",
-          "op": "special"
-        }
-      ],
+      "listen": "post_skill",
       "scope": "persistent",
       "cond": {
-        "cond": "and",
-        "conditions": [
-          {
-            "cond": "skill_use"
-          },
-          {
-            "cond": "compare",
-            "q": "",
-            "of": "sprite_self",
-            "op": "eq",
-            "value": null
-          }
-        ]
-      }
+        "cond": "skill_use",
+        "element": "恶"
+      },
+      "then": [
+        {
+          "op": "energize",
+          "target": "sprite_opp",
+          "delta": -2
+        }
+      ]
     }
   ]
 }

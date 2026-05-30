@@ -2,5 +2,34 @@
   "id": 20163,
   "name": "系统发育",
   "description": "获得能量或生命时，等量随机分配给场下精灵。",
-  "triggers": []
+  "effects": [
+    {
+      "op": "observer",
+      "scope": "persistent",
+      "cond": { "cond": "on_energy_changed", "of": "sprite_self" },
+      "then": [
+        {
+          "when": { "cond": "compare", "q": "energy_delta", "of": "sprite_self", "op": "gt", "value": 0 },
+          "then": [
+            { "op": "energize", "target": "sprite_bench",
+              "delta": { "q": "energy_delta", "of": "sprite_self" } }
+          ]
+        }
+      ]
+    },
+    {
+      "op": "observer",
+      "scope": "persistent",
+      "cond": { "cond": "on_heal", "of": "sprite_self" },
+      "then": [
+        {
+          "when": { "cond": "compare", "q": "heal_delta", "of": "sprite_self", "op": "gt", "value": 0 },
+          "then": [
+            { "op": "heal", "target": "sprite_bench",
+              "value": { "q": "heal_delta", "of": "sprite_self" } }
+          ]
+        }
+      ]
+    }
+  ]
 }

@@ -152,6 +152,11 @@ class BattleVMEngine:
         if pre_mods:
             journal = pre_mods + journal
 
+        # 4.1 Fire pre_defend observers (L1→L2: defender's trait)
+        pre_defend_mods = self._fire_pre_event("pre_defend", ctx, id(opp_sprite))
+        if pre_defend_mods:
+            journal = pre_defend_mods + journal
+
         # 4.5 Register burst effects (first action = burst)
         if is_first and vm_effects:
             skill_name = getattr(self_skill, 'name', '')
@@ -334,7 +339,8 @@ class BattleVMEngine:
             elif trigger in ("post_entry", "post_leave", "post_skill",
                            "turn_end", "post_abnormal_tick", "turn_start",
                            "post_energy_change", "post_counter",
-                           "post_enemy_leave", "post_charge"):
+                           "post_enemy_leave", "post_charge",
+                           "post_heal"):
                 if obs.owner_sprite_id is not None and owner_id is not None:
                     if obs.owner_sprite_id != owner_id:
                         continue
@@ -390,6 +396,7 @@ class BattleVMEngine:
             AbnormalChange,
             Damage,
             EnergyChange,
+            Heal,
             StatChange,
         )
 
@@ -406,7 +413,19 @@ class BattleVMEngine:
                 target_of = "sprite_self" if m.target in ("sprite_self",) else "sprite_opp"
                 ctx.event.energy_changed_of = target_of
                 ctx.event.skills_energy_changed_of = target_of
+                if target_of == "sprite_self":
+                    ctx.energy_delta_self = m.delta
+                else:
+                    ctx.energy_delta_self = 0
                 trigger = "post_energy_change"
+            elif isinstance(m, Heal):
+                target_of = "sprite_self" if m.target in ("sprite_self",) else "sprite_opp"
+                ctx.event.heal_of = target_of
+                if target_of == "sprite_self":
+                    ctx.heal_delta_self = m.amount
+                else:
+                    ctx.heal_delta_opp = m.amount
+                trigger = "post_heal"
             elif isinstance(m, AbnormalChange):
                 trigger = "post_abnormal_change"
                 # Set event context for condition matching

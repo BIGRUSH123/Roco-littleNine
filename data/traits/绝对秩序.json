@@ -2,20 +2,40 @@
   "id": 20106,
   "name": "绝对秩序",
   "description": "受到非敌方系别的技能攻击时伤害-50%。",
-  "triggers": [
+  "effects": [
     {
-      "on": "defend",
-      "condition": {
-        "path": "skill.element",
-        "op": "not_in",
-        "value": "=@attacker.species.elements"
+      "op": "observer",
+      "listen": "pre_defend",
+      "scope": "persistent",
+      "cond": {
+        "cond": "and",
+        "conditions": [
+          {
+            "cond": "trait_path",
+            "path": "skill.is_attack",
+            "op": "eq",
+            "value": true
+          },
+          {
+            "cond": "compare",
+            "q": "element",
+            "of": "skill_off_0",
+            "op": "not_in",
+            "value": {
+              "q": "elements",
+              "of": "sprite_self"
+            }
+          }
+        ]
       },
-      "use_modifiers": {
-        "damage_mult": {
-          "op": "mult",
+      "then": [
+        {
+          "op": "mult_mod",
+          "target": "sprite_self",
+          "attr": "damage_mult",
           "value": 0.5
         }
-      }
+      ]
     }
   ]
 }
