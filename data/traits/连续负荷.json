@@ -4,32 +4,24 @@
   "description": "技能的迸发效果延长1回合。",
   "triggers": [
     {
-      "on": "entry",
-      "flags": {
-        "_burst_extended_once": false
-      }
-    },
-    {
-      "on": "modifier",
-      "condition": {
-        "kind": "and",
-        "conditions": [
-          {
-            "path": "self.first_action",
-            "op": "eq",
-            "value": true
-          },
-          {
-            "path": "self._burst_extended_once",
-            "op": "eq",
-            "value": false
-          }
-        ]
+      "op": "observer",
+      "cond": {
+        "cond": "sprite_entered",
+        "of": "sprite_self"
       },
-      "flags": {
-        "_burst_extended_once": true,
-        "_burst_remaining": 1
-      }
+      "listen": [
+        "post_entry"
+      ],
+      "scope": "battlefield",
+      "then": [
+        {
+          "op": "flag_set",
+          "target": "sprite_self",
+          "flag": "_burst_extended",
+          "value": 1,
+          "scope": "battlefield"
+        }
+      ]
     }
   ]
 }

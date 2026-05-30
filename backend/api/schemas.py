@@ -35,6 +35,11 @@ class ActionRequest(BaseModel):
     switch_index: int | None = None
 
 
+class ResolveEscapeRequest(BaseModel):
+    session_id: str
+    switch_index: int
+
+
 class DebugActionRequest(BaseModel):
     session_id: str
     action_a: dict  # {type, skill_name?, switch_index?}
@@ -112,6 +117,13 @@ class PlayerState(BaseModel):
     team: list[SpriteState]
 
 
+class PendingEscape(BaseModel):
+    team: str
+    inherit: bool
+    user_name: str
+    bench_options: list[dict]  # [{index, name, current_hp, max_hp}]
+
+
 class MarkSummary(BaseModel):
     name: str
     stacks: int
@@ -131,6 +143,7 @@ class BattleState(BaseModel):
     marks_b: list[MarkSummary]
     mark_energy_mod_a: int
     mark_energy_mod_b: int
+    pending_escape: PendingEscape | None = None
 
 
 # ═══════════════════════════════════════════════════════════════════

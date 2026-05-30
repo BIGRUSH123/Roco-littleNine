@@ -76,6 +76,7 @@ class Battle(BattleMechanicsMixin):
         self.team_counters: dict[str, dict[str, int]] = {'A': {}, 'B': {}}  # pre-entry accumulators
         self.pending_effects: dict[str, list] = {'A': [], 'B': []}  # leave-buff → next entry
         self.scheduled_effects: list[dict] = []  # 延时效果队列 [{turn, phase, effects, ...}]
+        self.pending_escape: dict | None = None  # {team, inherit, urgent} 等待脱离处理
         self.species_db = None  # 由 SimFactory 注入，供形态变换查询
         self.skill_loader = None  # 由 SimFactory 注入，供形态变换加载技能
 
@@ -512,6 +513,7 @@ class Battle(BattleMechanicsMixin):
         if action.kind == 'gather':
             gained = user.gain_energy(5)
             user.first_action = False
+            user.first_action_battle = False
             user.inc_counter('times_gathered')
             events.append(f'{user.name} 聚能+{gained}E(→{user.energy})')
             opp_team = 'B' if team == 'A' else 'A'
@@ -778,14 +780,32 @@ class Battle(BattleMechanicsMixin):
         from backend.vm.journal import Escape
         for mutation in result.journal:
             if isinstance(mutation, Escape):
-                if mutation.inherit:
-                    self._handle_escape_inherit(team, user, events)
+                if mutation.urgent:
+                    # 紧急脱离：随机自动选择替补
+                    if mutation.inherit:
+                        self._handle_escape_inherit(team, user, events, urgent=True)
+                    else:
+                        self._handle_escape(team, user, events, urgent=True)
                 else:
-                    self._handle_escape(team, user, events)
+                    # 普通脱离：等待玩家选择替补 (API 检测 pending_escape)
+                    self.pending_escape = {
+                        "team": team,
+                        "inherit": mutation.inherit,
+                        "urgent": False,
+                        "user_name": user.name,
+                    }
+                    events.append(f'{user.name} 准备脱离(请选择替补)')
                 break  # Only first escape matters
 
         # ═══ Post-execution ═══
         user.first_action = False
+        user.first_action_battle = False
+        # Burst extension (连续负荷 etc.): extend first_action for one more turn
+        remaining = user._modifiers.get("_burst_extended", 0)
+        if remaining > 0:
+            user.first_action = True
+            user._modifiers["_burst_extended"] = remaining - 1
+            events.append(f'{user.name} 迸发延长({remaining - 1}回剩余)')
         # Clear "charged" state — consumed after the sprite acts
         user.remove_effect("charged", "state")
 
@@ -906,6 +926,7 @@ class Battle(BattleMechanicsMixin):
         # Execute swift skill first
         swift_action = Action(kind='skill', skill_index=swift_idx)
         swift_countered_skill = opp_bs if swift_countered_opp else None
+        ar[switch_team].events.append(f'{new_sprite.name} 迅捷：{swift_bs.name}')
         ar[switch_team].events += self._execute_skill_vm(
             switch_team, swift_action,
             is_countered=False,
@@ -1069,6 +1090,14 @@ class Battle(BattleMechanicsMixin):
             opp = self.get_opponent(team).active
             ctx_te = self._make_ctx(sprite, opp, None, None, self.globals, team=team, turn=self.turn, turn_end=True)
             events += self._vm_engine.fire_trigger("turn_end", ctx_te, sprite, opp, self.globals, team=team, battle=self)
+            # 紧急脱离：observer 可能触发随机自动换宠
+            if self._resolve_pending_escape_if_urgent(events):
+                # 替补已上场，重建 sprites dict（后续迭代使用新 active）
+                sprites = {}
+                if not self.player_a.active.is_fainted:
+                    sprites['A'] = self.player_a.active
+                if not self.player_b.active.is_fainted:
+                    sprites['B'] = self.player_b.active
 
         # 星地善良：回合末若己方能量=0，板凳星地善良替换上场
         for team in ('A', 'B'):

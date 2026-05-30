@@ -7,8 +7,9 @@
       "op": "observer",
       "then": [
         {
-          "target": "sprite_self",
-          "op": "special"
+          "op": "lives",
+          "target_team": "own",
+          "delta": 1
         }
       ],
       "scope": "persistent",

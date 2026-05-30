@@ -5,20 +5,23 @@
   "effects": [
     {
       "op": "observer",
-      "then": [
-        {
-          "target": "sprite_self",
-          "scope": "next_use",
-          "source": "野性感官",
-          "op": "stat_stage",
-          "stat": "priority",
-          "steps": 1
-        }
-      ],
-      "scope": "persistent",
       "cond": {
         "cond": "counter_succeeded"
-      }
+      },
+      "listen": [
+        "post_counter"
+      ],
+      "scope": "persistent",
+      "then": [
+        {
+          "op": "mult_mod",
+          "target": "sprite_self",
+          "attr": "priority",
+          "value": 1,
+          "on_next": true,
+          "scope": "turn"
+        }
+      ]
     }
   ]
 }

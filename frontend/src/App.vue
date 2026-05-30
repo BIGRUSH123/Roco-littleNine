@@ -155,6 +155,43 @@ const handleAction = async ({ type, payload }) => {
   }
 }
 
+const handleResolveEscape = async ({ switch_index }) => {
+  if (isProcessing.value) return
+
+  try {
+    isProcessing.value = true
+
+    const res = await fetch(`${API_BASE}/battle/resolve-escape`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        session_id: battleState.value.session_id,
+        switch_index: switch_index,
+      })
+    })
+
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}))
+      throw new Error(errData.detail || `脱离失败 (${res.status})`)
+    }
+
+    const data = await res.json()
+    battleState.value = data.state
+    battleStore.updateFromResponse(data.state)
+
+    if (data.log && data.log.length > 0) {
+      battleLogs.value.push(...data.log)
+    }
+
+  } catch (error) {
+    console.error('Error resolving escape:', error)
+    battleError.value = error.message || '脱离失败'
+    setTimeout(() => { battleError.value = '' }, 4000)
+  } finally {
+    isProcessing.value = false
+  }
+}
+
 const handleDebugInit = async () => {
   try {
     isProcessing.value = true
@@ -300,6 +337,7 @@ const restartGame = () => {
               :debug-mode="debugMode"
               @action="handleAction"
               @debug-action="handleDebugAction"
+              @resolve-escape="handleResolveEscape"
               :class="{'opacity-50 pointer-events-none': isProcessing}"
             />
           </div>

@@ -2,12 +2,18 @@
   "id": 20136,
   "name": "防过载保护",
   "description": "每次行动后脱离。",
-  "triggers": [
+  "effects": [
     {
-      "on": "skill_use",
-      "flags": {
-        "_escape_pending": true
-      }
+      "op": "observer",
+      "listen": "post_skill",
+      "scope": "persistent",
+      "cond": "always",
+      "then": [
+        {
+          "op": "escape",
+          "target": "sprite_self"
+        }
+      ]
     }
   ]
 }

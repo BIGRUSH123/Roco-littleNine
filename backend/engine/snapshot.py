@@ -282,6 +282,7 @@ def build_ctx(
         abnormal_stacks_self=abnormal_stacks_self,
         positive_count_self=_count_positive(ss),
         first_action_self=getattr(ss, 'first_action', True),
+        first_action_battle_self=getattr(ss, 'first_action_battle', True),
         charged_self=charged_self,
         is_charging_self=is_charging_self,
         is_charging_opp=is_charging_opp,

@@ -1,27 +1,34 @@
 {
   "id": 20132,
   "name": "身经百练",
-  "description": "入场时，根据己方队伍应对成功次数提升水系和武系技能威力。",
-  "triggers": [
+  "description": "己方精灵每应对1次，自己入场时水系和武系技能威力+20%。",
+  "effects": [
     {
-      "on": "entry",
-      "effects_mode": "replace",
-      "battleskill_mut": [
+      "op": "observer",
+      "listen": "post_entry",
+      "scope": "battlefield",
+      "cond": {
+        "cond": "sprite_entered",
+        "of": "sprite_self"
+      },
+      "then": [
         {
-          "filter": {
+          "op": "mult_mod",
+          "target": "sprite_self",
+          "attr": "power_mult",
+          "value": "=1.0 + @player.team_counters[counter_success] * 0.2",
+          "skill_where": {
             "element": "水"
-          },
-          "field": "power_mod",
-          "op": "add",
-          "value": "=@team_counters[counter_success]"
+          }
         },
         {
-          "filter": {
+          "op": "mult_mod",
+          "target": "sprite_self",
+          "attr": "power_mult",
+          "value": "=1.0 + @player.team_counters[counter_success] * 0.2",
+          "skill_where": {
             "element": "武"
-          },
-          "field": "power_mod",
-          "op": "add",
-          "value": "=@team_counters[counter_success]"
+          }
         }
       ]
     }

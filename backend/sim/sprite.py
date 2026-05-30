@@ -55,6 +55,8 @@ class Sprite:
 
     # 迸发判定：进场后第一次行动
     first_action: bool = True
+    # 全场首次行动（不随入场重置）
+    first_action_battle: bool = True
 
     # 返场标记：回合结束时清 battlefield 效果 + 下回合技能双倍
     pending_return: bool = False

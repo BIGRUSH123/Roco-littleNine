@@ -5,31 +5,19 @@
   "effects": [
     {
       "op": "observer",
-      "then": [
-        {
-          "target": "target",
-          "source": "高浓生物碱",
-          "op": "abnormal",
-          "name": "中毒",
-          "stacks": 2
-        }
-      ],
+      "listen": "post_skill",
       "scope": "persistent",
       "cond": {
-        "cond": "and",
-        "conditions": [
-          {
-            "cond": "skill_use"
-          },
-          {
-            "cond": "compare",
-            "q": "is_fainted",
-            "of": "sprite_self",
-            "op": "neq",
-            "value": true
-          }
-        ]
-      }
+        "cond": "skill_use"
+      },
+      "then": [
+        {
+          "op": "abnormal",
+          "target": "sprite_opp",
+          "name": "中毒",
+          "value": 2
+        }
+      ]
     }
   ]
 }

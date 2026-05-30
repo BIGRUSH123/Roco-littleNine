@@ -2,5 +2,38 @@
   "id": 20165,
   "name": "逐魂鸟",
   "description": "能耗小于等于1的攻击技能，无法对自己造成伤害。",
-  "triggers": []
+  "effects": [
+    {
+      "op": "observer",
+      "cond": {
+        "cond": "and",
+        "conditions": [
+          {
+            "cond": "compare",
+            "q": "energy_cost",
+            "of": "skill_off_0",
+            "op": "lte",
+            "value": 1
+          },
+          {
+            "cond": "trait_path",
+            "path": "skill.is_attack",
+            "op": "eq",
+            "value": true
+          }
+        ]
+      },
+      "then": [
+        {
+          "op": "mult_mod",
+          "target": "sprite_opp",
+          "attr": "damage_reduction",
+          "value": 1,
+          "mode": "add"
+        }
+      ],
+      "listen": "pre_defend",
+      "scope": "battlefield"
+    }
+  ]
 }

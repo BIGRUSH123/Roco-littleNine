@@ -2,17 +2,21 @@
   "id": 20125,
   "name": "警惕",
   "description": "回合结束时，若自己能量为0则脱离。",
-  "triggers": [
+  "effects": [
     {
-      "on": "turn_end",
-      "condition": {
-        "path": "self.energy",
-        "op": "lte",
+      "op": "observer",
+      "cond": {
+        "cond": "energy_eq",
         "value": 0
       },
-      "flags": {
-        "_escape_pending": true
-      }
+      "then": [
+        {
+          "op": "escape",
+          "target": "sprite_self"
+        }
+      ],
+      "listen": "turn_end",
+      "scope": "battlefield"
     }
   ]
 }

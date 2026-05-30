@@ -155,6 +155,7 @@ CONDITION_TRIGGERS: dict[str, frozenset[str]] = {
     "is_charging":             frozenset({"post_skill", "turn_end"}),
     "burst":                   frozenset({"post_skill"}),
     "first_action":            frozenset({"post_skill"}),
+    "first_action_battle":     frozenset({"post_skill"}),
     "opp_is_attack":           frozenset({"post_skill"}),
     "prev_skill_is":           frozenset({"post_skill"}),
     "is_first":                frozenset({"post_skill"}),
@@ -296,6 +297,7 @@ COND_EVAL = {
     "is_charging": lambda ctx, cond: ctx.is_charging_self,
     "burst": lambda ctx, cond: ctx.first_action_self,
     "first_action": lambda ctx, cond: ctx.first_action_self,
+    "first_action_battle": lambda ctx, cond: ctx.first_action_battle_self,
 
     # ── KO ──
     "on_ko": lambda ctx, cond: ctx.event.target_fainted,
@@ -489,6 +491,8 @@ _TRAIT_PATH_MAP: dict[str, str] = {
     "self._charging": "is_charging_self",
     "self.first_action": "first_action_self",
     "first_action": "first_action_self",
+    "self.first_action_battle": "first_action_battle_self",
+    "first_action_battle": "first_action_battle_self",
     "self.charged": "charged_self",
     "self.positive_count": "positive_count_self",
     "self.abnormal_count": "abnormal_count_self",

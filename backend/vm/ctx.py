@@ -71,6 +71,7 @@ class Ctx:
     abnormal_stacks_self: dict[str, int] = field(default_factory=dict)
     positive_count_self: int = 0
     first_action_self: bool = False
+    first_action_battle_self: bool = False
     charged_self: bool = False
     is_charging_self: bool = False       # charging (not yet released)
     is_charging_opp: bool = False
@@ -281,6 +282,7 @@ ADDRESS_MAP: dict[tuple[str, str], str] = {
     ("sprite_opp",  "is_charging"):        "is_charging_opp",
     ("sprite_opp",  "_charging"):          "is_charging_opp",
     ("sprite_self", "first_action"):       "first_action_self",
+    ("sprite_self", "first_action_battle"): "first_action_battle_self",
     ("sprite_self", "bloodline"):          "bloodline_self",
     ("sprite_self", "elements"):           "elements_self",
     ("sprite_self", "element_advantage"):  "element_advantage",

@@ -5,31 +5,51 @@
   "effects": [
     {
       "op": "observer",
+      "cond": {
+        "cond": "or",
+        "conditions": [
+          {
+            "cond": "sprite_entered",
+            "of": "sprite_self"
+          },
+          {
+            "cond": "always"
+          }
+        ]
+      },
+      "listen": [
+        "post_entry",
+        "turn_start"
+      ],
+      "scope": "battlefield",
       "then": [
         {
-          "target": "target",
-          "source": "贪心算法",
+          "op": "flag_set",
+          "target": "skill_at_1",
+          "flag": "drive",
+          "value": true,
+          "scope": "battlefield"
+        }
+      ]
+    },
+    {
+      "op": "observer",
+      "cond": {
+        "cond": "skill_at",
+        "position": 0
+      },
+      "listen": [
+        "post_skill"
+      ],
+      "scope": "battlefield",
+      "then": [
+        {
           "op": "abnormal",
+          "target": "sprite_opp",
           "name": "灼烧",
           "stacks": 6
         }
-      ],
-      "scope": "persistent",
-      "cond": {
-        "cond": "and",
-        "conditions": [
-          {
-            "cond": "skill_use"
-          },
-          {
-            "cond": "compare",
-            "q": "skill",
-            "of": "sprite_self",
-            "op": "eq",
-            "value": "=@self.skills[0]"
-          }
-        ]
-      }
+      ]
     }
   ]
 }

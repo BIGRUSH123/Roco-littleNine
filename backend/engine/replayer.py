@@ -107,6 +107,7 @@ _STAT_LABELS: dict[str, str] = {
     "drive": "传动",
     "power_mod": "威力",
     "swift": "迅捷",
+    "priority": "先手",
 }
 
 # Step unit for display conversion: steps → display value
@@ -321,6 +322,8 @@ def _apply_to_matching_skills(sprite, m, mark_energy_mod: int = 0) -> str:
         # No source → just log, no display effect
         if m.stat == "energy_cost":
             return ""
+        if m.stat == "_burst_extended":
+            return ""
         if m.stat in _RATIO_STATS:
             return f"{sprite.name} {label}={delta:.0%}"
         return f"{sprite.name} {label}{delta:+.0f}"
@@ -528,6 +531,10 @@ class JournalReplayer:
 
         if m.on_next:
             sprite._pending_modifiers.append(m)
+            # Track scope for cleanup when consumed (e.g. 野性感官 priority+1 → turn scope)
+            skill_scoped_on = m.target.startswith("skill_") if m.target else False
+            if not skill_scoped_on and m.scope in ("turn", "battlefield", "persistent"):
+                sprite._mod_scopes[m.stat] = m.scope
             if m.stat == 'energy_cost':
                 return f"{sprite.name} 获得待机效果: 能耗{m.value:+}"
             label = _STAT_LABELS.get(m.stat, m.stat)
@@ -704,8 +711,24 @@ class JournalReplayer:
             return f"{sprite.name} {label}{final:+.0%}"
         if m.stat == "energy_cost":
             return ""
+        if m.stat == "_burst_extended":
+            return ""
         if m.stat == "combo_set":
             return f"{sprite.name} 连击固定为{final:.0f}"
+        if m.stat in ("swift", "drive"):
+            skill_name = ""
+            label = _STAT_LABELS.get(m.stat, m.stat)
+            if m.target == "skill_off_0" and self._self_skill is not None:
+                skill_name = getattr(self._self_skill.base, 'name', '') if hasattr(self._self_skill, 'base') else ''
+            elif m.target.startswith("skill_at_"):
+                try:
+                    pos = int(m.target.rsplit("_", 1)[-1]) - 1
+                    if 0 <= pos < len(sprite.skills):
+                        skill_name = sprite.skills[pos].base.name
+                except (ValueError, IndexError):
+                    pass
+            if skill_name:
+                return f"{skill_name} 获得{label}"
         return f"{sprite.name} {label}{final:+.0f}"
 
     def _apply_damage(self, m: Damage) -> str:
@@ -1267,8 +1290,16 @@ class JournalReplayer:
         return f"{sprite.name} 开始蓄力"
 
     def _apply_escape(self, m: Escape) -> str:
-        # Engine handles escape via battle turn logic
-        return f"{m.target} 脱离 (inherit={m.inherit}, urgent={m.urgent})"
+        sprite = self._target_sprite(m.target)
+        name = sprite.name if sprite else m.target
+        if self._battle:
+            self._battle.pending_escape = {
+                "team": self.team,
+                "inherit": m.inherit,
+                "urgent": m.urgent,
+                "user_name": name,
+            }
+        return f"{name} 脱离 (inherit={m.inherit}, urgent={m.urgent})"
 
     def _apply_return(self, m: Return) -> str:
         sprite = self._target_sprite(m.target)

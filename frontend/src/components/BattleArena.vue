@@ -13,7 +13,7 @@ const props = defineProps({
   debugMode: { type: Boolean, default: false },
 })
 
-const emit = defineEmits(['action', 'debug-action'])
+const emit = defineEmits(['action', 'debug-action', 'resolve-escape'])
 
 const store = useBattleStore()
 const _spriteAssets = useSpriteAssetStore()
@@ -48,6 +48,10 @@ const gridColsOpp = computed(() => {
 })
 const markModA = computed(() => store.markEnergyModA || 0)
 const markModB = computed(() => store.markEnergyModB || 0)
+
+const showEscapeMenu = computed(() => !!store.pendingEscape)
+const escapeInfo = computed(() => store.pendingEscape || {})
+const escapeOptions = computed(() => store.pendingEscape?.bench_options || [])
 
 const canUseItem = computed(() => {
   const item = player.value?.item
@@ -174,6 +178,10 @@ const handleAction = (type, payload = null) => {
     return
   }
   emit('action', { type, payload })
+}
+
+const handleEscapeSelect = (switchIndex) => {
+  emit('resolve-escape', { switch_index: switchIndex })
 }
 
 const selectDebugAction = (side, type, payload) => {
@@ -540,7 +548,37 @@ const debugActionLabel = (action) => {
 
       <!-- Action Panel: Skills + Utility -->
       <div v-if="!store.isFinished" class="border-t border-[#D4C8B8]/60 px-6 py-3">
-        <template v-if="!showSwitchMenu">
+        <!-- Escape Menu (forced bench selection, no cancel) -->
+        <template v-if="showEscapeMenu">
+          <div class="text-sm text-[#C27C3A] mb-2 text-center font-bold">
+            ⚠ {{ escapeInfo.user_name || '精灵' }} 准备脱离 — 请选择替补上场
+          </div>
+          <div class="grid grid-cols-3 gap-2 mb-2">
+            <button
+              v-for="opt in escapeOptions"
+              :key="opt.index"
+              @click="handleEscapeSelect(opt.index)"
+              class="bg-white hover:bg-[#F5F2EC] border text-left px-3 py-2.5 rounded-xl transition-colors"
+              :class="[
+                'border-[#D4C8B8] hover:border-[#C27C3A]',
+                switchEffectivenessClass(opt.element, activeOpp?.element || '')
+              ]"
+            >
+              <div class="flex items-center gap-1.5 mb-0.5">
+                <span v-if="opt.element" :class="['elem-tag', elementColorClass(opt.element)]" style="font-size:9px;padding:0 4px">{{ opt.element.split(',')[0].trim() }}</span>
+                <span class="text-sm font-bold text-[#3D2B1F] truncate">{{ opt.name }}</span>
+              </div>
+              <div class="text-[10px] space-y-0.5">
+                <div :class="opt.current_hp > 0 ? 'text-[#6DBF7C]' : 'text-[#D4534A]'">
+                  HP {{ opt.current_hp }}/{{ opt.max_hp }}
+                </div>
+              </div>
+            </button>
+          </div>
+          <div class="text-[10px] text-center text-[#B0A595]">脱离必须选择替补上场</div>
+        </template>
+
+        <template v-else-if="!showSwitchMenu">
           <!-- Skills Grid -->
           <div :class="['grid gap-1.5 mb-2', gridCols]">
             <SkillButton

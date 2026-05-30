@@ -5,40 +5,26 @@
   "effects": [
     {
       "op": "observer",
+      "listen": "post_skill",
+      "scope": "persistent",
+      "cond": {
+        "cond": "skill_use",
+        "energy_cost": 3
+      },
       "then": [
         {
-          "target": "sprite_self",
-          "scope": "battlefield",
-          "source": "鼓气",
           "op": "stat_stage",
+          "target": "sprite_self",
           "stat": "atk",
           "steps": 2
         },
         {
-          "target": "sprite_self",
-          "scope": "battlefield",
-          "source": "鼓气",
           "op": "stat_stage",
+          "target": "sprite_self",
           "stat": "def",
           "steps": 2
         }
-      ],
-      "scope": "persistent",
-      "cond": {
-        "cond": "and",
-        "conditions": [
-          {
-            "cond": "skill_use"
-          },
-          {
-            "cond": "compare",
-            "q": "skill.energy_cost",
-            "of": "sprite_self",
-            "op": "eq",
-            "value": 3
-          }
-        ]
-      }
+      ]
     }
   ]
 }

@@ -1,7 +1,7 @@
 {
   "id": 20137,
   "name": "陨落",
-  "description": "在场时，双方回合结束时效果触发次数-1。Layer 3b: 需注入 battle._downfall_active flag。",
+  "description": "在场时，双方回合结束时触发的效果，触发次数-1。",
   "triggers": [
     {
       "on": "entry",

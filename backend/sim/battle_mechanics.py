@@ -120,22 +120,18 @@ class BattleMechanicsMixin:
         if not s.is_fainted:
             return
 
-        player.lives -= 1
-        events.append(f'{s.name} 力竭({player.name} 魔力-1→{player.lives})')
-
-        if player.lives <= 0:
-            self.winner = 'B' if team == 'A' else 'A'
-            events.append(f'{player.name} 魔力耗尽 → {self.get_opponent(team).name} 胜')
-            return
+        old = s
 
         agent = self._get_agent(team)
         replacement = agent.choose_replacement(self)
         if replacement < 0:
+            # No bench: deduct life and check loss immediately
+            player.lives -= 1
+            events.append(f'{old.name} 力竭({player.name} 魔力-1→{player.lives})')
             self.winner = 'B' if team == 'A' else 'A'
-            events.append(f'{s.name} 力竭 → 无存活精灵 → {self.get_opponent(team).name} 胜')
+            events.append(f'{old.name} 力竭 → 无存活精灵 → {self.get_opponent(team).name} 胜')
             return
 
-        old = s
         player.active_index = replacement
         new = player.active
         new.clear_effects('battlefield')
@@ -147,11 +143,13 @@ class BattleMechanicsMixin:
         # ── trait hooks ──
         events += dispatch_entry(new, self, team)
         events += self._apply_transmission(new)
-        # Observer: post_ko + post_leave + post_entry + post_enemy_leave
+        # Observer: post_ko（先触发，让诈死/御驾亲征等修改 lives）→ 再扣默认1魔力
         opp_team = 'B' if team == 'A' else 'A'
         opp_active = self.get_opponent(team).active
         ctx_ko_leave = self._make_ctx(old, opp_active, None, None, self.globals, team=team, turn=self.turn, target_fainted=True, self_switched=True)
         events += self._vm_engine.fire_trigger("post_ko", ctx_ko_leave, old, opp_active, self.globals, team=team, battle=self)
+        player.lives -= 1
+        events.append(f'{old.name} 力竭({player.name} 魔力-1→{player.lives})')
         if player.lives <= 0:
             self.winner = 'B' if team == 'A' else 'A'
             events.append(f'{player.name} 魔力耗尽 → {self.get_opponent(team).name} 胜')
@@ -262,11 +260,20 @@ class BattleMechanicsMixin:
         except ImportError:
             return None
 
-    def _handle_escape(self, team: str, user: 'Sprite', events: list[str]) -> None:
-        """处理脱离/折返：agent 选择换宠。"""
+    def _handle_escape(self, team: str, user: 'Sprite', events: list[str], urgent: bool = False) -> None:
+        """处理脱离/折返。
+
+        urgent=True:  紧急脱离，随机自动选择替补。
+        urgent=False: 普通脱离，由 agent 选择替补（玩家可自选）。
+        """
         player = self.get_player(team)
-        agent = self._get_agent(team)
-        replacement = agent.choose_replacement(self)
+        if urgent:
+            # 紧急脱离：随机选择场下存活精灵
+            bench = [i for i in player.alive_sprites if i != player.active_index]
+            replacement = random.choice(bench) if bench else -1
+        else:
+            agent = self._get_agent(team)
+            replacement = agent.choose_replacement(self)
         if replacement >= 0:
             player.active_index = replacement
             new_sprite = player.active
@@ -292,11 +299,19 @@ class BattleMechanicsMixin:
                 self.pending_effects[team] = []
             events += self._vm_engine.fire_trigger("post_entry", ctx_esc_entry, new_sprite, opp_esc, self.globals, team=team, battle=self)
 
-    def _handle_escape_inherit(self, team: str, user: 'Sprite', events: list[str]) -> None:
-        """脱离 + 下个入场精灵继承增益。"""
+    def _handle_escape_inherit(self, team: str, user: 'Sprite', events: list[str], urgent: bool = False) -> None:
+        """脱离 + 下个入场精灵继承增益。
+
+        urgent=True:  紧急脱离，随机自动选择替补。
+        urgent=False: 普通脱离，由 agent 选择替补。
+        """
         player = self.get_player(team)
-        agent = self._get_agent(team)
-        replacement = agent.choose_replacement(self)
+        if urgent:
+            bench = [i for i in player.alive_sprites if i != player.active_index]
+            replacement = random.choice(bench) if bench else -1
+        else:
+            agent = self._get_agent(team)
+            replacement = agent.choose_replacement(self)
         if replacement >= 0:
             old = player.active
             from backend.vm.effect import StatBuffEffect
@@ -326,6 +341,87 @@ class BattleMechanicsMixin:
             if pending:
                 self.pending_effects[team] = []
             events += self._vm_engine.fire_trigger("post_entry", ctx_inh_entry, new_sprite, opp_inh, self.globals, team=team, battle=self)
+
+    def _resolve_pending_escape_if_urgent(self, events: list[str]) -> bool:
+        """If pending escape is urgent, resolve immediately (random choice).
+        Returns True if escape was resolved.
+        """
+        pe = self.pending_escape
+        if not pe or not pe.get("urgent"):
+            return False
+
+        self.pending_escape = None
+        team = pe["team"]
+        user_name = pe.get("user_name", "")
+
+        player = self.get_player(team)
+        user = player.active
+        # Verify the escaping sprite is still active (no other switch happened)
+        if user.name != user_name:
+            return False
+
+        if pe.get("inherit"):
+            self._handle_escape_inherit(team, user, events, urgent=True)
+        else:
+            self._handle_escape(team, user, events, urgent=True)
+        return True
+
+    def resolve_escape(self, team: str, switch_index: int) -> list[str]:
+        """Resolve a pending non-urgent escape with the player's chosen bench index."""
+        events: list[str] = []
+        pe = self.pending_escape
+        if not pe:
+            return events
+
+        self.pending_escape = None
+        player = self.get_player(team)
+        user = player.active  # sprite that is escaping
+
+        if switch_index < 0 or switch_index >= len(player.team):
+            return events
+        if switch_index == player.active_index:
+            return events  # can't switch to self
+        if player.team[switch_index].is_fainted:
+            return events
+
+        player.active_index = switch_index
+        new_sprite = player.active
+        new_sprite.inc_counter('times_entered')
+        new_sprite.clear_effects('battlefield')
+        new_sprite.entry_turn = self.turn
+        new_sprite.first_action = True
+
+        inherit = pe.get("inherit", False)
+        if inherit:
+            from backend.vm.effect import StatBuffEffect
+            inherited = [e for e in user.active_effects
+                         if isinstance(e, StatBuffEffect) and e.steps > 0]
+            for e in inherited:
+                new_sprite.add_effect(e)
+            events.append(f'{user.name} 脱离→{new_sprite.name}(继承{len(inherited)}增益)')
+        else:
+            events.append(f'{user.name} 脱离→{new_sprite.name}')
+
+        # ── trait hooks ──
+        events += dispatch_leave(user, self, team)
+        events += dispatch_entry(new_sprite, self, team)
+        # Observer: post_leave + post_entry
+        opp = self.get_opponent(team).active
+        ctx_leave = self._make_ctx(user, opp, None, None, self.globals,
+                                   team=team, turn=self.turn, self_switched=True)
+        ctx_entry = self._make_ctx(new_sprite, opp, None, None, self.globals,
+                                   team=team, turn=self.turn)
+        events += self._vm_engine.fire_trigger("post_leave", ctx_leave, user, opp,
+                                               self.globals, team=team, battle=self)
+        pending = self.pending_effects.get(team, [])
+        for e in pending:
+            new_sprite.add_effect(e)
+        if pending:
+            self.pending_effects[team] = []
+        events += self._vm_engine.fire_trigger("post_entry", ctx_entry, new_sprite, opp,
+                                               self.globals, team=team, battle=self)
+
+        return events
 
     def _handle_borrow_skill(self, team: str, user: 'Sprite', skill_index: int, events: list[str]) -> None:
         """借用：从替补精灵随机借用一个技能替换当前技能槽，回合结束时还原。"""

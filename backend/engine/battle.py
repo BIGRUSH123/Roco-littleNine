@@ -387,6 +387,10 @@ class BattleVMEngine:
                     ev = replayer.replay(journal)
                     replayer._trait_sourcing = False
                     events.extend(ev)
+                    # Escape triggered — stop processing more observers
+                    # for this sprite (battle state changed)
+                    if replayer._battle and replayer._battle.pending_escape:
+                        break
             except Exception:
                 continue
             finally:

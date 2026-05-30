@@ -34,7 +34,7 @@ def collect_modifiers(journal: Journal, ctx: Ctx) -> dict:
     'add' and 'multiply' are applied on top.
     """
     mods: dict[str, float] = {
-        "power_mult": 1.0,
+        "power_mult": ctx.power_mult_self,
         "damage_mult": 1.0,
         "damage_reduction": ctx.damage_reduction_opp,
         "combo_add": 0,
@@ -45,7 +45,7 @@ def collect_modifiers(journal: Journal, ctx: Ctx) -> dict:
     }
 
     # ── Pass 1: collect set baselines (last set in journal wins) ──
-    power_mult_base = 1.0
+    power_mult_base = ctx.power_mult_self
     dr_base = ctx.damage_reduction_opp
 
     for m in journal:
@@ -146,8 +146,9 @@ def adjust_damage(dmg: Damage, mods: dict) -> Damage:
         amount = round(amount * (1.0 - extra_dr))
 
     # If damage was already fully negated by op_hit (via calc_damage's
-    # damage_reduction >= 1.0 early return), keep it at 0.
-    if dmg.amount <= 0:
+    # damage_reduction >= 1.0 early return), or same-skill damage_reduction
+    # delta reduced it to 0 (e.g. 逐魂鸟 pre_defend), keep it at 0.
+    if amount <= 0:
         return Damage(
             target=dmg.target,
             amount=0,

@@ -3133,6 +3133,141 @@ def test_trait_美拉德反应_immunity():
     assert len(poison_effects) == 1, "Bench should NOT be immune to 中毒"
 
 
+# ═══════════════════════════════════════════════════════════════════
+# 逐魂鸟 (ID 20165)
+# ═══════════════════════════════════════════════════════════════════
+
+
+def test_trait_逐魂鸟_blocks_low_cost_attack():
+    """逐魂鸟: energy≤1 attack skill → defender takes 0 damage."""
+    from backend.engine.battle import BattleVMEngine
+    from backend.engine.observer import Observer
+    from backend.sim.globals import GlobalEffects
+    from backend.sim.sprite import Sprite
+    from backend.vm.compiler.trait_to_observer import TraitToObserver
+    from backend.vm.journal import Damage
+
+    trait_data = json.loads(
+        (Path(__file__).resolve().parent.parent.parent / "data" / "traits" / "逐魂鸟.json")
+        .read_text(encoding="utf-8")
+    )
+    compiler = TraitToObserver()
+    obs_specs = compiler.compile(trait_data["effects"])
+    assert len(obs_specs) == 1
+
+    obs_spec = obs_specs[0]
+    observer = Observer(
+        cond=obs_spec["cond"],
+        then=obs_spec["then"],
+        scope=obs_spec["scope"],
+        listen=obs_spec["listen"],
+    )
+
+    engine = BattleVMEngine()
+    engine.registry.register(observer)
+
+    species = SpeciesStats(name="测试", hp=200, atk=120, def_=100, sp_atk=110, sp_def=95, speed=100)
+    attacker = Sprite(species=species, current_hp=200, max_hp=200, energy=10,
+                      initial_stats={"atk": 120, "def": 100, "sp_atk": 110, "sp_def": 95, "speed": 100})
+    defender = Sprite(species=species, current_hp=200, max_hp=200, energy=10,
+                      initial_stats={"atk": 120, "def": 100, "sp_atk": 110, "sp_def": 95, "speed": 100})
+    defender_hp_before = defender.current_hp
+
+    # 猛烈撞击: energy_cost=1, skill_type=物攻 → should be fully blocked
+    record = _load_skill("data/skills/猛烈撞击.json")
+    engine.execute_skill(attacker, defender, record, None, GlobalEffects(), turn=1, is_first=True, team="A")
+
+    assert defender.current_hp == defender_hp_before, (
+        f"逐魂鸟 should block all damage from energy≤1 attack, "
+        f"but defender HP went from {defender_hp_before} → {defender.current_hp}"
+    )
+
+
+def test_trait_逐魂鸟_allows_high_cost_attack():
+    """逐魂鸟: energy>1 attack skill → defender takes normal damage."""
+    from backend.engine.battle import BattleVMEngine
+    from backend.engine.observer import Observer
+    from backend.sim.globals import GlobalEffects
+    from backend.sim.sprite import Sprite
+    from backend.vm.compiler.trait_to_observer import TraitToObserver
+
+    trait_data = json.loads(
+        (Path(__file__).resolve().parent.parent.parent / "data" / "traits" / "逐魂鸟.json")
+        .read_text(encoding="utf-8")
+    )
+    compiler = TraitToObserver()
+    obs_specs = compiler.compile(trait_data["effects"])
+    obs_spec = obs_specs[0]
+    observer = Observer(
+        cond=obs_spec["cond"],
+        then=obs_spec["then"],
+        scope=obs_spec["scope"],
+        listen=obs_spec["listen"],
+    )
+
+    engine = BattleVMEngine()
+    engine.registry.register(observer)
+
+    species = SpeciesStats(name="测试", hp=200, atk=120, def_=100, sp_atk=110, sp_def=95, speed=100)
+    attacker = Sprite(species=species, current_hp=200, max_hp=200, energy=10,
+                      initial_stats={"atk": 120, "def": 100, "sp_atk": 110, "sp_def": 95, "speed": 100})
+    defender = Sprite(species=species, current_hp=200, max_hp=200, energy=10,
+                      initial_stats={"atk": 120, "def": 100, "sp_atk": 110, "sp_def": 95, "speed": 100})
+
+    # 龙爪: energy_cost=4, skill_type=物攻 → should NOT be blocked
+    record = _load_skill("data/skills/龙爪.json")
+    engine.execute_skill(attacker, defender, record, None, GlobalEffects(), turn=1, is_first=True, team="A")
+
+    assert defender.current_hp < 200, (
+        f"逐魂鸟 should NOT block energy>1 attack, but defender HP unchanged at {defender.current_hp}"
+    )
+
+
+def test_trait_逐魂鸟_allows_low_cost_defense():
+    """逐魂鸟: energy≤1 defense skill → NOT blocked (only attack skills affected)."""
+    from backend.engine.battle import BattleVMEngine
+    from backend.engine.observer import Observer
+    from backend.sim.globals import GlobalEffects
+    from backend.sim.sprite import Sprite
+    from backend.vm.compiler.trait_to_observer import TraitToObserver
+    from backend.vm.journal import Damage
+
+    trait_data = json.loads(
+        (Path(__file__).resolve().parent.parent.parent / "data" / "traits" / "逐魂鸟.json")
+        .read_text(encoding="utf-8")
+    )
+    compiler = TraitToObserver()
+    obs_specs = compiler.compile(trait_data["effects"])
+    obs_spec = obs_specs[0]
+    observer = Observer(
+        cond=obs_spec["cond"],
+        then=obs_spec["then"],
+        scope=obs_spec["scope"],
+        listen=obs_spec["listen"],
+    )
+
+    engine = BattleVMEngine()
+    engine.registry.register(observer)
+
+    species = SpeciesStats(name="测试", hp=200, atk=120, def_=100, sp_atk=110, sp_def=95, speed=100)
+    attacker = Sprite(species=species, current_hp=200, max_hp=200, energy=10,
+                      initial_stats={"atk": 120, "def": 100, "sp_atk": 110, "sp_def": 95, "speed": 100})
+    defender = Sprite(species=species, current_hp=200, max_hp=200, energy=10,
+                      initial_stats={"atk": 120, "def": 100, "sp_atk": 110, "sp_def": 95, "speed": 100})
+
+    # 防御: energy_cost=1, skill_type=防御 → should NOT be blocked (not attack)
+    record = _load_skill("data/skills/防御.json")
+    engine.execute_skill(attacker, defender, record, None, GlobalEffects(), turn=1, is_first=True, team="A")
+
+    # 防御 is a defense skill → it doesn't deal damage anyway,
+    # but the observer should NOT fire (condition requires skill.is_attack)
+    # Verify no damage_reduction modifier was applied to defender
+    dr = defender._modifiers.get("damage_reduction", 0.0)
+    assert dr == 0.0, (
+        f"逐魂鸟 should NOT apply damage_reduction for defense skill, got {dr}"
+    )
+
+
 if __name__ == "__main__":
     test_snapshot()
     test_replayer()
@@ -3235,4 +3370,7 @@ if __name__ == "__main__":
     test_immunity_stat_down_blanket()
     test_immunity_stat_buff_not_blocked()
     test_trait_美拉德反应_immunity()
+    test_trait_逐魂鸟_blocks_low_cost_attack()
+    test_trait_逐魂鸟_allows_high_cost_attack()
+    test_trait_逐魂鸟_allows_low_cost_defense()
     print("\nAll engine integration tests passed!")

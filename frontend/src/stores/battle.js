@@ -23,6 +23,7 @@ export const useBattleStore = defineStore('battle', () => {
   const selfLives = ref(3)
   const oppLives = ref(3)
   const selfItem = ref(null)
+  const pendingEscape = ref(null)
 
   function updateFromResponse(data) {
     if (data.turn !== undefined) turn.value = data.turn
@@ -56,6 +57,7 @@ export const useBattleStore = defineStore('battle', () => {
 
     if (data.marks_a) marksA.value = data.marks_a
     if (data.marks_b) marksB.value = data.marks_b
+    if (data.pending_escape !== undefined) pendingEscape.value = data.pending_escape
 
     if (data.turn_snapshot) {
       turnSnapshots.value.push(data.turn_snapshot)
@@ -92,6 +94,7 @@ export const useBattleStore = defineStore('battle', () => {
     selfLives.value = 3
     oppLives.value = 3
     selfItem.value = null
+    pendingEscape.value = null
   }
 
   return {
@@ -100,7 +103,7 @@ export const useBattleStore = defineStore('battle', () => {
     marksA, marksB, markEnergyModA, markEnergyModB,
     turnSnapshots, replayTurn,
     winner, isFinished,
-    activeIndexA, activeIndexB, selfLives, oppLives, selfItem,
+    activeIndexA, activeIndexB, selfLives, oppLives, selfItem, pendingEscape,
     updateFromResponse, setReplayTurn, resetBattle,
   }
 })
