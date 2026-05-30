@@ -5,28 +5,37 @@
   "effects": [
     {
       "op": "observer",
-      "then": [
-        {
-          "target": "sprite_self",
-          "op": "special"
-        }
-      ],
-      "scope": "persistent",
       "cond": {
         "cond": "and",
         "conditions": [
           {
-            "cond": "turn_end"
+            "cond": "skill_use"
           },
           {
             "cond": "compare",
-            "q": "energy_cost_total",
+            "q": "energy_cost",
             "of": "sprite_self",
             "op": "gt",
-            "value": "=@target.energy_cost_total"
+            "value": "=@target.energy_cost"
           }
         ]
-      }
+      },
+      "listen": "post_skill",
+      "scope": "persistent",
+      "then": [
+        {
+          "op": "schedule",
+          "turns": 0,
+          "at": "turn_end",
+          "then": [
+            {
+              "op": "energize",
+              "target": "sprite_opp",
+              "delta": "=@target.energy_cost - @self.energy_cost"
+            }
+          ]
+        }
+      ]
     }
   ]
 }

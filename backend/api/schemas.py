@@ -88,6 +88,7 @@ class SpriteState(BaseModel):
     is_fainted: bool
     charging: str
     charge_any_skill: bool = False
+    blood_price: float = 0.0
     trait: TraitInfo | None = None
     energy_cost_mod: int
     effects: list[EffectSummary]

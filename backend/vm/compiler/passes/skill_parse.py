@@ -687,6 +687,8 @@ class SkillParsePass:
             **self._common_fields(e),
         )
 
+    _parse_schedule = _parse_defer  # alias: "schedule" op in observer/trait JSON
+
     def _parse_inherit(self, e: dict) -> InheritEffects:
         """RISC: inherit → InheritEffects (pass effects to incoming sprite)."""
         effects = []

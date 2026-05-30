@@ -5,16 +5,18 @@
   "effects": [
     {
       "op": "observer",
-      "then": [
-        {
-          "target": "sprite_self",
-          "op": "special"
-        }
-      ],
-      "scope": "persistent",
       "cond": {
         "cond": "turn_end"
-      }
+      },
+      "listen": "turn_end",
+      "scope": "persistent",
+      "then": [
+        {
+          "op": "heal",
+          "target": "sprite_self",
+          "ratio": 0.12
+        }
+      ]
     }
   ]
 }

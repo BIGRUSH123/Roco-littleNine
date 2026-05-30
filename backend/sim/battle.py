@@ -416,9 +416,16 @@ class Battle(BattleMechanicsMixin):
         # 记录先手方
         record.first_team = first_team
 
+        # Opponent skills for ctx (non-countered path)
+        opp_skill_for_first = skill_b if first_team == 'A' else skill_a
+        opp_skill_for_second = skill_b if second_team == 'A' else skill_a
+
         # 先手执行 (is_first=True)
         second_sprite_before = self.get_player(second_team).active
-        ar[first_team].events = self._execute_single_action(first_team, first_action, is_first=True)
+        ar[first_team].events = self._execute_single_action(
+            first_team, first_action, is_first=True,
+            opp_skill=opp_skill_for_first,
+        )
         self._check_faint_interrupt(first_team, ar[first_team].events)
         self._check_faint_interrupt(second_team, ar[first_team].events)
 
@@ -426,7 +433,10 @@ class Battle(BattleMechanicsMixin):
         if not self.is_finished:
             second_sprite_now = self.get_player(second_team).active
             if not second_sprite_now.is_fainted and second_sprite_now is second_sprite_before:
-                ar[second_team].events = self._execute_single_action(second_team, second_action, is_first=False)
+                ar[second_team].events = self._execute_single_action(
+                    second_team, second_action, is_first=False,
+                    opp_skill=opp_skill_for_second,
+                )
                 self._check_faint_interrupt(second_team, ar[second_team].events)
 
         return []
@@ -449,6 +459,7 @@ class Battle(BattleMechanicsMixin):
         countering_skill: BattleSkill | None = None,
         is_first: bool = False,
         opponent_switched: bool = False,
+        opp_skill: BattleSkill | None = None,
     ) -> list[str]:
         """执行单个玩家的技能/聚能行动。"""
         return self._execute_skill_vm(
@@ -458,6 +469,7 @@ class Battle(BattleMechanicsMixin):
             countering_skill=countering_skill,
             is_first=is_first,
             opponent_switched=opponent_switched,
+            opp_skill=opp_skill,
         )
 
     # ── VM 技能执行 ──
@@ -484,6 +496,7 @@ class Battle(BattleMechanicsMixin):
         countering_skill: BattleSkill | None = None,
         is_first: bool = False,
         opponent_switched: bool = False,
+        opp_skill: BattleSkill | None = None,
     ) -> list[str]:
         """VM-based skill execution — replaces SkillPipeline L0-L5."""
         events: list[str] = []
@@ -664,8 +677,21 @@ class Battle(BattleMechanicsMixin):
             if user.energy >= cost:
                 user.lose_energy(cost)
             else:
-                events.append(f'{user.name} E不足{user.energy}<{cost}')
-                return events
+                # 石头大餐：能量不足时消耗HP代替能量
+                blood_price = user._modifiers.get("blood_price", 0)
+                if blood_price > 0:
+                    deficit = cost - user.energy
+                    hp_cost = round(user.max_hp * blood_price * deficit)
+                    if user.current_hp > hp_cost:
+                        user.lose_energy(user.energy)
+                        user.take_damage(hp_cost)
+                        events.append(f'{user.name} 消耗{hp_cost}HP代替{deficit}E')
+                    else:
+                        events.append(f'{user.name} HP不足无法代替能量')
+                        return events
+                else:
+                    events.append(f'{user.name} E不足{user.energy}<{cost}')
+                    return events
 
         # Clear one-shot on_next energy_cost modifier after consumption.
         # Only on_next writes to sprite._modifiers["energy_cost"];
@@ -716,7 +742,7 @@ class Battle(BattleMechanicsMixin):
         # ═══ Load CompiledSkill + execute VM ═══
         # (record already loaded above for devotion check)
 
-        opp_skill = countered_skill or countering_skill
+        opp_skill = countered_skill or countering_skill or opp_skill
         opp_team = 'B' if team == 'A' else 'A'
 
         result = self._vm_engine.execute_skill(

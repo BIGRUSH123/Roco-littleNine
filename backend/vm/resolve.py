@@ -231,6 +231,7 @@ _FORMULA_PATH_MAP: dict[str, str] = {
     "target.max_hp": "hp_opp_max",
     "target.positive_count": "positive_count_opp",
     "target.abnormal_count": "abnormal_count_opp",
+    "target.energy_cost": "energy_cost_opp",
     "target.energy_cost_total": "skills_energy_sum_opp",
     "target.speed": "speed_opp",
     "target.atk": "atk_opp",

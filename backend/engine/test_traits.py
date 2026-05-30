@@ -369,3 +369,83 @@ def test_trait_水翼飞升_zero_cost_energy_not_consumed():
     assert sprite._modifiers.get("energy_cost", 0) == 0, (
         f"sprite-level energy_cost should be 0, got {sprite._modifiers.get('energy_cost', 0)}"
     )
+
+
+# ═══════════════════════════════════════════════════════════════════
+# 石天平 (ID 20102)
+# ═══════════════════════════════════════════════════════════════════
+
+
+def test_trait_石天平_self_higher_cost_drains_opp_at_turn_end():
+    """石天平: self skill cost > opp skill cost → turn_end drain difference."""
+    battle = _make_battle_with_trait("石天平", 20102)
+
+    sprite = battle.player_a.active
+    opp = battle.player_b.active
+
+    # Get skills and set known energy costs
+    sk_self = sprite.skills[0]  # 猛烈撞击 (cost 1)
+    sk_opp = opp.skills[0]  # 猛烈撞击 (cost 1)
+
+    # Manually set energy_mod so effective costs differ: self=7, opp=5
+    sk_self._modifiers["energy_cost"] = 6.0  # base(1) + 6 = 7
+    sk_opp._modifiers["energy_cost"] = 4.0   # base(1) + 4 = 5
+
+    # Build ctx with both skills
+    ctx = battle._make_ctx(sprite, opp, sk_self, sk_opp, battle.globals, team="A", turn=1)
+
+    # Verify ctx has correct energy costs
+    assert ctx.energy_cost_self == 7, f"expected energy_cost_self=7, got {ctx.energy_cost_self}"
+    assert ctx.energy_cost_opp == 5, f"expected energy_cost_opp=5, got {ctx.energy_cost_opp}"
+
+    # Fire post_skill observer
+    battle._vm_engine.fire_trigger("post_skill", ctx, sprite, opp, battle.globals, team="A", battle=battle)
+
+    # Verify a schedule entry was created
+    assert len(battle.scheduled_effects) == 1, (
+        f"expected 1 scheduled effect, got {len(battle.scheduled_effects)}"
+    )
+    sched = battle.scheduled_effects[0]
+    assert sched["phase"] == "end"
+    assert sched["turn"] == battle.turn  # turns=0 → fires this turn
+
+    # Verify frozen delta in the scheduled effects
+    frozen_then = sched["effects"]
+    assert len(frozen_then) == 1
+    energize = frozen_then[0]
+    assert energize.target == "sprite_opp"
+    delta = energize.delta
+    assert delta == -2, f"expected frozen delta=-2 (5-7), got {delta} (type={type(delta).__name__})"
+
+    # Execute the scheduled effect
+    opp_energy_before = opp.energy
+    events = battle._execute_scheduled_effects("end")
+    assert opp.energy == opp_energy_before - 2, (
+        f"expected opp energy {opp_energy_before}→{opp_energy_before-2}, got {opp.energy}. events: {events}"
+    )
+    assert len(events) > 0, "expected energy drain event"
+
+
+def test_trait_石天平_self_lower_cost_no_trigger():
+    """石天平: self skill cost <= opp skill cost → no schedule, no drain."""
+    battle = _make_battle_with_trait("石天平", 20102)
+
+    sprite = battle.player_a.active
+    opp = battle.player_b.active
+
+    sk_self = sprite.skills[0]
+    sk_opp = opp.skills[0]
+    # self=3, opp=7 (self lower, should NOT trigger)
+    sk_self._modifiers["energy_cost"] = 2.0
+    sk_opp._modifiers["energy_cost"] = 6.0
+
+    ctx = battle._make_ctx(sprite, opp, sk_self, sk_opp, battle.globals, team="A", turn=1)
+    assert ctx.energy_cost_self == 3
+    assert ctx.energy_cost_opp == 7
+
+    battle._vm_engine.fire_trigger("post_skill", ctx, sprite, opp, battle.globals, team="A", battle=battle)
+
+    # No schedule should be created
+    assert len(battle.scheduled_effects) == 0, (
+        f"expected 0 scheduled effects when self_cost <= opp_cost, got {len(battle.scheduled_effects)}"
+    )

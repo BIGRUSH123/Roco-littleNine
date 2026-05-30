@@ -162,6 +162,12 @@ class TraitLoader:
     # Attrs that apply to sprite properties, not skills (consumed by property methods)
     _SPRITE_LEVEL_ATTRS = frozenset({'max_energy', 'starfall_consume_ratio'})
 
+    # Ratio stats whose default value is 1.0 (not 0.0)
+    _RATIO_BASE_STATS: frozenset[str] = frozenset({
+        "power_mult", "damage_mult", "energy_cost_mult",
+        "heal_reverse", "ignore_resistance", "ignore_mods", "survive",
+    })
+
     def _apply_direct_mods(self, sprite, effects: list[dict], mark_energy_mod: int = 0):
         """Apply non-observer trait effects as permanent modifiers to matching skills.
 
@@ -229,7 +235,8 @@ class TraitLoader:
                     bs_mods[attr] = delta
                     tracked.setdefault(bs_name, {})[attr] = delta
                 else:
-                    cur = bs_mods.get(attr, 0.0)
+                    default = 1.0 if attr in self._RATIO_BASE_STATS else 0.0
+                    cur = bs_mods.get(attr, default)
                     bs_mods[attr] = cur + delta
                     tracked.setdefault(bs_name, {})[attr] = tracked.get(bs_name, {}).get(attr, 0.0) + delta
         sprite._direct_mod_tracked = tracked

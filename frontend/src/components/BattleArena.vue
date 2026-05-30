@@ -70,6 +70,8 @@ const canUseSkill = (sprite, skillName) => {
     if (!ss) return false
     if (ss.cooldown > 0) return false
     if (ss.sealed) return false
+    const bloodPrice = sprite?.blood_price || 0
+    if (bloodPrice > 0 && (sprite?.current_hp ?? 0) > 0) return true
     return (sprite?.energy ?? 0) >= ss.effective_energy_cost
   }
   if (sprite?.charge_any_skill) return true
@@ -90,6 +92,7 @@ function skillBadges(sprite, name) {
 
 function energyInsufficient(sprite, name) {
   if (!!sprite?.charging) return false
+  if ((sprite?.blood_price || 0) > 0) return false
   const ss = getSpriteSkill(sprite, name)
   if (!ss) return true
   return (sprite?.energy ?? 0) < ss.effective_energy_cost

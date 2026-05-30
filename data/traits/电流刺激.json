@@ -2,32 +2,22 @@
   "id": 20100,
   "name": "电流刺激",
   "description": "携带的攻击技能获得迸发：威力+40。",
-  "triggers": [
+  "effects": [
     {
-      "on": "modifier",
-      "condition": {
-        "kind": "and",
-        "conditions": [
-          {
-            "path": "first_action",
-            "op": "eq",
-            "value": true
-          },
-          {
-            "path": "skill.is_attack",
-            "op": "eq",
-            "value": true
-          }
-        ]
-      },
-      "battleskill_mut": [
+      "op": "burst_grant",
+      "target": "sprite_self",
+      "skill_filter": "attack",
+      "then": [
         {
-          "target": "current",
-          "field": "power_mod",
-          "op": "add",
-          "value": 40
+          "op": "power_mod",
+          "target": "sprite_self",
+          "attr": "power",
+          "delta": 40,
+          "scope": "turn",
+          "source": "电流刺激"
         }
-      ]
+      ],
+      "source": "电流刺激"
     }
   ]
 }

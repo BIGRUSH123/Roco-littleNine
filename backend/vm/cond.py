@@ -398,7 +398,6 @@ COND_EVAL = {
     # ── Generic comparison ──
     "compare": lambda ctx, cond: compare_op(
         resolve(ctx, cond), cond["op"], resolve(ctx, cond["value"])
-        if isinstance(cond["value"], dict) else cond["value"]
     ),
 
     # ── Devotion ──
