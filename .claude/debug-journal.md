@@ -627,6 +627,14 @@
 - **涉及文件**: backend/engine/battle.py:48-61/396-402/455-461, backend/engine/replayer.py:1225-1234
 - **教训**: observer 不触发时三连查——① trigger 发射是否覆盖所有 mutation 类型（grep 对应 isinstance 检查）② ctx.event 字段是否被设置（grep 字段名确认赋值点）③ effect op 是否处理目标数据结构（active_effects vs _modifiers）。post_positive_change 之前只覆盖 StatChange 是设计盲区——power_mod/mult_mod 的增益同样应视为 positive change
 
+## 2026-05-30 - 蚀刻 observer 缺少 cond 字段导致永不触发
+
+- **现象**: 裘卡（蚀刻特性）在场时，回合结束敌方中毒层数未转化为中毒印记
+- **根因**: 蚀刻.json observer 缺少 cond 字段 → op_count 中 cond=None → eval_one(ctx, None) 在 cond.py:474 走到 return False，observer 注册了但条件永远不满足
+- **修复**: 添加 "cond": {"cond": "always"} 到 observer JSON
+- **涉及文件**: data/traits/蚀刻.json:10
+- **教训**: observer 完全不触发且 JSON 中无明显错误时，先检查是否有 cond 字段——缺失不报错，eval_one 对 None 静默返回 False
+
 <!-- 新条目追加在此行上方，格式如下：
 
 ## YYYY-MM-DD - 简短标题
