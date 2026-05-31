@@ -81,7 +81,7 @@ def effect_from_dict(d: dict) -> Any:
         AbnormalEffect, MarkEffect, ModifierEffect,
         ObserverEffect, StatBuffEffect, StateEffect,
     )
-    _type = d.pop("_type", "")
+    _type = d.get("_type", "")
     if _type == "StatBuffEffect":
         return StatBuffEffect(
             name=d["name"], source=d["source"], scope=d.get("scope", "battlefield"),
