@@ -597,7 +597,12 @@ def _summary_stat_stage(flat: list[dict]) -> float:
     total = 0.0
     for e in flat:
         if e.get('op') == 'stat_stage':
-            total += e.get('steps', 0) * 0.25
+            steps = e.get('steps', 0)
+            if isinstance(steps, (int, float)):
+                total += steps * 0.25
+            elif isinstance(steps, dict):
+                # 动态 steps（如 "abnormal_stacks * 3"），用 scale 近似
+                total += steps.get('scale', 0) * 0.25
     return float(np.clip(total, -1.0, 1.0))
 
 
