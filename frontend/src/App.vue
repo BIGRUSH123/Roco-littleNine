@@ -144,7 +144,7 @@ const handleAction = async ({ type, payload }) => {
 
     const data = await res.json()
     battleState.value = data.state
-    battleStore.updateFromResponse(data.state)
+    battleStore.updateFromResponse({ ...data.state, turn_snapshot: data.turn_snapshot })
 
     if (data.log && data.log.length > 0) {
       battleLogs.value.push(...data.log)
@@ -181,7 +181,7 @@ const handleResolveEscape = async ({ switch_index }) => {
 
     const data = await res.json()
     battleState.value = data.state
-    battleStore.updateFromResponse(data.state)
+    battleStore.updateFromResponse({ ...data.state, turn_snapshot: data.turn_snapshot })
 
     if (data.log && data.log.length > 0) {
       battleLogs.value.push(...data.log)
@@ -240,7 +240,7 @@ const handleDebugAction = async ({ actionA, actionB }) => {
 
     const data = await res.json()
     battleState.value = data.state
-    battleStore.updateFromResponse(data.state)
+    battleStore.updateFromResponse({ ...data.state, turn_snapshot: data.turn_snapshot })
 
     if (data.log && data.log.length > 0) {
       battleLogs.value.push(...data.log)
@@ -273,7 +273,7 @@ const handleRestore = async (turn) => {
     const data = await res.json()
     battleState.value = data.state
     battleStore.resetBattle()
-    battleStore.updateFromResponse(data.state)
+    battleStore.updateFromResponse({ ...data.state, turn_snapshot: data.turn_snapshot })
     battleLogs.value = [`◀ 已回溯至第 ${data.restored_turn} 回合`]
     showBacktrack.value = false
   } catch (e) {
