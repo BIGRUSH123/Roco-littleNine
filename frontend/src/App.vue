@@ -273,7 +273,11 @@ const handleRestore = async (turn) => {
     const data = await res.json()
     battleState.value = data.state
     battleStore.resetBattle()
-    battleStore.updateFromResponse({ ...data.state, turn_snapshot: data.turn_snapshot })
+    battleStore.updateFromResponse({
+      ...data.state,
+      turn_snapshot: data.turn_snapshot,
+      available_turns: data.available_turns,
+    })
     battleLogs.value = [`◀ 已回溯至第 ${data.restored_turn} 回合`]
     showBacktrack.value = false
   } catch (e) {
@@ -382,7 +386,7 @@ const restartGame = () => {
         <div class="relative">
           <button
             @click="showBacktrack = !showBacktrack"
-            :disabled="battleStore.availableSnapshotTurns.length === 0"
+            :disabled="battleStore.backtrackTurns.length === 0"
             class="px-3 py-1.5 bg-[#7E57C2] hover:bg-[#6A4DAB] disabled:opacity-30 disabled:cursor-not-allowed text-white text-xs font-bold rounded-xl transition-colors mr-1 shadow-[0_2px_0_rgba(61,43,31,0.15)]"
             title="回溯到之前回合"
           >
@@ -393,7 +397,7 @@ const restartGame = () => {
             <div v-if="showBacktrack" class="absolute top-full right-0 mt-1 bg-white border border-[#D4C8B8] rounded-xl shadow-xl z-40 min-w-[140px] py-1">
               <div class="px-3 py-1.5 text-[10px] text-[#B0A595] font-bold tracking-wide">选择回溯回合</div>
               <button
-                v-for="t in battleStore.availableSnapshotTurns"
+                v-for="t in battleStore.backtrackTurns"
                 :key="t"
                 @click="handleRestore(t)"
                 :disabled="isProcessing"
@@ -402,7 +406,7 @@ const restartGame = () => {
                 回合 {{ t }}
                 <span v-if="t === battleState?.turn" class="text-[10px] text-[#B0A595] ml-1">(当前)</span>
               </button>
-              <div v-if="battleStore.availableSnapshotTurns.length === 0" class="px-3 py-2 text-xs text-[#B0A595]">
+              <div v-if="battleStore.backtrackTurns.length === 0" class="px-3 py-2 text-xs text-[#B0A595]">
                 暂无可回溯回合
               </div>
             </div>

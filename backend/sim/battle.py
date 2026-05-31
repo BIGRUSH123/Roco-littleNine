@@ -189,8 +189,8 @@ class Battle(BattleMechanicsMixin):
     # ═══════════════════════════════════════════════════════════════
 
     def execute_turn(self, agent_a: Agent, agent_b: Agent) -> RoundRecord:
-        self.save_snapshot()
         self.turn += 1
+        self.save_snapshot()  # key = turn number AFTER increment, matches frontend
         self._agent_a = agent_a
         self._agent_b = agent_b
 

@@ -255,9 +255,8 @@ class TestSnapshotRestore:
                 break
             battle.execute_turn(agent_a, agent_b)
 
-        assert 0 in battle.snapshots
+        assert 1 in battle.snapshots
         battle.restore_snapshot(1)
-        assert 0 in battle.snapshots
         assert 1 in battle.snapshots
         assert 2 not in battle.snapshots
         assert 3 not in battle.snapshots

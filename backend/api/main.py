@@ -1137,9 +1137,12 @@ def restore_snapshot(req: schemas.RestoreRequest):
         )
 
     battle.restore_snapshot(req.turn)
+    turn_snap = _build_turn_snapshot(battle, [f"◀ 已回溯至第 {req.turn} 回合"])
     return {
         "state": serialize_battle_state(battle, req.session_id),
         "restored_turn": req.turn,
+        "turn_snapshot": turn_snap,
+        "available_turns": sorted(battle.snapshots.keys()),
     }
 
 
