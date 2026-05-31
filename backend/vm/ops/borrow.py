@@ -7,11 +7,6 @@ from ..ctx import Ctx
 from ..journal import Borrow, Mutation
 
 
-def _get(effect, key, default=None):
-    if isinstance(effect, dict):
-        return effect.get(key, default)
-    return getattr(effect, key, default)
-
 
 def op_borrow(ctx: Ctx, effect) -> list[Mutation]:
     """Borrow the opponent's current skill properties (power, type, effects).

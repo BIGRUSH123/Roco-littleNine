@@ -491,18 +491,6 @@ class SkillParsePass:
             **self._common_fields(e),
         )
 
-    # Damage is a no-op marker in the engine — parse it as a ModOp placeholder
-    # or skip it. For now, treat it as a no-op marker that gets filtered later.
-    def _parse_damage(self, e: dict) -> SkillIROp:
-        # "damage" opcode is a declarative marker (handled implicitly by engine)
-        # Return a minimal ModOp that does nothing
-        return ModOp(
-            target="sprite_self",
-            stat="",
-            value=Literal(value=0),
-            **self._common_fields(e),
-        )
-
     # ── RISC IR opcode parsers (compatibility shim: RISC JSON → internal IR) ──
 
     def _parse_stat_stage(self, e: dict) -> StatStageOp:

@@ -137,5 +137,3 @@ def dispatch_turn_start(sprite: Sprite, battle: Battle, team: str) -> list[str]:
     return h.on_turn_start(sprite, battle, team) if h else []
 
 
-def _opposite_team(team: str) -> str:
-    return 'B' if team == 'A' else 'A'

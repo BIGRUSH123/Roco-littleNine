@@ -45,8 +45,6 @@ from .round_record import ActionRecord, RoundRecord
 from .skill import Skill
 from .sprite import Sprite
 
-# 导入 trait 子模块以触发 @register 装饰器（放在最后，避免循环导入）
-from .traits import _complex  # noqa: E402, F401
 from .traits.trait_engine import register_data_traits
 
 _data_dir = os.path.join(os.path.dirname(__file__), '..', '..', 'data', 'traits')

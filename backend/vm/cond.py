@@ -636,6 +636,3 @@ def _eval_trait_path(ctx: Ctx, cond: dict) -> bool:
     return compare_op(actual, op, expected)
 
 
-def _eval_dict(ctx: Ctx, cond: dict) -> bool:
-    """Backward compat alias: evaluate a raw dict condition."""
-    return eval_one(ctx, cond)

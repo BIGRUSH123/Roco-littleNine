@@ -104,10 +104,6 @@ class Sprite:
 
     # ── 效果查询辅助 ──
 
-    def _effects_of_type(self, effect_type: type) -> list:
-        """Return all active_effects matching effect_type."""
-        return [e for e in self.active_effects if isinstance(e, effect_type)]
-
     def _find_abnormal(self, name: str):
         """Find an AbnormalEffect by name in active_effects."""
         from backend.vm.effect import AbnormalEffect

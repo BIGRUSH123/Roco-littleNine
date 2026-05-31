@@ -77,6 +77,43 @@ app.add_middleware(
 )
 
 
+class DummyAgent:
+    """Agent that resolves a skill-by-name action after transmission.
+
+    Skill index lookup is deferred to choose_action() so it always sees
+    the current skill list (e.g. after position-swap effects).
+    """
+
+    def __init__(self, team: str, kind: str, skill_name: str = '', switch_index: int = 0):
+        self.team = team
+        self._kind = kind
+        self._skill_name = skill_name
+        self._switch_index = switch_index
+
+    def choose_lead(self, battle):
+        return 0
+
+    def choose_action(self, battle):
+        if self._kind == 'skill' and self._skill_name:
+            sprite = battle.get_player(self.team).active
+            for i, sk in enumerate(sprite.skills):
+                if sk.name == self._skill_name:
+                    return Action(kind='skill', skill_index=i)
+            return Action(kind='gather')
+        if self._kind == 'switch':
+            return Action(kind='switch', switch_index=self._switch_index)
+        return Action(kind=self._kind)
+
+    def choose_replacement(self, battle):
+        for i, s in enumerate(battle.get_player(self.team).team):
+            if not s.is_fainted:
+                return i
+        return 0
+
+    def on_game_end(self, winner):
+        pass
+
+
 @app.get("/api/agents")
 def get_agents():
     """Return registered AI agents (whitelist-based, no file path routing)."""
@@ -816,36 +853,6 @@ def battle_action(req: schemas.ActionRequest):
         raise HTTPException(status_code=400, detail=f"Unknown action_type {req.action_type!r}. Valid types: skill, switch, gather, item.")
 
     # 在 execute_turn 内部传动后才解析 skill_index（避免 position 过期）
-    class DummyAgent:
-        def __init__(self, team: str, kind: str, skill_name: str = '', switch_index: int = 0):
-            self.team = team
-            self._kind = kind
-            self._skill_name = skill_name
-            self._switch_index = switch_index
-
-        def choose_lead(self, battle):
-            return 0
-
-        def choose_action(self, battle):
-            if self._kind == 'skill' and self._skill_name:
-                sprite = battle.get_player(self.team).active
-                for i, sk in enumerate(sprite.skills):
-                    if sk.name == self._skill_name:
-                        return Action(kind='skill', skill_index=i)
-                return Action(kind='gather')
-            if self._kind == 'switch':
-                return Action(kind='switch', switch_index=self._switch_index)
-            return Action(kind=self._kind)
-
-        def choose_replacement(self, battle):
-            for i, s in enumerate(battle.get_player(self.team).team):
-                if not s.is_fainted:
-                    return i
-            return 0
-
-        def on_game_end(self, winner):
-            pass
-
     agent_a = DummyAgent("A", req.action_type,
                          skill_name=req.skill_name or '',
                          switch_index=req.switch_index or 0)
@@ -982,42 +989,6 @@ def _make_debug_sprite(name: str, skills: list[BattleSkill], team: str) -> Sprit
     return s
 
 
-def _make_dummy_agent(team: str, kind: str, skill_name: str = '', switch_index: int = 0):
-    """Create an agent that resolves skill by name in choose_action (after transmission)."""
-
-    class DummyAgent:
-        def __init__(self, t: str, k: str, sn: str, si: int):
-            self.team = t
-            self._kind = k
-            self._skill_name = sn
-            self._switch_index = si
-
-        def choose_lead(self, battle):
-            return 0
-
-        def choose_action(self, battle):
-            if self._kind == 'skill' and self._skill_name:
-                sprite = battle.get_player(self.team).active
-                for i, sk in enumerate(sprite.skills):
-                    if sk.name == self._skill_name:
-                        return Action(kind='skill', skill_index=i)
-                return Action(kind='gather')
-            if self._kind == 'switch':
-                return Action(kind='switch', switch_index=self._switch_index)
-            return Action(kind=self._kind)
-
-        def choose_replacement(self, battle):
-            for i, sp in enumerate(battle.get_player(self.team).team):
-                if not sp.is_fainted:
-                    return i
-            return 0
-
-        def on_game_end(self, winner):
-            pass
-
-    return DummyAgent(team, kind, skill_name, switch_index)
-
-
 def _parse_action_info(action_data: dict, player, label: str) -> dict:
     """Extract action info, validate skill exists. Returns {kind, skill_name, switch_index}.
     skill_index is NOT computed here — DummyAgent resolves it after transmission."""
@@ -1115,8 +1086,8 @@ def debug_action(req: schemas.DebugActionRequest):
     info_a = _parse_action_info(req.action_a, battle.player_a, 'Player A')
     info_b = _parse_action_info(req.action_b, battle.player_b, 'Player B')
 
-    agent_a = _make_dummy_agent('A', info_a['kind'], info_a['skill_name'], info_a['switch_index'])
-    agent_b = _make_dummy_agent('B', info_b['kind'], info_b['skill_name'], info_b['switch_index'])
+    agent_a = DummyAgent('A', info_a['kind'], info_a['skill_name'], info_a['switch_index'])
+    agent_b = DummyAgent('B', info_b['kind'], info_b['skill_name'], info_b['switch_index'])
 
     battle.execute_turn(agent_a, agent_b)
 
