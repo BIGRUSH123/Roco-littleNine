@@ -79,6 +79,7 @@ class Battle(BattleMechanicsMixin):
         self.pending_escape: dict | None = None  # {team, inherit, urgent} 等待脱离处理
         self.species_db = None  # 由 SimFactory 注入，供形态变换查询
         self.skill_loader = None  # 由 SimFactory 注入，供形态变换加载技能
+        self._snapshots: dict[int, dict] = {}
 
         # ── 回合 0: 首发精灵 entry 特性 ──
         from backend.sim.traits import dispatch_entry
@@ -188,6 +189,7 @@ class Battle(BattleMechanicsMixin):
     # ═══════════════════════════════════════════════════════════════
 
     def execute_turn(self, agent_a: Agent, agent_b: Agent) -> RoundRecord:
+        self.save_snapshot()
         self.turn += 1
         self._agent_a = agent_a
         self._agent_b = agent_b
@@ -259,6 +261,43 @@ class Battle(BattleMechanicsMixin):
 
         self.log.append(rec)
         return rec
+
+    # ═══════════════════════════════════════════════════════════════
+    # 回溯 (Snapshot / Restore)
+    # ═══════════════════════════════════════════════════════════════
+
+    def save_snapshot(self) -> None:
+        """保存当前回合的快照（用于回溯）。"""
+        from backend.engine.serializer import battle_to_dict
+        self._snapshots[self.turn] = battle_to_dict(self)
+
+    def restore_snapshot(self, turn: int) -> None:
+        """恢复到指定回合开始前的状态。"""
+        if turn not in self._snapshots:
+            raise ValueError(
+                f"快照不存在: 回合{turn}。"
+                f"可用回合: {sorted(self._snapshots.keys())}"
+            )
+        from backend.engine.serializer import battle_from_dict
+
+        snapshot = self._snapshots[turn]
+        restored = battle_from_dict(
+            snapshot, self.species_db, self.skill_loader,
+        )
+        self.__dict__.update(restored.__dict__)
+
+        self._snapshots = {
+            t: s for t, s in self._snapshots.items() if t <= turn
+        }
+
+    def clear_snapshots(self) -> None:
+        """清除所有快照释放内存。"""
+        self._snapshots.clear()
+
+    @property
+    def snapshots(self) -> dict[int, dict]:
+        """返回所有快照（只读视图）。"""
+        return dict(self._snapshots)
 
     # ═══════════════════════════════════════════════════════════════
     # Phase 1: 回合开始
