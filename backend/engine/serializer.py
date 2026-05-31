@@ -183,3 +183,112 @@ def battle_skill_from_dict(d: dict, skill_loader) -> Any:
     bs._element_override = d.get("_element_override", "")
     bs._mech_energy_reduction = d.get("_mech_energy_reduction", 0)
     return bs
+
+
+# ═══════════════════════════════════════════════════════════════
+# Sprite serialization
+# ═══════════════════════════════════════════════════════════════
+
+def sprite_to_dict(sprite) -> dict:
+    """Serialize Sprite — species as name/number/form identifier."""
+    return {
+        "species_name": sprite.species.name,
+        "species_number": sprite.species.number,
+        "species_form": sprite.species.form,
+        "bloodline": sprite.bloodline,
+        "initial_stats": dict(sprite.initial_stats),
+        "nature": sprite.nature,
+        "iv": dict(sprite.iv),
+        "current_hp": sprite.current_hp,
+        "max_hp": sprite.max_hp,
+        "energy": sprite.energy,
+        "active_effects": [effect_to_dict(e) for e in sprite.active_effects],
+        "entry_turn": sprite.entry_turn,
+        "counters": dict(sprite.counters),
+        "first_action": sprite.first_action,
+        "first_action_battle": sprite.first_action_battle,
+        "pending_return": sprite.pending_return,
+        "locked_turns": sprite.locked_turns,
+        "_modifiers": dict(sprite._modifiers),
+        "_mod_scopes": dict(sprite._mod_scopes),
+        "_pending_effects": [
+            (effect_to_dict(e), delay) for e, delay in sprite._pending_effects
+        ],
+        "_pending_modifiers": [
+            {
+                "stat": m.stat, "value": m.value, "mode": m.mode,
+                "target": m.target, "scope": getattr(m, 'scope', 'turn'),
+                "source": getattr(m, 'source', ''),
+                "on_next": getattr(m, 'on_next', True),
+                "skill_where": getattr(m, 'skill_where', None),
+                "skill_filter": getattr(m, 'skill_filter', None),
+            }
+            for m in sprite._pending_modifiers
+        ],
+        "_trait_suppressed": sprite._trait_suppressed,
+        "skills": [battle_skill_to_dict(bs) for bs in (sprite.skills or [])],
+    }
+
+
+def sprite_from_dict(d: dict, species_db, skill_loader) -> Any:
+    """Reconstruct Sprite from dict."""
+    from backend.common.models import SpeciesStats
+    from backend.sim.sprite import Sprite
+
+    species = species_db(d["species_name"], d.get("species_form", ""))
+    if species is None:
+        raise ValueError(f"Species not found: {d['species_name']!r}")
+
+    sprite = Sprite(
+        species=species,
+        bloodline=d.get("bloodline", ""),
+        initial_stats=dict(d.get("initial_stats", {})),
+        current_hp=d.get("current_hp", 0),
+        max_hp=d.get("max_hp", 0),
+        energy=d.get("energy", 10),
+        nature=d.get("nature"),
+        iv=dict(d.get("iv", {})),
+    )
+    sprite.entry_turn = d.get("entry_turn", 0)
+    sprite.counters = dict(d.get("counters", {}))
+    sprite.first_action = d.get("first_action", True)
+    sprite.first_action_battle = d.get("first_action_battle", True)
+    sprite.pending_return = d.get("pending_return", False)
+    sprite.locked_turns = d.get("locked_turns", 0)
+    sprite._modifiers = dict(d.get("_modifiers", {}))
+    sprite._mod_scopes = dict(d.get("_mod_scopes", {}))
+
+    sprite.active_effects = [effect_from_dict(e) for e in d.get("active_effects", [])]
+
+    sprite._pending_effects = [
+        (effect_from_dict(e), delay)
+        for e, delay in d.get("_pending_effects", [])
+    ]
+
+    from backend.vm.journal import ModifierInjection
+    sprite._pending_modifiers = [
+        ModifierInjection(
+            stat=m["stat"], value=m["value"], mode=m["mode"],
+            target=m.get("target", "sprite_self"),
+            scope=m.get("scope", "turn"),
+            source=m.get("source", ""),
+            on_next=m.get("on_next", True),
+            skill_where=m.get("skill_where"),
+            skill_filter=m.get("skill_filter"),
+        )
+        for m in d.get("_pending_modifiers", [])
+    ]
+
+    sprite._trait_suppressed = d.get("_trait_suppressed", False)
+
+    if skill_loader is not None:
+        sprite.skills = [
+            bs for bs in (
+                battle_skill_from_dict(sd, skill_loader) for sd in d.get("skills", [])
+            )
+            if bs is not None
+        ]
+    else:
+        sprite.skills = []
+
+    return sprite
