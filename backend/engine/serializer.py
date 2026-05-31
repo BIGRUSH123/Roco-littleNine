@@ -139,3 +139,47 @@ def effect_from_dict(d: dict) -> Any:
             reset_on_fire=d.get("reset_on_fire", True),
         )
     raise ValueError(f"Unknown effect type: {_type}")
+
+
+# ═══════════════════════════════════════════════════════════════
+# BattleSkill serialization
+# ═══════════════════════════════════════════════════════════════
+
+def battle_skill_to_dict(bs) -> dict:
+    """Serialize BattleSkill — only stores base skill name as reference."""
+    return {
+        "base_name": bs.base.name if bs.base else "",
+        "_modifiers": dict(bs._modifiers),
+        "sealed": bs.sealed,
+        "_transmission": bs._transmission,
+        "_burst_effects": list(bs._burst_effects),
+        "is_temporary": bs.is_temporary,
+        "cooldown": bs.cooldown,
+        "next_attack_mult": bs.next_attack_mult,
+        "_element_override": bs._element_override,
+        "_mech_energy_reduction": bs._mech_energy_reduction,
+    }
+
+
+def battle_skill_from_dict(d: dict, skill_loader) -> Any:
+    """Reconstruct BattleSkill from dict.
+
+    skill_loader: callable(name) -> BattleSkill — from SimFactory._build_skill_list
+    """
+    base_name = d.get("base_name", "")
+    if not base_name or skill_loader is None:
+        return None
+    skills = skill_loader([base_name])
+    if not skills:
+        return None
+    bs = skills[0]
+    bs._modifiers = dict(d.get("_modifiers", {}))
+    bs.sealed = d.get("sealed", False)
+    bs._transmission = d.get("_transmission", 0)
+    bs._burst_effects = list(d.get("_burst_effects", []))
+    bs.is_temporary = d.get("is_temporary", False)
+    bs.cooldown = d.get("cooldown", 0)
+    bs.next_attack_mult = d.get("next_attack_mult", 1.0)
+    bs._element_override = d.get("_element_override", "")
+    bs._mech_energy_reduction = d.get("_mech_energy_reduction", 0)
+    return bs
