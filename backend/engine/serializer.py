@@ -292,3 +292,71 @@ def sprite_from_dict(d: dict, species_db, skill_loader) -> Any:
         sprite.skills = []
 
     return sprite
+
+
+# ═══════════════════════════════════════════════════════════════
+# Player serialization
+# ═══════════════════════════════════════════════════════════════
+
+def player_to_dict(player) -> dict:
+    """Serialize Player — sprites as list of dicts."""
+    return {
+        "name": player.name,
+        "lives": player.lives,
+        "active_index": player.active_index,
+        "devotion": dict(player.devotion),
+        "team": [sprite_to_dict(s) for s in player.team],
+        "item": {
+            "name": player.item.name,
+            "max_uses": player.item.max_uses,
+            "cooldown_turns": player.item.cooldown_turns,
+            "uses": player.item.uses,
+            "last_use_turn": player.item.last_use_turn,
+        } if player.item else None,
+    }
+
+
+def player_from_dict(d: dict, species_db, skill_loader) -> Any:
+    """Reconstruct Player from dict."""
+    from backend.sim.player import Item, Player, PlayStyle
+
+    team = [sprite_from_dict(sd, species_db, skill_loader) for sd in d.get("team", [])]
+    item = None
+    if d.get("item"):
+        idata = d["item"]
+        item = Item(
+            name=idata["name"], max_uses=idata["max_uses"],
+            cooldown_turns=idata.get("cooldown_turns", 0),
+            uses=idata.get("uses", 0),
+            last_use_turn=idata.get("last_use_turn", 0),
+        )
+    return Player(
+        name=d["name"], team=team, style=PlayStyle(),
+        lives=d.get("lives", 4), active_index=d.get("active_index", 0),
+        item=item, devotion=dict(d.get("devotion", {})),
+    )
+
+
+# ═══════════════════════════════════════════════════════════════
+# GlobalEffects serialization
+# ═══════════════════════════════════════════════════════════════
+
+def globals_to_dict(g) -> dict:
+    """Serialize GlobalEffects."""
+    return {
+        "weather": g.weather,
+        "weather_turns": g.weather_turns,
+        "marks_a": [effect_to_dict(m) for m in g.mark_effects.get("A", [])],
+        "marks_b": [effect_to_dict(m) for m in g.mark_effects.get("B", [])],
+    }
+
+
+def globals_from_dict(d: dict) -> Any:
+    """Reconstruct GlobalEffects from dict."""
+    from backend.sim.globals import GlobalEffects
+    g = GlobalEffects()
+    g.weather = d.get("weather", "")
+    g.weather_turns = d.get("weather_turns", 0)
+    g.mark_effects["A"] = [effect_from_dict(m) for m in d.get("marks_a", [])]
+    g.mark_effects["B"] = [effect_from_dict(m) for m in d.get("marks_b", [])]
+    return g
