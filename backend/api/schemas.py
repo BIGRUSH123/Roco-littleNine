@@ -240,3 +240,31 @@ class BatchResult(BaseModel):
     avg_turns: float
     avg_duration_ms: float
     ai_agent: str
+
+
+# ═══════════════════════════════════════════════════════════════════
+# 回溯 & 导入导出
+# ═══════════════════════════════════════════════════════════════════
+
+class RestoreRequest(BaseModel):
+    session_id: str
+    turn: int
+
+
+class ExportRequest(BaseModel):
+    session_id: str
+    name: str
+
+
+class ImportRequest(BaseModel):
+    name: str
+
+
+class SnapshotsResponse(BaseModel):
+    session_id: str
+    turns: list[int]
+    current_turn: int
+
+
+class ExportsListResponse(BaseModel):
+    exports: list[dict]  # [{name, type, path, size}]

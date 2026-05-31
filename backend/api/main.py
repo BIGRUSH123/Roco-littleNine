@@ -1104,6 +1104,118 @@ def debug_action(req: schemas.DebugActionRequest):
     }
 
 
+# ── Backtrack & Import/Export ─────────────────────────────────────
+
+@app.post("/api/battle/snapshots")
+def list_snapshots(req: schemas.RestoreRequest):
+    """List available snapshot turns for a battle session."""
+    if req.session_id not in sessions:
+        raise HTTPException(status_code=404, detail="Battle session not found.")
+
+    battle: Battle = sessions[req.session_id]["battle"]
+    turns = sorted(battle.snapshots.keys())
+    return schemas.SnapshotsResponse(
+        session_id=req.session_id,
+        turns=turns,
+        current_turn=battle.turn,
+    )
+
+
+@app.post("/api/battle/restore")
+def restore_snapshot(req: schemas.RestoreRequest):
+    """Restore battle to a previous turn snapshot."""
+    if req.session_id not in sessions:
+        raise HTTPException(status_code=404, detail="Battle session not found.")
+
+    battle: Battle = sessions[req.session_id]["battle"]
+
+    if req.turn not in battle.snapshots:
+        available = sorted(battle.snapshots.keys())
+        raise HTTPException(
+            status_code=400,
+            detail=f"Snapshot for turn {req.turn} not found. Available: {available}",
+        )
+
+    battle.restore_snapshot(req.turn)
+    return {
+        "state": serialize_battle_state(battle, req.session_id),
+        "restored_turn": req.turn,
+    }
+
+
+@app.post("/api/battle/export")
+def export_battle(req: schemas.ExportRequest):
+    """Export current battle state to JSON + text files."""
+    if req.session_id not in sessions:
+        raise HTTPException(status_code=404, detail="Battle session not found.")
+
+    battle: Battle = sessions[req.session_id]["battle"]
+
+    from roco.serializer import export_match
+    json_path = export_match(battle, req.name)
+
+    return {
+        "name": req.name,
+        "json_path": str(json_path),
+        "txt_path": str(json_path.with_suffix(".txt")),
+        "turn": battle.turn,
+    }
+
+
+@app.post("/api/battle/import")
+def import_battle(req: schemas.ImportRequest):
+    """Import a battle from a saved .roco-match.json file."""
+    from pathlib import Path
+    from roco.serializer import _EXPORT_DIR
+
+    path = _EXPORT_DIR / f"{req.name}.roco-match.json"
+    if not path.exists():
+        raise HTTPException(status_code=404, detail=f"Export not found: {req.name}")
+
+    from roco.serializer import import_match
+    battle = import_match(path, FACTORY)
+
+    session_id = str(uuid.uuid4())
+    from backend.sim.agent import RuleAgent
+    agent_b = RuleAgent("B", battle.player_b)
+
+    sessions[session_id] = {
+        "battle": battle,
+        "agent_b": agent_b,
+        "ai_agent_name": "RuleAgent",
+    }
+
+    return serialize_battle_state(battle, session_id)
+
+
+@app.get("/api/exports")
+def list_exports():
+    """List all exported battle/team files."""
+    from roco.serializer import _EXPORT_DIR
+
+    exports = []
+    if _EXPORT_DIR.is_dir():
+        for f in sorted(_EXPORT_DIR.iterdir()):
+            if f.suffix in (".json", ".txt"):
+                name = f.stem
+                # Determine type from extension pattern
+                if ".roco-match" in f.name:
+                    etype = "match"
+                elif ".roco-team" in f.name:
+                    etype = "team"
+                else:
+                    etype = "unknown"
+                exports.append({
+                    "name": f.name,
+                    "stem": name,
+                    "type": etype,
+                    "format": f.suffix.lstrip("."),
+                    "size": f.stat().st_size,
+                })
+
+    return {"exports": exports}
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("backend.api.main:app", host="0.0.0.0", port=8000, reload=True)
