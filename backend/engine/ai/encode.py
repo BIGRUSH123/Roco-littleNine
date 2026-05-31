@@ -1,4 +1,4 @@
-"""backend/engine/encode.py — Battle 状态 → 固定长度向量，供神经网络输入。
+"""backend/engine/ai/encode.py — Battle 状态 → 固定长度向量，供神经网络输入。
 
 总维度: 446
 
