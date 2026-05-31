@@ -281,13 +281,14 @@ class Battle(BattleMechanicsMixin):
         from backend.engine.serializer import battle_from_dict
 
         snapshot = self._snapshots[turn]
+        # Save snapshots before __dict__ update overwrites them
+        old_snapshots = self._snapshots
         restored = battle_from_dict(
             snapshot, self.species_db, self.skill_loader,
         )
         self.__dict__.update(restored.__dict__)
-
         self._snapshots = {
-            t: s for t, s in self._snapshots.items() if t <= turn
+            t: s for t, s in old_snapshots.items() if t <= turn
         }
 
     def clear_snapshots(self) -> None:
