@@ -84,7 +84,7 @@ def dispatch_entry(sprite: Sprite, battle: Battle, team: str) -> list[str]:
     if sprite.entry_turn == 0:
         sprite.entry_turn = battle.turn
 
-    # IR_RISC trait pipeline: load trait JSON → compile observers → register
+    # IR_GUIDE trait pipeline: load trait JSON → compile observers → register
     with contextlib.suppress(Exception):
         battle._vm_engine.trait_loader.load_for_sprite(sprite)
 

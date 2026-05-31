@@ -17,7 +17,7 @@ from urllib.parse import unquote, urlparse
 
 TRAITS_DIR = Path(__file__).resolve().parent.parent.parent / 'data' / 'traits'
 TRAITS_DIR_ESC = str(TRAITS_DIR).replace('\\', '\\\\')
-IR_RISC_PATH = Path(__file__).resolve().parent.parent.parent / 'data' / 'IR_RISC.md'
+IR_GUIDE_PATH = Path(__file__).resolve().parent.parent.parent / 'data' / 'IR_GUIDE.md'
 def _find_claude() -> str:
     """查找 claude CLI，优先 PATH，其次搜索常见安装位置。"""
     found = shutil.which('claude') or shutil.which('claude.exe')
@@ -210,10 +210,10 @@ class Handler(BaseHTTPRequestHandler):
         body = self._read_body()
         trait_json = body if body else fpath.read_text('utf-8')
 
-        # ── 读取 IR_RISC 规范全文 ──────────────────────────────────
-        ir_risc_text = ''
-        if IR_RISC_PATH.exists():
-            ir_risc_text = IR_RISC_PATH.read_text('utf-8')
+        # ── 读取 IR_GUIDE 规范全文 ──────────────────────────────────
+        ir_guide_text = ''
+        if IR_GUIDE_PATH.exists():
+            ir_guide_text = IR_GUIDE_PATH.read_text('utf-8')
 
         prompt = (
             '# 任务\n'
@@ -393,8 +393,8 @@ class Handler(BaseHTTPRequestHandler):
             '6. 保留 `id`, `name`, `description` 不变。保留 `source` 字段（如存在）。\n'
             '7. 输出**仅**完整的 JSON（含生成的 effects[]）。不要 markdown 代码块标记，不要任何解释文字。\n\n'
 
-            '# 参考: IR_RISC 规范全文（opcode 字段级细节）\n'
-            + ir_risc_text[:30000] + '\n\n'
+            '# 参考: IR_GUIDE 规范全文（opcode 字段级细节）\n'
+            + ir_guide_text[:30000] + '\n\n'
 
             '# 需要处理的 Trait JSON\n'
             '```json\n' + trait_json + '\n```\n\n'

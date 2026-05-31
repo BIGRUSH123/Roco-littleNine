@@ -67,7 +67,7 @@ class BattleVMEngine:
 
     def __init__(self, registry: ObserverRegistry | None = None):
         self.registry = registry if registry is not None else ObserverRegistry()
-        self.trait_loader = TraitLoader(self.registry)  # IR_RISC trait pipeline
+        self.trait_loader = TraitLoader(self.registry)  # IR_GUIDE trait pipeline
         # Burst tracking: team → list of (skill_name, effects)
         self._burst_effects: dict[str, list[tuple[str, list[dict]]]] = {"A": [], "B": []}
         # Distinct burst skill names per team (for burst_triggered_count)

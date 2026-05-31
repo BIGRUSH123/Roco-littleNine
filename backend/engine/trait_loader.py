@@ -1,6 +1,6 @@
 """TraitLoader — load trait JSON and register Observers with battle engine.
 
-The entry point for the IR_RISC.md trait pipeline:
+The entry point for the IR_GUIDE.md trait pipeline:
   data/traits/*.json → TraitToObserver.compile() → ObserverRegistry.register()
 """
 
