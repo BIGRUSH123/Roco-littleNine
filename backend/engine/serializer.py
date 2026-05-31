@@ -360,3 +360,48 @@ def globals_from_dict(d: dict) -> Any:
     g.mark_effects["A"] = [effect_from_dict(m) for m in d.get("marks_a", [])]
     g.mark_effects["B"] = [effect_from_dict(m) for m in d.get("marks_b", [])]
     return g
+
+
+# ═══════════════════════════════════════════════════════════════
+# VM engine state serialization
+# ═══════════════════════════════════════════════════════════════
+
+def vm_state_to_dict(vm_engine) -> dict:
+    """Extract VM engine mutable state for serialization."""
+    return {
+        "counter_values": dict(vm_engine._counter_values),
+        "burst_effects": {
+            team: [(name, list(effects)) for name, effects in items]
+            for team, items in vm_engine._burst_effects.items()
+        },
+        "burst_names": {
+            team: list(names) for team, names in vm_engine._burst_names.items()
+        },
+        "skill_history": {
+            str(sprite_id): [
+                (name, list(effects), dict(tags))
+                for name, effects, tags in history
+            ]
+            for sprite_id, history in vm_engine._skill_history.items()
+        },
+    }
+
+
+def vm_state_restore(vm_engine, state: dict) -> None:
+    """Restore VM engine mutable state from dict (in-place mutation)."""
+    vm_engine._counter_values = dict(state.get("counter_values", {}))
+    vm_engine._burst_effects = {
+        team: [(name, list(effects)) for name, effects in items]
+        for team, items in state.get("burst_effects", {}).items()
+    }
+    vm_engine._burst_names = {
+        team: set(names)
+        for team, names in state.get("burst_names", {}).items()
+    }
+    vm_engine._skill_history = {
+        int(sprite_id): [
+            (name, list(effects), dict(tags))
+            for name, effects, tags in history
+        ]
+        for sprite_id, history in state.get("skill_history", {}).items()
+    }
