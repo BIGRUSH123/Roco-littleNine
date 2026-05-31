@@ -1,7 +1,6 @@
 """backend/sim/resolver.py — 技能效果解析器
 
-保留功能：应对判断、伤害计算（旧公式，agent.py 使用）、回合末结算。
-VM 引擎使用 backend/vm/damage.py 的 calc_damage 公式。
+保留功能：应对判断、伤害计算（委托 vm/damage.py）、回合末结算。
 """
 
 from __future__ import annotations
@@ -58,11 +57,12 @@ class SkillResolver:
         use: SkillUse, globals_: GlobalEffects,
         attacker_team: str = 'A',
     ) -> tuple[int, list[str]]:
-        """伤害公式 (v2):
-        伤害 = 39/41 * 基础攻击/基础防御 * (技能威力*应对威力加成+固定威力) * 百分比威力
-               * 本系加成(125%) * 克制关系 * 天气影响 * (1-减伤) * (1+攻方修正-防方修正)
-               * 连击 * 伤害倍率
+        """伤害公式: 39/41 * atk/def * (威力*应对+固定) * 本系 * 克制 * 天气 * 减伤 * 修正 * 连击 * 倍率。
+
+        收集输入后委托 vm/damage.calc_damage 执行核心运算。
         """
+        from backend.vm.damage import calc_damage as _vm_damage
+
         events: list[str] = []
         bs = use.battle_skill
 
@@ -86,34 +86,35 @@ class SkillResolver:
         atk_stage = atk_steps / _STEP_PCT
         def_stage = def_steps / _STEP_PCT
 
-        counter_power_mult = use.counter_power_mult
         additive_power = (
             attacker.power_mod * 10
             + globals_.mark_power_bonus(attacker_team, bs)
             + use.modifiers.get('power_bonus', 0)
         )
-        power_term = round((bs.power * counter_power_mult + additive_power) * use.power_mult)
-        if power_term <= 0:
-            return 0, events
 
         type_mult = SkillResolver._get_type_mult(bs, attacker, defender)
         use.modifiers['type_mult'] = type_mult
-        weather_mult = globals_.weather_damage_mult(bs.element or '')
 
         mark_mult = globals_.mark_damage_mult(attacker_team, use.is_first)
         mark_bonus = mark_mult - 1.0
 
-        stab_mult = SkillResolver._get_stab(bs, attacker)
-
-        core = (37 / 41) * atk_base / def_base * power_term
-        core *= stab_mult * type_mult * weather_mult * (1.0 - use.damage_reduction)
-        core *= (1.0 + atk_stage - def_stage + mark_bonus)
-        core *= use.multi_hit
-        core *= use.damage_mult
-
-        if use.damage_reduction >= 1.0:
-            return 0, events
-        damage = max(1, round(core))
+        damage = _vm_damage(
+            power=bs.power,
+            atk_base=atk_base,
+            def_base=def_base,
+            atk_stage=atk_stage,
+            def_stage=def_stage,
+            stab_mult=SkillResolver._get_stab(bs, attacker),
+            type_mult=type_mult,
+            weather_mult=globals_.weather_damage_mult(bs.element or ''),
+            damage_reduction=use.damage_reduction,
+            power_mult=use.power_mult,
+            counter_power_mult=use.counter_power_mult,
+            additive_power=additive_power,
+            damage_mult=use.damage_mult,
+            combo_count=use.multi_hit,
+            mark_bonus=mark_bonus,
+        )
         return damage, events
 
     @staticmethod

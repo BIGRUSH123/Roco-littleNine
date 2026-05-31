@@ -26,9 +26,9 @@ def calc_damage(
 ) -> int:
     """Compute final damage amount.
 
-    Formula (matches prototype resolver.calc_damage):
+    Formula (matches resolver.calc_damage):
         power_term = round((power * counter_power_mult + additive_power) * power_mult)
-        core = 37/41 * atk_base / def_base * power_term
+        core = 39/41 * atk_base / def_base * power_term
         core *= stab * type * weather * (1 - damage_reduction)
         core *= (1 + atk_stage - def_stage + mark_bonus)
         core *= combo_count * damage_mult
@@ -60,7 +60,7 @@ def calc_damage(
     if power_term <= 0:
         return 0
 
-    core = (37.0 / 41.0) * atk_base / def_base * power_term
+    core = (39.0 / 41.0) * atk_base / def_base * power_term
     core *= stab_mult * type_mult * weather_mult * (1.0 - damage_reduction)
     core *= (1.0 + atk_stage - def_stage + mark_bonus)
     core *= combo_count * damage_mult
