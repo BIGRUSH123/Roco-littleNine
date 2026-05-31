@@ -405,3 +405,150 @@ def vm_state_restore(vm_engine, state: dict) -> None:
         ]
         for sprite_id, history in state.get("skill_history", {}).items()
     }
+
+
+# ═══════════════════════════════════════════════════════════════
+# RoundRecord serialization
+# ═══════════════════════════════════════════════════════════════
+
+def round_record_to_dict(rec) -> dict:
+    """Serialize RoundRecord to dict (supplements existing to_message())."""
+    return {
+        "turn": rec.turn,
+        "weather": rec.weather,
+        "sprite_a": rec.sprite_a,
+        "sprite_b": rec.sprite_b,
+        "first_team": rec.first_team,
+        "turn_start_events": list(rec.turn_start_events),
+        "action_a": {
+            "team": rec.action_a.team,
+            "actor": rec.action_a.actor,
+            "kind": rec.action_a.kind,
+            "skill_name": rec.action_a.skill_name,
+            "events": list(rec.action_a.events),
+        } if rec.action_a else None,
+        "action_b": {
+            "team": rec.action_b.team,
+            "actor": rec.action_b.actor,
+            "kind": rec.action_b.kind,
+            "skill_name": rec.action_b.skill_name,
+            "events": list(rec.action_b.events),
+        } if rec.action_b else None,
+        "turn_end_events": list(rec.turn_end_events),
+    }
+
+
+def round_record_from_dict(d: dict) -> Any:
+    """Reconstruct RoundRecord from dict."""
+    from backend.sim.round_record import ActionRecord, RoundRecord
+    rec = RoundRecord(
+        turn=d["turn"], weather=d.get("weather", ""),
+        sprite_a=d.get("sprite_a", ""), sprite_b=d.get("sprite_b", ""),
+        first_team=d.get("first_team", ""),
+    )
+    rec.turn_start_events = list(d.get("turn_start_events", []))
+    rec.turn_end_events = list(d.get("turn_end_events", []))
+    if d.get("action_a"):
+        a = d["action_a"]
+        rec.action_a = ActionRecord(
+            team=a["team"], actor=a["actor"], kind=a["kind"],
+            skill_name=a.get("skill_name", ""), events=list(a.get("events", [])),
+        )
+    if d.get("action_b"):
+        b = d["action_b"]
+        rec.action_b = ActionRecord(
+            team=b["team"], actor=b["actor"], kind=b["kind"],
+            skill_name=b.get("skill_name", ""), events=list(b.get("events", [])),
+        )
+    return rec
+
+
+# ═══════════════════════════════════════════════════════════════
+# Full battle serialization
+# ═══════════════════════════════════════════════════════════════
+
+def battle_to_dict(battle) -> dict:
+    """Serialize full Battle state."""
+    return {
+        "version": "1.0",
+        "type": "match",
+        "turn": battle.turn,
+        "winner": battle.winner,
+        "player_a": player_to_dict(battle.player_a),
+        "player_b": player_to_dict(battle.player_b),
+        "globals": globals_to_dict(battle.globals),
+        "weather": battle.globals.weather,
+        "log": [round_record_to_dict(r) for r in battle.log],
+        "vm_state": vm_state_to_dict(battle._vm_engine),
+        "team_counters": {
+            "A": dict(battle.team_counters.get("A", {})),
+            "B": dict(battle.team_counters.get("B", {})),
+        },
+        "pending_effects": {
+            team: [effect_to_dict(e) for e in effects]
+            for team, effects in battle.pending_effects.items()
+        },
+        "scheduled_effects": [
+            {
+                "turn": se["turn"], "phase": se["phase"],
+                "effects": list(se["effects"]),
+                "source_name": se["source"].name if se.get("source") else "",
+                "ctx_snapshot": dict(se.get("ctx_snapshot", {})),
+            }
+            for se in battle.scheduled_effects
+        ],
+    }
+
+
+def battle_from_dict(d: dict, species_db, skill_loader) -> Any:
+    """Reconstruct full Battle from dict."""
+    from backend.sim.battle import Battle
+
+    player_a = player_from_dict(d["player_a"], species_db.get, skill_loader)
+    player_b = player_from_dict(d["player_b"], species_db.get, skill_loader)
+
+    battle = Battle(
+        player_a=player_a, player_b=player_b,
+        weather=d.get("weather", ""),
+        verbose=False,
+    )
+    battle.turn = d.get("turn", 0)
+    battle.winner = d.get("winner")
+
+    gd = d.get("globals", {})
+    from backend.sim.globals import GlobalEffects
+    battle.globals = globals_from_dict(gd)
+
+    battle.log = [round_record_from_dict(r) for r in d.get("log", [])]
+
+    vm_state_restore(battle._vm_engine, d.get("vm_state", {}))
+
+    battle.team_counters = {
+        "A": dict(d.get("team_counters", {}).get("A", {})),
+        "B": dict(d.get("team_counters", {}).get("B", {})),
+    }
+
+    battle.pending_effects = {
+        team: [effect_from_dict(e) for e in effects]
+        for team, effects in d.get("pending_effects", {}).items()
+    }
+
+    battle.scheduled_effects = []
+    for se in d.get("scheduled_effects", []):
+        source_name = se.get("source_name", "")
+        source_sprite = None
+        for s in player_a.team + player_b.team:
+            if s.name == source_name:
+                source_sprite = s
+                break
+        battle.scheduled_effects.append({
+            "turn": se["turn"], "phase": se["phase"],
+            "effects": list(se.get("effects", [])),
+            "source": source_sprite,
+            "ctx_snapshot": dict(se.get("ctx_snapshot", {})),
+        })
+
+    battle.species_db = species_db
+    battle.skill_loader = skill_loader
+
+    return battle
