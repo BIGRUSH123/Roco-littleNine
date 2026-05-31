@@ -24,6 +24,11 @@ export const useBattleStore = defineStore('battle', () => {
   const oppLives = ref(3)
   const selfItem = ref(null)
   const pendingEscape = ref(null)
+  const sessionId = ref('')
+
+  const availableSnapshotTurns = computed(() => {
+    return turnSnapshots.value.map(s => s.turn).sort((a, b) => a - b)
+  })
 
   function updateFromResponse(data) {
     if (data.turn !== undefined) turn.value = data.turn
@@ -95,6 +100,7 @@ export const useBattleStore = defineStore('battle', () => {
     oppLives.value = 3
     selfItem.value = null
     pendingEscape.value = null
+    sessionId.value = ''
   }
 
   return {
@@ -104,6 +110,7 @@ export const useBattleStore = defineStore('battle', () => {
     turnSnapshots, replayTurn,
     winner, isFinished,
     activeIndexA, activeIndexB, selfLives, oppLives, selfItem, pendingEscape,
+    sessionId, availableSnapshotTurns,
     updateFromResponse, setReplayTurn, resetBattle,
   }
 })

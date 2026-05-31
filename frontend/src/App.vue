@@ -7,6 +7,7 @@ import BattleArena from './components/BattleArena.vue'
 import BattleLog from './components/BattleLog.vue'
 import TypeChart from './components/TypeChart.vue'
 import TimelineReplay from './components/TimelineReplay.vue'
+import ExportDialog from './components/ExportDialog.vue'
 
 const battleStore = useBattleStore()
 const spriteAssets = useSpriteAssetStore()
@@ -22,6 +23,9 @@ const skillMap = ref({})
 const typeChart = ref({})
 const debugMode = ref(false)
 const showReplay = ref(false)
+const showExport = ref(false)
+const showBacktrack = ref(false)
+const exportMessage = ref('')
 
 onMounted(async () => {
   try {
@@ -250,6 +254,87 @@ const handleDebugAction = async ({ actionA, actionB }) => {
   }
 }
 
+const handleRestore = async (turn) => {
+  if (isProcessing.value || !battleState.value) return
+  try {
+    isProcessing.value = true
+    const res = await fetch(`${API_BASE}/battle/restore`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        session_id: battleState.value.session_id,
+        turn: turn,
+      })
+    })
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}))
+      throw new Error(err.detail || `回溯失败 (${res.status})`)
+    }
+    const data = await res.json()
+    battleState.value = data.state
+    battleStore.resetBattle()
+    battleStore.updateFromResponse(data.state)
+    battleLogs.value = [`◀ 已回溯至第 ${data.restored_turn} 回合`]
+    showBacktrack.value = false
+  } catch (e) {
+    battleError.value = e.message || '回溯失败'
+    setTimeout(() => { battleError.value = '' }, 4000)
+  } finally {
+    isProcessing.value = false
+  }
+}
+
+const handleExportMatch = async ({ name }) => {
+  if (!battleState.value) return
+  try {
+    const res = await fetch(`${API_BASE}/battle/export`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        session_id: battleState.value.session_id,
+        name: name,
+      })
+    })
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}))
+      throw new Error(err.detail || `导出失败 (${res.status})`)
+    }
+    const data = await res.json()
+    exportMessage.value = `已导出: ${data.name}`
+    setTimeout(() => { exportMessage.value = '' }, 3000)
+  } catch (e) {
+    battleError.value = e.message || '导出失败'
+    setTimeout(() => { battleError.value = '' }, 4000)
+  }
+}
+
+const handleImportMatch = async (name) => {
+  try {
+    isProcessing.value = true
+    const res = await fetch(`${API_BASE}/battle/import`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name })
+    })
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}))
+      throw new Error(err.detail || `导入失败 (${res.status})`)
+    }
+    const data = await res.json()
+    battleState.value = data
+    battleStore.resetBattle()
+    battleStore.updateFromResponse(data)
+    battleLogs.value = [`已导入对局: ${name}`]
+    currentPhase.value = 'battle'
+    showExport.value = false
+  } catch (e) {
+    battleError.value = e.message || '导入失败'
+    setTimeout(() => { battleError.value = '' }, 4000)
+  } finally {
+    isProcessing.value = false
+  }
+}
+
 const restartGame = () => {
   currentPhase.value = 'selection'
   battleState.value = null
@@ -293,12 +378,53 @@ const restartGame = () => {
         <span class="text-sm text-[#6B5E4F]">
           {{ battleState?.weather ? `天气: ${battleState.weather}` : '无天气' }}
         </span>
+        <!-- Backtrack Button -->
+        <div class="relative">
+          <button
+            @click="showBacktrack = !showBacktrack"
+            :disabled="battleStore.availableSnapshotTurns.length === 0"
+            class="px-3 py-1.5 bg-[#7E57C2] hover:bg-[#6A4DAB] disabled:opacity-30 disabled:cursor-not-allowed text-white text-xs font-bold rounded-xl transition-colors mr-1 shadow-[0_2px_0_rgba(61,43,31,0.15)]"
+            title="回溯到之前回合"
+          >
+            ◀ 回溯
+          </button>
+          <!-- Backtrack Dropdown -->
+          <Transition name="fade">
+            <div v-if="showBacktrack" class="absolute top-full right-0 mt-1 bg-white border border-[#D4C8B8] rounded-xl shadow-xl z-40 min-w-[140px] py-1">
+              <div class="px-3 py-1.5 text-[10px] text-[#B0A595] font-bold tracking-wide">选择回溯回合</div>
+              <button
+                v-for="t in battleStore.availableSnapshotTurns"
+                :key="t"
+                @click="handleRestore(t)"
+                :disabled="isProcessing"
+                class="w-full text-left px-3 py-1.5 text-sm text-[#3D2B1F] hover:bg-[#F5F0E6] disabled:opacity-40 transition-colors"
+              >
+                回合 {{ t }}
+                <span v-if="t === battleState?.turn" class="text-[10px] text-[#B0A595] ml-1">(当前)</span>
+              </button>
+              <div v-if="battleStore.availableSnapshotTurns.length === 0" class="px-3 py-2 text-xs text-[#B0A595]">
+                暂无可回溯回合
+              </div>
+            </div>
+          </Transition>
+        </div>
+        <!-- Backtrack backdrop (click outside to close) -->
+        <div v-if="showBacktrack" class="fixed inset-0 z-30" @click="showBacktrack = false"></div>
+
+        <!-- Export Button -->
+        <button
+          @click="showExport = true"
+          class="px-3 py-1.5 bg-[#5C8D6E] hover:bg-[#4A7D5E] text-white text-xs font-bold rounded-xl transition-colors mr-1 shadow-[0_2px_0_rgba(61,43,31,0.15)]"
+        >
+          导出/导入
+        </button>
+
         <button
           @click="showReplay = true"
           :disabled="battleStore.turnSnapshots.length === 0"
-          class="ml-auto px-3 py-1.5 bg-[#C9A96E] hover:bg-[#B0985D] disabled:opacity-30 disabled:cursor-not-allowed text-white text-xs font-bold rounded-xl transition-colors mr-2 shadow-[0_2px_0_rgba(61,43,31,0.15)]"
+          class="px-3 py-1.5 bg-[#C9A96E] hover:bg-[#B0985D] disabled:opacity-30 disabled:cursor-not-allowed text-white text-xs font-bold rounded-xl transition-colors mr-2 shadow-[0_2px_0_rgba(61,43,31,0.15)]"
         >
-          ⏸ 时间线回放
+          回放
         </button>
         <button
           v-if="debugMode"
@@ -359,6 +485,23 @@ const restartGame = () => {
 
     <!-- Timeline Replay Dialog -->
     <TimelineReplay :is-open="showReplay" @close="showReplay = false" />
+
+    <!-- Export Dialog -->
+    <ExportDialog
+      :is-open="showExport"
+      :api-base="API_BASE"
+      :current-turn="battleState?.turn || 0"
+      @close="showExport = false"
+      @exported="handleExportMatch"
+      @imported="handleImportMatch"
+    />
+
+    <!-- Export Success Toast -->
+    <Transition name="fade">
+      <div v-if="exportMessage" class="fixed top-16 left-1/2 -translate-x-1/2 z-50 bg-[#F0F7F0] border border-[#5C8D6E] text-[#5C8D6E] text-xs px-4 py-2 rounded-xl shadow-lg">
+        {{ exportMessage }}
+      </div>
+    </Transition>
 
     <!-- Game Over Overlay -->
     <div v-if="battleState?.is_finished" class="fixed inset-0 bg-[#3D2B1F]/60 flex items-center justify-center z-50">
