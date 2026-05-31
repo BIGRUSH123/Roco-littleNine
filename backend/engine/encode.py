@@ -1,6 +1,6 @@
 """backend/engine/encode.py — Battle 状态 → 固定长度向量，供神经网络输入。
 
-总维度: 394
+总维度: 446
 
 约定:
 - 空槽位（阵亡 / 不存在）→ 全 0
@@ -10,26 +10,14 @@
 
 from __future__ import annotations
 
+import json
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 import numpy as np
 
 from backend.common.constants import STAT_KEYS
-from backend.sim.effects import (
-    AbnormalEffect as SkillAbnormal,
-    ConditionalEffect,
-    MarkEffect as SkillMark,
-    SpecialEffect,
-    StatEffect,
-    WeatherEffect as SkillWeather,
-)
-from backend.vm.effect import (
-    AbnormalEffect as RuntimeAbnormal,
-    MarkEffect as RuntimeMark,
-    StatBuffEffect,
-    StateEffect,
-)
-from backend.vm.ir_skill import WhenBlock
+from backend.vm.effect import ObserverEffect, StateEffect
 
 if TYPE_CHECKING:
     from backend.sim.battle import Battle
@@ -64,14 +52,20 @@ DEVOTION_ORDER: tuple[str, ...] = (
     '奉献1', '奉献2', '奉献3', '奉献4', '奉献5',
 )
 
+ITEM_TYPES: tuple[str, ...] = ('进化之力', '愿力')
+
 BUFF_KEYS: tuple[str, ...] = (
     'atk', 'def', 'sp_atk', 'sp_def', 'speed',
     'power_mult', 'damage_mult', 'damage_reduction', 'life_drain', 'combo',
 )
 
-STAT_MAP: dict[str, int] = {k: i for i, k in enumerate(STAT_KEYS)}  # {'atk':1, 'def':2, ...}
+COUNTER_ORDER: tuple[str, ...] = ('无', '攻击', '防御', '状态')
 
-_EMPTY = object()
+# 技能效果惰性缓存（工厂创建技能时 effects=[]，需从 JSON 加载）
+_skills_dir: Path | None = None
+_skill_effects_cache: dict[str, list] = {}
+
+STAT_MAP: dict[str, int] = {k: i for i, k in enumerate(STAT_KEYS)}
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -79,7 +73,7 @@ _EMPTY = object()
 # ═══════════════════════════════════════════════════════════════════
 
 def encode_battle_state(battle: Battle, *, mask_opp_bench: bool = False) -> np.ndarray:
-    """将 Battle 状态编码为 (394,) float32 向量。
+    """将 Battle 状态编码为 (446,) float32 向量。
 
     Args:
         battle: 对局对象。
@@ -87,33 +81,33 @@ def encode_battle_state(battle: Battle, *, mask_opp_bench: bool = False) -> np.n
     """
     pieces: list[np.ndarray] = []
 
-    # A: 全局状态 (52)
+    # A: 全局状态 (56)
     pieces.append(_encode_global(battle))
 
-    # B: 己方场上精灵 (96)
+    # B: 己方场上精灵 (115)
     player_a: Player = battle.player_a
     active_a: Sprite | None = _active_or_none(player_a)
     opp_active: Sprite | None = _active_or_none(battle.player_b)
     pieces.append(_encode_active_sprite(active_a, player_a, battle, opp_active))
 
-    # C: 己方板凳 ×5 (75)
+    # C: 己方板凳 ×5 (80)
     pieces.append(_encode_bench_all(player_a, opp_active, mask_unknown=False))
 
-    # D: 对方场上精灵 (96)
+    # D: 对方场上精灵 (115)
     player_b: Player = battle.player_b
     active_b: Sprite | None = _active_or_none(player_b)
     pieces.append(_encode_active_sprite(active_b, player_b, battle, active_a))
 
-    # E: 对方板凳 ×5 (75)
+    # E: 对方板凳 ×5 (80)
     pieces.append(_encode_bench_all(player_b, active_a, mask_unknown=mask_opp_bench))
 
     result = np.concatenate(pieces)
-    assert result.shape == (394,), f"维度错误: {result.shape}"
+    assert result.shape == (446,), f"维度错误: {result.shape}"
     return result.astype(np.float32)
 
 
 # ═══════════════════════════════════════════════════════════════════
-# 模块 A: 全局状态 (52)
+# 模块 A: 全局状态 (56)
 # ═══════════════════════════════════════════════════════════════════
 
 def _encode_global(battle: Battle) -> np.ndarray:
@@ -129,7 +123,7 @@ def _encode_global(battle: Battle) -> np.ndarray:
 
     # 天气 (3)
     w = g.weather or ""
-    for wt in WEATHER_ORDER[:3]:  # rain/sand/snow only, 暴风雪 is snow variant
+    for wt in WEATHER_ORDER[:3]:
         out.append(1.0 if w == wt else 0.0)
 
     # 天气剩余 (1)
@@ -161,10 +155,10 @@ def _encode_global(battle: Battle) -> np.ndarray:
     out.append(a.lives / 6.0)
     out.append(b.lives / 6.0)
 
-    # 己方道具 (4)
+    # 己方道具 (6)
     out.extend(_encode_item(a.item))
 
-    # 对方道具 (4)
+    # 对方道具 (6)
     out.extend(_encode_item(b.item))
 
     # 己方奉献 (5)
@@ -182,17 +176,21 @@ def _encode_global(battle: Battle) -> np.ndarray:
 
 def _encode_item(item) -> list[float]:
     if item is None:
-        return [0.0, 0.0, 0.0, 0.0]
-    return [
+        return [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    out = [
         1.0,                                           # has
         item.uses / max(item.max_uses, 1),             # uses ratio
         item.last_use_turn / max(item.cooldown_turns, 1) if item.cooldown_turns > 0 else 0.0,
-        1.0 if getattr(item, 'is_exhausted', False) else 0.0,
+        1.0 if item.is_exhausted else 0.0,
     ]
+    # 道具类型 one-hot (2)
+    for it in ITEM_TYPES:
+        out.append(1.0 if item.name == it else 0.0)
+    return out
 
 
 # ═══════════════════════════════════════════════════════════════════
-# 模块 B / D: 场上精灵 (96)
+# 模块 B / D: 场上精灵 (115)
 # ═══════════════════════════════════════════════════════════════════
 
 def _encode_active_sprite(
@@ -200,11 +198,11 @@ def _encode_active_sprite(
     battle: Battle | None, opp_active: Sprite | None,
 ) -> np.ndarray:
     if sprite is None:
-        return np.zeros(96, dtype=np.float32)
+        return np.zeros(115, dtype=np.float32)
 
     out: list[float] = []
 
-    # ── 本体 (47) ──
+    # ── 本体 (51) ──
 
     # HP / 能量 (4)
     out.append(sprite.current_hp / max(sprite.max_hp, 1))
@@ -230,7 +228,6 @@ def _encode_active_sprite(
     # 异常状态 (7)
     for an in ABNORMAL_ORDER:
         stacks = _get_abnormal_stacks(sprite, an)
-        # 每种异常有不同 max，归一化
         max_s = _abnormal_max(an)
         out.append(stacks / max(max_s, 1))
 
@@ -247,7 +244,12 @@ def _encode_active_sprite(
     # 锁换宠 (1)
     out.append(1.0 if getattr(sprite, 'locked_turns', 0) > 0 else 0.0)
 
-    # ── 技能 ×4 (48) ──
+    # 迸发 / 额外行动 / 待返场 (3)
+    out.append(1.0 if sprite.first_action else 0.0)
+    out.append(1.0 if sprite.extra_skill_use else 0.0)
+    out.append(1.0 if sprite.pending_return else 0.0)
+
+    # ── 技能 ×4 (64) ──
     skills: list = sprite.skills or []
     for i in range(4):
         sk = skills[i] if i < len(skills) else None
@@ -257,9 +259,9 @@ def _encode_active_sprite(
 
 
 def _encode_skill(sk, sprite: Sprite, opp_sprite: Sprite | None) -> list[float]:
-    """每技能 12 维。sk 为 None 时返回全零。"""
+    """每技能 16 维。sk 为 None 时返回全零。"""
     if sk is None:
-        return [0.0] * 12
+        return [0.0] * 16
 
     out: list[float] = []
 
@@ -268,8 +270,7 @@ def _encode_skill(sk, sprite: Sprite, opp_sprite: Sprite | None) -> list[float]:
     out.append(eff_power / 300.0)
 
     # 2. 有效能耗（sk.energy_cost 属性已包含 _modifiers + _mech_energy_reduction）
-    eff_cost = sk.energy_cost
-    out.append(eff_cost / 15.0)
+    out.append(sk.energy_cost / 15.0)
 
     # 3. 对对手克制倍率
     if opp_sprite is not None:
@@ -277,7 +278,7 @@ def _encode_skill(sk, sprite: Sprite, opp_sprite: Sprite | None) -> list[float]:
         adv = _type_advantage(sk.element, opp_el)
     else:
         adv = 1.0
-    out.append((adv - 0.5) / 1.5)  # 0.5→0, 1→0.33, 2→1
+    out.append((adv - 0.5) / 1.5)
 
     # 4. 本系加成
     out.append(1.0 if sk.element in getattr(sprite.species, 'elements', []) else 0.0)
@@ -306,20 +307,38 @@ def _encode_skill(sk, sprite: Sprite, opp_sprite: Sprite | None) -> list[float]:
     else:
         out.append(0.5)
 
-    # 8-12: 效果摘要 (5)
-    effects = sk.effects if sk.effects else []
-    flat = _flatten_effects(effects)
+    # 8-12: 效果摘要 (5) — 从 JSON 加载（工厂创建的 BattleSkill 不含 effects）
+    flat = _flatten_effects(_get_skill_effects(sk.name))
     out.append(_summary_abnormal(flat) if flat else 0.0)
     out.append(_summary_stat_stage(flat) if flat else 0.0)
     out.append(_summary_heal_energy(flat) if flat else 0.0)
     out.append(_summary_weather(flat) if flat else 0.0)
     out.append(_summary_special_tag(flat) if flat else 0.0)
 
+    # 13. 应对类型
+    counter = getattr(sk, 'counter', '无') or '无'
+    for i, ct in enumerate(COUNTER_ORDER):
+        if ct == counter:
+            out.append(i / 3.0)
+            break
+    else:
+        out.append(0.0)
+
+    # 14. 连击数
+    combo = getattr(sk, 'combo', 1) or 1
+    out.append(max(0, combo) / 5.0)
+
+    # 15. 迸发技能
+    out.append(1.0 if getattr(sk, 'has_burst', False) else 0.0)
+
+    # 16. 下次攻击倍率
+    out.append((getattr(sk, 'next_attack_mult', 1.0) - 1.0) / 1.0)
+
     return out
 
 
 # ═══════════════════════════════════════════════════════════════════
-# 模块 C / E: 板凳精灵 (每只 15, ×5 = 75)
+# 模块 C / E: 板凳精灵 (每只 16, ×5 = 80)
 # ═══════════════════════════════════════════════════════════════════
 
 def _encode_bench_all(
@@ -334,13 +353,13 @@ def _encode_bench_all(
     for slot in range(5):
         if slot < len(bench):
             if mask_unknown:
-                pieces.append(np.full(15, -1.0, dtype=np.float32))
+                pieces.append(np.full(16, -1.0, dtype=np.float32))
             else:
                 pieces.append(_encode_bench_sprite(bench[slot], player, opp_active))
         else:
-            pieces.append(np.zeros(15, dtype=np.float32))
+            pieces.append(np.zeros(16, dtype=np.float32))
 
-    result = np.concatenate(pieces) if pieces else np.zeros(75, dtype=np.float32)
+    result = np.concatenate(pieces) if pieces else np.zeros(80, dtype=np.float32)
     return result
 
 
@@ -417,6 +436,9 @@ def _encode_bench_sprite(
     out.append(1.0 if 'post_entry' in trait_listeners else 0.0)
     out.append(1.0 if 'post_leave' in trait_listeners else 0.0)
 
+    # 16. 迸发就绪（入场后首次行动）
+    out.append(1.0 if sprite.first_action else 0.0)
+
     return np.array(out, dtype=np.float32)
 
 
@@ -460,7 +482,6 @@ def _get_abnormal_stacks(sprite: Sprite, name: str) -> int:
 
 
 def _abnormal_max(name: str) -> int:
-    """各异常状态的参考最大层数（用于归一化）。"""
     return {
         '灼烧': 50,
         '冻结': 20,
@@ -473,20 +494,12 @@ def _abnormal_max(name: str) -> int:
 
 
 def _encode_buff(sprite: Sprite, key: str) -> float:
-    """将 buff/debuff 编码为有符号归一化值。
-
-    倍率型 (power_mult, damage_mult 等): value - 1.0
-    步数型 (atk, def 等): steps / 6
-    绝对值型 (combo): steps 直接取
-    """
-    if key in STAT_KEYS:  # atk, def, sp_atk, sp_def, speed
+    if key in STAT_KEYS:
         steps = sprite._sum_steps(key)
         return np.clip(steps / 6.0, -1.0, 1.0)
     if key in ('power_mult', 'damage_mult', 'damage_reduction', 'life_drain'):
         val = sprite._modifiers.get(key, 0.0)
-        if key == 'damage_reduction':
-            return val  # 增量型，0.0-1.0
-        return val  # power_mult/damage_mult 可能存总值或增量
+        return val
     if key in ('combo',):
         return sprite._modifiers.get(key, 0.0) / 6.0
     if key == 'power':
@@ -495,12 +508,10 @@ def _encode_buff(sprite: Sprite, key: str) -> float:
 
 
 def _effective_priority(sprite: Sprite) -> float:
-    """当前有效先制度（考虑 sprite 级和技能级 modifier）。"""
     return float(np.clip(sprite.priority_mod, -3.0, 3.0))
 
 
 def _classify_marks(g, team: str) -> tuple[list, list]:
-    """将团队印记分为正/负两类。返回 (pos_list, neg_list)。"""
     marks: list = (getattr(g, 'mark_effects', {}) or {}).get(team, [])
     pos: list = []
     neg: list = []
@@ -527,103 +538,114 @@ def _one_hot(out: list[float], value: str, order: tuple[str, ...]) -> None:
 
 
 # ═══════════════════════════════════════════════════════════════════
-# 技能效果摘要（展平 + 分类）
+# 技能效果惰性加载（绕过工厂的 effects=[], 直接读 JSON op 格式）
 # ═══════════════════════════════════════════════════════════════════
 
-def _flatten_effects(effects: list) -> list:
-    """递归展平技能效果列表（处理 ConditionalEffect / WhenBlock 嵌套）。"""
-    result: list = []
-    for e in effects:
-        # 编译后的 WhenBlock
-        if isinstance(e, WhenBlock):
-            for branch in (e.then + e.else_ + e.elif_):
-                result.extend(_flatten_effects(branch))
-        elif isinstance(e, (tuple, list)):
-            result.extend(_flatten_effects(e))
-        # Dataclass 的 ConditionalEffect
-        elif isinstance(e, ConditionalEffect):
-            if e.then:
-                result.extend(_flatten_effects(e.then))
+def _get_skills_dir() -> Path:
+    global _skills_dir
+    if _skills_dir is None:
+        _skills_dir = Path(__file__).resolve().parent.parent.parent / 'data' / 'skills'
+    return _skills_dir
+
+
+def _get_skill_effects(name: str) -> list[dict]:
+    """从 JSON 惰性加载技能的完整效果列表（原始 dict 格式）。"""
+    if not name:
+        return []
+    if name not in _skill_effects_cache:
+        path = _get_skills_dir() / f'{name}.json'
+        if path.exists():
+            data = json.loads(path.read_text(encoding='utf-8'))
+            _skill_effects_cache[name] = data.get('effects', [])
         else:
+            _skill_effects_cache[name] = []
+    return _skill_effects_cache[name]
+
+
+# ═══════════════════════════════════════════════════════════════════
+# 技能效果摘要（展平 JSON op 格式 + 分类）
+# ═══════════════════════════════════════════════════════════════════
+
+def _flatten_effects(effects: list) -> list[dict]:
+    """递归展平技能效果列表（处理 when/then/else + observer then 嵌套）。"""
+    result: list[dict] = []
+    for e in effects:
+        if not isinstance(e, dict):
+            continue
+        # 递归展平 then/else 分支（when 条件块 / observer 块）
+        for branch_key in ('then', 'else'):
+            branch = e.get(branch_key, [])
+            if isinstance(branch, list):
+                result.extend(_flatten_effects(branch))
+        # 顶层 op（含 observer / when 块本身）
+        if 'op' in e:
             result.append(e)
     return result
 
 
-def _summary_abnormal(flat: list) -> float:
-    """摘要: 是否施加异常 → 异常类型ID / 7。取第一个找到的。"""
+def _summary_abnormal(flat: list[dict]) -> float:
     for e in flat:
-        if isinstance(e, SkillAbnormal):
-            name = e.name
+        if e.get('op') == 'abnormal':
+            name = e.get('name', '')
             for i, an in enumerate(ABNORMAL_ORDER):
                 if an == name:
                     return (i + 1) / 7.0
     return 0.0
 
 
-def _summary_stat_stage(flat: list) -> float:
-    """摘要: 属性等级修改幅度（有符号归一化）。"""
+def _summary_stat_stage(flat: list[dict]) -> float:
     total = 0.0
     for e in flat:
-        if isinstance(e, StatEffect):
-            steps = getattr(e, 'steps', 0)
-            total += steps * 0.25  # +1 step → 0.25
-    return np.clip(total, -1.0, 1.0)  # type: ignore[return-value]
+        if e.get('op') == 'stat_stage':
+            total += e.get('steps', 0) * 0.25
+    return float(np.clip(total, -1.0, 1.0))
 
 
-def _summary_heal_energy(flat: list) -> float:
-    """摘要: 治疗/能量变化。正=回复, 负=损耗。"""
+def _summary_heal_energy(flat: list[dict]) -> float:
     for e in flat:
-        if isinstance(e, SpecialEffect):
-            name = getattr(e, 'name', '')
-            if name == 'heal' or name == 'direct_heal':
-                return getattr(e, 'value', 0.0)  # ratio like 0.3
-            if name == 'gain_energy':
-                return getattr(e, 'amount', 0) / 10.0
-            if name == 'steal_energy':
-                return getattr(e, 'amount', 0) / 10.0
-            if name == 'life_drain':
-                return getattr(e, 'value', 0.0)  # ratio
+        op = e.get('op', '')
+        if op == 'heal':
+            return e.get('ratio', 0.0)
+        if op == 'energize':
+            return e.get('amount', 0) / 10.0
+        if op == 'steal':
+            return e.get('amount', 0) / 10.0
     return 0.0
 
 
-def _summary_weather(flat: list) -> float:
-    """摘要: 天气设置 → 天气ID / 4。"""
+def _summary_weather(flat: list[dict]) -> float:
     for e in flat:
-        if isinstance(e, SkillWeather):
-            weather = getattr(e, 'weather', '')
+        if e.get('op') == 'weather':
+            name = e.get('name', '')
             for i, wt in enumerate(WEATHER_ORDER):
-                if wt == weather:
+                if wt == name:
                     return (i + 1) / 4.0
     return 0.0
 
 
-def _summary_special_tag(flat: list) -> float:
+def _summary_special_tag(flat: list[dict]) -> float:
     """摘要: 特殊标签 — 先制/蓄力/打断/印记/逃离 组合编码。
 
     bit layout: priority(16) + charge(8) + interrupt(4) + mark(2) + escape(1) = 31
     """
     bits = 0
     for e in flat:
-        if isinstance(e, SpecialEffect):
-            name = getattr(e, 'name', '')
-            if name in ('priority_bonus',):
-                bits |= 16
-            if name in ('charge',):
-                bits |= 8
-            if name in ('interrupt',):
-                bits |= 4
-            if name in ('escape', 'escape_inherit', 'force_return', 'return_self'):
-                bits |= 1
-        if isinstance(e, SkillMark):
+        op = e.get('op', '')
+        if op in ('power_mod', 'mult_mod'):
+            bits |= 16
+        if op == 'charge':
+            bits |= 8
+        if op == 'interrupt':
+            bits |= 4
+        if op == 'mark':
             bits |= 2
+        if op in ('escape', 'return'):
+            bits |= 1
     return bits / 31.0
 
 
 def _get_trait_listeners(sprite: Sprite) -> set[str]:
-    """从精灵的 active_effects 中提取特性监听时机。"""
     listeners: set[str] = set()
-    from backend.vm.effect import ObserverEffect
-
     for eff in getattr(sprite, 'active_effects', []) or []:
         if isinstance(eff, ObserverEffect):
             listen = getattr(eff, 'listen', frozenset())
