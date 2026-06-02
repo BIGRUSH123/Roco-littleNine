@@ -51,11 +51,7 @@ class Battle(BattleMechanicsMixin):
     _global_skill_cache: dict[str, "CompiledSkill"] = {}
 
     def save_mutable_state(self) -> dict:
-        """保存对战可变状态（HP/能量/effects/modifiers/印记等），用于 MCTS 仿真回滚。
-
-        只保存会随回合变化的字段，避免完整对象图深拷贝。
-        """
-        import copy
+        """保存对战可变状态，用于 MCTS 仿真回滚。只用浅拷贝，不用 deepcopy。"""
         # ── 精灵状态 ──
         sprites: list[dict] = []
         for player in (self.player_a, self.player_b):
@@ -64,7 +60,6 @@ class Battle(BattleMechanicsMixin):
                     "sprite": sprite,
                     "hp": sprite.current_hp,
                     "energy": sprite.energy,
-                    "effects": [(id(e), e, e.ttl, getattr(e, 'stacks', 0)) for e in sprite.active_effects],
                     "modifiers": dict(sprite._modifiers),
                     "charging": getattr(sprite, '_charging', False),
                     "charged_idx": getattr(sprite, '_charged_skill_index', -1),
@@ -76,37 +71,47 @@ class Battle(BattleMechanicsMixin):
                     "pending_return": getattr(sprite, 'pending_return', False),
                     "extra_skill_use": getattr(sprite, 'extra_skill_use', False),
                 })
-                # 技能级可变状态（_modifiers, cooldown, sealed）
-                skill_mods = {}
-                skill_cd = {}
-                skill_sealed = {}
-                for si, sk in enumerate(sprite.skills or []):
-                    skill_mods[si] = dict(sk._modifiers)
-                    skill_cd[si] = sk.cooldown
-                    skill_sealed[si] = sk.sealed
-                sprites[-1]["skill_mods"] = skill_mods
-                sprites[-1]["skill_cd"] = skill_cd
-                sprites[-1]["skill_sealed"] = skill_sealed
-        # ── VM 引擎可变状态（burst/counters/history 跨仿真会累积，必须快照） ──
+                # 效果：只保存 TTL 和 stacks（effect 对象引用不变）
+                eff_snap = {}
+                for e in sprite.active_effects:
+                    eff_snap[id(e)] = (e, e.ttl, getattr(e, 'stacks', 0))
+                sprites[-1]["effects"] = eff_snap
+                # 技能级可变状态
+                sprites[-1]["skill_mods"] = {
+                    si: dict(sk._modifiers)
+                    for si, sk in enumerate(sprite.skills or [])
+                }
+                sprites[-1]["skill_cd"] = {
+                    si: sk.cooldown
+                    for si, sk in enumerate(sprite.skills or [])
+                }
+                sprites[-1]["skill_sealed"] = {
+                    si: sk.sealed
+                    for si, sk in enumerate(sprite.skills or [])
+                }
+        # ── 印记：只保存 stacks（MarkEffect 对象引用不变） ──
+        mark_snap = {}
+        for team, marks in self.globals.mark_effects.items():
+            mark_snap[team] = [(m, m.stacks) for m in marks]
+        # ── VM 引擎：浅拷贝字典/集合 ──
         vm = self._vm_engine
         vm_state = {
-            "burst_effects": copy.deepcopy(vm._burst_effects),
-            "burst_names": copy.deepcopy(vm._burst_names),
+            "burst_effects": {t: list(v) for t, v in vm._burst_effects.items()},
+            "burst_names": {t: set(v) for t, v in vm._burst_names.items()},
             "counter_values": dict(vm._counter_values),
-            "skill_history": copy.deepcopy(vm._skill_history),
-            "skill_tags": copy.deepcopy(vm._skill_tags),
+            "skill_history": {k: list(v) for k, v in vm._skill_history.items()},
+            "skill_tags": {k: dict(v) for k, v in vm._skill_tags.items()},
         }
-        # ── 全局状态 ──
         return {
             "sprites": sprites,
             "turn": self.turn,
             "winner": self.winner,
             "weather": self.globals.weather,
             "weather_turns": self.globals.weather_turns,
-            "marks": copy.deepcopy(self.globals.mark_effects),
-            "team_counters": copy.deepcopy(self.team_counters),
-            "pending_effects": copy.deepcopy(self.pending_effects),
-            "scheduled_effects": copy.deepcopy(self.scheduled_effects),
+            "marks": mark_snap,
+            "team_counters": {t: dict(c) for t, c in self.team_counters.items()},
+            "pending_effects": {t: list(e) for t, e in self.pending_effects.items()},
+            "scheduled_effects": list(self.scheduled_effects),
             "pending_escape": self.pending_escape,
             "borrowed_restore": dict(self._borrowed_restore),
             "wish_restore": dict(self._wish_restore),
@@ -138,35 +143,35 @@ class Battle(BattleMechanicsMixin):
                 sprite.interrupted = s["interrupted"]
                 sprite.pending_return = s["pending_return"]
                 sprite.extra_skill_use = s["extra_skill_use"]
-                # 重建 active_effects：恢复 TTL/stacks，移除多余，补回缺失
-                saved_eids = {eid for eid, e, ttl, stk in s["effects"]}
-                saved_effects = {eid: (e, ttl, stk) for eid, e, ttl, stk in s["effects"]}
-                # 移除不在 saved 中的 effect
+                # 效果：恢复 TTL/stacks，移除新增的，补回缺失的
+                eff_snap = s["effects"]
+                saved_ids = set(eff_snap.keys())
                 for e in list(sprite.active_effects):
-                    if id(e) not in saved_eids:
+                    if id(e) not in saved_ids:
                         sprite.active_effects.remove(e)
-                # 恢复 TTL 和 stacks
-                for eid, (e, ttl, stk) in saved_effects.items():
+                for eid, (e, ttl, stk) in eff_snap.items():
                     e.ttl = ttl
                     if hasattr(e, 'stacks'):
                         e.stacks = stk
                     if e not in sprite.active_effects:
                         sprite.active_effects.append(e)
                 # 技能状态
-                if s.get("skill_mods"):
-                    for si, sk in enumerate(sprite.skills or []):
-                        if si in s["skill_mods"]:
-                            sk._modifiers = dict(s["skill_mods"][si])
-                        if si in s.get("skill_cd", {}):
-                            sk.cooldown = s["skill_cd"][si]
-                        if si in s.get("skill_sealed", {}):
-                            sk.sealed = s["skill_sealed"][si]
+                for si, sk in enumerate(sprite.skills or []):
+                    if si in s.get("skill_mods", {}):
+                        sk._modifiers = dict(s["skill_mods"][si])
+                    if si in s.get("skill_cd", {}):
+                        sk.cooldown = s["skill_cd"][si]
+                    if si in s.get("skill_sealed", {}):
+                        sk.sealed = s["skill_sealed"][si]
+        # ── 印记 stacks ──
+        for team, marks in saved["marks"].items():
+            for m, stacks in marks:
+                m.stacks = stacks
         # ── 全局状态 ──
         self.turn = saved["turn"]
         self.winner = saved["winner"]
         self.globals.weather = saved["weather"]
         self.globals.weather_turns = saved["weather_turns"]
-        self.globals.mark_effects = saved["marks"]
         self.team_counters = saved["team_counters"]
         self.pending_effects = saved["pending_effects"]
         self.scheduled_effects = saved["scheduled_effects"]
@@ -182,14 +187,12 @@ class Battle(BattleMechanicsMixin):
         if hasattr(self.player_b, 'devotion'):
             self.player_b.devotion = saved["devotion_b"]
         # ── VM 引擎状态 ──
-        if "vm" in saved:
-            vs = saved["vm"]
-            self._vm_engine._burst_effects = vs["burst_effects"]
-            self._vm_engine._burst_names = vs["burst_names"]
-            self._vm_engine._counter_values = vs["counter_values"]
-            self._vm_engine._skill_history = vs["skill_history"]
-            self._vm_engine._skill_tags = vs["skill_tags"]
-        # 清回合缓存
+        vs = saved["vm"]
+        self._vm_engine._burst_effects = vs["burst_effects"]
+        self._vm_engine._burst_names = vs["burst_names"]
+        self._vm_engine._counter_values = vs["counter_values"]
+        self._vm_engine._skill_history = vs["skill_history"]
+        self._vm_engine._skill_tags = vs["skill_tags"]
         self._ctx_team_cache.clear()
 
     def __init__(
@@ -437,7 +440,13 @@ class Battle(BattleMechanicsMixin):
     # ═══════════════════════════════════════════════════════════════
 
     def save_snapshot(self) -> None:
-        """保存当前回合的快照（用于回溯）。"""
+        """保存当前回合的快照（用于回溯）。
+
+        MCTS 仿真期间跳过 — 仿真不需要回溯功能，
+        且 battle_to_dict 序列化开销占 MCTS 总耗时 ~17%。
+        """
+        if getattr(self, '_mcts_sim', False):
+            return
         from backend.engine.serializer import battle_to_dict
         self._snapshots[self.turn] = battle_to_dict(self)
 

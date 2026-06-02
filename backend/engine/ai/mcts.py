@@ -273,9 +273,14 @@ def mcts_search(
             raise ValueError("mcts_search 需要 model 或 evaluator")
         evaluator = TorchEvaluator(model, device)
 
+    # 禁用 save_snapshot — MCTS 仿真不需要回溯序列化（省 ~17% 耗时）
+    prev_mcts_sim = getattr(battle, '_mcts_sim', False)
+    battle._mcts_sim = True
+
     player = battle.player_a
     valid, mask = get_valid_actions(player)
     if not valid:
+        battle._mcts_sim = prev_mcts_sim
         return mask / max(mask.sum(), 1.0)
 
     # ── 根节点先验（复用调用方预编码的状态） ──
@@ -341,6 +346,9 @@ def mcts_search(
 
         # ── 回滚 ──
         battle.restore_mutable_state(saved)
+
+    # 恢复 save_snapshot 行为
+    battle._mcts_sim = prev_mcts_sim
 
     # ── 输出动作概率 ──
     counts = np.zeros(NUM_ACTIONS, dtype=np.float32)
