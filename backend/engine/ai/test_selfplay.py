@@ -16,9 +16,15 @@ sys.path.insert(0, ".")
 import numpy as np
 
 from backend.engine.ai.advise import advise, advise_single, make_determinizations
+from backend.engine.ai.evaluator import TorchEvaluator
 from backend.engine.ai.mcts import NetworkPolicyAgent
 from backend.engine.ai.model import BattleNet
-from backend.engine.ai.train import _load_sprite_skills, collect_rl_samples
+from backend.engine.ai.train import (
+    _load_sprite_skills,
+    collect_rl_samples,
+    collect_rl_samples_parallel,
+    evaluate_parallel,
+)
 from backend.engine.serializer import battle_from_dict, battle_to_dict
 from backend.sim.agent import RuleAgent
 from backend.sim.factory import SimFactory
@@ -109,19 +115,31 @@ def test_network_policy_agent_valid_action():
 # 3. collect_rl_samples 双视角
 # ═══════════════════════════════════════════════════════════════════
 
+def test_torch_evaluator_shapes():
+    model = BattleNet()
+    ev = TorchEvaluator(model, device="cpu")
+    state = np.zeros(446, dtype=np.float32)
+    mask = np.zeros(11, dtype=np.float32)
+    mask[0] = 1.0
+    value, probs = ev.evaluate(state, mask)
+    assert -1.0 <= value <= 1.0
+    assert probs.shape == (11,)
+    assert abs(probs.sum() - 1.0) < 1e-4
+
+
 def test_collect_rl_dual_perspective():
     factory = SimFactory()
     sprite_skills = _load_sprite_skills()
     model = BattleNet()
 
-    X, P, v = collect_rl_samples(
+    X, P, v, _ = collect_rl_samples(
         model, factory, sprite_skills,
         num_battles=1, num_simulations=6, device="cpu",
         max_turns=20, verbose=False,
     )
 
     assert X.ndim == 2 and X.shape[1] == 446
-    assert P.ndim == 2 and P.shape[1] == 10
+    assert P.ndim == 2 and P.shape[1] == 11
     assert len(X) == len(P) == len(v)
     assert len(X) > 0, "应至少收集到若干样本（A+B 双方）"
     # 结果标签只能是 -1/0/+1
@@ -129,6 +147,42 @@ def test_collect_rl_dual_perspective():
     # 访问分布每行和 <= 1（可能为 0 表示无合法动作的极端帧）
     row_sums = P.sum(axis=1)
     assert np.all(row_sums <= 1.0 + 1e-4)
+
+
+def test_collect_rl_parallel_smoke():
+    """多进程 + 主进程批量推理冒烟（CPU，小参数）。"""
+    factory = SimFactory()
+    sprite_skills = _load_sprite_skills()
+    model = BattleNet()
+
+    X, P, v, _ = collect_rl_samples_parallel(
+        model, factory, sprite_skills,
+        num_battles=2, num_workers=2, device="cpu",
+        inference_batch_size=16, inference_timeout_ms=2.0,
+        num_simulations=2, max_turns=8,
+        verbose=False, progress_every=1,
+    )
+
+    assert X.ndim == 2 and X.shape[1] == 446
+    assert len(X) == len(P) == len(v)
+    assert len(X) > 0
+
+
+def test_evaluate_parallel_smoke():
+    """并行门控评估冒烟：双模型经主进程批量推理，返回合法胜率。"""
+    factory = SimFactory()
+    sprite_skills = _load_sprite_skills()
+    candidate = BattleNet()
+    best = BattleNet()
+
+    win_rate = evaluate_parallel(
+        candidate, best, factory, sprite_skills,
+        n_games=2, num_workers=2, device="cpu",
+        inference_batch_size=16, inference_timeout_ms=2.0,
+        num_simulations=1, max_turns=4, verbose=False,
+    )
+
+    assert 0.0 <= win_rate <= 1.0
 
 
 # ═══════════════════════════════════════════════════════════════════

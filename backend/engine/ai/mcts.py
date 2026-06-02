@@ -26,11 +26,11 @@ if TYPE_CHECKING:
 # 动作空间
 # ═══════════════════════════════════════════════════════════════════
 
-NUM_ACTIONS = 10  # 技能0-3 + 换宠4-8 + 道具9
+NUM_ACTIONS = 11  # 技能0-3 + 换宠4-8 + 聚能9 + 道具10
 
 
 def get_valid_actions(player: Player) -> tuple[list[int], np.ndarray]:
-    """返回 (有效动作索引列表, 10维 float32 mask)。"""
+    """返回 (有效动作索引列表, 11维 float32 mask)。"""
     mask = np.zeros(NUM_ACTIONS, dtype=np.float32)
 
     active = player.active if player.active_index < len(player.team) else None
@@ -52,17 +52,20 @@ def get_valid_actions(player: Player) -> tuple[list[int], np.ndarray]:
             mask[4 + bench_slot] = 1.0 if not locked else 0.0
             bench_slot += 1
 
-    # 道具 (9)
+    # 聚能 (9): 始终可用（精灵存活即可）
+    mask[9] = 1.0
+
+    # 道具 (10)
     item = player.item
     if item is not None and not item.is_exhausted:
-        mask[9] = 1.0
+        mask[10] = 1.0
 
     valid = [i for i in range(NUM_ACTIONS) if mask[i] > 0]
     return valid, mask
 
 
 def action_index_to_action(player: Player, action_idx: int) -> Action | None:
-    """将 0-9 动作索引转为 Action 对象。"""
+    """将 0-10 动作索引转为 Action 对象。"""
     from backend.sim.action import Action
 
     if action_idx < 4:
@@ -74,6 +77,8 @@ def action_index_to_action(player: Player, action_idx: int) -> Action | None:
             return Action(kind='switch', switch_index=switch_idx)
         return None
     elif action_idx == 9:
+        return Action(kind='gather')
+    elif action_idx == 10:
         return Action(kind='item')
     return None
 
