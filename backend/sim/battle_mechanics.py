@@ -33,6 +33,10 @@ class BattleMechanicsMixin:
         if action.switch_index is None or action.switch_index >= len(player.team):
             return events
 
+        # 防护：不能换到已力竭的精灵
+        if player.team[action.switch_index].is_fainted:
+            return events
+
         # 换宠打断蓄力
         if getattr(old, '_charging', False):
             old._charging = False
@@ -128,12 +132,20 @@ class BattleMechanicsMixin:
 
         agent = self._get_agent(team)
         replacement = agent.choose_replacement(self)
-        if replacement < 0:
+        if replacement < 0 or replacement >= len(player.team):
             # No bench: deduct life and check loss immediately
             player.lives -= 1
             events.append(f'{old.name} 力竭({player.name} 魔力-1→{player.lives})')
             self.winner = 'B' if team == 'A' else 'A'
             events.append(f'{old.name} 力竭 → 无存活精灵 → {self.get_opponent(team).name} 胜')
+            return
+
+        # 防护：若替补已力竭（agent bug 或并发），同样扣魔力
+        if player.team[replacement].is_fainted:
+            player.lives -= 1
+            events.append(f'{old.name} 力竭({player.name} 魔力-1→{player.lives})')
+            self.winner = 'B' if team == 'A' else 'A'
+            events.append(f'{old.name} 力竭 → 替补已死 → {self.get_opponent(team).name} 胜')
             return
 
         player.active_index = replacement

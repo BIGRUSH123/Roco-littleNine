@@ -179,7 +179,7 @@ class MCTSAgent:
     def choose_replacement(self, battle) -> int:
         alive = [i for i, s in enumerate(self.player.team)
                  if not s.is_fainted and i != self.player.active_index]
-        return alive[0] if alive else 0
+        return alive[0] if alive else -1  # -1 通知引擎扣魔力
 
     def on_game_end(self, winner: str) -> None:
         pass
