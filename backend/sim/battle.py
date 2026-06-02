@@ -50,6 +50,40 @@ class Battle(BattleMechanicsMixin):
     # ── 模块级技能 JSON 缓存（跨 Battle 实例共享，消除重复磁盘 I/O） ──
     _global_skill_cache: dict[str, "CompiledSkill"] = {}
 
+    # ── 需要深拷贝的游戏状态属性（每次 MCTS 仿真必须独立） ──
+    _MCTS_CLONE_DEEP_FIELDS: tuple[str, ...] = (
+        "player_a", "player_b", "globals",
+        "team_counters", "pending_effects", "scheduled_effects",
+        "pending_escape", "_borrowed_restore", "_wish_restore",
+    )
+    # _MCTS_CLONE_DEEP_FIELDS 已覆盖的字段中已包含 globals（含 marks），
+    # player_a/player_b 的深拷贝会连带复制其 team sprite 及 active_effects。
+
+    def clone_for_mcts(self) -> "Battle":
+        """为 MCTS 仿真创建轻量副本：深拷贝游戏状态，共享引擎/编译器/缓存等基础设施。
+
+        Compared to the battle_to_dict → battle_from_dict round-trip, this avoids:
+        - Converting all sprites/skills/effects to dicts
+        - Looking up species by name from DB
+        - Re-running Battle.__init__ entry-trait dispatch
+        - Re-importing modules
+
+        The clone is suitable for mutable simulation inside a single MCTS search.
+        """
+        import copy
+        clone = Battle.__new__(Battle)
+        # Shallow-copy everything first
+        clone.__dict__.update(self.__dict__)
+        # Deep-copy game state fields that change during simulation
+        for attr in self._MCTS_CLONE_DEEP_FIELDS:
+            setattr(clone, attr, copy.deepcopy(getattr(self, attr)))
+        # Fresh caches per clone (avoid cross-contamination)
+        clone._ctx_team_cache = {}
+        clone._snapshots = {}
+        # Skill cache: reference the parent's _skill_cache (immutable after compile)
+        # and the global cache — no need to copy.
+        return clone
+
     def __init__(
         self, player_a: Player, player_b: Player,
         weather: str = '', verbose: bool = True,

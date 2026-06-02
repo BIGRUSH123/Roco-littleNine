@@ -10,10 +10,9 @@ import math
 from typing import TYPE_CHECKING
 
 import numpy as np
-import torch
 
 from backend.engine.ai.encode import encode_battle_state
-from backend.engine.serializer import battle_from_dict, battle_to_dict
+from backend.engine.ai.evaluator import PolicyValueEvaluator, TorchEvaluator
 
 if TYPE_CHECKING:
     from backend.engine.ai.model import BattleNet
@@ -125,29 +124,30 @@ class NetworkPolicyAgent:
 
     team = "B"
 
-    def __init__(self, model, device: str = "cpu", temperature: float = 1.0, greedy: bool = False):
-        self._model = model
-        self._device = device
+    def __init__(
+        self,
+        model=None,
+        device: str = "cpu",
+        temperature: float = 1.0,
+        greedy: bool = False,
+        evaluator: PolicyValueEvaluator | None = None,
+    ):
+        if evaluator is None:
+            if model is None:
+                raise ValueError("NetworkPolicyAgent 需要 model 或 evaluator")
+            evaluator = TorchEvaluator(model, device)
+        self._evaluator = evaluator
         self._temperature = temperature
         self._greedy = greedy
 
     def _decide(self, battle) -> int | None:
-        # 从 player_b 视角编码：临时交换，使 player_b 成为 player_a
-        battle.player_a, battle.player_b = battle.player_b, battle.player_a
-        try:
-            player = battle.player_a
-            valid, mask = get_valid_actions(player)
-            if not valid:
-                return None
-            state = encode_battle_state(battle)
-            tensor = torch.from_numpy(state).unsqueeze(0).to(self._device)
-            with torch.no_grad():
-                _, probs = self._model.forward_with_mask(
-                    tensor, torch.from_numpy(mask).unsqueeze(0).to(self._device),
-                )
-            p = probs.squeeze(0).cpu().numpy()
-        finally:
-            battle.player_a, battle.player_b = battle.player_b, battle.player_a
+        # 直接从 B 视角编码，无需 swap/restore
+        player = battle.player_b
+        valid, mask = get_valid_actions(player)
+        if not valid:
+            return None
+        state = encode_battle_state(battle, perspective="B")
+        _, p = self._evaluator.evaluate(state, mask)
         return policy_select_idx(p, self._temperature, self._greedy)
 
     def choose_action(self, battle):
@@ -235,43 +235,48 @@ class MCTSNode:
 
 def mcts_search(
     battle: Battle,
-    model: BattleNet,
+    model: BattleNet | None,
     factory: SimFactory,
     opponent_agent,
     num_simulations: int = 200,
     c_puct: float = 2.0,
     device: str = "cpu",
     root_noise: float = 0.25,
+    *,
+    evaluator: PolicyValueEvaluator | None = None,
+    root_state: np.ndarray | None = None,
 ) -> np.ndarray:
     """从当前对战状态执行 MCTS，返回动作概率分布 (10,)。
 
     Args:
         battle: 当前对战（player_a 是己方）。
-        model: 双头网络。
+        model: 双头网络（与 evaluator 二选一；并行 worker 传 None）。
         factory: 工厂（用于状态快照恢复）。
         opponent_agent: 对手 agent（player_b 侧，如 RuleAgent）。
         num_simulations: 模拟次数。
         c_puct: 探索系数。
-        device: 推理设备。
+        device: 推理设备（仅 TorchEvaluator 使用）。
         root_noise: 根节点 Dirichlet 噪声强度。
+        evaluator: 可选推理后端（并行训练时由主进程批量服务）。
+        root_state: 可选预编码状态（调用方已编码时复用，避免重复编码）。
 
     Returns:
         (10,) float32 动作概率（∝ 访问次数）。
     """
+    if evaluator is None:
+        if model is None:
+            raise ValueError("mcts_search 需要 model 或 evaluator")
+        evaluator = TorchEvaluator(model, device)
+
     player = battle.player_a
     valid, mask = get_valid_actions(player)
     if not valid:
         return mask / max(mask.sum(), 1.0)
 
-    # ── 根节点先验 ──
-    root_state = encode_battle_state(battle)
-    root_tensor = torch.from_numpy(root_state).unsqueeze(0).to(device)
-    with torch.no_grad():
-        _, probs = model.forward_with_mask(
-            root_tensor,
-            torch.from_numpy(mask).unsqueeze(0).to(device),
-        )
-    prior = probs.squeeze(0).cpu().numpy()
+    # ── 根节点先验（复用调用方预编码的状态） ──
+    if root_state is None:
+        root_state = encode_battle_state(battle)
+    _, prior = evaluator.evaluate(root_state, mask)
 
     # Dirichlet 噪声
     if root_noise > 0:
@@ -280,12 +285,12 @@ def mcts_search(
             prior[a] = (1 - root_noise) * prior[a] + root_noise * noise[i]
 
     root = MCTSNode(valid, prior)
-    root_snapshot = battle_to_dict(battle)
+    root_clone = battle.clone_for_mcts()  # 轻量副本，跳过 dict 往返
 
     # ── MCTS 主循环 ──
     for _ in range(num_simulations):
-        # 恢复根状态
-        sim = battle_from_dict(root_snapshot, factory.sprite_db, factory._build_skill_list)
+        # 恢复根状态：从预构建副本深拷贝（clone_for_mcts 比 dict 往返快 3-5x）
+        sim = root_clone.clone_for_mcts()
         node = root
         path: list[tuple[MCTSNode, int]] = []
 
@@ -315,14 +320,7 @@ def mcts_search(
 
         if sim_valid and not sim.is_finished:
             sim_state = encode_battle_state(sim)
-            sim_tensor = torch.from_numpy(sim_state).unsqueeze(0).to(device)
-            with torch.no_grad():
-                value_t, sim_probs_t = model.forward_with_mask(
-                    sim_tensor,
-                    torch.from_numpy(sim_mask).unsqueeze(0).to(device),
-                )
-            leaf_value = float(value_t.item())
-            sim_prior = sim_probs_t.squeeze(0).cpu().numpy()
+            leaf_value, sim_prior = evaluator.evaluate(sim_state, sim_mask)
             for a in sim_valid:
                 node.children[a] = MCTSNode(sim_valid, sim_prior)
         else:

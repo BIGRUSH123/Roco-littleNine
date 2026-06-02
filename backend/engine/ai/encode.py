@@ -74,34 +74,42 @@ STAT_MAP: dict[str, int] = {k: i for i, k in enumerate(STAT_KEYS)}
 # 公开 API
 # ═══════════════════════════════════════════════════════════════════
 
-def encode_battle_state(battle: Battle, *, mask_opp_bench: bool = False) -> np.ndarray:
+def encode_battle_state(
+    battle: Battle,
+    *,
+    mask_opp_bench: bool = False,
+    perspective: str = "A",
+) -> np.ndarray:
     """将 Battle 状态编码为 (446,) float32 向量。
 
     Args:
         battle: 对局对象。
         mask_opp_bench: 若 True，对方板凳特征以 -1 填充（模拟不完全信息）。
+        perspective: "A"（默认）从 player_a 视角编码，"B" 从 player_b 视角编码。
     """
     pieces: list[np.ndarray] = []
 
-    # A: 全局状态 (56)
-    pieces.append(_encode_global(battle))
+    # 解析视角：己方/对方
+    own: Player = battle.player_a if perspective == "A" else battle.player_b
+    opp: Player = battle.player_b if perspective == "A" else battle.player_a
+
+    # A: 全局状态 (56) — 从己方视角读取印记/奉献等
+    own_team = "A" if perspective == "A" else "B"
+    pieces.append(_encode_global(battle, own_team=own_team))
 
     # B: 己方场上精灵 (115)
-    player_a: Player = battle.player_a
-    active_a: Sprite | None = _active_or_none(player_a)
-    opp_active: Sprite | None = _active_or_none(battle.player_b)
-    pieces.append(_encode_active_sprite(active_a, player_a, battle, opp_active))
+    own_active: Sprite | None = _active_or_none(own)
+    opp_active: Sprite | None = _active_or_none(opp)
+    pieces.append(_encode_active_sprite(own_active, own, battle, opp_active))
 
     # C: 己方板凳 ×5 (80)
-    pieces.append(_encode_bench_all(player_a, opp_active, mask_unknown=False))
+    pieces.append(_encode_bench_all(own, opp_active, mask_unknown=False))
 
     # D: 对方场上精灵 (115)
-    player_b: Player = battle.player_b
-    active_b: Sprite | None = _active_or_none(player_b)
-    pieces.append(_encode_active_sprite(active_b, player_b, battle, active_a))
+    pieces.append(_encode_active_sprite(opp_active, opp, battle, own_active))
 
     # E: 对方板凳 ×5 (80)
-    pieces.append(_encode_bench_all(player_b, active_a, mask_unknown=mask_opp_bench))
+    pieces.append(_encode_bench_all(opp, own_active, mask_unknown=mask_opp_bench))
 
     result = np.concatenate(pieces)
     assert result.shape == (446,), f"维度错误: {result.shape}"
@@ -112,10 +120,11 @@ def encode_battle_state(battle: Battle, *, mask_opp_bench: bool = False) -> np.n
 # 模块 A: 全局状态 (56)
 # ═══════════════════════════════════════════════════════════════════
 
-def _encode_global(battle: Battle) -> np.ndarray:
+def _encode_global(battle: Battle, *, own_team: str = "A") -> np.ndarray:
     g = battle.globals
-    a: Player = battle.player_a
-    b: Player = battle.player_b
+    own: Player = battle.player_a if own_team == "A" else battle.player_b
+    opp: Player = battle.player_b if own_team == "A" else battle.player_a
+    opp_team = "B" if own_team == "A" else "A"
     out: list[float] = []
 
     # 回合 (2)
@@ -132,46 +141,46 @@ def _encode_global(battle: Battle) -> np.ndarray:
     out.append(g.weather_turns / 8.0)
 
     # 己方正印记 (7)
-    marks_a_pos, marks_a_neg = _classify_marks(g, "A")
+    own_pos, own_neg = _classify_marks(g, own_team)
     for mn in MARKS_POS:
-        m = _find_mark(marks_a_pos, mn)
+        m = _find_mark(own_pos, mn)
         out.append(m.stacks / 10.0 if m else 0.0)
 
     # 己方负印记 (6)
     for mn in MARKS_NEG:
-        m = _find_mark(marks_a_neg, mn)
+        m = _find_mark(own_neg, mn)
         out.append(m.stacks / 10.0 if m else 0.0)
 
     # 对方正印记 (7)
-    marks_b_pos, marks_b_neg = _classify_marks(g, "B")
+    opp_pos, opp_neg = _classify_marks(g, opp_team)
     for mn in MARKS_POS:
-        m = _find_mark(marks_b_pos, mn)
+        m = _find_mark(opp_pos, mn)
         out.append(m.stacks / 10.0 if m else 0.0)
 
     # 对方负印记 (6)
     for mn in MARKS_NEG:
-        m = _find_mark(marks_b_neg, mn)
+        m = _find_mark(opp_neg, mn)
         out.append(m.stacks / 10.0 if m else 0.0)
 
     # 魔力 (2)
-    out.append(a.lives / 6.0)
-    out.append(b.lives / 6.0)
+    out.append(own.lives / 6.0)
+    out.append(opp.lives / 6.0)
 
     # 己方道具 (6)
-    out.extend(_encode_item(a.item))
+    out.extend(_encode_item(own.item))
 
     # 对方道具 (6)
-    out.extend(_encode_item(b.item))
+    out.extend(_encode_item(opp.item))
 
     # 己方奉献 (5)
-    dev_a = getattr(a, 'devotion', {}) or {}
+    dev_own = getattr(own, 'devotion', {}) or {}
     for dn in DEVOTION_ORDER:
-        out.append(dev_a.get(dn, 0) / 10.0)
+        out.append(dev_own.get(dn, 0) / 10.0)
 
     # 对方奉献 (5)
-    dev_b = getattr(b, 'devotion', {}) or {}
+    dev_opp = getattr(opp, 'devotion', {}) or {}
     for dn in DEVOTION_ORDER:
-        out.append(dev_b.get(dn, 0) / 10.0)
+        out.append(dev_opp.get(dn, 0) / 10.0)
 
     return np.array(out, dtype=np.float32)
 

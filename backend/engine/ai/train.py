@@ -157,13 +157,14 @@ class MCTSAgent:
             swapped = True
 
         try:
-            # 在（必要时已交换的）本方视角下编码并搜索，二者坐标系一致
+            # 本方视角下编码一次，同时用于 MCTS 根节点评估 + 训练样本记录
             state = encode_battle_state(battle) if self._record else None
             probs = mcts_search(
                 battle, None, self._factory, self._opponent,
                 num_simulations=self._num_simulations,
                 root_noise=self._root_noise,
                 evaluator=self._evaluator,
+                root_state=state,  # 复用已编码状态，省掉 mcts_search 内部二次编码
             )
             if self._record and state is not None:
                 self.history.append((state, probs.copy()))
