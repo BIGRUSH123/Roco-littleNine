@@ -348,7 +348,7 @@ def _resolve_formula_string(ctx: Ctx, formula: str) -> int | float:
     expr = formula[1:]  # strip '='
 
     # Arithmetic expression: replace @refs with resolved values, then eval
-    if _REF_PATTERN.search(expr) and re.search(r'[\+\-\*\/\(\)]', expr):
+    if re.search(r'[\+\-\*\/\(\)]', expr):
         def replace_ref(m):
             ref_expr = m.group(0)
             val = _resolve_trait_ref(ref_expr, ctx)

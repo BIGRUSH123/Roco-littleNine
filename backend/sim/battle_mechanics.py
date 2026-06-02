@@ -120,6 +120,10 @@ class BattleMechanicsMixin:
         if not s.is_fainted:
             return
 
+        # 力竭发生后 _make_ctx 的 fainted 计数已过期，清缓存使其重算
+        if hasattr(self, '_ctx_team_cache'):
+            self._ctx_team_cache.clear()
+
         old = s
 
         agent = self._get_agent(team)
