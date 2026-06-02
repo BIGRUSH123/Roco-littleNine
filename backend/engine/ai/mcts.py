@@ -290,12 +290,13 @@ def mcts_search(
             prior[a] = (1 - root_noise) * prior[a] + root_noise * noise[i]
 
     root = MCTSNode(valid, prior)
-    root_clone = battle.clone_for_mcts()  # 轻量副本，跳过 dict 往返
 
     # ── MCTS 主循环 ──
+    # 使用 save/restore 替代 clone：每轮仿真前保存可变状态，
+    # 在原始 battle 上原地执行 selection → evaluation → backprop，
+    # 最后恢复状态。消除全部对象图遍历/深拷贝开销（原占 ~30% 耗时）。
     for _ in range(num_simulations):
-        # 恢复根状态：从预构建副本深拷贝（clone_for_mcts 比 dict 往返快 3-5x）
-        sim = root_clone.clone_for_mcts()
+        saved = battle.save_mutable_state()
         node = root
         path: list[tuple[MCTSNode, int]] = []
 
@@ -317,19 +318,19 @@ def mcts_search(
                 break
             path.append((node, best_a))
             node = node.children[best_a]
-            _step_battle(sim, best_a, opponent_agent)
+            _step_battle(battle, best_a, opponent_agent)
 
         # ── Expansion & Evaluation ──
-        sim_player = sim.player_a
+        sim_player = battle.player_a
         sim_valid, sim_mask = get_valid_actions(sim_player)
 
-        if sim_valid and not sim.is_finished:
-            sim_state = encode_battle_state(sim)
-            leaf_value, sim_prior = evaluator.evaluate(sim_state, sim_mask)
+        if sim_valid and not battle.is_finished:
+            leaf_state = encode_battle_state(battle)
+            leaf_value, sim_prior = evaluator.evaluate(leaf_state, sim_mask)
             for a in sim_valid:
                 node.children[a] = MCTSNode(sim_valid, sim_prior)
         else:
-            leaf_value = 1.0 if sim.winner == "A" else (-1.0 if sim.winner == "B" else 0.0)
+            leaf_value = 1.0 if battle.winner == "A" else (-1.0 if battle.winner == "B" else 0.0)
 
         # ── Backprop ──
         for parent, a in reversed(path):
@@ -337,6 +338,9 @@ def mcts_search(
             parent.total_value += leaf_value
         root.visit_count += 1
         root.total_value += leaf_value
+
+        # ── 回滚 ──
+        battle.restore_mutable_state(saved)
 
     # ── 输出动作概率 ──
     counts = np.zeros(NUM_ACTIONS, dtype=np.float32)

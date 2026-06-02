@@ -50,39 +50,147 @@ class Battle(BattleMechanicsMixin):
     # ── 模块级技能 JSON 缓存（跨 Battle 实例共享，消除重复磁盘 I/O） ──
     _global_skill_cache: dict[str, "CompiledSkill"] = {}
 
-    # ── 需要深拷贝的游戏状态属性（每次 MCTS 仿真必须独立） ──
-    _MCTS_CLONE_DEEP_FIELDS: tuple[str, ...] = (
-        "player_a", "player_b", "globals",
-        "team_counters", "pending_effects", "scheduled_effects",
-        "pending_escape", "_borrowed_restore", "_wish_restore",
-    )
-    # _MCTS_CLONE_DEEP_FIELDS 已覆盖的字段中已包含 globals（含 marks），
-    # player_a/player_b 的深拷贝会连带复制其 team sprite 及 active_effects。
+    def save_mutable_state(self) -> dict:
+        """保存对战可变状态（HP/能量/effects/modifiers/印记等），用于 MCTS 仿真回滚。
 
-    def clone_for_mcts(self) -> "Battle":
-        """为 MCTS 仿真创建轻量副本：深拷贝游戏状态，共享引擎/编译器/缓存等基础设施。
-
-        Compared to the battle_to_dict → battle_from_dict round-trip, this avoids:
-        - Converting all sprites/skills/effects to dicts
-        - Looking up species by name from DB
-        - Re-running Battle.__init__ entry-trait dispatch
-        - Re-importing modules
-
-        The clone is suitable for mutable simulation inside a single MCTS search.
+        只保存会随回合变化的字段，避免完整对象图深拷贝。
         """
         import copy
-        clone = Battle.__new__(Battle)
-        # Shallow-copy everything first
-        clone.__dict__.update(self.__dict__)
-        # Deep-copy game state fields that change during simulation
-        for attr in self._MCTS_CLONE_DEEP_FIELDS:
-            setattr(clone, attr, copy.deepcopy(getattr(self, attr)))
-        # Fresh caches per clone (avoid cross-contamination)
-        clone._ctx_team_cache = {}
-        clone._snapshots = {}
-        # Skill cache: reference the parent's _skill_cache (immutable after compile)
-        # and the global cache — no need to copy.
-        return clone
+        # ── 精灵状态 ──
+        sprites: list[dict] = []
+        for player in (self.player_a, self.player_b):
+            for sprite in player.team:
+                sprites.append({
+                    "sprite": sprite,
+                    "hp": sprite.current_hp,
+                    "energy": sprite.energy,
+                    "effects": [(id(e), e, e.ttl, getattr(e, 'stacks', 0)) for e in sprite.active_effects],
+                    "modifiers": dict(sprite._modifiers),
+                    "charging": getattr(sprite, '_charging', False),
+                    "charged_idx": getattr(sprite, '_charged_skill_index', -1),
+                    "counters": dict(getattr(sprite, 'counters', {})),
+                    "first_action": sprite.first_action,
+                    "first_action_battle": sprite.first_action_battle,
+                    "locked_turns": getattr(sprite, 'locked_turns', 0),
+                    "interrupted": getattr(sprite, 'interrupted', False),
+                    "pending_return": getattr(sprite, 'pending_return', False),
+                    "extra_skill_use": getattr(sprite, 'extra_skill_use', False),
+                })
+                # 技能级可变状态（_modifiers, cooldown, sealed）
+                skill_mods = {}
+                skill_cd = {}
+                skill_sealed = {}
+                for si, sk in enumerate(sprite.skills or []):
+                    skill_mods[si] = dict(sk._modifiers)
+                    skill_cd[si] = sk.cooldown
+                    skill_sealed[si] = sk.sealed
+                sprites[-1]["skill_mods"] = skill_mods
+                sprites[-1]["skill_cd"] = skill_cd
+                sprites[-1]["skill_sealed"] = skill_sealed
+        # ── VM 引擎可变状态（burst/counters/history 跨仿真会累积，必须快照） ──
+        vm = self._vm_engine
+        vm_state = {
+            "burst_effects": copy.deepcopy(vm._burst_effects),
+            "burst_names": copy.deepcopy(vm._burst_names),
+            "counter_values": dict(vm._counter_values),
+            "skill_history": copy.deepcopy(vm._skill_history),
+            "skill_tags": copy.deepcopy(vm._skill_tags),
+        }
+        # ── 全局状态 ──
+        return {
+            "sprites": sprites,
+            "turn": self.turn,
+            "winner": self.winner,
+            "weather": self.globals.weather,
+            "weather_turns": self.globals.weather_turns,
+            "marks": copy.deepcopy(self.globals.mark_effects),
+            "team_counters": copy.deepcopy(self.team_counters),
+            "pending_effects": copy.deepcopy(self.pending_effects),
+            "scheduled_effects": copy.deepcopy(self.scheduled_effects),
+            "pending_escape": self.pending_escape,
+            "borrowed_restore": dict(self._borrowed_restore),
+            "wish_restore": dict(self._wish_restore),
+            "active_a": self.player_a.active_index,
+            "active_b": self.player_b.active_index,
+            "lives_a": self.player_a.lives,
+            "lives_b": self.player_b.lives,
+            "devotion_a": dict(getattr(self.player_a, 'devotion', {})),
+            "devotion_b": dict(getattr(self.player_b, 'devotion', {})),
+            "vm": vm_state,
+        }
+
+    def restore_mutable_state(self, saved: dict) -> None:
+        """从 save_mutable_state 恢复可变状态（MCTS 仿真回滚）。"""
+        # ── 精灵状态 ──
+        idx = 0
+        for player in (self.player_a, self.player_b):
+            for sprite in player.team:
+                s = saved["sprites"][idx]; idx += 1
+                sprite.current_hp = s["hp"]
+                sprite.energy = s["energy"]
+                sprite._modifiers = dict(s["modifiers"])
+                sprite._charging = s["charging"]
+                sprite._charged_skill_index = s["charged_idx"]
+                sprite.counters = dict(s["counters"])
+                sprite.first_action = s["first_action"]
+                sprite.first_action_battle = s["first_action_battle"]
+                sprite.locked_turns = s["locked_turns"]
+                sprite.interrupted = s["interrupted"]
+                sprite.pending_return = s["pending_return"]
+                sprite.extra_skill_use = s["extra_skill_use"]
+                # 重建 active_effects：恢复 TTL/stacks，移除多余，补回缺失
+                saved_eids = {eid for eid, e, ttl, stk in s["effects"]}
+                saved_effects = {eid: (e, ttl, stk) for eid, e, ttl, stk in s["effects"]}
+                # 移除不在 saved 中的 effect
+                for e in list(sprite.active_effects):
+                    if id(e) not in saved_eids:
+                        sprite.active_effects.remove(e)
+                # 恢复 TTL 和 stacks
+                for eid, (e, ttl, stk) in saved_effects.items():
+                    e.ttl = ttl
+                    if hasattr(e, 'stacks'):
+                        e.stacks = stk
+                    if e not in sprite.active_effects:
+                        sprite.active_effects.append(e)
+                # 技能状态
+                if s.get("skill_mods"):
+                    for si, sk in enumerate(sprite.skills or []):
+                        if si in s["skill_mods"]:
+                            sk._modifiers = dict(s["skill_mods"][si])
+                        if si in s.get("skill_cd", {}):
+                            sk.cooldown = s["skill_cd"][si]
+                        if si in s.get("skill_sealed", {}):
+                            sk.sealed = s["skill_sealed"][si]
+        # ── 全局状态 ──
+        self.turn = saved["turn"]
+        self.winner = saved["winner"]
+        self.globals.weather = saved["weather"]
+        self.globals.weather_turns = saved["weather_turns"]
+        self.globals.mark_effects = saved["marks"]
+        self.team_counters = saved["team_counters"]
+        self.pending_effects = saved["pending_effects"]
+        self.scheduled_effects = saved["scheduled_effects"]
+        self.pending_escape = saved["pending_escape"]
+        self._borrowed_restore = saved["borrowed_restore"]
+        self._wish_restore = saved["wish_restore"]
+        self.player_a.active_index = saved["active_a"]
+        self.player_b.active_index = saved["active_b"]
+        self.player_a.lives = saved["lives_a"]
+        self.player_b.lives = saved["lives_b"]
+        if hasattr(self.player_a, 'devotion'):
+            self.player_a.devotion = saved["devotion_a"]
+        if hasattr(self.player_b, 'devotion'):
+            self.player_b.devotion = saved["devotion_b"]
+        # ── VM 引擎状态 ──
+        if "vm" in saved:
+            vs = saved["vm"]
+            self._vm_engine._burst_effects = vs["burst_effects"]
+            self._vm_engine._burst_names = vs["burst_names"]
+            self._vm_engine._counter_values = vs["counter_values"]
+            self._vm_engine._skill_history = vs["skill_history"]
+            self._vm_engine._skill_tags = vs["skill_tags"]
+        # 清回合缓存
+        self._ctx_team_cache.clear()
 
     def __init__(
         self, player_a: Player, player_b: Player,
