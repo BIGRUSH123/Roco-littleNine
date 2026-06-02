@@ -10,6 +10,8 @@ V2: Supports typed SkillCondition (CondExpr, AndCond, OrCond, NotCond) via
 match/case in eval_one, plus backward-compat dict path.
 """
 
+import re
+
 from .ctx import Ctx
 from .ir_skill import (
     AndCond,
@@ -71,37 +73,44 @@ def compare_op(a, op: str, b) -> bool:
 
 # ── Helpers ──
 
-def _sprite_of(ctx: Ctx, of: str):
-    """Return (energy, abnormal_stacks, stat_stages, hp_ratio, prev_damage_taken,
-    positive_count, skill_elements, just_entered, is_charging, charged) for a sprite target."""
-    if of == "sprite_self":
-        return {
-            "energy": ctx.energy_self,
-            "abnormal_stacks": ctx.abnormal_stacks_self,
-            "stat_stages": ctx.stat_stages_self,
-            "hp_ratio": ctx.hp_self_ratio,
-            "prev_damage_taken": ctx.prev_damage_taken_self,
-            "positive_count": ctx.positive_count_self,
-            "skill_elements": ctx.skill_elements_self,
-            "just_entered": ctx.just_entered,
-            "just_acted": ctx.just_acted_self,
-            "is_charging": ctx.is_charging_self,
-            "charged": ctx.charged_self,
-        }
-    else:
-        return {
-            "energy": ctx.energy_opp,
-            "abnormal_stacks": ctx.abnormal_stacks_opp,
-            "stat_stages": ctx.stat_stages_opp,
-            "hp_ratio": ctx.hp_opp_ratio,
-            "prev_damage_taken": ctx.prev_damage_taken_opp,
-            "positive_count": ctx.positive_count_opp,
-            "skill_elements": ctx.skill_elements_opp,
-            "just_entered": False,
-            "just_acted": False,
-            "is_charging": False,
-            "charged": ctx.charged_opp,
-        }
+class _SpriteView:
+    """Lightweight Ctx attribute view — avoids per-call dict allocation on hot path."""
+    __slots__ = (
+        "energy", "abnormal_stacks", "stat_stages", "hp_ratio",
+        "prev_damage_taken", "positive_count", "skill_elements",
+        "just_entered", "just_acted", "is_charging", "charged",
+    )
+
+    def __init__(self, ctx: Ctx, of: str):
+        if of == "sprite_self":
+            self.energy = ctx.energy_self
+            self.abnormal_stacks = ctx.abnormal_stacks_self
+            self.stat_stages = ctx.stat_stages_self
+            self.hp_ratio = ctx.hp_self_ratio
+            self.prev_damage_taken = ctx.prev_damage_taken_self
+            self.positive_count = ctx.positive_count_self
+            self.skill_elements = ctx.skill_elements_self
+            self.just_entered = ctx.just_entered
+            self.just_acted = ctx.just_acted_self
+            self.is_charging = ctx.is_charging_self
+            self.charged = ctx.charged_self
+        else:
+            self.energy = ctx.energy_opp
+            self.abnormal_stacks = ctx.abnormal_stacks_opp
+            self.stat_stages = ctx.stat_stages_opp
+            self.hp_ratio = ctx.hp_opp_ratio
+            self.prev_damage_taken = ctx.prev_damage_taken_opp
+            self.positive_count = ctx.positive_count_opp
+            self.skill_elements = ctx.skill_elements_opp
+            self.just_entered = False
+            self.just_acted = False
+            self.is_charging = False
+            self.charged = ctx.charged_opp
+
+
+def _sprite_of(ctx: Ctx, of: str) -> _SpriteView:
+    """Return a lightweight view of sprite Ctx attributes (avoids dict allocation)."""
+    return _SpriteView(ctx, of)
 
 
 def _team_of(ctx: Ctx, of: str):
@@ -256,22 +265,22 @@ def infer_triggers(cond) -> frozenset[str]:
 
 HAVE_EVAL = {
     "abnormal": lambda ctx, cond: (
-        _sprite_of(ctx, cond["of"])["abnormal_stacks"].get(cond.get("name", ""), 0) > 0
+        _sprite_of(ctx, cond["of"]).abnormal_stacks.get(cond.get("name", ""), 0) > 0
     ),
     "mark": lambda ctx, cond: (
         _team_of(ctx, cond.get("of", "team_own"))["mark_stacks"].get(cond.get("name", ""), 0) > 0
     ),
     "stat_positive": lambda ctx, cond: (
-        _sprite_of(ctx, cond["of"])["stat_stages"].get(cond.get("stat", ""), 0) > 0
+        _sprite_of(ctx, cond["of"]).stat_stages.get(cond.get("stat", ""), 0) > 0
     ),
     "stat_negative": lambda ctx, cond: (
-        _sprite_of(ctx, cond["of"])["stat_stages"].get(cond.get("stat", ""), 0) < 0
+        _sprite_of(ctx, cond["of"]).stat_stages.get(cond.get("stat", ""), 0) < 0
     ),
     "any_stat_positive": lambda ctx, cond: any(
-        v > 0 for v in _sprite_of(ctx, cond["of"])["stat_stages"].values()
+        v > 0 for v in _sprite_of(ctx, cond["of"]).stat_stages.values()
     ),
     "any_stat_negative": lambda ctx, cond: any(
-        v < 0 for v in _sprite_of(ctx, cond["of"])["stat_stages"].values()
+        v < 0 for v in _sprite_of(ctx, cond["of"]).stat_stages.values()
     ),
     "counter": lambda ctx, cond: (
         ctx.counter_values.get(cond.get("name", ""), 0) > 0
@@ -310,7 +319,7 @@ COND_EVAL = {
     ),
     "damage_restraint": lambda ctx, cond: ctx.element_advantage >= 2.0,
     "prev_damage_taken": lambda ctx, cond: (
-        _sprite_of(ctx, cond.get("of", "sprite_self"))["prev_damage_taken"]
+        _sprite_of(ctx, cond.get("of", "sprite_self")).prev_damage_taken
     ),
 
     # ── Switch ──
@@ -335,16 +344,16 @@ COND_EVAL = {
 
     # ── HP / Energy threshold ──
     "hp_below": lambda ctx, cond: (
-        _sprite_of(ctx, cond.get("of", "sprite_self"))["hp_ratio"] < cond["ratio"]
+        _sprite_of(ctx, cond.get("of", "sprite_self")).hp_ratio < cond["ratio"]
     ),
     "energy_le": lambda ctx, cond: (
-        _sprite_of(ctx, cond.get("of", "sprite_self"))["energy"] <= cond["value"]
+        _sprite_of(ctx, cond.get("of", "sprite_self")).energy <= cond["value"]
     ),
     "energy_eq": lambda ctx, cond: (
-        _sprite_of(ctx, cond.get("of", "sprite_self"))["energy"] == cond["value"]
+        _sprite_of(ctx, cond.get("of", "sprite_self")).energy == cond["value"]
     ),
     "energy_depleted": lambda ctx, cond: (
-        _sprite_of(ctx, cond.get("of", "sprite_self"))["energy"] == ctx.energy_cost_self
+        _sprite_of(ctx, cond.get("of", "sprite_self")).energy == ctx.energy_cost_self
     ),
 
     # ── Weather ──
@@ -363,14 +372,14 @@ COND_EVAL = {
 
     # ── Skill element possession ──
     "have_skill_of": lambda ctx, cond: (
-        resolve(ctx, cond["element"]) in _sprite_of(ctx, cond["of"])["skill_elements"]
+        resolve(ctx, cond["element"]) in _sprite_of(ctx, cond["of"]).skill_elements
         if isinstance(cond.get("element"), dict)
-        else cond["element"] in _sprite_of(ctx, cond["of"])["skill_elements"]
+        else cond["element"] in _sprite_of(ctx, cond["of"]).skill_elements
     ),
 
     # ── Entry / abnormal / state change events ──
-    "sprite_entered": lambda ctx, cond: _sprite_of(ctx, cond.get("of", "sprite_self"))["just_entered"],
-    "sprite_acted": lambda ctx, cond: _sprite_of(ctx, cond.get("of", "sprite_self"))["just_acted"],
+    "sprite_entered": lambda ctx, cond: _sprite_of(ctx, cond.get("of", "sprite_self")).just_entered,
+    "sprite_acted": lambda ctx, cond: _sprite_of(ctx, cond.get("of", "sprite_self")).just_acted,
     "on_abnormal_tick": lambda ctx, cond: (
         ctx.event.last_tick_abnormal == cond["name"]
         and ctx.event.last_tick_target == cond.get("of", "sprite_opp")
@@ -527,14 +536,20 @@ _TRAIT_PATH_MAP: dict[str, str] = {
 }
 
 
+# Pre-compiled regex patterns for trait path resolution (hot path)
+_RE_EFFECTS_PATH = re.compile(r'(self|target)\.effects\[name=([^\]]+)\]\.(\w+)')
+_RE_COUNTERS_PATH = re.compile(r'(self|target)\.counters\[([^\]]+)\]')
+_RE_SKILLS_FILTER = re.compile(r'(self|target)\.skills\[([^\]]+)\]\.(\w+)')
+_RE_SKILLS_FILTER_PART = re.compile(r'(\w+)=(.+)')
+_RE_TEAM_COUNTERS_PATH = re.compile(r'(?:player\.|opponent\.)?team_counters\[([^\]]+)\]')
+
+
 def _resolve_trait_path_value(ctx: Ctx, path: str):
     """Resolve a trait path expression to a value from Ctx.
 
     Handles: direct field maps, computed paths (skill.is_attack etc.),
     effects[name=X], counters[key], skills[filter].count, team_counters[key].
     """
-    import re
-
     # Direct field map
     if path in _TRAIT_PATH_MAP:
         field = _TRAIT_PATH_MAP[path]
@@ -574,7 +589,7 @@ def _resolve_trait_path_value(ctx: Ctx, path: str):
         return getattr(ctx, "effect_is_stat", False)
 
     # effects[name=X].exists / effects[name=X].stacks
-    m = re.match(r'(self|target)\.effects\[name=([^\]]+)\]\.(\w+)', path)
+    m = _RE_EFFECTS_PATH.match(path)
     if m:
         target, name, prop = m.group(1), m.group(2), m.group(3)
         stacks = ctx.abnormal_stacks_self if target == "self" else ctx.abnormal_stacks_opp
@@ -586,19 +601,19 @@ def _resolve_trait_path_value(ctx: Ctx, path: str):
         return 0
 
     # counters[key]
-    m = re.match(r'(self|target)\.counters\[([^\]]+)\]', path)
+    m = _RE_COUNTERS_PATH.match(path)
     if m:
         key = m.group(2)
         return ctx.counter_values.get(key, 0)
 
     # skills[element=X].count / skills[is_attack=True].count
-    m = re.match(r'(self|target)\.skills\[([^\]]+)\]\.(\w+)', path)
+    m = _RE_SKILLS_FILTER.match(path)
     if m:
         target, filter_str, prop = m.group(1), m.group(2), m.group(3)
         elements = ctx.skill_elements_self if target == "self" else ctx.skill_elements_opp
         filters = {}
         for part in filter_str.split(','):
-            fm = re.match(r'(\w+)=(.+)', part.strip())
+            fm = _RE_SKILLS_FILTER_PART.match(part.strip())
             if fm:
                 k, v = fm.group(1), fm.group(2)
                 filters[k] = v
@@ -609,7 +624,7 @@ def _resolve_trait_path_value(ctx: Ctx, path: str):
         return 0
 
     # team_counters[key] / player.team_counters[key] / opponent.team_counters[key]
-    m = re.match(r'(?:player\.|opponent\.)?team_counters\[([^\]]+)\]', path)
+    m = _RE_TEAM_COUNTERS_PATH.match(path)
     if m:
         key = m.group(1)
         # Default to own team

@@ -47,6 +47,9 @@ class Battle(BattleMechanicsMixin):
 
     MAX_TURNS = 150
 
+    # ── 模块级技能 JSON 缓存（跨 Battle 实例共享，消除重复磁盘 I/O） ──
+    _global_skill_cache: dict[str, "CompiledSkill"] = {}
+
     def __init__(
         self, player_a: Player, player_b: Player,
         weather: str = '', verbose: bool = True,
@@ -80,6 +83,10 @@ class Battle(BattleMechanicsMixin):
         self.species_db = None  # 由 SimFactory 注入，供形态变换查询
         self.skill_loader = None  # 由 SimFactory 注入，供形态变换加载技能
         self._snapshots: dict[int, dict] = {}
+        # ── 回合内 Ctx 构建缓存 ──
+        # 每个回合 team 级聚合值（fainted 计数、队伍元素、萌化层数）稳定不变，
+        # 缓存它们避免 _make_ctx 每次调用都遍历 12 只精灵。
+        self._ctx_team_cache: dict[str, dict] = {}
 
         # ── 回合 0: 首发精灵 entry 特性 ──
         from backend.sim.traits import dispatch_entry
@@ -143,27 +150,46 @@ class Battle(BattleMechanicsMixin):
 
     def _make_ctx(self, self_sprite, opp_sprite, self_skill=None, opp_skill=None,
                   globals_=None, *, team: str = "A", **kwargs):
-        """Build a Ctx with team_counters, devotion, fainted pre-filled from battle state."""
+        """Build a Ctx with team_counters, devotion, fainted pre-filled from battle state.
+
+        Per-turn caching: team-level aggregates (fainted count, team elements, moe stacks)
+        are stable within a turn and computed once per team. This avoids iterating all
+        12 sprites on every _make_ctx call (~4-6 times per skill execution).
+        """
         if globals_ is None:
             globals_ = self.globals
         opp_team = 'B' if team == 'A' else 'A'
         own_player = self.get_player(team)
         opp_player = self.get_player(opp_team)
-        # Count fainted sprites on each team
-        fainted_own = sum(1 for s in own_player.team if s.is_fainted)
-        fainted_opp = sum(1 for s in opp_player.team if s.is_fainted)
-        # Collect elements of all sprites (alive and fainted) on each team
-        team_elements_own = frozenset(
-            e for s in own_player.team for e in s.species.elements)
-        team_elements_opp = frozenset(
-            e for s in opp_player.team for e in s.species.elements)
-        # Count 萌化 stacks on own team sprites (excluding self)
+
+        # ── Per-turn team cache ──
+        cache_key = f"{team}_{self.turn}"
+        if cache_key not in self._ctx_team_cache:
+            own_player_obj = self.get_player(team)
+            opp_player_obj = self.get_player(opp_team)
+            fainted_own = sum(1 for s in own_player_obj.team if s.is_fainted)
+            fainted_opp = sum(1 for s in opp_player_obj.team if s.is_fainted)
+            team_elements_own = frozenset(
+                e for s in own_player_obj.team for e in s.species.elements)
+            team_elements_opp = frozenset(
+                e for s in opp_player_obj.team for e in s.species.elements)
+            self._ctx_team_cache[cache_key] = {
+                "fainted_own": fainted_own,
+                "fainted_opp": fainted_opp,
+                "team_elements_own": team_elements_own,
+                "team_elements_opp": team_elements_opp,
+            }
+        cached = self._ctx_team_cache[cache_key]
+
+        # Count 萌化 stacks on own team sprites (excluding self) — per-call still,
+        # since self_sprite changes between calls within a turn.
         moe_team_stacks = 0
         for s in own_player.team:
             if s is not self_sprite and not s.is_fainted:
                 for e in getattr(s, 'active_effects', []):
                     if getattr(e, 'name', '') == '萌化':
                         moe_team_stacks += getattr(e, 'stacks', 0)
+
         return self._build_ctx(
             self_sprite, opp_sprite, self_skill, opp_skill, globals_,
             team=team,
@@ -171,12 +197,12 @@ class Battle(BattleMechanicsMixin):
             team_counters_opp=dict(self.team_counters.get(opp_team, {})),
             devotion_own=dict(getattr(own_player, 'devotion', {})),
             devotion_opp=dict(getattr(opp_player, 'devotion', {})),
-            fainted_own=fainted_own,
-            fainted_opp=fainted_opp,
+            fainted_own=cached["fainted_own"],
+            fainted_opp=cached["fainted_opp"],
             lives_own=getattr(own_player, 'lives', 5),
             lives_opp=getattr(opp_player, 'lives', 5),
-            team_elements_own=team_elements_own,
-            team_elements_opp=team_elements_opp,
+            team_elements_own=cached["team_elements_own"],
+            team_elements_opp=cached["team_elements_opp"],
             moe_team_stacks=moe_team_stacks,
             **kwargs,
         )
@@ -193,6 +219,8 @@ class Battle(BattleMechanicsMixin):
         self.save_snapshot()  # key = turn number AFTER increment, matches frontend
         self._agent_a = agent_a
         self._agent_b = agent_b
+        # 新回合一并清空 Ctx 缓存（key 含 turn 号自动失效，但清掉优化内存）
+        self._ctx_team_cache.clear()
 
         # 每回合开始时，清空双方精灵的"每回合临时" VM modifier
         # （power_mult/damage_mult 等由 VM 每回合重新注入）
@@ -516,9 +544,20 @@ class Battle(BattleMechanicsMixin):
     # ── VM 技能执行 ──
 
     def _get_skill_record(self, skill_name: str) -> CompiledSkill:
-        """Load and cache a CompiledSkill from RISC IR JSON."""
+        """Load and cache a CompiledSkill from RISC IR JSON.
+
+        Uses two-level cache:
+        1. Module-level global cache (shared across all Battle instances)
+        2. Instance-level cache (for skills compiled before the global cache existed)
+        """
         import json
         import os
+        # ── 全局缓存优先（跨 Battle 共享，消除重复磁盘 I/O） ──
+        if skill_name in Battle._global_skill_cache:
+            record = Battle._global_skill_cache[skill_name]
+            # Mirror to instance cache for consistency
+            self._skill_cache[skill_name] = record
+            return record
         if skill_name in self._skill_cache:
             return self._skill_cache[skill_name]
         path = os.path.join('data', 'skills', f'{skill_name}.json')
@@ -527,6 +566,7 @@ class Battle(BattleMechanicsMixin):
         with open(path, encoding='utf-8') as f:
             data = json.load(f)
         record = self._skill_compiler.compile(data)
+        Battle._global_skill_cache[skill_name] = record
         self._skill_cache[skill_name] = record
         return record
 

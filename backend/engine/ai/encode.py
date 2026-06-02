@@ -64,6 +64,8 @@ COUNTER_ORDER: tuple[str, ...] = ('无', '攻击', '防御', '状态')
 # 技能效果惰性缓存（工厂创建技能时 effects=[]，需从 JSON 加载）
 _skills_dir: Path | None = None
 _skill_effects_cache: dict[str, list] = {}
+# 缓存展平后的效果列表，避免每步 MCTS 编码都递归展平同一技能的效果树
+_skill_flat_effects_cache: dict[str, list] = {}
 
 STAT_MAP: dict[str, int] = {k: i for i, k in enumerate(STAT_KEYS)}
 
@@ -308,7 +310,10 @@ def _encode_skill(sk, sprite: Sprite, opp_sprite: Sprite | None) -> list[float]:
         out.append(0.5)
 
     # 8-12: 效果摘要 (5) — 从 JSON 加载（工厂创建的 BattleSkill 不含 effects）
-    flat = _flatten_effects(_get_skill_effects(sk.name))
+    name = sk.name
+    if name not in _skill_flat_effects_cache:
+        _skill_flat_effects_cache[name] = _flatten_effects(_get_skill_effects(name))
+    flat = _skill_flat_effects_cache[name]
     out.append(_summary_abnormal(flat) if flat else 0.0)
     out.append(_summary_stat_stage(flat) if flat else 0.0)
     out.append(_summary_heal_energy(flat) if flat else 0.0)
@@ -470,11 +475,18 @@ def _sprite_primary_element(sprite: Sprite) -> str:
     return elements[0] if elements else '普通'
 
 
+# Lazy-loaded type chart (cached after first access to avoid circular import at module level)
+_TYPE_CHART_CACHE: dict | None = None
+
+
 def _type_advantage(atk_el: str, def_el: str) -> float:
-    from backend.sim.resolver import _TYPE_CHART
-    if atk_el not in _TYPE_CHART:
+    global _TYPE_CHART_CACHE
+    if _TYPE_CHART_CACHE is None:
+        from backend.sim.resolver import _TYPE_CHART as _tc
+        _TYPE_CHART_CACHE = _tc
+    if atk_el not in _TYPE_CHART_CACHE:
         return 1.0
-    return _TYPE_CHART[atk_el].get(def_el, 1.0)
+    return _TYPE_CHART_CACHE[atk_el].get(def_el, 1.0)
 
 
 def _get_abnormal_stacks(sprite: Sprite, name: str) -> int:

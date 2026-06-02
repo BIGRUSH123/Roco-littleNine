@@ -7,6 +7,7 @@ resolve(ctx, value) -> int | float | str
 QueryRef is a pre-indexed query for O(1) runtime lookup (used by SkillLoader).
 """
 
+import re
 from dataclasses import dataclass
 
 from .ctx import ADDRESS_MAP, Ctx
@@ -56,6 +57,8 @@ def resolve(ctx: Ctx, value) -> int | float | str:
     # ── Typed IRValue dispatch (V2) ──
     if isinstance(value, Literal):
         v = value.value
+        if isinstance(v, dict):
+            return _resolve_dict_query(ctx, v)
         if isinstance(v, str) and v.startswith("="):
             return _resolve_formula_string(ctx, v)
         return v
@@ -64,8 +67,8 @@ def resolve(ctx: Ctx, value) -> int | float | str:
         if raw is None:
             raw = value.default or 0
         # Dict-type registers: sub-index by name (e.g. skill_count_own["虫鸣"])
-        if isinstance(raw, dict) and value.name:
-            raw = raw.get(value.name, 0)
+        if isinstance(raw, dict):
+            raw = raw.get(value.name, 0) if value.name else 0
         # Derived query: mark_count_both = own + opp
         if value.sub_key_field == "mark_count_both":
             raw = (raw if isinstance(raw, (int, float)) else 0) + ctx.mark_count_opp
@@ -76,6 +79,8 @@ def resolve(ctx: Ctx, value) -> int | float | str:
             result = int(result / value.per) if isinstance(result, (int, float)) else result
         if isinstance(result, (int, float)):
             result = result * value.scale + value.offset
+        elif isinstance(result, dict):
+            return 0
         return result
     if isinstance(value, RefExpr):
         return _resolve_ref(ctx, value)
@@ -127,10 +132,16 @@ def _resolve_dict_query(ctx: Ctx, value: dict) -> int | float | str:
     # Dict-type registers: sub-index by name or type/element/tag
     if q in _NAMED_DICT_QUERIES:
         sub_key = value.get("name")
-        raw = raw.get(sub_key, 0) if isinstance(raw, dict) else 0
+        if isinstance(raw, dict):
+            raw = raw.get(sub_key, 0) if sub_key else 0
+        else:
+            raw = 0
     elif q == "energy_cost_sum":
         sub_key = value.get("skill_type") or value.get("element") or value.get("tag")
-        raw = raw.get(sub_key, 0) if isinstance(raw, dict) else 0
+        if isinstance(raw, dict):
+            raw = raw.get(sub_key, 0) if sub_key else 0
+        else:
+            raw = 0
 
     # Default fallback (when raw is falsy: 0, "", None, empty)
     if "default" in value and not raw:
@@ -151,6 +162,8 @@ def _resolve_dict_query(ctx: Ctx, value: dict) -> int | float | str:
     if "offset" in value:
         raw = raw + value["offset"]
 
+    if isinstance(raw, dict):
+        return 0
     return raw
 
 
@@ -202,6 +215,10 @@ def _resolve_ref(ctx: Ctx, ref: RefExpr) -> int | float | str:
 
 
 # ── Formula string evaluation (=@ prefix) ──
+
+# Cache for pre-compiled formula expressions to avoid eval() re-parsing overhead
+_COMPILED_FORMULAS: dict[str, object] = {}
+
 
 # Lightweight trait path → Ctx field map (mirrors cond._TRAIT_PATH_MAP,
 # duplicated here to avoid circular import)
@@ -261,14 +278,19 @@ _FORMULA_PATH_MAP: dict[str, str] = {
 }
 
 
+# Pre-compiled regex patterns for _resolve_trait_ref (hot path)
+_RE_TRAIT_EFFECTS = re.compile(r'(self|target)\.effects\[name=([^\]]+)\]\.(\w+)')
+_RE_TRAIT_COUNTERS = re.compile(r'(self|target)\.counters\[([^\]]+)\]')
+_RE_TRAIT_TEAM_COUNTERS = re.compile(r'(?:player\.|opponent\.)?team_counters\[([^\]]+)\]')
+_RE_TRAIT_SKILLS = re.compile(r'(self|target)\.skills\[element=([^\]]+)\]\.count')
+
+
 def _resolve_trait_ref(ref: str, ctx: Ctx):
     """Resolve a single @path reference against Ctx.
 
     Handles: direct field maps, effects[name=X].stacks/exists,
     counters[key], team_counters[key], skills[filter].count.
     """
-    import re
-
     path = ref
     if path.startswith("@"):
         path = path[1:]
@@ -279,7 +301,7 @@ def _resolve_trait_ref(ref: str, ctx: Ctx):
         return _get_ctx_field(ctx, field)
 
     # effects[name=X].stacks / effects[name=X].exists
-    m = re.match(r'(self|target)\.effects\[name=([^\]]+)\]\.(\w+)', path)
+    m = _RE_TRAIT_EFFECTS.match(path)
     if m:
         target, name, prop = m.group(1), m.group(2), m.group(3)
         stacks = ctx.abnormal_stacks_self if target == "self" else ctx.abnormal_stacks_opp
@@ -287,12 +309,12 @@ def _resolve_trait_ref(ref: str, ctx: Ctx):
         return val > 0 if prop == "exists" else val
 
     # counters[key]
-    m = re.match(r'(self|target)\.counters\[([^\]]+)\]', path)
+    m = _RE_TRAIT_COUNTERS.match(path)
     if m:
         return ctx.counter_values.get(m.group(2), 0)
 
     # team_counters[key]
-    m = re.match(r'(?:player\.|opponent\.)?team_counters\[([^\]]+)\]', path)
+    m = _RE_TRAIT_TEAM_COUNTERS.match(path)
     if m:
         key = m.group(1)
         if path.startswith("opponent."):
@@ -300,13 +322,19 @@ def _resolve_trait_ref(ref: str, ctx: Ctx):
         return ctx.team_counters_own.get(key, 0)
 
     # skills[element=X].count
-    m = re.match(r'(self|target)\.skills\[element=([^\]]+)\]\.count', path)
+    m = _RE_TRAIT_SKILLS.match(path)
     if m:
         target, element = m.group(1), m.group(2)
         counts = ctx.skill_element_counts_self if target == "self" else ctx.skill_element_counts_opp
         return counts.get(element, 0)
 
     return 0
+
+
+# Pre-compiled ref-replacement pattern (module-level to avoid re.compile per call)
+_REF_PATTERN = re.compile(
+    r'@[a-zA-Z_]\w*(?:\[[^\]]*\])?(?:\.[a-zA-Z_]\w*(?:\[[^\]]*\])?)*'
+)
 
 
 def _resolve_formula_string(ctx: Ctx, formula: str) -> int | float:
@@ -317,24 +345,27 @@ def _resolve_formula_string(ctx: Ctx, formula: str) -> int | float:
       =@path.a - @path.b  → arithmetic expression
       =literal            → literal numeric value
     """
-    import re
-
     expr = formula[1:]  # strip '='
 
     # Arithmetic expression: replace @refs with resolved values, then eval
-    if re.search(r'[\+\-\*\/\(\)]', expr):
+    if _REF_PATTERN.search(expr) and re.search(r'[\+\-\*\/\(\)]', expr):
         def replace_ref(m):
             ref_expr = m.group(0)
             val = _resolve_trait_ref(ref_expr, ctx)
             return str(val) if val is not None else '0'
 
-        resolved = re.sub(
-            r'@[a-zA-Z_]\w*(?:\[[^\]]*\])?(?:\.[a-zA-Z_]\w*(?:\[[^\]]*\])?)*',
-            replace_ref, expr,
-        )
+        resolved = _REF_PATTERN.sub(replace_ref, expr)
+
+        # Cache compiled code objects to avoid eval() re-parsing overhead.
+        # Skill formulas are a small finite set — cache grows minimally.
+        if resolved not in _COMPILED_FORMULAS:
+            _COMPILED_FORMULAS[resolved] = compile(
+                resolved, '<formula>', 'eval',
+            )
+        code = _COMPILED_FORMULAS[resolved]
 
         try:
-            return eval(resolved, {"__builtins__": {}}, {
+            return eval(code, {"__builtins__": {}}, {
                 "int": int, "float": float, "round": round,
                 "max": max, "min": min, "abs": abs,
             })
