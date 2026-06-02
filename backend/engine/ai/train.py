@@ -174,7 +174,11 @@ class MCTSAgent:
 
         action_idx = _sample_action(probs, self._temperature)
         player = battle.player_a if self.team == "A" else battle.player_b
-        return action_index_to_action(player, action_idx)
+        action = action_index_to_action(player, action_idx)
+        if action is not None:
+            return action
+        from backend.sim.action import Action
+        return Action(kind="gather")
 
     def choose_replacement(self, battle) -> int:
         alive = [i for i, s in enumerate(self.player.team)
