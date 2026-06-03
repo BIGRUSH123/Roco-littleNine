@@ -726,4 +726,20 @@
 - **涉及文件**: backend/sim/battle.py:53-140
 - **教训**: save/restore 中**绝不用 id()**追踪可变对象——GC 后的地址复用是 heisenbug；保存时确认每个 effect 子类的特有字段都在快照中
 
+## 2026-06-03 - 评估最后一局卡死 — Windows multiprocessing.Queue 超时过短
+
+- **现象**: 评估环节最后 1 局总是卡在 31/32 完成、7/8 workers 退出，不再有进展
+- **根因**: BatchedInferenceServer._collect_batch 用 0.0001s 超时轮询。Windows multiprocessing.Queue 超时<1ms 时因底层管道实现可能漏收消息。只剩 1 个 worker 低频发送推理请求时，漏收导致 worker 在 reply_queue 永久阻塞
+- **修复**: _collect_batch 最短超时 0.0001s→0.005s；eval worker 推理回复超时 300s→60s
+- **涉及文件**: backend/engine/ai/evaluator.py, backend/engine/ai/selfplay_worker.py
+- **教训**: 卡死先查多线程/多进程队列超时——Windows 上 Queue 不可设 <1ms 超时
+
+## 2026-06-03 - MCTS 全局状态编码缓存错误 — 仿真中全局状态会变化
+
+- **现象**: 提交了"MCTS 预编码全局 56 维复用"优化，但逻辑有误需要回退
+- **根因**: 假设 MCTS 仿真期间天气/印记/道具/魔力不变。实际上 _step_battle 执行完整回合，技能可改变天气、消耗印记、使用道具。leaf eval 在 save/restore 之间，必须编码仿真路径修改后的状态
+- **修复**: 回退 global_cache 参数和 MCTS 中预编码逻辑
+- **涉及文件**: backend/engine/ai/encode.py:77-98, backend/engine/ai/mcts.py:299-306
+- **教训**: MCTS 仿真≠只读——_step_battle 执行真实回合，所有状态都可能被修改；缓存前先确认数据是否真的 immutable
+
 -->
