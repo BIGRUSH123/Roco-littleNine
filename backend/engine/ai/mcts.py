@@ -222,6 +222,7 @@ class FixedAgent:
 class MCTSNode:
     __slots__ = (
         "visit_count", "total_value", "prior", "children", "valid_actions",
+        "opp_policy",  # 对手在本节点的策略分布（消除 _step_battle 中的重复推理）
     )
 
     def __init__(self, valid_actions: list[int], prior: np.ndarray):
@@ -230,6 +231,7 @@ class MCTSNode:
         self.prior = prior
         self.children: dict[int, MCTSNode] = {}
         self.valid_actions = valid_actions
+        self.opp_policy: np.ndarray | None = None
 
     @property
     def value(self) -> float:
@@ -295,6 +297,13 @@ def mcts_search(
             prior[a] = (1 - root_noise) * prior[a] + root_noise * noise[i]
 
     root = MCTSNode(valid, prior)
+    # 预计算根节点对手策略（博弈树首次选择时直接采样，省 encode+eval）
+    opp_player = battle.player_b
+    opp_valid, opp_mask = get_valid_actions(opp_player)
+    if opp_valid:
+        opp_state = encode_battle_state(battle, perspective="B")
+        _, opp_prior = evaluator.evaluate(opp_state, opp_mask)
+        root.opp_policy = opp_prior
 
     # ── MCTS 主循环 ──
     # 使用 save/restore 替代 clone：每轮仿真前保存可变状态，
@@ -323,7 +332,9 @@ def mcts_search(
                 break
             path.append((node, best_a))
             node = node.children[best_a]
-            _step_battle(battle, best_a, opponent_agent)
+            # 使用预缓存的对手策略（省掉 encode+eval），回退到 opponent_agent
+            _step_battle(battle, best_a, opponent_agent,
+                         opp_policy=path[-1][0].opp_policy)
 
         # ── Expansion & Evaluation ──
         sim_player = battle.player_a
@@ -332,6 +343,13 @@ def mcts_search(
         if sim_valid and not battle.is_finished:
             leaf_state = encode_battle_state(battle)
             leaf_value, sim_prior = evaluator.evaluate(leaf_state, sim_mask)
+            # 预计算对手策略：省掉后续 _step_battle 中的 encode+eval
+            opp_player = battle.player_b
+            opp_valid, opp_mask = get_valid_actions(opp_player)
+            if opp_valid:
+                opp_state = encode_battle_state(battle, perspective="B")
+                _, opp_prior = evaluator.evaluate(opp_state, opp_mask)
+                node.opp_policy = opp_prior
             for a in sim_valid:
                 node.children[a] = MCTSNode(sim_valid, sim_prior)
         else:
@@ -362,10 +380,17 @@ def mcts_search(
     return mask / max(mask.sum(), 1.0)
 
 
-def _step_battle(battle: Battle, action_idx: int, opponent_agent) -> None:
+def _step_battle(
+    battle: Battle, action_idx: int, opponent_agent,
+    *, opp_policy: np.ndarray | None = None,
+) -> None:
     """在 battle 上执行一回合：A 按 action_idx 行动，B 由 opponent_agent 决定。
 
-    使用 FixedAgent 包装 A，使 execute_turn 按预定动作执行。
+    Args:
+        opp_policy: 若提供，从该策略分布采样对手动作（省掉 encode+eval）；
+                    否则调用 opponent_agent.choose_action（旧路径）。
+
+    使用 FixedAgent 包装双方，使 execute_turn 按预定动作执行。
     """
     from backend.sim.action import Action
 
@@ -374,9 +399,17 @@ def _step_battle(battle: Battle, action_idx: int, opponent_agent) -> None:
     if action_a is None:
         return
 
-    fixed_a = FixedAgent(action_a, opponent_agent)  # 复用 opponent 的 choose_lead 等
-    # 为 player_a 侧的 fixed agent 设置正确的 player 引用
+    fixed_a = FixedAgent(action_a, opponent_agent)
     fixed_a._real = _PlayerSwappedAgent(opponent_agent, player_a)
+
+    if opp_policy is not None:
+        opp_idx = policy_select_idx(opp_policy, temperature=1.0)
+        player_b = battle.player_b
+        action_b = action_index_to_action(player_b, opp_idx)
+        if action_b is not None:
+            fixed_b = _OppFixedAgent(action_b, battle.player_b)
+            battle.execute_turn(fixed_a, fixed_b)
+            return
 
     battle.execute_turn(fixed_a, opponent_agent)
 
@@ -390,7 +423,6 @@ class _PlayerSwappedAgent:
         self.team = "A"
 
     def choose_lead(self, battle) -> int:
-        # 委托前临时切换 player… 简单实现：直接取第一个存活
         alive = [i for i, s in enumerate(self.player.team) if not s.is_fainted]
         return alive[0] if alive else 0
 
@@ -398,6 +430,30 @@ class _PlayerSwappedAgent:
         alive = [i for i, s in enumerate(self.player.team)
                  if not s.is_fainted and i != self.player.active_index]
         return alive[0] if alive else -1  # -1 通知引擎扣魔力
+
+    def on_game_end(self, winner: str) -> None:
+        pass
+
+
+class _OppFixedAgent:
+    """对手 FixedAgent：choose_action 返回预定动作，其余委托给 player 自身。"""
+
+    def __init__(self, action, player):
+        self._action = action
+        self.player = player
+        self.team = "B"
+
+    def choose_action(self, battle):
+        return self._action
+
+    def choose_lead(self, battle) -> int:
+        alive = [i for i, s in enumerate(self.player.team) if not s.is_fainted]
+        return alive[0] if alive else 0
+
+    def choose_replacement(self, battle) -> int:
+        alive = [i for i, s in enumerate(self.player.team)
+                 if not s.is_fainted and i != self.player.active_index]
+        return alive[0] if alive else -1
 
     def on_game_end(self, winner: str) -> None:
         pass
