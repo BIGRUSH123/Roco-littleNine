@@ -38,6 +38,13 @@ _DEVICE = "cpu"
 _CHECKPOINT = "checkpoints/modular_v3/model_rl_best.pt"
 
 
+def set_checkpoint(path: str) -> None:
+    """切换模型 checkpoint（需在创建 agent 前调用）。"""
+    global _CHECKPOINT, _MODEL
+    _CHECKPOINT = path
+    _MODEL = None  # 强制重新加载
+
+
 def _load_model():
     """惰性加载模型（首次用到时才加载，节省内存）。"""
     global _MODEL
@@ -74,7 +81,20 @@ def _load_model():
             dropout=float(data.get("dropout", 0.0)),
         )
 
-    _MODEL.load_state_dict(data["state_dict"])
+    try:
+        _MODEL.load_state_dict(data["state_dict"])
+    except RuntimeError as e:
+        msg = str(e)
+        if "size mismatch" in msg and "policy_head" in msg:
+            raise RuntimeError(
+                f"模型不兼容: {_CHECKPOINT}\n"
+                f"  该 checkpoint 是旧版 10 动作空间 (无聚能)，"
+                f"当前模型是 11 动作空间。\n"
+                f"  请使用 --sims 200 训练得到的新 checkpoint "
+                f"(如 checkpoints/modular_v3/model_rl_best.pt)\n"
+                f"  原始错误: {msg}"
+            ) from e
+        raise
     _MODEL.to(_DEVICE)
     _MODEL.eval()
     return _MODEL

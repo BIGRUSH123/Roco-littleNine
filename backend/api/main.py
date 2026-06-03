@@ -155,6 +155,24 @@ def get_agent(name: str):
     }
 
 
+@app.get("/api/models")
+def list_models():
+    """列出 checkpoints/ 下所有可用模型文件, 供前端选择。"""
+    from pathlib import Path
+    ckpt_dir = Path("checkpoints")
+    models: list[dict] = []
+    if ckpt_dir.exists():
+        for pt in sorted(ckpt_dir.rglob("*.pt"), key=lambda p: p.stat().st_mtime, reverse=True):
+            rel = pt.as_posix()
+            size_kb = pt.stat().st_size / 1024
+            models.append({
+                "path": rel,
+                "size_kb": round(size_kb, 1),
+                "name": rel,
+            })
+    return {"models": models}
+
+
 SKILLS_DIR = BASE / "data" / "skills"
 SPRITES_DIR = BASE / "data" / "sprites"
 
@@ -638,7 +656,7 @@ def _build_turn_snapshot(battle, turn_log):
         log_entries=list(turn_log) if turn_log else [],
     )
 
-def _load_ai_agent(name: str, player):
+def _load_ai_agent(name: str, player, model: str | None = None):
     """Load an AI agent from the registry by name. Falls back to RuleAgent."""
     info = AGENT_REGISTRY.get(name)
     if info is None:
@@ -654,13 +672,17 @@ def _load_ai_agent(name: str, player):
         cls = getattr(mod, cls_name)
         if cls_name == "RuleAgent":
             return cls("B", player)
-        else:
-            try:
-                from roco.bridge import adapt_agent
-            except ImportError as err:
-                raise ImportError("roco package not installed — AI agent support will be added in a future version") from err
-            instance = cls() if isinstance(cls, type) else cls
-            return adapt_agent(instance, "B")
+        # 神经网络 agent: 传 model 路径
+        if mod_name == "backend.engine.ai.neural_agent":
+            if model:
+                mod.set_checkpoint(model)
+            return cls()
+        try:
+            from roco.bridge import adapt_agent
+        except ImportError as err:
+            raise ImportError("roco package not installed — AI agent support will be added in a future version") from err
+        instance = cls() if isinstance(cls, type) else cls
+        return adapt_agent(instance, "B")
     elif source in ("example", "demo"):
         file_path = info.get("file", "")
         try:
@@ -814,7 +836,7 @@ def _init_battle_impl(req: schemas.InitRequest):
     battle = FACTORY.build_battle(player_a, player_b)
 
     # Load AI agent from registry (default: RuleAgent)
-    agent_b = _load_ai_agent(req.ai_agent or "RuleAgent", player_b)
+    agent_b = _load_ai_agent(req.ai_agent or "RuleAgent", player_b, model=req.model)
     player_b.active_index = agent_b.choose_lead(battle)
 
     session_id = str(uuid.uuid4())

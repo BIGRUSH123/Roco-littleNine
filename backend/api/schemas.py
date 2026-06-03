@@ -26,6 +26,7 @@ class InitRequest(BaseModel):
     lead_index: int = 0
     item: str | None = None
     ai_agent: str | None = None  # registered agent name (whitelist)
+    model: str | None = None     # checkpoint path for neural agents, e.g. "checkpoints/modular_v3/model_rl_best.pt"
 
 
 class ActionRequest(BaseModel):
