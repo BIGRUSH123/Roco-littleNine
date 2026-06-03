@@ -742,4 +742,20 @@
 - **涉及文件**: backend/engine/ai/encode.py:77-98, backend/engine/ai/mcts.py:299-306
 - **教训**: MCTS 仿真≠只读——_step_battle 执行真实回合，所有状态都可能被修改；缓存前先确认数据是否真的 immutable
 
+## 2026-06-03 - 蓄力时聚能未禁用 — get_valid_actions + 引擎未检查 _charging
+
+- **现象**: 对方蓄力期间仍然可以使用聚能
+- **根因**: get_valid_actions(mcts.py:56) 聚能始终 mask[9]=1.0，未检查 _charging 状态。引擎 _execute_skill_vm 聚能分支也没有蓄力拦截
+- **修复**: get_valid_actions 蓄力中仅开放蓄力技能（禁聚能/换宠/道具）；_execute_skill_vm 聚能前检查 _charging
+- **涉及文件**: backend/engine/ai/mcts.py:40-48, backend/sim/battle.py:762-764
+- **教训**: 新增常驻动作（聚能 mask[9]=1.0）时必须检查与其他状态的互斥——蓄力/锁定/封印应全局过滤
+
+## 2026-06-03 - MCTS save/restore 印记泄漏 — mark_effects 浅拷贝导致泄漏到主对局
+
+- **现象**: 对面使用打湿，湿润印记显示在我方
+- **根因**: save_mutable_state 只保存 MarkEffect.stacks 值，不保存列表结构。MCTS 仿真中 apply_mark 创建新 MarkEffect 对象，restore 后不删除→泄漏。NeuralMCTSAgent 视角交换(A↔B)时泄漏印记随交换落到错误队伍
+- **修复**: mark_effects/pending_effects/scheduled_effects 改为 deepcopy 完整保存/恢复
+- **涉及文件**: backend/sim/battle.py:96-99, 125-126
+- **教训**: MCTS 仿真中"创建新对象"的副作用（apply_mark、add_effect）必须 deepcopy 整个集合——只存字段值不够。小对象（mark_effects 0-10 个）deepcopy ~0.5μs 可忽略；大对象图（player 1000+ 对象）不可用 deepcopy
+
 -->
