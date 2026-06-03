@@ -102,10 +102,13 @@ class Battle(BattleMechanicsMixin):
             "skill_history": {k: list(v) for k, v in vm._skill_history.items()},
             "skill_tags": {k: dict(v) for k, v in vm._skill_tags.items()},
         }
+        # ── 日志截断：只保留当前回合之前的记录（MCTS 仿真会追加额外回合） ──
+        log_len = len(self.log)
         return {
             "sprites": sprites,
             "turn": self.turn,
             "winner": self.winner,
+            "log_len": log_len,
             "weather": self.globals.weather,
             "weather_turns": self.globals.weather_turns,
             "marks": mark_snap,
@@ -170,6 +173,9 @@ class Battle(BattleMechanicsMixin):
         # ── 全局状态 ──
         self.turn = saved["turn"]
         self.winner = saved["winner"]
+        # 截断 MCTS 仿真期间追加的日志
+        if "log_len" in saved:
+            del self.log[saved["log_len"]:]
         self.globals.weather = saved["weather"]
         self.globals.weather_turns = saved["weather_turns"]
         self.team_counters = saved["team_counters"]

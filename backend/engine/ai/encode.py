@@ -517,7 +517,11 @@ def _abnormal_max(name: str) -> int:
 def _encode_buff(sprite: Sprite, key: str) -> float:
     if key in STAT_KEYS:
         steps = sprite._sum_steps(key)
-        return np.clip(steps / 6.0, -1.0, 1.0)
+        # 防御溢出：save/restore 或异常 trait 可能产生巨大 steps 值
+        try:
+            return np.clip(steps / 6.0, -1.0, 1.0)
+        except (OverflowError, ValueError):
+            return 0.0
     if key in ('power_mult', 'damage_mult', 'damage_reduction', 'life_drain'):
         val = sprite._modifiers.get(key, 0.0)
         return val
