@@ -639,6 +639,7 @@ def train_rl(
     v_val = torch.from_numpy(v[val_idx]).unsqueeze(1).to(device)
 
     optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs, eta_min=lr * 0.01)
     history: list[dict] = []
 
     for epoch in range(epochs):
@@ -655,11 +656,17 @@ def train_rl(
 
             value, logits = model(xb)
             value_loss = F.mse_loss(value, vb)
-            policy_loss = -torch.sum(pb * F.log_softmax(logits, dim=-1), dim=-1).mean()
+            # 用目标策略 pb 作为隐式 mask：pb>0 为合法动作，pb==0 为非法动作。
+            # 将非法动作 logit 设为 -1e9（与 forward_with_mask 一致），
+            # 使 softmax 分母仅对合法动作归一化，消除非法动作对梯度的无效占用。
+            legal_mask = (pb > 0).float()
+            masked_logits = logits.masked_fill(legal_mask == 0, -1e9)
+            policy_loss = -torch.sum(pb * F.log_softmax(masked_logits, dim=-1), dim=-1).mean()
             loss = value_loss + policy_loss
 
             optimizer.zero_grad()
             loss.backward()
+            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
             optimizer.step()
 
             total_value_loss += value_loss.item() * len(batch_idx)
@@ -672,8 +679,12 @@ def train_rl(
         with torch.no_grad():
             val_v, val_logits = model(X_val)
             val_v_loss = F.mse_loss(val_v, v_val).item()
-            val_p_loss = -torch.sum(P_val * F.log_softmax(val_logits, dim=-1), dim=-1).mean().item()
+            val_legal_mask = (P_val > 0).float()
+            val_masked_logits = val_logits.masked_fill(val_legal_mask == 0, -1e9)
+            val_p_loss = -torch.sum(P_val * F.log_softmax(val_masked_logits, dim=-1), dim=-1).mean().item()
             val_acc = ((val_v.squeeze().sign() == v_val.squeeze().sign()).float().mean().item())
+
+        scheduler.step()
 
         history.append({
             "epoch": epoch + 1,
@@ -688,7 +699,8 @@ def train_rl(
             print(f"  Epoch {epoch + 1:3d}/{epochs}  "
                   f"v_loss={train_v_loss:.4f}/{val_v_loss:.4f}  "
                   f"p_loss={train_p_loss:.4f}/{val_p_loss:.4f}  "
-                  f"val_acc={val_acc:.3f}")
+                  f"val_acc={val_acc:.3f}  "
+                  f"lr={scheduler.get_last_lr()[0]:.2e}")
 
     return history
 
@@ -1069,6 +1081,9 @@ def main():
     parser.add_argument("--dropout", type=float, default=0.0)
     parser.add_argument("--output", type=str, default="checkpoints/model_rl.pt")
     parser.add_argument("--resume", type=str, default="")
+    parser.add_argument("--base-model", type=str,
+                        default="checkpoints/model_rl_best.pt",
+                        help="基座模型路径（无 --resume 时从此权重加载而非随机初始化）")
     parser.add_argument("--device", type=str, default="")
     parser.add_argument("--data-cache", type=str, default="",
                         help="监督模式: 预生成数据缓存路径")
@@ -1219,7 +1234,15 @@ def main():
             model = ModularBattleNet.load(args.resume, device=device)
         else:
             model = BattleNet.load(args.resume, device=device)
+    elif args.base_model and Path(args.base_model).exists():
+        print(f"加载基座模型: {args.base_model}")
+        if use_modular:
+            model = ModularBattleNet.load(args.base_model, device=device)
+        else:
+            model = BattleNet.load(args.base_model, device=device)
     else:
+        if args.base_model:
+            print(f"基座模型未找到: {args.base_model}，使用随机初始化")
         if use_modular:
             model = ModularBattleNet(
                 trunk_dim=hidden[0] if hidden else 256,
