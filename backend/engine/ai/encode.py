@@ -79,6 +79,7 @@ def encode_battle_state(
     *,
     mask_opp_bench: bool = False,
     perspective: str = "A",
+    global_cache: dict[str, np.ndarray] | None = None,
 ) -> np.ndarray:
     """将 Battle 状态编码为 (446,) float32 向量。
 
@@ -86,6 +87,7 @@ def encode_battle_state(
         battle: 对局对象。
         mask_opp_bench: 若 True，对方板凳特征以 -1 填充（模拟不完全信息）。
         perspective: "A"（默认）从 player_a 视角编码，"B" 从 player_b 视角编码。
+        global_cache: 可选 {"A": (56,), "B": (56,)} 预编码全局状态，跳过 _encode_global。
     """
     pieces: list[np.ndarray] = []
 
@@ -93,9 +95,12 @@ def encode_battle_state(
     own: Player = battle.player_a if perspective == "A" else battle.player_b
     opp: Player = battle.player_b if perspective == "A" else battle.player_a
 
-    # A: 全局状态 (56) — 从己方视角读取印记/奉献等
-    own_team = "A" if perspective == "A" else "B"
-    pieces.append(_encode_global(battle, own_team=own_team))
+    # A: 全局状态 (56)
+    if global_cache and perspective in global_cache:
+        pieces.append(global_cache[perspective])
+    else:
+        own_team = "A" if perspective == "A" else "B"
+        pieces.append(_encode_global(battle, own_team=own_team))
 
     # B: 己方场上精灵 (115)
     own_active: Sprite | None = _active_or_none(own)

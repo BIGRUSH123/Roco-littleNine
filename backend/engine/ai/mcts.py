@@ -297,11 +297,17 @@ def mcts_search(
             prior[a] = (1 - root_noise) * prior[a] + root_noise * noise[i]
 
     root = MCTSNode(valid, prior)
+    # 预编码全局状态 — MCTS 期间天气/印记/道具/奉献不变，每次 leaf eval 复用
+    from backend.engine.ai.encode import _encode_global as _enc_global
+    global_cache = {
+        "A": _enc_global(battle, own_team="A"),
+        "B": _enc_global(battle, own_team="B"),
+    }
     # 预计算根节点对手策略（博弈树首次选择时直接采样，省 encode+eval）
     opp_player = battle.player_b
     opp_valid, opp_mask = get_valid_actions(opp_player)
     if opp_valid:
-        opp_state = encode_battle_state(battle, perspective="B")
+        opp_state = encode_battle_state(battle, perspective="B", global_cache=global_cache)
         _, opp_prior = evaluator.evaluate(opp_state, opp_mask)
         root.opp_policy = opp_prior
 
@@ -341,13 +347,13 @@ def mcts_search(
         sim_valid, sim_mask = get_valid_actions(sim_player)
 
         if sim_valid and not battle.is_finished:
-            leaf_state = encode_battle_state(battle)
+            leaf_state = encode_battle_state(battle, global_cache=global_cache)
             leaf_value, sim_prior = evaluator.evaluate(leaf_state, sim_mask)
-            # 预计算对手策略：省掉后续 _step_battle 中的 encode+eval
+            # 预计算对手策略
             opp_player = battle.player_b
             opp_valid, opp_mask = get_valid_actions(opp_player)
             if opp_valid:
-                opp_state = encode_battle_state(battle, perspective="B")
+                opp_state = encode_battle_state(battle, perspective="B", global_cache=global_cache)
                 _, opp_prior = evaluator.evaluate(opp_state, opp_mask)
                 node.opp_policy = opp_prior
             for a in sim_valid:

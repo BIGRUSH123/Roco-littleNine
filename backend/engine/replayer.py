@@ -377,76 +377,14 @@ class JournalReplayer:
 
     # ── Dispatch ──
 
+    # O(1) type dispatch dict — replaces 31-branch cls.__name__ string chain
+    _DISPATCH: dict[type, callable] = {}
+
     def _apply(self, m: Mutation) -> str:
-        """Dispatch a single mutation to the appropriate handler."""
-        cls = type(m).__name__
-
-        if cls == "StatChange":
-            return self._apply_stat_change(m)
-        elif cls == "ModifierInjection":
-            return self._apply_modifier(m)
-        elif cls == "Damage":
-            return self._apply_damage(m)
-        elif cls == "Heal":
-            return self._apply_heal(m)
-        elif cls == "EnergyChange":
-            return self._apply_energy_change(m)
-        elif cls == "MarkChange":
-            return self._apply_mark_change(m)
-        elif cls == "AbnormalChange":
-            return self._apply_abnormal_change(m)
-        elif cls == "WeatherSet":
-            return self._apply_weather_set(m)
-        elif cls == "Dispel":
-            return self._apply_dispel(m)
-        elif cls == "Steal":
-            return self._apply_steal(m)
-        elif cls == "Tick":
-            return self._apply_tick(m)
-        elif cls == "Double":
-            return self._apply_double(m)
-        elif cls == "EffectDelta":
-            return self._apply_effect_delta(m)
-        elif cls == "Charge":
-            return self._apply_charge(m)
-        elif cls == "Escape":
-            return self._apply_escape(m)
-        elif cls == "Return":
-            return self._apply_return(m)
-        elif cls == "Lock":
-            return self._apply_lock(m)
-        elif cls == "Interrupt":
-            return self._apply_interrupt(m)
-        elif cls == "Exchange":
-            return self._apply_exchange(m)
-        elif cls == "Reset":
-            return self._apply_reset(m)
-        elif cls == "Redirect":
-            return self._apply_redirect(m)
-        elif cls == "Replay":
-            return self._apply_replay(m)
-        elif cls == "Borrow":
-            return self._apply_borrow(m)
-        elif cls == "BurstGrant":
-            return self._apply_burst_grant(m)
-        elif cls == "CounterRegister":
-            return self._apply_counter_register(m)
-        elif cls == "TeamCounterDelta":
-            return self._apply_team_counter_delta(m)
-        elif cls == "LivesDelta":
-            return self._apply_lives_delta(m)
-        elif cls == "ScheduleEntry":
-            return self._apply_schedule_entry(m)
-        elif cls == "InheritEffectsMutation":
-            return self._apply_inherit_effects_mutation(m)
-        elif cls == "TransformMutation":
-            return self._apply_transform_mutation(m)
-        elif cls == "TraitInteractionMutation":
-            return self._apply_trait_interaction_mutation(m)
-        elif cls == "GainSkillsMutation":
-            return self._apply_gain_skills(m)
-
-        return f"Unknown mutation: {cls}"
+        handler = self._DISPATCH.get(type(m))
+        if handler is not None:
+            return handler(self, m)
+        return f"Unknown mutation: {type(m).__name__}"
 
     # ── Handlers ──
 
@@ -1614,3 +1552,41 @@ class JournalReplayer:
         # Simplified: swap all adjacent pairs (0<->1, 2<->3)
         for i in range(0, n - 1, 2):
             skills[i], skills[i + 1] = skills[i + 1], skills[i]
+
+
+# ── O(1) dispatch dict for JournalReplayer._apply ──
+# Built once at import time; replaces the 31-branch cls.__name__ if-elif chain.
+JournalReplayer._DISPATCH = {
+    AbnormalChange: JournalReplayer._apply_abnormal_change,
+    Borrow: JournalReplayer._apply_borrow,
+    BurstGrant: JournalReplayer._apply_burst_grant,
+    Charge: JournalReplayer._apply_charge,
+    CounterRegister: JournalReplayer._apply_counter_register,
+    Damage: JournalReplayer._apply_damage,
+    Dispel: JournalReplayer._apply_dispel,
+    Double: JournalReplayer._apply_double,
+    EffectDelta: JournalReplayer._apply_effect_delta,
+    EnergyChange: JournalReplayer._apply_energy_change,
+    Escape: JournalReplayer._apply_escape,
+    Exchange: JournalReplayer._apply_exchange,
+    GainSkillsMutation: JournalReplayer._apply_gain_skills,
+    Heal: JournalReplayer._apply_heal,
+    InheritEffectsMutation: JournalReplayer._apply_inherit_effects_mutation,
+    Interrupt: JournalReplayer._apply_interrupt,
+    LivesDelta: JournalReplayer._apply_lives_delta,
+    Lock: JournalReplayer._apply_lock,
+    MarkChange: JournalReplayer._apply_mark_change,
+    ModifierInjection: JournalReplayer._apply_modifier,
+    Redirect: JournalReplayer._apply_redirect,
+    Replay: JournalReplayer._apply_replay,
+    Reset: JournalReplayer._apply_reset,
+    Return: JournalReplayer._apply_return,
+    ScheduleEntry: JournalReplayer._apply_schedule_entry,
+    StatChange: JournalReplayer._apply_stat_change,
+    Steal: JournalReplayer._apply_steal,
+    TeamCounterDelta: JournalReplayer._apply_team_counter_delta,
+    Tick: JournalReplayer._apply_tick,
+    TraitInteractionMutation: JournalReplayer._apply_trait_interaction_mutation,
+    TransformMutation: JournalReplayer._apply_transform_mutation,
+    WeatherSet: JournalReplayer._apply_weather_set,
+}
