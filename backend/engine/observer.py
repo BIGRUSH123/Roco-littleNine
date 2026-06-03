@@ -100,31 +100,49 @@ class ObserverRegistry:
 
     def __init__(self):
         self._observers: list[Observer] = []
+        # 按 trigger 分桶：fire(trigger) 只遍历匹配桶 + fallback，避免全量扫描
+        self._by_trigger: dict[str, list[Observer]] = {}
+        self._fallback: list[Observer] = []  # listen 为空 → 全部 trigger 触发
 
     # ── Registration ──
 
+    def _index(self, obs: Observer) -> None:
+        self._observers.append(obs)
+        if obs.listen:
+            for t in obs.listen:
+                self._by_trigger.setdefault(t, []).append(obs)
+        else:
+            self._fallback.append(obs)
+
+    def _rebuild_index(self) -> None:
+        self._by_trigger.clear()
+        self._fallback.clear()
+        for obs in self._observers:
+            if obs.listen:
+                for t in obs.listen:
+                    self._by_trigger.setdefault(t, []).append(obs)
+            else:
+                self._fallback.append(obs)
+
     def register(self, observer: Observer) -> None:
-        self._observers.append(observer)
+        self._index(observer)
 
     def register_many(self, observers: list[Observer]) -> None:
-        self._observers.extend(observers)
+        for obs in observers:
+            self._index(obs)
 
     def unregister_by_owner(self, sprite_id: int, reason: str = "leave") -> int:
-        """Remove observers owned by a sprite. Returns count removed."""
         before = len(self._observers)
         self._observers = [
             obs for obs in self._observers
             if obs.owner_sprite_id != sprite_id or not obs.should_clear(reason)
         ]
+        self._rebuild_index()
         return before - len(self._observers)
 
     def register_from_counter(self, counter) -> None:
-        """Register an observer from a CounterRegister mutation.
-
-        Auto-infers listen triggers from the condition type.
-        """
         explicit_listen = getattr(counter, 'listen', None)
-        self._observers.append(Observer(
+        self._index(Observer(
             cond=counter.cond,
             then=counter.then,
             scope=counter.scope,
@@ -138,68 +156,58 @@ class ObserverRegistry:
 
     def fire(self, trigger: str, ctx: Ctx,
              process_fn: Callable = None) -> list[Mutation]:
-        """Evaluate all observers for a given trigger point.
-
-        Only observers whose listen set is empty (backward compat) or contains
-        the current trigger are evaluated. Those whose condition evaluates True
-        will have their 'then' effects processed.
-
-        Args:
-            trigger: The trigger point name (e.g. "post_skill")
-            ctx: Current Ctx snapshot
-            process_fn: Optional custom effect processor (defaults to process_effects)
-
-        Returns:
-            Additional Mutations from triggered observers
-        """
         if process_fn is None:
             process_fn = process_effects
 
         mutations: list[Mutation] = []
-        for obs in self._observers:
+        # 只遍历匹配 trigger 的桶 + fallback，跳过硬过滤
+        candidates = self._by_trigger.get(trigger, ())
+        for obs in candidates:
             if not obs.is_active():
                 continue
-            # Skip if observer has explicit listen triggers and this trigger
-            # isn't one of them (empty listen = fire on all, backward compat)
-            if obs.listen and trigger not in obs.listen:
+            try:
+                if eval_one(ctx, obs.cond) and obs.hit():
+                    mutations.extend(process_fn(ctx, obs.then))
+            except Exception:
+                continue
+        for obs in self._fallback:
+            if not obs.is_active():
                 continue
             try:
-                if eval_one(ctx, obs.cond):
-                    if obs.hit():  # threshold gate — only execute when threshold reached
-                        result = process_fn(ctx, obs.then)
-                        mutations.extend(result)
+                if eval_one(ctx, obs.cond) and obs.hit():
+                    mutations.extend(process_fn(ctx, obs.then))
             except Exception:
-                # Observer evaluation failures should not crash the battle
                 continue
-
         return mutations
 
     def fire_and_collect(self, trigger: str, ctx: Ctx) -> list[Observer]:
-        """Return matching observers without executing them.
-
-        Useful when the engine wants to inspect matches before processing.
-        """
-        return [obs for obs in self._observers
-                if obs.is_active()
-                and (not obs.listen or trigger in obs.listen)
-                and eval_one(ctx, obs.cond)]
+        result = []
+        for obs in self._by_trigger.get(trigger, ()):
+            if obs.is_active() and eval_one(ctx, obs.cond):
+                result.append(obs)
+        for obs in self._fallback:
+            if obs.is_active() and eval_one(ctx, obs.cond):
+                result.append(obs)
+        return result
 
     # ── Lifecycle ──
 
     def clear_by_scope(self, scope: str) -> int:
-        """Remove all observers with the given scope. Returns count removed."""
         before = len(self._observers)
         self._observers = [o for o in self._observers if o.scope != scope]
+        self._rebuild_index()
         return before - len(self._observers)
 
     def clear_by_source(self, source: str) -> int:
-        """Remove all observers from a given source (trait name). Returns count removed."""
         before = len(self._observers)
         self._observers = [o for o in self._observers if o.source != source]
+        self._rebuild_index()
         return before - len(self._observers)
 
     def clear_all(self) -> None:
         self._observers.clear()
+        self._by_trigger.clear()
+        self._fallback.clear()
 
     def __len__(self) -> int:
         return len(self._observers)

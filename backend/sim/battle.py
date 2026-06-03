@@ -1252,13 +1252,16 @@ class Battle(BattleMechanicsMixin):
         # 延时效果结算（phase=end）
         events += self._execute_scheduled_effects('end')
 
-        # scope="turn" 效果清除（不包括 ttl 衰减——ttl 由下方统一处理）
+        # scope="turn" 效果清除 + TTL 衰减合并为单次遍历
         for team in ('A', 'B'):
             player = self.get_player(team)
             for sprite in player.team:
                 if sprite.is_fainted:
                     continue
                 sprite.clear_effects('turn')
+                expired = sprite.decrement_ttl()
+                for eff in expired:
+                    events.append(f'{sprite.name} {eff.name} 到期消失')
 
         # 借用还原
         for (team, si), original in self._borrowed_restore.items():
@@ -1322,15 +1325,6 @@ class Battle(BattleMechanicsMixin):
                     ctx_tick_opp = self._make_ctx(opp, sprite, None, None, self.globals, team=opp_team, turn=self.turn, last_tick_abnormal=e.name, last_tick_target="sprite_opp", last_tick_damage_opp=dmg)
                     events += self._vm_engine.fire_trigger("post_abnormal_tick", ctx_tick_self, sprite, opp, self.globals, team=team, battle=self)
                     events += self._vm_engine.fire_trigger("post_abnormal_tick", ctx_tick_opp, opp, sprite, self.globals, team=opp_team, battle=self)
-
-        # ── TTL 衰减：双方所有精灵（含候补）decrement_ttl ──
-        for team in ('A', 'B'):
-            for sprite in self.get_player(team).team:
-                if sprite.is_fainted:
-                    continue
-                expired = sprite.decrement_ttl()
-                for eff in expired:
-                    events.append(f'{sprite.name} {eff.name} 到期消失')
 
         # ── Observer: turn_end ──
         for team, sprite in sprites.items():
