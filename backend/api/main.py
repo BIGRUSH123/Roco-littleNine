@@ -50,6 +50,20 @@ AGENT_REGISTRY: dict[str, dict] = {
         "module": "backend.sim.agent",
         "class": "RuleAgent",
     },
+    "NeuralNet": {
+        "name": "NeuralNet",
+        "description": "神经网络策略头直出 AI（AlphaZero 训练，无搜索，毫秒级出招）。",
+        "source": "builtin",
+        "module": "backend.engine.ai.neural_agent",
+        "class": "PolicyAgent",
+    },
+    "NeuralMCTS": {
+        "name": "NeuralMCTS",
+        "description": "神经网络 + MCTS 搜索 AI（AlphaZero 训练，100 次仿真，秒级出招，最强）。",
+        "source": "builtin",
+        "module": "backend.engine.ai.neural_agent",
+        "class": "NeuralMCTSAgent",
+    },
     "HealBot": {
         "name": "HealBot",
         "description": "优先防御和回复。低 HP 时换宠，否则聚能。防御型 AI。",
