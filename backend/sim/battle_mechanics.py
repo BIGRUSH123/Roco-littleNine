@@ -55,7 +55,7 @@ class BattleMechanicsMixin:
         lost = self.globals.mark_switch_energy_loss(opp_team)
         if lost:
             new.lose_energy(lost)
-            events.append(f'{new.name} 降临-{lost}E')
+            events.append(f'{new.name} 降灵-{lost}E')
 
         new.clear_effects('battlefield')
         new.entry_turn = self.turn
@@ -156,11 +156,21 @@ class BattleMechanicsMixin:
         new.inc_counter('times_entered')
         events.append(f'{old.name} 力竭↓ {new.name}↑')
 
+        # ── 印记入场效果（棘刺/降灵）—— 与自愿换人 _resolve_switch 对齐 ──
+        opp_team = 'B' if team == 'A' else 'A'
+        dmg = self.globals.mark_switch_damage(opp_team, new)
+        if dmg:
+            new.take_damage(dmg)
+            events.append(f'{new.name} 棘刺-{dmg}HP')
+        lost = self.globals.mark_switch_energy_loss(opp_team)
+        if lost:
+            new.lose_energy(lost)
+            events.append(f'{new.name} 降灵-{lost}E')
+
         # ── trait hooks ──
         events += dispatch_entry(new, self, team)
         events += self._apply_transmission(new)
         # Observer: post_ko（先触发，让诈死/御驾亲征等修改 lives）→ 再扣默认1魔力
-        opp_team = 'B' if team == 'A' else 'A'
         opp_active = self.get_opponent(team).active
         ctx_ko_leave = self._make_ctx(old, opp_active, None, None, self.globals, team=team, turn=self.turn, target_fainted=True, self_switched=True)
         events += self._vm_engine.fire_trigger("post_ko", ctx_ko_leave, old, opp_active, self.globals, team=team, battle=self)

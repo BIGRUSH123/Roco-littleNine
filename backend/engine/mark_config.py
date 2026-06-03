@@ -55,8 +55,8 @@ MARK_TEMPLATES: dict[str, MarkEffect] = {
         name="棘刺", source="印记", category="negative", scope="persistent",
         switch_damage_pct=0.06,
     ),
-    "降临印记": MarkEffect(
-        name="降临印记", source="印记", category="negative", scope="persistent",
+    "降灵印记": MarkEffect(
+        name="降灵印记", source="印记", category="negative", scope="persistent",
         switch_energy_loss=1,
     ),
     "中毒印记": MarkEffect(
