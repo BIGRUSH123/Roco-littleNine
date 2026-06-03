@@ -42,6 +42,7 @@ from backend.engine.ai.mcts import (
     NUM_ACTIONS,
     NetworkPolicyAgent,
     action_index_to_action,
+    get_valid_actions,
     mcts_search,
 )
 from backend.sim.agent import RuleAgent
@@ -87,7 +88,8 @@ def _random_teams(
     used: set[str] = set()  # 两队共享排重，避免 AB 重复选同一批精灵
 
     def build_team(label: str) -> list[dict]:
-        size = random.randint(1, min(max_team_size, len(names) // 2))
+        max_possible = min(max_team_size, len(names) // 2)
+        size = random.randint(1, max_possible) if max_possible >= 1 else 1
         specs: list[dict] = []
         for name in names:
             if name in used:
@@ -125,6 +127,7 @@ class MCTSAgent:
         temperature: float = 1.0,
         root_noise: float = 0.25,
         record: bool = False,
+        opp_greedy: bool = False,
         *,
         model: BattleNet | None = None,
         device: str = "cpu",
@@ -138,13 +141,14 @@ class MCTSAgent:
         self._temperature = temperature
         self._root_noise = root_noise
         self._record = record
+        self._opp_greedy = opp_greedy
         if evaluator is None:
             if model is None:
                 raise ValueError("MCTSAgent 需要 model 或 evaluator")
             evaluator = TorchEvaluator(model, device)
         self._evaluator = evaluator
-        # 自我博弈训练样本：(本方视角状态, MCTS 访问分布)
-        self.history: list[tuple[np.ndarray, np.ndarray]] = []
+        # 自我博弈训练样本：(本方视角状态, MCTS 访问分布, 合法动作mask)
+        self.history: list[tuple[np.ndarray, np.ndarray, np.ndarray]] = []
 
     def choose_lead(self, battle) -> int:
         alive = [i for i, s in enumerate(self.player.team) if not s.is_fainted]
@@ -163,11 +167,13 @@ class MCTSAgent:
                 battle, None, self._factory, self._opponent,
                 num_simulations=self._num_simulations,
                 root_noise=self._root_noise,
+                opp_greedy=self._opp_greedy,
                 evaluator=self._evaluator,
                 root_state=state,  # 复用已编码状态，省掉 mcts_search 内部二次编码
             )
             if self._record and state is not None:
-                self.history.append((state, probs.copy()))
+                _, valid_mask = get_valid_actions(battle.player_a)
+                self.history.append((state, probs.copy(), valid_mask.copy()))
         finally:
             if swapped:
                 battle.player_a, battle.player_b = battle.player_b, battle.player_a
@@ -225,8 +231,8 @@ def collect_rl_samples(
     verbose: bool = True,
     progress_every: int = 10,
     battle_log_writer = None,
-) -> tuple[np.ndarray, np.ndarray, np.ndarray, dict[str, int]]:
-    """MCTS 自我博弈收集 (state, target_probs, outcome) 三元组。
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, dict[str, int]]:
+    """MCTS 自我博弈收集 (state, target_probs, mask, outcome) 四元组。
 
     与 AlphaZero 的差异（已修正）：
       1. 搜索内对手用当前网络（NetworkPolicyAgent），而非固定 RuleAgent
@@ -236,12 +242,14 @@ def collect_rl_samples(
       3. 每个决策只搜索一次（由 MCTSAgent 内部记录），不再重复搜索。
 
     Returns:
-        X: (N, 446) float32 状态向量
-        P: (N, 10) float32 MCTS 访问分布（策略目标）
+        X: (N, 466) float32 状态向量
+        P: (N, 11) float32 MCTS 访问分布（策略目标）
+        M: (N, 11) float32 合法动作 mask（1=合法, 0=非法）
         v: (N,) float32 对局结果（以各样本本方视角，+1=本方赢, -1=输, 0=平）
     """
     all_states: list[np.ndarray] = []
     all_probs: list[np.ndarray] = []
+    all_masks: list[np.ndarray] = []
     all_outcomes: list[float] = []
     reason_counts: dict[str, int] = {}
     evaluator = TorchEvaluator(model, device)
@@ -252,9 +260,9 @@ def collect_rl_samples(
         p2 = factory.build_player("B", team_b)
         battle = factory.build_battle(p1, p2)
 
-        # 搜索内的对手 = 当前网络策略头（槽位驱动，对 A/B 两侧搜索通用）
-        opp_a = NetworkPolicyAgent(evaluator=evaluator, temperature=temperature)
-        opp_b = NetworkPolicyAgent(evaluator=evaluator, temperature=temperature)
+        # 搜索内的对手 = 当前网络策略头（贪心，不含温度噪声，确保对手强度）
+        opp_a = NetworkPolicyAgent(evaluator=evaluator, greedy=True)
+        opp_b = NetworkPolicyAgent(evaluator=evaluator, greedy=True)
         agent_a = MCTSAgent(
             "A", p1, factory, opp_a, num_simulations,
             temperature, root_noise=root_noise, record=True,
@@ -286,13 +294,15 @@ def collect_rl_samples(
             battle_summary = extract_battle_summary(battle, end_reason)
             battle_log_writer.write(battle_summary)
 
-        for state, probs in agent_a.history:
+        for state, probs, m in agent_a.history:
             all_states.append(state)
             all_probs.append(probs)
+            all_masks.append(m)
             all_outcomes.append(outcome_a)
-        for state, probs in agent_b.history:
+        for state, probs, m in agent_b.history:
             all_states.append(state)
             all_probs.append(probs)
+            all_masks.append(m)
             all_outcomes.append(-outcome_a)
 
         pe = max(1, progress_every)
@@ -301,7 +311,8 @@ def collect_rl_samples(
 
     if not all_states:
         return (
-            np.zeros((0, 446), dtype=np.float32),
+            np.zeros((0, 466), dtype=np.float32),
+            np.zeros((0, NUM_ACTIONS), dtype=np.float32),
             np.zeros((0, NUM_ACTIONS), dtype=np.float32),
             np.zeros((0,), dtype=np.float32),
             {},
@@ -309,8 +320,9 @@ def collect_rl_samples(
 
     X = np.stack(all_states).astype(np.float32)
     P = np.stack(all_probs).astype(np.float32)
+    M = np.stack(all_masks).astype(np.float32)
     v = np.array(all_outcomes, dtype=np.float32)
-    return X, P, v, reason_counts
+    return X, P, M, v, reason_counts
 
 
 def _play_one_rl_battle(
@@ -323,8 +335,8 @@ def _play_one_rl_battle(
     root_noise: float,
     draw_margin: float = DEFAULT_DRAW_MARGIN,
     game_timeout_s: float = 300.0,
-) -> tuple[list[np.ndarray], list[np.ndarray], list[float], str, dict]:
-    """单局自我博弈，返回 (states, probs, outcomes, end_reason, battle_summary)。
+) -> tuple[list[np.ndarray], list[np.ndarray], list[np.ndarray], list[float], str, dict]:
+    """单局自我博弈，返回 (states, probs, masks, outcomes, end_reason, battle_summary)。
 
     game_timeout_s: 单局 wall-time 上限，超时强制退出并标记 end_reason="timeout"。
                     防止 MCTS 仿真在复杂对局状态中逐渐变慢导致单局卡死。
@@ -334,8 +346,8 @@ def _play_one_rl_battle(
     p2 = factory.build_player("B", team_b)
     battle = factory.build_battle(p1, p2)
 
-    opp_a = NetworkPolicyAgent(evaluator=evaluator, temperature=temperature)
-    opp_b = NetworkPolicyAgent(evaluator=evaluator, temperature=temperature)
+    opp_a = NetworkPolicyAgent(evaluator=evaluator, greedy=True)
+    opp_b = NetworkPolicyAgent(evaluator=evaluator, greedy=True)
     agent_a = MCTSAgent(
         "A", p1, factory, opp_a, num_simulations,
         temperature, root_noise=root_noise, record=True,
@@ -367,16 +379,19 @@ def _play_one_rl_battle(
 
     states: list[np.ndarray] = []
     probs: list[np.ndarray] = []
+    masks: list[np.ndarray] = []
     outcomes: list[float] = []
-    for state, pi in agent_a.history:
+    for state, pi, m in agent_a.history:
         states.append(state)
         probs.append(pi)
+        masks.append(m)
         outcomes.append(outcome_a)
-    for state, pi in agent_b.history:
+    for state, pi, m in agent_b.history:
         states.append(state)
         probs.append(pi)
+        masks.append(m)
         outcomes.append(-outcome_a)
-    return states, probs, outcomes, end_reason, battle_summary
+    return states, probs, masks, outcomes, end_reason, battle_summary
 
 
 def collect_rl_samples_parallel(
@@ -397,7 +412,7 @@ def collect_rl_samples_parallel(
     progress_every: int = 1,
     stall_timeout_s: float = 600.0,
     battle_log_writer = None,
-) -> tuple[np.ndarray, np.ndarray, np.ndarray, dict[str, int]]:
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, dict[str, int]]:
     """多进程局级 self-play + 主进程 CUDA 批量推理。
 
     work-stealing：worker 干完一局再领下一局，慢局只拖自己。
@@ -453,6 +468,7 @@ def collect_rl_samples_parallel(
 
     xs: list[np.ndarray] = []
     ps: list[np.ndarray] = []
+    ms: list[np.ndarray] = []
     vs: list[np.ndarray] = []
     all_reason_counts: dict[str, int] = {}
     finished: set[int] = set()
@@ -508,13 +524,14 @@ def collect_rl_samples_parallel(
                 done_workers += 1
                 continue
             # tag == "battle"
-            X, P, v, end_reason, battle_summary = (
+            X, P, M, v, end_reason, battle_summary = (
                 raw_result[2], raw_result[3], raw_result[4],
-                raw_result[5], raw_result[6],
+                raw_result[5], raw_result[6], raw_result[7],
             )
             if len(X) > 0:
                 xs.append(X)
                 ps.append(P)
+                ms.append(M)
                 vs.append(v)
             all_reason_counts[end_reason] = all_reason_counts.get(end_reason, 0) + 1
             battles_done += 1
@@ -549,12 +566,13 @@ def collect_rl_samples_parallel(
 
     if not xs:
         return (
-            np.zeros((0, 446), dtype=np.float32),
+            np.zeros((0, 466), dtype=np.float32),
+            np.zeros((0, NUM_ACTIONS), dtype=np.float32),
             np.zeros((0, NUM_ACTIONS), dtype=np.float32),
             np.zeros((0,), dtype=np.float32),
             all_reason_counts,
         )
-    return np.concatenate(xs), np.concatenate(ps), np.concatenate(vs), all_reason_counts
+    return np.concatenate(xs), np.concatenate(ps), np.concatenate(ms), np.concatenate(vs), all_reason_counts
 
 
 def collect_battle_samples(
@@ -608,6 +626,7 @@ def train_rl(
     model: BattleNet,
     X: np.ndarray,
     P: np.ndarray,
+    M: np.ndarray,
     v: np.ndarray,
     epochs: int,
     batch_size: int,
@@ -625,17 +644,23 @@ def train_rl(
         print("  [train_rl] 无样本，跳过训练")
         return []
     indices = np.random.permutation(n)
-    # 至少保留 1 个验证样本（且训练集非空）
-    split = int(n * (1 - val_split))
-    split = min(max(split, 1), n - 1) if n > 1 else 1
-    train_idx = indices[:split]
-    val_idx = indices[split:] if n > 1 else indices[:1]
+    if n < 2:
+        # 单样本：无法划分验证集，验证集=训练集（仅用于监控，不参与反向传播）
+        train_idx = indices
+        val_idx = indices
+    else:
+        split = int(n * (1 - val_split))
+        split = max(1, min(split, n - 1))
+        train_idx = indices[:split]
+        val_idx = indices[split:]
 
     X_train = torch.from_numpy(X[train_idx]).to(device)
     P_train = torch.from_numpy(P[train_idx]).to(device)
+    M_train = torch.from_numpy(M[train_idx]).to(device)
     v_train = torch.from_numpy(v[train_idx]).unsqueeze(1).to(device)
     X_val = torch.from_numpy(X[val_idx]).to(device)
     P_val = torch.from_numpy(P[val_idx]).to(device)
+    M_val = torch.from_numpy(M[val_idx]).to(device)
     v_val = torch.from_numpy(v[val_idx]).unsqueeze(1).to(device)
 
     optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
@@ -652,15 +677,15 @@ def train_rl(
             batch_idx = perm[start : start + batch_size]
             xb = X_train[batch_idx]
             pb = P_train[batch_idx]
+            mb = M_train[batch_idx]
             vb = v_train[batch_idx]
 
             value, logits = model(xb)
             value_loss = F.mse_loss(value, vb)
-            # 用目标策略 pb 作为隐式 mask：pb>0 为合法动作，pb==0 为非法动作。
-            # 将非法动作 logit 设为 -1e9（与 forward_with_mask 一致），
-            # 使 softmax 分母仅对合法动作归一化，消除非法动作对梯度的无效占用。
-            legal_mask = (pb > 0).float()
-            masked_logits = logits.masked_fill(legal_mask == 0, -1e9)
+            # 使用数据收集时记录的合法动作 mask（来自 get_valid_actions），
+            # 而非从 pb>0 推断。当 MCTS 模拟数少时某些合法动作可能未被访问到
+            # （pb==0），用 pb>0 会错误地将其当作非法动作屏蔽。
+            masked_logits = logits.masked_fill(mb == 0, -1e9)
             policy_loss = -torch.sum(pb * F.log_softmax(masked_logits, dim=-1), dim=-1).mean()
             loss = value_loss + policy_loss
 
@@ -679,8 +704,7 @@ def train_rl(
         with torch.no_grad():
             val_v, val_logits = model(X_val)
             val_v_loss = F.mse_loss(val_v, v_val).item()
-            val_legal_mask = (P_val > 0).float()
-            val_masked_logits = val_logits.masked_fill(val_legal_mask == 0, -1e9)
+            val_masked_logits = val_logits.masked_fill(M_val == 0, -1e9)
             val_p_loss = -torch.sum(P_val * F.log_softmax(val_masked_logits, dim=-1), dim=-1).mean().item()
             val_acc = ((val_v.squeeze().sign() == v_val.squeeze().sign()).float().mean().item())
 
@@ -828,17 +852,19 @@ def evaluate(
 
         eval_a = TorchEvaluator(model_a, device)
         eval_b = TorchEvaluator(model_b, device)
-        opp_a = NetworkPolicyAgent(evaluator=eval_a, greedy=True)
-        opp_b = NetworkPolicyAgent(evaluator=eval_b, greedy=True)
+        # opp_a 是 A 方 MCTS 搜索中的"对手"（即 B），应使用 B 的网络
+        # opp_b 是 B 方 MCTS 搜索中的"对手"（即 A），应使用 A 的网络
+        opp_a = NetworkPolicyAgent(evaluator=eval_b, greedy=True)
+        opp_b = NetworkPolicyAgent(evaluator=eval_a, greedy=True)
         agent_a = MCTSAgent(
             "A", p1, factory, opp_a, num_simulations,
             temperature=0.0, root_noise=0.0, record=False,
-            evaluator=eval_a,
+            evaluator=eval_a, opp_greedy=True,
         )
         agent_b = MCTSAgent(
             "B", p2, factory, opp_b, num_simulations,
             temperature=0.0, root_noise=0.0, record=False,
-            evaluator=eval_b,
+            evaluator=eval_b, opp_greedy=True,
         )
 
         turn = 0
@@ -877,17 +903,18 @@ def _play_one_eval_game(
     eval_a = candidate_evaluator if cand_is_a else best_evaluator
     eval_b = best_evaluator if cand_is_a else candidate_evaluator
 
-    opp_a = NetworkPolicyAgent(evaluator=eval_a, greedy=True)
-    opp_b = NetworkPolicyAgent(evaluator=eval_b, greedy=True)
+    # opp_a 是 A 方 MCTS 搜索中的"对手"（即 B），应使用 B 的网络
+    opp_a = NetworkPolicyAgent(evaluator=eval_b, greedy=True)
+    opp_b = NetworkPolicyAgent(evaluator=eval_a, greedy=True)
     agent_a = MCTSAgent(
         "A", p1, factory, opp_a, num_simulations,
         temperature=0.0, root_noise=0.0, record=False,
-        evaluator=eval_a,
+        evaluator=eval_a, opp_greedy=True,
     )
     agent_b = MCTSAgent(
         "B", p2, factory, opp_b, num_simulations,
         temperature=0.0, root_noise=0.0, record=False,
-        evaluator=eval_b,
+        evaluator=eval_b, opp_greedy=True,
     )
 
     turn = 0
@@ -1261,8 +1288,8 @@ def main():
     Path(checkpoints_dir).mkdir(parents=True, exist_ok=True)
     best_ckpt = f"{checkpoints_dir}/model_rl_best.pt"
 
-    # 经验回放缓冲：保留最近 N 轮 (X, P, v)
-    buffer: deque[tuple[np.ndarray, np.ndarray, np.ndarray]] = deque(maxlen=max(1, args.buffer))
+    # 经验回放缓冲：保留最近 N 轮 (X, P, M, v)
+    buffer: deque[tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]] = deque(maxlen=max(1, args.buffer))
     best_iteration: int | None = None
 
     for iteration in range(1, args.iterations + 1):
@@ -1278,7 +1305,7 @@ def main():
         print(f"自我博弈 ({args.battles} 局, {args.sims} sims, T={temp:.2f}, {mode})...")
         t0 = time.time()
         if use_parallel:
-            X, P, v, reason_counts = collect_rl_samples_parallel(
+            X, P, M, v, reason_counts = collect_rl_samples_parallel(
                 best_model, factory, sprite_skills,
                 num_battles=args.battles,
                 num_workers=args.workers,
@@ -1295,7 +1322,7 @@ def main():
                 battle_log_writer=battle_log,
             )
         else:
-            X, P, v, reason_counts = collect_rl_samples(
+            X, P, M, v, reason_counts = collect_rl_samples(
                 best_model, factory, sprite_skills,
                 num_battles=args.battles,
                 num_simulations=args.sims,
@@ -1330,17 +1357,18 @@ def main():
         draw_ratio = (zero / len(v)) if len(v) else 0.0
 
         # ── 合并回放缓冲 ──
-        buffer.append((X, P, v))
+        buffer.append((X, P, M, v))
         X_all = np.concatenate([b[0] for b in buffer])
         P_all = np.concatenate([b[1] for b in buffer])
-        v_all = np.concatenate([b[2] for b in buffer])
+        M_all = np.concatenate([b[2] for b in buffer])
+        v_all = np.concatenate([b[3] for b in buffer])
         print(f"  回放缓冲: {len(buffer)} 轮 / {len(X_all)} 样本")
 
         # ── 训练（候选 = 在 best 基础上继续训练） ──
         print(f"训练 ({args.epochs} epochs)...")
         t0 = time.time()
         history = train_rl(
-            model, X_all, P_all, v_all, args.epochs, args.batch_size, args.lr,
+            model, X_all, P_all, M_all, v_all, args.epochs, args.batch_size, args.lr,
             device, weight_decay=args.weight_decay,
         )
         train_sec = time.time() - t0

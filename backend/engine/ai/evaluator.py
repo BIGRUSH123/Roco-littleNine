@@ -8,6 +8,7 @@
 
 from __future__ import annotations
 
+import logging
 import queue
 import threading
 import time
@@ -15,6 +16,8 @@ from typing import TYPE_CHECKING, Protocol, runtime_checkable
 
 import numpy as np
 import torch
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from backend.engine.ai.model import BattleNet
@@ -25,7 +28,7 @@ INFERENCE_STOP = object()
 
 @runtime_checkable
 class PolicyValueEvaluator(Protocol):
-    """state (446,) + mask (10,) → (value, probs)。"""
+    """state (466,) + mask (11,) → (value, probs)。"""
 
     def evaluate(self, state: np.ndarray, mask: np.ndarray) -> tuple[float, np.ndarray]:
         ...
@@ -73,12 +76,17 @@ class QueuePolicyEvaluator:
             np.asarray(mask, dtype=np.float32),
         ))
         try:
-            value, probs = self._reply_queue.get(timeout=self._reply_timeout_s)
+            result = self._reply_queue.get(timeout=self._reply_timeout_s)
         except queue.Empty as exc:
             raise TimeoutError(
                 f"worker {self._worker_id} 等待批量推理回复超过 "
                 f"{self._reply_timeout_s:.0f}s"
             ) from exc
+        if result is None:
+            raise RuntimeError(
+                f"worker {self._worker_id} 推理失败（服务器端队列写入错误）"
+            )
+        value, probs = result
         return float(value), np.asarray(probs, dtype=np.float32)
 
 
@@ -107,12 +115,18 @@ class QueueModelEvaluator:
             np.asarray(mask, dtype=np.float32),
         ))
         try:
-            value, probs = self._reply_queue.get(timeout=self._reply_timeout_s)
+            result = self._reply_queue.get(timeout=self._reply_timeout_s)
         except queue.Empty as exc:
             raise TimeoutError(
                 f"worker {self._worker_id} 等待模型 {self._model_id} "
                 f"批量推理回复超过 {self._reply_timeout_s:.0f}s"
             ) from exc
+        if result is None:
+            raise RuntimeError(
+                f"worker {self._worker_id} (model={self._model_id}) "
+                "推理失败（服务器端队列写入错误）"
+            )
+        value, probs = result
         return float(value), np.asarray(probs, dtype=np.float32)
 
 
@@ -198,9 +212,18 @@ class BatchedInferenceServer:
                 if reply_q is None:
                     continue
                 try:
-                    reply_q.put((float(values[i]), probs[i].astype(np.float32)))
-                except Exception:  # noqa: BLE001
-                    pass
+                    reply_q.put((float(values[i]), probs[i].astype(np.float32)),
+                                timeout=1.0)
+                except Exception:
+                    logger.error(
+                        "BatchedInference: 无法向 worker %d 发送结果 (队列满/管道损坏)",
+                        worker_id, exc_info=True,
+                    )
+                    # 放入 None 通知 worker 本次推理失败，避免 worker 永久阻塞
+                    try:
+                        reply_q.put(None, timeout=1.0)
+                    except Exception:
+                        pass
 
 
 class BatchedModelInferenceServer:
@@ -281,6 +304,18 @@ class BatchedModelInferenceServer:
             for model_id, items in by_model.items():
                 model = self._models.get(model_id)
                 if model is None:
+                    logger.error(
+                        "BatchedModelInference: 未知 model_id=%s, "
+                        "通知 %d 个 worker 推理失败",
+                        model_id, len(items),
+                    )
+                    for (worker_id, _, _) in items:
+                        reply_q = self._reply_queues.get(worker_id)
+                        if reply_q is not None:
+                            try:
+                                reply_q.put(None, timeout=1.0)
+                            except Exception:
+                                pass
                     continue
                 states = np.stack([item[1] for item in items], axis=0)
                 masks = np.stack([item[2] for item in items], axis=0)
@@ -295,6 +330,15 @@ class BatchedModelInferenceServer:
                     if reply_q is None:
                         continue
                     try:
-                        reply_q.put((float(values[i]), probs[i].astype(np.float32)))
-                    except Exception:  # noqa: BLE001
-                        pass
+                        reply_q.put((float(values[i]), probs[i].astype(np.float32)),
+                                    timeout=1.0)
+                    except Exception:
+                        logger.error(
+                            "BatchedModelInference: 无法向 worker %d 发送结果 "
+                            "(model=%s, 队列满/管道损坏)",
+                            worker_id, model_id, exc_info=True,
+                        )
+                        try:
+                            reply_q.put(None, timeout=1.0)
+                        except Exception:
+                            pass

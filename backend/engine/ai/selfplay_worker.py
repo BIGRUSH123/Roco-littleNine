@@ -35,10 +35,10 @@ def run_selfplay_worker(
     工作流：循环从 task_queue 领一局任务，打完把**单局**结果 put 回 result_queue，
     再领下一局；领到 None 哨兵则退出。这样慢局只拖住自己，不会阻塞其他 worker。
 
-    result_queue 消息为 6 元组 (tag, worker_id, a, b, c, d)：
-      ("battle", wid, X, P, v, end_reason)  单局样本
-      ("done",   wid, None, None, None, None)  该 worker 已领完退出
-      ("error",  wid, traceback, None, None, None)  worker 异常
+    result_queue 消息为 8 元组 (tag, worker_id, a, b, c, d, e, f)：
+      ("battle", wid, X, P, M, v, end_reason, battle_summary)  单局样本
+      ("done",   wid, None, None, None, None, None, None)       该 worker 已领完退出
+      ("error",  wid, traceback, None, None, None, None, None)   worker 异常
     """
     # 延迟导入，避免与 train 顶层循环依赖
     from backend.engine.ai.train import _load_sprite_skills, _play_one_rl_battle
@@ -54,38 +54,38 @@ def run_selfplay_worker(
     try:
         pe = max(1, progress_every)
         done = 0
-        while True:
-            task = task_queue.get()
-            if task is None:
-                break
-            battle_started = time.monotonic()
-            states, probs, outcomes, end_reason, battle_summary = _play_one_rl_battle(
-                factory, sprite_skills, evaluator,
-                num_simulations, max_turns, temperature, root_noise,
-                draw_margin=draw_margin,
-                game_timeout_s=game_timeout_s,
-            )
-            if states:
-                X = np.stack(states).astype(np.float32)
-                P = np.stack(probs).astype(np.float32)
-                v = np.array(outcomes, dtype=np.float32)
-            else:
-                X = np.zeros((0, 446), dtype=np.float32)
-                P = np.zeros((0, NUM_ACTIONS), dtype=np.float32)
-                v = np.zeros((0,), dtype=np.float32)
-            result_queue.put(("battle", worker_id, X, P, v, end_reason, battle_summary))
-
-            done += 1
-            if done % pe == 0:
-                elapsed = time.monotonic() - battle_started
-                print(
-                    f"  [worker {worker_id}] 已完成 {done} 局, "
-                    f"本局 {len(v)} 样本 {elapsed:.1f}s",
-                    flush=True,
+        try:
+            while True:
+                task = task_queue.get()
+                if task is None:
+                    break
+                battle_started = time.monotonic()
+                states, probs, masks, outcomes, end_reason, battle_summary = _play_one_rl_battle(
+                    factory, sprite_skills, evaluator,
+                    num_simulations, max_turns, temperature, root_noise,
+                    draw_margin=draw_margin,
+                    game_timeout_s=game_timeout_s,
                 )
-        result_queue.put(("done", worker_id, None, None, None, None))
+                X = np.stack(states).astype(np.float32) if states else np.zeros((0, 466), dtype=np.float32)
+                P = np.stack(probs).astype(np.float32) if states else np.zeros((0, NUM_ACTIONS), dtype=np.float32)
+                M = np.stack(masks).astype(np.float32) if states else np.zeros((0, NUM_ACTIONS), dtype=np.float32)
+                v = np.array(outcomes, dtype=np.float32) if states else np.zeros((0,), dtype=np.float32)
+                # 零样本对局仍发送（维持主进程进度计数），主进程在 len(X)==0 时跳过拼接
+                result_queue.put(("battle", worker_id, X, P, M, v, end_reason, battle_summary))
+
+                done += 1
+                if done % pe == 0:
+                    elapsed = time.monotonic() - battle_started
+                    print(
+                        f"  [worker {worker_id}] 已完成 {done} 局, "
+                        f"本局 {len(v)} 样本 {elapsed:.1f}s",
+                        flush=True,
+                    )
+        finally:
+            # 正常退出或异常时均通知主进程 worker 已结束
+            result_queue.put(("done", worker_id, None, None, None, None, None, None))
     except Exception:  # noqa: BLE001
-        result_queue.put(("error", worker_id, traceback.format_exc(), None, None, None))
+        result_queue.put(("error", worker_id, traceback.format_exc(), None, None, None, None, None))
 
 
 def run_evaluate_worker(
@@ -123,27 +123,29 @@ def run_evaluate_worker(
     try:
         pe = max(1, progress_every)
         done = 0
-        while True:
-            task = task_queue.get()
-            if task is None:
-                break
-            game_index = int(task)
-            battle_started = time.monotonic()
-            score = _play_one_eval_game(
-                factory, sprite_skills, candidate_eval, best_eval,
-                game_index, num_simulations, max_turns,
-                draw_margin=draw_margin,
-            )
-            result_queue.put(("game", worker_id, float(score), None))
-
-            done += 1
-            if done % pe == 0:
-                elapsed = time.monotonic() - battle_started
-                print(
-                    f"    [eval worker {worker_id}] 已完成 {done} 局 "
-                    f"(本局得分 {score:.1f}, {elapsed:.1f}s)",
-                    flush=True,
+        try:
+            while True:
+                task = task_queue.get()
+                if task is None:
+                    break
+                game_index = int(task)
+                battle_started = time.monotonic()
+                score = _play_one_eval_game(
+                    factory, sprite_skills, candidate_eval, best_eval,
+                    game_index, num_simulations, max_turns,
+                    draw_margin=draw_margin,
                 )
-        result_queue.put(("done", worker_id, None, None))
+                result_queue.put(("game", worker_id, float(score), None))
+
+                done += 1
+                if done % pe == 0:
+                    elapsed = time.monotonic() - battle_started
+                    print(
+                        f"    [eval worker {worker_id}] 已完成 {done} 局 "
+                        f"(本局得分 {score:.1f}, {elapsed:.1f}s)",
+                        flush=True,
+                    )
+        finally:
+            result_queue.put(("done", worker_id, None, None))
     except Exception:  # noqa: BLE001
         result_queue.put(("error", worker_id, None, traceback.format_exc()))

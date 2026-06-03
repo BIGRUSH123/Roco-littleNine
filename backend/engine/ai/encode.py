@@ -1,10 +1,11 @@
 """backend/engine/ai/encode.py — Battle 状态 → 固定长度向量，供神经网络输入。
 
-总维度: 446
+总维度: 466
 
 约定:
-- 空槽位（阵亡 / 不存在）→ 全 0
-- 不完全信息（对方板凳特征不可见）→ -1
+- 空槽位（队伍未满 6 只）→ slot_valid=0, unknown=0 + 全 0
+- 已力竭 → is_fainted=1, slot_valid=1, unknown=0, HP=0
+- 不完全信息（对方板凳不可见）→ slot_valid=1, unknown=1 + 全 0
 - 特性不直接编码——其效果已反映在 buff/debuff/异常/印记等状态中
 """
 
@@ -80,7 +81,7 @@ def encode_battle_state(
     mask_opp_bench: bool = False,
     perspective: str = "A",
 ) -> np.ndarray:
-    """将 Battle 状态编码为 (446,) float32 向量。
+    """将 Battle 状态编码为 (466,) float32 向量。
 
     Args:
         battle: 对局对象。
@@ -97,22 +98,22 @@ def encode_battle_state(
     own_team = "A" if perspective == "A" else "B"
     pieces.append(_encode_global(battle, own_team=own_team))
 
-    # B: 己方场上精灵 (115)
-    own_active: Sprite | None = _active_or_none(own)
-    opp_active: Sprite | None = _active_or_none(opp)
+    # B: 己方场上精灵 (115) — 永远取 active_index，含力竭（HP=0, is_fainted=1）
+    own_active: Sprite | None = _active_at_index(own)
+    opp_active: Sprite | None = _active_at_index(opp)
     pieces.append(_encode_active_sprite(own_active, own, battle, opp_active))
 
-    # C: 己方板凳 ×5 (80)
-    pieces.append(_encode_bench_all(own, opp_active, mask_unknown=False))
+    # C: 己方板凳 ×5 (90)
+    pieces.append(_encode_bench_all(own, opp, opp_active, mask_unknown=False))
 
     # D: 对方场上精灵 (115)
     pieces.append(_encode_active_sprite(opp_active, opp, battle, own_active))
 
-    # E: 对方板凳 ×5 (80)
-    pieces.append(_encode_bench_all(opp, own_active, mask_unknown=mask_opp_bench))
+    # E: 对方板凳 ×5 (90)
+    pieces.append(_encode_bench_all(opp, own, opp_active, mask_unknown=mask_opp_bench))
 
     result = np.concatenate(pieces)
-    assert result.shape == (446,), f"维度错误: {result.shape}"
+    assert result.shape == (466,), f"维度错误: {result.shape}"
     return result.astype(np.float32)
 
 
@@ -138,7 +139,7 @@ def _encode_global(battle: Battle, *, own_team: str = "A") -> np.ndarray:
         out.append(1.0 if w == wt else 0.0)
 
     # 天气剩余 (1)
-    out.append(g.weather_turns / 8.0)
+    out.append(min(g.weather_turns / 8.0, 1.0))
 
     # 己方正印记 (7)
     own_pos, own_neg = _classify_marks(g, own_team)
@@ -228,7 +229,7 @@ def _encode_active_sprite(
     # 修正值 (3)
     out.append(sprite.energy_cost_mod / 10.0)
     out.append(sprite.power_mod / 10.0)
-    out.append(sprite._modifiers.get('blood_price', 0.0))
+    out.append(max(-1.0, min(1.0, sprite._modifiers.get('blood_price', 0.0))))
 
     # 速度 (1)
     out.append(sprite.effective_stat('speed') / 500.0)
@@ -281,7 +282,7 @@ def _encode_skill(sk, sprite: Sprite, opp_sprite: Sprite | None) -> list[float]:
     out.append(eff_power / 300.0)
 
     # 2. 有效能耗（sk.energy_cost 属性已包含 _modifiers + _mech_energy_reduction）
-    out.append(sk.energy_cost / 15.0)
+    out.append(min(sk.energy_cost / 15.0, 1.0))
 
     # 3. 对对手克制倍率
     if opp_sprite is not None:
@@ -345,40 +346,57 @@ def _encode_skill(sk, sprite: Sprite, opp_sprite: Sprite | None) -> list[float]:
     # 15. 迸发技能
     out.append(1.0 if getattr(sk, 'has_burst', False) else 0.0)
 
-    # 16. 下次攻击倍率
-    out.append((getattr(sk, 'next_attack_mult', 1.0) - 1.0) / 1.0)
+    # 16. 下次攻击倍率（1.0=正常, 最高约 3.0 → 除以 2.0 约束到 [-0.5, 1.0]）
+    mult = getattr(sk, 'next_attack_mult', 1.0)
+    out.append(max(-1.0, min(1.0, (mult - 1.0) / 2.0)))
 
     return out
 
 
 # ═══════════════════════════════════════════════════════════════════
-# 模块 C / E: 板凳精灵 (每只 16, ×5 = 80)
+# 模块 C / E: 板凳精灵 (每只 18 维, ×5 = 90)
 # ═══════════════════════════════════════════════════════════════════
 
 def _encode_bench_all(
-    player: Player, opp_active: Sprite | None,
+    player: Player, opponent: Player, opp_active: Sprite | None,
     *, mask_unknown: bool = False,
 ) -> np.ndarray:
+    """编码板凳 5 槽位，每槽 18 维（16 特征 + slot_valid + unknown）。
+
+    槽位固定对应队伍原始索引，不随力竭/换宠改变。
+    - 存活板凳: slot_valid=1, unknown=0, 正常特征
+    - 已力竭:   slot_valid=1, unknown=0, HP=0, is_fainted=1
+    - 空槽位:   slot_valid=0, unknown=0, 全零
+    - 未知:     slot_valid=1, unknown=1, 特征全零（对方板凳不可见）
+
+    player:  被编码的板凳所属玩家
+    opponent: 对手玩家（用于计算板凳精灵的属性克制）
+    """
     pieces: list[np.ndarray] = []
     team: list = player.team or []
     active_idx: int = getattr(player, 'active_index', 0)
-    bench = [s for i, s in enumerate(team) if i != active_idx and not s.is_fainted]
+    # 按队伍原始顺序，排除场上精灵，保留已力竭的精灵（固定槽位）
+    bench = [s for i, s in enumerate(team) if i != active_idx]
 
     for slot in range(5):
         if slot < len(bench):
             if mask_unknown:
-                pieces.append(np.full(16, -1.0, dtype=np.float32))
+                # 未知槽位：16 维特征填 0, slot_valid=1, unknown=1
+                unknown_vec = np.zeros(18, dtype=np.float32)
+                unknown_vec[16] = 1.0  # slot_valid
+                unknown_vec[17] = 1.0  # unknown
+                pieces.append(unknown_vec)
             else:
-                pieces.append(_encode_bench_sprite(bench[slot], player, opp_active))
+                pieces.append(_encode_bench_sprite(bench[slot], player, opponent, opp_active))
         else:
-            pieces.append(np.zeros(16, dtype=np.float32))
+            pieces.append(np.zeros(18, dtype=np.float32))
 
-    result = np.concatenate(pieces) if pieces else np.zeros(80, dtype=np.float32)
+    result = np.concatenate(pieces) if pieces else np.zeros(90, dtype=np.float32)
     return result
 
 
 def _encode_bench_sprite(
-    sprite: Sprite, player: Player, opp_active: Sprite | None,
+    sprite: Sprite, player: Player, opponent: Player, opp_active: Sprite | None,
 ) -> np.ndarray:
     out: list[float] = []
 
@@ -387,22 +405,28 @@ def _encode_bench_sprite(
     out.append(sprite.energy / max(sprite.max_energy, 1))
     out.append(1.0 if sprite.is_fainted else 0.0)
 
-    # 4. 对对方全队平均克制倍率
+    # 4. 对对方全队平均克制倍率（只考虑存活精灵）
     own_el = _sprite_primary_element(sprite)
     type_advs: list[float] = []
-    for s in (player.team or []):
-        if s is sprite:
+    for s in (opponent.team or []):
+        if s.is_fainted:
             continue
         adv = _type_advantage(own_el, _sprite_primary_element(s))
         type_advs.append(adv)
-    avg_adv = sum(type_advs) / len(type_advs) if type_advs else 1.0
-    out.append((avg_adv - 0.5) / 1.5)
+    if type_advs:
+        avg_adv = sum(type_advs) / len(type_advs)
+        # 裁剪到 [-1, 1]：0.25× → 0.17, 4× → 2.33 会被 clip 到 1.0
+        normalized = max(-1.0, min(1.0, (avg_adv - 0.5) / 1.5))
+    else:
+        # 对方全队力竭：游戏已结束，克制倍率无意义，返回 0
+        normalized = 0.0
+    out.append(normalized)
 
-    # 5-6. 对对方场上精灵克制 / 被克
+    # 5-6. 对对方场上精灵克制 / 被克（clip 到 [-1,1]，4 倍克制=2.33→1.0）
     if opp_active is not None:
         opp_el = _sprite_primary_element(opp_active)
-        out.append((_type_advantage(own_el, opp_el) - 0.5) / 1.5)
-        out.append((_type_advantage(opp_el, own_el) - 0.5) / 1.5)
+        out.append(max(-1.0, min(1.0, (_type_advantage(own_el, opp_el) - 0.5) / 1.5)))
+        out.append(max(-1.0, min(1.0, (_type_advantage(opp_el, own_el) - 0.5) / 1.5)))
     else:
         out.append(0.0)
         out.append(0.0)
@@ -453,6 +477,12 @@ def _encode_bench_sprite(
     # 16. 迸发就绪（入场后首次行动）
     out.append(1.0 if sprite.first_action else 0.0)
 
+    # 17. slot_valid — 此槽位对应队伍中的真实精灵（非空槽）
+    out.append(1.0)
+
+    # 18. unknown — 此槽位信息不可见（对方板凳在不完全信息模式下）
+    out.append(0.0)
+
     return np.array(out, dtype=np.float32)
 
 
@@ -468,14 +498,16 @@ def _has_state(sprite: Sprite, state_type: str) -> bool:
     return False
 
 
-def _active_or_none(player: Player) -> Sprite | None:
+def _active_at_index(player: Player) -> Sprite | None:
+    """返回 active_index 对应的精灵，无论是否力竭。
+
+    力竭精灵以 HP=0, is_fainted=1 显式编码在网络输入中，
+    网络直接感知"场上已死必须换宠"，而非由编码器隐式替换。
+    """
     idx = getattr(player, 'active_index', 0)
     team = player.team or []
-    if idx < len(team) and not team[idx].is_fainted:
+    if idx < len(team):
         return team[idx]
-    for s in team:
-        if not s.is_fainted:
-            return s
     return None
 
 
@@ -631,11 +663,14 @@ def _summary_heal_energy(flat: list[dict]) -> float:
     for e in flat:
         op = e.get('op', '')
         if op == 'heal':
-            return e.get('ratio', 0.0)
+            val = e.get('ratio', 0.0)
+            return float(val) if isinstance(val, (int, float)) else 0.0
         if op == 'energize':
-            return e.get('amount', 0) / 10.0
+            val = e.get('amount', 0)
+            return float(val) / 10.0 if isinstance(val, (int, float)) else 0.0
         if op == 'steal':
-            return e.get('amount', 0) / 10.0
+            val = e.get('amount', 0)
+            return float(val) / 10.0 if isinstance(val, (int, float)) else 0.0
     return 0.0
 
 

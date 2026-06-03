@@ -59,7 +59,7 @@ if TYPE_CHECKING:
 class Advice:
     """单回合建议结果。"""
 
-    probs: np.ndarray                       # (10,) 平均访问分布
+    probs: np.ndarray                       # (11,) 平均访问分布
     ranked: list[tuple[int, str, float]]    # [(动作索引, 文字描述, 概率)]，降序
     win_prob: float                         # value 头估计的本方胜率 [0,1]
     num_determinizations: int = 1
@@ -258,7 +258,16 @@ def _resample_opponent_bench(
 
     new_team = ([active] if active is not None else []) + new_bench
     opp.team = new_team
-    opp.active_index = 0 if active is not None else opp.active_index
+    # 若 active 为 None，新队伍长度 ≠ 原长度，旧 active_index 可能越界
+    if active is not None:
+        opp.active_index = 0
+    else:
+        # 找第一个存活精灵作为 active，否则默认 0
+        opp.active_index = 0
+        for i, s in enumerate(new_team):
+            if not s.is_fainted:
+                opp.active_index = i
+                break
 
 
 # ═══════════════════════════════════════════════════════════════════

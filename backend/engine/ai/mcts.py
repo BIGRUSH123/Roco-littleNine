@@ -53,14 +53,17 @@ def get_valid_actions(player: Player) -> tuple[list[int], np.ndarray]:
         if not sk.sealed and sk.cooldown <= 0 and sk.energy_cost <= active.energy:
             mask[i] = 1.0
 
-    # 换宠 (4-8): 板凳上存活的精灵
+    # 换宠 (4-8): 固定槽位映射（与 encode.py 的 _encode_bench_all 一致）
+    #   力竭精灵保留在槽位中（mask=0），不跳过，确保动作索引与编码槽位
+    #   始终一一对应。若跳过力竭精灵，槽位编号会随力竭状态漂移，
+    #   导致网络输入槽位 N 与动作索引 4+N 对应不同精灵 → 策略学习混乱。
     locked = active.locked_turns > 0
     bench_slot = 0
     for i, s in enumerate(player.team):
-        if i == player.active_index or s.is_fainted:
+        if i == player.active_index:
             continue
         if bench_slot < 5:
-            mask[4 + bench_slot] = 1.0 if not locked else 0.0
+            mask[4 + bench_slot] = 1.0 if (not s.is_fainted and not locked) else 0.0
             bench_slot += 1
 
     # 聚能 (9): 始终可用（精灵存活即可）
@@ -95,10 +98,10 @@ def action_index_to_action(player: Player, action_idx: int) -> Action | None:
 
 
 def _bench_to_team_index(player: Player, bench_slot: int) -> int | None:
-    """板凳槽位 → team 中的实际索引。"""
+    """板凳槽位 → team 中的实际索引（固定槽位，不跳过力竭）。"""
     count = 0
     for i, s in enumerate(player.team):
-        if i == player.active_index or s.is_fainted:
+        if i == player.active_index:
             continue
         if count == bench_slot:
             return i
@@ -261,10 +264,11 @@ def mcts_search(
     device: str = "cpu",
     root_noise: float = 0.25,
     *,
+    opp_greedy: bool = False,
     evaluator: PolicyValueEvaluator | None = None,
     root_state: np.ndarray | None = None,
 ) -> np.ndarray:
-    """从当前对战状态执行 MCTS，返回动作概率分布 (10,)。
+    """从当前对战状态执行 MCTS，返回动作概率分布 (11,)。
 
     Args:
         battle: 当前对战（player_a 是己方）。
@@ -279,7 +283,7 @@ def mcts_search(
         root_state: 可选预编码状态（调用方已编码时复用，避免重复编码）。
 
     Returns:
-        (10,) float32 动作概率（∝ 访问次数）。
+        (11,) float32 动作概率（∝ 访问次数）。
     """
     if evaluator is None:
         if model is None:
@@ -345,7 +349,8 @@ def mcts_search(
             node = node.children[best_a]
             # 使用预缓存的对手策略（省掉 encode+eval），回退到 opponent_agent
             _step_battle(battle, best_a, opponent_agent,
-                         opp_policy=path[-1][0].opp_policy)
+                         opp_policy=path[-1][0].opp_policy,
+                         opp_greedy=opp_greedy)
 
         # ── Expansion & Evaluation ──
         sim_player = battle.player_a
@@ -370,8 +375,11 @@ def mcts_search(
         for parent, a in reversed(path):
             parent.visit_count += 1
             parent.total_value += leaf_value
-        root.visit_count += 1
-        root.total_value += leaf_value
+        # 第 1 轮 path 为空时根节点未在循环中被更新，需单独处理；
+        # 第 2 轮起 path 已包含 (root, ...)，循环内已更新，不再重复。
+        if not path:
+            root.visit_count += 1
+            root.total_value += leaf_value
 
         # ── 回滚 ──
         battle.restore_mutable_state(saved)
@@ -394,12 +402,14 @@ def mcts_search(
 def _step_battle(
     battle: Battle, action_idx: int, opponent_agent,
     *, opp_policy: np.ndarray | None = None,
+    opp_greedy: bool = False,
 ) -> None:
     """在 battle 上执行一回合：A 按 action_idx 行动，B 由 opponent_agent 决定。
 
     Args:
         opp_policy: 若提供，从该策略分布采样对手动作（省掉 encode+eval）；
                     否则调用 opponent_agent.choose_action（旧路径）。
+        opp_greedy: 若 True，对手动作取 argmax（评估模式）；否则随机采样（训练模式）。
 
     使用 FixedAgent 包装双方，使 execute_turn 按预定动作执行。
     """
@@ -407,10 +417,12 @@ def _step_battle(
 
     player_a = battle.player_a
     action_a = action_index_to_action(player_a, action_idx)
-    # 仿真中 bench 精灵可能已力竭导致换宠动作失效（action_index_to_action
-    # 返回 None）。此时必须 fallback 到聚能，不可 return 跳过回合：
-    # selection 循环已执行 node = node.children[best_a]（树指针已前进），
-    # 若 battle 状态不变，后续 selection 在错误状态下选路→树结构逐渐损坏。
+    # 仿真中 bench 精灵可能已力竭导致换宠动作失效。此时必须 fallback
+    # 到聚能，不可 return 跳过回合：selection 循环已执行
+    # node = node.children[best_a]（树指针已前进），若 battle 状态不变，
+    # 后续 selection 在错误状态下选路→树结构逐渐损坏。
+    # 注意：这会导致本轮的树边 (best_a) 与实际动作 (gather) 不匹配，
+    # 但 fallback 只影响单次仿真，数百次仿真中影响可忽略。
     if action_a is None:
         action_a = Action(kind="gather")
 
@@ -418,7 +430,7 @@ def _step_battle(
     fixed_a._real = _PlayerSwappedAgent(opponent_agent, player_a)
 
     if opp_policy is not None:
-        opp_idx = policy_select_idx(opp_policy, temperature=1.0)
+        opp_idx = policy_select_idx(opp_policy, temperature=0.0 if opp_greedy else 1.0)
         player_b = battle.player_b
         action_b = action_index_to_action(player_b, opp_idx)
         if action_b is None:
