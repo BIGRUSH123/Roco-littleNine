@@ -1,17 +1,23 @@
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 
 const props = defineProps({
   modelValue: { type: String, default: '' },
+  modelPath: { type: String, default: '' },
 })
 
-const emit = defineEmits(['update:modelValue'])
+const emit = defineEmits(['update:modelValue', 'update:modelPath'])
 
 const agents = ref([])
+const models = ref([])
 const loading = ref(true)
 const error = ref('')
 
 const API_BASE = '/api'
+
+const isNeural = computed(() =>
+  props.modelValue === 'NeuralNet' || props.modelValue === 'NeuralMCTS'
+)
 
 async function loadAgents() {
   loading.value = true
@@ -29,11 +35,23 @@ async function loadAgents() {
   }
 }
 
+async function loadModels() {
+  try {
+    const res = await fetch(`${API_BASE}/models`)
+    if (!res.ok) return
+    const data = await res.json()
+    models.value = data.models || []
+  } catch {}
+}
+
 function selectAgent(name) {
   emit('update:modelValue', name)
 }
 
-onMounted(loadAgents)
+onMounted(() => {
+  loadAgents()
+  loadModels()
+})
 </script>
 
 <template>
@@ -43,64 +61,51 @@ onMounted(loadAgents)
       <span v-if="loading" class="text-moss-500 ml-1">加载中...</span>
     </label>
 
-    <!-- Error state -->
     <div v-if="error" class="text-fire-600 text-xs mb-2 p-2 bg-fire-50 rounded-lg border border-fire-200">
       {{ error }}
-      <button
-        class="ml-2 underline hover:text-fire-800"
-        @click="loadAgents"
-      >重试</button>
+      <button class="ml-2 underline hover:text-fire-800" @click="loadAgents">重试</button>
     </div>
 
-    <!-- Empty state -->
-    <div
-      v-if="!loading && !error && agents.length === 0"
-      class="text-xs text-parchment-500 p-3 bg-parchment-50 rounded-lg border border-parchment-200"
-    >
+    <div v-if="!loading && !error && agents.length === 0"
+      class="text-xs text-parchment-500 p-3 bg-parchment-50 rounded-lg border border-parchment-200">
       暂无可用的 AI 对手 — 后端可能未配置智能体。将使用默认 AI。
     </div>
 
-    <!-- Agent grid -->
-    <div
-      v-if="!loading && agents.length > 0"
-      class="grid grid-cols-1 gap-2 max-h-48 overflow-y-auto"
-    >
+    <div v-if="!loading && agents.length > 0" class="grid grid-cols-1 gap-2 max-h-48 overflow-y-auto">
       <button
-        v-for="agent in agents"
-        :key="agent.name"
-        type="button"
+        v-for="agent in agents" :key="agent.name" type="button"
         class="agent-card text-left p-3 rounded-xl border-2 transition-all duration-200"
         :class="modelValue === agent.name
           ? 'border-gold-500 bg-gold-50 shadow-gold-glow'
           : 'border-parchment-200 bg-white/60 hover:border-moss-300 hover:shadow-card'"
-        @click="selectAgent(agent.name)"
-      >
+        @click="selectAgent(agent.name)">
         <div class="flex items-center justify-between">
           <span class="font-medium text-sm text-parchment-900">{{ agent.name }}</span>
-          <span
-            v-if="agent.source === 'builtin'"
-            class="text-[10px] px-2 py-0.5 rounded-full bg-moss-100 text-moss-700"
-          >内置</span>
-          <span
-            v-else-if="agent.source === 'example'"
-            class="text-[10px] px-2 py-0.5 rounded-full bg-purple-100 text-purple-700"
-          >示例</span>
-          <span
-            v-else-if="agent.source === 'demo'"
-            class="text-[10px] px-2 py-0.5 rounded-full bg-gold-100 text-gold-700"
-          >Demo</span>
+          <span v-if="agent.source === 'builtin'" class="text-[10px] px-2 py-0.5 rounded-full bg-moss-100 text-moss-700">内置</span>
+          <span v-else-if="agent.source === 'example'" class="text-[10px] px-2 py-0.5 rounded-full bg-purple-100 text-purple-700">示例</span>
+          <span v-else-if="agent.source === 'demo'" class="text-[10px] px-2 py-0.5 rounded-full bg-gold-100 text-gold-700">Demo</span>
         </div>
         <p class="text-xs text-parchment-600 mt-1">{{ agent.description }}</p>
       </button>
+    </div>
+
+    <!-- 模型选择 (仅神经网络 agent 显示) -->
+    <div v-if="isNeural && models.length > 0" class="mt-3">
+      <label class="block text-sm font-medium text-parchment-700 mb-2">模型 Checkpoint</label>
+      <select
+        class="w-full p-2 rounded-lg border border-parchment-300 bg-white text-sm"
+        :value="modelPath"
+        @change="emit('update:modelPath', ($event.target).value)">
+        <option value="">默认 (model_rl_best.pt)</option>
+        <option v-for="m in models" :key="m.path" :value="m.path">
+          {{ m.name }} ({{ m.size_kb }}KB)
+        </option>
+      </select>
     </div>
   </div>
 </template>
 
 <style scoped>
-.agent-card {
-  cursor: pointer;
-}
-.agent-card:hover {
-  transform: translateY(-1px);
-}
+.agent-card { cursor: pointer; }
+.agent-card:hover { transform: translateY(-1px); }
 </style>

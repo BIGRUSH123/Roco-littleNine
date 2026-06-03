@@ -28,6 +28,7 @@ const searchInput = ref(null)
 // 道具选择
 const selectedItem = ref('')          // '' | '愿力' | '进化之力'
 const selectedAgent = ref('RuleAgent')  // AI agent name
+const selectedModel = ref('')           // neural model checkpoint path
 const availableItems = ref([])
 const evolutionEligible = ref(false)  // 队伍中是否有精灵可进化
 const showBatch = ref(false)
@@ -334,7 +335,7 @@ const startBattle = () => {
   localStorage.setItem('roco_lead', leadSlot.value)
   localStorage.setItem('roco_item', selectedItem.value)
   localStorage.setItem('roco_agent', selectedAgent.value)
-  emit('start-battle', { team, leadIndex, item: selectedItem.value || undefined, aiAgent: selectedAgent.value })
+  emit('start-battle', { team, leadIndex, item: selectedItem.value || undefined, aiAgent: selectedAgent.value, model: selectedModel.value || undefined })
 }
 </script>
 
@@ -507,7 +508,7 @@ const startBattle = () => {
 
         <!-- AI Agent Selection -->
         <div class="mt-5 pt-4 border-t border-[#D4C8B8]">
-          <AgentSelector v-model="selectedAgent" />
+          <AgentSelector v-model="selectedAgent" v-model:modelPath="selectedModel" />
         </div>
 
         <!-- Start -->

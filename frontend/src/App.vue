@@ -92,13 +92,13 @@ const handleQuickTest = async () => {
   }
 }
 
-const handleStartBattle = async ({ team, leadIndex, item, aiAgent }) => {
+const handleStartBattle = async ({ team, leadIndex, item, aiAgent, model }) => {
   try {
     isProcessing.value = true
     const res = await fetch(`${API_BASE}/battle/init`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ team, opponent_team: TEST_OPPONENT, lead_index: leadIndex, item: item || undefined, ai_agent: aiAgent || 'RuleAgent' })
+      body: JSON.stringify({ team, opponent_team: TEST_OPPONENT, lead_index: leadIndex, item: item || undefined, ai_agent: aiAgent || 'RuleAgent', model: model || undefined })
     })
 
     if (!res.ok) {
