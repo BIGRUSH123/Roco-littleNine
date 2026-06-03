@@ -71,10 +71,14 @@ class Battle(BattleMechanicsMixin):
                     "pending_return": getattr(sprite, 'pending_return', False),
                     "extra_skill_use": getattr(sprite, 'extra_skill_use', False),
                 })
-                # 效果：只保存 TTL 和 stacks（effect 对象引用不变）
-                eff_snap = {}
+                # 效果快照：按位置保存，避免 id() 复用导致的错乱
+                eff_snap = []
                 for e in sprite.active_effects:
-                    eff_snap[id(e)] = (e, e.ttl, getattr(e, 'stacks', 0))
+                    from backend.vm.effect import StatBuffEffect
+                    snap = (e, e.ttl, getattr(e, 'stacks', 0))
+                    if isinstance(e, StatBuffEffect):
+                        snap += (e.steps,)
+                    eff_snap.append(snap)
                 sprites[-1]["effects"] = eff_snap
                 # 技能级可变状态
                 sprites[-1]["skill_mods"] = {
@@ -146,16 +150,24 @@ class Battle(BattleMechanicsMixin):
                 sprite.interrupted = s["interrupted"]
                 sprite.pending_return = s["pending_return"]
                 sprite.extra_skill_use = s["extra_skill_use"]
-                # 效果：恢复 TTL/stacks，移除新增的，补回缺失的
-                eff_snap = s["effects"]
-                saved_ids = set(eff_snap.keys())
+                # 效果：按位置恢复。先清空再按保存顺序重建，消除 id() 复用风险
+                saved_effects = s["effects"]  # list of (e, ttl, stacks, steps?)
+                saved_refs = {id(e) for e, *_ in saved_effects}
+                # 移除仿真中新增的效果
                 for e in list(sprite.active_effects):
-                    if id(e) not in saved_ids:
+                    if id(e) not in saved_refs:
                         sprite.active_effects.remove(e)
-                for eid, (e, ttl, stk) in eff_snap.items():
-                    e.ttl = ttl
+                # 恢复保存的效果状态（TTL/stacks/steps）
+                for snap in saved_effects:
+                    e = snap[0]
+                    e.ttl = snap[1]
                     if hasattr(e, 'stacks'):
-                        e.stacks = stk
+                        e.stacks = snap[2]
+                    if len(snap) > 3:
+                        # StatBuffEffect: restore steps
+                        from backend.vm.effect import StatBuffEffect
+                        if isinstance(e, StatBuffEffect):
+                            e.steps = snap[3]
                     if e not in sprite.active_effects:
                         sprite.active_effects.append(e)
                 # 技能状态
