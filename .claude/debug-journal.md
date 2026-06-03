@@ -710,4 +710,20 @@
 - **涉及文件**: backend/sim/battle.py:53-140, backend/engine/ai/mcts.py:274-350
 - **教训**: **profile 是唯一真相**——用 cProfile 跑实际 self-play 流程（不要信 micro-benchmark）；性能优化前先 profile 定位真实瓶颈；MCTS 仿真中 **永远不要 clone**，用 save/restore 原位操作
 
+## 2026-06-03 - save/restore 未保存 battle.log 导致 MCTS 仿真回合泄漏到日志
+
+- **现象**: --max-turns 150 但日志显示对战回合数 177/295/531/944/1003，远超限制
+- **根因**: save_mutable_state 未保存 battle.log。MCTS 仿真中 _step_battle→execute_turn 每步追加 RoundRecord 到 battle.log，restore 后未截断。实际主对局正确停在 max_turns，仅日志数字被污染
+- **修复**: save 记录 log_len，restore 时 del self.log[log_len:]
+- **涉及文件**: backend/sim/battle.py:53-140
+- **教训**: 日志计数异常偏大 → 查 save/restore 是否覆盖了该数据结构；原地仿真的副作用不限于"可变状态"
+
+## 2026-06-03 - save/restore 用 id() 追踪 effect + StatBuffEffect.steps 遗漏导致 OverflowError
+
+- **现象**: self-play worker 崩溃：OverflowError: int too large to convert to float at encode.py:520
+- **根因**: ① effect 快照用 Python id() 做 key — 对象被 GC 后 id 可能被新对象复用，导致 TTL/stacks 错误赋值给不相关的 effect；② StatBuffEffect.steps 不在保存字段中，仿真中若被修改则 restore 不还原，异常值跨回合累积
+- **修复**: effect 快照改为位置列表 [(e, ttl, stacks, steps)]；StatBuffEffect.steps 纳入快照并在 restore 还原
+- **涉及文件**: backend/sim/battle.py:53-140
+- **教训**: save/restore 中**绝不用 id()**追踪可变对象——GC 后的地址复用是 heisenbug；保存时确认每个 effect 子类的特有字段都在快照中
+
 -->
