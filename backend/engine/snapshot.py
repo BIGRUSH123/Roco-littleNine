@@ -117,17 +117,13 @@ def build_ctx(
     hp_self_ratio = hp_self / hp_self_max if hp_self_max > 0 else 0.0
     priority_self = int(ss._modifiers.get("priority", 0))
 
-    stat_stages_self = _extract_stat_stages(ss)
-    abnormal_stacks_self = _extract_abnormal_stacks(ss)
-
-    # Charging state from StateEffect in active_effects
-    from backend.vm.effect import StateEffect as _StateEffect
-    is_charging_self = any(
-        isinstance(e, _StateEffect) and e.state_type == "charging" for e in getattr(ss, 'active_effects', [])
-    )
-    charged_self = any(
-        isinstance(e, _StateEffect) and e.state_type == "charged" for e in getattr(ss, 'active_effects', [])
-    )
+    # 单次遍历 active_effects，同时提取 stat_stages/abnormal_stacks/charging/charged/positive_count
+    stat_self = _extract_sprite_effects(ss)
+    stat_stages_self = stat_self["stages"]
+    abnormal_stacks_self = stat_self["abnormals"]
+    is_charging_self = stat_self["charging"]
+    charged_self = stat_self["charged"]
+    positive_count_self = stat_self["positive"]
 
     # Skill elements carried
     skill_elements_self = frozenset(
@@ -149,14 +145,12 @@ def build_ctx(
     hp_opp_max = os.max_hp
     hp_opp_ratio = hp_opp / hp_opp_max if hp_opp_max > 0 else 0.0
 
-    stat_stages_opp = _extract_stat_stages(os)
-    abnormal_stacks_opp = _extract_abnormal_stacks(os)
-    is_charging_opp = any(
-        isinstance(e, _StateEffect) and e.state_type == "charging" for e in getattr(os, 'active_effects', [])
-    )
-    charged_opp = any(
-        isinstance(e, _StateEffect) and e.state_type == "charged" for e in getattr(os, 'active_effects', [])
-    )
+    stat_opp = _extract_sprite_effects(os)
+    stat_stages_opp = stat_opp["stages"]
+    abnormal_stacks_opp = stat_opp["abnormals"]
+    is_charging_opp = stat_opp["charging"]
+    charged_opp = stat_opp["charged"]
+    positive_count_opp = stat_opp["positive"]
     skill_elements_opp = frozenset(
         sk.element for sk in (os.skills or []) if getattr(sk, 'element', None)
     ) if hasattr(os, 'skills') else frozenset()
@@ -280,7 +274,7 @@ def build_ctx(
         life_drain_self=ss._modifiers.get("life_drain", 0.0),
         abnormal_count_self=sum(abnormal_stacks_self.values()),
         abnormal_stacks_self=abnormal_stacks_self,
-        positive_count_self=_count_positive(ss),
+        positive_count_self=positive_count_self,
         first_action_self=getattr(ss, 'first_action', True),
         first_action_battle_self=getattr(ss, 'first_action_battle', True),
         charged_self=charged_self,
@@ -318,7 +312,7 @@ def build_ctx(
         damage_mult_opp=os._modifiers.get("damage_mult", 1.0),
         abnormal_count_opp=sum(abnormal_stacks_opp.values()),
         abnormal_stacks_opp=abnormal_stacks_opp,
-        positive_count_opp=_count_positive(os),
+        positive_count_opp=positive_count_opp,
         charged_opp=charged_opp,
         skill_elements_opp=skill_elements_opp,
         skill_element_counts_opp=skill_element_counts_opp,
@@ -390,31 +384,35 @@ def build_ctx(
 
 # ── Internal helpers ──
 
-def _extract_stat_stages(sprite: Sprite) -> dict[str, int]:
-    """Extract stat stage changes from sprite.active_effects (StatBuffEffect)."""
-    from backend.vm.effect import StatBuffEffect
+def _extract_sprite_effects(sprite: Sprite) -> dict:
+    """单次遍历 active_effects，同时提取 stat_stages/abnormal/charging/charged/positive。
+
+    替代原来的 5 次独立遍历 → 1 次。"""
+    from backend.vm.effect import AbnormalEffect, StatBuffEffect, StateEffect
 
     stages: dict[str, int] = {}
+    abnormals: dict[str, int] = {}
+    charging = False
+    charged = False
+    positive = 0
+
     for e in getattr(sprite, 'active_effects', []):
         if isinstance(e, StatBuffEffect):
             stages[e.stat_key] = stages.get(e.stat_key, 0) + e.steps
-    return stages
+            if e.steps > 0:
+                positive += 1
+        elif isinstance(e, AbnormalEffect):
+            abnormals[e.name] = abnormals.get(e.name, 0) + e.stacks
+        elif isinstance(e, StateEffect):
+            if e.state_type == "charging":
+                charging = True
+            elif e.state_type == "charged":
+                charged = True
 
-
-def _extract_abnormal_stacks(sprite: Sprite) -> dict[str, int]:
-    """Extract abnormal stacks from sprite.active_effects (AbnormalEffect)."""
-    from backend.vm.effect import AbnormalEffect
-
-    stacks: dict[str, int] = {}
-    for e in getattr(sprite, 'active_effects', []):
-        if isinstance(e, AbnormalEffect):
-            stacks[e.name] = stacks.get(e.name, 0) + e.stacks
-    return stacks
-
-
-def _count_positive(sprite: Sprite) -> int:
-    """Count distinct positive stat effects on a sprite (StatBuffEffect with steps > 0)."""
-    from backend.vm.effect import StatBuffEffect
-
-    return sum(1 for e in getattr(sprite, 'active_effects', [])
-               if isinstance(e, StatBuffEffect) and e.steps > 0)
+    return {
+        "stages": stages,
+        "abnormals": abnormals,
+        "charging": charging,
+        "charged": charged,
+        "positive": positive,
+    }
