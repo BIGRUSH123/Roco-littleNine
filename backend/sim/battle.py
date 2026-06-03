@@ -758,6 +758,11 @@ class Battle(BattleMechanicsMixin):
         if user.is_fainted:
             return events
 
+        # ── 蓄力中禁止聚能 ──
+        if getattr(user, '_charging', False):
+            events.append(f'{user.name} 蓄力中无法聚能')
+            return events
+
         # ── 聚能 ──
         if action.kind == 'gather':
             gained = user.gain_energy(5)

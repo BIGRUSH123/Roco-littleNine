@@ -37,6 +37,17 @@ def get_valid_actions(player: Player) -> tuple[list[int], np.ndarray]:
     if active is None or active.is_fainted:
         return [], mask
 
+    # 蓄力中：只能释放蓄力技能，禁止其他技能/聚能/换宠/道具
+    charging = getattr(active, '_charging', False)
+    charged_idx = getattr(active, '_charged_skill_index', -1)
+    if charging:
+        if charged_idx >= 0 and charged_idx < 4:
+            sk = active.skills[charged_idx] if charged_idx < len(active.skills) else None
+            if sk and not sk.sealed and sk.cooldown <= 0 and sk.energy_cost <= active.energy:
+                mask[charged_idx] = 1.0
+        valid = [i for i in range(NUM_ACTIONS) if mask[i] > 0]
+        return valid, mask
+
     # 技能 (0-3)
     for i, sk in enumerate(active.skills[:4]):
         if not sk.sealed and sk.cooldown <= 0 and sk.energy_cost <= active.energy:
