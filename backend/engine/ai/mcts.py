@@ -407,8 +407,12 @@ def _step_battle(
 
     player_a = battle.player_a
     action_a = action_index_to_action(player_a, action_idx)
+    # 仿真中 bench 精灵可能已力竭导致换宠动作失效（action_index_to_action
+    # 返回 None）。此时必须 fallback 到聚能，不可 return 跳过回合：
+    # selection 循环已执行 node = node.children[best_a]（树指针已前进），
+    # 若 battle 状态不变，后续 selection 在错误状态下选路→树结构逐渐损坏。
     if action_a is None:
-        return
+        action_a = Action(kind="gather")
 
     fixed_a = FixedAgent(action_a, opponent_agent)
     fixed_a._real = _PlayerSwappedAgent(opponent_agent, player_a)
@@ -417,10 +421,11 @@ def _step_battle(
         opp_idx = policy_select_idx(opp_policy, temperature=1.0)
         player_b = battle.player_b
         action_b = action_index_to_action(player_b, opp_idx)
-        if action_b is not None:
-            fixed_b = _OppFixedAgent(action_b, battle.player_b)
-            battle.execute_turn(fixed_a, fixed_b)
-            return
+        if action_b is None:
+            action_b = Action(kind="gather")
+        fixed_b = _OppFixedAgent(action_b, battle.player_b)
+        battle.execute_turn(fixed_a, fixed_b)
+        return
 
     battle.execute_turn(fixed_a, opponent_agent)
 

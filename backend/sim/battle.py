@@ -93,9 +93,11 @@ class Battle(BattleMechanicsMixin):
                     si: sk.sealed
                     for si, sk in enumerate(sprite.skills or [])
                 }
-        # ── 印记：完整保存列表 + stacks（MCTS 仿真可能新增/移除 MarkEffect） ──
+        # ── 印记：用 copy.copy 替代 deepcopy（MarkEffect 全字段为 primitive，
+        # 浅拷贝已足够隔离 MCTS 仿真中的 stacks 修改 / list append-remove） ──
         import copy as _copy
-        mark_snap = _copy.deepcopy(self.globals.mark_effects)
+        mark_snap = {team: [_copy.copy(me) for me in lst]
+                     for team, lst in self.globals.mark_effects.items()}
         # ── VM 引擎：浅拷贝字典/集合 ──
         vm = self._vm_engine
         vm_state = {
@@ -116,8 +118,11 @@ class Battle(BattleMechanicsMixin):
             "weather_turns": self.globals.weather_turns,
             "marks": mark_snap,
             "team_counters": {t: dict(c) for t, c in self.team_counters.items()},
-            "pending_effects": _copy.deepcopy(self.pending_effects),
-            "scheduled_effects": _copy.deepcopy(self.scheduled_effects),
+            # pending/scheduled effects 的元素均为 primitive-field dataclass/dict，
+            # copy.copy 已足够隔离 MCTS 仿真中的增删（无需深拷贝嵌套结构）
+            "pending_effects": {team: [_copy.copy(e) for e in lst]
+                                for team, lst in self.pending_effects.items()},
+            "scheduled_effects": [_copy.copy(s) for s in self.scheduled_effects],
             "pending_escape": self.pending_escape,
             "borrowed_restore": dict(self._borrowed_restore),
             "wish_restore": dict(self._wish_restore),

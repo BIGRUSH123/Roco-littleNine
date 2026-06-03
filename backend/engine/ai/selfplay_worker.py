@@ -24,6 +24,7 @@ def run_selfplay_worker(
     temperature: float,
     root_noise: float,
     progress_every: int,
+    game_timeout_s: float,
     task_queue,
     request_queue,
     reply_queue,
@@ -62,6 +63,7 @@ def run_selfplay_worker(
                 factory, sprite_skills, evaluator,
                 num_simulations, max_turns, temperature, root_noise,
                 draw_margin=draw_margin,
+                game_timeout_s=game_timeout_s,
             )
             if states:
                 X = np.stack(states).astype(np.float32)

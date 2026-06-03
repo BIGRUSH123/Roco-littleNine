@@ -266,14 +266,19 @@ def collect_rl_samples(
             evaluator=evaluator,
         )
 
+        battle_started = time.monotonic()
         turn = 0
         while not battle.is_finished and turn < max_turns:
             battle.execute_turn(agent_a, agent_b)
             turn += 1
+            if time.monotonic() - battle_started >= 300:  # 5min 单局上限
+                break
 
         outcome_a, end_reason = battle_outcome_a(
             battle, max_turns, draw_margin=draw_margin,
         )
+        if time.monotonic() - battle_started >= 300:
+            end_reason = "timeout"
         reason_counts[end_reason] = reason_counts.get(end_reason, 0) + 1
 
         # 写入对局技能日志
@@ -317,8 +322,13 @@ def _play_one_rl_battle(
     temperature: float,
     root_noise: float,
     draw_margin: float = DEFAULT_DRAW_MARGIN,
+    game_timeout_s: float = 300.0,
 ) -> tuple[list[np.ndarray], list[np.ndarray], list[float], str, dict]:
-    """单局自我博弈，返回 (states, probs, outcomes, end_reason, battle_summary)。"""
+    """单局自我博弈，返回 (states, probs, outcomes, end_reason, battle_summary)。
+
+    game_timeout_s: 单局 wall-time 上限，超时强制退出并标记 end_reason="timeout"。
+                    防止 MCTS 仿真在复杂对局状态中逐渐变慢导致单局卡死。
+    """
     team_a, team_b = _random_teams(factory, sprite_skills)
     p1 = factory.build_player("A", team_a)
     p2 = factory.build_player("B", team_b)
@@ -337,14 +347,20 @@ def _play_one_rl_battle(
         evaluator=evaluator,
     )
 
+    battle_started = time.monotonic()
     turn = 0
     while not battle.is_finished and turn < max_turns:
         battle.execute_turn(agent_a, agent_b)
         turn += 1
+        if time.monotonic() - battle_started >= game_timeout_s:
+            break
 
     outcome_a, end_reason = battle_outcome_a(
         battle, max_turns, draw_margin=draw_margin,
     )
+    # 超时覆盖 end_reason（优先级高于 max_turns / decisive）
+    if time.monotonic() - battle_started >= game_timeout_s:
+        end_reason = "timeout"
 
     # 提取对局回合技能摘要
     battle_summary = extract_battle_summary(battle, end_reason)
@@ -410,6 +426,8 @@ def collect_rl_samples_parallel(
     model.eval()
     reply_queues: dict[int, object] = {}
     processes: list[mp.Process] = []
+    # 单局时间预算取 stall_timeout_s 的一半，确保慢局能在全局卡死保护之前自行退出
+    game_timeout_s = stall_timeout_s / 2.0
     for wid in range(n_workers):
         reply_q = ctx.Queue()
         reply_queues[wid] = reply_q
@@ -419,7 +437,8 @@ def collect_rl_samples_parallel(
             args=(
                 wid, seed,
                 num_simulations, max_turns, draw_margin, temperature, root_noise,
-                progress_every, task_queue, request_queue, reply_q, result_queue,
+                progress_every, game_timeout_s,
+                task_queue, request_queue, reply_q, result_queue,
             ),
         )
         proc.start()
