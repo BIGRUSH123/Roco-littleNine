@@ -93,10 +93,9 @@ class Battle(BattleMechanicsMixin):
                     si: sk.sealed
                     for si, sk in enumerate(sprite.skills or [])
                 }
-        # ── 印记：只保存 stacks（MarkEffect 对象引用不变） ──
-        mark_snap = {}
-        for team, marks in self.globals.mark_effects.items():
-            mark_snap[team] = [(m, m.stacks) for m in marks]
+        # ── 印记：完整保存列表 + stacks（MCTS 仿真可能新增/移除 MarkEffect） ──
+        import copy as _copy
+        mark_snap = _copy.deepcopy(self.globals.mark_effects)
         # ── VM 引擎：浅拷贝字典/集合 ──
         vm = self._vm_engine
         vm_state = {
@@ -117,8 +116,8 @@ class Battle(BattleMechanicsMixin):
             "weather_turns": self.globals.weather_turns,
             "marks": mark_snap,
             "team_counters": {t: dict(c) for t, c in self.team_counters.items()},
-            "pending_effects": {t: list(e) for t, e in self.pending_effects.items()},
-            "scheduled_effects": list(self.scheduled_effects),
+            "pending_effects": _copy.deepcopy(self.pending_effects),
+            "scheduled_effects": _copy.deepcopy(self.scheduled_effects),
             "pending_escape": self.pending_escape,
             "borrowed_restore": dict(self._borrowed_restore),
             "wish_restore": dict(self._wish_restore),
@@ -178,10 +177,8 @@ class Battle(BattleMechanicsMixin):
                         sk.cooldown = s["skill_cd"][si]
                     if si in s.get("skill_sealed", {}):
                         sk.sealed = s["skill_sealed"][si]
-        # ── 印记 stacks ──
-        for team, marks in saved["marks"].items():
-            for m, stacks in marks:
-                m.stacks = stacks
+        # ── 印记：完整恢复（MCTS 仿真可能新增/移除 MarkEffect 对象） ──
+        self.globals.mark_effects = saved["marks"]
         # ── 全局状态 ──
         self.turn = saved["turn"]
         self.winner = saved["winner"]
