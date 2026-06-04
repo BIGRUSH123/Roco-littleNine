@@ -334,6 +334,12 @@ def mcts_search(
                 prior[a] = (1 - root_noise) * prior[a] + root_noise * noise[i]
 
         root = MCTSNode(valid, prior)
+        # 预铺根节点子节点空壳：确保第一轮模拟即可进入 Selection，
+        # 防止 root 作为叶子节点被二次评估 → Dirichlet 噪声永不丢失。
+        # 每个空壳的 prior/valid_actions 留空，等该子节点被选中并
+        # 展开时再用当前状态的网络评估来填充。
+        for a in valid:
+            root.children[a] = MCTSNode([], np.zeros(NUM_ACTIONS, dtype=np.float32))
         # 预计算根节点对手策略（博弈树首次选择时直接采样，省 encode+eval）
         opp_player = battle.player_b
         opp_valid, opp_mask = get_valid_actions(opp_player, battle)
@@ -352,7 +358,9 @@ def mcts_search(
             path: list[tuple[MCTSNode, int]] = []
 
             # ── Selection ──
-            while node.children and node.visit_count > 0:
+            # 叶子节点判定：有无 children（不再依赖 visit_count > 0）。
+            # 根节点的 children 已预铺空壳，首轮即可正常选路。
+            while node.children:
                 best_a = -1
                 best_score = -1e9
                 sqrt_n = math.sqrt(node.visit_count + 1)
@@ -385,6 +393,10 @@ def mcts_search(
             if sim_valid and not battle.is_finished:
                 leaf_state = encode_battle_state(battle)
                 leaf_value, sim_prior = evaluator.evaluate(leaf_state, sim_mask)
+                # 将当前节点的合法动作和先验更新为真实评估结果
+                # （之前是空壳，现在是本状态的真实先验）
+                node.valid_actions = sim_valid
+                node.prior = sim_prior
                 # 预计算对手策略
                 opp_player = battle.player_b
                 opp_valid, opp_mask = get_valid_actions(opp_player, battle)
@@ -392,8 +404,11 @@ def mcts_search(
                     opp_state = encode_battle_state(battle, perspective="B")
                     _, opp_prior = evaluator.evaluate(opp_state, opp_mask)
                     node.opp_policy = opp_prior
+                # 预铺子节点空壳：等它们被选中时再真实展开
                 for a in sim_valid:
-                    node.children[a] = MCTSNode(sim_valid, sim_prior)
+                    node.children[a] = MCTSNode(
+                        [], np.zeros(NUM_ACTIONS, dtype=np.float32),
+                    )
             else:
                 # 终端节点：使用 battle_outcome_a 计算 value，确保与训练标签一致。
                 # max_turns 平局时按局面分差判定（而非简单返回 0），消除 MCTS value
@@ -404,13 +419,10 @@ def mcts_search(
                 )
 
             # ── Backprop ──
-            # 更新选择路径上的所有父节点。
+            # 更新选择路径上的所有祖先节点以及当前展开的叶节点。
             for parent, a in reversed(path):
                 parent.visit_count += 1
                 parent.total_value += leaf_value
-            # 叶节点也必须更新（visit_count 永久为 0 会导致下轮模拟无法
-            # 穿过该节点，搜索树永远不超过 2 层深度）。node==root 时（第 1
-            # 轮 path 为空），root 已在上方的 node 更新中处理，无需重复。
             node.visit_count += 1
             node.total_value += leaf_value
 

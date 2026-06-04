@@ -171,8 +171,17 @@ class MCTSAgent:
                 evaluator=self._evaluator,
                 root_state=state,  # 复用已编码状态，省掉 mcts_search 内部二次编码
             )
+            # 防御 save/restore 状态微小差异：MCTS 中合法的动作
+            # 在恢复后可能被判为非法。将 mask=0 位置的 probs 清零
+            # 并重归一化，确保动作采样和训练数据都使用一致的分布。
+            _, valid_mask = get_valid_actions(battle.player_a, battle)
+            probs = probs * valid_mask
+            s = probs.sum()
+            if s > 0:
+                probs = probs / s
+            else:
+                probs = valid_mask / max(valid_mask.sum(), 1.0)
             if self._record and state is not None:
-                _, valid_mask = get_valid_actions(battle.player_a, battle)
                 self.history.append((state, probs.copy(), valid_mask.copy()))
         finally:
             if swapped:
@@ -682,11 +691,16 @@ def train_rl(
 
             value, logits = model(xb)
             value_loss = F.mse_loss(value, vb)
-            # 使用数据收集时记录的合法动作 mask（来自 get_valid_actions），
-            # 而非从 pb>0 推断。当 MCTS 模拟数少时某些合法动作可能未被访问到
-            # （pb==0），用 pb>0 会错误地将其当作非法动作屏蔽。
-            masked_logits = logits.masked_fill(mb == 0, -1e9)
-            policy_loss = -torch.sum(pb * F.log_softmax(masked_logits, dim=-1), dim=-1).mean()
+            # 防御 save/restore 状态微小差异导致 pb 与 mask 不一致：
+            # 若某动作在 MCTS 期间合法但在 mask 中被标记为非法，
+            # pb>0 而 mask=0 → log_softmax≈-1e9 → pb*-1e9→loss 暴涨。
+            # 先强制清零 mask=0 位置上的 pb，再重归一化。
+            pb_safe = pb * mb
+            pb_sum = pb_safe.sum(dim=-1, keepdim=True).clamp(min=1e-8)
+            pb_safe = pb_safe / pb_sum
+            masked_logits = logits.masked_fill(mb < 0.5, -1e9)
+            per_sample = -torch.sum(pb_safe * F.log_softmax(masked_logits, dim=-1), dim=-1)
+            policy_loss = per_sample.mean()
             loss = value_loss + policy_loss
 
             optimizer.zero_grad()
@@ -704,8 +718,11 @@ def train_rl(
         with torch.no_grad():
             val_v, val_logits = model(X_val)
             val_v_loss = F.mse_loss(val_v, v_val).item()
-            val_masked_logits = val_logits.masked_fill(M_val == 0, -1e9)
-            val_p_loss = -torch.sum(P_val * F.log_softmax(val_masked_logits, dim=-1), dim=-1).mean().item()
+            val_pb_safe = P_val * M_val
+            val_pb_sum = val_pb_safe.sum(dim=-1, keepdim=True).clamp(min=1e-8)
+            val_pb_safe = val_pb_safe / val_pb_sum
+            val_masked_logits = val_logits.masked_fill(M_val < 0.5, -1e9)
+            val_p_loss = -torch.sum(val_pb_safe * F.log_softmax(val_masked_logits, dim=-1), dim=-1).mean().item()
             val_acc = ((val_v.squeeze().sign() == v_val.squeeze().sign()).float().mean().item())
 
         scheduler.step()
@@ -1118,7 +1135,7 @@ def main():
     parser.add_argument("--output", type=str, default="checkpoints/model_rl.pt")
     parser.add_argument("--resume", type=str, default="")
     parser.add_argument("--base-model", type=str,
-                        default="checkpoints/model_rl_best.pt",
+                        default="",
                         help="基座模型路径（无 --resume 时从此权重加载而非随机初始化）")
     parser.add_argument("--device", type=str, default="")
     parser.add_argument("--data-cache", type=str, default="",

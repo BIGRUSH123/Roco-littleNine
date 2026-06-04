@@ -52,6 +52,7 @@ class Battle(BattleMechanicsMixin):
 
     def save_mutable_state(self) -> dict:
         """保存对战可变状态，用于 MCTS 仿真回滚。只用浅拷贝，不用 deepcopy。"""
+        import copy as _copy
         # ── 精灵状态 ──
         sprites: list[dict] = []
         for player in (self.player_a, self.player_b):
@@ -104,7 +105,6 @@ class Battle(BattleMechanicsMixin):
                 sprites[-1]["trait_suppressed"] = getattr(sprite, '_trait_suppressed', False)
         # ── 印记：用 copy.copy 替代 deepcopy（MarkEffect 全字段为 primitive，
         # 浅拷贝已足够隔离 MCTS 仿真中的 stacks 修改 / list append-remove） ──
-        import copy as _copy
         mark_snap = {team: [_copy.copy(me) for me in lst]
                      for team, lst in self.globals.mark_effects.items()}
         # ── VM 引擎：浅拷贝字典/集合 ──

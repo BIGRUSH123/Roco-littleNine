@@ -193,7 +193,7 @@ class BattleNet(nn.Module):
         """返回 (value, masked_softmax_probs)。mask 中 1=可用, 0=禁用。"""
         value, logits = self.forward(x)
         # 将禁用动作的 logit 设为 -inf
-        masked_logits = logits.masked_fill(mask == 0, -1e9)
+        masked_logits = logits.masked_fill(mask < 0.5, -1e9)
         probs = F.softmax(masked_logits, dim=-1)
         return value, probs
 
@@ -420,7 +420,7 @@ class ModularBattleNet(nn.Module):
     ) -> tuple[torch.Tensor, torch.Tensor]:
         """返回 (value, masked_softmax_probs)。mask 中 1=可用, 0=禁用。"""
         value, logits = self.forward(x)
-        masked_logits = logits.masked_fill(mask == 0, -1e9)
+        masked_logits = logits.masked_fill(mask < 0.5, -1e9)
         probs = F.softmax(masked_logits, dim=-1)
         return value, probs
 
