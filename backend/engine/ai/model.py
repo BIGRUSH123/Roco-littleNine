@@ -63,19 +63,27 @@ class MutualCrossAttention(nn.Module):
         self.scale = math.sqrt(self.head_dim)
 
     def _attend(self, query: torch.Tensor, key_value: torch.Tensor) -> torch.Tensor:
-        """单方向注意力：query 关注 key_value。"""
+        """单方向注意力：query 关注 key_value。
+
+        将 H 个头视为每个样本内的 H 个特征组（token），在样本内计算
+        组间注意力，而非跨 batch 注意力。例如：己方精灵的"攻击特征组"
+        关注对方精灵的"防御特征组"。
+        """
         B = query.shape[0]
         H, D = self.num_heads, self.head_dim
 
-        q = self.q_proj(query).view(B, H, D).transpose(0, 1)        # (H, B, D)
-        k = self.k_proj(key_value).view(B, H, D).transpose(0, 1)
-        v = self.v_proj(key_value).view(B, H, D).transpose(0, 1)
+        # (B, dim) → (B, H, D)：H 个特征组，每组 D 维
+        q = self.q_proj(query).view(B, H, D)                        # (B, H, D)
+        k = self.k_proj(key_value).view(B, H, D)                    # (B, H, D)
+        v = self.v_proj(key_value).view(B, H, D)                    # (B, H, D)
 
-        attn = (q @ k.transpose(-2, -1)) / self.scale               # (H, B, B)
+        # 样本内多头注意力：(B, H, D) @ (B, D, H) → (B, H, H)
+        attn = (q @ k.transpose(-2, -1)) / self.scale               # (B, H, H)
         attn = F.softmax(attn, dim=-1)
         attn = self.dropout(attn)
 
-        out = (attn @ v).transpose(0, 1).reshape(B, H * D)          # (B, dim)
+        # (B, H, H) @ (B, H, D) → (B, H, D) → (B, dim)
+        out = (attn @ v).reshape(B, H * D)                           # (B, dim)
         return query + self.out_proj(out)
 
     def forward(self, own_features: torch.Tensor, opp_features: torch.Tensor):
@@ -95,7 +103,7 @@ class BattleValueNet(nn.Module):
     +1 = 己方必胜，-1 = 对方必胜。
     """
 
-    INPUT_DIM = 446
+    INPUT_DIM = 466
 
     def __init__(self, hidden: tuple[int, ...] = (256, 128), dropout: float = 0.0):
         super().__init__()
@@ -150,7 +158,7 @@ class BattleNet(nn.Module):
       10  → 使用道具
     """
 
-    INPUT_DIM = 446
+    INPUT_DIM = 466
     NUM_ACTIONS = 11
 
     def __init__(self, hidden: tuple[int, ...] = (256, 128), dropout: float = 0.0):
@@ -227,7 +235,7 @@ class ModularBattleNet(nn.Module):
     """模块化双头网络：分解编码 + 交叉注意力 + 残差主干。
 
     与 BattleNet 对比:
-      BattleNet:  446 → 256 → 128 → value(1) + policy(11)   (~150K 参数)
+      BattleNet:  466 → 256 → 128 → value(1) + policy(11)   (~150K 参数)
       v2:         模块编码 → 交叉注意力 → 残差塔(4块) → 独立双头  (~800K 参数，可调)
 
     设计来源:
@@ -235,21 +243,21 @@ class ModularBattleNet(nn.Module):
       - Transformer:  多头交叉注意力建模己方↔对方精灵交互
       - Pokemon AI:   模块化状态分解（全局/场上/板凳分离编码）
 
-    状态分解 (446 维):
+    状态分解 (466 维):
       [0:56]   全局状态（天气/印记/魔力/道具/奉献）
       [56:171] 己方场上精灵
       [171:286]对方场上精灵
-      [286:366]己方板凳 ×5
-      [366:446]对方板凳 ×5
+      [286:376]己方板凳 ×5 (18×5=90, 含 slot_valid+unknown)
+      [376:466]对方板凳 ×5 (18×5=90, 含 slot_valid+unknown)
     """
 
-    INPUT_DIM = 446
+    INPUT_DIM = 466
     NUM_ACTIONS = 11  # 技能0-3 + 换宠4-8 + 聚能9 + 道具10
 
     # 各模块维度（需与 encode.py 一致）
     GLOBAL_DIM = 56
     SPRITE_DIM = 115
-    BENCH_DIM = 80
+    BENCH_DIM = 90  # 18×5 (每板凳 18 维含 slot_valid+unknown，共 5 槽位)
 
     def __init__(
         self,
@@ -363,15 +371,15 @@ class ModularBattleNet(nn.Module):
                     nn.init.zeros_(m.bias)
 
     def _decompose(self, x: torch.Tensor):
-        """将 (B, 446) 输入分解为各模块张量。"""
+        """将 (B, 466) 输入分解为各模块张量。"""
         g = x[:, :self.GLOBAL_DIM]                                         # (B, 56)
         own = x[:, self.GLOBAL_DIM:self.GLOBAL_DIM + self.SPRITE_DIM]     # (B, 115)
         opp_start = self.GLOBAL_DIM + self.SPRITE_DIM                     # 171
         opp = x[:, opp_start:opp_start + self.SPRITE_DIM]                  # (B, 115)
         bench_own_start = opp_start + self.SPRITE_DIM                     # 286
-        bench_own = x[:, bench_own_start:bench_own_start + self.BENCH_DIM]  # (B, 80)
-        bench_opp_start = bench_own_start + self.BENCH_DIM                # 366
-        bench_opp = x[:, bench_opp_start:bench_opp_start + self.BENCH_DIM]  # (B, 80)
+        bench_own = x[:, bench_own_start:bench_own_start + self.BENCH_DIM]  # (B, 90)
+        bench_opp_start = bench_own_start + self.BENCH_DIM                # 376
+        bench_opp = x[:, bench_opp_start:bench_opp_start + self.BENCH_DIM]  # (B, 90)
         return g, own, opp, bench_own, bench_opp
 
     def forward(self, x: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:

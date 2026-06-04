@@ -745,10 +745,19 @@ def train_supervised(
 ) -> list[dict]:
     from backend.engine.ai.model import BattleValueNet
     n = len(X)
-    indices = np.random.permutation(n)
-    split = int(n * (1 - val_split))
-    train_idx = indices[:split]
-    val_idx = indices[split:]
+    if n == 0:
+        print("  [train_supervised] 无样本，跳过训练")
+        return []
+    if n < 2:
+        # 单样本：验证集=训练集（仅用于监控，不参与反向传播）
+        train_idx = np.arange(n)
+        val_idx = np.arange(n)
+    else:
+        indices = np.random.permutation(n)
+        split = int(n * (1 - val_split))
+        split = max(1, min(split, n - 1))
+        train_idx = indices[:split]
+        val_idx = indices[split:]
 
     X_train = torch.from_numpy(X[train_idx]).to(device)
     y_train = torch.from_numpy(y[train_idx]).unsqueeze(1).to(device)

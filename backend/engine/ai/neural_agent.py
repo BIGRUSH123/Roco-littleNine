@@ -143,7 +143,7 @@ class PolicyAgent(_BaseAgent):
 
     def choose_action(self, battle: Battle):
         player = battle.player_b
-        valid, mask = get_valid_actions(player)
+        valid, mask = get_valid_actions(player, battle)
         if not valid:
             from backend.sim.action import Action
             return Action(kind="gather")
@@ -177,7 +177,7 @@ class NeuralMCTSAgent(_BaseAgent):
 
     def choose_action(self, battle: Battle):
         player = battle.player_b
-        valid, mask = get_valid_actions(player)
+        valid, mask = get_valid_actions(player, battle)
         if not valid:
             from backend.sim.action import Action
             return Action(kind="gather")

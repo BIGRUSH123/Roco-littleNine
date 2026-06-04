@@ -283,8 +283,8 @@ def _encode_skill(sk, sprite: Sprite, opp_sprite: Sprite | None) -> list[float]:
 
     out: list[float] = []
 
-    # 1. 有效威力（sk.power 属性已包含 _modifiers）
-    eff_power = sk.power + sprite.power_mod * 10
+    # 1. 有效威力（sk.power 属性已包含 _modifiers，不再重复加 sprite.power_mod）
+    eff_power = sk.power
     out.append(eff_power / 300.0)
 
     # 2. 有效能耗（sk.energy_cost 属性已包含 _modifiers + _mech_energy_reduction）

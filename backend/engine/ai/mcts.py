@@ -315,109 +315,111 @@ def mcts_search(
     # 禁用 save_snapshot — MCTS 仿真不需要回溯序列化（省 ~17% 耗时）
     prev_mcts_sim = getattr(battle, '_mcts_sim', False)
     battle._mcts_sim = True
+    try:
 
-    player = battle.player_a
-    valid, mask = get_valid_actions(player, battle)
-    if not valid:
+        player = battle.player_a
+        valid, mask = get_valid_actions(player, battle)
+        if not valid:
+            return mask / max(mask.sum(), 1.0)
+
+        # ── 根节点先验（复用调用方预编码的状态） ──
+        if root_state is None:
+            root_state = encode_battle_state(battle)
+        _, prior = evaluator.evaluate(root_state, mask)
+
+        # Dirichlet 噪声
+        if root_noise > 0:
+            noise = np.random.dirichlet([0.3] * len(valid))
+            for i, a in enumerate(valid):
+                prior[a] = (1 - root_noise) * prior[a] + root_noise * noise[i]
+
+        root = MCTSNode(valid, prior)
+        # 预计算根节点对手策略（博弈树首次选择时直接采样，省 encode+eval）
+        opp_player = battle.player_b
+        opp_valid, opp_mask = get_valid_actions(opp_player, battle)
+        if opp_valid:
+            opp_state = encode_battle_state(battle, perspective="B")
+            _, opp_prior = evaluator.evaluate(opp_state, opp_mask)
+            root.opp_policy = opp_prior
+
+        # ── MCTS 主循环 ──
+        # 使用 save/restore 替代 clone：每轮仿真前保存可变状态，
+        # 在原始 battle 上原地执行 selection → evaluation → backprop，
+        # 最后恢复状态。消除全部对象图遍历/深拷贝开销（原占 ~30% 耗时）。
+        for _ in range(num_simulations):
+            saved = battle.save_mutable_state()
+            node = root
+            path: list[tuple[MCTSNode, int]] = []
+
+            # ── Selection ──
+            while node.children and node.visit_count > 0:
+                best_a = -1
+                best_score = -1e9
+                sqrt_n = math.sqrt(node.visit_count + 1)
+                for a in node.valid_actions:
+                    child = node.children.get(a)
+                    if child is None:
+                        continue
+                    q = child.value
+                    u = c_puct * node.prior[a] * sqrt_n / (1 + child.visit_count)
+                    if q + u > best_score:
+                        best_score = q + u
+                        best_a = a
+                if best_a < 0:
+                    break
+                # 终端守卫：对局已结束或 active 已力竭时停止降序，
+                # 避免在无效状态下推进回合导致树结构偏离。
+                if battle.is_finished or battle.player_a.active.is_fainted:
+                    break
+                path.append((node, best_a))
+                node = node.children[best_a]
+                # 使用预缓存的对手策略（省掉 encode+eval），回退到 opponent_agent
+                _step_battle(battle, best_a, opponent_agent,
+                             opp_policy=path[-1][0].opp_policy,
+                             opp_greedy=opp_greedy)
+
+            # ── Expansion & Evaluation ──
+            sim_player = battle.player_a
+            sim_valid, sim_mask = get_valid_actions(sim_player, battle)
+
+            if sim_valid and not battle.is_finished:
+                leaf_state = encode_battle_state(battle)
+                leaf_value, sim_prior = evaluator.evaluate(leaf_state, sim_mask)
+                # 预计算对手策略
+                opp_player = battle.player_b
+                opp_valid, opp_mask = get_valid_actions(opp_player, battle)
+                if opp_valid:
+                    opp_state = encode_battle_state(battle, perspective="B")
+                    _, opp_prior = evaluator.evaluate(opp_state, opp_mask)
+                    node.opp_policy = opp_prior
+                for a in sim_valid:
+                    node.children[a] = MCTSNode(sim_valid, sim_prior)
+            else:
+                # 终端节点：使用 battle_outcome_a 计算 value，确保与训练标签一致。
+                # max_turns 平局时按局面分差判定（而非简单返回 0），消除 MCTS value
+                # 估计与 RL 训练目标之间的系统性偏差。
+                from backend.engine.ai.outcome import DEFAULT_DRAW_MARGIN, battle_outcome_a
+                leaf_value, _ = battle_outcome_a(
+                    battle, battle.MAX_TURNS, draw_margin=DEFAULT_DRAW_MARGIN,
+                )
+
+            # ── Backprop ──
+            # 更新选择路径上的所有父节点。
+            for parent, a in reversed(path):
+                parent.visit_count += 1
+                parent.total_value += leaf_value
+            # 叶节点也必须更新（visit_count 永久为 0 会导致下轮模拟无法
+            # 穿过该节点，搜索树永远不超过 2 层深度）。node==root 时（第 1
+            # 轮 path 为空），root 已在上方的 node 更新中处理，无需重复。
+            node.visit_count += 1
+            node.total_value += leaf_value
+
+            # ── 回滚 ──
+            battle.restore_mutable_state(saved)
+
+    finally:
+        # 恢复 save_snapshot 行为（异常时也保证恢复，避免标志泄漏）
         battle._mcts_sim = prev_mcts_sim
-        return mask / max(mask.sum(), 1.0)
-
-    # ── 根节点先验（复用调用方预编码的状态） ──
-    if root_state is None:
-        root_state = encode_battle_state(battle)
-    _, prior = evaluator.evaluate(root_state, mask)
-
-    # Dirichlet 噪声
-    if root_noise > 0:
-        noise = np.random.dirichlet([0.3] * len(valid))
-        for i, a in enumerate(valid):
-            prior[a] = (1 - root_noise) * prior[a] + root_noise * noise[i]
-
-    root = MCTSNode(valid, prior)
-    # 预计算根节点对手策略（博弈树首次选择时直接采样，省 encode+eval）
-    opp_player = battle.player_b
-    opp_valid, opp_mask = get_valid_actions(opp_player, battle)
-    if opp_valid:
-        opp_state = encode_battle_state(battle, perspective="B")
-        _, opp_prior = evaluator.evaluate(opp_state, opp_mask)
-        root.opp_policy = opp_prior
-
-    # ── MCTS 主循环 ──
-    # 使用 save/restore 替代 clone：每轮仿真前保存可变状态，
-    # 在原始 battle 上原地执行 selection → evaluation → backprop，
-    # 最后恢复状态。消除全部对象图遍历/深拷贝开销（原占 ~30% 耗时）。
-    for _ in range(num_simulations):
-        saved = battle.save_mutable_state()
-        node = root
-        path: list[tuple[MCTSNode, int]] = []
-
-        # ── Selection ──
-        while node.children and node.visit_count > 0:
-            best_a = -1
-            best_score = -1e9
-            sqrt_n = math.sqrt(node.visit_count + 1)
-            for a in node.valid_actions:
-                child = node.children.get(a)
-                if child is None:
-                    continue
-                q = child.value
-                u = c_puct * node.prior[a] * sqrt_n / (1 + child.visit_count)
-                if q + u > best_score:
-                    best_score = q + u
-                    best_a = a
-            if best_a < 0:
-                break
-            # 终端守卫：对局已结束或 active 已力竭时停止降序，
-            # 避免在无效状态下推进回合导致树结构偏离。
-            if battle.is_finished or battle.player_a.active.is_fainted:
-                break
-            path.append((node, best_a))
-            node = node.children[best_a]
-            # 使用预缓存的对手策略（省掉 encode+eval），回退到 opponent_agent
-            _step_battle(battle, best_a, opponent_agent,
-                         opp_policy=path[-1][0].opp_policy,
-                         opp_greedy=opp_greedy)
-
-        # ── Expansion & Evaluation ──
-        sim_player = battle.player_a
-        sim_valid, sim_mask = get_valid_actions(sim_player, battle)
-
-        if sim_valid and not battle.is_finished:
-            leaf_state = encode_battle_state(battle)
-            leaf_value, sim_prior = evaluator.evaluate(leaf_state, sim_mask)
-            # 预计算对手策略
-            opp_player = battle.player_b
-            opp_valid, opp_mask = get_valid_actions(opp_player, battle)
-            if opp_valid:
-                opp_state = encode_battle_state(battle, perspective="B")
-                _, opp_prior = evaluator.evaluate(opp_state, opp_mask)
-                node.opp_policy = opp_prior
-            for a in sim_valid:
-                node.children[a] = MCTSNode(sim_valid, sim_prior)
-        else:
-            # 终端节点：使用 battle_outcome_a 计算 value，确保与训练标签一致。
-            # max_turns 平局时按局面分差判定（而非简单返回 0），消除 MCTS value
-            # 估计与 RL 训练目标之间的系统性偏差。
-            from backend.engine.ai.outcome import DEFAULT_DRAW_MARGIN, battle_outcome_a
-            leaf_value, _ = battle_outcome_a(
-                battle, battle.MAX_TURNS, draw_margin=DEFAULT_DRAW_MARGIN,
-            )
-
-        # ── Backprop ──
-        for parent, a in reversed(path):
-            parent.visit_count += 1
-            parent.total_value += leaf_value
-        # 第 1 轮 path 为空时根节点未在循环中被更新，需单独处理；
-        # 第 2 轮起 path 已包含 (root, ...)，循环内已更新，不再重复。
-        if not path:
-            root.visit_count += 1
-            root.total_value += leaf_value
-
-        # ── 回滚 ──
-        battle.restore_mutable_state(saved)
-
-    # 恢复 save_snapshot 行为
-    battle._mcts_sim = prev_mcts_sim
 
     # ── 输出动作概率 ──
     counts = np.zeros(NUM_ACTIONS, dtype=np.float32)
