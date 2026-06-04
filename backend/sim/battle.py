@@ -93,6 +93,15 @@ class Battle(BattleMechanicsMixin):
                     si: sk.sealed
                     for si, sk in enumerate(sprite.skills or [])
                 }
+                # 精灵级可变状态（此前遗漏，MCTS 仿真残留会泄漏到真实对局）
+                sprites[-1]["mod_scopes"] = dict(getattr(sprite, '_mod_scopes', {}))
+                sprites[-1]["pending_mods"] = [
+                    _copy.copy(m) for m in getattr(sprite, '_pending_modifiers', [])
+                ]
+                sprites[-1]["pending_effs"] = [
+                    (_copy.copy(e), d) for e, d in getattr(sprite, '_pending_effects', [])
+                ]
+                sprites[-1]["trait_suppressed"] = getattr(sprite, '_trait_suppressed', False)
         # ── 印记：用 copy.copy 替代 deepcopy（MarkEffect 全字段为 primitive，
         # 浅拷贝已足够隔离 MCTS 仿真中的 stacks 修改 / list append-remove） ──
         import copy as _copy
@@ -137,6 +146,7 @@ class Battle(BattleMechanicsMixin):
 
     def restore_mutable_state(self, saved: dict) -> None:
         """从 save_mutable_state 恢复可变状态（MCTS 仿真回滚）。"""
+        import copy as _copy
         # ── 精灵状态 ──
         idx = 0
         for player in (self.player_a, self.player_b):
@@ -182,6 +192,17 @@ class Battle(BattleMechanicsMixin):
                         sk.cooldown = s["skill_cd"][si]
                     if si in s.get("skill_sealed", {}):
                         sk.sealed = s["skill_sealed"][si]
+                # 精灵级可变状态回滚（此前遗漏，MCTS 仿真残留会泄漏到真实对局）
+                if "mod_scopes" in s:
+                    sprite._mod_scopes = dict(s["mod_scopes"])
+                if "pending_mods" in s:
+                    sprite._pending_modifiers = list(s["pending_mods"])
+                if "pending_effs" in s:
+                    sprite._pending_effects = [
+                        (_copy.copy(e), d) for e, d in s["pending_effs"]
+                    ]
+                if "trait_suppressed" in s:
+                    sprite._trait_suppressed = s["trait_suppressed"]
         # ── 印记：完整恢复（MCTS 仿真可能新增/移除 MarkEffect 对象） ──
         self.globals.mark_effects = saved["marks"]
         # ── 全局状态 ──

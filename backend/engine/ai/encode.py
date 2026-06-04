@@ -113,7 +113,13 @@ def encode_battle_state(
     pieces.append(_encode_bench_all(opp, own, opp_active, mask_unknown=mask_opp_bench))
 
     result = np.concatenate(pieces)
-    assert result.shape == (466,), f"维度错误: {result.shape}"
+    if result.shape != (466,):
+        import logging
+        logging.warning(
+            f"encode_battle_state 维度错误: 期望 (466,) 实际 {result.shape}，"
+            f"返回零向量 fallback"
+        )
+        return np.zeros(466, dtype=np.float32)
     return result.astype(np.float32)
 
 

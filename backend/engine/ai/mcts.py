@@ -29,13 +29,35 @@ if TYPE_CHECKING:
 NUM_ACTIONS = 11  # 技能0-3 + 换宠4-8 + 聚能9 + 道具10
 
 
-def get_valid_actions(player: Player) -> tuple[list[int], np.ndarray]:
-    """返回 (有效动作索引列表, 11维 float32 mask)。"""
+def get_valid_actions(player: Player, battle=None) -> tuple[list[int], np.ndarray]:
+    """返回 (有效动作索引列表, 11维 float32 mask)。
+
+    Args:
+        player: 决策玩家。
+        battle: 可选，传入时使用引擎侧能耗修正（天气/印记/energy_cost modifier）。
+    """
     mask = np.zeros(NUM_ACTIONS, dtype=np.float32)
 
     active = player.active if player.active_index < len(player.team) else None
     if active is None or active.is_fainted:
         return [], mask
+
+    # ── 能耗辅助：近似引擎侧实际 energy_cost 计算 ──
+    def _effective_cost(sk) -> int:
+        cost = sk.energy_cost
+        # energy_cost modifier（on_next / per-turn VM 管线注入）
+        ec_mod = active._modifiers.get("energy_cost", 0)
+        if ec_mod:
+            cost += round(ec_mod)
+        # energy_cost multiplier
+        ec_mult = active._modifiers.get("energy_cost_mult", 0)
+        if ec_mult:
+            cost = round(cost * (1.0 + ec_mult))
+        # 印记能耗减免（需要知道 team 和 battle）
+        if battle is not None:
+            team = "A" if battle.player_a is player else "B"
+            cost -= getattr(battle.globals, 'mark_energy_mod', lambda t: 0)(team)
+        return max(0, cost)
 
     # 蓄力中：只能释放蓄力技能，禁止其他技能/聚能/换宠/道具
     charging = getattr(active, '_charging', False)
@@ -43,14 +65,14 @@ def get_valid_actions(player: Player) -> tuple[list[int], np.ndarray]:
     if charging:
         if charged_idx >= 0 and charged_idx < 4:
             sk = active.skills[charged_idx] if charged_idx < len(active.skills) else None
-            if sk and not sk.sealed and sk.cooldown <= 0 and sk.energy_cost <= active.energy:
+            if sk and not sk.sealed and sk.cooldown <= 0 and _effective_cost(sk) <= active.energy:
                 mask[charged_idx] = 1.0
         valid = [i for i in range(NUM_ACTIONS) if mask[i] > 0]
         return valid, mask
 
-    # 技能 (0-3)
+    # 技能 (0-3)：使用引擎侧能耗近似
     for i, sk in enumerate(active.skills[:4]):
-        if not sk.sealed and sk.cooldown <= 0 and sk.energy_cost <= active.energy:
+        if not sk.sealed and sk.cooldown <= 0 and _effective_cost(sk) <= active.energy:
             mask[i] = 1.0
 
     # 换宠 (4-8): 固定槽位映射（与 encode.py 的 _encode_bench_all 一致）
@@ -66,8 +88,8 @@ def get_valid_actions(player: Player) -> tuple[list[int], np.ndarray]:
             mask[4 + bench_slot] = 1.0 if (not s.is_fainted and not locked) else 0.0
             bench_slot += 1
 
-    # 聚能 (9): 始终可用（精灵存活即可）
-    mask[9] = 1.0
+    # 聚能 (9): 蓄力中不可聚能（引擎侧会阻止，标记为非法避免无效分支）
+    mask[9] = 1.0 if not charging else 0.0
 
     # 道具 (10)
     item = player.item
@@ -162,7 +184,7 @@ class NetworkPolicyAgent:
     def _decide(self, battle) -> int | None:
         # 直接从 B 视角编码，无需 swap/restore
         player = battle.player_b
-        valid, mask = get_valid_actions(player)
+        valid, mask = get_valid_actions(player, battle)
         if not valid:
             return None
         state = encode_battle_state(battle, perspective="B")
@@ -295,7 +317,7 @@ def mcts_search(
     battle._mcts_sim = True
 
     player = battle.player_a
-    valid, mask = get_valid_actions(player)
+    valid, mask = get_valid_actions(player, battle)
     if not valid:
         battle._mcts_sim = prev_mcts_sim
         return mask / max(mask.sum(), 1.0)
@@ -314,7 +336,7 @@ def mcts_search(
     root = MCTSNode(valid, prior)
     # 预计算根节点对手策略（博弈树首次选择时直接采样，省 encode+eval）
     opp_player = battle.player_b
-    opp_valid, opp_mask = get_valid_actions(opp_player)
+    opp_valid, opp_mask = get_valid_actions(opp_player, battle)
     if opp_valid:
         opp_state = encode_battle_state(battle, perspective="B")
         _, opp_prior = evaluator.evaluate(opp_state, opp_mask)
@@ -345,6 +367,10 @@ def mcts_search(
                     best_a = a
             if best_a < 0:
                 break
+            # 终端守卫：对局已结束或 active 已力竭时停止降序，
+            # 避免在无效状态下推进回合导致树结构偏离。
+            if battle.is_finished or battle.player_a.active.is_fainted:
+                break
             path.append((node, best_a))
             node = node.children[best_a]
             # 使用预缓存的对手策略（省掉 encode+eval），回退到 opponent_agent
@@ -354,14 +380,14 @@ def mcts_search(
 
         # ── Expansion & Evaluation ──
         sim_player = battle.player_a
-        sim_valid, sim_mask = get_valid_actions(sim_player)
+        sim_valid, sim_mask = get_valid_actions(sim_player, battle)
 
         if sim_valid and not battle.is_finished:
             leaf_state = encode_battle_state(battle)
             leaf_value, sim_prior = evaluator.evaluate(leaf_state, sim_mask)
             # 预计算对手策略
             opp_player = battle.player_b
-            opp_valid, opp_mask = get_valid_actions(opp_player)
+            opp_valid, opp_mask = get_valid_actions(opp_player, battle)
             if opp_valid:
                 opp_state = encode_battle_state(battle, perspective="B")
                 _, opp_prior = evaluator.evaluate(opp_state, opp_mask)
@@ -369,7 +395,13 @@ def mcts_search(
             for a in sim_valid:
                 node.children[a] = MCTSNode(sim_valid, sim_prior)
         else:
-            leaf_value = 1.0 if battle.winner == "A" else (-1.0 if battle.winner == "B" else 0.0)
+            # 终端节点：使用 battle_outcome_a 计算 value，确保与训练标签一致。
+            # max_turns 平局时按局面分差判定（而非简单返回 0），消除 MCTS value
+            # 估计与 RL 训练目标之间的系统性偏差。
+            from backend.engine.ai.outcome import DEFAULT_DRAW_MARGIN, battle_outcome_a
+            leaf_value, _ = battle_outcome_a(
+                battle, battle.MAX_TURNS, draw_margin=DEFAULT_DRAW_MARGIN,
+            )
 
         # ── Backprop ──
         for parent, a in reversed(path):

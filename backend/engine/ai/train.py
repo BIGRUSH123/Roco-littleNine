@@ -172,7 +172,7 @@ class MCTSAgent:
                 root_state=state,  # 复用已编码状态，省掉 mcts_search 内部二次编码
             )
             if self._record and state is not None:
-                _, valid_mask = get_valid_actions(battle.player_a)
+                _, valid_mask = get_valid_actions(battle.player_a, battle)
                 self.history.append((state, probs.copy(), valid_mask.copy()))
         finally:
             if swapped:
