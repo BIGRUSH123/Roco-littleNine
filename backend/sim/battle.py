@@ -1,4 +1,4 @@
-﻿"""backend/sim/battle.py — 对局引擎
+"""backend/sim/battle.py — 对局引擎
 
 回合 = 开始阶段 → 选择阶段 → 结算阶段 → 结束阶段
 """
@@ -42,6 +42,23 @@ def _has_charge_op(obj) -> bool:
     return False
 
 
+class _HeadlessActionRecord:
+    __slots__ = ("events",)
+
+    def __init__(self) -> None:
+        self.events: list[str] = []
+
+
+class _HeadlessRoundRecord:
+    __slots__ = ("turn", "first_team", "action_a", "action_b")
+
+    def __init__(self, turn: int) -> None:
+        self.turn = turn
+        self.first_team = ""
+        self.action_a = _HeadlessActionRecord()
+        self.action_b = _HeadlessActionRecord()
+
+
 class Battle(BattleMechanicsMixin):
     """对局引擎。回合调度 + 动作执行。场地变动由 BattleMechanicsMixin 提供。"""
 
@@ -76,7 +93,7 @@ class Battle(BattleMechanicsMixin):
                 eff_snap = []
                 for e in sprite.active_effects:
                     from backend.vm.effect import StatBuffEffect
-                    snap = (e, e.ttl, getattr(e, 'stacks', 0))
+                    snap = (e, e.ttl, getattr(e, 'stacks', 0), getattr(e, 'scope', ''))
                     if isinstance(e, StatBuffEffect):
                         snap += (e.steps,)
                     eff_snap.append(snap)
@@ -165,23 +182,25 @@ class Battle(BattleMechanicsMixin):
                 sprite.pending_return = s["pending_return"]
                 sprite.extra_skill_use = s["extra_skill_use"]
                 # 效果：按位置恢复。先清空再按保存顺序重建，消除 id() 复用风险
-                saved_effects = s["effects"]  # list of (e, ttl, stacks, steps?)
+                saved_effects = s["effects"]  # list of (e, ttl, stacks, scope, steps?)
                 saved_refs = {id(e) for e, *_ in saved_effects}
                 # 移除仿真中新增的效果
                 for e in list(sprite.active_effects):
                     if id(e) not in saved_refs:
                         sprite.active_effects.remove(e)
-                # 恢复保存的效果状态（TTL/stacks/steps）
+                # 恢复保存的效果状态（TTL/stacks/scope/steps）
                 for snap in saved_effects:
                     e = snap[0]
                     e.ttl = snap[1]
                     if hasattr(e, 'stacks'):
                         e.stacks = snap[2]
-                    if len(snap) > 3:
+                    if hasattr(e, 'scope'):
+                        e.scope = snap[3]
+                    if len(snap) > 4:
                         # StatBuffEffect: restore steps
                         from backend.vm.effect import StatBuffEffect
                         if isinstance(e, StatBuffEffect):
-                            e.steps = snap[3]
+                            e.steps = snap[4]
                     if e not in sprite.active_effects:
                         sprite.active_effects.append(e)
                 # 技能状态
@@ -203,6 +222,9 @@ class Battle(BattleMechanicsMixin):
                     ]
                 if "trait_suppressed" in s:
                     sprite._trait_suppressed = s["trait_suppressed"]
+                # 效果缓存失效：active_effects 已恢复为新列表，缓存必须重建
+                if hasattr(sprite, '_invalidate_effects_cache'):
+                    sprite._invalidate_effects_cache()
         # ── 印记：完整恢复（MCTS 仿真可能新增/移除 MarkEffect 对象） ──
         self.globals.mark_effects = saved["marks"]
         # ── 全局状态 ──
@@ -376,13 +398,24 @@ class Battle(BattleMechanicsMixin):
                     if getattr(e, 'name', '') == '萌化':
                         moe_team_stacks += getattr(e, 'stacks', 0)
 
+        if getattr(self, '_mcts_sim', False):
+            team_counters_own = self.team_counters.get(team, {})
+            team_counters_opp = self.team_counters.get(opp_team, {})
+            devotion_own = getattr(own_player, 'devotion', {})
+            devotion_opp = getattr(opp_player, 'devotion', {})
+        else:
+            team_counters_own = dict(self.team_counters.get(team, {}))
+            team_counters_opp = dict(self.team_counters.get(opp_team, {}))
+            devotion_own = dict(getattr(own_player, 'devotion', {}))
+            devotion_opp = dict(getattr(opp_player, 'devotion', {}))
+
         return self._build_ctx(
             self_sprite, opp_sprite, self_skill, opp_skill, globals_,
             team=team,
-            team_counters_own=dict(self.team_counters.get(team, {})),
-            team_counters_opp=dict(self.team_counters.get(opp_team, {})),
-            devotion_own=dict(getattr(own_player, 'devotion', {})),
-            devotion_opp=dict(getattr(opp_player, 'devotion', {})),
+            team_counters_own=team_counters_own,
+            team_counters_opp=team_counters_opp,
+            devotion_own=devotion_own,
+            devotion_opp=devotion_opp,
             fainted_own=cached["fainted_own"],
             fainted_opp=cached["fainted_opp"],
             lives_own=getattr(own_player, 'lives', 5),
@@ -400,7 +433,14 @@ class Battle(BattleMechanicsMixin):
     # 回合主入口
     # ═══════════════════════════════════════════════════════════════
 
-    def execute_turn(self, agent_a: Agent, agent_b: Agent) -> RoundRecord:
+    def execute_turn(
+        self,
+        agent_a: Agent,
+        agent_b: Agent,
+        *,
+        fixed_action_a: Action | None = None,
+        fixed_action_b: Action | None = None,
+    ) -> RoundRecord:
         self.turn += 1
         self.save_snapshot()  # key = turn number AFTER increment, matches frontend
         self._agent_a = agent_a
@@ -440,32 +480,48 @@ class Battle(BattleMechanicsMixin):
 
         s_a = self.player_a.active
         s_b = self.player_b.active
+        mcts_sim = getattr(self, '_mcts_sim', False)
 
-        rec = RoundRecord(
-            turn=self.turn,
-            weather=self.globals.weather,
-            sprite_a=s_a.name,
-            sprite_b=s_b.name,
-        )
+        if mcts_sim:
+            rec = _HeadlessRoundRecord(self.turn)
+        else:
+            rec = RoundRecord(
+                turn=self.turn,
+                weather=self.globals.weather,
+                sprite_a=s_a.name,
+                sprite_b=s_b.name,
+            )
 
         # 1. 回合开始阶段（已内含 >>>PHASE:TURN_START 标记）
         ts_events = self._phase_turn_start()
-        rec.turn_start_events += ts_events
+        if not mcts_sim:
+            rec.turn_start_events += ts_events
 
         # 2. 行动选择阶段（道具不互见）
-        action_a, item_a = self._select_action(agent_a, 'A')
-        action_b, item_b = self._select_action(agent_b, 'B')
+        if fixed_action_a is None:
+            action_a, item_a = self._select_action(agent_a, 'A')
+        else:
+            action_a, item_a = fixed_action_a, ''
+        if fixed_action_b is None:
+            action_b, item_b = self._select_action(agent_b, 'B')
+        else:
+            action_b, item_b = fixed_action_b, ''
 
         # 构建 ActionRecord
-        rec.action_a = self._build_action_record('A', action_a, item_a)
-        rec.action_b = self._build_action_record('B', action_b, item_b)
+        if not mcts_sim:
+            rec.action_a = self._build_action_record('A', action_a, item_a)
+            rec.action_b = self._build_action_record('B', action_b, item_b)
 
         # 3. 行动结算阶段
         self._phase_resolve(action_a, action_b, rec)
 
         # 4. 回合结束阶段（已内含 >>>PHASE:TURN_END 标记）
         te_events = self._phase_turn_end()
-        rec.turn_end_events = te_events
+        if not mcts_sim:
+            rec.turn_end_events = te_events
+
+        if mcts_sim:
+            return rec
 
         # ── 组装 frontend events ──
         a_short = _rr_action_short(rec.action_a)
@@ -547,12 +603,14 @@ class Battle(BattleMechanicsMixin):
     def _select_action(self, agent: Agent, team: str) -> tuple[Action, str]:
         """道具循环：使用道具后重新选择。返回 (最终行动, 道具名)。"""
         item_used = ''
-        while True:
+        for _ in range(8):  # 安全上限：防止道具无限循环卡死
             action = agent.choose_action(self)
             if action.kind == 'item':
                 item_used = self._resolve_item(team)
                 continue
             return action, item_used
+        # 道具使用超限：退回聚能兜底
+        return Action('gather'), item_used
 
     # ═══════════════════════════════════════════════════════════════
     # Phase 3: 行动结算（优先级排序）
@@ -667,12 +725,19 @@ class Battle(BattleMechanicsMixin):
             # 优先级相等 → 比速度
             speed_a = s_a.effective_stat('speed') - self.globals.mark_speed_penalty('A')
             speed_b = s_b.effective_stat('speed') - self.globals.mark_speed_penalty('B')
-            if speed_a >= speed_b:
+            if speed_a > speed_b:
                 first_team, first_action = 'A', action_a
                 second_team, second_action = 'B', action_b
-            else:
+            elif speed_b > speed_a:
                 first_team, first_action = 'B', action_b
                 second_team, second_action = 'A', action_a
+            else:
+                if random.random() < 0.5:
+                    first_team, first_action = 'A', action_a
+                    second_team, second_action = 'B', action_b
+                else:
+                    first_team, first_action = 'B', action_b
+                    second_team, second_action = 'A', action_a
 
         # 记录先手方
         record.first_team = first_team

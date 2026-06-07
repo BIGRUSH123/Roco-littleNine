@@ -8,14 +8,13 @@ from dataclasses import dataclass, field
 from typing import Union
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class StatChange:
     """Permanent stat modification applied to a sprite."""
     target: str       # "sprite_self" | "sprite_opp"
     stat: str         # "atk" | "def" | "sp_atk" | "sp_def" | "speed" | ...
     steps: int        # positive = buff, negative = debuff
     scope: str = "battlefield"  # "battlefield" | "persistent" | "permanent"
-    # Optional metadata for engine-side resolution
     source: str | None = None         # trait/skill name for replace-mode clearing
     element: str | None = None        # element filter ("火", "each", etc.)
     per_element: int | None = None    # max per element when element="each"
@@ -25,7 +24,7 @@ class StatChange:
     skill_where: dict | None = None   # per-skill conditional {"q": ..., "op": ..., "value": ...}
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class ModifierInjection:
     """Internal modifier for the skill pipeline (not applied to sprite state).
 
@@ -51,7 +50,7 @@ class ModifierInjection:
     then: list | None = None          # chained effects (devotion then-block)
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class Damage:
     """Final computed damage to apply to a sprite."""
     target: str       # "sprite_opp" | "sprite_self"
@@ -60,21 +59,21 @@ class Damage:
     type: str         # "物攻" | "魔攻"
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class Heal:
     """HP restoration."""
     target: str
     amount: int
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class EnergyChange:
     """Energy gain or loss."""
     target: str
     delta: int        # positive = gain, negative = lose
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class MarkChange:
     """Mark stack change on a team."""
     target_team: str  # "own" | "opp"
@@ -85,7 +84,7 @@ class MarkChange:
     source_abnormal: str | None = None  # convert: source abnormal name
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class AbnormalChange:
     """Abnormal status stack change on a sprite."""
     target: str       # "sprite_self" | "sprite_opp"
@@ -94,14 +93,14 @@ class AbnormalChange:
     scope: str = "battlefield"  # "battlefield" | "persistent" | "permanent"
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class WeatherSet:
     """Weather change."""
     weather: str
     turns: int
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class Dispel:
     """Remove effects from a target."""
     target: str
@@ -112,7 +111,7 @@ class Dispel:
     source: str | None = None  # only dispel effects from this source
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class Steal:
     """Steal effects/energy from a target."""
     from_target: str  # "sprite_opp" | "team_opp"
@@ -122,14 +121,14 @@ class Steal:
     action: str = "steal"  # "steal" | "copy"
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class Tick:
     """Trigger abnormal tick damage on a target."""
     target: str
     abnormal_name: str
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class Double:
     """Double a mark/effect on a target."""
     target: str
@@ -137,7 +136,7 @@ class Double:
     name: str | None = None
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class EffectDelta:
     """Add delta to all matching effects (positive/negative) on a target."""
     target: str       # "sprite_self" | "sprite_opp"
@@ -145,13 +144,13 @@ class EffectDelta:
     delta: int        # stacks/steps to add
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class Charge:
     """Enter charging state."""
     target: str       # "sprite_self"
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class Escape:
     """Remove self from field (switch/escape)."""
     target: str
@@ -160,46 +159,46 @@ class Escape:
     then: list | None = None  # Effects to execute after escape
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class Return:
     """Return to field after escape/switch."""
     target: str
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class Lock:
     """Lock opponent from switching."""
     target: str
     turns: int
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class Interrupt:
     """Interrupt the target's current action."""
     target: str
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class Exchange:
     """Exchange something between sprites (HP ratio, effects, skills)."""
     target: str
     what: str         # "hp_ratio" | "effects" | "skills" | "adjacent_skills"
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class Reset:
     """Reset a stat to base value."""
     target: str
     stat: str
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class Redirect:
     """Redirect the next action to a different target."""
     target: str
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class BurstGrant:
     """Grant burst effects to matching skills."""
     target: str                         # "sprite_self"
@@ -209,20 +208,20 @@ class BurstGrant:
     source: str = ""                    # trait name
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class Replay:
     """Replay a previously used skill or burst skill."""
     from_: str        # "sprite_self" | "team_burst" (from_ avoids Python keyword)
     skill_filter: dict | None = None
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class Borrow:
     """Borrow properties from the opponent's current skill."""
     from_skill: str   # "skill_opp_current"
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class TeamCounterDelta:
     """Write to a team-level counter."""
     target: str        # "own" | "opp"
@@ -230,14 +229,14 @@ class TeamCounterDelta:
     delta: int         # +1 or -1
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class LivesDelta:
     """Modify player lives (魔力)."""
     target_team: str   # "own" | "opp"
     delta: int         # +1 (奉献) or -1 (魔力消耗)
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class ScheduleEntry:
     """Register delayed effects for a future turn (RISC: defer)."""
     turns: int
@@ -245,7 +244,7 @@ class ScheduleEntry:
     then: list = field(default_factory=list)  # IR effects to execute at the delayed time
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class InheritEffectsMutation:
     """Transfer effects between sprites on switch."""
     source_key: str             # "self" | "target"
@@ -256,7 +255,7 @@ class InheritEffectsMutation:
     inherit_stat_effects: bool = False  # copy dynamic stat effects
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class TransformMutation:
     """Transform a sprite's species and optionally skills."""
     species: str
@@ -265,7 +264,7 @@ class TransformMutation:
     reset_energy: bool = False
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class TraitInteractionMutation:
     """Suppress, remove, or copy a trait."""
     action: str             # "suppress" | "remove" | "copy"
@@ -274,7 +273,7 @@ class TraitInteractionMutation:
     new_ability: str | None = None
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class GainSkillsMutation:
     """Grant temporary skills to a sprite from a skill pool."""
     count: int = 1
@@ -283,7 +282,7 @@ class GainSkillsMutation:
     target: str = "sprite_self"
 
 
-@dataclass
+@dataclass(slots=True)
 class CounterRegister:
     """Register a persistent counter/watcher on the skill."""
     name: str | None = None

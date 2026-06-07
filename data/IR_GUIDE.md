@@ -147,6 +147,7 @@
 | `mark_stacks_opp` | `dict[str, int]` | 敌方印记明细 | — |
 | `mark_count_both` | `int` | 双方印记总层数 | `= mark_count_own + mark_count_opp`；由 snapshot 构建时计算 |
 | `skill_count_own` | `dict[str, int]` | 己方队伍携带各技能的精灵数 `{技能名: 数量}` | 需配合 `name` 参数索引 |
+| `skill_element_counts_self` / `skill_element_counts_opp` | `dict[str, int]` | 携带各系别技能数 `{系别: 数量}` | 不在 ADDRESS_MAP，仅通过 RefExpr `self.skills[element=X].count` 访问；与 `skill_element_count_self`（不同系别总数）不同 |
 | `team_counters_own` | `dict[str, int]` | 己方队伍计数器 `{key: count}` | — |
 | `team_counters_opp` | `dict[str, int]` | 敌方队伍计数器 | — |
 | `team_elements_own` | `frozenset` | 己方队伍所有精灵的系别集合 | 用于 `team_has_element` 条件 |
@@ -604,7 +605,7 @@
 
 Observer 是 IR 第一公民，显式声明触发条件、可选计数器和生命周期。替代旧 `count`。
 
-- **编译**: `backend/engine/trait_loader.py:TraitToObserver.compile()` — JSON → Observer
+- **编译**: `backend/vm/compiler/trait_to_observer.py:TraitToObserver.compile()` — JSON → Observer
 - **执行**: `backend/engine/battle.py` — 事件触发 → `ObserverRegistry.fire()` → Skill VM 执行 `then[]`
 - **与普通 effect 的区别**: 普通 effect 在当前技能执行时一次性运行；`observer` 注册持久化监听器，跨回合触发
 
@@ -614,7 +615,7 @@ Observer 是 IR 第一公民，显式声明触发条件、可选计数器和生�
 | `then` | `[RiscIROp]` | 命中时执行的 IR（与技能 effects[] 相同格式） |
 | `listen` | `str` | 触发点（编译器从 cond 推断，见 `backend/vm/cond.py:infer_triggers()`） |
 | `counter` | `{name, threshold, reset}` | 可选计数器 |
-| `scope` | `str` | `"battlefield"` / `"persistent"` / `"permanent"` |
+| `scope` | `str` | `"battlefield"` / `"persistent"` / `"permanent"`；observer 缺省为 `"persistent"`（见 `trait_to_observer.py:_compile_one`） |
 
 #### `defer` — 延迟执行
 
@@ -637,7 +638,7 @@ Observer 是 IR 第一公民，显式声明触发条件、可选计数器和生�
 
 | 字段 | 类型 | 说明 |
 |------|------|------|
-| `target` | `"ally_new"` | 继承目标 |
+| `target` | `str` | 继承目标（解析为 `inherit_target`，默认 `"enemy_new"`） |
 | `effects` | `[RiscIROp]` | 要传递的效果列表 |
 
 #### 其他持久化 opcode
@@ -816,8 +817,20 @@ Observer 是 IR 第一公民，显式声明触发条件、可选计数器和生�
 |------|------|----------|
 | `devotion_triggered` | — | `ctx.event.devotion_triggered` |
 | `team_has_element` | `element` | `ctx.team_elements_own` |
-| `have` | `what`, `of`, `name` | `HAVE_EVAL` 子表 |
+| `have` | `what`, `of`, `name` | `HAVE_EVAL` 子表（见下） |
 | `trait_path` | `path`, `op`, `value` | `_eval_trait_path()` |
+
+**`have` 的 `what` 合法值**（定义于 `backend/vm/cond.py:HAVE_EVAL` 257-279 行）：
+
+| what | 额外参数 | 说明 |
+|------|---------|------|
+| `abnormal` | `of`, `name` | 目标精灵拥有指定异常（层数 > 0） |
+| `mark` | `of`, `name` | 目标队伍拥有指定印记（层数 > 0；`of` 默认 `team_own`） |
+| `stat_positive` | `of`, `stat` | 目标精灵指定 stat 阶段为正 |
+| `stat_negative` | `of`, `stat` | 目标精灵指定 stat 阶段为负 |
+| `any_stat_positive` | `of` | 目标精灵任一 stat 阶段为正 |
+| `any_stat_negative` | `of` | 目标精灵任一 stat 阶段为负 |
+| `counter` | `name` | 命名计次器当前值 > 0 |
 
 #### 逻辑组合
 

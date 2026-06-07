@@ -1,4 +1,4 @@
-﻿"""BattleVMEngine — VM-powered skill execution for turn-based battles.
+"""BattleVMEngine — VM-powered skill execution for turn-based battles.
 
 Integrates the pure-function VM with mutable battle state:
     1. Build Ctx snapshot from battle state
@@ -16,12 +16,12 @@ from typing import TYPE_CHECKING
 
 from backend.vm.cond import eval_one
 from backend.vm.ctx import Ctx
-from backend.vm.executor import execute as vm_execute
+from backend.vm.executor import compile_effects_batch, execute as vm_execute
 from backend.vm.executor import process_effects
 from backend.vm.journal import CounterRegister, Journal, Replay
 
 from .modifiers import apply_modifiers_to_journal
-from .observer import ObserverRegistry
+from .observer import ObserverRegistry, _bake_inject_scope
 from .replayer import JournalReplayer
 from .snapshot import build_ctx
 from .trait_loader import TraitLoader
@@ -261,71 +261,13 @@ class BattleVMEngine:
                 continue
             try:
                 if eval_one(ctx, obs.cond):
-                    then = self._inject_source(obs.then, obs.source) if obs.source else obs.then
-                    result = process_effects(ctx, then)
+                    # source 已在 ObserverRegistry._index() 注册时预注入，
+                    # 无需运行时 copy.copy
+                    result = process_effects(ctx, obs.then)
                     mutations.extend(result)
             except Exception:
                 continue
         return mutations
-
-    def _inject_source(self, effects: list[dict], source: str) -> list[dict]:
-        """Inject source into effects that don't have their own.
-
-        Recursively handles when/then/else nesting so observer child effects
-        carry the observer's source for trait tooltip display.
-
-        Handles both raw dict effects and already-compiled typed IR objects.
-        """
-        import copy
-
-        from backend.vm.ir_skill import WhenBlock
-        result = []
-        for eff in effects:
-            if isinstance(eff, dict):
-                eff = copy.copy(eff)
-                if "op" in eff and "source" not in eff:
-                    eff["source"] = source
-                if isinstance(eff.get("then"), list):
-                    eff["then"] = self._inject_source(eff["then"], source)
-                if isinstance(eff.get("else"), list):
-                    eff["else"] = self._inject_source(eff["else"], source)
-            elif isinstance(eff, WhenBlock):
-                eff = copy.copy(eff)
-                eff.then = tuple(self._inject_source(list(eff.then), source))
-                if eff.else_:
-                    eff.else_ = tuple(self._inject_source(list(eff.else_), source))
-            result.append(eff)
-        return result
-
-    def _inject_default_scope(self, effects: list[dict], scope: str) -> list[dict]:
-        """Inject a default scope into effects that don't have their own.
-
-        Recursively handles when/then/else nesting so observer child effects
-        inherit the observer's scope (e.g. persistent → mult_mod survives
-        _PER_TURN_KEYS cleanup).
-
-        Handles both raw dict effects and already-compiled typed IR objects.
-        """
-        import copy
-
-        from backend.vm.ir_skill import WhenBlock
-        result = []
-        for eff in effects:
-            if isinstance(eff, dict):
-                eff = copy.copy(eff)
-                if "op" in eff and "scope" not in eff:
-                    eff["scope"] = scope
-                if isinstance(eff.get("then"), list):
-                    eff["then"] = self._inject_default_scope(eff["then"], scope)
-                if isinstance(eff.get("else"), list):
-                    eff["else"] = self._inject_default_scope(eff["else"], scope)
-            elif isinstance(eff, WhenBlock):
-                eff = copy.copy(eff)
-                eff.then = tuple(self._inject_default_scope(list(eff.then), scope))
-                if eff.else_:
-                    eff.else_ = tuple(self._inject_default_scope(list(eff.else_), scope))
-            result.append(eff)
-        return result
 
     def _fire_post_event(self, trigger: str, ctx: Ctx, replayer: JournalReplayer) -> list[str]:
         """Fire post-event observers and replay their mutations.
@@ -379,10 +321,12 @@ class BattleVMEngine:
                         ctx.event.damage_taken_of = "sprite_opp"
             try:
                 if eval_one(ctx, obs.cond):
-                    then = self._inject_default_scope(obs.then, obs.scope)
-                    if obs.source:
-                        then = self._inject_source(then, obs.source)
-                    journal = process_effects(ctx, then)
+                    # source 已在注册时预注入；scope 在此首次触发时原地注入（幂等，无拷贝）
+                    _bake_inject_scope(obs.then, obs.scope)
+                    # 首次触发后编译 obs.then 为 typed IR，消除后续 process_one 的 JIT 开销
+                    if obs.then and type(obs.then[0]) is dict:
+                        obs.then = compile_effects_batch(obs.then)
+                    journal = process_effects(ctx, obs.then)
                     replayer._trait_sourcing = True
                     ev = replayer.replay(journal)
                     replayer._trait_sourcing = False

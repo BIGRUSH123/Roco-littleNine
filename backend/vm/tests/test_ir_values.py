@@ -2,7 +2,9 @@ import pickle
 
 import pytest
 
+from backend.vm.ctx import Ctx
 from backend.vm.ir_values import Literal, Query, RefExpr
+from backend.vm.resolve import resolve
 
 
 class TestLiteral:
@@ -33,6 +35,11 @@ class TestLiteral:
         restored = pickle.loads(pickle.dumps(v))
         assert restored.value == 3.14
 
+    def test_literal_wrapped_query_resolves(self):
+        ctx = Ctx(abnormal_stacks_opp={"中毒": 3})
+        v = Literal({"q": "abnormal_stacks", "of": "sprite_opp", "name": "中毒", "scale": -1})
+        assert resolve(ctx, v) == -3
+
 
 class TestQuery:
     def test_query_basic(self):
@@ -58,6 +65,16 @@ class TestQuery:
         q1 = Query(field="hp_self")
         q2 = Query(field="hp_self")
         assert hash(q1) == hash(q2)
+
+    def test_energy_cost_sum_query_uses_skill_type_subkey(self):
+        ctx = Ctx(energy_cost_sum_self={"迅捷": 4, "火": 2})
+        q = Query(field="energy_cost_sum_self", name="迅捷", scale=0.5)
+        assert resolve(ctx, q) == 2.0
+
+    def test_dict_register_without_name_returns_zero(self):
+        ctx = Ctx(abnormal_stacks_opp={"中毒": 3})
+        q = Query(field="abnormal_stacks_opp", name=None)
+        assert resolve(ctx, q) == 0
 
 
 class TestRefExpr:

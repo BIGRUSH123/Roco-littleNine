@@ -5,20 +5,13 @@ V2: Supports typed HitOp alongside backward-compat dict.
 
 from ..ctx import Ctx
 from ..damage import calc_damage
+from ..ir_skill import HitOp
 from ..journal import Damage, Mutation
 from ..resolve import resolve
 
 
-# Stage steps to multiplier: each step = ±0.1
 def _stage_mult(steps: int) -> float:
     return steps * 0.1
-
-
-def _get(effect, key, default=None):
-    """Unified field access: dict .get() or object attribute."""
-    if isinstance(effect, dict):
-        return effect.get(key, default)
-    return getattr(effect, key, default)
 
 
 def op_hit(ctx: Ctx, effect) -> list[Mutation]:
@@ -31,13 +24,21 @@ def op_hit(ctx: Ctx, effect) -> list[Mutation]:
     (power_mult, damage_mult, etc.) are applied by the engine's modifier
     collection step after VM execution.
     """
-    power = resolve(ctx, _get(effect, "power"))
-    type_ = _get(effect, "type")
-    element = _get(effect, "element")
+    if isinstance(effect, dict):
+        power = resolve(ctx, effect.get("power", 0))
+        type_ = effect.get("type", "")
+        element = effect.get("element")
+    elif isinstance(effect, HitOp):
+        power = resolve(ctx, effect.power)
+        type_ = effect.type
+        element = effect.element
+    else:
+        power = resolve(ctx, getattr(effect, "power", 0))
+        type_ = getattr(effect, "type", "")
+        element = getattr(effect, "element", None)
     if element is None:
         element = ctx.element_self
 
-    # Determine atk/def based on damage type
     if type_ == "物攻":
         atk_base = ctx.atk_self
         def_base = ctx.def_opp

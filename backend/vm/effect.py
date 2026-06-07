@@ -18,7 +18,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 
-@dataclass
+@dataclass(slots=True)
 class EffectObject:
     """Base class for all effects — identity + lifecycle.
 
@@ -30,6 +30,7 @@ class EffectObject:
     source: str                         # "冰封" (trait or skill name)
     scope: str = "battlefield"          # turn | battlefield | persistent | permanent
     ttl: int = 0                        # remaining turns (0 = infinite)
+    cooldown: int = 0                   # trigger cooldown; 0 = inactive
 
     def should_clear(self, reason: str) -> bool:
         """Unified lifecycle gate. No more per-system scope logic.
@@ -51,7 +52,7 @@ class EffectObject:
         return False  # permanent — never cleared by engine events
 
 
-@dataclass
+@dataclass(slots=True)
 class ObserverEffect(EffectObject):
     """Passive trigger-based effect: condition → sub-effects.
 
@@ -66,7 +67,7 @@ class ObserverEffect(EffectObject):
     reset_on_fire: bool = True
 
 
-@dataclass
+@dataclass(slots=True)
 class ModifierEffect(EffectObject):
     """Direct stat/skill modifier applied immediately on trait load.
 
@@ -80,7 +81,7 @@ class ModifierEffect(EffectObject):
     skill_where: dict | None = None     # per-skill conditional filter
 
 
-@dataclass
+@dataclass(slots=True)
 class AbnormalEffect(EffectObject):
     """Abnormal status effect: poison, burn, parasite, freeze, moe.
 
@@ -109,7 +110,7 @@ class AbnormalEffect(EffectObject):
         return self.stacks // 2
 
 
-@dataclass
+@dataclass(slots=True)
 class MarkEffect(EffectObject):
     """Team-level mark effect. Replaces the _MARK_EFFECTS config dict.
 
@@ -142,7 +143,7 @@ class MarkEffect(EffectObject):
         return self.category == "negative"
 
 
-@dataclass
+@dataclass(slots=True)
 class StatBuffEffect(EffectObject):
     """Stat buff/debuff — replaces StatusEffect(category="stat").
 
@@ -195,7 +196,7 @@ class StatBuffEffect(EffectObject):
         return f'{label}{sign}{self.steps * unit}%'
 
 
-@dataclass
+@dataclass(slots=True)
 class StateEffect(EffectObject):
     """Special state effect — replaces StatusEffect(category="state").
 

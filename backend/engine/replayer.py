@@ -1,4 +1,4 @@
-﻿"""JournalReplayer — apply VM Mutations to mutable battle state.
+"""JournalReplayer — apply VM Mutations to mutable battle state.
 
 Pure counterpart to the VM: takes a Journal and replays each Mutation
 against the mutable Sprite/GlobalEffects objects, producing side effects
@@ -361,6 +361,8 @@ class JournalReplayer:
         self._trait_sourcing: bool = False  # True during trait observer then-effect replay
         self._cleared_position_stats: set[str] = set()  # per-replay batch cleanup tracking
         self._energy_deltas: dict[int, int] = {}  # id(m) -> actual delta (capped by max_energy/floor 0)
+        # MCTS 仿真模式下跳过所有 UI 显示逻辑（字符串格式化、_sync_mult_display_effect）
+        self.is_headless: bool = getattr(battle, '_mcts_sim', False) if battle else False
 
     # ── Main entry ──
 
@@ -383,6 +385,9 @@ class JournalReplayer:
     def _apply(self, m: Mutation) -> str:
         handler = self._DISPATCH.get(type(m))
         if handler is not None:
+            if self.is_headless:
+                handler(self, m)
+                return ""
             return handler(self, m)
         return f"Unknown mutation: {type(m).__name__}"
 
@@ -393,7 +398,14 @@ class JournalReplayer:
         # Immunity gate: block stat debuffs (steps < 0) on stage stats
         if m.steps < 0 and m.stat in _STAGE_STATS:
             if self._check_immune(sprite, "immune_stat_down", m.stat):
-                return f"{sprite.name} 免疫{_STAT_LABELS.get(m.stat, m.stat)}降低"
+                return "" if self.is_headless else f"{sprite.name} 免疫{_STAT_LABELS.get(m.stat, m.stat)}降低"
+        # 同步战斗逻辑所需数据到 active_effects（影响编码器输入）
+        self._sync_stat_buff_effect(sprite, m.stat, m.steps, m.scope,
+                                    m.source or "skill",
+                                    is_inherent=self._trait_sourcing)
+        # ── 以下为纯 UI 显示逻辑，MCTS 仿真模式跳过 ──
+        if self.is_headless:
+            return ""
         label = _STAT_LABELS.get(m.stat, m.stat)
         unit = _STEP_UNIT.get(m.stat, 10)
         if m.stat in ('priority', 'energy_cost', 'combo'):
@@ -402,9 +414,6 @@ class JournalReplayer:
             display = f'{label}{m.steps * unit:+d}'
         else:
             display = f'{label}{m.steps * unit:+d}%'
-        self._sync_stat_buff_effect(sprite, m.stat, m.steps, m.scope,
-                                    m.source or "skill",
-                                    is_inherent=self._trait_sourcing)
         # Stage stats from traits: create display-only effect for trait tooltip
         if m.stat in _STAGE_STATS:
             source = m.source or ""
@@ -594,6 +603,13 @@ class JournalReplayer:
         # Track invisible modifiers for scope cleanup
         if not skill_scoped and m.scope in ("turn", "battlefield", "persistent"):
             sprite._mod_scopes[m.stat] = m.scope
+
+        # ── 以下为纯 UI 显示逻辑（创建 StatBuffEffect 用于界面展示），
+        #     MCTS 仿真模式跳过全部。战斗逻辑数据已通过 _modifiers /
+        #     ModifierEffect 完成同步。 ──
+        if self.is_headless:
+            return ""
+
         label = _STAT_LABELS.get(m.stat, m.stat)
 
         if not skill_scoped and m.value != 0:
@@ -671,21 +687,23 @@ class JournalReplayer:
     def _apply_damage(self, m: Damage) -> str:
         sprite = self._target_sprite(m.target)
         actual = sprite.take_damage(m.amount)
-        result = f"{sprite.name} -{actual}HP"
-        if sprite.is_fainted:
-            result += " (fainted)"
 
         # Life drain: attacker heals by a percentage of damage dealt.
-        # Check skill._modifiers first (same-execution injection), then
-        # sprite._modifiers for backward compat.
+        healed = 0
         if m.target != "sprite_self":
             drain_pct = self.self._modifiers.get("life_drain", 0.0)
             if self._self_skill is not None:
                 drain_pct = max(drain_pct, self._self_skill._modifiers.get("life_drain", 0.0))
             if drain_pct > 0:
                 healed = self.self.heal(round(actual * drain_pct))
-                if healed:
-                    result += f" [吸血+{healed}HP]"
+
+        if self.is_headless:
+            return ""
+        result = f"{sprite.name} -{actual}HP"
+        if sprite.is_fainted:
+            result += " (fainted)"
+        if healed:
+            result += f" [吸血+{healed}HP]"
         return result
 
     def _apply_heal(self, m: Heal) -> str:
@@ -814,7 +832,10 @@ class JournalReplayer:
 
     @staticmethod
     def _sync_abnormal_effect(sprite, name: str, delta: int, scope: str) -> None:
-        """Create or update AbnormalEffect on sprite.active_effects (dual-write)."""
+        """Create or update AbnormalEffect on sprite.active_effects (dual-write).
+
+        Incrementally updates sprite._cached_abnormals to avoid O(N) rebuild.
+        """
         from backend.engine.abnormal_config import ABNORMAL_TEMPLATES
         from backend.vm.effect import AbnormalEffect
 
@@ -827,8 +848,12 @@ class JournalReplayer:
         )
         if existing is not None:
             existing.stacks += delta
+            # 增量更新缓存（MCTS 热路径）
+            if not getattr(sprite, '_effects_dirty', True):
+                sprite._cached_abnormals[name] = sprite._cached_abnormals.get(name, 0) + delta
             if existing.stacks <= 0:
                 active.remove(existing)
+                sprite._invalidate_effects_cache()
             return
 
         if delta <= 0:
@@ -852,6 +877,9 @@ class JournalReplayer:
                 name=name, source="skill", scope=scope, stacks=delta,
             )
         active.append(new_effect)
+        # 增量更新缓存
+        if not getattr(sprite, '_effects_dirty', True):
+            sprite._cached_abnormals[name] = sprite._cached_abnormals.get(name, 0) + delta
 
     def _apply_moe_via_replayer(self, sprite: Sprite, m: AbnormalChange) -> str:
         """Apply 萌化 form devolution through the replayer path.
@@ -972,6 +1000,8 @@ class JournalReplayer:
 
         When mode="set", existing steps are replaced instead of accumulated.
         is_inherent=True marks effects from traits that should not be inherited.
+        Incrementally updates sprite._cached_stages / _cached_positive to avoid
+        O(N) _extract_sprite_effects rebuild on every Ctx snapshot.
         """
         from backend.vm.effect import StatBuffEffect
         active = getattr(sprite, 'active_effects', None)
@@ -984,10 +1014,23 @@ class JournalReplayer:
             None,
         )
         if existing is not None:
+            old_steps = existing.steps
             if mode == "set":
                 existing.steps = steps
             else:
                 existing.steps += steps
+            # 增量更新缓存（MCTS 热路径）
+            if not getattr(sprite, '_effects_dirty', True):
+                if mode == "set":
+                    sprite._cached_stages[stat_key] = sprite._cached_stages.get(stat_key, 0) - old_steps + steps
+                else:
+                    sprite._cached_stages[stat_key] = sprite._cached_stages.get(stat_key, 0) + steps
+                # positive 计数调整
+                new_steps = existing.steps
+                if old_steps <= 0 and new_steps > 0:
+                    sprite._cached_positive += 1
+                elif old_steps > 0 and new_steps <= 0:
+                    sprite._cached_positive -= 1
             # Propagate is_inherent to existing effect if not already set
             if is_inherent and not getattr(existing, 'is_inherent', False):
                 existing.is_inherent = True
@@ -997,6 +1040,11 @@ class JournalReplayer:
             name=f'{stat_key}', source=source, scope=scope,
             stat_key=stat_key, steps=steps, is_inherent=is_inherent,
         ))
+        # 增量更新缓存
+        if not getattr(sprite, '_effects_dirty', True):
+            sprite._cached_stages[stat_key] = sprite._cached_stages.get(stat_key, 0) + steps
+            if steps > 0:
+                sprite._cached_positive += 1
 
     @staticmethod
     def _sync_mult_display_effect(sprite, stat_key: str, mult_value: float,
@@ -1061,6 +1109,12 @@ class JournalReplayer:
             name=state_type, source="skill", scope="turn",
             state_type=state_type, params=params or {},
         ))
+        # 增量更新缓存
+        if not getattr(sprite, '_effects_dirty', True):
+            if state_type == "charging":
+                sprite._cached_charging = True
+            elif state_type == "charged":
+                sprite._cached_charged = True
 
     def _apply_steal(self, m: Steal) -> str:
         # Steal effects/energy/marks from target to self
@@ -1203,6 +1257,8 @@ class JournalReplayer:
                     sprite._modifiers[key] = val - m.delta
                     n += 1
         tag = "增益" if m.what == "positive" else "减益"
+        if n:
+            sprite._invalidate_effects_cache()
         return f"{sprite.name} {tag} +{m.delta}层 ({n})"
 
     @staticmethod

@@ -99,12 +99,33 @@ from .sort import sort_effects
 
 _parser = None
 
+
 def _get_parser():
     global _parser
     if _parser is None:
         from backend.vm.compiler.passes.skill_parse import SkillParsePass
         _parser = SkillParsePass()
     return _parser
+
+
+def compile_effects_batch(effects: list) -> list:
+    """批量预编译 dict 效果列表为 typed IR 对象。
+
+    嵌套 when/then/else 由 SkillParsePass._parse_effect 递归处理。
+    返回新列表（不妨碍调用方复用原列表）。
+    """
+    if not effects:
+        return effects
+    parser = _get_parser()
+    result = []
+    for eff in effects:
+        if isinstance(eff, dict):
+            compiled = parser._parse_effect(eff)
+            if compiled is not None:
+                result.append(compiled)
+        else:
+            result.append(eff)
+    return result
 
 
 def execute(ctx: Ctx, effects, *, sort: bool = True) -> Journal:
@@ -121,19 +142,43 @@ def execute(ctx: Ctx, effects, *, sort: bool = True) -> Journal:
 def process_effects(ctx: Ctx, effects) -> list[Mutation]:
     """Process a list of effects sequentially and return accumulated mutations.
 
-    Each effect is either:
-        - A typed SkillIROp (ModOp, WhenBlock, etc.)
-        - A conditional block: {"when": cond, "then": [...], "else": [...]}
-        - An opcode effect:   {"op": "mod", ...}
-
-    Conditional blocks evaluate cond against ctx and recursively process
-    the chosen branch.
+    热路径优化：top-8 高频 op 类型（ModOp / StatStageOp / PowerModOp /
+    MultModOp / FlagSetOp / HealOp / EnergizeOp / ReviveOp）及 WhenBlock
+    直接通过 type() 恒等比较内联 dispatch，消除 process_one 调用帧开销。
+    其余 op 类型回退到 process_one 的 match/case 分发。
     """
     journal: list[Mutation] = []
 
-    for effect in effects:
-        result = process_one(ctx, effect)
-        journal.extend(result)
+    for op in effects:
+        t = type(op)
+        # ── Top-8 hot-path inlined dispatch ──
+        if t is ModOp:
+            if op.on_next:
+                journal.extend(_defer_mod(ctx, op))
+            else:
+                journal.extend(op_mod(ctx, op))
+        elif t is StatStageOp:
+            journal.extend(op_stat_stage(ctx, op))
+        elif t is PowerModOp:
+            journal.extend(op_power_mod(ctx, op))
+        elif t is MultModOp:
+            journal.extend(op_mult_mod(ctx, op))
+        elif t is FlagSetOp:
+            journal.extend(op_flag_set(ctx, op))
+        elif t is HealOp:
+            journal.extend(op_heal(ctx, op))
+        elif t is EnergizeOp:
+            journal.extend(op_energize(ctx, op))
+        elif t is ReviveOp:
+            journal.extend(op_revive(ctx, op))
+        elif t is WhenBlock:
+            journal.extend(_process_whenblock(ctx, op))
+        # ── dict 回退：未预编译的效果（JIT 编译 + 一次性告警） ──
+        elif t is dict:
+            journal.extend(process_one(ctx, op))
+        # ── 其余类型 → process_one match/case ──
+        else:
+            journal.extend(process_one(ctx, op))
 
     return journal
 
@@ -154,7 +199,7 @@ def _compile_effect(effect: dict):
     """Compile a raw dict effect to a typed SkillIROp."""
     if "when" in effect and "op" not in effect:
         cond = effect["when"]
-        if isinstance(cond, dict) and "cond" not in cond:
+        if type(cond) is dict and "cond" not in cond:
             return None  # skip legacy kind-based conditions (dead triggers format)
     parser = _get_parser()
     return parser._parse_effect(effect)
@@ -164,10 +209,10 @@ def process_one(ctx: Ctx, op) -> list[Mutation]:
     """Process a single effect and return its mutations.
 
     Dict effects are compiled to typed SkillIROp on-the-fly, then dispatched
-    via typed match/case.
+    via typed match/case.  type(op) is dict 比 isinstance 快 ~2×（跳过 MRO 遍历）。
     """
     # ── Compile dict → typed op ──
-    if isinstance(op, dict):
+    if type(op) is dict:
         op = _compile_effect(op)
         if op is None:
             return []

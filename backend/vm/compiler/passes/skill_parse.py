@@ -204,9 +204,18 @@ class SkillParsePass:
                 f"Unknown query address (of={of}, q={q}) — not in ADDRESS_MAP"
             )
         field = ADDRESS_MAP[map_key]
+        # energy_cost_sum indexes {skill_type|element|tag: total}, not "name"
+        sub_name = value.get("name")
+        if q == "energy_cost_sum":
+            sub_name = (
+                value.get("skill_type")
+                or value.get("element")
+                or value.get("tag")
+                or sub_name
+            )
         return Query(
             field=field,
-            name=value.get("name"),
+            name=sub_name,
             scale=value.get("scale", 1.0),
             offset=value.get("offset", 0),
             per=value.get("per"),

@@ -1,4 +1,4 @@
-﻿"""Snapshot — build Ctx from mutable battle state.
+"""Snapshot — build Ctx from mutable battle state.
 
 The ONLY module in engine/ that depends on sim/ (prototype data structures).
 When the prototype is replaced, only this module needs updating.
@@ -41,6 +41,24 @@ def _compute_speed_self(ss: Sprite) -> int:
     if speed_mod:
         return max(1, round(base * (1.0 + speed_mod)))
     return base
+
+
+def _collect_skill_summary(sprite: Sprite) -> tuple[frozenset, dict[str, int], int, int]:
+    skills = getattr(sprite, 'skills', None) or ()
+    elements: set[str] = set()
+    element_counts: dict[str, int] = {}
+    energy_sum = 0
+    zero_cost_count = 0
+    for sk in skills:
+        el = getattr(sk, 'element', None)
+        if el:
+            elements.add(el)
+            element_counts[el] = element_counts.get(el, 0) + 1
+        cost = getattr(sk, 'energy_cost', 0)
+        energy_sum += cost
+        if cost == 0:
+            zero_cost_count += 1
+    return frozenset(elements), element_counts, energy_sum, zero_cost_count
 
 
 def build_ctx(
@@ -125,16 +143,12 @@ def build_ctx(
     charged_self = stat_self["charged"]
     positive_count_self = stat_self["positive"]
 
-    # Skill elements carried
-    skill_elements_self = frozenset(
-        sk.element for sk in (ss.skills or []) if getattr(sk, 'element', None)
-    ) if hasattr(ss, 'skills') else frozenset()
-    skill_element_counts_self: dict[str, int] = {}
-    if hasattr(ss, 'skills'):
-        for sk in ss.skills:
-            el = getattr(sk, 'element', None)
-            if el:
-                skill_element_counts_self[el] = skill_element_counts_self.get(el, 0) + 1
+    (
+        skill_elements_self,
+        skill_element_counts_self,
+        skills_energy_sum_self,
+        zero_cost_skill_count_self,
+    ) = _collect_skill_summary(ss)
 
     # Energy cost sum by type/element/tag — accumulated by engine
     ecs = energy_cost_sum_self or {}
@@ -151,15 +165,12 @@ def build_ctx(
     is_charging_opp = stat_opp["charging"]
     charged_opp = stat_opp["charged"]
     positive_count_opp = stat_opp["positive"]
-    skill_elements_opp = frozenset(
-        sk.element for sk in (os.skills or []) if getattr(sk, 'element', None)
-    ) if hasattr(os, 'skills') else frozenset()
-    skill_element_counts_opp: dict[str, int] = {}
-    if hasattr(os, 'skills'):
-        for sk in os.skills:
-            el = getattr(sk, 'element', None)
-            if el:
-                skill_element_counts_opp[el] = skill_element_counts_opp.get(el, 0) + 1
+    (
+        skill_elements_opp,
+        skill_element_counts_opp,
+        skills_energy_sum_opp,
+        _zero_cost_skill_count_opp,
+    ) = _collect_skill_summary(os)
 
     skill_element_count_self = len(skill_elements_self)
     skill_element_count_opp = len(skill_elements_opp)
@@ -283,18 +294,14 @@ def build_ctx(
         times_entered_self=ss.counters.get("times_entered", 0),
         times_left_self=ss.counters.get("times_left", 0),
         elements_used_count_self=elements_used_count_self,
-        skills_energy_sum_self=sum(
-            getattr(s, 'energy_cost', 0) for s in (ss.skills or [])
-        ),
+        skills_energy_sum_self=skills_energy_sum_self,
         just_entered=getattr(ss, 'entry_turn', -1) == turn and turn >= 0,
         skill_elements_self=skill_elements_self,
         skill_element_counts_self=skill_element_counts_self,
         skill_element_count_self=skill_element_count_self,
         stat_stages_self=stat_stages_self,
         energy_cost_sum_self=ecs,
-        zero_cost_skill_count_self=sum(
-            1 for s in (ss.skills or []) if getattr(s, 'energy_cost', 1) == 0
-        ),
+        zero_cost_skill_count_self=zero_cost_skill_count_self,
 
         # Opp sprite
         hp_opp=hp_opp,
@@ -318,9 +325,7 @@ def build_ctx(
         skill_element_counts_opp=skill_element_counts_opp,
         skill_element_count_opp=skill_element_count_opp,
         stat_stages_opp=stat_stages_opp,
-        skills_energy_sum_opp=sum(
-            getattr(s, 'energy_cost', 0) for s in (os.skills or [])
-        ),
+        skills_energy_sum_opp=skills_energy_sum_opp,
 
         # Teams
         mark_count_own=mark_count_own,
@@ -385,9 +390,16 @@ def build_ctx(
 # ── Internal helpers ──
 
 def _extract_sprite_effects(sprite: Sprite) -> dict:
-    """单次遍历 active_effects，同时提取 stat_stages/abnormal/charging/charged/positive。
+    """返回 {stages, abnormals, charging, charged, positive}。
 
-    替代原来的 5 次独立遍历 → 1 次。"""
+    优先使用 Sprite 增量维护的 O(1) 缓存；若 sprite 不含缓存接口
+    （测试或其他调用方），回退到 O(N) 遍历。
+    """
+    # O(1) 路径：直接读取 Sprite 增量缓存
+    if hasattr(sprite, 'get_effects_snapshot'):
+        return sprite.get_effects_snapshot()
+
+    # 回退：O(N) 遍历 active_effects（测试/旧接口兼容）
     from backend.vm.effect import AbnormalEffect, StatBuffEffect, StateEffect
 
     stages: dict[str, int] = {}

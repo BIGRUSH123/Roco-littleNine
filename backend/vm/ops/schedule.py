@@ -34,7 +34,9 @@ def _freeze_value(value, ctx: Ctx):
     if value is None:
         return None
     if isinstance(value, Literal):
-        if isinstance(value.value, str) and value.value.startswith("="):
+        if isinstance(value.value, (dict, str)) and (
+            isinstance(value.value, dict) or value.value.startswith("=")
+        ):
             return resolve(ctx, value)
         return value.value
     if isinstance(value, (Query, RefExpr)):

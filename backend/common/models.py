@@ -4,7 +4,7 @@ scripts/common/models.py — 共享数据模型
 精灵种族值模型 SpeciesStats、属性计算结果 StatsResult。
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 @dataclass
@@ -26,9 +26,14 @@ class SpeciesStats:
     pre_species: str = ""
     bloodline_skills: dict[str, int] = None  # type: ignore
 
+    _elements: tuple[str, ...] = field(default=(), repr=False, compare=False)
+
     def __post_init__(self):
         if self.bloodline_skills is None:
             self.bloodline_skills = {}
+        self._elements = tuple(
+            e.strip() for e in self.attributes.split(',') if e.strip()
+        ) if self.attributes else ()
 
     def base_dict(self) -> dict[str, int]:
         return {
@@ -37,8 +42,8 @@ class SpeciesStats:
         }
 
     @property
-    def elements(self) -> list[str]:
-        return [e.strip() for e in self.attributes.split(',') if e.strip()]
+    def elements(self) -> tuple[str, ...]:
+        return self._elements
 
     def display_name(self) -> str:
         if self.form and self.form != '首领形态':

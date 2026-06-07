@@ -54,14 +54,14 @@ AGENT_REGISTRY: dict[str, dict] = {
         "name": "NeuralNet",
         "description": "神经网络策略头直出 AI（AlphaZero 训练，无搜索，毫秒级出招）。",
         "source": "builtin",
-        "module": "backend.engine.ai.neural_agent",
+        "module": "backend.engine.ai.service.agent",
         "class": "PolicyAgent",
     },
     "NeuralMCTS": {
         "name": "NeuralMCTS",
         "description": "神经网络 + MCTS 搜索 AI（AlphaZero 训练，100 次仿真，秒级出招，最强）。",
         "source": "builtin",
-        "module": "backend.engine.ai.neural_agent",
+        "module": "backend.engine.ai.service.agent",
         "class": "NeuralMCTSAgent",
     },
     "HealBot": {
@@ -673,7 +673,7 @@ def _load_ai_agent(name: str, player, model: str | None = None):
         if cls_name == "RuleAgent":
             return cls("B", player)
         # 神经网络 agent: 传 model 路径
-        if mod_name == "backend.engine.ai.neural_agent":
+        if mod_name == "backend.engine.ai.service.agent":
             if model:
                 mod.set_checkpoint(model)
             return cls()

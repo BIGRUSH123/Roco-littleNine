@@ -28,8 +28,6 @@ Effect 类型 (effects.py):
 # 加载数据驱动特性（JSON → DataDrivenTrait），优先于 Python 类
 import os
 
-from backend.engine import hooks as _engine_hooks  # noqa: E402, F401  Phase C4: engine-level hooks
-
 from .action import Action
 from .agent import Agent, HumanAgent, RuleAgent
 from .battle import Battle

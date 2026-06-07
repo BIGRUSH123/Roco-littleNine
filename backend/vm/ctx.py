@@ -7,7 +7,7 @@ builds a fresh Ctx per skill invocation so skill #2 observes skill #1's effects.
 from dataclasses import dataclass, field
 
 
-@dataclass
+@dataclass(slots=True)
 class EventContext:
     """Per-trigger event flags — what just happened this action/tick.
 
@@ -23,6 +23,7 @@ class EventContext:
     self_koed: bool = False
     opp_switched: bool = False
     self_switched: bool = False
+    sprite_left_of: str = ""
     turn_end: bool = False
     skill_position_changed: bool = False
     devotion_triggered: bool = False
@@ -41,7 +42,7 @@ class EventContext:
     damage_taken_of: str = ""
 
 
-@dataclass
+@dataclass(slots=True)
 class Ctx:
     """Turn snapshot — read-only register set.
 

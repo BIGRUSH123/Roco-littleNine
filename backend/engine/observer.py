@@ -10,6 +10,8 @@ trigger are evaluated. An empty listen set means "fire on all triggers"
 (backward compat / unknown condition types).
 """
 
+from __future__ import annotations
+
 from collections.abc import Callable
 from dataclasses import dataclass, field
 
@@ -17,6 +19,50 @@ from backend.vm.cond import eval_one, infer_triggers
 from backend.vm.ctx import Ctx
 from backend.vm.executor import process_effects
 from backend.vm.journal import Mutation
+
+
+# ═══════════════════════════════════════════════════════════════════
+# Pre-bake helpers — 注册时一次性注入 source/scope，消除运行时 copy.copy
+# ═══════════════════════════════════════════════════════════════════
+
+def _bake_inject_source(effects: list[dict], source: str) -> None:
+    """在 effects 树中注入 source（原地修改，无拷贝）。
+
+    递归处理 when/then/else 嵌套。仅对缺失 "source" 的效果赋值，
+    已有 source 的效果保持原值不变。
+
+    跳过非 dict 类型的元素（编译后的 IR 对象如 PowerModOp，
+    其 source 已在编译时设置且不可原地修改）。
+    """
+    for eff in effects:
+        if not isinstance(eff, dict):
+            continue
+        if "op" in eff and "source" not in eff:
+            eff["source"] = source
+        if isinstance(eff.get("then"), list):
+            _bake_inject_source(eff["then"], source)
+        if isinstance(eff.get("else"), list):
+            _bake_inject_source(eff["else"], source)
+
+
+def _bake_inject_scope(effects: list[dict], scope: str) -> None:
+    """在 effects 树中注入 scope（原地修改，无拷贝，幂等）。
+
+    仅对缺失 "scope" 的效果赋值。首次调用后所有效果已带 scope，
+    后续调用均为 no-op。供 _fire_post_event 使用（_fire_pre_event 不注入 scope）。
+
+    跳过非 dict 类型的元素（编译后的 IR 对象如 PowerModOp），
+    其 scope 已在编译时设置且不可原地修改。
+    """
+    for eff in effects:
+        if not isinstance(eff, dict):
+            continue
+        if "op" in eff and "scope" not in eff:
+            eff["scope"] = scope
+        if isinstance(eff.get("then"), list):
+            _bake_inject_scope(eff["then"], scope)
+        if isinstance(eff.get("else"), list):
+            _bake_inject_scope(eff["else"], scope)
 
 # Trigger points — events that cause observers to be evaluated
 TRIGGER_POINTS = frozenset({
@@ -107,6 +153,10 @@ class ObserverRegistry:
     # ── Registration ──
 
     def _index(self, obs: Observer) -> None:
+        # 注册时一次性注入 source 到 then 效果树（原地修改，无拷贝），
+        # 消除 _fire_pre_event / _fire_post_event 运行时的 copy.copy 开销。
+        if obs.source and obs.then:
+            _bake_inject_source(obs.then, obs.source)
         self._observers.append(obs)
         if obs.listen:
             for t in obs.listen:

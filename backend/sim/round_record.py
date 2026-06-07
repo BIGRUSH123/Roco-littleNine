@@ -12,7 +12,7 @@ import re
 from dataclasses import dataclass, field
 
 
-@dataclass
+@dataclass(slots=True)
 class ActionRecord:
     """单个行动记录（技能/聚能/换宠/道具）。"""
     team: str           # 'A' | 'B'
@@ -22,7 +22,7 @@ class ActionRecord:
     events: list[str] = field(default_factory=list)
 
 
-@dataclass
+@dataclass(slots=True)
 class RoundRecord:
     """一回合的完整结构化记录。"""
     turn: int

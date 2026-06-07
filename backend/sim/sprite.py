@@ -47,6 +47,14 @@ class Sprite:
     # 统一查询入口，由 replayer + trait loader 写入
     active_effects: list = field(default_factory=list)
 
+    # ── 效果统计缓存（增量维护，O(1) 读取，避免 snapshot 时 O(N) 遍历） ──
+    _effects_dirty: bool = field(default=True, repr=False)
+    _cached_stages: dict[str, int] = field(default_factory=dict)        # stat_key → total steps
+    _cached_abnormals: dict[str, int] = field(default_factory=dict)     # name → total stacks
+    _cached_charging: bool = False
+    _cached_charged: bool = False
+    _cached_positive: int = 0
+
     # 进场回合
     entry_turn: int = 0
 
@@ -168,24 +176,51 @@ class Sprite:
             for existing in self.active_effects:
                 if isinstance(existing, StatBuffEffect) and existing.stat_key == effect.stat_key and existing.scope == effect.scope:
                     existing.steps += effect.steps
+                    # 增量更新缓存：steps 变化
+                    if not self._effects_dirty:
+                        old_steps = existing.steps - effect.steps
+                        self._cached_stages[effect.stat_key] = self._cached_stages.get(effect.stat_key, 0) + effect.steps
+                        # positive 计数调整：old 为正且 new 仍为正 → 不变
+                        if old_steps <= 0 and existing.steps > 0:
+                            self._cached_positive += 1
+                        elif old_steps > 0 and existing.steps <= 0:
+                            self._cached_positive -= 1
                     return
             self.active_effects.append(effect)
+            # 增量更新缓存：新增 StatBuffEffect
+            if not self._effects_dirty:
+                self._cached_stages[effect.stat_key] = self._cached_stages.get(effect.stat_key, 0) + effect.steps
+                if effect.steps > 0:
+                    self._cached_positive += 1
             return
         if isinstance(effect, StateEffect):
             self.active_effects.append(effect)
+            # 增量更新缓存
+            if not self._effects_dirty:
+                if effect.state_type == "charging":
+                    self._cached_charging = True
+                elif effect.state_type == "charged":
+                    self._cached_charged = True
             return
         if isinstance(effect, AbnormalEffect):
             for existing in self.active_effects:
                 if isinstance(existing, AbnormalEffect) and existing.name == effect.name:
                     existing.stacks += effect.stacks
+                    # 增量更新缓存
+                    if not self._effects_dirty:
+                        self._cached_abnormals[effect.name] = self._cached_abnormals.get(effect.name, 0) + effect.stacks
                     self.check_freeze_death()
                     return
             self.active_effects.append(effect)
+            # 增量更新缓存
+            if not self._effects_dirty:
+                self._cached_abnormals[effect.name] = self._cached_abnormals.get(effect.name, 0) + effect.stacks
             if effect.name == '冻结':
                 self.check_freeze_death()
             return
         # Generic EffectObject — just append
         self.active_effects.append(effect)
+        self._invalidate_effects_cache()
 
     def remove_effect(self, name: str, category: str = '') -> None:
         from backend.vm.effect import AbnormalEffect, StatBuffEffect, StateEffect
@@ -195,6 +230,7 @@ class Sprite:
             e for e in self.active_effects
             if e.name != name or (target_type and not isinstance(e, target_type))
         ]
+        self._invalidate_effects_cache()
 
     def get_effects(self, category: str = '') -> list:
         from backend.vm.effect import AbnormalEffect, StatBuffEffect, StateEffect
@@ -229,9 +265,14 @@ class Sprite:
         ae = self._find_abnormal(name)
         if ae is not None:
             if stacks > 0:
+                old = ae.stacks
                 ae.stacks = stacks
+                # 增量更新缓存
+                if not self._effects_dirty:
+                    self._cached_abnormals[name] = self._cached_abnormals.get(name, 0) + (stacks - old)
             else:
                 self.active_effects.remove(ae)
+                self._invalidate_effects_cache()
         elif stacks > 0:
             # Create new AbnormalEffect from template if available
             from backend.engine.abnormal_config import ABNORMAL_TEMPLATES
@@ -241,6 +282,9 @@ class Sprite:
                 new_ae = copy(template)
                 new_ae.stacks = stacks
                 self.active_effects.append(new_ae)
+                # 增量更新缓存
+                if not self._effects_dirty:
+                    self._cached_abnormals[name] = self._cached_abnormals.get(name, 0) + stacks
 
     def clear_effects(self, scope: str) -> None:
         """清除指定 scope 的全部效果。同步清理 _modifiers 中的不可见 key。"""
@@ -257,6 +301,7 @@ class Sprite:
             if mod_scope == scope or (scope in ('battlefield', 'turn') and mod_scope == 'aura'):
                 self._modifiers.pop(mod_key, None)
                 del self._mod_scopes[mod_key]
+        self._invalidate_effects_cache()
 
     # ── 驱散 / 翻倍 ──
 
@@ -267,8 +312,10 @@ class Sprite:
                    if isinstance(e, StatBuffEffect) and e.steps > 0 and e.scope not in ('permanent', 'aura')]
         if count >= 0:
             targets = targets[:count]
-        for e in targets:
-            self.active_effects.remove(e)
+        if targets:
+            for e in targets:
+                self.active_effects.remove(e)
+            self._invalidate_effects_cache()
         return len(targets)
 
     def dispel_negative(self, count: int = -1) -> int:
@@ -278,8 +325,10 @@ class Sprite:
                    if isinstance(e, StatBuffEffect) and e.steps < 0 and e.scope not in ('permanent', 'aura')]
         if count >= 0:
             targets = targets[:count]
-        for e in targets:
-            self.active_effects.remove(e)
+        if targets:
+            for e in targets:
+                self.active_effects.remove(e)
+            self._invalidate_effects_cache()
         return len(targets)
 
     def double_positive(self) -> int:
@@ -290,6 +339,8 @@ class Sprite:
             if isinstance(e, StatBuffEffect) and e.steps > 0:
                 e.steps *= 2
                 n += 1
+        if n:
+            self._invalidate_effects_cache()
         return n
 
     def double_negative(self) -> int:
@@ -300,10 +351,58 @@ class Sprite:
             if isinstance(e, StatBuffEffect) and e.steps < 0:
                 e.steps *= 2
                 n += 1
+        if n:
+            self._invalidate_effects_cache()
         return n
 
     def clear_all_effects(self) -> None:
         self.active_effects.clear()
+        self._invalidate_effects_cache()
+
+    # ── 效果统计缓存（增量维护） ──
+
+    def _invalidate_effects_cache(self) -> None:
+        """标记缓存失效，下次读取时重建。"""
+        self._effects_dirty = True
+
+    def _rebuild_effects_cache(self) -> None:
+        """O(N) 全量重建效果统计缓存（仅在 dirty 且被读取时触发）。"""
+        from backend.vm.effect import AbnormalEffect, StatBuffEffect, StateEffect
+
+        self._cached_stages.clear()
+        self._cached_abnormals.clear()
+        self._cached_charging = False
+        self._cached_charged = False
+        self._cached_positive = 0
+
+        for e in self.active_effects:
+            if isinstance(e, StatBuffEffect):
+                self._cached_stages[e.stat_key] = self._cached_stages.get(e.stat_key, 0) + e.steps
+                if e.steps > 0:
+                    self._cached_positive += 1
+            elif isinstance(e, AbnormalEffect):
+                self._cached_abnormals[e.name] = self._cached_abnormals.get(e.name, 0) + e.stacks
+            elif isinstance(e, StateEffect):
+                if e.state_type == "charging":
+                    self._cached_charging = True
+                elif e.state_type == "charged":
+                    self._cached_charged = True
+        self._effects_dirty = False
+
+    def get_effects_snapshot(self) -> dict:
+        """返回效果统计快照 {stages, abnormals, charging, charged, positive}，O(1) 读取。
+
+        内部自动处理缓存脏重建。供 snapshot.py 的 _extract_sprite_effects 使用。
+        """
+        if self._effects_dirty:
+            self._rebuild_effects_cache()
+        return {
+            "stages": self._cached_stages,
+            "abnormals": self._cached_abnormals,
+            "charging": self._cached_charging,
+            "charged": self._cached_charged,
+            "positive": self._cached_positive,
+        }
 
     # ── 效果生命周期：TTL / Delay / Cooldown ──
 
@@ -319,7 +418,9 @@ class Sprite:
                     removed.append(e)
                     continue
             surviving.append(e)
-        self.active_effects = surviving
+        if removed:
+            self.active_effects = surviving
+            self._invalidate_effects_cache()
         return removed
 
     def add_pending_effect(self, effect, delay: int) -> None:
