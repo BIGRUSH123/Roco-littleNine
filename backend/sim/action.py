@@ -3,7 +3,7 @@
 from dataclasses import dataclass
 
 
-@dataclass
+@dataclass(slots=True)
 class Action:
     """玩家在一个回合中选择的操作。"""
 

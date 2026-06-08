@@ -727,6 +727,41 @@ def test_counter_does_not_fire_without_condition():
     print("  Counter correctly stayed silent when condition false")
 
 
+def test_observer_registry_candidates_filter_by_trigger_and_owner():
+    """Observer candidate lookup should support hot-path trigger pre-checks."""
+    from backend.engine.observer import Observer, ObserverRegistry
+
+    registry = ObserverRegistry()
+    owner_a = 101
+    owner_b = 202
+    turn_start = Observer(
+        cond={"cond": "turn_start"},
+        then=[],
+        listen=frozenset({"turn_start"}),
+        owner_sprite_id=owner_a,
+    )
+    post_skill = Observer(
+        cond={"cond": "skill_use"},
+        then=[],
+        listen=frozenset({"post_skill"}),
+        owner_sprite_id=owner_b,
+    )
+    fallback = Observer(cond={"cond": "always"}, then=[])
+
+    registry.register(turn_start)
+    registry.register(post_skill)
+
+    assert list(registry.candidates_for("turn_start")) == [turn_start]
+    assert registry.has_candidates("turn_start", owner_a)
+    assert not registry.has_candidates("turn_start", owner_b)
+    assert not registry.has_candidates("post_damage", owner_a)
+
+    registry.register(fallback)
+
+    assert list(registry.candidates_for("turn_start")) == [turn_start, fallback]
+    assert registry.has_candidates("post_damage", owner_a)
+
+
 def test_named_counter_value_tracking():
     """Test that named counters track their values and are queryable via counter_values."""
     from backend.engine.battle import BattleVMEngine

@@ -78,6 +78,8 @@ class DataDrivenTrait(TraitHandler):
         vm_engine = getattr(battle, '_vm_engine', None)
         if vm_engine is None:
             return events
+        if not vm_engine.registry.has_candidates("turn_start", id(sprite)):
+            return events
         opp_team = 'B' if team == 'A' else 'A'
         opp = battle.get_player(opp_team).active
         ctx = battle._make_ctx(sprite, opp, None, None, battle.globals,

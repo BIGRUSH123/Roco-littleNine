@@ -29,6 +29,10 @@ if TYPE_CHECKING:
 NUM_ACTIONS = 17  # 技能0-9 + 换宠10-14 + 聚能15 + 道具16
 _EMPTY_PRIOR = np.zeros(NUM_ACTIONS, dtype=np.float32)
 _EMPTY_PRIOR.setflags(write=False)
+_SKILL_ACTIONS = tuple(Action(kind='skill', skill_index=i) for i in range(10))
+_SWITCH_ACTIONS = tuple(Action(kind='switch', switch_index=i) for i in range(6))
+_GATHER_ACTION = Action(kind='gather')
+_ITEM_ACTION = Action(kind='item')
 
 
 def _valid_from_mask(mask: np.ndarray) -> list[int]:
@@ -136,17 +140,17 @@ def action_index_to_action(player: Player, action_idx: int) -> Action | None:
     MCTS 树边与实际动作不匹配。
     """
     if action_idx < 10:
-        return Action(kind='skill', skill_index=action_idx)
+        return _SKILL_ACTIONS[action_idx]
     elif action_idx < 15:
         bench_idx = action_idx - 10
         switch_idx = _bench_to_team_index(player, bench_idx)
         if switch_idx is not None:
-            return Action(kind='switch', switch_index=switch_idx)
+            return _SWITCH_ACTIONS[switch_idx]
         return None
     elif action_idx == 15:
-        return Action(kind='gather')
+        return _GATHER_ACTION
     elif action_idx == 16:
-        return Action(kind='item')
+        return _ITEM_ACTION
     return None
 
 
@@ -247,10 +251,10 @@ class NetworkPolicyAgent:
             player = battle.player_b
             rep = player.find_replacement() if hasattr(player, "find_replacement") else None
             if rep is not None:
-                return Action(kind="switch", switch_index=rep)
-            return Action(kind="gather")
+                return _SWITCH_ACTIONS[rep]
+            return _GATHER_ACTION
         action = action_index_to_action(battle.player_b, idx)
-        return action if action is not None else Action(kind="gather")
+        return action if action is not None else _GATHER_ACTION
 
     def choose_lead(self, battle) -> int:
         player = battle.player_b
@@ -273,6 +277,8 @@ class NetworkPolicyAgent:
 
 class FixedAgent:
     """包装器：choose_action 返回预定动作，其余委托给真实 agent。"""
+
+    __slots__ = ("_action", "_real")
 
     def __init__(self, action: Action, real_agent):
         self._action = action
@@ -564,14 +570,13 @@ def _step_battle(
     if opp_policy is not None:
         opp_idx = policy_select_idx(opp_policy, temperature=0.0 if opp_greedy else 1.0)
         if opp_idx < 0:
-            action_b = Action(kind="gather")
+            action_b = _GATHER_ACTION
         else:
             player_b = battle.player_b
             action_b = action_index_to_action(player_b, opp_idx)
             if action_b is None:
-                action_b = Action(kind="gather")
-        fixed_a = FixedAgent(action_a, opponent_agent)
-        fixed_a._real = _PlayerSwappedAgent(opponent_agent, player_a)
+                action_b = _GATHER_ACTION
+        fixed_a = FixedAgent(action_a, _PlayerSwappedAgent(opponent_agent, player_a))
         fixed_b = _OppFixedAgent(action_b, battle.player_b)
         battle.execute_turn(
             fixed_a,
@@ -581,14 +586,15 @@ def _step_battle(
         )
         return True
 
-    fixed_a = FixedAgent(action_a, opponent_agent)
-    fixed_a._real = _PlayerSwappedAgent(opponent_agent, player_a)
+    fixed_a = FixedAgent(action_a, _PlayerSwappedAgent(opponent_agent, player_a))
     battle.execute_turn(fixed_a, opponent_agent)
     return True
 
 
 class _PlayerSwappedAgent:
     """将 opponent agent 的 player 替换为 player_a，用于委托 choose_lead/choose_replacement。"""
+
+    __slots__ = ("_source", "player", "team")
 
     def __init__(self, source, player):
         self._source = source
@@ -610,6 +616,8 @@ class _PlayerSwappedAgent:
 
 class _OppFixedAgent:
     """对手 FixedAgent：choose_action 返回预定动作，其余委托给 player 自身。"""
+
+    __slots__ = ("_action", "player", "team")
 
     def __init__(self, action, player):
         self._action = action

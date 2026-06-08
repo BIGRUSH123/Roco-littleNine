@@ -1405,25 +1405,28 @@ class Battle(BattleMechanicsMixin):
             events += SkillResolver.turn_end(sprites, self.globals)
 
         # ── 异常 tick trait 通知（只读，不修改层数/HP）──
-        for team, sprite in list(sprites.items()):
-            opp_team = 'B' if team == 'A' else 'A'
-            opp = self.get_opponent(team).active
-            for e in sprite.active_effects:
-                if not isinstance(e, AbnormalEffect):
-                    continue
-                if e.name in ('灼烧', '中毒'):
-                    dmg = sprite._last_abnormal_dmg.get(e.name, 0)  # actual damage (with element multiplier)
-                    # Observer: post_abnormal_tick — fire from both team perspectives
-                    # so observers with of:sprite_opp can match
-                    opp_team = 'B' if team == 'A' else 'A'
-                    ctx_tick_self = self._make_ctx(sprite, opp, None, None, self.globals, team=team, turn=self.turn, last_tick_abnormal=e.name, last_tick_target="sprite_self", last_tick_damage_self=dmg)
-                    ctx_tick_opp = self._make_ctx(opp, sprite, None, None, self.globals, team=opp_team, turn=self.turn, last_tick_abnormal=e.name, last_tick_target="sprite_opp", last_tick_damage_opp=dmg)
-                    events += self._vm_engine.fire_trigger("post_abnormal_tick", ctx_tick_self, sprite, opp, self.globals, team=team, battle=self)
-                    events += self._vm_engine.fire_trigger("post_abnormal_tick", ctx_tick_opp, opp, sprite, self.globals, team=opp_team, battle=self)
+        if self._vm_engine.registry.has_candidates("post_abnormal_tick"):
+            for team, sprite in list(sprites.items()):
+                opp_team = 'B' if team == 'A' else 'A'
+                opp = self.get_opponent(team).active
+                for e in sprite.active_effects:
+                    if not isinstance(e, AbnormalEffect):
+                        continue
+                    if e.name in ('灼烧', '中毒'):
+                        dmg = sprite._last_abnormal_dmg.get(e.name, 0)  # actual damage (with element multiplier)
+                        # Observer: post_abnormal_tick — fire from both team perspectives
+                        # so observers with of:sprite_opp can match
+                        opp_team = 'B' if team == 'A' else 'A'
+                        ctx_tick_self = self._make_ctx(sprite, opp, None, None, self.globals, team=team, turn=self.turn, last_tick_abnormal=e.name, last_tick_target="sprite_self", last_tick_damage_self=dmg)
+                        ctx_tick_opp = self._make_ctx(opp, sprite, None, None, self.globals, team=opp_team, turn=self.turn, last_tick_abnormal=e.name, last_tick_target="sprite_opp", last_tick_damage_opp=dmg)
+                        events += self._vm_engine.fire_trigger("post_abnormal_tick", ctx_tick_self, sprite, opp, self.globals, team=team, battle=self)
+                        events += self._vm_engine.fire_trigger("post_abnormal_tick", ctx_tick_opp, opp, sprite, self.globals, team=opp_team, battle=self)
 
         # ── Observer: turn_end ──
         for team, sprite in sprites.items():
             # Observer: turn_end
+            if not self._vm_engine.registry.has_candidates("turn_end", id(sprite)):
+                continue
             opp_team = 'B' if team == 'A' else 'A'
             opp = self.get_opponent(team).active
             ctx_te = self._make_ctx(sprite, opp, None, None, self.globals, team=team, turn=self.turn, turn_end=True)

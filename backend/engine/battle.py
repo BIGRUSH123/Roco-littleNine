@@ -253,9 +253,7 @@ class BattleVMEngine:
         Observers are filtered by listen set and owner sprite.
         """
         mutations: Journal = []
-        for obs in self.registry._observers:
-            if obs.listen and trigger not in obs.listen:
-                continue
+        for obs in self.registry.candidates_for(trigger):
             # Owner filter: observers with an owner only fire for their sprite
             if obs.owner_sprite_id is not None and sprite_id != 0 and obs.owner_sprite_id != sprite_id:
                 continue
@@ -278,9 +276,7 @@ class BattleVMEngine:
         """
         events: list[str] = []
         owner_id = id(replayer.self) if replayer.self else None
-        for obs in self.registry._observers:
-            if obs.listen and trigger not in obs.listen:
-                continue
+        for obs in self.registry.candidates_for(trigger):
             # Owner filter: only for triggers where "which sprite" matters.
             # turn_end and post_abnormal_tick are fired per-sprite in a loop,
             # so sprite-owned observers must only fire for their owner.

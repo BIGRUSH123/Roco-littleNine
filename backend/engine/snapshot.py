@@ -11,12 +11,16 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
+from backend.sim.battleskill import BattleSkill
 from backend.sim.resolver import _TYPE_CHART
+from backend.vm.effect import MarkEffect
 from backend.vm.ctx import Ctx, EventContext
 
 if TYPE_CHECKING:
     from backend.sim.globals import GlobalEffects
     from backend.sim.sprite import Sprite
+
+_SPEED_STEP = 10
 
 
 def _get_element_advantage(atk_element: str, def_elements: list[str]) -> float:
@@ -33,13 +37,17 @@ def _get_element_advantage(atk_element: str, def_elements: list[str]) -> float:
     return mult
 
 
-def _compute_speed_self(ss: Sprite) -> int:
+def _compute_speed_self(ss: Sprite, stat_stages: dict[str, int]) -> int:
     """Compute ctx speed_self from sprite, applying _modifiers multiplier."""
-    base = ss.effective_stat("speed") if hasattr(ss, 'effective_stat') else ss.initial_stats.get("speed", 100)
+    base = max(0, ss.initial_stats.get("speed", 100) + stat_stages.get("speed", 0) * _SPEED_STEP)
     speed_mod = ss._modifiers.get("speed", 0)
     if speed_mod:
         return max(1, round(base * (1.0 + speed_mod)))
     return base
+
+
+def _compute_speed(stats: dict[str, int], stat_stages: dict[str, int]) -> int:
+    return max(0, stats.get("speed", 100) + stat_stages.get("speed", 0) * _SPEED_STEP)
 
 
 def _collect_skill_summary(sprite: Sprite) -> tuple[frozenset, dict[str, int], int, int]:
@@ -49,12 +57,22 @@ def _collect_skill_summary(sprite: Sprite) -> tuple[frozenset, dict[str, int], i
     energy_sum = 0
     zero_cost_count = 0
     for sk in skills:
-        try:
-            el = sk.element
-            cost = sk.energy_cost
-        except AttributeError:
-            el = getattr(sk, 'element', None)
-            cost = getattr(sk, 'energy_cost', 0)
+        if isinstance(sk, BattleSkill):
+            if sk.nullified:
+                el = sk._element_override
+                base_cost = 0
+            else:
+                base = sk.replaced_by or sk.base
+                el = sk._element_override or base.element
+                base_cost = base.energy_cost
+            cost = base_cost + int(sk._modifiers.get("energy_cost", 0)) + sk._mech_energy_reduction
+        else:
+            try:
+                el = sk.element
+                cost = sk.energy_cost
+            except AttributeError:
+                el = getattr(sk, 'element', None)
+                cost = getattr(sk, 'energy_cost', 0)
         if el:
             elements.add(el)
             element_counts[el] = element_counts.get(el, 0) + 1
@@ -144,12 +162,13 @@ def build_ctx(
     elements_self = tuple(species_self.elements) if species_self else ()
 
     # 单次遍历 active_effects，同时提取 stat_stages/abnormal_stacks/charging/charged/positive_count
-    stat_self = _extract_sprite_effects(ss)
-    stat_stages_self = stat_self["stages"]
-    abnormal_stacks_self = stat_self["abnormals"]
-    is_charging_self = stat_self["charging"]
-    charged_self = stat_self["charged"]
-    positive_count_self = stat_self["positive"]
+    (
+        stat_stages_self,
+        abnormal_stacks_self,
+        is_charging_self,
+        charged_self,
+        positive_count_self,
+    ) = _extract_sprite_effects(ss)
 
     (
         skill_elements_self,
@@ -171,12 +190,13 @@ def build_ctx(
     species_opp = getattr(os, 'species', None)
     elements_opp = tuple(species_opp.elements) if species_opp else ()
 
-    stat_opp = _extract_sprite_effects(os)
-    stat_stages_opp = stat_opp["stages"]
-    abnormal_stacks_opp = stat_opp["abnormals"]
-    is_charging_opp = stat_opp["charging"]
-    charged_opp = stat_opp["charged"]
-    positive_count_opp = stat_opp["positive"]
+    (
+        stat_stages_opp,
+        abnormal_stacks_opp,
+        is_charging_opp,
+        charged_opp,
+        positive_count_opp,
+    ) = _extract_sprite_effects(os)
     (
         skill_elements_opp,
         skill_element_counts_opp,
@@ -197,16 +217,18 @@ def build_ctx(
     mark_count_opp = 0
     mark_bonus_own = 0.0
     if g:
-        pos_own, neg_own = g.get_marks(own_team)
-        pos_opp, neg_opp = g.get_marks(opp_team)
-        for m in pos_own + neg_own:
+        for m in g.mark_effects.get(own_team, ()):
+            if not isinstance(m, MarkEffect):
+                continue
             mark_stacks_own[m.name] = mark_stacks_own.get(m.name, 0) + m.stacks
             mark_count_own += m.stacks
             if m.damage_mult:
                 cond = m.condition
                 if cond == '' or (cond == 'is_first' and is_first) or (cond == 'not_first' and not is_first):
                     mark_bonus_own += m.damage_mult * m.stacks
-        for m in pos_opp + neg_opp:
+        for m in g.mark_effects.get(opp_team, ()):
+            if not isinstance(m, MarkEffect):
+                continue
             mark_stacks_opp[m.name] = mark_stacks_opp.get(m.name, 0) + m.stacks
             mark_count_opp += m.stacks
 
@@ -283,7 +305,7 @@ def build_ctx(
         def_self=round(ss_stats.get("def", 100) * (1.0 + ss_mods.get("def", 0))),
         sp_atk_self=round(ss_stats.get("sp_atk", 100) * (1.0 + ss_mods.get("sp_atk", 0))),
         sp_def_self=round(ss_stats.get("sp_def", 100) * (1.0 + ss_mods.get("sp_def", 0))),
-        speed_self=_compute_speed_self(ss),
+        speed_self=_compute_speed_self(ss, stat_stages_self),
         # Sprite + skill modifier delta 相加（同类型 buff 加性叠加，非相乘）
         damage_reduction_self=min(1.0,
             ss_mods.get("damage_reduction", 0.0)
@@ -327,7 +349,7 @@ def build_ctx(
         def_opp=os_stats.get("def", 100),
         sp_atk_opp=os_stats.get("sp_atk", 100),
         sp_def_opp=os_stats.get("sp_def", 100),
-        speed_opp=os.effective_stat("speed") if hasattr(os, 'effective_stat') else os_stats.get("speed", 100),
+        speed_opp=_compute_speed(os_stats, stat_stages_opp),
         damage_reduction_opp=os_mods.get("damage_reduction", 0.0),
         power_mult_opp=os_mods.get("power_mult", 1.0),
         damage_mult_opp=os_mods.get("damage_mult", 1.0),
@@ -403,15 +425,23 @@ def build_ctx(
 
 # ── Internal helpers ──
 
-def _extract_sprite_effects(sprite: Sprite) -> dict:
+def _extract_sprite_effects(sprite: Sprite) -> tuple[dict[str, int], dict[str, int], bool, bool, int]:
     """返回 {stages, abnormals, charging, charged, positive}。
 
     优先使用 Sprite 增量维护的 O(1) 缓存；若 sprite 不含缓存接口
     （测试或其他调用方），回退到 O(N) 遍历。
     """
-    # O(1) 路径：直接读取 Sprite 增量缓存
-    if hasattr(sprite, 'get_effects_snapshot'):
-        return sprite.get_effects_snapshot()
+    # O(1) 路径：直接读取 Sprite 增量缓存，避免为每次 Ctx 构建分配临时 dict。
+    if hasattr(sprite, '_cached_stages'):
+        if getattr(sprite, '_effects_dirty', False):
+            sprite._rebuild_effects_cache()
+        return (
+            sprite._cached_stages,
+            sprite._cached_abnormals,
+            sprite._cached_charging,
+            sprite._cached_charged,
+            sprite._cached_positive,
+        )
 
     # 回退：O(N) 遍历 active_effects（测试/旧接口兼容）
     from backend.vm.effect import AbnormalEffect, StatBuffEffect, StateEffect
@@ -435,10 +465,4 @@ def _extract_sprite_effects(sprite: Sprite) -> dict:
             elif e.state_type == "charged":
                 charged = True
 
-    return {
-        "stages": stages,
-        "abnormals": abnormals,
-        "charging": charging,
-        "charged": charged,
-        "positive": positive,
-    }
+    return stages, abnormals, charging, charged, positive

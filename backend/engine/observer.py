@@ -204,6 +204,27 @@ class ObserverRegistry:
 
     # ── Firing ──
 
+    def candidates_for(self, trigger: str):
+        """Return observers that can fire for trigger."""
+        candidates = self._by_trigger.get(trigger, ())
+        if not self._fallback:
+            return candidates
+        if not candidates:
+            return self._fallback
+        return (obs for obs in self._observers if not obs.listen or trigger in obs.listen)
+
+    def has_candidates(self, trigger: str, owner_sprite_id: int | None = None) -> bool:
+        """Fast pre-check before building expensive Ctx snapshots."""
+        for obs in self._by_trigger.get(trigger, ()):
+            owner = obs.owner_sprite_id
+            if owner_sprite_id is None or owner is None or owner == owner_sprite_id:
+                return True
+        for obs in self._fallback:
+            owner = obs.owner_sprite_id
+            if owner_sprite_id is None or owner is None or owner == owner_sprite_id:
+                return True
+        return False
+
     def fire(self, trigger: str, ctx: Ctx,
              process_fn: Callable = None) -> list[Mutation]:
         if process_fn is None:
