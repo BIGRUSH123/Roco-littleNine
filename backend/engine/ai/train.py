@@ -49,7 +49,6 @@ from backend.engine.ai.core.mcts import (
     get_valid_actions,
     mcts_search,
 )
-from backend.engine.ai.core.replay_buffer import DictReplayDataset, dict_replay_collate
 from backend.sim.factory import SimFactory
 from backend.sim.player import Item
 
@@ -717,12 +716,13 @@ def train_rl(
 ) -> list[dict]:
     """训练双头网络：value loss (MSE) + policy loss (cross-entropy)。
 
-    replay: DictReplayBuffer 实例。训练/验证通过 DataLoader + pin_memory
-    异步搬运到 GPU，减少 CPU→GPU 数据拷贝开销。
+    replay: DictReplayBuffer 实例。训练/验证直接按索引从 replay buffer
+    构造 batch，避免 DataLoader 逐条 __getitem__ + collate 开销。
 
     optimizer / scheduler: 由调用方在外部管理（全局学习率衰减），
     scheduler 在每 epoch 结束后 step()。若为 None 则跳过。
     """
+    batch_size = max(1, int(batch_size))
     n = len(replay)
     if n < 2:
         print("  [train_rl] 样本不足，跳过训练")
@@ -733,21 +733,37 @@ def train_rl(
         print("  [train_rl] 训练样本不足(全被划入验证集)，跳过训练")
         return []
 
-    dataset = DictReplayDataset(replay)
-    train_set = torch.utils.data.Subset(dataset, range(n_train))
-    val_set = torch.utils.data.Subset(dataset, range(n_train, n))
-
     use_pin = device.startswith("cuda")
-    train_loader = torch.utils.data.DataLoader(
-        train_set, batch_size=batch_size, shuffle=True,
-        num_workers=0, pin_memory=use_pin,
-        collate_fn=dict_replay_collate,
-    )
-    val_loader = torch.utils.data.DataLoader(
-        val_set, batch_size=batch_size, shuffle=False,
-        num_workers=0, pin_memory=use_pin,
-        collate_fn=dict_replay_collate,
-    )
+    obs_keys = tuple(replay.buffers.keys())
+
+    def make_batch(indices: np.ndarray) -> dict[str, torch.Tensor]:
+        batch: dict[str, torch.Tensor] = {
+            key: torch.from_numpy(replay.buffers[key][indices])
+            for key in obs_keys
+        }
+        batch["policy"] = torch.from_numpy(replay.policy_buffer[indices])
+        batch["mask"] = torch.from_numpy(replay.mask_buffer[indices])
+        batch["outcome"] = torch.from_numpy(replay.outcome_buffer[indices])
+        if use_pin:
+            batch = {key: value.pin_memory() for key, value in batch.items()}
+        return batch
+
+    def iter_batches(indices: np.ndarray):
+        for start in range(0, len(indices), batch_size):
+            yield make_batch(indices[start:start + batch_size])
+
+    def move_batch(batch: dict[str, torch.Tensor]):
+        xb = {
+            k: v.to(device, non_blocking=use_pin)
+            for k, v in batch.items()
+            if k not in ("policy", "mask", "outcome")
+        }
+        pb = batch["policy"].to(device, non_blocking=use_pin)
+        mb = batch["mask"].to(device, non_blocking=use_pin)
+        vb = batch["outcome"].unsqueeze(1).to(device, non_blocking=use_pin)
+        return xb, pb, mb, vb
+
+    val_indices = np.arange(n_train, n, dtype=np.int64)
 
     history: list[dict] = []
 
@@ -756,12 +772,9 @@ def train_rl(
         total_value_loss = 0.0
         total_policy_loss = 0.0
 
-        for batch in train_loader:
-            xb = {k: v.to(device, non_blocking=use_pin) for k, v in batch.items()
-                  if k not in ("policy", "mask", "outcome")}
-            pb = batch["policy"].to(device, non_blocking=use_pin)
-            mb = batch["mask"].to(device, non_blocking=use_pin)
-            vb = batch["outcome"].unsqueeze(1).to(device, non_blocking=use_pin)
+        train_indices = np.random.permutation(n_train).astype(np.int64, copy=False)
+        for batch in iter_batches(train_indices):
+            xb, pb, mb, vb = move_batch(batch)
 
             value, logits = model(xb)
             value_loss = F.mse_loss(value, vb)
@@ -790,12 +803,8 @@ def train_rl(
         val_p_loss = 0.0
         val_correct = 0.0
         with torch.no_grad():
-            for batch in val_loader:
-                xv = {k: v.to(device, non_blocking=use_pin) for k, v in batch.items()
-                      if k not in ("policy", "mask", "outcome")}
-                pv = batch["policy"].to(device, non_blocking=use_pin)
-                mv = batch["mask"].to(device, non_blocking=use_pin)
-                vv = batch["outcome"].unsqueeze(1).to(device, non_blocking=use_pin)
+            for batch in iter_batches(val_indices):
+                xv, pv, mv, vv = move_batch(batch)
                 val_v, val_logits = model(xv)
                 val_v_loss += F.mse_loss(val_v, vv).item() * len(vv)
                 pb_safe = pv * mv

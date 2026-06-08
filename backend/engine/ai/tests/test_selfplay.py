@@ -24,12 +24,14 @@ from backend.engine.ai.core.encoder import encode_battle_state
 from backend.engine.ai.core.evaluator import TorchEvaluator
 from backend.engine.ai.core.mcts import NUM_ACTIONS, NetworkPolicyAgent
 from backend.engine.ai.core.model import ModularBattleNet
+from backend.engine.ai.core.replay_buffer import DictReplayBuffer
 from backend.engine.ai.train import (
     _gate_decision,
     _load_sprite_skills,
     collect_rl_samples,
     collect_rl_samples_parallel,
     evaluate_parallel,
+    train_rl,
 )
 from backend.engine.serializer import battle_from_dict, battle_to_dict
 from backend.sim.agent import RuleAgent
@@ -311,6 +313,30 @@ def test_gate_decision_early_pass_when_losses_cannot_drop_below_gate():
 
 def test_gate_decision_continues_when_result_can_change():
     assert _gate_decision(wins=4.0, completed=6, total=10, gate=0.6) is None
+
+
+def test_train_rl_smoke_uses_replay_buffer_batches():
+    replay = DictReplayBuffer(capacity=4)
+    state = {
+        key: np.zeros(buffer.shape[1:], dtype=buffer.dtype)
+        for key, buffer in replay.buffers.items()
+    }
+    policy = np.zeros(NUM_ACTIONS, dtype=np.float32)
+    policy[0] = 1.0
+    mask = np.ones(NUM_ACTIONS, dtype=np.float32)
+    for outcome in (1.0, -1.0, 0.5, -0.5):
+        replay.push(state, policy, mask, outcome)
+
+    model = ModularBattleNet(trunk_dim=64, num_blocks=1, dropout=0.0, with_attention=False)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=1e-3)
+
+    history = train_rl(
+        model, replay, epochs=1, batch_size=2, device="cpu",
+        optimizer=optimizer, val_split=0.25,
+    )
+
+    assert len(history) == 1
+    assert 0.0 <= history[0]["val_acc"] <= 1.0
 
 
 def test_advise_single_smoke():
