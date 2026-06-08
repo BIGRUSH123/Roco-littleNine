@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 
+from copy import copy
 import contextlib
 import itertools
 import random
@@ -12,6 +13,7 @@ from typing import TYPE_CHECKING
 
 from backend.common.skill_trait_ids import TRAIT_星地善良
 from backend.vm.ir_skill import ChargeOp, CompiledSkill, WhenBlock, WhenBranch
+from backend.vm.effect import AbnormalEffect, StateEffect, StatBuffEffect
 
 from .action import Action
 from .battle_mechanics import BattleMechanicsMixin
@@ -77,7 +79,6 @@ class Battle(BattleMechanicsMixin):
 
     def save_mutable_state(self) -> dict:
         """保存对战可变状态，用于 MCTS 仿真回滚。只用浅拷贝，不用 deepcopy。"""
-        import copy as _copy
         # ── 精灵状态 ──
         sprites: list[dict] = []
         for player in (self.player_a, self.player_b):
@@ -100,7 +101,6 @@ class Battle(BattleMechanicsMixin):
                 # 效果快照：按位置保存，避免 id() 复用导致的错乱
                 eff_snap = []
                 for e in sprite.active_effects:
-                    from backend.vm.effect import StatBuffEffect
                     snap = (e, e.ttl, getattr(e, 'stacks', 0), getattr(e, 'scope', ''))
                     if isinstance(e, StatBuffEffect):
                         snap += (e.steps,)
@@ -122,15 +122,15 @@ class Battle(BattleMechanicsMixin):
                 # 精灵级可变状态（此前遗漏，MCTS 仿真残留会泄漏到真实对局）
                 sprites[-1]["mod_scopes"] = dict(getattr(sprite, '_mod_scopes', {}))
                 sprites[-1]["pending_mods"] = [
-                    _copy.copy(m) for m in getattr(sprite, '_pending_modifiers', [])
+                    copy(m) for m in getattr(sprite, '_pending_modifiers', [])
                 ]
                 sprites[-1]["pending_effs"] = [
-                    (_copy.copy(e), d) for e, d in getattr(sprite, '_pending_effects', [])
+                    (copy(e), d) for e, d in getattr(sprite, '_pending_effects', [])
                 ]
                 sprites[-1]["trait_suppressed"] = getattr(sprite, '_trait_suppressed', False)
         # ── 印记：用 copy.copy 替代 deepcopy（MarkEffect 全字段为 primitive，
         # 浅拷贝已足够隔离 MCTS 仿真中的 stacks 修改 / list append-remove） ──
-        mark_snap = {team: [_copy.copy(me) for me in lst]
+        mark_snap = {team: [copy(me) for me in lst]
                      for team, lst in self.globals.mark_effects.items()}
         # ── VM 引擎：浅拷贝字典/集合 ──
         vm = self._vm_engine
@@ -154,9 +154,9 @@ class Battle(BattleMechanicsMixin):
             "team_counters": {t: dict(c) for t, c in self.team_counters.items()},
             # pending/scheduled effects 的元素均为 primitive-field dataclass/dict，
             # copy.copy 已足够隔离 MCTS 仿真中的增删（无需深拷贝嵌套结构）
-            "pending_effects": {team: [_copy.copy(e) for e in lst]
+            "pending_effects": {team: [copy(e) for e in lst]
                                 for team, lst in self.pending_effects.items()},
-            "scheduled_effects": [_copy.copy(s) for s in self.scheduled_effects],
+            "scheduled_effects": [copy(s) for s in self.scheduled_effects],
             "pending_escape": self.pending_escape,
             "borrowed_restore": dict(self._borrowed_restore),
             "wish_restore": dict(self._wish_restore),
@@ -171,7 +171,6 @@ class Battle(BattleMechanicsMixin):
 
     def restore_mutable_state(self, saved: dict) -> None:
         """从 save_mutable_state 恢复可变状态（MCTS 仿真回滚）。"""
-        import copy as _copy
         # ── 精灵状态 ──
         idx = 0
         for player in (self.player_a, self.player_b):
@@ -206,7 +205,6 @@ class Battle(BattleMechanicsMixin):
                         e.scope = snap[3]
                     if len(snap) > 4:
                         # StatBuffEffect: restore steps
-                        from backend.vm.effect import StatBuffEffect
                         if isinstance(e, StatBuffEffect):
                             e.steps = snap[4]
                     if e not in sprite.active_effects:
@@ -226,7 +224,7 @@ class Battle(BattleMechanicsMixin):
                     sprite._pending_modifiers = list(s["pending_mods"])
                 if "pending_effs" in s:
                     sprite._pending_effects = [
-                        (_copy.copy(e), d) for e, d in s["pending_effs"]
+                        (copy(e), d) for e, d in s["pending_effs"]
                     ]
                 if "trait_suppressed" in s:
                     sprite._trait_suppressed = s["trait_suppressed"]
@@ -379,23 +377,20 @@ class Battle(BattleMechanicsMixin):
         opp_player = self.get_player(opp_team)
 
         # ── Per-turn team cache ──
-        cache_key = f"{team}_{self.turn}"
-        if cache_key not in self._ctx_team_cache:
-            own_player_obj = self.get_player(team)
-            opp_player_obj = self.get_player(opp_team)
-            fainted_own = sum(1 for s in own_player_obj.team if s.is_fainted)
-            fainted_opp = sum(1 for s in opp_player_obj.team if s.is_fainted)
+        if team not in self._ctx_team_cache:
+            fainted_own = sum(1 for s in own_player.team if s.is_fainted)
+            fainted_opp = sum(1 for s in opp_player.team if s.is_fainted)
             team_elements_own = frozenset(
-                e for s in own_player_obj.team for e in s.species.elements)
+                e for s in own_player.team for e in s.species.elements)
             team_elements_opp = frozenset(
-                e for s in opp_player_obj.team for e in s.species.elements)
-            self._ctx_team_cache[cache_key] = {
+                e for s in opp_player.team for e in s.species.elements)
+            self._ctx_team_cache[team] = {
                 "fainted_own": fainted_own,
                 "fainted_opp": fainted_opp,
                 "team_elements_own": team_elements_own,
                 "team_elements_opp": team_elements_opp,
             }
-        cached = self._ctx_team_cache[cache_key]
+        cached = self._ctx_team_cache[team]
 
         # Count 萌化 stacks on own team sprites (excluding self) — per-call still,
         # since self_sprite changes between calls within a turn.
@@ -1195,7 +1190,6 @@ class Battle(BattleMechanicsMixin):
             user._charged_skill_index = -1
             # Remove "charging" effect, add "charged" for condition checks
             user.remove_effect("charging", "state")
-            from backend.vm.effect import StateEffect
             user.add_effect(StateEffect(
                 name="charged", state_type="charged", scope="battlefield", source="charge",
             ))
@@ -1217,14 +1211,12 @@ class Battle(BattleMechanicsMixin):
                 user._modifiers["pre_charged"] = pre_charged - 1
                 if user._modifiers["pre_charged"] <= 0:
                     user._modifiers.pop("pre_charged", None)
-                from backend.vm.effect import StateEffect
                 user.add_effect(StateEffect(
                     name="charged", state_type="charged", scope="battlefield", source="charge",
                 ))
                 return None  # charge bypassed, execute immediately as charged
             user._charging = True
             user._charged_skill_index = action.skill_index
-            from backend.vm.effect import StateEffect
             user.add_effect(StateEffect(
                 name="charging", state_type="charging", scope="persistent", source="charge",
             ))
@@ -1413,12 +1405,11 @@ class Battle(BattleMechanicsMixin):
             events += SkillResolver.turn_end(sprites, self.globals)
 
         # ── 异常 tick trait 通知（只读，不修改层数/HP）──
-        from backend.vm.effect import AbnormalEffect as _AbnormalEffect
         for team, sprite in list(sprites.items()):
             opp_team = 'B' if team == 'A' else 'A'
             opp = self.get_opponent(team).active
             for e in sprite.active_effects:
-                if not isinstance(e, _AbnormalEffect):
+                if not isinstance(e, AbnormalEffect):
                     continue
                 if e.name in ('灼烧', '中毒'):
                     dmg = sprite._last_abnormal_dmg.get(e.name, 0)  # actual damage (with element multiplier)

@@ -5,6 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
+from backend.vm.effect import MarkEffect, ModifierEffect
+
 if TYPE_CHECKING:
     from .skill import Skill
     from .sprite import Sprite
@@ -68,7 +70,6 @@ class GlobalEffects:
 
     def get_marks(self, team: str) -> tuple[list, list]:
         """返回 (pos_marks, neg_marks) as MarkEffect lists."""
-        from backend.vm.effect import MarkEffect
         pos, neg = [], []
         for me in self.mark_effects.get(team, []):
             if isinstance(me, MarkEffect):
@@ -80,7 +81,6 @@ class GlobalEffects:
 
     def get_mark_by_name(self, team: str, name: str):
         """获取指定名称的印记（MarkEffect）。"""
-        from backend.vm.effect import MarkEffect
         for me in self.mark_effects.get(team, []):
             if isinstance(me, MarkEffect) and me.name == name:
                 return me
@@ -88,7 +88,6 @@ class GlobalEffects:
 
     def mark_power_bonus(self, team: str, skill: Skill) -> int:
         """印记威力加成。"""
-        from backend.vm.effect import MarkEffect
         total = 0
         for me in self.mark_effects.get(team, []):
             if isinstance(me, MarkEffect) and me.is_positive and me.power_bonus:
@@ -99,7 +98,6 @@ class GlobalEffects:
 
     def mark_damage_mult(self, team: str, is_first: bool) -> float:
         """印记伤害倍率。"""
-        from backend.vm.effect import MarkEffect
         mult = 1.0
         for me in self.mark_effects.get(team, []):
             if not isinstance(me, MarkEffect) or not me.damage_mult:
@@ -111,7 +109,6 @@ class GlobalEffects:
 
     def mark_speed_penalty(self, team: str) -> int:
         """减速印记速度惩罚。"""
-        from backend.vm.effect import MarkEffect
         total = 0
         for me in self.mark_effects.get(team, []):
             if isinstance(me, MarkEffect) and me.speed_penalty:
@@ -120,7 +117,6 @@ class GlobalEffects:
 
     def mark_energy_mod(self, team: str) -> int:
         """印记能耗减免。"""
-        from backend.vm.effect import MarkEffect
         total = 0
         for me in self.mark_effects.get(team, []):
             if isinstance(me, MarkEffect) and me.energy_mod:
@@ -129,7 +125,6 @@ class GlobalEffects:
 
     def mark_switch_damage(self, team: str, sprite: Sprite) -> int:
         """印记进场伤害。"""
-        from backend.vm.effect import MarkEffect
         total = 0
         for me in self.mark_effects.get(team, []):
             if isinstance(me, MarkEffect) and me.switch_damage_pct:
@@ -138,7 +133,6 @@ class GlobalEffects:
 
     def mark_switch_energy_loss(self, team: str) -> int:
         """印记进场扣能。"""
-        from backend.vm.effect import MarkEffect
         total = 0
         for me in self.mark_effects.get(team, []):
             if isinstance(me, MarkEffect) and me.switch_energy_loss:
@@ -221,14 +215,11 @@ class GlobalEffects:
     def consume_starfall_stacks(self, team: str, amount: int, sprite: Sprite) -> int:
         """消耗星陨印记层数。若 sprite 有守望星 → 只消耗一半。
         返回实际消耗层数（用于伤害计算）。"""
-        from backend.vm.effect import MarkEffect
-
         for me in self.mark_effects.get(team, []):
             if isinstance(me, MarkEffect) and me.name == '星陨印记' and me.stacks > 0:
                 total = me.stacks
                 consume = amount
                 if sprite is not None:
-                    from backend.vm.effect import ModifierEffect
                     for e in getattr(sprite, 'active_effects', []):
                         if isinstance(e, ModifierEffect) and e.attr == "starfall_consume_ratio":
                             consume = max(1, int(amount * e.value))
@@ -244,8 +235,6 @@ class GlobalEffects:
         """触发星陨印记：消耗全部层数，造成幻系魔法伤害。
         返回实际伤害值（0=无星陨或非攻击技能）。
         """
-        from backend.vm.effect import MarkEffect
-
         for me in self.mark_effects.get(team, []):
             if isinstance(me, MarkEffect) and me.name == '星陨印记' and me.stacks > 0:
                 total_stacks = me.stacks

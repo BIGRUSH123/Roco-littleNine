@@ -13,10 +13,10 @@ import numpy as np
 
 from backend.engine.ai.core.encoder import encode_battle_state
 from backend.engine.ai.core.evaluator import PolicyValueEvaluator, TorchEvaluator
+from backend.sim.action import Action
 
 if TYPE_CHECKING:
     from backend.engine.ai.core.model import ModularBattleNet
-    from backend.sim.action import Action
     from backend.sim.agent import Agent
     from backend.sim.battle import Battle
     from backend.sim.factory import SimFactory
@@ -135,8 +135,6 @@ def action_index_to_action(player: Player, action_idx: int) -> Action | None:
     gather，避免调用方无法区分"有效换宠"和"被迫聚能"导致
     MCTS 树边与实际动作不匹配。
     """
-    from backend.sim.action import Action
-
     if action_idx < 10:
         return Action(kind='skill', skill_index=action_idx)
     elif action_idx < 15:
@@ -154,14 +152,9 @@ def action_index_to_action(player: Player, action_idx: int) -> Action | None:
 
 def _bench_to_team_index(player: Player, bench_slot: int) -> int | None:
     """板凳槽位 → team 中的实际索引（固定槽位，不跳过力竭）。"""
-    count = 0
-    for i, s in enumerate(player.team):
-        if i == player.active_index:
-            continue
-        if count == bench_slot:
-            return i
-        count += 1
-    return None
+    active_idx = player.active_index
+    team_idx = bench_slot if bench_slot < active_idx else bench_slot + 1
+    return team_idx if 0 <= team_idx < len(player.team) else None
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -249,8 +242,6 @@ class NetworkPolicyAgent:
         return policy_select_idx(p, self._temperature, self._greedy)
 
     def choose_action(self, battle):
-        from backend.sim.action import Action
-
         idx = self._decide(battle)
         if idx is None:
             player = battle.player_b
@@ -562,8 +553,6 @@ def _step_battle(
 
     使用 FixedAgent 包装双方，使 execute_turn 按预定动作执行。
     """
-    from backend.sim.action import Action
-
     player_a = battle.player_a
     action_a = action_index_to_action(player_a, action_idx)
     # bench 精灵可能已力竭导致换宠动作失效。此时返回 False

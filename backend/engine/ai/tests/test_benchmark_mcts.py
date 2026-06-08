@@ -9,6 +9,7 @@ from backend.engine.ai.core.encoder import encode_battle_state
 from backend.engine.ai.core.mcts import (
     NetworkPolicyAgent,
     _step_battle,
+    action_index_to_action,
     get_valid_actions,
     mcts_search,
     policy_select_idx,
@@ -94,6 +95,18 @@ def test_get_valid_actions_matches_mask_nonzero_indices():
     valid, mask = get_valid_actions(battle.player_a, battle)
 
     assert valid == np.flatnonzero(mask > 0).tolist()
+
+
+def test_action_index_to_action_uses_fixed_bench_slot_mapping():
+    factory = SimFactory()
+    battle = _fixed_battle(factory)
+    player = battle.player_a
+
+    player.active_index = 0
+    assert action_index_to_action(player, 10).switch_index == 1
+
+    player.active_index = 1
+    assert action_index_to_action(player, 10).switch_index == 0
 
 
 def test_policy_select_idx_handles_empty_and_greedy_probs():

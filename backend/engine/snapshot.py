@@ -11,6 +11,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
+from backend.sim.resolver import _TYPE_CHART
 from backend.vm.ctx import Ctx, EventContext
 
 if TYPE_CHECKING:
@@ -23,8 +24,6 @@ def _get_element_advantage(atk_element: str, def_elements: list[str]) -> float:
 
     Returns 0.5 (resist), 1.0 (neutral), 2.0 (super effective), etc.
     """
-    from backend.sim.resolver import _TYPE_CHART
-
     if not atk_element or not def_elements:
         return 1.0
     chart = _TYPE_CHART.get(atk_element, {})
@@ -50,11 +49,15 @@ def _collect_skill_summary(sprite: Sprite) -> tuple[frozenset, dict[str, int], i
     energy_sum = 0
     zero_cost_count = 0
     for sk in skills:
-        el = getattr(sk, 'element', None)
+        try:
+            el = sk.element
+            cost = sk.energy_cost
+        except AttributeError:
+            el = getattr(sk, 'element', None)
+            cost = getattr(sk, 'energy_cost', 0)
         if el:
             elements.add(el)
             element_counts[el] = element_counts.get(el, 0) + 1
-        cost = getattr(sk, 'energy_cost', 0)
         energy_sum += cost
         if cost == 0:
             zero_cost_count += 1
@@ -130,10 +133,15 @@ def build_ctx(
 
     # ── Self sprite ──
     ss = self_sprite
+    ss_mods = ss._modifiers
+    ss_stats = ss.initial_stats
+    ss_counters = ss.counters
     hp_self = ss.current_hp
     hp_self_max = ss.max_hp
     hp_self_ratio = hp_self / hp_self_max if hp_self_max > 0 else 0.0
-    priority_self = int(ss._modifiers.get("priority", 0))
+    priority_self = int(ss_mods.get("priority", 0))
+    species_self = getattr(ss, 'species', None)
+    elements_self = tuple(species_self.elements) if species_self else ()
 
     # 单次遍历 active_effects，同时提取 stat_stages/abnormal_stacks/charging/charged/positive_count
     stat_self = _extract_sprite_effects(ss)
@@ -155,9 +163,13 @@ def build_ctx(
 
     # ── Opponent sprite ──
     os = opp_sprite
+    os_mods = os._modifiers
+    os_stats = os.initial_stats
     hp_opp = os.current_hp
     hp_opp_max = os.max_hp
     hp_opp_ratio = hp_opp / hp_opp_max if hp_opp_max > 0 else 0.0
+    species_opp = getattr(os, 'species', None)
+    elements_opp = tuple(species_opp.elements) if species_opp else ()
 
     stat_opp = _extract_sprite_effects(os)
     stat_stages_opp = stat_opp["stages"]
@@ -190,11 +202,13 @@ def build_ctx(
         for m in pos_own + neg_own:
             mark_stacks_own[m.name] = mark_stacks_own.get(m.name, 0) + m.stacks
             mark_count_own += m.stacks
+            if m.damage_mult:
+                cond = m.condition
+                if cond == '' or (cond == 'is_first' and is_first) or (cond == 'not_first' and not is_first):
+                    mark_bonus_own += m.damage_mult * m.stacks
         for m in pos_opp + neg_opp:
             mark_stacks_opp[m.name] = mark_stacks_opp.get(m.name, 0) + m.stacks
             mark_count_opp += m.stacks
-        mark_mult = g.mark_damage_mult(own_team, is_first)
-        mark_bonus_own = mark_mult - 1.0
 
     weather = g.weather if g else ""
 
@@ -212,8 +226,8 @@ def build_ctx(
         power_self = sk.power if hasattr(sk, 'power') else 0
         combo_base = sk.combo if hasattr(sk, 'combo') else 1
         energy_cost_self = sk.energy_cost if hasattr(sk, 'energy_cost') else 0
-    combo_mod = int(ss._modifiers.get("combo", 0))
-    combo_set = int(ss._modifiers.get("combo_set", 0))
+    combo_mod = int(ss_mods.get("combo", 0))
+    combo_set = int(ss_mods.get("combo_set", 0))
     # combo_mult 不在 snapshot 阶段乘入 — 留给 adjust_damage 在
     # 同技能 combo 修改（set/add）之后再乘，确保正确的执行顺序。
     combo_self = max(1, combo_set) if combo_set > 0 else max(1, combo_base + combo_mod)
@@ -254,8 +268,8 @@ def build_ctx(
         # Bloodline / Elements
         bloodline_self=getattr(ss, 'bloodline', ''),
         bloodline_opp=getattr(os, 'bloodline', '') if os else '',
-        elements_self=tuple(getattr(ss, 'species', None).elements) if getattr(ss, 'species', None) else (),
-        elements_opp=tuple(getattr(os, 'species', None).elements) if os and getattr(os, 'species', None) else (),
+        elements_self=elements_self,
+        elements_opp=elements_opp,
         # Self sprite
         hp_self=hp_self,
         hp_self_ratio=hp_self_ratio,
@@ -265,24 +279,24 @@ def build_ctx(
         # Use initial_stats (base without stage multipliers) because
         # calc_damage applies stat_stages separately in the formula.
         # Apply _modifiers multipliers for mult_mod {attr: atk/def/etc.}
-        atk_self=round(ss.initial_stats.get("atk", 100) * (1.0 + ss._modifiers.get("atk", 0))),
-        def_self=round(ss.initial_stats.get("def", 100) * (1.0 + ss._modifiers.get("def", 0))),
-        sp_atk_self=round(ss.initial_stats.get("sp_atk", 100) * (1.0 + ss._modifiers.get("sp_atk", 0))),
-        sp_def_self=round(ss.initial_stats.get("sp_def", 100) * (1.0 + ss._modifiers.get("sp_def", 0))),
+        atk_self=round(ss_stats.get("atk", 100) * (1.0 + ss_mods.get("atk", 0))),
+        def_self=round(ss_stats.get("def", 100) * (1.0 + ss_mods.get("def", 0))),
+        sp_atk_self=round(ss_stats.get("sp_atk", 100) * (1.0 + ss_mods.get("sp_atk", 0))),
+        sp_def_self=round(ss_stats.get("sp_def", 100) * (1.0 + ss_mods.get("sp_def", 0))),
         speed_self=_compute_speed_self(ss),
         # Sprite + skill modifier delta 相加（同类型 buff 加性叠加，非相乘）
         damage_reduction_self=min(1.0,
-            ss._modifiers.get("damage_reduction", 0.0)
+            ss_mods.get("damage_reduction", 0.0)
             + skill_mods.get("damage_reduction", 0.0)),
         power_mult_self=1.0
-            + (ss._modifiers.get("power_mult", 1.0) - 1.0)
+            + (ss_mods.get("power_mult", 1.0) - 1.0)
             + (skill_mods.get("power_mult", 1.0) - 1.0),
         damage_mult_self=1.0
-            + (ss._modifiers.get("damage_mult", 1.0) - 1.0)
+            + (ss_mods.get("damage_mult", 1.0) - 1.0)
             + (skill_mods.get("damage_mult", 1.0) - 1.0),
-        energy_cost_mult_self=ss._modifiers.get("energy_cost_mult", 0.0),
-        combo_mult_self=ss._modifiers.get("combo_mult", 0.0),
-        life_drain_self=ss._modifiers.get("life_drain", 0.0),
+        energy_cost_mult_self=ss_mods.get("energy_cost_mult", 0.0),
+        combo_mult_self=ss_mods.get("combo_mult", 0.0),
+        life_drain_self=ss_mods.get("life_drain", 0.0),
         abnormal_count_self=sum(abnormal_stacks_self.values()),
         abnormal_stacks_self=abnormal_stacks_self,
         positive_count_self=positive_count_self,
@@ -291,8 +305,8 @@ def build_ctx(
         charged_self=charged_self,
         is_charging_self=is_charging_self,
         is_charging_opp=is_charging_opp,
-        times_entered_self=ss.counters.get("times_entered", 0),
-        times_left_self=ss.counters.get("times_left", 0),
+        times_entered_self=ss_counters.get("times_entered", 0),
+        times_left_self=ss_counters.get("times_left", 0),
         elements_used_count_self=elements_used_count_self,
         skills_energy_sum_self=skills_energy_sum_self,
         just_entered=getattr(ss, 'entry_turn', -1) == turn and turn >= 0,
@@ -309,14 +323,14 @@ def build_ctx(
         hp_opp_max=hp_opp_max,
         energy_opp=os.energy,
         # Use initial_stats for non-speed stats (see self-sprite comment above)
-        atk_opp=os.initial_stats.get("atk", 100),
-        def_opp=os.initial_stats.get("def", 100),
-        sp_atk_opp=os.initial_stats.get("sp_atk", 100),
-        sp_def_opp=os.initial_stats.get("sp_def", 100),
-        speed_opp=os.effective_stat("speed") if hasattr(os, 'effective_stat') else os.initial_stats.get("speed", 100),
-        damage_reduction_opp=os._modifiers.get("damage_reduction", 0.0),
-        power_mult_opp=os._modifiers.get("power_mult", 1.0),
-        damage_mult_opp=os._modifiers.get("damage_mult", 1.0),
+        atk_opp=os_stats.get("atk", 100),
+        def_opp=os_stats.get("def", 100),
+        sp_atk_opp=os_stats.get("sp_atk", 100),
+        sp_def_opp=os_stats.get("sp_def", 100),
+        speed_opp=os.effective_stat("speed") if hasattr(os, 'effective_stat') else os_stats.get("speed", 100),
+        damage_reduction_opp=os_mods.get("damage_reduction", 0.0),
+        power_mult_opp=os_mods.get("power_mult", 1.0),
+        damage_mult_opp=os_mods.get("damage_mult", 1.0),
         abnormal_count_opp=sum(abnormal_stacks_opp.values()),
         abnormal_stacks_opp=abnormal_stacks_opp,
         positive_count_opp=positive_count_opp,
@@ -361,7 +375,7 @@ def build_ctx(
         combo_self=combo_self,
         element_advantage=_get_element_advantage(
             getattr(sk, 'element', ''),
-            [e.strip() for e in (getattr(os.species, 'attributes', '') or '').split(',') if e.strip()]
+            elements_opp,
         ) if sk else 1.0,
         energy_cost_self=energy_cost_self,
         energy_cost_reduction_self=energy_cost_reduction_self,
