@@ -7,7 +7,9 @@ import numpy as np
 from backend.engine.ai.benchmark_mcts import _fixed_battle, run_benchmark
 from backend.engine.ai.core.encoder import encode_battle_state
 from backend.engine.ai.core.mcts import (
+    MCTSNode,
     NetworkPolicyAgent,
+    NUM_ACTIONS,
     _step_battle,
     action_index_to_action,
     get_valid_actions,
@@ -95,6 +97,31 @@ class _CountingOpponent:
 class _EvaluateOnlyEvaluator:
     def evaluate(self, state: dict, mask: np.ndarray) -> tuple[float, np.ndarray]:
         return 0.0, _UniformEvaluator._probs(mask)
+
+
+class _InvalidBiasedEvaluator:
+    def evaluate(self, state: dict, mask: np.ndarray) -> tuple[float, np.ndarray]:
+        probs = np.zeros(NUM_ACTIONS, dtype=np.float32)
+        probs[0] = 1.0
+        invalid = np.flatnonzero(mask <= 0)
+        if len(invalid):
+            probs[int(invalid[-1])] = 100.0
+        total = probs.sum()
+        return 0.0, probs / total
+
+
+def test_mcts_node_children_are_action_index_aligned():
+    prior = np.zeros(NUM_ACTIONS, dtype=np.float32)
+    root = MCTSNode([2, 14], prior)
+    child = MCTSNode([], prior)
+
+    root.children[14] = child
+
+    assert len(root.children) == NUM_ACTIONS
+    assert root.children[14] is child
+    assert root.children[13] is None
+    assert root.children[0] is None
+    assert root.has_children
 
 
 def test_mcts_benchmark_smoke():
@@ -295,6 +322,29 @@ def test_mcts_non_network_opponent_does_not_require_batch_evaluator():
 
     assert opponent.choose_action_calls > 0
     assert policy.shape == (17,)
+    np.testing.assert_allclose(policy.sum(), 1.0)
+
+
+def test_mcts_ignores_invalid_action_priors():
+    factory = SimFactory()
+    battle = _fixed_battle(factory)
+    valid, mask = get_valid_actions(battle.player_a, battle)
+
+    policy = mcts_search(
+        battle,
+        None,
+        factory,
+        _CountingOpponent(),
+        num_simulations=3,
+        root_noise=0.0,
+        max_turns=4,
+        evaluator=_InvalidBiasedEvaluator(),
+    )
+
+    invalid = np.flatnonzero(mask <= 0)
+    assert valid
+    assert policy.shape == (NUM_ACTIONS,)
+    assert np.all(policy[invalid] == 0.0)
     np.testing.assert_allclose(policy.sum(), 1.0)
 
 

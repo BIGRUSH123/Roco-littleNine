@@ -349,7 +349,7 @@ class MCTSNode:
         self.visit_count = 0
         self.total_value = 0.0
         self.prior = prior
-        self.children: dict[int, MCTSNode] = {}
+        self.children: list[MCTSNode | None] = [None] * NUM_ACTIONS
         self.valid_actions = valid_actions
         self.opp_policy: np.ndarray | None = None
 
@@ -358,6 +358,10 @@ class MCTSNode:
         if self.visit_count == 0:
             return 0.0
         return self.total_value / self.visit_count
+
+    @property
+    def has_children(self) -> bool:
+        return bool(self.valid_actions)
 
 
 def mcts_search(
@@ -483,12 +487,12 @@ def mcts_search(
                         path: list[tuple[MCTSNode, int]] = []
                         step_ok = True
 
-                        while node.children:
+                        while node.has_children:
                             best_a = -1
                             best_score = -1e9
                             sqrt_n = math.sqrt(node.visit_count + 1)
                             for a in node.valid_actions:
-                                child = node.children.get(a)
+                                child = node.children[a]
                                 if child is None:
                                     continue
                                 q = child.value
@@ -585,12 +589,12 @@ def mcts_search(
                 # 叶子节点判定：有无 children（不再依赖 visit_count > 0）。
                 # 根节点的 children 已预铺空壳，首轮即可正常选路。
                 step_ok = True
-                while node.children:
+                while node.has_children:
                     best_a = -1
                     best_score = -1e9
                     sqrt_n = math.sqrt(node.visit_count + 1)
                     for a in node.valid_actions:
-                        child = node.children.get(a)
+                        child = node.children[a]
                         if child is None:
                             continue
                         q = child.value
@@ -677,7 +681,7 @@ def mcts_search(
     # ── 输出动作概率 ──
     counts = np.zeros(NUM_ACTIONS, dtype=np.float32)
     for a in root.valid_actions:
-        child = root.children.get(a)
+        child = root.children[a]
         if child:
             counts[a] = float(child.visit_count)
     total = counts.sum()
