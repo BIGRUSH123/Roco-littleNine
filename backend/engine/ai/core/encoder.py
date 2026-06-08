@@ -329,14 +329,18 @@ def _fill_bench_entities(
     """
     team: list = player.team or []
     active_idx: int = getattr(player, 'active_index', 0)
-    bench = [s for i, s in enumerate(team) if i != active_idx]
+    if mask_unknown:
+        return
 
-    for slot in range(5):
-        if mask_unknown or slot >= len(bench):
+    slot = 0
+    for team_idx, sprite in enumerate(team):
+        if team_idx == active_idx:
             continue  # 保持全零
-        sprite = bench[slot]
+        if slot >= 5:
+            break
         _fill_sprite_entity(battle, start_idx + slot, sprite, stats, elements, states)
         _fill_bench_skill_summary(sprite, opp_active, states[start_idx + slot])
+        slot += 1
 
 
 def _type_advantage(atk_element: str, def_element: str) -> float:
