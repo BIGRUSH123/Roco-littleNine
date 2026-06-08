@@ -397,6 +397,29 @@ def test_enum_token_lookup_is_cached():
     assert encoder_module._ENUM_TOKEN_CACHE[key] == "ATTR_POWER"
 
 
+def test_skill_effect_ast_flattening_is_cached(monkeypatch):
+    encoder_module._skill_effects_cache.clear()
+    encoder_module._skill_flat_effects_cache.clear()
+    encoder_module._skill_effects_cache["__cache_test__"] = [
+        {"op": "heal", "target": "sprite_self", "amount": 1},
+    ]
+    calls = {"count": 0}
+    original = encoder_module.tokenize_effect_dfs
+
+    def counted(effect):
+        calls["count"] += 1
+        return original(effect)
+
+    monkeypatch.setattr(encoder_module, "tokenize_effect_dfs", counted)
+
+    first = encoder_module._get_flat_skill_effect_tokens("__cache_test__")
+    second = encoder_module._get_flat_skill_effect_tokens("__cache_test__")
+
+    assert first == second
+    assert calls["count"] == 1
+    assert "__cache_test__" in encoder_module._skill_flat_effects_cache
+
+
 if __name__ == "__main__":
     for name, fn in list(globals().items()):
         if name.startswith("test_") and callable(fn):

@@ -129,7 +129,7 @@ _ABNORMAL_MAX: dict[str, int] = {
 # 技能效果惰性缓存
 _skills_dir: Path | None = None
 _skill_effects_cache: dict[str, list] = {}
-_skill_flat_effects_cache: dict[str, list] = {}
+_skill_flat_effects_cache: dict[str, tuple[tuple[str, ...], tuple[float, ...]]] = {}
 
 # AST 序列截断上限
 MAX_SEQ_LEN = 384
@@ -521,6 +521,23 @@ def _get_skill_effects(name: str) -> list[dict]:
         return []
 
 
+def _get_flat_skill_effect_tokens(name: str) -> tuple[tuple[str, ...], tuple[float, ...]]:
+    cached = _skill_flat_effects_cache.get(name)
+    if cached is not None:
+        return cached
+
+    tokens: list[str] = []
+    values: list[float] = []
+    for eff in _get_skill_effects(name):
+        t, v = tokenize_effect_dfs(eff)
+        tokens.extend(t)
+        values.extend(v)
+
+    cached = (tuple(tokens), tuple(values))
+    _skill_flat_effects_cache[name] = cached
+    return cached
+
+
 # ═══════════════════════════════════════════════════════════════════
 # AST 序列收集
 # ═══════════════════════════════════════════════════════════════════
@@ -559,8 +576,6 @@ def _collect_ast_tokens(
             continue
 
         sk = skills[i]
-        effects = _get_skill_effects(sk.name)
-
         if sk.sealed or sk.cooldown > 0:
             all_tokens.append("<SEALED_SKILL>")
             all_values.append(1.0 if sk.sealed else 0.5)
@@ -568,10 +583,9 @@ def _collect_ast_tokens(
             all_tokens.append("<ACTIVE_SKILL>")
             all_values.append(1.0)
 
-        for eff in effects:
-            t, v = tokenize_effect_dfs(eff)
-            all_tokens.extend(t)
-            all_values.extend(v)
+        t, v = _get_flat_skill_effect_tokens(sk.name)
+        all_tokens.extend(t)
+        all_values.extend(v)
 
     for eff in getattr(active, 'active_effects', []) or []:
         # 实体级安全截断
