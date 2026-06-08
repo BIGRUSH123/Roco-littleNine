@@ -21,6 +21,19 @@ if TYPE_CHECKING:
     from .player import Player
     from .sprite import Sprite
 
+_GATHER_ACTION = Action(kind='gather')
+_ITEM_ACTION = Action(kind='item')
+_SKILL_ACTIONS = tuple(Action(kind='skill', skill_index=i) for i in range(10))
+_SWITCH_ACTIONS = tuple(Action(kind='switch', switch_index=i) for i in range(6))
+
+
+def _skill_action(index: int) -> Action:
+    return _SKILL_ACTIONS[index] if 0 <= index < len(_SKILL_ACTIONS) else Action(kind='skill', skill_index=index)
+
+
+def _switch_action(index: int) -> Action:
+    return _SWITCH_ACTIONS[index] if 0 <= index < len(_SWITCH_ACTIONS) else Action(kind='switch', switch_index=index)
+
 
 class Agent(Protocol):
     """决策代理协议。"""
@@ -72,30 +85,30 @@ class RuleAgent:
         if s.is_fainted:
             replacement = p.find_replacement()
             if replacement is not None:
-                return Action(kind='switch', switch_index=replacement)
-            return Action(kind='gather')
+                return _switch_action(replacement)
+            return _GATHER_ACTION
 
         # 道具使用（进化之力仅首领血脉可用，愿力仅元素血脉可用）
         item = p.item
         if item and item.can_use(battle.turn):
             if item.name == '进化之力' and battle.turn <= 2 and s.bloodline == '首领':
-                return Action(kind='item')
+                return _ITEM_ACTION
             if item.name == '愿力':
                 hp_ratio = s.current_hp / s.max_hp if s.max_hp > 0 else 0
                 if hp_ratio < 0.5 and style.aggression > 0.4 and s.bloodline in ELEMENTAL_BLOODLINES:
-                    return Action(kind='item')
+                    return _ITEM_ACTION
 
         # 低 HP → 可能换宠
         hp_ratio = s.current_hp / s.max_hp if s.max_hp > 0 else 0
         if hp_ratio < style.switch_hp_threshold:
             replacement = p.find_replacement()
             if replacement is not None:
-                return Action(kind='switch', switch_index=replacement)
+                return _switch_action(replacement)
 
         # 低能量 → 聚能（蓄力中除外，蓄力技能必须释放）
         has_charging = getattr(s, '_charging', False)
         if s.energy <= style.gather_energy_threshold and not has_charging:
-            return Action(kind='gather')
+            return _GATHER_ACTION
 
         # 蓄力中：强制释放蓄力技能（游弋/嫉妒 可任选）
         if has_charging:
@@ -107,7 +120,7 @@ class RuleAgent:
             if free_charge and charged_idx < 0:
                 pass  # fall through to normal skill selection
             elif 0 <= charged_idx < len(s.skills) and not s.skills[charged_idx].sealed:
-                return Action(kind='skill', skill_index=charged_idx)
+                return _skill_action(charged_idx)
 
         opponent = battle.get_opponent(self.team).active
 
@@ -144,15 +157,15 @@ class RuleAgent:
                 best_idx = i
 
         if best_idx >= 0:
-            return Action(kind='skill', skill_index=best_idx)
+            return _skill_action(best_idx)
 
         # 无可用技能 → 聚能或换宠
         if s.energy < 10:
-            return Action(kind='gather')
+            return _GATHER_ACTION
         replacement = p.find_replacement()
         if replacement is not None:
-            return Action(kind='switch', switch_index=replacement)
-        return Action(kind='gather')
+            return _switch_action(replacement)
+        return _GATHER_ACTION
 
     def choose_replacement(self, battle: Battle) -> int:
         """力竭换宠：选对对手威胁最大的存活精灵。"""
