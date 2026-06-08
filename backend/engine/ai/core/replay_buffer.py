@@ -92,17 +92,46 @@ class DictReplayBuffer:
         if n == 0:
             return 0
 
-        for i in range(n):
-            idx = (self.ptr + i) % self.capacity
-            for key in _OBS_KEYS:
-                self.buffers[key][idx] = states[i][key]
-            self.policy_buffer[idx] = policies[i]
-            self.mask_buffer[idx] = masks[i]
-            self.outcome_buffer[idx] = outcomes[i]
+        original_n = n
+        start = self.ptr
+        if n > self.capacity:
+            skip = n - self.capacity
+            states = states[skip:n]
+            policies = policies[skip:n]
+            masks = masks[skip:n]
+            outcomes = outcomes[skip:n]
+            n = self.capacity
+            start = (start + skip) % self.capacity
 
-        self.ptr = (self.ptr + n) % self.capacity
-        self.size = min(self.size + n, self.capacity)
-        return n
+        end = start + n
+        if end <= self.capacity:
+            target = slice(start, end)
+            for key in _OBS_KEYS:
+                self.buffers[key][target] = np.stack(
+                    [state[key] for state in states], axis=0,
+                )
+            self.policy_buffer[target] = policies
+            self.mask_buffer[target] = masks
+            self.outcome_buffer[target] = outcomes
+        else:
+            first = self.capacity - start
+            second = n - first
+            first_target = slice(start, self.capacity)
+            second_target = slice(0, second)
+            for key in _OBS_KEYS:
+                stacked = np.stack([state[key] for state in states], axis=0)
+                self.buffers[key][first_target] = stacked[:first]
+                self.buffers[key][second_target] = stacked[first:]
+            self.policy_buffer[first_target] = policies[:first]
+            self.policy_buffer[second_target] = policies[first:]
+            self.mask_buffer[first_target] = masks[:first]
+            self.mask_buffer[second_target] = masks[first:]
+            self.outcome_buffer[first_target] = outcomes[:first]
+            self.outcome_buffer[second_target] = outcomes[first:]
+
+        self.ptr = (start + n) % self.capacity
+        self.size = min(self.size + original_n, self.capacity)
+        return original_n
 
     # ── 采样 ──
 

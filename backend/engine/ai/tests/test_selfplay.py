@@ -339,6 +339,58 @@ def test_train_rl_smoke_uses_replay_buffer_batches():
     assert 0.0 <= history[0]["val_acc"] <= 1.0
 
 
+def test_replay_buffer_push_batch_wraps_vectorized_writes():
+    replay = DictReplayBuffer(capacity=3)
+
+    def state_with_marker(value: float):
+        state = {
+            key: np.zeros(buffer.shape[1:], dtype=buffer.dtype)
+            for key, buffer in replay.buffers.items()
+        }
+        state["global_stats"][0] = value
+        return state
+
+    states = [state_with_marker(float(i)) for i in range(5)]
+    policies = np.zeros((5, NUM_ACTIONS), dtype=np.float32)
+    masks = np.ones((5, NUM_ACTIONS), dtype=np.float32)
+    outcomes = np.arange(5, dtype=np.float32)
+
+    assert replay.push_batch(states[:2], policies[:2], masks[:2], outcomes[:2]) == 2
+    assert replay.ptr == 2
+    assert replay.size == 2
+
+    assert replay.push_batch(states[2:], policies[2:], masks[2:], outcomes[2:]) == 3
+
+    assert replay.ptr == 2
+    assert replay.size == 3
+    np.testing.assert_allclose(replay.buffers["global_stats"][:, 0], [3.0, 4.0, 2.0])
+    np.testing.assert_allclose(replay.outcome_buffer, [3.0, 4.0, 2.0])
+
+
+def test_replay_buffer_push_batch_keeps_last_entries_when_batch_exceeds_capacity():
+    replay = DictReplayBuffer(capacity=3)
+    template = {
+        key: np.zeros(buffer.shape[1:], dtype=buffer.dtype)
+        for key, buffer in replay.buffers.items()
+    }
+    states = []
+    for i in range(5):
+        state = {key: value.copy() for key, value in template.items()}
+        state["global_stats"][0] = float(i)
+        states.append(state)
+
+    policies = np.zeros((5, NUM_ACTIONS), dtype=np.float32)
+    masks = np.ones((5, NUM_ACTIONS), dtype=np.float32)
+    outcomes = np.arange(5, dtype=np.float32)
+
+    assert replay.push_batch(states, policies, masks, outcomes) == 5
+
+    assert replay.ptr == 2
+    assert replay.size == 3
+    np.testing.assert_allclose(replay.buffers["global_stats"][:, 0], [3.0, 4.0, 2.0])
+    np.testing.assert_allclose(replay.outcome_buffer, [3.0, 4.0, 2.0])
+
+
 def test_advise_single_smoke():
     factory = SimFactory()
     sprite_skills = _load_sprite_skills()
