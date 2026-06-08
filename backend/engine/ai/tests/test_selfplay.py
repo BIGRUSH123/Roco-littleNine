@@ -400,6 +400,7 @@ def test_enum_token_lookup_is_cached():
 def test_skill_effect_ast_flattening_is_cached(monkeypatch):
     encoder_module._skill_effects_cache.clear()
     encoder_module._skill_flat_effects_cache.clear()
+    encoder_module._skill_flat_effect_ids_cache.clear()
     encoder_module._skill_effects_cache["__cache_test__"] = [
         {"op": "heal", "target": "sprite_self", "amount": 1},
     ]
@@ -414,10 +415,16 @@ def test_skill_effect_ast_flattening_is_cached(monkeypatch):
 
     first = encoder_module._get_flat_skill_effect_tokens("__cache_test__")
     second = encoder_module._get_flat_skill_effect_tokens("__cache_test__")
+    first_ids = encoder_module._get_flat_skill_effect_token_ids("__cache_test__")
+    second_ids = encoder_module._get_flat_skill_effect_token_ids("__cache_test__")
 
     assert first == second
+    assert first_ids == second_ids
+    assert first_ids[0] == tuple(encoder_module.VOCAB_TO_ID.get(token, encoder_module.VOCAB_TO_ID["<UNK>"]) for token in first[0])
+    assert first_ids[1] == first[1]
     assert calls["count"] == 1
     assert "__cache_test__" in encoder_module._skill_flat_effects_cache
+    assert "__cache_test__" in encoder_module._skill_flat_effect_ids_cache
 
 
 if __name__ == "__main__":

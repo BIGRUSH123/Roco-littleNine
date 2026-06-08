@@ -130,6 +130,7 @@ _ABNORMAL_MAX: dict[str, int] = {
 _skills_dir: Path | None = None
 _skill_effects_cache: dict[str, list] = {}
 _skill_flat_effects_cache: dict[str, tuple[tuple[str, ...], tuple[float, ...]]] = {}
+_skill_flat_effect_ids_cache: dict[str, tuple[tuple[int, ...], tuple[float, ...]]] = {}
 
 # AST 序列截断上限
 MAX_SEQ_LEN = 384
@@ -192,19 +193,19 @@ def encode_battle_state(
     _fill_global_entity(battle, own_team, own, opp, global_stats, global_elements)
 
     # ====== 4. AST 序列 ======
-    all_tokens: list[str] = []
+    all_tokens: list[int] = []
     all_values: list[float] = []
-    _collect_ast_tokens(own, opp, all_tokens, all_values, mask_opp_bench=mask_opp_bench)
+    _collect_ast_token_ids(own, opp, all_tokens, all_values, mask_opp_bench=mask_opp_bench)
     # 安全截断已在 _collect_ast_tokens 内部按实体边界完成
     # 这里做硬截断兜底：极端嵌套技能（多层 when-then-else）单次可能
     # 产生 >SAFE_MARGIN 个 token，导致 i >= MAX_SEQ_LEN → IndexError
 
     ast_tokens = np.zeros(MAX_SEQ_LEN, dtype=np.int32)
     ast_values = np.zeros(MAX_SEQ_LEN, dtype=np.float32)
-    for i, (tok_str, val) in enumerate(zip(all_tokens, all_values)):
+    for i, (tok_id, val) in enumerate(zip(all_tokens, all_values)):
         if i >= MAX_SEQ_LEN:
             break
-        ast_tokens[i] = VOCAB_TO_ID.get(tok_str, VOCAB_TO_ID["<UNK>"])
+        ast_tokens[i] = tok_id
         ast_values[i] = val
 
     return {
@@ -542,6 +543,21 @@ def _get_flat_skill_effect_tokens(name: str) -> tuple[tuple[str, ...], tuple[flo
 # AST 序列收集
 # ═══════════════════════════════════════════════════════════════════
 
+def _token_id(token: str) -> int:
+    return VOCAB_TO_ID.get(token, VOCAB_TO_ID["<UNK>"])
+
+
+def _get_flat_skill_effect_token_ids(name: str) -> tuple[tuple[int, ...], tuple[float, ...]]:
+    cached = _skill_flat_effect_ids_cache.get(name)
+    if cached is not None:
+        return cached
+
+    tokens, values = _get_flat_skill_effect_tokens(name)
+    cached = (tuple(_token_id(token) for token in tokens), values)
+    _skill_flat_effect_ids_cache[name] = cached
+    return cached
+
+
 def _collect_ast_tokens(
     own: Player, opp: Player,
     all_tokens: list[str], all_values: list[float],
@@ -613,6 +629,70 @@ def _collect_ast_tokens(
 # ═══════════════════════════════════════════════════════════════════
 # IR 展平解析器 — 将 effect dict 树序列化为 token + value 双数组
 # ═══════════════════════════════════════════════════════════════════
+
+def _collect_ast_token_ids(
+    own: Player, opp: Player,
+    all_tokens: list[int], all_values: list[float],
+    *,
+    mask_opp_bench: bool = False,
+) -> None:
+    SAFE_MARGIN = 50
+
+    active: Sprite | None = _active_at_index(own)
+    if active is None:
+        return
+
+    skills: list = active.skills or []
+    sep_id = _token_id("<SEP>")
+    empty_skill_id = _token_id("<EMPTY_SKILL>")
+    sealed_skill_id = _token_id("<SEALED_SKILL>")
+    active_skill_id = _token_id("<ACTIVE_SKILL>")
+
+    for i in range(10):
+        if len(all_tokens) > MAX_SEQ_LEN - SAFE_MARGIN:
+            break
+
+        all_tokens.append(sep_id)
+        all_values.append(0.0)
+
+        if i >= len(skills) or skills[i] is None:
+            all_tokens.append(empty_skill_id)
+            all_values.append(0.0)
+            continue
+
+        sk = skills[i]
+        if sk.sealed or sk.cooldown > 0:
+            all_tokens.append(sealed_skill_id)
+            all_values.append(1.0 if sk.sealed else 0.5)
+        else:
+            all_tokens.append(active_skill_id)
+            all_values.append(1.0)
+
+        t, v = _get_flat_skill_effect_token_ids(sk.name)
+        all_tokens.extend(t)
+        all_values.extend(v)
+
+    for eff in getattr(active, 'active_effects', []) or []:
+        if len(all_tokens) > MAX_SEQ_LEN - SAFE_MARGIN:
+            break
+
+        if not isinstance(eff, ObserverEffect):
+            continue
+        observer_dict: dict = {"op": "observer"}
+        if eff.cond:
+            observer_dict["cond"] = eff.cond
+        if eff.then:
+            observer_dict["then"] = list(eff.then)
+        if eff.listen:
+            observer_dict["listen"] = list(eff.listen)
+        if eff.scope:
+            observer_dict["scope"] = eff.scope
+        all_tokens.append(sep_id)
+        all_values.append(0.0)
+        t, v = tokenize_effect_dfs(observer_dict)
+        all_tokens.extend(_token_id(token) for token in t)
+        all_values.extend(v)
+
 
 from backend.engine.ai.core.vocab import VOCAB_TO_ID, VAL_NUMERIC, VAL_STRING
 
