@@ -576,18 +576,18 @@ def _step_battle(
             action_b = action_index_to_action(player_b, opp_idx)
             if action_b is None:
                 action_b = _GATHER_ACTION
-        fixed_a = FixedAgent(action_a, _PlayerSwappedAgent(opponent_agent, player_a))
+        agent_a = _PlayerSwappedAgent(opponent_agent, player_a)
         fixed_b = _OppFixedAgent(action_b, battle.player_b)
         battle.execute_turn(
-            fixed_a,
+            agent_a,
             fixed_b,
             fixed_action_a=action_a,
             fixed_action_b=action_b,
         )
         return True
 
-    fixed_a = FixedAgent(action_a, _PlayerSwappedAgent(opponent_agent, player_a))
-    battle.execute_turn(fixed_a, opponent_agent)
+    agent_a = _PlayerSwappedAgent(opponent_agent, player_a)
+    battle.execute_turn(fixed_action_a=action_a, agent_a=agent_a, agent_b=opponent_agent)
     return True
 
 
