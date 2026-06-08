@@ -123,6 +123,9 @@ class Sprite:
     # ── stat 步数 ──
 
     def _sum_steps(self, stat_key: str, ignore_negative: bool = False, ignore_positive: bool = False) -> int:
+        if not ignore_negative and not ignore_positive:
+            return self.get_effects_snapshot()["stages"].get(stat_key, 0)
+
         from backend.vm.effect import StatBuffEffect
         total = 0
         for e in self.active_effects:
