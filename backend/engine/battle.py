@@ -472,9 +472,8 @@ class BattleVMEngine:
             effs = skill.effects
             if callable(effs):
                 effs = effs()
-            result = list(effs)
-            if result:
-                return result
+            if effs:
+                return effs
         return []
 
     def register_counter(self, mutation: CounterRegister, owner_sprite=None) -> None:

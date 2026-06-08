@@ -1130,6 +1130,12 @@ class Battle(BattleMechanicsMixin):
 
         opp_skill = countered_skill or countering_skill or opp_skill
         opp_team = 'B' if team == 'A' else 'A'
+        if getattr(self, '_mcts_sim', False):
+            team_counters_own = self.team_counters.get(team, {})
+            team_counters_opp = self.team_counters.get(opp_team, {})
+        else:
+            team_counters_own = dict(self.team_counters.get(team, {}))
+            team_counters_opp = dict(self.team_counters.get(opp_team, {}))
 
         result = self._vm_engine.execute_skill(
             user, target,
@@ -1142,8 +1148,8 @@ class Battle(BattleMechanicsMixin):
             skill_index=action.skill_index or 0,
             species_lookup=self.lookup_species_by_number,
             battle_skill=bs,
-            team_counters_own=dict(self.team_counters.get(team, {})),
-            team_counters_opp=dict(self.team_counters.get(opp_team, {})),
+            team_counters_own=team_counters_own,
+            team_counters_opp=team_counters_opp,
             battle=self,
             devotion_triggered=devotion_triggered,
         )

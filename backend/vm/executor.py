@@ -98,6 +98,7 @@ from .sort import sort_effects
 # ── Cached parser for dict → typed op compilation ──
 
 _parser = None
+_SORTED_EFFECTS_CACHE: dict[int, tuple[object, list]] = {}
 
 
 def _get_parser():
@@ -135,8 +136,20 @@ def execute(ctx: Ctx, effects, *, sort: bool = True) -> Journal:
     Accepts both typed SkillIROp lists and raw dict lists.
     """
     if sort:
-        effects = sort_effects(effects)
+        effects = _sort_effects_cached(effects)
     return process_effects(ctx, effects)
+
+
+def _sort_effects_cached(effects):
+    if type(effects) is not tuple:
+        return sort_effects(effects)
+    cache_key = id(effects)
+    cached = _SORTED_EFFECTS_CACHE.get(cache_key)
+    if cached is not None and cached[0] is effects:
+        return cached[1]
+    sorted_effects = sort_effects(effects)
+    _SORTED_EFFECTS_CACHE[cache_key] = (effects, sorted_effects)
+    return sorted_effects
 
 
 def process_effects(ctx: Ctx, effects) -> list[Mutation]:
