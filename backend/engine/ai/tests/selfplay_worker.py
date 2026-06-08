@@ -29,6 +29,7 @@ def run_selfplay_worker(
     game_timeout_s: float,
     gamma: float,
     tanh_k: float,
+    leaf_batch_size: int,
     mirror: bool,
     task_queue,
     request_queue,
@@ -76,6 +77,7 @@ def run_selfplay_worker(
                     draw_margin=draw_margin,
                     game_timeout_s=game_timeout_s,
                     gamma=gamma, tanh_k=tanh_k,
+                    leaf_batch_size=leaf_batch_size,
                     mirror=mirror,
                 )
                 # states 现在是 list[dict[str, np.ndarray]]，无需 stack
@@ -112,6 +114,7 @@ def run_evaluate_worker(
     draw_margin: float,
     progress_every: int,
     game_timeout_s: float,
+    leaf_batch_size: int,
     task_queue,
     request_queue,
     candidate_reply_q,
@@ -156,6 +159,7 @@ def run_evaluate_worker(
                     game_index, num_simulations, max_turns,
                     draw_margin=draw_margin,
                     game_timeout_s=game_timeout_s,
+                    leaf_batch_size=leaf_batch_size,
                 )
                 result_queue.put(("game", worker_id, float(score), None))
 

@@ -28,9 +28,11 @@ def _assert_encoded_equal(left: dict[str, np.ndarray], right: dict[str, np.ndarr
 
 class _UniformEvaluator:
     def __init__(self) -> None:
+        self.evaluate_calls = 0
         self.evaluate_batch_calls = 0
 
     def evaluate(self, state: dict, mask: np.ndarray) -> tuple[float, np.ndarray]:
+        self.evaluate_calls += 1
         return 0.0, self._probs(mask)
 
     def evaluate_batch(
@@ -50,6 +52,24 @@ class _UniformEvaluator:
         probs = mask.astype(np.float32).copy()
         total = probs.sum()
         return probs / total if total > 0 else probs
+
+
+class _MarkedEvaluator(_UniformEvaluator):
+    def __init__(self, mark: float) -> None:
+        super().__init__()
+        self.mark = mark
+
+    def evaluate(self, state: dict, mask: np.ndarray) -> tuple[float, np.ndarray]:
+        value, probs = super().evaluate(state, mask)
+        return self.mark, probs
+
+    def evaluate_batch(
+        self,
+        states: list[dict],
+        masks: list[np.ndarray] | np.ndarray,
+    ) -> tuple[np.ndarray, np.ndarray]:
+        _, probs = super().evaluate_batch(states, masks)
+        return np.full(len(states), self.mark, dtype=np.float32), probs
 
 
 class _CountingOpponent:
@@ -320,6 +340,58 @@ def test_mcts_leaf_batch_default_uses_serial_evaluator():
     )
 
     assert evaluator.evaluate_batch_calls == 0
+    assert policy.shape == (17,)
+    np.testing.assert_allclose(policy.sum(), 1.0)
+
+
+def test_network_opponent_policy_uses_opponent_evaluator_on_serial_path():
+    factory = SimFactory()
+    battle = _fixed_battle(factory)
+    own_eval = _MarkedEvaluator(0.25)
+    opp_eval = _MarkedEvaluator(-0.75)
+    opponent = NetworkPolicyAgent(evaluator=opp_eval, greedy=True)
+
+    policy = mcts_search(
+        battle,
+        None,
+        factory,
+        opponent,
+        num_simulations=2,
+        root_noise=0.0,
+        max_turns=4,
+        evaluator=own_eval,
+        leaf_batch_size=1,
+    )
+
+    assert own_eval.evaluate_calls > 0
+    assert own_eval.evaluate_batch_calls == 0
+    assert opp_eval.evaluate_calls > 0
+    assert opp_eval.evaluate_batch_calls == 0
+    assert policy.shape == (17,)
+    np.testing.assert_allclose(policy.sum(), 1.0)
+
+
+def test_network_opponent_leaf_batch_uses_both_batch_evaluators():
+    factory = SimFactory()
+    battle = _fixed_battle(factory)
+    own_eval = _MarkedEvaluator(0.25)
+    opp_eval = _MarkedEvaluator(-0.75)
+    opponent = NetworkPolicyAgent(evaluator=opp_eval, greedy=True)
+
+    policy = mcts_search(
+        battle,
+        None,
+        factory,
+        opponent,
+        num_simulations=4,
+        root_noise=0.0,
+        max_turns=4,
+        evaluator=own_eval,
+        leaf_batch_size=4,
+    )
+
+    assert own_eval.evaluate_batch_calls > 0
+    assert opp_eval.evaluate_batch_calls > 0
     assert policy.shape == (17,)
     np.testing.assert_allclose(policy.sum(), 1.0)
 

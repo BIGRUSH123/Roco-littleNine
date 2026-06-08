@@ -253,9 +253,27 @@ class NetworkPolicyAgent:
         valid, mask = get_valid_actions(player, battle)
         if not valid:
             return None
-        state = encode_battle_state(battle, perspective="B")
-        _, p = self._evaluator.evaluate(state, mask)
+        p = self.evaluate_policy(encode_battle_state(battle, perspective="B"), mask)
         return policy_select_idx(p, self._temperature, self._greedy)
+
+    def evaluate_policy(self, state: dict[str, np.ndarray], mask: np.ndarray) -> np.ndarray:
+        _, p = self._evaluator.evaluate(state, mask)
+        return p
+
+    def evaluate_policy_batch(
+        self,
+        states: list[dict[str, np.ndarray]],
+        masks: list[np.ndarray] | np.ndarray,
+    ) -> np.ndarray:
+        batch_eval = getattr(self._evaluator, "evaluate_batch", None)
+        if callable(batch_eval):
+            _, priors = batch_eval(states, masks)
+            return priors
+        mask_list = masks if isinstance(masks, list) else list(masks)
+        return np.stack(
+            [self.evaluate_policy(state, mask) for state, mask in zip(states, mask_list)],
+            axis=0,
+        )
 
     def choose_action(self, battle):
         idx = self._decide(battle)
@@ -403,14 +421,11 @@ def mcts_search(
         if use_network_opponent:
             opp_player = battle.player_b
             opp_valid, opp_mask = get_valid_actions(opp_player, battle)
-            if opp_valid and callable(batch_eval):
-                opp_state = encode_battle_state(battle, perspective="B")
-                _, priors = batch_eval([root_state, opp_state], [mask, opp_mask])
-                prior = priors[0]
-                root_opp_prior = priors[1]
-            else:
-                _, prior = evaluator.evaluate(root_state, mask)
-                root_opp_prior = None
+            _, prior = evaluator.evaluate(root_state, mask)
+            root_opp_prior = (
+                opponent_agent.evaluate_policy(encode_battle_state(battle, perspective="B"), opp_mask)
+                if opp_valid else None
+            )
         else:
             _, prior = evaluator.evaluate(root_state, mask)
             root_opp_prior = None
@@ -441,7 +456,7 @@ def mcts_search(
         agent_a_proxy = _PlayerSwappedAgent(opponent_agent, battle.player_a)
         fixed_b_proxy = _OppFixedAgent(_GATHER_ACTION, battle.player_b) if use_network_opponent else None
 
-        batch_leaf_eval = leaf_batch_size > 1 and not use_network_opponent and callable(batch_eval)
+        batch_leaf_eval = leaf_batch_size > 1 and callable(batch_eval)
         if batch_leaf_eval:
             from backend.engine.ai.core.outcome import DEFAULT_DRAW_MARGIN, battle_outcome_a
 
@@ -449,14 +464,18 @@ def mcts_search(
             simulations_left = num_simulations
             pending_states: list[dict[str, np.ndarray]] = []
             pending_masks: list[np.ndarray] = []
-            pending_meta: list[tuple[MCTSNode, list[tuple[MCTSNode, int]], list[int]]] = []
+            pending_opp_states: list[dict[str, np.ndarray]] = []
+            pending_opp_masks: list[np.ndarray] = []
+            pending_meta: list[tuple[MCTSNode, list[tuple[MCTSNode, int]], list[int], int, int | None]] = []
 
             while simulations_left > 0:
                 pending_states.clear()
                 pending_masks.clear()
+                pending_opp_states.clear()
+                pending_opp_masks.clear()
                 pending_meta.clear()
 
-                while simulations_left > 0 and len(pending_states) < batch_size:
+                while simulations_left > 0 and len(pending_meta) < batch_size:
                     simulations_left -= 1
                     saved = battle.save_mutable_state()
                     try:
@@ -485,8 +504,10 @@ def mcts_search(
                             node = node.children[best_a]
                             if not _step_battle(
                                 battle, best_a, opponent_agent,
+                                opp_policy=path[-1][0].opp_policy if use_network_opponent else None,
                                 opp_greedy=opp_greedy,
                                 agent_a_proxy=agent_a_proxy,
+                                fixed_b_proxy=fixed_b_proxy,
                             ):
                                 step_ok = False
                                 break
@@ -498,12 +519,25 @@ def mcts_search(
                         sim_valid, sim_mask = get_valid_actions(sim_player, battle)
                         if sim_valid and not battle.is_finished and battle.turn < max_turns:
                             leaf_state = encode_battle_state(battle)
+                            leaf_idx = len(pending_states)
+                            pending_states.append(leaf_state)
+                            pending_masks.append(sim_mask)
+
+                            opp_idx: int | None = None
+                            if use_network_opponent:
+                                opp_player = battle.player_b
+                                opp_valid, opp_mask = get_valid_actions(opp_player, battle)
+                                if opp_valid:
+                                    opp_idx = len(pending_opp_states)
+                                    pending_opp_states.append(encode_battle_state(battle, perspective="B"))
+                                    pending_opp_masks.append(opp_mask)
+                                else:
+                                    node.opp_policy = opp_mask / max(opp_mask.sum(), 1.0)
+
                             for parent, _ in path:
                                 parent.visit_count += 1
                             node.visit_count += 1
-                            pending_states.append(leaf_state)
-                            pending_masks.append(sim_mask)
-                            pending_meta.append((node, path, sim_valid))
+                            pending_meta.append((node, path, sim_valid, leaf_idx, opp_idx))
                         else:
                             leaf_value, _ = battle_outcome_a(
                                 battle, max_turns, draw_margin=DEFAULT_DRAW_MARGIN,
@@ -519,10 +553,16 @@ def mcts_search(
 
                 if pending_states:
                     values, priors = batch_eval(pending_states, pending_masks)
-                    for i, (node, path, sim_valid) in enumerate(pending_meta):
-                        leaf_value = float(values[i])
+                    opp_priors = (
+                        opponent_agent.evaluate_policy_batch(pending_opp_states, pending_opp_masks)
+                        if use_network_opponent and pending_opp_states else None
+                    )
+                    for node, path, sim_valid, leaf_idx, opp_idx in pending_meta:
+                        leaf_value = float(values[leaf_idx])
                         node.valid_actions = sim_valid
-                        node.prior = priors[i]
+                        node.prior = priors[leaf_idx]
+                        if opp_idx is not None and opp_priors is not None:
+                            node.opp_policy = opp_priors[opp_idx]
                         for a in sim_valid:
                             node.children[a] = MCTSNode([], _EMPTY_PRIOR)
                         for parent, _ in reversed(path):
@@ -589,12 +629,10 @@ def mcts_search(
                     if use_network_opponent:
                         opp_player = battle.player_b
                         opp_valid, opp_mask = get_valid_actions(opp_player, battle)
-                    if use_network_opponent and opp_valid and callable(batch_eval):
+                    if use_network_opponent and opp_valid:
                         opp_state = encode_battle_state(battle, perspective="B")
-                        values, priors = batch_eval([leaf_state, opp_state], [sim_mask, opp_mask])
-                        leaf_value = float(values[0])
-                        sim_prior = priors[0]
-                        node.opp_policy = priors[1]
+                        leaf_value, sim_prior = evaluator.evaluate(leaf_state, sim_mask)
+                        node.opp_policy = opponent_agent.evaluate_policy(opp_state, opp_mask)
                     else:
                         leaf_value, sim_prior = evaluator.evaluate(leaf_state, sim_mask)
                     # 将当前节点的合法动作和先验更新为真实评估结果
@@ -604,8 +642,7 @@ def mcts_search(
                     # 预计算对手策略
                     if use_network_opponent and opp_valid and node.opp_policy is None:
                         opp_state = encode_battle_state(battle, perspective="B")
-                        _, opp_prior = evaluator.evaluate(opp_state, opp_mask)
-                        node.opp_policy = opp_prior
+                        node.opp_policy = opponent_agent.evaluate_policy(opp_state, opp_mask)
                     elif use_network_opponent and not opp_valid:
                         node.opp_policy = opp_mask / max(opp_mask.sum(), 1.0)
                     # 预铺子节点空壳：等它们被选中时再真实展开

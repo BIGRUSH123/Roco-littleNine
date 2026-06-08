@@ -131,6 +131,39 @@ class QueuePolicyEvaluator:
         value, probs = result
         return float(value), np.asarray(probs, dtype=np.float32)
 
+    def evaluate_batch(
+        self,
+        states: list[dict[str, np.ndarray]],
+        masks: list[np.ndarray] | np.ndarray,
+    ) -> tuple[np.ndarray, np.ndarray]:
+        mask_list = masks if isinstance(masks, list) else list(masks)
+        n = len(states)
+        for state, mask in zip(states, mask_list):
+            self._request_queue.put((
+                self._worker_id,
+                {k: np.asarray(v) for k, v in state.items() if k in _STATE_KEYS},
+                np.asarray(mask, dtype=np.float32),
+            ))
+
+        values = np.zeros(n, dtype=np.float32)
+        probs: list[np.ndarray] = []
+        for i in range(n):
+            try:
+                result = self._reply_queue.get(timeout=self._reply_timeout_s)
+            except queue.Empty as exc:
+                raise TimeoutError(
+                    f"worker {self._worker_id} 绛夊緟鎵归噺鎺ㄧ悊鍥炲瓒呰繃 "
+                    f"{self._reply_timeout_s:.0f}s"
+                ) from exc
+            if result is None:
+                raise RuntimeError(
+                    f"worker {self._worker_id} 鎺ㄧ悊澶辫触锛堟湇鍔″櫒绔槦鍒楀啓鍏ラ敊璇級"
+                )
+            value, prob = result
+            values[i] = float(value)
+            probs.append(np.asarray(prob, dtype=np.float32))
+        return values, np.stack(probs, axis=0)
+
 
 class QueueModelEvaluator:
     """子进程 worker：按 model_id 请求主进程上的某个模型推理。"""
@@ -170,6 +203,41 @@ class QueueModelEvaluator:
             )
         value, probs = result
         return float(value), np.asarray(probs, dtype=np.float32)
+
+    def evaluate_batch(
+        self,
+        states: list[dict[str, np.ndarray]],
+        masks: list[np.ndarray] | np.ndarray,
+    ) -> tuple[np.ndarray, np.ndarray]:
+        mask_list = masks if isinstance(masks, list) else list(masks)
+        n = len(states)
+        for state, mask in zip(states, mask_list):
+            self._request_queue.put((
+                self._worker_id,
+                self._model_id,
+                {k: np.asarray(v) for k, v in state.items() if k in _STATE_KEYS},
+                np.asarray(mask, dtype=np.float32),
+            ))
+
+        values = np.zeros(n, dtype=np.float32)
+        probs: list[np.ndarray] = []
+        for i in range(n):
+            try:
+                result = self._reply_queue.get(timeout=self._reply_timeout_s)
+            except queue.Empty as exc:
+                raise TimeoutError(
+                    f"worker {self._worker_id} 绛夊緟妯″瀷 {self._model_id} "
+                    f"鎵归噺鎺ㄧ悊鍥炲瓒呰繃 {self._reply_timeout_s:.0f}s"
+                ) from exc
+            if result is None:
+                raise RuntimeError(
+                    f"worker {self._worker_id} (model={self._model_id}) "
+                    "鎺ㄧ悊澶辫触锛堟湇鍔″櫒绔槦鍒楀啓鍏ラ敊璇級"
+                )
+            value, prob = result
+            values[i] = float(value)
+            probs.append(np.asarray(prob, dtype=np.float32))
+        return values, np.stack(probs, axis=0)
 
 
 class BatchedInferenceServer:
