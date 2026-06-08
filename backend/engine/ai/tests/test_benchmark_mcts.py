@@ -6,7 +6,7 @@ import numpy as np
 
 from backend.engine.ai.benchmark_mcts import _fixed_battle, run_benchmark
 from backend.engine.ai.core.encoder import encode_battle_state
-from backend.engine.ai.core.mcts import NetworkPolicyAgent, _step_battle, mcts_search
+from backend.engine.ai.core.mcts import NetworkPolicyAgent, _step_battle, get_valid_actions, mcts_search
 from backend.sim.action import Action
 from backend.sim.agent import RuleAgent
 from backend.sim.factory import SimFactory
@@ -60,6 +60,11 @@ class _CountingOpponent:
         pass
 
 
+class _EvaluateOnlyEvaluator:
+    def evaluate(self, state: dict, mask: np.ndarray) -> tuple[float, np.ndarray]:
+        return 0.0, _UniformEvaluator._probs(mask)
+
+
 def test_mcts_benchmark_smoke():
     result = run_benchmark(
         encode_iters=1,
@@ -75,6 +80,14 @@ def test_mcts_benchmark_smoke():
     assert result["mcts"]["repeats"] == 1
     assert result["mcts"]["simulations"] == 1
     assert result["mcts"]["simulations_per_sec"] > 0
+
+
+def test_get_valid_actions_matches_mask_nonzero_indices():
+    battle = _fixed_battle(SimFactory())
+
+    valid, mask = get_valid_actions(battle.player_a, battle)
+
+    assert valid == np.flatnonzero(mask > 0).tolist()
 
 
 def test_mcts_sim_turn_does_not_append_battle_log():
@@ -144,6 +157,27 @@ def test_mcts_uses_non_network_opponent_agent_actions():
     )
 
     assert opponent.choose_action_calls > 0
+
+
+def test_mcts_non_network_opponent_does_not_require_batch_evaluator():
+    factory = SimFactory()
+    battle = _fixed_battle(factory)
+    opponent = _CountingOpponent()
+
+    policy = mcts_search(
+        battle,
+        None,
+        factory,
+        opponent,
+        num_simulations=2,
+        root_noise=0.0,
+        max_turns=4,
+        evaluator=_EvaluateOnlyEvaluator(),
+    )
+
+    assert opponent.choose_action_calls > 0
+    assert policy.shape == (17,)
+    np.testing.assert_allclose(policy.sum(), 1.0)
 
 
 def test_network_policy_step_uses_player_a_replacement_proxy(monkeypatch):

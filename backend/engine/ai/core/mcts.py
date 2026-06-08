@@ -27,10 +27,16 @@ if TYPE_CHECKING:
 # ═══════════════════════════════════════════════════════════════════
 
 NUM_ACTIONS = 17  # 技能0-9 + 换宠10-14 + 聚能15 + 道具16
+_EMPTY_PRIOR = np.zeros(NUM_ACTIONS, dtype=np.float32)
+_EMPTY_PRIOR.setflags(write=False)
+
+
+def _valid_from_mask(mask: np.ndarray) -> list[int]:
+    return np.flatnonzero(mask > 0).tolist()
 
 
 def get_valid_actions(player: Player, battle=None) -> tuple[list[int], np.ndarray]:
-    """返回 (有效动作索引列表, 11维 float32 mask)。
+    """返回 (有效动作索引列表, 17维 float32 mask)。
 
     Args:
         player: 决策玩家。
@@ -52,7 +58,7 @@ def get_valid_actions(player: Player, battle=None) -> tuple[list[int], np.ndarra
             if bench_slot < 5:
                 mask[10 + bench_slot] = 1.0 if not s.is_fainted else 0.0
                 bench_slot += 1
-        valid = [i for i in range(NUM_ACTIONS) if mask[i] > 0]
+        valid = _valid_from_mask(mask)
         return valid, mask
 
     # ── 能耗辅助：近似引擎侧实际 energy_cost 计算 ──
@@ -89,7 +95,7 @@ def get_valid_actions(player: Player, battle=None) -> tuple[list[int], np.ndarra
             if bench_slot < 5:
                 mask[10 + bench_slot] = 1.0 if not s.is_fainted else 0.0
                 bench_slot += 1
-        valid = [i for i in range(NUM_ACTIONS) if mask[i] > 0]
+        valid = _valid_from_mask(mask)
         return valid, mask
 
     # 技能 (0-9)：遍历前 10 个技能
@@ -118,7 +124,7 @@ def get_valid_actions(player: Player, battle=None) -> tuple[list[int], np.ndarra
     if item is not None and not item.is_exhausted:
         mask[16] = 1.0
 
-    valid = [i for i in range(NUM_ACTIONS) if mask[i] > 0]
+    valid = _valid_from_mask(mask)
     return valid, mask
 
 
@@ -377,8 +383,6 @@ def mcts_search(
                 root_opp_prior = None
         else:
             _, prior = evaluator.evaluate(root_state, mask)
-            opp_valid = []
-            opp_mask = np.zeros(NUM_ACTIONS, dtype=np.float32)
             root_opp_prior = None
 
         # Dirichlet 噪声
@@ -393,7 +397,7 @@ def mcts_search(
         # 每个空壳的 prior/valid_actions 留空，等该子节点被选中并
         # 展开时再用当前状态的网络评估来填充。
         for a in valid:
-            root.children[a] = MCTSNode([], np.zeros(NUM_ACTIONS, dtype=np.float32))
+            root.children[a] = MCTSNode([], _EMPTY_PRIOR)
         # 预计算根节点对手策略（博弈树首次选择时直接采样，省 encode+eval）
         if use_network_opponent and opp_valid:
             if root_opp_prior is None:
@@ -460,9 +464,6 @@ def mcts_search(
                     if use_network_opponent:
                         opp_player = battle.player_b
                         opp_valid, opp_mask = get_valid_actions(opp_player, battle)
-                    else:
-                        opp_valid = []
-                        opp_mask = np.zeros(NUM_ACTIONS, dtype=np.float32)
                     if use_network_opponent and opp_valid and callable(batch_eval):
                         opp_state = encode_battle_state(battle, perspective="B")
                         values, priors = batch_eval([leaf_state, opp_state], [sim_mask, opp_mask])
@@ -484,9 +485,7 @@ def mcts_search(
                         node.opp_policy = opp_mask / max(opp_mask.sum(), 1.0)
                     # 预铺子节点空壳：等它们被选中时再真实展开
                     for a in sim_valid:
-                        node.children[a] = MCTSNode(
-                            [], np.zeros(NUM_ACTIONS, dtype=np.float32),
-                        )
+                        node.children[a] = MCTSNode([], _EMPTY_PRIOR)
                 else:
                     # 终端节点：使用 battle_outcome_a 计算 value，确保与训练标签一致。
                     # max_turns 平局时按局面分差判定（而非简单返回 0），消除 MCTS value

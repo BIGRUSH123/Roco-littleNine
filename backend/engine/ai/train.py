@@ -224,7 +224,7 @@ class MCTSAgent:
         try:
             state = encode_battle_state(battle)
             # 构造 mask：仅启用存活板凳对应的 switch 动作
-            mask = np.zeros(17, dtype=np.float32)
+            mask = np.zeros(NUM_ACTIONS, dtype=np.float32)
             bench_slot = 0
             for i, s in enumerate(self.player.team):
                 if i == self.player.active_index:

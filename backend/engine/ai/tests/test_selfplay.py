@@ -157,6 +157,18 @@ def test_torch_evaluator_shapes():
     assert abs(probs.sum() - 1.0) < 1e-4
 
 
+def test_model_action_space_matches_mcts():
+    assert ModularBattleNet.NUM_ACTIONS == NUM_ACTIONS
+
+
+def test_model_ast_position_cache_is_checkpoint_compatible():
+    model = ModularBattleNet(ast_max_len=128)
+
+    assert model.ast_max_len == 128
+    assert model._ast_pos_ids.shape == (1, 128)
+    assert "_ast_pos_ids" not in model.state_dict()
+
+
 def test_torch_evaluator_batch_matches_single_eval():
     factory = SimFactory()
     sprite_skills = _load_sprite_skills()

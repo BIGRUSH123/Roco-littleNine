@@ -70,11 +70,11 @@ class TorchEvaluator:
 
     def evaluate(self, state: dict[str, np.ndarray], mask: np.ndarray) -> tuple[float, np.ndarray]:
         x = _state_dict_to_tensors(state, self._device)
-        m = torch.from_numpy(mask.astype(np.float32)).unsqueeze(0).to(self._device)
-        with torch.no_grad():
+        m = torch.from_numpy(mask.astype(np.float32, copy=False)).unsqueeze(0).to(self._device)
+        with torch.inference_mode():
             value_t, probs_t = self._model.forward_with_mask(x, m)
         value = float(value_t.item())
-        probs = probs_t.squeeze(0).cpu().numpy().astype(np.float32)
+        probs = np.asarray(probs_t.squeeze(0).cpu().numpy(), dtype=np.float32)
         return value, probs
 
     def evaluate_batch(
@@ -83,12 +83,16 @@ class TorchEvaluator:
         masks: list[np.ndarray] | np.ndarray,
     ) -> tuple[np.ndarray, np.ndarray]:
         x = _batch_states(states, self._device)
-        m_np = np.stack(masks, axis=0).astype(np.float32) if isinstance(masks, list) else masks.astype(np.float32)
+        m_np = (
+            np.stack(masks, axis=0).astype(np.float32, copy=False)
+            if isinstance(masks, list)
+            else masks.astype(np.float32, copy=False)
+        )
         m = torch.from_numpy(m_np).to(self._device)
-        with torch.no_grad():
+        with torch.inference_mode():
             value_t, probs_t = self._model.forward_with_mask(x, m)
-        values = value_t.squeeze(-1).cpu().numpy().astype(np.float32)
-        probs = probs_t.cpu().numpy().astype(np.float32)
+        values = np.asarray(value_t.squeeze(-1).cpu().numpy(), dtype=np.float32)
+        probs = np.asarray(probs_t.cpu().numpy(), dtype=np.float32)
         return values, probs
 
 
@@ -251,7 +255,7 @@ class BatchedInferenceServer:
 
             x = _batch_states(states, self._device)
             m = torch.from_numpy(masks).to(self._device)
-            with torch.no_grad():
+            with torch.inference_mode():
                 values_t, probs_t = self._model.forward_with_mask(x, m)
             values = values_t.squeeze(-1).cpu().numpy()
             probs = probs_t.cpu().numpy()
@@ -260,7 +264,7 @@ class BatchedInferenceServer:
                 if reply_q is None:
                     continue
                 try:
-                    reply_q.put((float(values[i]), probs[i].astype(np.float32)),
+                    reply_q.put((float(values[i]), probs[i].astype(np.float32, copy=False)),
                                 timeout=1.0)
                 except Exception:
                     logger.error(
@@ -382,7 +386,7 @@ class BatchedModelInferenceServer:
 
                 x = _batch_states(states, self._device)
                 m = torch.from_numpy(masks).to(self._device)
-                with torch.no_grad():
+                with torch.inference_mode():
                     values_t, probs_t = model.forward_with_mask(x, m)
                 values = values_t.squeeze(-1).cpu().numpy()
                 probs = probs_t.cpu().numpy()
@@ -392,7 +396,7 @@ class BatchedModelInferenceServer:
                     if reply_q is None:
                         continue
                     try:
-                        reply_q.put((float(values[i]), probs[i].astype(np.float32)),
+                        reply_q.put((float(values[i]), probs[i].astype(np.float32, copy=False)),
                                     timeout=1.0)
                     except Exception:
                         logger.error(

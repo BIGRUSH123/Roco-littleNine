@@ -18,6 +18,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from backend.engine.ai.core.mcts import NUM_ACTIONS as MCTS_NUM_ACTIONS
 from backend.engine.ai.core.vocab import VOCAB_SIZE
 
 
@@ -135,7 +136,7 @@ class EntityBottleneckNet(nn.Module):
       - ast_values:      (B, 384)    float32  对应值序列
     """
 
-    NUM_ACTIONS = 17  # 技能0-9 + 换宠10-14 + 聚能15 + 道具16
+    NUM_ACTIONS = MCTS_NUM_ACTIONS
 
     def __init__(
         self,
@@ -216,10 +217,14 @@ class EntityBottleneckNet(nn.Module):
 
         # ── AST 双流 Transformer 编码器 ──
         self.ast_dim = 128
-        self.ast_max_len = 384
         self.ast_token_emb = nn.Embedding(vocab_size, self.ast_dim, padding_idx=0)
         self.ast_value_proj = nn.Linear(1, self.ast_dim)
         self.ast_pos_emb = nn.Embedding(self.ast_max_len, self.ast_dim)
+        self.register_buffer(
+            "_ast_pos_ids",
+            torch.arange(self.ast_max_len, dtype=torch.long).unsqueeze(0),
+            persistent=False,
+        )
         encoder_layer = nn.TransformerEncoderLayer(
             d_model=self.ast_dim, nhead=4, dim_feedforward=self.ast_dim * 4,
             dropout=dropout, batch_first=True,
@@ -364,7 +369,7 @@ class EntityBottleneckNet(nn.Module):
         B_ast, SeqLen = ast_tokens.shape
         t_emb = self.ast_token_emb(ast_tokens)               # (B, SeqLen, 128)
         v_emb = self.ast_value_proj(ast_values.unsqueeze(-1)) # (B, SeqLen, 128)
-        pos_ids = torch.arange(SeqLen, device=ast_tokens.device).unsqueeze(0).expand(B_ast, -1)
+        pos_ids = self._ast_pos_ids[:, :SeqLen].expand(B_ast, -1)
         p_emb = self.ast_pos_emb(pos_ids)                     # (B, SeqLen, 128)
         ast_seq = t_emb + v_emb + p_emb
 
