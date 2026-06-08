@@ -52,7 +52,7 @@ from backend.engine.ai.core.mcts import (
 from backend.sim.factory import SimFactory
 from backend.sim.player import Item
 
-DEFAULT_MCTS_LEAF_BATCH_SIZE = 8
+DEFAULT_MCTS_LEAF_BATCH_SIZE = 16
 
 # ═══════════════════════════════════════════════════════════════════
 # 数据加载
