@@ -173,17 +173,37 @@ def policy_select_idx(probs: np.ndarray, temperature: float, greedy: bool = Fals
     probs 全零时返回 -1，由调用方兜底为聚能。
     """
     if greedy or temperature <= 1e-8:
-        if probs.sum() <= 0:
+        best = int(np.argmax(probs))
+        if probs[best] <= 0:
             return -1
-        return int(np.argmax(probs))
-    p = probs.astype(np.float64)
+        return best
+    if temperature == 1.0:
+        s = float(probs.sum())
+        if s <= 0:
+            return -1
+        return _sample_weighted_idx(probs, s)
+    p = probs.astype(np.float64, copy=False)
     if temperature != 1.0:
         p = np.power(p, 1.0 / temperature)
-    s = p.sum()
+    s = float(p.sum())
     if s <= 0:
         return -1
-    p = p / s
-    return int(np.random.choice(len(p), p=p))
+    return _sample_weighted_idx(p, s)
+
+
+def _sample_weighted_idx(weights: np.ndarray, total: float) -> int:
+    cutoff = float(np.random.random()) * total
+    cumulative = 0.0
+    last_valid = -1
+    for idx, weight in enumerate(weights):
+        w = float(weight)
+        if w <= 0:
+            continue
+        last_valid = idx
+        cumulative += w
+        if cutoff < cumulative:
+            return idx
+    return last_valid
 
 
 # ═══════════════════════════════════════════════════════════════════

@@ -6,7 +6,13 @@ import numpy as np
 
 from backend.engine.ai.benchmark_mcts import _fixed_battle, run_benchmark
 from backend.engine.ai.core.encoder import encode_battle_state
-from backend.engine.ai.core.mcts import NetworkPolicyAgent, _step_battle, get_valid_actions, mcts_search
+from backend.engine.ai.core.mcts import (
+    NetworkPolicyAgent,
+    _step_battle,
+    get_valid_actions,
+    mcts_search,
+    policy_select_idx,
+)
 from backend.sim.action import Action
 from backend.sim.agent import RuleAgent
 from backend.sim.factory import SimFactory
@@ -88,6 +94,30 @@ def test_get_valid_actions_matches_mask_nonzero_indices():
     valid, mask = get_valid_actions(battle.player_a, battle)
 
     assert valid == np.flatnonzero(mask > 0).tolist()
+
+
+def test_policy_select_idx_handles_empty_and_greedy_probs():
+    assert policy_select_idx(np.zeros(17, dtype=np.float32), temperature=1.0) == -1
+    assert policy_select_idx(np.zeros(17, dtype=np.float32), temperature=0.0) == -1
+    assert policy_select_idx(
+        np.array([0.1, 0.7, 0.2], dtype=np.float32),
+        temperature=1.0,
+        greedy=True,
+    ) == 1
+
+
+def test_policy_select_idx_samples_by_cumulative_weight(monkeypatch):
+    probs = np.array([0.2, 0.3, 0.5], dtype=np.float32)
+    monkeypatch.setattr(np.random, "random", lambda: 0.6)
+
+    assert policy_select_idx(probs, temperature=1.0) == 2
+
+
+def test_policy_select_idx_temperature_path_samples_valid_weight(monkeypatch):
+    probs = np.array([0.25, 0.75, 0.0], dtype=np.float32)
+    monkeypatch.setattr(np.random, "random", lambda: 0.01)
+
+    assert policy_select_idx(probs, temperature=0.5) == 0
 
 
 def test_mcts_sim_turn_does_not_append_battle_log():

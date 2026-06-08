@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 import contextlib
+import itertools
 import random
 from typing import TYPE_CHECKING
 
@@ -57,6 +58,13 @@ class _HeadlessRoundRecord:
         self.first_team = ""
         self.action_a = _HeadlessActionRecord()
         self.action_b = _HeadlessActionRecord()
+
+
+_PER_TURN_KEYS = frozenset({
+    "power", "power_mult", "damage_mult", "damage_reduction",
+    "energy_cost", "energy_cost_mult", "priority", "combo_set",
+})
+_SKILL_PER_TURN_KEYS = _PER_TURN_KEYS | {"combo", "combo_mult"}
 
 
 class Battle(BattleMechanicsMixin):
@@ -452,31 +460,34 @@ class Battle(BattleMechanicsMixin):
         # （power_mult/damage_mult 等由 VM 每回合重新注入）
         # combo/combo_mult 等跨回合持久键不清空 sprite 级别（特性加成需保留），
         # 但技能级 _modifiers 的 combo/priority 每次使用由 effects 重新产生，必须清空。
-        _PER_TURN_KEYS = frozenset({
-            "power", "power_mult", "damage_mult", "damage_reduction",
-            "energy_cost", "energy_cost_mult", "priority", "combo_set",
-        })
-        _SKILL_PER_TURN_KEYS = _PER_TURN_KEYS | {"combo", "combo_mult"}
-        for sprite in self.player_a.team + self.player_b.team:
-            sprite.interrupted = False
-            for key in _PER_TURN_KEYS:
-                sprite._modifiers.pop(key, None)
-            for skill in (sprite.skills or []):
-                for key in _SKILL_PER_TURN_KEYS:
-                    skill._modifiers.pop(key, None)
+        for team in (self.player_a.team, self.player_b.team):
+            for sprite in team:
+                sprite.interrupted = False
+                for key in _PER_TURN_KEYS:
+                    sprite._modifiers.pop(key, None)
+                for skill in (sprite.skills or []):
+                    for key in _SKILL_PER_TURN_KEYS:
+                        skill._modifiers.pop(key, None)
         # Re-apply trait direct modifiers cleared by _PER_TURN_KEYS
-        mark_mods: dict[int, int] = {}
-        for s in self.player_a.team:
-            mark_mods[id(s)] = self.globals.mark_energy_mod("A")
-        for s in self.player_b.team:
-            mark_mods[id(s)] = self.globals.mark_energy_mod("B")
+        mark_mod_a = self.globals.mark_energy_mod("A")
+        mark_mod_b = self.globals.mark_energy_mod("B")
+        mark_mods: dict[int, int] | None = None
+        if mark_mod_a or mark_mod_b:
+            mark_mods = {}
+            if mark_mod_a:
+                for s in self.player_a.team:
+                    mark_mods[id(s)] = mark_mod_a
+            if mark_mod_b:
+                for s in self.player_b.team:
+                    mark_mods[id(s)] = mark_mod_b
         self._vm_engine.trait_loader.reapply_all_direct_mods(
-            self.player_a.team + self.player_b.team, mark_mods)
+            itertools.chain(self.player_a.team, self.player_b.team), mark_mods)
         # Restore permanent skill-scoped modifiers (observer-triggered
         # power_mod with scope=permanent, e.g. 洄游 energy_cost -1).
-        for sprite in self.player_a.team + self.player_b.team:
-            for skill in (sprite.skills or []):
-                skill.load_permanent_mods(sprite._modifiers)
+        for team in (self.player_a.team, self.player_b.team):
+            for sprite in team:
+                for skill in (sprite.skills or []):
+                    skill.load_permanent_mods(sprite._modifiers)
 
         s_a = self.player_a.active
         s_b = self.player_b.active
