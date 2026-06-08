@@ -39,6 +39,17 @@ def _valid_from_mask(mask: np.ndarray) -> list[int]:
     return np.flatnonzero(mask > 0).tolist()
 
 
+def _effective_skill_cost(sk, energy_cost_mod: float, energy_cost_mult: float, mark_energy_mod: int) -> int:
+    cost = sk.energy_cost
+    if energy_cost_mod:
+        cost += round(energy_cost_mod)
+    if energy_cost_mult:
+        cost = round(cost * (1.0 + energy_cost_mult))
+    if mark_energy_mod:
+        cost -= mark_energy_mod
+    return max(0, cost)
+
+
 def get_valid_actions(player: Player, battle=None) -> tuple[list[int], np.ndarray]:
     """返回 (有效动作索引列表, 17维 float32 mask)。
 
@@ -66,21 +77,13 @@ def get_valid_actions(player: Player, battle=None) -> tuple[list[int], np.ndarra
         return valid, mask
 
     # ── 能耗辅助：近似引擎侧实际 energy_cost 计算 ──
-    def _effective_cost(sk) -> int:
-        cost = sk.energy_cost
-        # energy_cost modifier（on_next / per-turn VM 管线注入）
-        ec_mod = active._modifiers.get("energy_cost", 0)
-        if ec_mod:
-            cost += round(ec_mod)
-        # energy_cost multiplier
-        ec_mult = active._modifiers.get("energy_cost_mult", 0)
-        if ec_mult:
-            cost = round(cost * (1.0 + ec_mult))
-        # 印记能耗减免（需要知道 team 和 battle）
-        if battle is not None:
-            team = "A" if battle.player_a is player else "B"
-            cost -= getattr(battle.globals, 'mark_energy_mod', lambda t: 0)(team)
-        return max(0, cost)
+    active_mods = active._modifiers
+    energy_cost_mod = active_mods.get("energy_cost", 0)
+    energy_cost_mult = active_mods.get("energy_cost_mult", 0)
+    mark_energy_mod = 0
+    if battle is not None:
+        team = "A" if battle.player_a is player else "B"
+        mark_energy_mod = getattr(battle.globals, 'mark_energy_mod', lambda t: 0)(team)
 
     # 蓄力中：允许释放蓄力技能（如有足够能量），同时允许换宠取消蓄力
     # 引擎在 _resolve_switch 中明确中断蓄力，因此换宠是合法分支
@@ -89,7 +92,12 @@ def get_valid_actions(player: Player, battle=None) -> tuple[list[int], np.ndarra
     if charging:
         if 0 <= charged_idx < 10:
             sk = active.skills[charged_idx] if charged_idx < len(active.skills) else None
-            if sk and not sk.sealed and sk.cooldown <= 0 and _effective_cost(sk) <= active.energy:
+            if (
+                sk
+                and not sk.sealed
+                and sk.cooldown <= 0
+                and _effective_skill_cost(sk, energy_cost_mod, energy_cost_mult, mark_energy_mod) <= active.energy
+            ):
                 mask[charged_idx] = 1.0
         # 换宠 (10-14)：引擎允许蓄力中断换宠（_resolve_switch 取消 _charging）
         bench_slot = 0
@@ -104,7 +112,11 @@ def get_valid_actions(player: Player, battle=None) -> tuple[list[int], np.ndarra
 
     # 技能 (0-9)：遍历前 10 个技能
     for i, sk in enumerate(active.skills[:10]):
-        if not sk.sealed and sk.cooldown <= 0 and _effective_cost(sk) <= active.energy:
+        if (
+            not sk.sealed
+            and sk.cooldown <= 0
+            and _effective_skill_cost(sk, energy_cost_mod, energy_cost_mult, mark_energy_mod) <= active.energy
+        ):
             mask[i] = 1.0
 
     # 换宠 (10-14): 固定槽位映射（与 encode.py 的 _encode_bench_all 一致）
