@@ -197,9 +197,9 @@ class Sprite:
             self.active_effects.append(effect)
             # 增量更新缓存
             if not self._effects_dirty:
-                if effect.state_type == "charging":
+                if effect.state_type == "charging" or effect.name == "charging":
                     self._cached_charging = True
-                elif effect.state_type == "charged":
+                elif effect.state_type == "charged" or effect.name == "charged":
                     self._cached_charged = True
             return
         if isinstance(effect, AbnormalEffect):
@@ -383,9 +383,9 @@ class Sprite:
             elif isinstance(e, AbnormalEffect):
                 self._cached_abnormals[e.name] = self._cached_abnormals.get(e.name, 0) + e.stacks
             elif isinstance(e, StateEffect):
-                if e.state_type == "charging":
+                if e.state_type == "charging" or e.name == "charging":
                     self._cached_charging = True
-                elif e.state_type == "charged":
+                elif e.state_type == "charged" or e.name == "charged":
                     self._cached_charged = True
         self._effects_dirty = False
 

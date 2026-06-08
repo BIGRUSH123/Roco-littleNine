@@ -255,6 +255,7 @@ def _fill_sprite_entity(
 
     # ── states (前 25 维) ──
     s = states[idx]
+    effect_snapshot = sprite.get_effects_snapshot()
 
     # 1. energy / max_energy
     s[0] = float(sprite.energy) / max(float(sprite.max_energy), 1.0)
@@ -265,7 +266,7 @@ def _fill_sprite_entity(
     # 4. locked_turns / 3
     s[3] = min(float(getattr(sprite, 'locked_turns', 0)) / 3.0, 1.0)
     # 5. charging
-    s[4] = 1.0 if _find_effect_of_type(sprite, 'charging') else 0.0
+    s[4] = 1.0 if effect_snapshot["charging"] else 0.0
     # 6. pending_return
     s[5] = 1.0 if getattr(sprite, 'pending_return', False) else 0.0
     # 7. first_action
@@ -281,8 +282,9 @@ def _fill_sprite_entity(
     s[10] = 1.0 if getattr(sprite, '_trait_suppressed', False) else 0.0
 
     # 12-18. abnormal stacks (7)
+    abnormal_stacks = effect_snapshot["abnormals"]
     for i, an in enumerate(ABNORMAL_ORDER):
-        stacks = sprite.get_stacks(an)
+        stacks = abnormal_stacks.get(an, 0)
         max_s = _ABNORMAL_MAX.get(an, 1)
         s[11 + i] = min(float(stacks) / float(max_s), 1.0)
 
