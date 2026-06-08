@@ -33,6 +33,7 @@ from backend.engine.ai.train import (
 from backend.engine.serializer import battle_from_dict, battle_to_dict
 from backend.sim.agent import RuleAgent
 from backend.sim.factory import SimFactory
+from backend.vm.effect import ObserverEffect
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -459,6 +460,39 @@ def test_skill_effect_ast_flattening_is_cached(monkeypatch):
     assert calls["count"] == 1
     assert "__cache_test__" in encoder_module._skill_flat_effects_cache
     assert "__cache_test__" in encoder_module._skill_flat_effect_ids_cache
+
+
+def test_observer_effect_ast_token_ids_are_cached(monkeypatch):
+    encoder_module._observer_effect_token_ids_cache.clear()
+    eff = ObserverEffect(
+        name="__observer_cache__",
+        source="test",
+        cond={"cond": "always"},
+        then=[{"op": "heal", "target": "sprite_self", "amount": 1}],
+        listen=frozenset({"post_skill"}),
+    )
+    calls = {"count": 0}
+    original = encoder_module.tokenize_effect_dfs
+
+    def counted(effect):
+        calls["count"] += 1
+        return original(effect)
+
+    monkeypatch.setattr(encoder_module, "tokenize_effect_dfs", counted)
+
+    first = encoder_module._get_observer_effect_token_ids(eff)
+    first_count = calls["count"]
+    second = encoder_module._get_observer_effect_token_ids(eff)
+    second_count = calls["count"]
+    eff.then.append({"op": "heal", "target": "sprite_self", "amount": 2})
+    third = encoder_module._get_observer_effect_token_ids(eff)
+
+    assert first == second
+    assert third != first
+    assert first_count > 0
+    assert second_count == first_count
+    assert calls["count"] > second_count
+    assert id(eff) in encoder_module._observer_effect_token_ids_cache
 
 
 if __name__ == "__main__":

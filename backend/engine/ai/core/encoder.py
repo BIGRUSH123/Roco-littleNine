@@ -131,6 +131,7 @@ _skills_dir: Path | None = None
 _skill_effects_cache: dict[str, list] = {}
 _skill_flat_effects_cache: dict[str, tuple[tuple[str, ...], tuple[float, ...]]] = {}
 _skill_flat_effect_ids_cache: dict[str, tuple[tuple[int, ...], tuple[float, ...]]] = {}
+_observer_effect_token_ids_cache: dict[int, tuple[tuple, tuple[int, ...], tuple[float, ...]]] = {}
 
 # AST 序列截断上限
 MAX_SEQ_LEN = 384
@@ -558,6 +559,41 @@ def _get_flat_skill_effect_token_ids(name: str) -> tuple[tuple[int, ...], tuple[
     return cached
 
 
+def _observer_effect_signature(eff: ObserverEffect) -> tuple:
+    return (
+        id(eff.cond),
+        id(eff.then),
+        id(eff.listen),
+        eff.scope,
+        len(eff.then),
+        len(eff.listen),
+    )
+
+
+def _get_observer_effect_token_ids(eff: ObserverEffect) -> tuple[tuple[int, ...], tuple[float, ...]]:
+    cache_key = id(eff)
+    signature = _observer_effect_signature(eff)
+    cached = _observer_effect_token_ids_cache.get(cache_key)
+    if cached is not None and cached[0] == signature:
+        return cached[1], cached[2]
+
+    observer_dict: dict = {"op": "observer"}
+    if eff.cond:
+        observer_dict["cond"] = eff.cond
+    if eff.then:
+        observer_dict["then"] = list(eff.then)
+    if eff.listen:
+        observer_dict["listen"] = list(eff.listen)
+    if eff.scope:
+        observer_dict["scope"] = eff.scope
+
+    tokens, values = tokenize_effect_dfs(observer_dict)
+    token_ids = tuple(_token_id(token) for token in tokens)
+    cached = (signature, token_ids, tuple(values))
+    _observer_effect_token_ids_cache[cache_key] = cached
+    return cached[1], cached[2]
+
+
 def _collect_ast_tokens(
     own: Player, opp: Player,
     all_tokens: list[str], all_values: list[float],
@@ -678,19 +714,10 @@ def _collect_ast_token_ids(
 
         if not isinstance(eff, ObserverEffect):
             continue
-        observer_dict: dict = {"op": "observer"}
-        if eff.cond:
-            observer_dict["cond"] = eff.cond
-        if eff.then:
-            observer_dict["then"] = list(eff.then)
-        if eff.listen:
-            observer_dict["listen"] = list(eff.listen)
-        if eff.scope:
-            observer_dict["scope"] = eff.scope
         all_tokens.append(sep_id)
         all_values.append(0.0)
-        t, v = tokenize_effect_dfs(observer_dict)
-        all_tokens.extend(_token_id(token) for token in t)
+        t, v = _get_observer_effect_token_ids(eff)
+        all_tokens.extend(t)
         all_values.extend(v)
 
 
