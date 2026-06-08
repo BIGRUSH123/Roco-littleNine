@@ -52,6 +52,8 @@ from backend.engine.ai.core.mcts import (
 from backend.sim.factory import SimFactory
 from backend.sim.player import Item
 
+DEFAULT_MCTS_LEAF_BATCH_SIZE = 8
+
 # ═══════════════════════════════════════════════════════════════════
 # 数据加载
 # ═══════════════════════════════════════════════════════════════════
@@ -132,7 +134,7 @@ class MCTSAgent:
         max_turns: int = DEFAULT_SELFPLAY_MAX_TURNS,
         gamma: float = 1.0,
         tanh_k: float = 0.0,
-        leaf_batch_size: int = 1,
+        leaf_batch_size: int = DEFAULT_MCTS_LEAF_BATCH_SIZE,
     ):
         self.team = team
         self.player = player
@@ -297,7 +299,7 @@ def collect_rl_samples(
     battle_log_writer = None,
     gamma: float = 1.0,
     tanh_k: float = 0.0,
-    leaf_batch_size: int = 1,
+    leaf_batch_size: int = DEFAULT_MCTS_LEAF_BATCH_SIZE,
     mirror: bool = False,
 ) -> tuple[list[dict[str, np.ndarray]], np.ndarray, np.ndarray, np.ndarray, dict[str, int]]:
     """MCTS 自我博弈收集 (state_dict, target_probs, mask, outcome) 四元组。
@@ -421,7 +423,7 @@ def _play_one_rl_battle(
     game_timeout_s: float = 450.0,
     gamma: float = 1.0,
     tanh_k: float = 0.0,
-    leaf_batch_size: int = 1,
+    leaf_batch_size: int = DEFAULT_MCTS_LEAF_BATCH_SIZE,
     mirror: bool = False,
 ) -> tuple[list[dict[str, np.ndarray]], list[np.ndarray], list[np.ndarray], list[float], str, dict]:
     """单局自我博弈，返回 (states, probs, masks, outcomes, end_reason, battle_summary)。
@@ -512,7 +514,7 @@ def collect_rl_samples_parallel(
     battle_log_writer = None,
     gamma: float = 1.0,
     tanh_k: float = 0.0,
-    leaf_batch_size: int = 1,
+    leaf_batch_size: int = DEFAULT_MCTS_LEAF_BATCH_SIZE,
     mirror: bool = False,
 ) -> tuple[list[dict[str, np.ndarray]], np.ndarray, np.ndarray, np.ndarray, dict[str, int]]:
     """多进程局级 self-play + 主进程 CUDA 批量推理。
@@ -888,7 +890,7 @@ def evaluate(
     max_turns: int = DEFAULT_EVAL_MAX_TURNS,
     draw_margin: float = DEFAULT_DRAW_MARGIN,
     verbose: bool = True,
-    leaf_batch_size: int = 1,
+    leaf_batch_size: int = DEFAULT_MCTS_LEAF_BATCH_SIZE,
     early_stop_gate: float | None = None,
 ) -> float:
     """candidate vs best 对打，返回 candidate 胜率（平局计 0.5）。
@@ -966,7 +968,7 @@ def _play_one_eval_game(
     max_turns: int,
     draw_margin: float = DEFAULT_DRAW_MARGIN,
     game_timeout_s: float = 450.0,
-    leaf_batch_size: int = 1,
+    leaf_batch_size: int = DEFAULT_MCTS_LEAF_BATCH_SIZE,
 ) -> float:
     """单局 candidate vs best，返回 candidate 得分：胜=1，平=0.5，负=0。
 
@@ -1027,7 +1029,7 @@ def evaluate_parallel(
     verbose: bool = True,
     progress_every: int = 1,
     stall_timeout_s: float = 600.0,
-    leaf_batch_size: int = 1,
+    leaf_batch_size: int = DEFAULT_MCTS_LEAF_BATCH_SIZE,
     early_stop_gate: float | None = None,
 ) -> float:
     """多进程局级门控评估 + 主进程双模型批量推理。
@@ -1241,8 +1243,8 @@ def main():
                         help="批量推理最大 batch (default: 128)")
     parser.add_argument("--inference-timeout-ms", type=float, default=5.0,
                         help="攒 batch 等待毫秒 (default: 5)")
-    parser.add_argument("--leaf-batch-size", type=int, default=1,
-                        help="MCTS 叶节点批量评估大小；1=串行路径 (default: 1)")
+    parser.add_argument("--leaf-batch-size", type=int, default=DEFAULT_MCTS_LEAF_BATCH_SIZE,
+                        help=f"MCTS 叶节点批量评估大小；1=串行路径 (default: {DEFAULT_MCTS_LEAF_BATCH_SIZE})")
     parser.add_argument("--progress-every", type=int, default=10,
                         help="自我博弈每 N 局打印进度 (default: 10)")
     parser.add_argument("--worker-stall-timeout", type=float, default=600.0,

@@ -9,6 +9,7 @@
 
 from __future__ import annotations
 
+import inspect
 import sys
 
 sys.path.insert(0, ".")
@@ -26,6 +27,8 @@ from backend.engine.ai.core.mcts import NUM_ACTIONS, NetworkPolicyAgent
 from backend.engine.ai.core.model import ModularBattleNet
 from backend.engine.ai.core.replay_buffer import DictReplayBuffer
 from backend.engine.ai.train import (
+    DEFAULT_MCTS_LEAF_BATCH_SIZE,
+    MCTSAgent,
     _gate_decision,
     _load_sprite_skills,
     collect_rl_samples,
@@ -232,6 +235,19 @@ def test_torch_evaluator_batch_matches_single_eval():
     assert np.allclose(values, [single_a[0], single_b[0]], atol=1e-6)
     assert np.allclose(probs[0], single_a[1], atol=1e-6)
     assert np.allclose(probs[1], single_b[1], atol=1e-6)
+
+
+def test_training_mcts_leaf_batch_defaults_to_batched_eval():
+    targets = (
+        MCTSAgent.__init__,
+        collect_rl_samples,
+        collect_rl_samples_parallel,
+        evaluate_parallel,
+    )
+
+    for target in targets:
+        params = inspect.signature(target).parameters
+        assert params["leaf_batch_size"].default == DEFAULT_MCTS_LEAF_BATCH_SIZE
 
 
 def test_collect_rl_dual_perspective():
