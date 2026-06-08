@@ -106,19 +106,25 @@ class Battle(BattleMechanicsMixin):
                         snap += (e.steps,)
                     eff_snap.append(snap)
                 sprites[-1]["effects"] = eff_snap
-                # 技能级可变状态
-                sprites[-1]["skill_mods"] = {
-                    si: dict(sk._modifiers)
-                    for si, sk in enumerate(sprite.skills or [])
-                }
-                sprites[-1]["skill_cd"] = {
-                    si: sk.cooldown
-                    for si, sk in enumerate(sprite.skills or [])
-                }
-                sprites[-1]["skill_sealed"] = {
-                    si: sk.sealed
-                    for si, sk in enumerate(sprite.skills or [])
-                }
+                # 技能级可变状态：MCTS 回滚会高频调用，顺序列表比多个索引 dict 更少分配。
+                skills = list(sprite.skills or [])
+                sprites[-1]["skill_refs"] = skills
+                sprites[-1]["skill_states"] = [
+                    (
+                        dict(sk._modifiers),
+                        sk.cooldown,
+                        sk.sealed,
+                        sk.replaced_by,
+                        sk.next_attack_mult,
+                        sk.nullified,
+                        sk.is_temporary,
+                        sk._transmission,
+                        sk._element_override,
+                        sk._mech_energy_reduction,
+                        list(sk._burst_effects),
+                    )
+                    for sk in skills
+                ]
                 # 精灵级可变状态（此前遗漏，MCTS 仿真残留会泄漏到真实对局）
                 sprites[-1]["mod_scopes"] = dict(getattr(sprite, '_mod_scopes', {}))
                 sprites[-1]["pending_mods"] = [
@@ -210,13 +216,42 @@ class Battle(BattleMechanicsMixin):
                     if e not in sprite.active_effects:
                         sprite.active_effects.append(e)
                 # 技能状态
-                for si, sk in enumerate(sprite.skills or []):
-                    if si in s.get("skill_mods", {}):
-                        sk._modifiers = dict(s["skill_mods"][si])
-                    if si in s.get("skill_cd", {}):
-                        sk.cooldown = s["skill_cd"][si]
-                    if si in s.get("skill_sealed", {}):
-                        sk.sealed = s["skill_sealed"][si]
+                if "skill_refs" in s:
+                    sprite.skills = list(s["skill_refs"])
+                if "skill_states" in s:
+                    for sk, state in zip(sprite.skills or [], s["skill_states"]):
+                        (
+                            modifiers,
+                            cooldown,
+                            sealed,
+                            replaced_by,
+                            next_attack_mult,
+                            nullified,
+                            is_temporary,
+                            transmission,
+                            element_override,
+                            mech_energy_reduction,
+                            burst_effects,
+                        ) = state
+                        sk._modifiers = dict(modifiers)
+                        sk.cooldown = cooldown
+                        sk.sealed = sealed
+                        sk.replaced_by = replaced_by
+                        sk.next_attack_mult = next_attack_mult
+                        sk.nullified = nullified
+                        sk.is_temporary = is_temporary
+                        sk._transmission = transmission
+                        sk._element_override = element_override
+                        sk._mech_energy_reduction = mech_energy_reduction
+                        sk._burst_effects = list(burst_effects)
+                else:
+                    for si, sk in enumerate(sprite.skills or []):
+                        if si in s.get("skill_mods", {}):
+                            sk._modifiers = dict(s["skill_mods"][si])
+                        if si in s.get("skill_cd", {}):
+                            sk.cooldown = s["skill_cd"][si]
+                        if si in s.get("skill_sealed", {}):
+                            sk.sealed = s["skill_sealed"][si]
                 # 精灵级可变状态回滚（此前遗漏，MCTS 仿真残留会泄漏到真实对局）
                 if "mod_scopes" in s:
                     sprite._mod_scopes = dict(s["mod_scopes"])

@@ -17,6 +17,7 @@ from backend.engine.ai.core.mcts import (
 from backend.sim.action import Action
 from backend.sim.agent import RuleAgent
 from backend.sim.factory import SimFactory
+from backend.sim.skill import Skill
 
 
 def _assert_encoded_equal(left: dict[str, np.ndarray], right: dict[str, np.ndarray]) -> None:
@@ -181,6 +182,56 @@ def test_mcts_sim_fixed_actions_match_regular_state():
         encode_battle_state(headless, perspective="B"),
         encode_battle_state(normal, perspective="B"),
     )
+
+
+def test_mutable_state_restores_full_skill_runtime_state():
+    battle = _fixed_battle(SimFactory())
+    sprite = battle.player_a.active
+    skill = sprite.skills[0]
+    replacement = Skill(name="replacement", skill_type="status")
+
+    skill._modifiers["power"] = 2
+    skill.cooldown = 1
+    skill.sealed = True
+    skill.replaced_by = replacement
+    skill.next_attack_mult = 1.5
+    skill.nullified = True
+    skill.is_temporary = True
+    skill._transmission = 3
+    skill._element_override = "fire"
+    skill._mech_energy_reduction = 1
+    skill._burst_effects.append({"kind": "damage", "value": 1})
+
+    saved = battle.save_mutable_state()
+
+    sprite.skills = []
+    skill._modifiers.clear()
+    skill.cooldown = 0
+    skill.sealed = False
+    skill.replaced_by = None
+    skill.next_attack_mult = 1.0
+    skill.nullified = False
+    skill.is_temporary = False
+    skill._transmission = 0
+    skill._element_override = ""
+    skill._mech_energy_reduction = 0
+    skill._burst_effects.clear()
+
+    battle.restore_mutable_state(saved)
+
+    restored = battle.player_a.active.skills[0]
+    assert restored is skill
+    assert restored._modifiers == {"power": 2}
+    assert restored.cooldown == 1
+    assert restored.sealed is True
+    assert restored.replaced_by is replacement
+    assert restored.next_attack_mult == 1.5
+    assert restored.nullified is True
+    assert restored.is_temporary is True
+    assert restored._transmission == 3
+    assert restored._element_override == "fire"
+    assert restored._mech_energy_reduction == 1
+    assert restored._burst_effects == [{"kind": "damage", "value": 1}]
 
 
 def test_mcts_uses_non_network_opponent_agent_actions():
