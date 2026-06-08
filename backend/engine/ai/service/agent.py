@@ -82,7 +82,7 @@ def _load_model():
             raise RuntimeError(
                 f"模型不兼容: {_CHECKPOINT}\n"
                 f"  该 checkpoint 是旧版 10 动作空间 (无聚能)，"
-                f"当前模型是 11 动作空间。\n"
+                f"当前模型是 {NUM_ACTIONS} 动作空间。\n"
                 f"  请使用 --sims 200 训练得到的新 checkpoint "
                 f"(如 checkpoints/modular_v3/model_rl_best.pt)\n"
                 f"  原始错误: {msg}"
@@ -178,13 +178,8 @@ class NeuralMCTSAgent(_BaseAgent):
         # MCTS 要求 battle.player_a = 搜索方。交换视角使 B 成为 A。
         battle.player_a, battle.player_b = battle.player_b, battle.player_a
         try:
-            from backend.sim.factory import SimFactory
-            factory = SimFactory()
-            factory.species_db = getattr(battle, 'species_db', None)
-            factory._build_skill_list = getattr(battle, 'skill_loader', None) or (lambda names: [])
-
             probs = mcts_search(
-                battle, None, factory, self._opponent,
+                battle, None, None, self._opponent,
                 num_simulations=self.NUM_SIMULATIONS,
                 evaluator=self._evaluator,
             )

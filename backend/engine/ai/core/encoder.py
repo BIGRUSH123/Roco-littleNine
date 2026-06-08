@@ -112,6 +112,10 @@ def _get_cat_id(value: str, order_tuple: tuple[str, ...]) -> int:
 
     ID=0 始终是 PAD/unknown 占位符，1..N 是有效类别。
     """
+    if order_tuple is ELEMENT_ORDER:
+        return _ELEMENT_TO_ID.get(value, 0)
+    if order_tuple is WEATHER_ORDER:
+        return _WEATHER_TO_ID.get(value, 0)
     if value in order_tuple:
         return order_tuple.index(value) + 1
     return 0
@@ -598,6 +602,8 @@ def _collect_ast_tokens(
 
 from backend.engine.ai.core.vocab import VOCAB_TO_ID, VAL_NUMERIC, VAL_STRING
 
+_ENUM_TOKEN_CACHE: dict[tuple[str, tuple[str, ...]], str | None] = {}
+
 
 def _add_tok(tokens: list[str], values: list[float], tok_str: str, val: float = 0.0) -> None:
     """同步增长 tokens / values 两个数组，保证长度始终一致。"""
@@ -610,20 +616,28 @@ def _try_enum_token(v: str, prefixes: tuple[str, ...]) -> str | None:
     
     会先检查 _ALIAS_MAP 中的别名映射，再尝试直接大写拼接。
     """
+    cache_key = (v, prefixes)
+    if cache_key in _ENUM_TOKEN_CACHE:
+        return _ENUM_TOKEN_CACHE[cache_key]
+
     # 1. 精确别名
     alias = _ALIAS_MAP.get(v)
     if alias is not None:
+        _ENUM_TOKEN_CACHE[cache_key] = alias
         return alias
     # 2. 大小写不敏感别名
     alias_upper = _ALIAS_UPPER.get(v.upper())
     if alias_upper is not None:
+        _ENUM_TOKEN_CACHE[cache_key] = alias_upper
         return alias_upper
     # 3. 前缀 + 大写值
     v_upper = v.upper().replace(' ', '_').replace('-', '_')
     for prefix in prefixes:
         candidate = f"{prefix}{v_upper}"
         if candidate in VOCAB_TO_ID:
+            _ENUM_TOKEN_CACHE[cache_key] = candidate
             return candidate
+    _ENUM_TOKEN_CACHE[cache_key] = None
     return None
 
 

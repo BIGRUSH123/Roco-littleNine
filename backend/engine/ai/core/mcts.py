@@ -324,7 +324,7 @@ def mcts_search(
     gamma: float = 1.0,
     tanh_k: float = 0.0,
 ) -> np.ndarray:
-    """从当前对战状态执行 MCTS，返回动作概率分布 (11,)。
+    """从当前对战状态执行 MCTS，返回动作概率分布 (17,)。
 
     Args:
         battle: 当前对战（player_a 是己方）。
@@ -342,7 +342,7 @@ def mcts_search(
         tanh_k: tanh 软裁决缩放系数（0 = 硬阈值）。
 
     Returns:
-        (11,) float32 动作概率（∝ 访问次数）。
+        (17,) float32 动作概率（∝ 访问次数）。
     """
     if evaluator is None:
         if model is None:
@@ -363,15 +363,22 @@ def mcts_search(
         if root_state is None:
             root_state = encode_battle_state(battle)
         batch_eval = getattr(evaluator, "evaluate_batch", None)
-        opp_player = battle.player_b
-        opp_valid, opp_mask = get_valid_actions(opp_player, battle)
-        if opp_valid and callable(batch_eval):
-            opp_state = encode_battle_state(battle, perspective="B")
-            _, priors = batch_eval([root_state, opp_state], [mask, opp_mask])
-            prior = priors[0]
-            root_opp_prior = priors[1]
+        use_network_opponent = isinstance(opponent_agent, NetworkPolicyAgent)
+        if use_network_opponent:
+            opp_player = battle.player_b
+            opp_valid, opp_mask = get_valid_actions(opp_player, battle)
+            if opp_valid and callable(batch_eval):
+                opp_state = encode_battle_state(battle, perspective="B")
+                _, priors = batch_eval([root_state, opp_state], [mask, opp_mask])
+                prior = priors[0]
+                root_opp_prior = priors[1]
+            else:
+                _, prior = evaluator.evaluate(root_state, mask)
+                root_opp_prior = None
         else:
             _, prior = evaluator.evaluate(root_state, mask)
+            opp_valid = []
+            opp_mask = np.zeros(NUM_ACTIONS, dtype=np.float32)
             root_opp_prior = None
 
         # Dirichlet 噪声
@@ -388,12 +395,12 @@ def mcts_search(
         for a in valid:
             root.children[a] = MCTSNode([], np.zeros(NUM_ACTIONS, dtype=np.float32))
         # 预计算根节点对手策略（博弈树首次选择时直接采样，省 encode+eval）
-        if opp_valid:
+        if use_network_opponent and opp_valid:
             if root_opp_prior is None:
                 opp_state = encode_battle_state(battle, perspective="B")
                 _, root_opp_prior = evaluator.evaluate(opp_state, opp_mask)
             root.opp_policy = root_opp_prior
-        else:
+        elif use_network_opponent:
             # 对手无合法动作：赋值兜底策略（均匀分布），避免 _step_battle 重复推理
             root.opp_policy = opp_mask / max(opp_mask.sum(), 1.0)
 
@@ -434,7 +441,7 @@ def mcts_search(
                     node = node.children[best_a]
                     # 使用预缓存的对手策略（省掉 encode+eval），回退到 opponent_agent
                     if not _step_battle(battle, best_a, opponent_agent,
-                                        opp_policy=path[-1][0].opp_policy,
+                                        opp_policy=path[-1][0].opp_policy if use_network_opponent else None,
                                         opp_greedy=opp_greedy):
                         # action_idx 无法转为有效动作（bench slot 映射失败）。
                         # 跳过本次仿真的 backprop，避免树边与实际动作不匹配。
@@ -450,9 +457,13 @@ def mcts_search(
 
                 if sim_valid and not battle.is_finished and battle.turn < max_turns:
                     leaf_state = encode_battle_state(battle)
-                    opp_player = battle.player_b
-                    opp_valid, opp_mask = get_valid_actions(opp_player, battle)
-                    if opp_valid and callable(batch_eval):
+                    if use_network_opponent:
+                        opp_player = battle.player_b
+                        opp_valid, opp_mask = get_valid_actions(opp_player, battle)
+                    else:
+                        opp_valid = []
+                        opp_mask = np.zeros(NUM_ACTIONS, dtype=np.float32)
+                    if use_network_opponent and opp_valid and callable(batch_eval):
                         opp_state = encode_battle_state(battle, perspective="B")
                         values, priors = batch_eval([leaf_state, opp_state], [sim_mask, opp_mask])
                         leaf_value = float(values[0])
@@ -465,11 +476,11 @@ def mcts_search(
                     node.valid_actions = sim_valid
                     node.prior = sim_prior
                     # 预计算对手策略
-                    if opp_valid and node.opp_policy is None:
+                    if use_network_opponent and opp_valid and node.opp_policy is None:
                         opp_state = encode_battle_state(battle, perspective="B")
                         _, opp_prior = evaluator.evaluate(opp_state, opp_mask)
                         node.opp_policy = opp_prior
-                    elif not opp_valid:
+                    elif use_network_opponent and not opp_valid:
                         node.opp_policy = opp_mask / max(opp_mask.sum(), 1.0)
                     # 预铺子节点空壳：等它们被选中时再真实展开
                     for a in sim_valid:
@@ -551,9 +562,12 @@ def _step_battle(
             action_b = action_index_to_action(player_b, opp_idx)
             if action_b is None:
                 action_b = Action(kind="gather")
+        fixed_a = FixedAgent(action_a, opponent_agent)
+        fixed_a._real = _PlayerSwappedAgent(opponent_agent, player_a)
+        fixed_b = _OppFixedAgent(action_b, battle.player_b)
         battle.execute_turn(
-            opponent_agent,
-            opponent_agent,
+            fixed_a,
+            fixed_b,
             fixed_action_a=action_a,
             fixed_action_b=action_b,
         )

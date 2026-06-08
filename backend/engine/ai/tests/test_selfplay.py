@@ -15,7 +15,10 @@ sys.path.insert(0, ".")
 
 import numpy as np
 
-from backend.engine.ai.service.advisor import advise, advise_single, make_determinizations
+from backend.engine.ai.service import advisor as advisor_module
+from backend.engine.ai.service import agent as service_agent_module
+from backend.engine.ai.core import encoder as encoder_module
+from backend.engine.ai.service.advisor import advise, advise_single, describe_action, make_determinizations
 from backend.engine.ai.core.encoder import encode_battle_state
 from backend.engine.ai.core.evaluator import TorchEvaluator
 from backend.engine.ai.core.mcts import NUM_ACTIONS, NetworkPolicyAgent
@@ -279,6 +282,107 @@ def test_pimc_advise_smoke():
     adv = advise(dets, model, factory, num_simulations=6)
     assert adv.num_determinizations == 3
     assert 0.0 <= adv.win_prob <= 1.0
+
+
+def test_describe_action_uses_fixed_bench_slot_for_switches():
+    factory = SimFactory()
+    sprite_skills = _load_sprite_skills()
+    names = sorted(sprite_skills.keys())
+    team_a = [
+        {"name": names[0], "skills": sprite_skills[names[0]][:4]},
+        {"name": names[1], "skills": sprite_skills[names[1]][:4]},
+        {"name": names[2], "skills": sprite_skills[names[2]][:4]},
+    ]
+    team_b = [{"name": names[3], "skills": sprite_skills[names[3]][:4]}]
+    battle = factory.build_battle(
+        factory.build_player("A", team_a),
+        factory.build_player("B", team_b),
+    )
+    battle.player_a.team[1].current_hp = 0
+
+    label = describe_action(battle.player_a, 11)
+
+    assert battle.player_a.team[2].name in label
+
+
+def test_pimc_advise_reuses_default_network_opponent(monkeypatch):
+    factory = SimFactory()
+    sprite_skills = _load_sprite_skills()
+    team_a, team_b = _two_teams(sprite_skills)
+    battle = factory.build_battle(
+        factory.build_player("A", team_a),
+        factory.build_player("B", team_b),
+    )
+    dets = make_determinizations(battle, factory, bench_pool=None, k=3)
+    model = ModularBattleNet()
+    created: list[object] = []
+
+    class StubNetworkPolicyAgent:
+        def __init__(self, *args, **kwargs):
+            created.append(self)
+
+    def fake_mcts(*args, **kwargs):
+        return np.eye(1, NUM_ACTIONS, dtype=np.float32)[0]
+
+    def fake_win_prob(*args, **kwargs):
+        return 0.5
+
+    monkeypatch.setattr(advisor_module, "NetworkPolicyAgent", StubNetworkPolicyAgent)
+    monkeypatch.setattr(advisor_module, "mcts_search", fake_mcts)
+    monkeypatch.setattr(advisor_module, "_estimate_win_prob", fake_win_prob)
+
+    advise(dets, model, factory, opponent_agent=None, num_simulations=1)
+
+    assert len(created) == 1
+
+
+def test_neural_mcts_agent_does_not_create_factory_per_action(monkeypatch):
+    factory = SimFactory()
+    sprite_skills = _load_sprite_skills()
+    team_a, team_b = _two_teams(sprite_skills)
+    battle = factory.build_battle(
+        factory.build_player("A", team_a),
+        factory.build_player("B", team_b),
+    )
+    original_a = battle.player_a
+    original_b = battle.player_b
+    model = ModularBattleNet()
+    created_factories: list[object] = []
+
+    class StubFactory:
+        def __init__(self):
+            created_factories.append(self)
+
+    def fake_mcts(bt, model_arg, factory_arg, opponent, **kwargs):
+        assert bt.player_a is original_b
+        assert bt.player_b is original_a
+        assert factory_arg is None
+        return np.eye(1, NUM_ACTIONS, 15, dtype=np.float32)[0]
+
+    monkeypatch.setattr(service_agent_module, "_load_model", lambda: model)
+    monkeypatch.setattr("backend.sim.factory.SimFactory", StubFactory)
+    monkeypatch.setattr(service_agent_module, "mcts_search", fake_mcts)
+
+    agent = service_agent_module.NeuralMCTSAgent()
+    agent.NUM_SIMULATIONS = 1
+    action = agent.choose_action(battle)
+
+    assert action.kind == "gather"
+    assert created_factories == []
+    assert battle.player_a is original_a
+    assert battle.player_b is original_b
+
+
+def test_enum_token_lookup_is_cached():
+    encoder_module._ENUM_TOKEN_CACHE.clear()
+    key = ("power", ("ATTR_",))
+
+    first = encoder_module._try_enum_token("power", ("ATTR_",))
+    second = encoder_module._try_enum_token("power", ("ATTR_",))
+
+    assert first == "ATTR_POWER"
+    assert second == first
+    assert encoder_module._ENUM_TOKEN_CACHE[key] == "ATTR_POWER"
 
 
 if __name__ == "__main__":

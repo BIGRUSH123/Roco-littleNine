@@ -59,7 +59,7 @@ if TYPE_CHECKING:
 class Advice:
     """单回合建议结果。"""
 
-    probs: np.ndarray                       # (11,) 平均访问分布
+    probs: np.ndarray                       # (17,) 平均访问分布
     ranked: list[tuple[int, str, float]]    # [(动作索引, 文字描述, 概率)]，降序
     win_prob: float                         # value 头估计的本方胜率 [0,1]
     num_determinizations: int = 1
@@ -108,10 +108,10 @@ def describe_action(player: "Player", idx: int) -> str:
 def _bench_target(player: "Player", bench_slot: int):
     count = 0
     for i, s in enumerate(player.team):
-        if i == player.active_index or s.is_fainted:
+        if i == player.active_index:
             continue
         if count == bench_slot:
-            return s
+            return None if s.is_fainted else s
         count += 1
     return None
 
@@ -173,12 +173,12 @@ def advise(
     acc = np.zeros(NUM_ACTIONS, dtype=np.float64)
     win_acc = 0.0
     w_sum = 0.0
+    default_opponent = opponent_agent or NetworkPolicyAgent(model, device=device, greedy=True)
     for bt, w in zip(determinizations, weights):
         if w <= 0:
             continue
-        opp = opponent_agent or NetworkPolicyAgent(model, device=device, greedy=True)
         probs = mcts_search(
-            bt, model, factory, opp,
+            bt, model, factory, default_opponent,
             num_simulations=num_simulations, device=device, root_noise=0.0,
         )
         acc += w * probs.astype(np.float64)
