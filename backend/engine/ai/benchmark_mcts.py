@@ -59,6 +59,7 @@ def run_benchmark(
     device: str = "cpu",
     seed: int = 1,
     torch_threads: int | None = None,
+    leaf_batch_size: int = 1,
 ) -> dict[str, Any]:
     """Benchmark encode, model evaluation, and MCTS on one deterministic position."""
     random.seed(seed)
@@ -101,6 +102,7 @@ def run_benchmark(
             root_noise=0.0,
             max_turns=20,
             evaluator=evaluator,
+            leaf_batch_size=leaf_batch_size,
         )
     mcts_seconds = time.perf_counter() - t0
     total_simulations = simulations * mcts_repeats
@@ -108,6 +110,7 @@ def run_benchmark(
     return {
         "device": device,
         "seed": seed,
+        "leaf_batch_size": leaf_batch_size,
         "encode": {
             "iters": encode_iters,
             "seconds": encode_seconds,
@@ -137,6 +140,7 @@ def main() -> None:
     parser.add_argument("--device", default="cpu")
     parser.add_argument("--seed", type=int, default=1)
     parser.add_argument("--torch-threads", type=int, default=None)
+    parser.add_argument("--leaf-batch-size", type=int, default=1)
     args = parser.parse_args()
 
     result = run_benchmark(
@@ -147,6 +151,7 @@ def main() -> None:
         device=args.device,
         seed=args.seed,
         torch_threads=args.torch_threads,
+        leaf_batch_size=args.leaf_batch_size,
     )
     print(json.dumps(result, ensure_ascii=False, indent=2))
 

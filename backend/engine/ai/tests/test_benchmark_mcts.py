@@ -27,6 +27,9 @@ def _assert_encoded_equal(left: dict[str, np.ndarray], right: dict[str, np.ndarr
 
 
 class _UniformEvaluator:
+    def __init__(self) -> None:
+        self.evaluate_batch_calls = 0
+
     def evaluate(self, state: dict, mask: np.ndarray) -> tuple[float, np.ndarray]:
         return 0.0, self._probs(mask)
 
@@ -35,6 +38,7 @@ class _UniformEvaluator:
         states: list[dict],
         masks: list[np.ndarray] | np.ndarray,
     ) -> tuple[np.ndarray, np.ndarray]:
+        self.evaluate_batch_calls += 1
         mask_list = masks if isinstance(masks, list) else list(masks)
         return (
             np.zeros(len(states), dtype=np.float32),
@@ -270,6 +274,52 @@ def test_mcts_non_network_opponent_does_not_require_batch_evaluator():
     )
 
     assert opponent.choose_action_calls > 0
+    assert policy.shape == (17,)
+    np.testing.assert_allclose(policy.sum(), 1.0)
+
+
+def test_mcts_leaf_batch_path_uses_batch_evaluator():
+    factory = SimFactory()
+    battle = _fixed_battle(factory)
+    opponent = _CountingOpponent()
+    evaluator = _UniformEvaluator()
+
+    policy = mcts_search(
+        battle,
+        None,
+        factory,
+        opponent,
+        num_simulations=4,
+        root_noise=0.0,
+        max_turns=4,
+        evaluator=evaluator,
+        leaf_batch_size=4,
+    )
+
+    assert evaluator.evaluate_batch_calls > 0
+    assert policy.shape == (17,)
+    np.testing.assert_allclose(policy.sum(), 1.0)
+
+
+def test_mcts_leaf_batch_default_uses_serial_evaluator():
+    factory = SimFactory()
+    battle = _fixed_battle(factory)
+    opponent = _CountingOpponent()
+    evaluator = _UniformEvaluator()
+
+    policy = mcts_search(
+        battle,
+        None,
+        factory,
+        opponent,
+        num_simulations=4,
+        root_noise=0.0,
+        max_turns=4,
+        evaluator=evaluator,
+        leaf_batch_size=1,
+    )
+
+    assert evaluator.evaluate_batch_calls == 0
     assert policy.shape == (17,)
     np.testing.assert_allclose(policy.sum(), 1.0)
 

@@ -358,6 +358,7 @@ def mcts_search(
     root_state: np.ndarray | None = None,
     gamma: float = 1.0,
     tanh_k: float = 0.0,
+    leaf_batch_size: int = 1,
 ) -> np.ndarray:
     """从当前对战状态执行 MCTS，返回动作概率分布 (17,)。
 
@@ -439,6 +440,96 @@ def mcts_search(
 
         agent_a_proxy = _PlayerSwappedAgent(opponent_agent, battle.player_a)
         fixed_b_proxy = _OppFixedAgent(_GATHER_ACTION, battle.player_b) if use_network_opponent else None
+
+        batch_leaf_eval = leaf_batch_size > 1 and not use_network_opponent and callable(batch_eval)
+        if batch_leaf_eval:
+            from backend.engine.ai.core.outcome import DEFAULT_DRAW_MARGIN, battle_outcome_a
+
+            batch_size = max(1, int(leaf_batch_size))
+            simulations_left = num_simulations
+            pending_states: list[dict[str, np.ndarray]] = []
+            pending_masks: list[np.ndarray] = []
+            pending_meta: list[tuple[MCTSNode, list[tuple[MCTSNode, int]], list[int]]] = []
+
+            while simulations_left > 0:
+                pending_states.clear()
+                pending_masks.clear()
+                pending_meta.clear()
+
+                while simulations_left > 0 and len(pending_states) < batch_size:
+                    simulations_left -= 1
+                    saved = battle.save_mutable_state()
+                    try:
+                        node = root
+                        path: list[tuple[MCTSNode, int]] = []
+                        step_ok = True
+
+                        while node.children:
+                            best_a = -1
+                            best_score = -1e9
+                            sqrt_n = math.sqrt(node.visit_count + 1)
+                            for a in node.valid_actions:
+                                child = node.children.get(a)
+                                if child is None:
+                                    continue
+                                q = child.value
+                                u = c_puct * node.prior[a] * sqrt_n / (1 + child.visit_count)
+                                if q + u > best_score:
+                                    best_score = q + u
+                                    best_a = a
+                            if best_a < 0:
+                                break
+                            if battle.is_finished or battle.player_a.active.is_fainted or battle.turn >= max_turns:
+                                break
+                            path.append((node, best_a))
+                            node = node.children[best_a]
+                            if not _step_battle(
+                                battle, best_a, opponent_agent,
+                                opp_greedy=opp_greedy,
+                                agent_a_proxy=agent_a_proxy,
+                            ):
+                                step_ok = False
+                                break
+
+                        if not step_ok:
+                            continue
+
+                        sim_player = battle.player_a
+                        sim_valid, sim_mask = get_valid_actions(sim_player, battle)
+                        if sim_valid and not battle.is_finished and battle.turn < max_turns:
+                            leaf_state = encode_battle_state(battle)
+                            for parent, _ in path:
+                                parent.visit_count += 1
+                            node.visit_count += 1
+                            pending_states.append(leaf_state)
+                            pending_masks.append(sim_mask)
+                            pending_meta.append((node, path, sim_valid))
+                        else:
+                            leaf_value, _ = battle_outcome_a(
+                                battle, max_turns, draw_margin=DEFAULT_DRAW_MARGIN,
+                                gamma=gamma, tanh_k=tanh_k,
+                            )
+                            for parent, _ in reversed(path):
+                                parent.visit_count += 1
+                                parent.total_value += leaf_value
+                            node.visit_count += 1
+                            node.total_value += leaf_value
+                    finally:
+                        battle.restore_mutable_state(saved)
+
+                if pending_states:
+                    values, priors = batch_eval(pending_states, pending_masks)
+                    for i, (node, path, sim_valid) in enumerate(pending_meta):
+                        leaf_value = float(values[i])
+                        node.valid_actions = sim_valid
+                        node.prior = priors[i]
+                        for a in sim_valid:
+                            node.children[a] = MCTSNode([], _EMPTY_PRIOR)
+                        for parent, _ in reversed(path):
+                            parent.total_value += leaf_value
+                        node.total_value += leaf_value
+
+            num_simulations = 0
 
         # ── MCTS 主循环 ──
         # 使用 save/restore 替代 clone：每轮仿真前保存可变状态，
