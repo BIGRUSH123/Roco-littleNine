@@ -14,6 +14,7 @@ import sys
 sys.path.insert(0, ".")
 
 import numpy as np
+import torch
 
 from backend.engine.ai.service import advisor as advisor_module
 from backend.engine.ai.service import agent as service_agent_module
@@ -167,6 +168,39 @@ def test_model_ast_position_cache_is_checkpoint_compatible():
     assert model.ast_max_len == 128
     assert model._ast_pos_ids.shape == (1, 128)
     assert "_ast_pos_ids" not in model.state_dict()
+
+
+def test_model_ast_forward_ignores_trailing_pad_tokens():
+    factory = SimFactory()
+    sprite_skills = _load_sprite_skills()
+    team_a, team_b = _two_teams(sprite_skills)
+    p1 = factory.build_player("A", team_a)
+    p2 = factory.build_player("B", team_b)
+    battle = factory.build_battle(p1, p2)
+
+    model = ModularBattleNet()
+    model.eval()
+    ev = TorchEvaluator(model, device="cpu")
+    state = encode_battle_state(battle)
+    mask = np.zeros(NUM_ACTIONS, dtype=np.float32)
+    mask[0] = 1.0
+
+    non_pad = np.flatnonzero(state["ast_tokens"] != 0)
+    assert len(non_pad) > 0
+    effective_len = int(non_pad[-1]) + 1
+    trimmed_state = {
+        key: value.copy()
+        for key, value in state.items()
+    }
+    trimmed_state["ast_tokens"] = state["ast_tokens"][:effective_len].copy()
+    trimmed_state["ast_values"] = state["ast_values"][:effective_len].copy()
+
+    with torch.inference_mode():
+        full_value, full_probs = ev.evaluate(state, mask)
+        trimmed_value, trimmed_probs = ev.evaluate(trimmed_state, mask)
+
+    assert np.allclose(full_value, trimmed_value, atol=1e-6)
+    assert np.allclose(full_probs, trimmed_probs, atol=1e-6)
 
 
 def test_torch_evaluator_batch_matches_single_eval():

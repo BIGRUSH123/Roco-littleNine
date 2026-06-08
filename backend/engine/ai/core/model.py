@@ -367,19 +367,27 @@ class EntityBottleneckNet(nn.Module):
         # ── AST Transformer 编码 ──
         # 双流融合: Token 词向量 + Value 浮点投影 + 位置编码
         B_ast, SeqLen = ast_tokens.shape
-        t_emb = self.ast_token_emb(ast_tokens)               # (B, SeqLen, 128)
-        v_emb = self.ast_value_proj(ast_values.unsqueeze(-1)) # (B, SeqLen, 128)
-        pos_ids = self._ast_pos_ids[:, :SeqLen].expand(B_ast, -1)
-        p_emb = self.ast_pos_emb(pos_ids)                     # (B, SeqLen, 128)
-        ast_seq = t_emb + v_emb + p_emb
+        non_pad_mask = ast_tokens != 0
 
-        # Padding Mask: 忽略 PAD token (ID=0)
-        padding_mask = (ast_tokens == 0)
-
-        if padding_mask.all():
+        if not non_pad_mask.any():
             # 全部为 PAD（无 AST 数据）：直接用零向量
             ast_global = torch.zeros(B, self.ast_dim, device=ast_tokens.device)
         else:
+            effective_len = int(non_pad_mask.any(dim=0).nonzero()[-1].item()) + 1
+            if effective_len < SeqLen:
+                ast_tokens = ast_tokens[:, :effective_len]
+                ast_values = ast_values[:, :effective_len]
+                non_pad_mask = non_pad_mask[:, :effective_len]
+                SeqLen = effective_len
+
+            t_emb = self.ast_token_emb(ast_tokens)                # (B, SeqLen, 128)
+            v_emb = self.ast_value_proj(ast_values.unsqueeze(-1)) # (B, SeqLen, 128)
+            pos_ids = self._ast_pos_ids[:, :SeqLen].expand(B_ast, -1)
+            p_emb = self.ast_pos_emb(pos_ids)                     # (B, SeqLen, 128)
+            ast_seq = t_emb + v_emb + p_emb
+
+            # Padding Mask: 忽略 PAD token (ID=0)
+            padding_mask = ~non_pad_mask
             ast_out = self.ast_transformer(ast_seq, src_key_padding_mask=padding_mask)  # (B, SeqLen, 128)
             # 全遮序列的 softmax 输入均为 -inf，输出 NaN。根据 IEEE 754，
             # NaN * 0 = NaN，masked mean 前必须显式归零阻断污染。
