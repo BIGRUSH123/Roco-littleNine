@@ -857,6 +857,17 @@ def _clone_model(model, device: str):
     return clone
 
 
+def _gate_decision(wins: float, completed: int, total: int, gate: float) -> bool | None:
+    if completed <= 0 or total <= 0 or completed > total:
+        return None
+    remaining = total - completed
+    if (wins + remaining) / total < gate:
+        return False
+    if wins / total >= gate:
+        return True
+    return None
+
+
 def evaluate(
     candidate: ModularBattleNet,
     best: ModularBattleNet,
@@ -869,6 +880,7 @@ def evaluate(
     draw_margin: float = DEFAULT_DRAW_MARGIN,
     verbose: bool = True,
     leaf_batch_size: int = 1,
+    early_stop_gate: float | None = None,
 ) -> float:
     """candidate vs best 对打，返回 candidate 胜率（平局计 0.5）。
 
@@ -917,6 +929,17 @@ def evaluate(
             battle, max_turns, draw_margin=draw_margin,
         )
         wins += eval_score_for_candidate(outcome_a, cand_is_a)
+        if early_stop_gate is not None:
+            decision = _gate_decision(wins, g + 1, n_games, early_stop_gate)
+            if decision is not None:
+                if verbose:
+                    status = "pass" if decision else "fail"
+                    print(
+                        f"    eval early-stop {status}: {g + 1}/{n_games} games, "
+                        f"score_floor={wins / n_games:.2%}, gate={early_stop_gate:.2%}",
+                        flush=True,
+                    )
+                return early_stop_gate if decision else wins / n_games
 
         if verbose and (g + 1) % 10 == 0:
             print(f"    评估 {g + 1}/{n_games} 局, 当前胜率 {wins / (g + 1):.2%}")
@@ -996,6 +1019,7 @@ def evaluate_parallel(
     progress_every: int = 1,
     stall_timeout_s: float = 600.0,
     leaf_batch_size: int = 1,
+    early_stop_gate: float | None = None,
 ) -> float:
     """多进程局级门控评估 + 主进程双模型批量推理。
 
@@ -1062,8 +1086,9 @@ def evaluate_parallel(
     last_wait_report = time.monotonic()
     last_progress = time.monotonic()
     stalled = False
+    gate_decision: bool | None = None
     try:
-        while done_workers < n_workers:
+        while done_workers < n_workers and gate_decision is None:
             try:
                 raw_result = result_queue.get(timeout=10.0)
                 tag, wid = raw_result[0], raw_result[1]
@@ -1111,6 +1136,17 @@ def evaluate_parallel(
             # tag == "game"
             wins += float(raw_result[2])
             completed_games += 1
+            if early_stop_gate is not None:
+                gate_decision = _gate_decision(
+                    wins, completed_games, n_games, early_stop_gate,
+                )
+                if gate_decision is not None and verbose:
+                    status = "pass" if gate_decision else "fail"
+                    print(
+                        f"  eval early-stop {status}: {completed_games}/{n_games} games, "
+                        f"score_floor={wins / n_games:.2%}, gate={early_stop_gate:.2%}",
+                        flush=True,
+                    )
             if verbose and (completed_games % max(1, progress_every) == 0):
                 print(
                     f"  评估进度: {completed_games}/{n_games} 局, "
@@ -1118,7 +1154,7 @@ def evaluate_parallel(
                     flush=True,
                 )
 
-        if stalled:
+        if stalled or gate_decision is not None:
             for proc in processes:
                 if proc.is_alive():
                     proc.terminate()
@@ -1138,6 +1174,10 @@ def evaluate_parallel(
     finally:
         server.stop()
 
+    if gate_decision is True:
+        return early_stop_gate if early_stop_gate is not None else wins / n_games
+    if gate_decision is False:
+        return wins / n_games
     denom = completed_games if stalled else n_games
     return wins / denom if denom > 0 else 0.0
 
@@ -1462,6 +1502,7 @@ def main():
                     progress_every=args.progress_every,
                     stall_timeout_s=args.worker_stall_timeout,
                     leaf_batch_size=args.leaf_batch_size,
+                    early_stop_gate=args.gate,
                 )
             else:
                 win_rate = evaluate(
@@ -1470,6 +1511,7 @@ def main():
                     max_turns=args.eval_max_turns,
                     draw_margin=args.draw_margin,
                     leaf_batch_size=args.leaf_batch_size,
+                    early_stop_gate=args.gate,
                 )
             eval_sec = time.time() - t0
             _log(f"  候选胜率: {win_rate:.2%}  ({eval_sec:.1f}s)")

@@ -25,6 +25,7 @@ from backend.engine.ai.core.evaluator import TorchEvaluator
 from backend.engine.ai.core.mcts import NUM_ACTIONS, NetworkPolicyAgent
 from backend.engine.ai.core.model import ModularBattleNet
 from backend.engine.ai.train import (
+    _gate_decision,
     _load_sprite_skills,
     collect_rl_samples,
     collect_rl_samples_parallel,
@@ -299,6 +300,18 @@ def test_evaluate_parallel_smoke():
 # ═══════════════════════════════════════════════════════════════════
 # 4. 建议（advise_single / PIMC）
 # ═══════════════════════════════════════════════════════════════════
+
+def test_gate_decision_early_fail_when_remaining_cannot_reach_gate():
+    assert _gate_decision(wins=3.0, completed=8, total=10, gate=0.6) is False
+
+
+def test_gate_decision_early_pass_when_losses_cannot_drop_below_gate():
+    assert _gate_decision(wins=6.0, completed=6, total=10, gate=0.6) is True
+
+
+def test_gate_decision_continues_when_result_can_change():
+    assert _gate_decision(wins=4.0, completed=6, total=10, gate=0.6) is None
+
 
 def test_advise_single_smoke():
     factory = SimFactory()
