@@ -14,6 +14,8 @@ if TYPE_CHECKING:
     from .battle import Battle
     from .battleskill import BattleSkill
 
+_POSITION_POWER_BONUS_CACHE: dict[tuple[int, int], tuple[object, int]] = {}
+
 
 # ═══════════════════════════════════════════════════════════════════════
 # TurnPipeline: 回合开始阶段
@@ -103,8 +105,14 @@ class TurnPipeline:
     @staticmethod
     def _extract_position_power_bonus(bs: BattleSkill, skill_index: int) -> int:
         """提取单个技能中 skill_at 条件下的 stat power 总加成。"""
+        skill = bs.skill
+        cache_key = (id(skill), skill_index)
+        cached = _POSITION_POWER_BONUS_CACHE.get(cache_key)
+        if cached is not None and cached[0] is skill:
+            return cached[1]
+
         total = 0
-        for eff in bs.effects:
+        for eff in skill.effects:
             if getattr(eff, 'kind', '') != 'conditional':
                 continue
             when = getattr(eff, 'when', None) or {}
@@ -116,4 +124,5 @@ class TurnPipeline:
                 if getattr(sub, 'kind', '') == 'stat' and getattr(sub, 'stat', '') == 'power':
                     steps = int(getattr(sub, 'steps', 0) or 0)
                     total += steps * 10  # _STEP_UNIT['power'] = 10
+        _POSITION_POWER_BONUS_CACHE[cache_key] = (skill, total)
         return total
