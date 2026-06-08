@@ -425,6 +425,9 @@ def mcts_search(
             # 对手无合法动作：赋值兜底策略（均匀分布），避免 _step_battle 重复推理
             root.opp_policy = opp_mask / max(opp_mask.sum(), 1.0)
 
+        agent_a_proxy = _PlayerSwappedAgent(opponent_agent, battle.player_a)
+        fixed_b_proxy = _OppFixedAgent(_GATHER_ACTION, battle.player_b) if use_network_opponent else None
+
         # ── MCTS 主循环 ──
         # 使用 save/restore 替代 clone：每轮仿真前保存可变状态，
         # 在原始 battle 上原地执行 selection → evaluation → backprop，
@@ -463,7 +466,9 @@ def mcts_search(
                     # 使用预缓存的对手策略（省掉 encode+eval），回退到 opponent_agent
                     if not _step_battle(battle, best_a, opponent_agent,
                                         opp_policy=path[-1][0].opp_policy if use_network_opponent else None,
-                                        opp_greedy=opp_greedy):
+                                        opp_greedy=opp_greedy,
+                                        agent_a_proxy=agent_a_proxy,
+                                        fixed_b_proxy=fixed_b_proxy):
                         # action_idx 无法转为有效动作（bench slot 映射失败）。
                         # 跳过本次仿真的 backprop，避免树边与实际动作不匹配。
                         step_ok = False
@@ -545,6 +550,8 @@ def _step_battle(
     battle: Battle, action_idx: int, opponent_agent,
     *, opp_policy: np.ndarray | None = None,
     opp_greedy: bool = False,
+    agent_a_proxy=None,
+    fixed_b_proxy=None,
 ) -> bool:
     """在 battle 上执行一回合：A 按 action_idx 行动，B 由 opponent_agent 决定。
 
@@ -576,8 +583,9 @@ def _step_battle(
             action_b = action_index_to_action(player_b, opp_idx)
             if action_b is None:
                 action_b = _GATHER_ACTION
-        agent_a = _PlayerSwappedAgent(opponent_agent, player_a)
-        fixed_b = _OppFixedAgent(action_b, battle.player_b)
+        agent_a = agent_a_proxy or _PlayerSwappedAgent(opponent_agent, player_a)
+        fixed_b = fixed_b_proxy or _OppFixedAgent(action_b, battle.player_b)
+        fixed_b._action = action_b
         battle.execute_turn(
             agent_a,
             fixed_b,
@@ -586,7 +594,7 @@ def _step_battle(
         )
         return True
 
-    agent_a = _PlayerSwappedAgent(opponent_agent, player_a)
+    agent_a = agent_a_proxy or _PlayerSwappedAgent(opponent_agent, player_a)
     battle.execute_turn(fixed_action_a=action_a, agent_a=agent_a, agent_b=opponent_agent)
     return True
 
