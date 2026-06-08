@@ -36,7 +36,8 @@ if TYPE_CHECKING:
 
 _MODEL = None
 _DEVICE = "cpu"
-_CHECKPOINT = "checkpoints/modular_v3/model_rl_best.pt"
+DEFAULT_CHECKPOINT = "checkpoints/formal_v1/model_rl_best.pt"
+_CHECKPOINT = DEFAULT_CHECKPOINT
 
 
 def set_checkpoint(path: str) -> None:
@@ -66,16 +67,17 @@ def _load_model():
 
     from backend.engine.ai.core.model import ModularBattleNet
 
-    _MODEL = ModularBattleNet(
+    model = ModularBattleNet(
         trunk_dim=data.get("trunk_dim", 256),
         num_blocks=data.get("num_blocks", 4),
         dropout=float(data.get("dropout", 0.1)),
         vocab_size=data.get("vocab_size", VOCAB_SIZE),
+        ast_max_len=data.get("ast_max_len", 384),
         with_attention=data.get("with_attention", True),
     )
 
     try:
-        _MODEL.load_state_dict(data["state_dict"])
+        model.load_state_dict(data["state_dict"])
     except RuntimeError as e:
         msg = str(e)
         if "size mismatch" in msg and "policy_head" in msg:
@@ -88,8 +90,9 @@ def _load_model():
                 f"  原始错误: {msg}"
             ) from e
         raise
-    _MODEL.to(_DEVICE)
-    _MODEL.eval()
+    model.to(_DEVICE)
+    model.eval()
+    _MODEL = model
     return _MODEL
 
 

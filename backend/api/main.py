@@ -676,7 +676,18 @@ def _load_ai_agent(name: str, player, model: str | None = None):
         if mod_name == "backend.engine.ai.service.agent":
             if model:
                 mod.set_checkpoint(model)
-            return cls()
+            try:
+                return cls()
+            except (FileNotFoundError, RuntimeError) as err:
+                import sys
+                from backend.sim.agent import RuleAgent
+
+                mod.set_checkpoint(mod.DEFAULT_CHECKPOINT)
+                print(
+                    f"[WARN] Neural agent {name} unavailable, falling back to RuleAgent: {err}",
+                    file=sys.stderr,
+                )
+                return RuleAgent("B", player)
         try:
             from roco.bridge import adapt_agent
         except ImportError as err:
