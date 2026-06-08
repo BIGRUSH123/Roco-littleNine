@@ -867,7 +867,7 @@ class Battle(BattleMechanicsMixin):
             opp_team = 'B' if team == 'A' else 'A'
             self.inc_team_counter(opp_team, 'enemy_gather')
             # Fire post_energy_change for traits like 囤积
-            if gained > 0:
+            if gained > 0 and self._vm_engine.registry.has_candidates("post_energy_change"):
                 gather_ctx = self._make_ctx(
                     user, target, None, None, self.globals,
                     team=team, turn=self.turn,
@@ -1050,7 +1050,7 @@ class Battle(BattleMechanicsMixin):
         user._modifiers.pop("energy_cost", None)
 
         # Fire post_energy_change for traits like 囤积
-        if cost > 0:
+        if cost > 0 and self._vm_engine.registry.has_candidates("post_energy_change"):
             energy_ctx = self._make_ctx(
                 user, target, None, None, self.globals,
                 team=team, turn=self.turn,
