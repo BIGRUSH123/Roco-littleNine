@@ -387,14 +387,18 @@ class EntityBottleneckNet(nn.Module):
             ast_seq = t_emb + v_emb + p_emb
 
             # Padding Mask: 忽略 PAD token (ID=0)
-            padding_mask = ~non_pad_mask
-            ast_out = self.ast_transformer(ast_seq, src_key_padding_mask=padding_mask)  # (B, SeqLen, 128)
+            if non_pad_mask.all():
+                ast_out = self.ast_transformer(ast_seq)  # (B, SeqLen, 128)
+                ast_global = ast_out.mean(dim=1)
+            else:
+                padding_mask = ~non_pad_mask
+                ast_out = self.ast_transformer(ast_seq, src_key_padding_mask=padding_mask)  # (B, SeqLen, 128)
             # 全遮序列的 softmax 输入均为 -inf，输出 NaN。根据 IEEE 754，
             # NaN * 0 = NaN，masked mean 前必须显式归零阻断污染。
-            ast_out = torch.nan_to_num(ast_out, nan=0.0)
+                ast_out = torch.nan_to_num(ast_out, nan=0.0)
             # 全局池化（masked mean — 排除 PAD，防止拉低响应）
-            mask_expanded = (~padding_mask).unsqueeze(-1).float()
-            ast_global = (ast_out * mask_expanded).sum(dim=1) / mask_expanded.sum(dim=1).clamp(min=1e-8)  # (B, 128)
+                mask_expanded = non_pad_mask.unsqueeze(-1).float()
+                ast_global = (ast_out * mask_expanded).sum(dim=1) / mask_expanded.sum(dim=1).clamp(min=1e-8)  # (B, 128)
 
         # ── 延迟融合 ──
         fused = torch.cat([sp_own_flat, sp_opp_flat, sk_flat, g_pool, ast_global], dim=-1)
