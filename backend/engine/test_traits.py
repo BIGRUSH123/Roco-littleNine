@@ -15,6 +15,7 @@ from backend.sim.battle import Battle
 from backend.sim.battleskill import BattleSkill
 from backend.sim.factory import SimFactory
 from backend.sim.player import Player
+from backend.sim.pipeline import TurnPipeline
 from backend.sim.skill import Skill
 from backend.sim.sprite import Sprite
 from backend.sim.traits import dispatch_entry, dispatch_leave
@@ -106,6 +107,24 @@ def _make_transmission_skill(name: str, transmission: int, energy_cost: int = 5)
     )
 
 
+def _make_position_trait_battle(ability: str, ability_id: int = 0) -> tuple[Battle, Sprite, Sprite]:
+    sprite = _make_transmission_sprite(ability=ability, ability_id=ability_id)
+    sprite.skills = [
+        _make_transmission_skill("A", transmission=0),
+        _make_transmission_skill("B", transmission=0),
+        _make_transmission_skill("C", transmission=0),
+    ]
+    opp = _make_transmission_sprite()
+    opp.species.name = "对手"
+    opp.skills = [_make_transmission_skill("O", transmission=0)]
+    battle = Battle(
+        Player(name="A", team=[sprite]),
+        Player(name="B", team=[opp]),
+        verbose=False,
+    )
+    return battle, sprite, opp
+
+
 # ═══════════════════════════════════════════════════════════════════
 # 机械变式 (ID 20159)
 # ═══════════════════════════════════════════════════════════════════
@@ -173,6 +192,86 @@ def test_trait_机械变式_does_not_apply_to_other_traits():
 
     assert [bs.name for bs in sprite.skills] == ["B", "A"]
     assert [bs._mech_energy_reduction for bs in sprite.skills] == [0, 0]
+
+
+# ═══════════════════════════════════════════════════════════════════
+# 位置型入场/回合开始特性
+# ═══════════════════════════════════════════════════════════════════
+
+def test_trait_向心力_turn_start_applies_before_transmission():
+    """向心力: 回合开始先给当前1/2号位传动，再执行本次传动。"""
+    battle, sprite, _ = _make_position_trait_battle("向心力", 20024)
+    for bs in sprite.skills:
+        bs._transmission = 0
+        bs._modifiers.clear()
+
+    TurnPipeline.execute_turn_start(battle)
+
+    assert [bs.name for bs in sprite.skills] == ["C", "A", "B"]
+    moved = {bs.name: bs for bs in sprite.skills}
+    assert moved["A"]._transmission == 1
+    assert moved["B"]._transmission == 1
+    assert moved["C"]._transmission == 0
+    assert moved["A"]._modifiers.get("power") == 30
+    assert moved["B"]._modifiers.get("power") == 30
+
+
+def test_trait_向心力_switch_entry_applies_before_entry_transmission():
+    """向心力: 换宠入场时 post_entry 先写入当前1/2号位，再入场传动。"""
+    old = _make_transmission_sprite()
+    old.species.name = "旧精灵"
+    old.skills = [_make_transmission_skill("旧", transmission=0)]
+    new = _make_transmission_sprite(ability="向心力", ability_id=20024)
+    new.species.name = "向心力精灵"
+    new.skills = [
+        _make_transmission_skill("A", transmission=0),
+        _make_transmission_skill("B", transmission=0),
+        _make_transmission_skill("C", transmission=0),
+    ]
+    opp = _make_transmission_sprite()
+    opp.skills = [_make_transmission_skill("O", transmission=0)]
+    battle = Battle(
+        Player(name="A", team=[old, new]),
+        Player(name="B", team=[opp]),
+        verbose=False,
+    )
+
+    battle._resolve_switch("A", Action(kind="switch", switch_index=1))
+
+    assert [bs.name for bs in new.skills] == ["C", "A", "B"]
+    moved = {bs.name: bs for bs in new.skills}
+    assert moved["A"]._transmission == 1
+    assert moved["B"]._transmission == 1
+    assert moved["C"]._transmission == 0
+
+
+def test_trait_翼轴_swift_tracks_pre_transmission_first_slot():
+    """翼轴: 1号位获得迅捷和传动，传动后迅捷跟随原1号位技能。"""
+    old = _make_transmission_sprite()
+    old.species.name = "旧精灵"
+    old.skills = [_make_transmission_skill("旧", transmission=0)]
+    new = _make_transmission_sprite(ability="翼轴", ability_id=20109)
+    new.species.name = "翼轴精灵"
+    new.skills = [
+        _make_transmission_skill("A", transmission=0),
+        _make_transmission_skill("B", transmission=0),
+        _make_transmission_skill("C", transmission=0),
+    ]
+    opp = _make_transmission_sprite()
+    opp.skills = [_make_transmission_skill("O", transmission=0)]
+    battle = Battle(
+        Player(name="A", team=[old, new]),
+        Player(name="B", team=[opp]),
+        verbose=False,
+    )
+
+    battle._resolve_switch("A", Action(kind="switch", switch_index=1))
+
+    assert [bs.name for bs in new.skills] == ["B", "A", "C"]
+    swift_idx, swift_bs = battle._find_first_swift_skill(new)
+    assert swift_idx == 1
+    assert swift_bs is not None
+    assert swift_bs.name == "A"
 
 
 # ═══════════════════════════════════════════════════════════════════

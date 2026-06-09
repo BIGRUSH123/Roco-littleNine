@@ -1,6 +1,6 @@
 """backend/sim/pipeline.py — 回合管线。
 
-TurnPipeline: 回合开始阶段（传动 / 位置效果预扫描 / trait / 不朽）
+TurnPipeline: 回合开始阶段（trait / 传动 / 位置效果预扫描 / 不朽）
 """
 
 from __future__ import annotations
@@ -32,7 +32,13 @@ class TurnPipeline:
         # 1. 延时效果结算（phase=start）
         events += battle._execute_scheduled_effects('start')
 
-        # 2. 传动（回合开始自动执行）
+        # 2. trait turn_start。位置型特性先作用于当前槽位，再参与本次传动。
+        if not battle.player_a.active.is_fainted:
+            events += dispatch_turn_start(battle.player_a.active, battle, 'A')
+        if not battle.player_b.active.is_fainted:
+            events += dispatch_turn_start(battle.player_b.active, battle, 'B')
+
+        # 3. 传动（回合开始自动执行）
         prev_a: list[str] = []
         prev_b: list[str] = []
         if not battle.player_a.active.is_fainted:
@@ -42,7 +48,7 @@ class TurnPipeline:
             prev_b = [bs.name for bs in battle.player_b.active.skills]
             events += battle._apply_transmission(battle.player_b.active)
 
-        # 3. 传动后 hook（机械变式 等）
+        # 4. 传动后 hook（机械变式 等）
         for team, sprite, prev in [('A', battle.player_a.active, prev_a), ('B', battle.player_b.active, prev_b)]:
             if sprite.is_fainted or not prev:
                 continue
@@ -50,14 +56,8 @@ class TurnPipeline:
             if res:
                 events += res
 
-        # 4. 位置效果预扫描（传动后、行动前）
+        # 5. 位置效果预扫描（传动后、行动前）
         battle._position_power_bonus = TurnPipeline._scan_position_effects(battle)
-
-        # 5. trait turn_start
-        if not battle.player_a.active.is_fainted:
-            events += dispatch_turn_start(battle.player_a.active, battle, 'A')
-        if not battle.player_b.active.is_fainted:
-            events += dispatch_turn_start(battle.player_b.active, battle, 'B')
 
         # 6. 不朽：力竭后 3 回合复活
         for team in ('A', 'B'):

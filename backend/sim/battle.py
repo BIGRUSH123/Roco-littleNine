@@ -1567,12 +1567,9 @@ class Battle(BattleMechanicsMixin):
                 ctx_entry = self._make_ctx(new, opp, None, None, self.globals, team=team, turn=self.turn)
                 events += self._vm_engine.fire_trigger("post_leave", ctx_leave, old, opp, self.globals, team=team, battle=self)
                 # 洁癖等 post_leave observer 可能写入新的 pending_effects
-                pending = self.pending_effects.get(team, [])
-                for e in pending:
-                    new.add_effect(e)
-                if pending:
-                    self.pending_effects[team] = []
+                self._apply_pending_entry_effects(team, new)
                 events += self._vm_engine.fire_trigger("post_entry", ctx_entry, new, opp, self.globals, team=team, battle=self)
+                events += self._apply_transmission(new)
 
         # 冻结斩杀检查
         for team in ('A', 'B'):

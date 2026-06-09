@@ -24,6 +24,19 @@ class BattleMechanicsMixin:
       turn, winner, globals, is_finished, _borrowed_restore.
     """
 
+    def _apply_pending_entry_effects(self, team: str, sprite: 'Sprite') -> None:
+        pending = self.pending_effects.get(team, [])
+        for e in pending:
+            sprite.add_effect(e)
+        if pending:
+            self.pending_effects[team] = []
+
+    def _fire_post_entry(self, team: str, sprite: 'Sprite', opp: 'Sprite') -> list[str]:
+        ctx_entry = self._make_ctx(sprite, opp, None, None, self.globals, team=team, turn=self.turn)
+        return self._vm_engine.fire_trigger(
+            "post_entry", ctx_entry, sprite, opp, self.globals, team=team, battle=self
+        )
+
     def _resolve_switch(self, team: str, action: Action,
                          faint_events: list[str] | None = None) -> list[str]:
         mcts_sim = getattr(self, '_mcts_sim', False)
@@ -72,10 +85,6 @@ class BattleMechanicsMixin:
         entry_events = dispatch_entry(new, self, team)
         if not mcts_sim:
             events += entry_events
-        # 入场传动（首回合入场自动传动一次）
-        transmission_events = self._apply_transmission(new)
-        if not mcts_sim:
-            events += transmission_events
         # team counter: enemy switch (搜刮 等 pre-entry accumulator)
         opp_active = self.get_opponent(team).active
         self.inc_team_counter(opp_team, 'enemy_switch')
@@ -83,19 +92,18 @@ class BattleMechanicsMixin:
         # (dispatch_leave delayed until after fire_trigger so inherit ops
         #  can read effects from the departing sprite before they are cleared)
         ctx_leave = self._make_ctx(old, opp_active, None, None, self.globals, team=team, turn=self.turn, self_switched=True)
-        ctx_entry = self._make_ctx(new, opp_active, None, None, self.globals, team=team, turn=self.turn)
         post_leave_events = self._vm_engine.fire_trigger("post_leave", ctx_leave, old, opp_active, self.globals, team=team, battle=self)
         if not mcts_sim:
             events += post_leave_events
         # 洁癖等 post_leave observer 可能写入新的 pending_effects，在 post_entry 前应用
-        pending = self.pending_effects.get(team, [])
-        for e in pending:
-            new.add_effect(e)
-        if pending:
-            self.pending_effects[team] = []
-        post_entry_events = self._vm_engine.fire_trigger("post_entry", ctx_entry, new, opp_active, self.globals, team=team, battle=self)
+        self._apply_pending_entry_effects(team, new)
+        post_entry_events = self._fire_post_entry(team, new, opp_active)
         if not mcts_sim:
             events += post_entry_events
+        # 入场传动：post_entry 位置型特性先写入当前槽位，再参与本次传动。
+        transmission_events = self._apply_transmission(new)
+        if not mcts_sim:
+            events += transmission_events
         if not opp_active.is_fainted:
             ctx_enemy_leave = self._make_ctx(opp_active, new, None, None, self.globals, team=opp_team, turn=self.turn, opp_switched=True)
             post_enemy_leave_events = self._vm_engine.fire_trigger("post_enemy_leave", ctx_enemy_leave, opp_active, new, self.globals, team=opp_team, battle=self, leaving_sprite=old)
@@ -130,15 +138,14 @@ class BattleMechanicsMixin:
         entry_events = dispatch_entry(sprite, self, team)
         if not mcts_sim:
             events += entry_events
+        # Observer: post_entry
+        opp = self.get_opponent(team).active
+        post_entry_events = self._fire_post_entry(team, sprite, opp)
+        if not mcts_sim:
+            events += post_entry_events
         transmission_events = self._apply_transmission(sprite)
         if not mcts_sim:
             events += transmission_events
-        # Observer: post_entry
-        opp = self.get_opponent(team).active
-        ctx_ret = self._make_ctx(sprite, opp, None, None, self.globals, team=team, turn=self.turn)
-        post_entry_events = self._vm_engine.fire_trigger("post_entry", ctx_ret, sprite, opp, self.globals, team=team, battle=self)
-        if not mcts_sim:
-            events += post_entry_events
 
         return events
 
@@ -204,9 +211,6 @@ class BattleMechanicsMixin:
         entry_events = dispatch_entry(new, self, team)
         if not mcts_sim:
             events += entry_events
-        transmission_events = self._apply_transmission(new)
-        if not mcts_sim:
-            events += transmission_events
         # Observer: post_ko（先触发，让诈死/御驾亲征等修改 lives）→ 再扣默认1魔力
         opp_active = self.get_opponent(team).active
         ctx_ko_leave = self._make_ctx(old, opp_active, None, None, self.globals, team=team, turn=self.turn, target_fainted=True, self_switched=True)
@@ -226,14 +230,13 @@ class BattleMechanicsMixin:
         if not mcts_sim:
             events += post_leave_events
         # 洁癖等 post_leave observer 可能写入新的 pending_effects
-        pending = self.pending_effects.get(team, [])
-        for e in pending:
-            new.add_effect(e)
-        if pending:
-            self.pending_effects[team] = []
+        self._apply_pending_entry_effects(team, new)
         post_entry_events = self._vm_engine.fire_trigger("post_entry", ctx_ko_entry, new, opp_active, self.globals, team=team, battle=self)
         if not mcts_sim:
             events += post_entry_events
+        transmission_events = self._apply_transmission(new)
+        if not mcts_sim:
+            events += transmission_events
         if not opp_active.is_fainted:
             ctx_ko_enemy = self._make_ctx(opp_active, new, None, None, self.globals, team=opp_team, turn=self.turn, opp_switched=True)
             post_enemy_leave_events = self._vm_engine.fire_trigger("post_enemy_leave", ctx_ko_enemy, opp_active, new, self.globals, team=opp_team, battle=self, leaving_sprite=old)
@@ -367,12 +370,9 @@ class BattleMechanicsMixin:
             ctx_esc_entry = self._make_ctx(new_sprite, opp_esc, None, None, self.globals, team=team, turn=self.turn)
             events += self._vm_engine.fire_trigger("post_leave", ctx_esc_leave, user, opp_esc, self.globals, team=team, battle=self)
             # 洁癖等 post_leave observer 可能写入新的 pending_effects
-            pending = self.pending_effects.get(team, [])
-            for e in pending:
-                new_sprite.add_effect(e)
-            if pending:
-                self.pending_effects[team] = []
+            self._apply_pending_entry_effects(team, new_sprite)
             events += self._vm_engine.fire_trigger("post_entry", ctx_esc_entry, new_sprite, opp_esc, self.globals, team=team, battle=self)
+            events += self._apply_transmission(new_sprite)
 
     def _handle_escape_inherit(self, team: str, user: 'Sprite', events: list[str], urgent: bool = False) -> None:
         """脱离 + 下个入场精灵继承增益。
@@ -410,12 +410,9 @@ class BattleMechanicsMixin:
             ctx_inh_entry = self._make_ctx(new_sprite, opp_inh, None, None, self.globals, team=team, turn=self.turn)
             events += self._vm_engine.fire_trigger("post_leave", ctx_inh_leave, old, opp_inh, self.globals, team=team, battle=self)
             # 洁癖等 post_leave observer 可能写入新的 pending_effects
-            pending = self.pending_effects.get(team, [])
-            for e in pending:
-                new_sprite.add_effect(e)
-            if pending:
-                self.pending_effects[team] = []
+            self._apply_pending_entry_effects(team, new_sprite)
             events += self._vm_engine.fire_trigger("post_entry", ctx_inh_entry, new_sprite, opp_inh, self.globals, team=team, battle=self)
+            events += self._apply_transmission(new_sprite)
 
     def _resolve_pending_escape_if_urgent(self, events: list[str]) -> bool:
         """If pending escape is urgent, resolve immediately (random choice).
@@ -488,13 +485,10 @@ class BattleMechanicsMixin:
                                    team=team, turn=self.turn)
         events += self._vm_engine.fire_trigger("post_leave", ctx_leave, user, opp,
                                                self.globals, team=team, battle=self)
-        pending = self.pending_effects.get(team, [])
-        for e in pending:
-            new_sprite.add_effect(e)
-        if pending:
-            self.pending_effects[team] = []
+        self._apply_pending_entry_effects(team, new_sprite)
         events += self._vm_engine.fire_trigger("post_entry", ctx_entry, new_sprite, opp,
                                                self.globals, team=team, battle=self)
+        events += self._apply_transmission(new_sprite)
 
         return events
 
