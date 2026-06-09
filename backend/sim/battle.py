@@ -96,6 +96,44 @@ class Battle(BattleMechanicsMixin):
     # ── 模块级技能 JSON 缓存（跨 Battle 实例共享，消除重复磁盘 I/O） ──
     _global_skill_cache: dict[str, "CompiledSkill"] = {}
 
+    @staticmethod
+    def _set_charge_target(sprite: "Sprite", skill: BattleSkill, index: int) -> None:
+        sprite._charging = True
+        sprite._charged_skill_ref = skill
+        sprite._charged_skill_index = index
+
+    @staticmethod
+    def _clear_charge_target(sprite: "Sprite") -> None:
+        sprite._charging = False
+        sprite._charged_skill_ref = None
+        sprite._charged_skill_index = -1
+
+    @staticmethod
+    def _charged_skill_index(sprite: "Sprite") -> int:
+        skill_ref = getattr(sprite, '_charged_skill_ref', None)
+        if skill_ref is not None:
+            for i, skill in enumerate(sprite.skills or []):
+                if skill is skill_ref:
+                    sprite._charged_skill_index = i
+                    return i
+            sprite._charged_skill_index = -1
+            return -1
+        idx = getattr(sprite, '_charged_skill_index', -1)
+        if 0 <= idx < len(sprite.skills or []):
+            sprite._charged_skill_ref = sprite.skills[idx]
+            return idx
+        return -1
+
+    @classmethod
+    def _charged_skill(cls, sprite: "Sprite") -> tuple[int, BattleSkill | None]:
+        idx = cls._charged_skill_index(sprite)
+        if idx < 0:
+            return -1, None
+        skill = sprite.skills[idx]
+        if skill.sealed or skill.replaced_by is not None or skill.is_temporary:
+            return idx, None
+        return idx, skill
+
     def save_mutable_state(self) -> dict:
         """保存对战可变状态，用于 MCTS 仿真回滚。只用浅拷贝，不用 deepcopy。"""
         # ── 精灵状态 ──
@@ -109,6 +147,7 @@ class Battle(BattleMechanicsMixin):
                     "modifiers": dict(sprite._modifiers),
                     "charging": getattr(sprite, '_charging', False),
                     "charged_idx": getattr(sprite, '_charged_skill_index', -1),
+                    "charged_ref": getattr(sprite, '_charged_skill_ref', None),
                     "counters": dict(getattr(sprite, 'counters', {})),
                     "first_action": sprite.first_action,
                     "first_action_battle": sprite.first_action_battle,
@@ -206,6 +245,7 @@ class Battle(BattleMechanicsMixin):
                 sprite._modifiers = dict(s["modifiers"])
                 sprite._charging = s["charging"]
                 sprite._charged_skill_index = s["charged_idx"]
+                sprite._charged_skill_ref = s.get("charged_ref")
                 sprite.counters = dict(s["counters"])
                 sprite.first_action = s["first_action"]
                 sprite.first_action_battle = s["first_action_battle"]
@@ -1261,11 +1301,10 @@ class Battle(BattleMechanicsMixin):
         has_charge = any(_has_charge_op(e) for e in record.effects)
 
         is_charging = getattr(user, '_charging', False)
-        charged_idx = getattr(user, '_charged_skill_index', -1)
+        charged_idx, charged_skill = self._charged_skill(user)
 
-        if is_charging and has_charge and action.skill_index == charged_idx:
-            user._charging = False
-            user._charged_skill_index = -1
+        if is_charging and has_charge and bs is charged_skill:
+            self._clear_charge_target(user)
             # Remove "charging" effect, add "charged" for condition checks
             user.remove_effect("charging", "state")
             user.add_effect(StateEffect(
@@ -1276,8 +1315,7 @@ class Battle(BattleMechanicsMixin):
         if is_charging:
             if bs.base.usable_while_charging or user._modifiers.get("charge_any_skill", 0) > 0:
                 # Cancel charging — the sprite used a different skill instead of releasing the charged one
-                user._charging = False
-                user._charged_skill_index = -1
+                self._clear_charge_target(user)
                 user.remove_effect("charging", "state")
                 return None  # pass through: skill can be used while charging
             return False  # blocked: must use charge skill
@@ -1293,8 +1331,7 @@ class Battle(BattleMechanicsMixin):
                     name="charged", state_type="charged", scope="battlefield", source="charge",
                 ))
                 return None  # charge bypassed, execute immediately as charged
-            user._charging = True
-            user._charged_skill_index = action.skill_index
+            self._set_charge_target(user, bs, action.skill_index if action.skill_index is not None else -1)
             user.add_effect(StateEffect(
                 name="charging", state_type="charging", scope="persistent", source="charge",
             ))

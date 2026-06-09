@@ -18,8 +18,12 @@ from backend.engine.ai.core.mcts import (
 )
 from backend.sim.action import Action
 from backend.sim.agent import RuleAgent
+from backend.sim.battleskill import BattleSkill
+from backend.sim.player import Player
 from backend.sim.factory import SimFactory
 from backend.sim.skill import Skill
+from backend.sim.sprite import Sprite
+from backend.common.models import SpeciesStats
 
 
 def _assert_encoded_equal(left: dict[str, np.ndarray], right: dict[str, np.ndarray]) -> None:
@@ -92,6 +96,48 @@ class _CountingOpponent:
 
     def on_game_end(self, winner: str) -> None:
         pass
+
+
+def _make_charge_mask_battle():
+    from backend.sim.battle import Battle
+
+    species = SpeciesStats(name="蓄力测试", hp=100, atk=80, def_=80, sp_atk=80, sp_def=80, speed=80)
+    active = Sprite(species=species, current_hp=100, max_hp=100, energy=10)
+    active.skills = [
+        BattleSkill(base=Skill(name="龙吟", energy_cost=0)),
+        BattleSkill(base=Skill(name="猛烈撞击", energy_cost=0)),
+    ]
+    bench = Sprite(species=species, current_hp=100, max_hp=100, energy=10)
+    bench.skills = [BattleSkill(base=Skill(name="猛烈撞击", energy_cost=0))]
+    opp = Sprite(species=species, current_hp=100, max_hp=100, energy=10)
+    opp.skills = [BattleSkill(base=Skill(name="猛烈撞击", energy_cost=0))]
+    return Battle(Player("A", [active, bench]), Player("B", [opp]), verbose=False), active
+
+
+def test_valid_actions_charge_tracks_skill_ref_after_transmission():
+    battle, active = _make_charge_mask_battle()
+    charged = active.skills[0]
+    battle._set_charge_target(active, charged, 0)
+    active.skills = [active.skills[1], active.skills[0]]
+
+    valid, mask = get_valid_actions(battle.player_a, battle)
+
+    assert mask[0] == 0.0
+    assert mask[1] == 1.0
+    assert 1 in valid
+
+
+def test_valid_actions_charge_disabled_skill_only_allows_switch():
+    battle, active = _make_charge_mask_battle()
+    charged = active.skills[0]
+    battle._set_charge_target(active, charged, 0)
+    charged.sealed = True
+
+    valid, mask = get_valid_actions(battle.player_a, battle)
+
+    assert mask[:10].sum() == 0.0
+    assert mask[10] == 1.0
+    assert 10 in valid
 
 
 class _EvaluateOnlyEvaluator:

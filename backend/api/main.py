@@ -479,10 +479,14 @@ def serialize_battle_state(battle: Battle, session_id: str) -> schemas.BattleSta
 
     def _serialize_sprite(s, team='A') -> schemas.SpriteState:
         charging = getattr(s, '_charging', False)
-        charged_idx = getattr(s, '_charged_skill_index', -1)
         charged_name = ''
-        if charging and 0 <= charged_idx < len(s.skills):
-            charged_name = s.skills[charged_idx].name
+        if charging:
+            _, charged_skill = battle._charged_skill(s)
+            if charged_skill is not None:
+                charged_name = charged_skill.name
+            else:
+                ref = getattr(s, '_charged_skill_ref', None)
+                charged_name = getattr(ref, 'name', '')
 
         mark_e_mod = battle.globals.mark_energy_mod(team)
         pos_bonus_map = getattr(battle, '_position_power_bonus', {})

@@ -88,13 +88,11 @@ def get_valid_actions(player: Player, battle=None) -> tuple[list[int], np.ndarra
     # 蓄力中：允许释放蓄力技能（如有足够能量），同时允许换宠取消蓄力
     # 引擎在 _resolve_switch 中明确中断蓄力，因此换宠是合法分支
     charging = getattr(active, '_charging', False)
-    charged_idx = getattr(active, '_charged_skill_index', -1)
     if charging:
+        charged_idx, sk = battle._charged_skill(active) if battle is not None else (-1, None)
         if 0 <= charged_idx < 10:
-            sk = active.skills[charged_idx] if charged_idx < len(active.skills) else None
             if (
                 sk
-                and not sk.sealed
                 and sk.cooldown <= 0
                 and _effective_skill_cost(sk, energy_cost_mod, energy_cost_mult, mark_energy_mod) <= active.energy
             ):

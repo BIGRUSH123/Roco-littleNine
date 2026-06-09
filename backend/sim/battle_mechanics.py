@@ -65,8 +65,7 @@ class BattleMechanicsMixin:
 
         # 换宠打断蓄力
         if getattr(old, '_charging', False):
-            old._charging = False
-            old._charged_skill_index = -1
+            self._clear_charge_target(old)
             if not mcts_sim:
                 events.append(f'{old.name} 蓄力中断（换宠）')
 

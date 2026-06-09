@@ -112,15 +112,20 @@ class RuleAgent:
 
         # 蓄力中：强制释放蓄力技能（游弋/嫉妒 可任选）
         if has_charging:
-            charged_idx = getattr(s, '_charged_skill_index', -1)
             # 游弋/嫉妒 trait：蓄力期间可选任一技能
             from .traits import get_trait
             h = get_trait(s)
             free_charge = h and h.name in ('游弋', '嫉妒')
-            if free_charge and charged_idx < 0:
+            charged_idx, charged_skill = battle._charged_skill(s)
+            if free_charge and charged_skill is None:
                 pass  # fall through to normal skill selection
-            elif 0 <= charged_idx < len(s.skills) and not s.skills[charged_idx].sealed:
+            elif charged_skill is not None:
                 return _skill_action(charged_idx)
+            else:
+                replacement = p.find_replacement()
+                if replacement is not None:
+                    return _switch_action(replacement)
+                return _GATHER_ACTION
 
         opponent = battle.get_opponent(self.team).active
 

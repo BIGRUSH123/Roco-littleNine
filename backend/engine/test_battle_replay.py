@@ -24,7 +24,12 @@ def _load_skill(path):
     data = json.loads(Path(path).read_text(encoding="utf-8"))
     return _compiler.compile(data)
 from backend.common.models import SpeciesStats
+from backend.sim.action import Action
+from backend.sim.battle import Battle
+from backend.sim.battleskill import BattleSkill
 from backend.sim.globals import GlobalEffects
+from backend.sim.player import Player
+from backend.sim.skill import Skill
 from backend.sim.sprite import Sprite
 
 
@@ -42,6 +47,47 @@ def _make_sprite(species, hp=None, energy=8):
                        "sp_atk": species.sp_atk, "sp_def": species.sp_def,
                        "speed": species.speed},
     )
+
+
+def _make_charge_battle() -> tuple[Battle, Sprite]:
+    dragon = BattleSkill(base=Skill(name="龙吟", energy_cost=0))
+    normal = BattleSkill(base=Skill(name="猛烈撞击", energy_cost=0))
+    sprite = _make_sprite(_make_species("蓄力测试"), energy=10)
+    sprite.skills = [dragon, normal]
+    opp = _make_sprite(_make_species("对手"), energy=10)
+    opp.skills = [BattleSkill(base=Skill(name="撞击", energy_cost=0))]
+    battle = Battle(Player("A", [sprite]), Player("B", [opp]), verbose=False)
+    return battle, sprite
+
+
+def test_charge_release_follows_skill_after_transmission():
+    """蓄力绑定技能对象：传动后只能用原蓄力技能的新位置释放。"""
+    battle, sprite = _make_charge_battle()
+    charged_skill = sprite.skills[0]
+
+    assert battle._gate_charge_vm(sprite, charged_skill, Action(kind="skill", skill_index=0)) is True
+    assert sprite._charged_skill_ref is charged_skill
+
+    sprite.skills = [sprite.skills[1], sprite.skills[0]]
+
+    assert battle._gate_charge_vm(sprite, sprite.skills[0], Action(kind="skill", skill_index=0)) is False
+    assert sprite._charging is True
+    assert battle._gate_charge_vm(sprite, sprite.skills[1], Action(kind="skill", skill_index=1)) is None
+    assert sprite._charging is False
+    assert sprite._charged_skill_ref is None
+
+
+def test_charge_cannot_release_when_charged_skill_disabled():
+    """蓄力技能被封印/替换/借用后不能释放技能，只能换宠。"""
+    battle, sprite = _make_charge_battle()
+    charged_skill = sprite.skills[0]
+
+    assert battle._gate_charge_vm(sprite, charged_skill, Action(kind="skill", skill_index=0)) is True
+    charged_skill.sealed = True
+    assert battle._gate_charge_vm(sprite, charged_skill, Action(kind="skill", skill_index=0)) is False
+    charged_skill.sealed = False
+    charged_skill.replaced_by = Skill(name="借来的技能")
+    assert battle._gate_charge_vm(sprite, charged_skill, Action(kind="skill", skill_index=0)) is False
 
 
 # ═══════════════════════════════════════════════════════════════

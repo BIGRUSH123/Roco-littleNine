@@ -71,6 +71,9 @@ class Sprite:
     interrupted: bool = False      # interrupted this turn (by interrupt opcode)
     locked_turns: int = 0          # turns remaining before switch allowed
     extra_skill_use: bool = False
+    _charging: bool = False
+    _charged_skill_index: int = -1       # display/compat cache; authoritative key is _charged_skill_ref
+    _charged_skill_ref: BattleSkill | None = None
 
     # 运行时 modifier 累积 (damage_reduction, power_mult, etc.)
     # 由 JournalReplayer._apply_modifier 写入，snapshot 读取
