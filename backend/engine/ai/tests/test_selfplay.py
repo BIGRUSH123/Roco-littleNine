@@ -10,6 +10,7 @@
 from __future__ import annotations
 
 import inspect
+import queue
 import sys
 
 sys.path.insert(0, ".")
@@ -22,7 +23,7 @@ from backend.engine.ai.service import agent as service_agent_module
 from backend.engine.ai.core import encoder as encoder_module
 from backend.engine.ai.service.advisor import advise, advise_single, describe_action, make_determinizations
 from backend.engine.ai.core.encoder import encode_battle_state
-from backend.engine.ai.core.evaluator import TorchEvaluator
+from backend.engine.ai.core.evaluator import BatchedInferenceServer, QueuePolicyEvaluator, TorchEvaluator
 from backend.engine.ai.core.mcts import NUM_ACTIONS, NetworkPolicyAgent
 from backend.engine.ai.core.model import ModularBattleNet
 from backend.engine.ai.core.replay_buffer import DictReplayBuffer
@@ -235,6 +236,39 @@ def test_torch_evaluator_batch_matches_single_eval():
     assert np.allclose(values, [single_a[0], single_b[0]], atol=1e-6)
     assert np.allclose(probs[0], single_a[1], atol=1e-6)
     assert np.allclose(probs[1], single_b[1], atol=1e-6)
+
+
+def test_queue_policy_evaluator_batch_roundtrip():
+    factory = SimFactory()
+    sprite_skills = _load_sprite_skills()
+    team_a, team_b = _two_teams(sprite_skills)
+    p1 = factory.build_player("A", team_a)
+    p2 = factory.build_player("B", team_b)
+    battle = factory.build_battle(p1, p2)
+
+    model = ModularBattleNet()
+    model.eval()
+    request_q: queue.Queue = queue.Queue()
+    reply_q: queue.Queue = queue.Queue()
+    server = BatchedInferenceServer(
+        model, "cpu", request_q, {3: reply_q},
+        batch_size=8, timeout_ms=1,
+    )
+    server.start()
+    try:
+        ev = QueuePolicyEvaluator(3, request_q, reply_q, reply_timeout_s=5)
+        state_a = encode_battle_state(battle)
+        state_b = encode_battle_state(battle, perspective="B")
+        mask = np.zeros(NUM_ACTIONS, dtype=np.float32)
+        mask[0] = 1.0
+
+        values, probs = ev.evaluate_batch([state_a, state_b], [mask, mask])
+    finally:
+        server.stop(drain=False)
+
+    assert values.shape == (2,)
+    assert probs.shape == (2, NUM_ACTIONS)
+    assert np.allclose(probs.sum(axis=1), 1.0, atol=1e-4)
 
 
 def test_training_mcts_leaf_batch_defaults_to_batched_eval():

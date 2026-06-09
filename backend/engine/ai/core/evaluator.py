@@ -53,6 +53,22 @@ _STATE_KEYS = frozenset({
 })
 
 
+def _filter_state(state: dict[str, np.ndarray]) -> dict[str, np.ndarray]:
+    return {k: np.asarray(v) for k, v in state.items() if k in _STATE_KEYS}
+
+
+def _filter_states(states: list[dict[str, np.ndarray]]) -> list[dict[str, np.ndarray]]:
+    return [_filter_state(state) for state in states]
+
+
+def _masks_to_batch(masks: list[np.ndarray] | np.ndarray) -> np.ndarray:
+    return (
+        np.stack(masks, axis=0).astype(np.float32, copy=False)
+        if isinstance(masks, list)
+        else masks.astype(np.float32, copy=False)
+    )
+
+
 @runtime_checkable
 class PolicyValueEvaluator(Protocol):
     """state (dict) + mask → (value, probs)。"""
@@ -114,7 +130,7 @@ class QueuePolicyEvaluator:
     def evaluate(self, state: dict[str, np.ndarray], mask: np.ndarray) -> tuple[float, np.ndarray]:
         self._request_queue.put((
             self._worker_id,
-            {k: np.asarray(v) for k, v in state.items() if k in _STATE_KEYS},
+            _filter_state(state),
             np.asarray(mask, dtype=np.float32),
         ))
         try:
@@ -136,34 +152,26 @@ class QueuePolicyEvaluator:
         states: list[dict[str, np.ndarray]],
         masks: list[np.ndarray] | np.ndarray,
     ) -> tuple[np.ndarray, np.ndarray]:
-        mask_list = masks if isinstance(masks, list) else list(masks)
         n = len(states)
-        for state, mask in zip(states, mask_list):
-            self._request_queue.put((
-                self._worker_id,
-                {k: np.asarray(v) for k, v in state.items() if k in _STATE_KEYS},
-                np.asarray(mask, dtype=np.float32),
-            ))
-
-        values = np.zeros(n, dtype=np.float32)
-        probs: list[np.ndarray] = []
-        for i in range(n):
-            try:
-                result = self._reply_queue.get(timeout=self._reply_timeout_s)
-            except queue.Empty as exc:
-                raise TimeoutError(
-                    f"worker {self._worker_id} 绛夊緟鎵归噺鎺ㄧ悊鍥炲瓒呰繃 "
-                    f"{self._reply_timeout_s:.0f}s"
-                ) from exc
-            if result is None:
-                raise RuntimeError(
-                    f"worker {self._worker_id} 鎺ㄧ悊澶辫触锛堟湇鍔″櫒绔槦鍒楀啓鍏ラ敊璇級"
-                )
-            value, prob = result
-            values[i] = float(value)
-            probs.append(np.asarray(prob, dtype=np.float32))
-        return values, np.stack(probs, axis=0)
-
+        self._request_queue.put((
+            self._worker_id,
+            _filter_states(states),
+            _masks_to_batch(masks),
+            n,
+        ))
+        try:
+            result = self._reply_queue.get(timeout=self._reply_timeout_s)
+        except queue.Empty as exc:
+            raise TimeoutError(
+                f"worker {self._worker_id} 绛夊緟鎵归噺鎺ㄧ悊鍥炲瓒呰繃 "
+                f"{self._reply_timeout_s:.0f}s"
+            ) from exc
+        if result is None:
+            raise RuntimeError(
+                f"worker {self._worker_id} 鎺ㄧ悊澶辫触锛堟湇鍔″櫒绔槦鍒楀啓鍏ラ敊璇級"
+            )
+        values, probs = result
+        return np.asarray(values, dtype=np.float32), np.asarray(probs, dtype=np.float32)
 
 class QueueModelEvaluator:
     """子进程 worker：按 model_id 请求主进程上的某个模型推理。"""
@@ -186,7 +194,7 @@ class QueueModelEvaluator:
         self._request_queue.put((
             self._worker_id,
             self._model_id,
-            {k: np.asarray(v) for k, v in state.items() if k in _STATE_KEYS},
+            _filter_state(state),
             np.asarray(mask, dtype=np.float32),
         ))
         try:
@@ -209,36 +217,28 @@ class QueueModelEvaluator:
         states: list[dict[str, np.ndarray]],
         masks: list[np.ndarray] | np.ndarray,
     ) -> tuple[np.ndarray, np.ndarray]:
-        mask_list = masks if isinstance(masks, list) else list(masks)
         n = len(states)
-        for state, mask in zip(states, mask_list):
-            self._request_queue.put((
-                self._worker_id,
-                self._model_id,
-                {k: np.asarray(v) for k, v in state.items() if k in _STATE_KEYS},
-                np.asarray(mask, dtype=np.float32),
-            ))
-
-        values = np.zeros(n, dtype=np.float32)
-        probs: list[np.ndarray] = []
-        for i in range(n):
-            try:
-                result = self._reply_queue.get(timeout=self._reply_timeout_s)
-            except queue.Empty as exc:
-                raise TimeoutError(
-                    f"worker {self._worker_id} 绛夊緟妯″瀷 {self._model_id} "
-                    f"鎵归噺鎺ㄧ悊鍥炲瓒呰繃 {self._reply_timeout_s:.0f}s"
-                ) from exc
-            if result is None:
-                raise RuntimeError(
-                    f"worker {self._worker_id} (model={self._model_id}) "
-                    "鎺ㄧ悊澶辫触锛堟湇鍔″櫒绔槦鍒楀啓鍏ラ敊璇級"
-                )
-            value, prob = result
-            values[i] = float(value)
-            probs.append(np.asarray(prob, dtype=np.float32))
-        return values, np.stack(probs, axis=0)
-
+        self._request_queue.put((
+            self._worker_id,
+            self._model_id,
+            _filter_states(states),
+            _masks_to_batch(masks),
+            n,
+        ))
+        try:
+            result = self._reply_queue.get(timeout=self._reply_timeout_s)
+        except queue.Empty as exc:
+            raise TimeoutError(
+                f"worker {self._worker_id} 绛夊緟妯″瀷 {self._model_id} "
+                f"鎵归噺鎺ㄧ悊鍥炲瓒呰繃 {self._reply_timeout_s:.0f}s"
+            ) from exc
+        if result is None:
+            raise RuntimeError(
+                f"worker {self._worker_id} (model={self._model_id}) "
+                "鎺ㄧ悊澶辫触锛堟湇鍔″櫒绔槦鍒楀啓鍏ラ敊璇級"
+            )
+        values, probs = result
+        return np.asarray(values, dtype=np.float32), np.asarray(probs, dtype=np.float32)
 
 class BatchedInferenceServer:
     """后台线程：从 request_queue 攒 batch，在 CUDA 上统一 forward。"""
@@ -286,8 +286,9 @@ class BatchedInferenceServer:
 
     def _collect_batch(self) -> list:
         batch: list = []
+        item_count = 0
         deadline = time.monotonic() + self._timeout_s
-        while len(batch) < self._batch_size:
+        while item_count < self._batch_size:
             remaining = deadline - time.monotonic()
             if remaining <= 0 and batch:
                 break
@@ -304,10 +305,14 @@ class BatchedInferenceServer:
             if item is INFERENCE_STOP:
                 self._stop.set()
                 break
-            if not (isinstance(item, tuple) and len(item) == 3):
+            if not (
+                isinstance(item, tuple)
+                and (len(item) == 3 or (len(item) == 4 and isinstance(item[3], int)))
+            ):
                 continue
             batch.append(item)
-            if len(batch) >= self._batch_size:
+            item_count += item[3] if len(item) == 4 else 1
+            if item_count >= self._batch_size:
                 break
         return batch
 
@@ -318,22 +323,45 @@ class BatchedInferenceServer:
             if not batch:
                 continue
 
-            states = [item[1] for item in batch]
-            masks = np.stack([item[2] for item in batch], axis=0)
+            states: list[dict[str, np.ndarray]] = []
+            masks: list[np.ndarray] = []
+            reply_meta: list[tuple[int, int, int, bool]] = []
+            for item in batch:
+                worker_id = item[0]
+                start = len(states)
+                if len(item) == 4:
+                    request_states = item[1]
+                    request_masks = np.asarray(item[2], dtype=np.float32)
+                    states.extend(request_states)
+                    masks.extend(request_masks)
+                    reply_meta.append((worker_id, start, len(states), True))
+                else:
+                    states.append(item[1])
+                    masks.append(item[2])
+                    reply_meta.append((worker_id, start, start + 1, False))
 
             x = _batch_states(states, self._device)
-            m = torch.from_numpy(masks).to(self._device)
+            m = torch.from_numpy(np.stack(masks, axis=0)).to(self._device)
             with torch.inference_mode():
                 values_t, probs_t = self._model.forward_with_mask(x, m)
             values = values_t.squeeze(-1).cpu().numpy()
             probs = probs_t.cpu().numpy()
-            for i, (worker_id, _, _) in enumerate(batch):
+            for worker_id, start, end, is_batch in reply_meta:
                 reply_q = self._reply_queues.get(worker_id)
                 if reply_q is None:
                     continue
+                if is_batch:
+                    payload = (
+                        values[start:end].astype(np.float32, copy=False),
+                        probs[start:end].astype(np.float32, copy=False),
+                    )
+                else:
+                    payload = (
+                        float(values[start]),
+                        probs[start].astype(np.float32, copy=False),
+                    )
                 try:
-                    reply_q.put((float(values[i]), probs[i].astype(np.float32, copy=False)),
-                                timeout=1.0)
+                    reply_q.put(payload, timeout=1.0)
                 except Exception:
                     logger.error(
                         "BatchedInference: 无法向 worker %d 发送结果 (队列满/管道损坏)",
@@ -394,8 +422,9 @@ class BatchedModelInferenceServer:
 
     def _collect_batch(self) -> list:
         batch: list = []
+        item_count = 0
         deadline = time.monotonic() + self._timeout_s
-        while len(batch) < self._batch_size:
+        while item_count < self._batch_size:
             remaining = deadline - time.monotonic()
             if remaining <= 0 and batch:
                 break
@@ -412,10 +441,14 @@ class BatchedModelInferenceServer:
             if item is INFERENCE_STOP:
                 self._stop.set()
                 break
-            if not (isinstance(item, tuple) and len(item) == 4):
+            if not (
+                isinstance(item, tuple)
+                and (len(item) == 4 or (len(item) == 5 and isinstance(item[4], int)))
+            ):
                 continue
             batch.append(item)
-            if len(batch) >= self._batch_size:
+            item_count += item[4] if len(item) == 5 else 1
+            if item_count >= self._batch_size:
                 break
         return batch
 
@@ -427,9 +460,14 @@ class BatchedModelInferenceServer:
             if not batch:
                 continue
 
-            by_model: dict[str, list[tuple[int, dict, np.ndarray]]] = {}
-            for worker_id, model_id, state, mask in batch:
-                by_model.setdefault(model_id, []).append((worker_id, state, mask))
+            by_model: dict[str, list[tuple[int, object, object, bool]]] = {}
+            for item in batch:
+                if len(item) == 5:
+                    worker_id, model_id, states, masks, _n = item
+                    by_model.setdefault(model_id, []).append((worker_id, states, masks, True))
+                else:
+                    worker_id, model_id, state, mask = item
+                    by_model.setdefault(model_id, []).append((worker_id, state, mask, False))
 
             for model_id, items in by_model.items():
                 model = self._models.get(model_id)
@@ -439,7 +477,7 @@ class BatchedModelInferenceServer:
                         "通知 %d 个 worker 推理失败",
                         model_id, len(items),
                     )
-                    for (worker_id, _, _) in items:
+                    for (worker_id, _, _, _) in items:
                         q_map = self._reply_queues.get(worker_id)
                         reply_q = q_map.get(model_id) if q_map else None
                         if reply_q is not None:
@@ -449,23 +487,44 @@ class BatchedModelInferenceServer:
                                 pass
                     continue
 
-                states = [item[1] for item in items]
-                masks = np.stack([item[2] for item in items], axis=0)
+                states: list[dict[str, np.ndarray]] = []
+                masks: list[np.ndarray] = []
+                reply_meta: list[tuple[int, int, int, bool]] = []
+                for worker_id, state_or_states, mask_or_masks, is_batch in items:
+                    start = len(states)
+                    if is_batch:
+                        states.extend(state_or_states)
+                        request_masks = np.asarray(mask_or_masks, dtype=np.float32)
+                        masks.extend(request_masks)
+                        reply_meta.append((worker_id, start, len(states), True))
+                    else:
+                        states.append(state_or_states)
+                        masks.append(mask_or_masks)
+                        reply_meta.append((worker_id, start, start + 1, False))
 
                 x = _batch_states(states, self._device)
-                m = torch.from_numpy(masks).to(self._device)
+                m = torch.from_numpy(np.stack(masks, axis=0)).to(self._device)
                 with torch.inference_mode():
                     values_t, probs_t = model.forward_with_mask(x, m)
                 values = values_t.squeeze(-1).cpu().numpy()
                 probs = probs_t.cpu().numpy()
-                for i, (worker_id, _, _) in enumerate(items):
+                for worker_id, start, end, is_batch in reply_meta:
                     q_map = self._reply_queues.get(worker_id)
                     reply_q = q_map.get(model_id) if q_map else None
                     if reply_q is None:
                         continue
+                    if is_batch:
+                        payload = (
+                            values[start:end].astype(np.float32, copy=False),
+                            probs[start:end].astype(np.float32, copy=False),
+                        )
+                    else:
+                        payload = (
+                            float(values[start]),
+                            probs[start].astype(np.float32, copy=False),
+                        )
                     try:
-                        reply_q.put((float(values[i]), probs[i].astype(np.float32, copy=False)),
-                                    timeout=1.0)
+                        reply_q.put(payload, timeout=1.0)
                     except Exception:
                         logger.error(
                             "BatchedModelInference: 无法向 worker %d 发送结果 "
