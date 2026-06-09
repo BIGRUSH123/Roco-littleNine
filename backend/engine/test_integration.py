@@ -2319,17 +2319,19 @@ def test_bard_mark_coexist_flag_is_consumed_by_replayer():
 
 
 def test_starfall_trigger_basic():
-    """非幻系攻击触发星陨: 消耗全部层数 + 造成幻系魔法伤害。"""
+    """非幻系攻击触发星陨: 消耗全部层数 + 按星陨公式追加伤害。"""
     g = GlobalEffects()
     attacker = _make_normal_sprite("攻击方", hp=300)
     defender = _make_normal_sprite("防御方", hp=300)
+    trigger_skill = Skill.load({"name": "物攻触发", "element": "火", "skill_type": "物攻", "power": 100})
 
     # 给防御方上 3 层星陨
     g.apply_mark("A", "星陨印记", "negative", 3)
 
     # 触发星陨: team=A (防御方阵营), attacker → defender
-    dmg = g.trigger_starfall("A", attacker, defender)
-    assert dmg > 0, "星陨应造成伤害"
+    dmg = g.trigger_starfall("A", attacker, defender, trigger_skill)
+    expected = round((3 * 3 + 24 * 3 - 24) * 37 / 41)
+    assert dmg == expected, f"星陨伤害应按 X^2+24X-24 与 37/41 计算，expected={expected}, got={dmg}"
 
     # 检查星陨消耗: 全部层数应被清除
     _, neg = g.get_marks("A")
@@ -2349,6 +2351,39 @@ def test_starfall_no_trigger_without_marks():
     assert dmg == 0
 
 
+def test_starfall_no_trigger_for_status_skill():
+    """状态技能不会触发星陨，也不会消耗层数。"""
+    g = GlobalEffects()
+    attacker = _make_normal_sprite("攻击方", hp=300)
+    defender = _make_normal_sprite("防御方", hp=300)
+    status_skill = Skill.load({"name": "状态触发", "element": "火", "skill_type": "状态", "power": 0})
+
+    g.apply_mark("A", "星陨印记", "negative", 3)
+    dmg = g.trigger_starfall("A", attacker, defender, status_skill)
+    _, neg = g.get_marks("A")
+
+    assert dmg == 0
+    assert len(neg) == 1 and neg[0].stacks == 3
+
+
+def test_starfall_uses_trigger_attack_category_and_damage_reduction():
+    """物攻触发用物防，且目标减伤参与星陨伤害。"""
+    g = GlobalEffects()
+    attacker = _make_normal_sprite("攻击方", hp=300)
+    defender = _make_normal_sprite("防御方", hp=300)
+    attacker.initial_stats["atk"] = 160
+    defender.initial_stats["def"] = 80
+    defender._modifiers["damage_reduction"] = 0.25
+    trigger_skill = Skill.load({"name": "物攻触发", "element": "火", "skill_type": "物攻", "power": 100})
+
+    g.apply_mark("A", "星陨印记", "negative", 2)
+    dmg = g.trigger_starfall("A", attacker, defender, trigger_skill)
+
+    power = 2 * 2 + 24 * 2 - 24
+    expected = round(power * 160 / 80 * 37 / 41 * 0.75)
+    assert dmg == expected
+
+
 def test_starfall_consume_stacks_correctly():
     """星陨消耗后层数归零。"""
     g = GlobalEffects()
@@ -2359,7 +2394,8 @@ def test_starfall_consume_stacks_correctly():
     _, neg_before = g.get_marks("B")
     assert neg_before[0].stacks == 5
 
-    g.trigger_starfall("B", attacker, defender)
+    trigger_skill = Skill.load({"name": "魔攻触发", "element": "水", "skill_type": "魔攻", "power": 100})
+    g.trigger_starfall("B", attacker, defender, trigger_skill)
     _, neg_after = g.get_marks("B")
     assert len(neg_after) == 0
 
@@ -2373,10 +2409,11 @@ def test_starfall_damage_scales_with_stacks():
     d2 = _make_normal_sprite("防御方2", hp=300)
 
     g1.apply_mark("A", "星陨印记", "negative", 2)
-    dmg_2 = g1.trigger_starfall("A", attacker, d1)
+    trigger_skill = Skill.load({"name": "魔攻触发", "element": "水", "skill_type": "魔攻", "power": 100})
+    dmg_2 = g1.trigger_starfall("A", attacker, d1, trigger_skill)
 
     g2.apply_mark("A", "星陨印记", "negative", 4)
-    dmg_4 = g2.trigger_starfall("A", attacker, d2)
+    dmg_4 = g2.trigger_starfall("A", attacker, d2, trigger_skill)
 
     assert dmg_4 > dmg_2, f"4层伤害({dmg_4})应大于2层伤害({dmg_2})"
 

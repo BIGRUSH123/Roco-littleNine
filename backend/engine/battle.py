@@ -214,9 +214,11 @@ class BattleVMEngine:
         # 6.7 Trigger starfall mark: non-幻系 attack → consume marks + deal 幻系 damage
         skill_type = getattr(self_skill, 'skill_type', '')
         skill_element = getattr(self_skill, 'element', '')
-        if skill_type in ('物攻', '魔攻') and skill_element != '幻' and globals_:
+        is_attack = bool(getattr(battle_skill, 'is_attack', False)) if battle_skill is not None else skill_type in ('物攻', '魔攻', '动态攻击')
+        if is_attack and skill_element != '幻' and globals_:
             opp_team = 'B' if team == 'A' else 'A'
-            sf_dmg = globals_.trigger_starfall(opp_team, self_sprite, opp_sprite)
+            trigger_skill = getattr(battle_skill, 'skill', None) if battle_skill is not None else self_skill
+            sf_dmg = globals_.trigger_starfall(opp_team, self_sprite, opp_sprite, trigger_skill)
             if sf_dmg > 0:
                 events.append(f'星陨印记引爆: {opp_sprite.name} -{sf_dmg}HP')
 

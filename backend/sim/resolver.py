@@ -57,7 +57,7 @@ class SkillResolver:
         use: SkillUse, globals_: GlobalEffects,
         attacker_team: str = 'A',
     ) -> tuple[int, list[str]]:
-        """伤害公式: 39/41 * atk/def * (威力*应对+固定) * 本系 * 克制 * 天气 * 减伤 * 修正 * 连击 * 倍率。
+        """伤害公式: 37/41 * atk/def * (威力*应对+固定) * 本系 * 克制 * 天气 * 减伤 * 修正 * 连击 * 倍率。
 
         收集输入后委托 vm/damage.calc_damage 执行核心运算。
         """

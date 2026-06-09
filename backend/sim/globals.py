@@ -231,21 +231,82 @@ class GlobalEffects:
                 return consumed
         return 0
 
-    def trigger_starfall(self, team: str, attacker: Sprite, defender: Sprite) -> int:
-        """触发星陨印记：消耗全部层数，造成幻系魔法伤害。
-        返回实际伤害值（0=无星陨或非攻击技能）。
+    def trigger_starfall(
+        self,
+        team: str,
+        attacker: Sprite,
+        defender: Sprite,
+        trigger_skill: Skill | None = None,
+    ) -> int:
+        """触发星陨印记：非幻攻击后消耗全部层数并追加幻系伤害。
+
+        星陨威力 = X^2 + 24X - 24，其中 X 为触发前层数。
+        攻防属性类型跟随触发技能：物攻→物攻/物防，魔攻→魔攻/魔防，
+        动态攻击沿用技能的动态攻防判定。返回实际伤害值。
         """
-        for me in self.mark_effects.get(team, []):
-            if isinstance(me, MarkEffect) and me.name == '星陨印记' and me.stacks > 0:
-                total_stacks = me.stacks
-                dmg_per_stack = me.starfall_damage or 30
-                consumed = self.consume_starfall_stacks(team, total_stacks, attacker)
-                if consumed <= 0:
+        skill_type = getattr(trigger_skill, 'skill_type', '魔攻') if trigger_skill is not None else '魔攻'
+        if skill_type not in ('物攻', '魔攻', '动态攻击'):
+            return 0
+
+        atk_key = 'sp_atk'
+        def_key = 'sp_def'
+        if trigger_skill is not None:
+            get_keys = getattr(trigger_skill, 'get_atk_def_keys', None)
+            if callable(get_keys):
+                keys = get_keys(attacker)
+                if keys is None:
                     return 0
-                raw = round(attacker.effective_stat('sp_atk') * (total_stacks * dmg_per_stack)
-                            / max(1, defender.effective_stat('sp_def')))
-                return defender.take_damage(raw)
+                atk_key, def_key = keys
+            elif skill_type == '物攻':
+                atk_key, def_key = 'atk', 'def'
+            elif skill_type == '动态攻击':
+                if attacker.effective_stat('atk') >= attacker.effective_stat('sp_atk'):
+                    atk_key, def_key = 'atk', 'def'
+
+        for me in self.mark_effects.get(team, []):
+            if not isinstance(me, MarkEffect) or me.name != '星陨印记' or me.stacks <= 0:
+                continue
+
+            total_stacks = me.stacks
+            consume = total_stacks
+            if attacker is not None:
+                for e in getattr(attacker, 'active_effects', []):
+                    if isinstance(e, ModifierEffect) and e.attr == "starfall_consume_ratio":
+                        consume = max(1, int(total_stacks * e.value))
+                        break
+            consumed = min(consume, total_stacks)
+            me.stacks -= consumed
+            if me.stacks <= 0:
+                self.mark_effects[team].remove(me)
+            if consumed <= 0:
+                return 0
+
+            power = total_stacks * total_stacks + 24 * total_stacks - 24
+            if power <= 0:
+                return 0
+            atk = attacker.effective_stat(atk_key)
+            defense = max(1, defender.effective_stat(def_key))
+            type_mult = self._element_mult('幻', defender)
+            damage_reduction = min(1.0, max(0.0, defender._modifiers.get("damage_reduction", 0.0)))
+            if damage_reduction >= 1.0:
+                return 0
+            raw = round(power * atk / defense * (37.0 / 41.0) * type_mult * (1.0 - damage_reduction))
+            return defender.take_damage(max(1, raw))
         return 0
+
+    @staticmethod
+    def _element_mult(element: str, defender: Sprite) -> float:
+        if not element:
+            return 1.0
+        from backend.sim.resolver import _TYPE_CHART
+
+        attrs = getattr(defender.species, 'attributes', '')
+        mult = 1.0
+        for attr in (attrs.split(',') if attrs else []):
+            attr = attr.strip()
+            if attr:
+                mult *= _TYPE_CHART.get(element, {}).get(attr, 1.0)
+        return mult
 
     def set_weather(self, weather: str, turns: int = WEATHER_DURATION) -> None:
         self.weather = weather
