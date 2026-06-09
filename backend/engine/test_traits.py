@@ -199,7 +199,7 @@ def test_trait_机械变式_does_not_apply_to_other_traits():
 # ═══════════════════════════════════════════════════════════════════
 
 def test_trait_向心力_turn_start_applies_before_transmission():
-    """向心力: 回合开始先给当前1/2号位传动，再执行本次传动。"""
+    """向心力: 当前1/2号位参与本次传动，传动后效果绑定新1/2号位。"""
     battle, sprite, _ = _make_position_trait_battle("向心力", 20024)
     for bs in sprite.skills:
         bs._transmission = 0
@@ -209,15 +209,16 @@ def test_trait_向心力_turn_start_applies_before_transmission():
 
     assert [bs.name for bs in sprite.skills] == ["C", "A", "B"]
     moved = {bs.name: bs for bs in sprite.skills}
+    assert moved["C"]._transmission == 1
     assert moved["A"]._transmission == 1
-    assert moved["B"]._transmission == 1
-    assert moved["C"]._transmission == 0
+    assert moved["B"]._transmission == 0
+    assert moved["C"]._modifiers.get("power") == 30
     assert moved["A"]._modifiers.get("power") == 30
-    assert moved["B"]._modifiers.get("power") == 30
+    assert "power" not in moved["B"]._modifiers
 
 
 def test_trait_向心力_switch_entry_applies_before_entry_transmission():
-    """向心力: 换宠入场时 post_entry 先写入当前1/2号位，再入场传动。"""
+    """向心力: 换宠入场传动后，位置效果绑定新1/2号位。"""
     old = _make_transmission_sprite()
     old.species.name = "旧精灵"
     old.skills = [_make_transmission_skill("旧", transmission=0)]
@@ -240,13 +241,13 @@ def test_trait_向心力_switch_entry_applies_before_entry_transmission():
 
     assert [bs.name for bs in new.skills] == ["C", "A", "B"]
     moved = {bs.name: bs for bs in new.skills}
+    assert moved["C"]._transmission == 1
     assert moved["A"]._transmission == 1
-    assert moved["B"]._transmission == 1
-    assert moved["C"]._transmission == 0
+    assert moved["B"]._transmission == 0
 
 
 def test_trait_翼轴_swift_tracks_pre_transmission_first_slot():
-    """翼轴: 1号位获得迅捷和传动，传动后迅捷跟随原1号位技能。"""
+    """翼轴: 1号位参与本次传动，传动后迅捷绑定新的1号位。"""
     old = _make_transmission_sprite()
     old.species.name = "旧精灵"
     old.skills = [_make_transmission_skill("旧", transmission=0)]
@@ -269,9 +270,11 @@ def test_trait_翼轴_swift_tracks_pre_transmission_first_slot():
 
     assert [bs.name for bs in new.skills] == ["B", "A", "C"]
     swift_idx, swift_bs = battle._find_first_swift_skill(new)
-    assert swift_idx == 1
+    assert swift_idx == 0
     assert swift_bs is not None
-    assert swift_bs.name == "A"
+    assert swift_bs.name == "B"
+    assert new.skills[0]._transmission == 1
+    assert new.skills[1]._transmission == 0
 
 
 # ═══════════════════════════════════════════════════════════════════

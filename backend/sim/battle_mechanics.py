@@ -37,6 +37,18 @@ class BattleMechanicsMixin:
             "post_entry", ctx_entry, sprite, opp, self.globals, team=team, battle=self
         )
 
+    def _reapply_position_modifiers(self, trigger: str, team: str, sprite: 'Sprite', opp: 'Sprite') -> list[str]:
+        ctx = self._make_ctx(sprite, opp, None, None, self.globals, team=team, turn=self.turn)
+        return self._vm_engine.reapply_position_modifiers(
+            trigger, ctx, sprite, opp, self.globals, team=team, battle=self
+        )
+
+    def _apply_entry_transmission(self, team: str, sprite: 'Sprite', opp: 'Sprite') -> list[str]:
+        events = self._apply_transmission(sprite)
+        if events:
+            events += self._reapply_position_modifiers("post_entry", team, sprite, opp)
+        return events
+
     def _resolve_switch(self, team: str, action: Action,
                          faint_events: list[str] | None = None) -> list[str]:
         mcts_sim = getattr(self, '_mcts_sim', False)
@@ -100,8 +112,8 @@ class BattleMechanicsMixin:
         post_entry_events = self._fire_post_entry(team, new, opp_active)
         if not mcts_sim:
             events += post_entry_events
-        # 入场传动：post_entry 位置型特性先写入当前槽位，再参与本次传动。
-        transmission_events = self._apply_transmission(new)
+        # 入场传动：位置型特性先让当前槽位参与传动，传动后再投影回当前槽位。
+        transmission_events = self._apply_entry_transmission(team, new, opp_active)
         if not mcts_sim:
             events += transmission_events
         if not opp_active.is_fainted:
@@ -143,7 +155,7 @@ class BattleMechanicsMixin:
         post_entry_events = self._fire_post_entry(team, sprite, opp)
         if not mcts_sim:
             events += post_entry_events
-        transmission_events = self._apply_transmission(sprite)
+        transmission_events = self._apply_entry_transmission(team, sprite, opp)
         if not mcts_sim:
             events += transmission_events
 
@@ -234,7 +246,7 @@ class BattleMechanicsMixin:
         post_entry_events = self._vm_engine.fire_trigger("post_entry", ctx_ko_entry, new, opp_active, self.globals, team=team, battle=self)
         if not mcts_sim:
             events += post_entry_events
-        transmission_events = self._apply_transmission(new)
+        transmission_events = self._apply_entry_transmission(team, new, opp_active)
         if not mcts_sim:
             events += transmission_events
         if not opp_active.is_fainted:
@@ -372,7 +384,7 @@ class BattleMechanicsMixin:
             # 洁癖等 post_leave observer 可能写入新的 pending_effects
             self._apply_pending_entry_effects(team, new_sprite)
             events += self._vm_engine.fire_trigger("post_entry", ctx_esc_entry, new_sprite, opp_esc, self.globals, team=team, battle=self)
-            events += self._apply_transmission(new_sprite)
+            events += self._apply_entry_transmission(team, new_sprite, opp_esc)
 
     def _handle_escape_inherit(self, team: str, user: 'Sprite', events: list[str], urgent: bool = False) -> None:
         """脱离 + 下个入场精灵继承增益。
@@ -412,7 +424,7 @@ class BattleMechanicsMixin:
             # 洁癖等 post_leave observer 可能写入新的 pending_effects
             self._apply_pending_entry_effects(team, new_sprite)
             events += self._vm_engine.fire_trigger("post_entry", ctx_inh_entry, new_sprite, opp_inh, self.globals, team=team, battle=self)
-            events += self._apply_transmission(new_sprite)
+            events += self._apply_entry_transmission(team, new_sprite, opp_inh)
 
     def _resolve_pending_escape_if_urgent(self, events: list[str]) -> bool:
         """If pending escape is urgent, resolve immediately (random choice).
@@ -488,7 +500,7 @@ class BattleMechanicsMixin:
         self._apply_pending_entry_effects(team, new_sprite)
         events += self._vm_engine.fire_trigger("post_entry", ctx_entry, new_sprite, opp,
                                                self.globals, team=team, battle=self)
-        events += self._apply_transmission(new_sprite)
+        events += self._apply_entry_transmission(team, new_sprite, opp)
 
         return events
 

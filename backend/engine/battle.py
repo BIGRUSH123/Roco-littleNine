@@ -18,7 +18,7 @@ from backend.vm.cond import eval_one
 from backend.vm.ctx import Ctx
 from backend.vm.executor import compile_effects_batch, execute as vm_execute
 from backend.vm.executor import process_effects
-from backend.vm.journal import CounterRegister, Journal, Replay
+from backend.vm.journal import CounterRegister, Journal, ModifierInjection, Replay
 
 from .modifiers import apply_modifiers_to_journal
 from .observer import ObserverRegistry, _bake_inject_scope
@@ -479,6 +479,57 @@ class BattleVMEngine:
             leaving_sprite=leaving_sprite,
         )
         return self._fire_post_event(trigger, ctx, replayer)
+
+    def reapply_position_modifiers(
+        self,
+        trigger: str,
+        ctx: Ctx,
+        self_sprite: Sprite,
+        opp_sprite: Sprite,
+        globals_,
+        *,
+        team: str = "A",
+        battle = None,
+    ) -> list[str]:
+        """Replay only skill_at_N modifiers for position-bound trait effects.
+
+        Used after transmission: traits such as 向心力/翼轴 grant effects to
+        current slots, not to the BattleSkill objects that moved during
+        transmission.
+        """
+        if not self.registry.has_candidates(trigger, id(self_sprite) if self_sprite else None):
+            return []
+
+        journal: Journal = []
+        owner_id = id(self_sprite) if self_sprite else None
+        for obs in self.registry.candidates_for(trigger):
+            if obs.owner_sprite_id is not None and owner_id is not None:
+                if obs.owner_sprite_id != owner_id:
+                    continue
+            try:
+                if not eval_one(ctx, obs.cond):
+                    continue
+                _bake_inject_scope(obs.then, obs.scope)
+                if obs.then and type(obs.then[0]) is dict:
+                    obs.then = compile_effects_batch(obs.then)
+                for mutation in process_effects(ctx, obs.then):
+                    if (
+                        isinstance(mutation, ModifierInjection)
+                        and mutation.target.startswith("skill_at_")
+                    ):
+                        journal.append(mutation)
+            except Exception:
+                continue
+
+        if not journal:
+            return []
+        replayer = JournalReplayer(
+            self_sprite, opp_sprite, globals_, self.registry, team=team, battle=battle
+        )
+        replayer._trait_sourcing = True
+        events = replayer.replay(journal)
+        replayer._trait_sourcing = False
+        return events
 
     # ── Helpers ──
 

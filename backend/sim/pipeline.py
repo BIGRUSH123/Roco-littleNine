@@ -43,10 +43,18 @@ class TurnPipeline:
         prev_b: list[str] = []
         if not battle.player_a.active.is_fainted:
             prev_a = [bs.name for bs in battle.player_a.active.skills]
-            events += battle._apply_transmission(battle.player_a.active)
+            transmission_events = battle._apply_transmission(battle.player_a.active)
+            events += transmission_events
+            if transmission_events:
+                opp = battle.player_b.active
+                events += battle._reapply_position_modifiers("turn_start", "A", battle.player_a.active, opp)
         if not battle.player_b.active.is_fainted:
             prev_b = [bs.name for bs in battle.player_b.active.skills]
-            events += battle._apply_transmission(battle.player_b.active)
+            transmission_events = battle._apply_transmission(battle.player_b.active)
+            events += transmission_events
+            if transmission_events:
+                opp = battle.player_a.active
+                events += battle._reapply_position_modifiers("turn_start", "B", battle.player_b.active, opp)
 
         # 4. 传动后 hook（机械变式 等）
         for team, sprite, prev in [('A', battle.player_a.active, prev_a), ('B', battle.player_b.active, prev_b)]:

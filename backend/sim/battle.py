@@ -1569,7 +1569,7 @@ class Battle(BattleMechanicsMixin):
                 # 洁癖等 post_leave observer 可能写入新的 pending_effects
                 self._apply_pending_entry_effects(team, new)
                 events += self._vm_engine.fire_trigger("post_entry", ctx_entry, new, opp, self.globals, team=team, battle=self)
-                events += self._apply_transmission(new)
+                events += self._apply_entry_transmission(team, new, opp)
 
         # 冻结斩杀检查
         for team in ('A', 'B'):
