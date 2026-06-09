@@ -12,9 +12,12 @@ if str(_PROJ) not in sys.path:
 from backend.common.models import SpeciesStats
 from backend.sim.action import Action
 from backend.sim.battle import Battle
+from backend.sim.battleskill import BattleSkill
 from backend.sim.factory import SimFactory
+from backend.sim.player import Player
+from backend.sim.skill import Skill
 from backend.sim.sprite import Sprite
-from backend.sim.traits import dispatch_entry
+from backend.sim.traits import dispatch_entry, dispatch_leave
 from backend.vm.effect import StatBuffEffect
 
 factory = SimFactory()
@@ -78,6 +81,98 @@ def _make_bench_sprite(name: str = "替补") -> Sprite:
         initial_stats={"hp": 100, "atk": 80, "def": 80,
                        "sp_atk": 80, "sp_def": 80, "speed": 80},
     )
+
+
+def _make_transmission_battle() -> Battle:
+    return Battle(Player(name="A", team=[]), Player(name="B", team=[]), verbose=False)
+
+
+def _make_transmission_sprite(ability: str = "", ability_id: int = 0) -> Sprite:
+    return Sprite(
+        species=SpeciesStats(
+            name="传动测试", hp=100, atk=80, def_=80,
+            sp_atk=80, sp_def=80, speed=80,
+            ability=ability, ability_id=ability_id,
+        ),
+        current_hp=100,
+        max_hp=100,
+        energy=10,
+    )
+
+
+def _make_transmission_skill(name: str, transmission: int, energy_cost: int = 5) -> BattleSkill:
+    return BattleSkill(
+        base=Skill(name=name, transmission=transmission, energy_cost=energy_cost)
+    )
+
+
+# ═══════════════════════════════════════════════════════════════════
+# 机械变式 (ID 20159)
+# ═══════════════════════════════════════════════════════════════════
+
+def test_trait_机械变式_reduces_cost_per_transmission_move():
+    """机械变式: 传动2每移动一次能耗-1，因此每个技能累计-2。"""
+    battle = _make_transmission_battle()
+    sprite = _make_transmission_sprite(ability="机械变式")
+    sprite.skills = [
+        _make_transmission_skill("A", transmission=2),
+        _make_transmission_skill("B", transmission=2),
+        _make_transmission_skill("C", transmission=2),
+    ]
+
+    battle._apply_transmission(sprite)
+
+    assert [bs.name for bs in sprite.skills] == ["B", "C", "A"]
+    assert [bs._mech_energy_reduction for bs in sprite.skills] == [-2, -2, -2]
+    assert [bs.energy_cost for bs in sprite.skills] == [3, 3, 3]
+
+
+def test_trait_机械变式_counts_displaced_normal_skill():
+    """机械变式: 普通技能被传动块挤走也算位置变化。"""
+    battle = _make_transmission_battle()
+    sprite = _make_transmission_sprite(ability_id=20159)
+    sprite.skills = [
+        _make_transmission_skill("A", transmission=0),
+        _make_transmission_skill("B", transmission=1),
+        _make_transmission_skill("C", transmission=0),
+    ]
+
+    battle._apply_transmission(sprite)
+
+    assert [bs.name for bs in sprite.skills] == ["A", "C", "B"]
+    reductions = {bs.name: bs._mech_energy_reduction for bs in sprite.skills}
+    assert reductions == {"A": 0, "C": -1, "B": -1}
+
+
+def test_trait_机械变式_reduction_clears_on_leave():
+    """机械变式减能耗持续到退场，退场后清零。"""
+    battle = _make_transmission_battle()
+    sprite = _make_transmission_sprite(ability="机械变式")
+    sprite.skills = [
+        _make_transmission_skill("A", transmission=1),
+        _make_transmission_skill("B", transmission=1),
+    ]
+    battle._apply_transmission(sprite)
+    assert any(bs._mech_energy_reduction for bs in sprite.skills)
+
+    dispatch_leave(sprite, battle, "A")
+
+    assert [bs._mech_energy_reduction for bs in sprite.skills] == [0, 0]
+
+
+def test_trait_机械变式_does_not_apply_to_other_traits():
+    """非机械变式只传动，不获得能耗减免。"""
+    battle = _make_transmission_battle()
+    sprite = _make_transmission_sprite()
+    sprite.skills = [
+        _make_transmission_skill("A", transmission=1),
+        _make_transmission_skill("B", transmission=1),
+    ]
+
+    battle._apply_transmission(sprite)
+
+    assert [bs.name for bs in sprite.skills] == ["B", "A"]
+    assert [bs._mech_energy_reduction for bs in sprite.skills] == [0, 0]
 
 
 # ═══════════════════════════════════════════════════════════════════

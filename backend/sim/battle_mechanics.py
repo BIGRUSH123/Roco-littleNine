@@ -530,14 +530,19 @@ class BattleMechanicsMixin:
         if n < 2:
             return []
 
+        mcts_sim = getattr(self, '_mcts_sim', False)
         events: list[str] = []
         max_lv = max((getattr(bs, '_transmission', 0) for bs in skills), default=0)
         if max_lv <= 0:
             return events
 
+        track_mech_variant = self._has_mechanical_variant(sprite)
         for pass_num in range(max_lv):
             # Snapshot pre-pass positions (id→index) for move tracking
-            pre_pos: dict[int, int] = {id(bs): i for i, bs in enumerate(skills)}
+            pre_pos: dict[int, int] | None = (
+                {id(bs): i for i, bs in enumerate(skills)}
+                if track_mech_variant else None
+            )
 
             # ── 第一步：提取非主轴技能组成虚拟数组 ──
             # 主轴不参与传动，也不阻挡——如同不存在
@@ -605,13 +610,26 @@ class BattleMechanicsMixin:
             for vi, oi in enumerate(active_map):
                 skills[oi] = active[vi]
 
-            # ── 第六步：统计本 pass 位置变化（机械变式）──
-            for i, bs in enumerate(skills):
-                if pre_pos.get(id(bs), -1) != i:
-                    prev_count = getattr(bs, '_transmission_move_count', 0)
-                    bs._transmission_move_count = prev_count + 1
+            # ── 第六步：机械变式。每次传动导致的位置变化使对应技能能耗-1，持续到退场。
+            if pre_pos is not None:
+                for i, bs in enumerate(skills):
+                    if pre_pos.get(id(bs), -1) != i:
+                        bs._mech_energy_reduction -= 1
 
-            names = '/'.join(bs.name for bs in skills)
-            events.append(f'{sprite.name} 传动→ {names}')
+            if not mcts_sim:
+                names = '/'.join(bs.name for bs in skills)
+                events.append(f'{sprite.name} 传动→ {names}')
 
         return events
+
+    @staticmethod
+    def _has_mechanical_variant(sprite: 'Sprite') -> bool:
+        if getattr(sprite, '_trait_suppressed', False):
+            return False
+        species = getattr(sprite, 'species', None)
+        if species is None:
+            return False
+        return (
+            getattr(species, 'ability_id', 0) == 20159
+            or getattr(species, 'ability', '') == '机械变式'
+        )

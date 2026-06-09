@@ -121,6 +121,9 @@ def dispatch_leave(sprite: Sprite, battle: Battle, team: str,
     """离场：卸载 Observer + 清理效果。"""
     events: list[str] = []
 
+    for skill in sprite.skills or []:
+        skill._mech_energy_reduction = 0
+
     sprite.clear_effects('battlefield')
     sprite.clear_effects('turn')
 
