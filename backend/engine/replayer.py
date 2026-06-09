@@ -370,6 +370,13 @@ class JournalReplayer:
         """Replay all mutations. Returns event strings for logging."""
         self._cleared_position_stats.clear()
         self._energy_deltas.clear()
+        if self.is_headless:
+            dispatch = self._DISPATCH
+            for mutation in journal:
+                handler = dispatch.get(type(mutation))
+                if handler is not None:
+                    handler(self, mutation)
+            return []
         events: list[str] = []
         for mutation in journal:
             ev = self._apply(mutation)

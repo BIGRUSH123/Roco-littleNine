@@ -26,6 +26,7 @@ class BattleMechanicsMixin:
 
     def _resolve_switch(self, team: str, action: Action,
                          faint_events: list[str] | None = None) -> list[str]:
+        mcts_sim = getattr(self, '_mcts_sim', False)
         events: list[str] = []
         player = self.get_player(team)
         old = player.active
@@ -41,7 +42,8 @@ class BattleMechanicsMixin:
         if getattr(old, '_charging', False):
             old._charging = False
             old._charged_skill_index = -1
-            events.append(f'{old.name} 蓄力中断（换宠）')
+            if not mcts_sim:
+                events.append(f'{old.name} 蓄力中断（换宠）')
 
         player.active_index = action.switch_index
         new = player.active
@@ -50,23 +52,30 @@ class BattleMechanicsMixin:
         dmg = self.globals.mark_switch_damage(opp_team, new)
         if dmg:
             new.take_damage(dmg)
-            events.append(f'{new.name} 棘刺-{dmg}HP')
+            if not mcts_sim:
+                events.append(f'{new.name} 棘刺-{dmg}HP')
 
         lost = self.globals.mark_switch_energy_loss(opp_team)
         if lost:
             new.lose_energy(lost)
-            events.append(f'{new.name} 降灵-{lost}E')
+            if not mcts_sim:
+                events.append(f'{new.name} 降灵-{lost}E')
 
         new.clear_effects('battlefield')
         new.entry_turn = self.turn
         new.first_action = True
         new.inc_counter('times_entered')
-        events.append(f'{old.name}↓ {new.name}↑')
+        if not mcts_sim:
+            events.append(f'{old.name}↓ {new.name}↑')
 
         # ── trait hooks ──
-        events += dispatch_entry(new, self, team)
+        entry_events = dispatch_entry(new, self, team)
+        if not mcts_sim:
+            events += entry_events
         # 入场传动（首回合入场自动传动一次）
-        events += self._apply_transmission(new)
+        transmission_events = self._apply_transmission(new)
+        if not mcts_sim:
+            events += transmission_events
         # team counter: enemy switch (搜刮 等 pre-entry accumulator)
         opp_active = self.get_opponent(team).active
         self.inc_team_counter(opp_team, 'enemy_switch')
@@ -75,18 +84,26 @@ class BattleMechanicsMixin:
         #  can read effects from the departing sprite before they are cleared)
         ctx_leave = self._make_ctx(old, opp_active, None, None, self.globals, team=team, turn=self.turn, self_switched=True)
         ctx_entry = self._make_ctx(new, opp_active, None, None, self.globals, team=team, turn=self.turn)
-        events += self._vm_engine.fire_trigger("post_leave", ctx_leave, old, opp_active, self.globals, team=team, battle=self)
+        post_leave_events = self._vm_engine.fire_trigger("post_leave", ctx_leave, old, opp_active, self.globals, team=team, battle=self)
+        if not mcts_sim:
+            events += post_leave_events
         # 洁癖等 post_leave observer 可能写入新的 pending_effects，在 post_entry 前应用
         pending = self.pending_effects.get(team, [])
         for e in pending:
             new.add_effect(e)
         if pending:
             self.pending_effects[team] = []
-        events += self._vm_engine.fire_trigger("post_entry", ctx_entry, new, opp_active, self.globals, team=team, battle=self)
+        post_entry_events = self._vm_engine.fire_trigger("post_entry", ctx_entry, new, opp_active, self.globals, team=team, battle=self)
+        if not mcts_sim:
+            events += post_entry_events
         if not opp_active.is_fainted:
             ctx_enemy_leave = self._make_ctx(opp_active, new, None, None, self.globals, team=opp_team, turn=self.turn, opp_switched=True)
-            events += self._vm_engine.fire_trigger("post_enemy_leave", ctx_enemy_leave, opp_active, new, self.globals, team=opp_team, battle=self, leaving_sprite=old)
-        events += dispatch_leave(old, self, team)
+            post_enemy_leave_events = self._vm_engine.fire_trigger("post_enemy_leave", ctx_enemy_leave, opp_active, new, self.globals, team=opp_team, battle=self, leaving_sprite=old)
+            if not mcts_sim:
+                events += post_enemy_leave_events
+        leave_events = dispatch_leave(old, self, team)
+        if not mcts_sim:
+            events += leave_events
 
         if faint_events is not None:
             self._check_faint_interrupt(team, faint_events)
@@ -96,6 +113,7 @@ class BattleMechanicsMixin:
 
     def _resolve_return(self, team: str) -> list[str]:
         """返场：清 battlefield 效果，重置进场标记。精灵不变。"""
+        mcts_sim = getattr(self, '_mcts_sim', False)
         events: list[str] = []
         sprite = self.get_player(team).active
         if sprite.is_fainted:
@@ -105,20 +123,28 @@ class BattleMechanicsMixin:
         sprite.entry_turn = self.turn
         sprite.first_action = True
         sprite.inc_counter('times_entered')
-        events.append(f'{sprite.name} 返场(-{n}效果)')
+        if not mcts_sim:
+            events.append(f'{sprite.name} 返场(-{n}效果)')
 
         # ── trait entry hook ──
-        events += dispatch_entry(sprite, self, team)
-        events += self._apply_transmission(sprite)
+        entry_events = dispatch_entry(sprite, self, team)
+        if not mcts_sim:
+            events += entry_events
+        transmission_events = self._apply_transmission(sprite)
+        if not mcts_sim:
+            events += transmission_events
         # Observer: post_entry
         opp = self.get_opponent(team).active
         ctx_ret = self._make_ctx(sprite, opp, None, None, self.globals, team=team, turn=self.turn)
-        events += self._vm_engine.fire_trigger("post_entry", ctx_ret, sprite, opp, self.globals, team=team, battle=self)
+        post_entry_events = self._vm_engine.fire_trigger("post_entry", ctx_ret, sprite, opp, self.globals, team=team, battle=self)
+        if not mcts_sim:
+            events += post_entry_events
 
         return events
 
     def _check_faint_interrupt(self, team: str, events: list[str]) -> None:
         """检查力竭并立即强制换宠。扣减魔力，无存活则判负。"""
+        mcts_sim = getattr(self, '_mcts_sim', False)
         player = self.get_player(team)
         s = player.active
         if not s.is_fainted:
@@ -135,17 +161,21 @@ class BattleMechanicsMixin:
         if replacement < 0 or replacement >= len(player.team):
             # No bench: deduct life and check loss immediately
             player.lives -= 1
-            events.append(f'{old.name} 力竭({player.name} 魔力-1→{player.lives})')
+            if not mcts_sim:
+                events.append(f'{old.name} 力竭({player.name} 魔力-1→{player.lives})')
             self.winner = 'B' if team == 'A' else 'A'
-            events.append(f'{old.name} 力竭 → 无存活精灵 → {self.get_opponent(team).name} 胜')
+            if not mcts_sim:
+                events.append(f'{old.name} 力竭 → 无存活精灵 → {self.get_opponent(team).name} 胜')
             return
 
         # 防护：若替补已力竭（agent bug 或并发），同样扣魔力
         if player.team[replacement].is_fainted:
             player.lives -= 1
-            events.append(f'{old.name} 力竭({player.name} 魔力-1→{player.lives})')
+            if not mcts_sim:
+                events.append(f'{old.name} 力竭({player.name} 魔力-1→{player.lives})')
             self.winner = 'B' if team == 'A' else 'A'
-            events.append(f'{old.name} 力竭 → 替补已死 → {self.get_opponent(team).name} 胜')
+            if not mcts_sim:
+                events.append(f'{old.name} 力竭 → 替补已死 → {self.get_opponent(team).name} 胜')
             return
 
         player.active_index = replacement
@@ -154,45 +184,64 @@ class BattleMechanicsMixin:
         new.entry_turn = self.turn
         new.first_action = True
         new.inc_counter('times_entered')
-        events.append(f'{old.name} 力竭↓ {new.name}↑')
+        if not mcts_sim:
+            events.append(f'{old.name} 力竭↓ {new.name}↑')
 
         # ── 印记入场效果（棘刺/降灵）—— 与自愿换人 _resolve_switch 对齐 ──
         opp_team = 'B' if team == 'A' else 'A'
         dmg = self.globals.mark_switch_damage(opp_team, new)
         if dmg:
             new.take_damage(dmg)
-            events.append(f'{new.name} 棘刺-{dmg}HP')
+            if not mcts_sim:
+                events.append(f'{new.name} 棘刺-{dmg}HP')
         lost = self.globals.mark_switch_energy_loss(opp_team)
         if lost:
             new.lose_energy(lost)
-            events.append(f'{new.name} 降灵-{lost}E')
+            if not mcts_sim:
+                events.append(f'{new.name} 降灵-{lost}E')
 
         # ── trait hooks ──
-        events += dispatch_entry(new, self, team)
-        events += self._apply_transmission(new)
+        entry_events = dispatch_entry(new, self, team)
+        if not mcts_sim:
+            events += entry_events
+        transmission_events = self._apply_transmission(new)
+        if not mcts_sim:
+            events += transmission_events
         # Observer: post_ko（先触发，让诈死/御驾亲征等修改 lives）→ 再扣默认1魔力
         opp_active = self.get_opponent(team).active
         ctx_ko_leave = self._make_ctx(old, opp_active, None, None, self.globals, team=team, turn=self.turn, target_fainted=True, self_switched=True)
-        events += self._vm_engine.fire_trigger("post_ko", ctx_ko_leave, old, opp_active, self.globals, team=team, battle=self)
+        post_ko_events = self._vm_engine.fire_trigger("post_ko", ctx_ko_leave, old, opp_active, self.globals, team=team, battle=self)
+        if not mcts_sim:
+            events += post_ko_events
         player.lives -= 1
-        events.append(f'{old.name} 力竭({player.name} 魔力-1→{player.lives})')
+        if not mcts_sim:
+            events.append(f'{old.name} 力竭({player.name} 魔力-1→{player.lives})')
         if player.lives <= 0:
             self.winner = 'B' if team == 'A' else 'A'
-            events.append(f'{player.name} 魔力耗尽 → {self.get_opponent(team).name} 胜')
+            if not mcts_sim:
+                events.append(f'{player.name} 魔力耗尽 → {self.get_opponent(team).name} 胜')
             return
         ctx_ko_entry = self._make_ctx(new, opp_active, None, None, self.globals, team=team, turn=self.turn)
-        events += self._vm_engine.fire_trigger("post_leave", ctx_ko_leave, old, opp_active, self.globals, team=team, battle=self)
+        post_leave_events = self._vm_engine.fire_trigger("post_leave", ctx_ko_leave, old, opp_active, self.globals, team=team, battle=self)
+        if not mcts_sim:
+            events += post_leave_events
         # 洁癖等 post_leave observer 可能写入新的 pending_effects
         pending = self.pending_effects.get(team, [])
         for e in pending:
             new.add_effect(e)
         if pending:
             self.pending_effects[team] = []
-        events += self._vm_engine.fire_trigger("post_entry", ctx_ko_entry, new, opp_active, self.globals, team=team, battle=self)
+        post_entry_events = self._vm_engine.fire_trigger("post_entry", ctx_ko_entry, new, opp_active, self.globals, team=team, battle=self)
+        if not mcts_sim:
+            events += post_entry_events
         if not opp_active.is_fainted:
             ctx_ko_enemy = self._make_ctx(opp_active, new, None, None, self.globals, team=opp_team, turn=self.turn, opp_switched=True)
-            events += self._vm_engine.fire_trigger("post_enemy_leave", ctx_ko_enemy, opp_active, new, self.globals, team=opp_team, battle=self, leaving_sprite=old)
-        events += dispatch_leave(old, self, team, is_faint=True)
+            post_enemy_leave_events = self._vm_engine.fire_trigger("post_enemy_leave", ctx_ko_enemy, opp_active, new, self.globals, team=opp_team, battle=self, leaving_sprite=old)
+            if not mcts_sim:
+                events += post_enemy_leave_events
+        leave_events = dispatch_leave(old, self, team, is_faint=True)
+        if not mcts_sim:
+            events += leave_events
 
     def _resolve_item(self, team: str) -> str:
         """使用道具，立即应用效果。返回道具名（用于记录）。"""

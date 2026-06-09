@@ -293,20 +293,28 @@ class Sprite:
 
     def clear_effects(self, scope: str) -> None:
         """清除指定 scope 的全部效果。同步清理 _modifiers 中的不可见 key。"""
+        if not self.active_effects and not self._mod_scopes:
+            return
         scopes = {scope}
         if scope in ('battlefield', 'turn'):
             scopes.add('aura')
         # 清除 active_effects 中匹配 scope 的 EffectObject
-        self.active_effects = [
-            e for e in self.active_effects
+        old_effects = self.active_effects
+        new_effects = [
+            e for e in old_effects
             if getattr(e, 'scope', '') not in scopes
         ]
+        changed = len(new_effects) != len(old_effects)
+        if changed:
+            self.active_effects = new_effects
         # 清除不可见 modifier（_mod_scopes 中记录的 key）
         for mod_key, mod_scope in list(self._mod_scopes.items()):
             if mod_scope == scope or (scope in ('battlefield', 'turn') and mod_scope == 'aura'):
                 self._modifiers.pop(mod_key, None)
                 del self._mod_scopes[mod_key]
-        self._invalidate_effects_cache()
+                changed = True
+        if changed:
+            self._invalidate_effects_cache()
 
     # ── 驱散 / 翻倍 ──
 

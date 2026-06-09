@@ -49,7 +49,26 @@ class _HeadlessActionRecord:
     __slots__ = ("events",)
 
     def __init__(self) -> None:
-        self.events: list[str] = []
+        self.events = _NO_EVENTS
+
+
+class _NoEventList(list):
+    __slots__ = ()
+
+    def append(self, item) -> None:
+        return None
+
+    def extend(self, iterable) -> None:
+        return None
+
+    def __iadd__(self, iterable):
+        return self
+
+    def insert(self, index, item) -> None:
+        return None
+
+
+_NO_EVENTS = _NoEventList()
 
 
 class _HeadlessRoundRecord:
@@ -623,15 +642,17 @@ class Battle(BattleMechanicsMixin):
 
     def _phase_turn_start(self) -> list[str]:
         """回合开始效果（委托给 TurnPipeline）。"""
-        events: list[str] = []
+        mcts_sim = getattr(self, '_mcts_sim', False)
+        events: list[str] = _NO_EVENTS if mcts_sim else []
 
         # 延迟效果结算：双方精灵 process_pending_effects
         for team in ('A', 'B'):
             sprite = self.get_player(team).active
             if not sprite.is_fainted:
                 activated = sprite.process_pending_effects()
-                for eff in activated:
-                    events.append(f'{sprite.name} 延迟效果生效: {eff.name}')
+                if not mcts_sim:
+                    for eff in activated:
+                        events.append(f'{sprite.name} 延迟效果生效: {eff.name}')
 
         from .pipeline import TurnPipeline
         events += TurnPipeline.execute_turn_start(self)
@@ -878,7 +899,8 @@ class Battle(BattleMechanicsMixin):
         opp_skill: BattleSkill | None = None,
     ) -> list[str]:
         """VM-based skill execution — replaces SkillPipeline L0-L5."""
-        events: list[str] = []
+        mcts_sim = getattr(self, '_mcts_sim', False)
+        events: list[str] = _NO_EVENTS if mcts_sim else []
         player = self.get_player(team)
         opponent = self.get_player('B' if team == 'A' else 'A')
         user = player.active
@@ -889,7 +911,8 @@ class Battle(BattleMechanicsMixin):
 
         # ── 蓄力中禁止聚能 ──
         if getattr(user, '_charging', False):
-            events.append(f'{user.name} 蓄力中无法聚能')
+            if not mcts_sim:
+                events.append(f'{user.name} 蓄力中无法聚能')
             return events
 
         # ── 聚能 ──
@@ -898,7 +921,8 @@ class Battle(BattleMechanicsMixin):
             user.first_action = False
             user.first_action_battle = False
             user.inc_counter('times_gathered')
-            events.append(f'{user.name} 聚能+{gained}E(→{user.energy})')
+            if not mcts_sim:
+                events.append(f'{user.name} 聚能+{gained}E(→{user.energy})')
             opp_team = 'B' if team == 'A' else 'A'
             self.inc_team_counter(opp_team, 'enemy_gather')
             # Fire post_energy_change for traits like 囤积
@@ -920,7 +944,8 @@ class Battle(BattleMechanicsMixin):
 
         bs = self._get_skill(team, action)
         if bs is None:
-            events.append(f'[错误] {user.name} 无技能[{action.skill_index}]')
+            if not mcts_sim:
+                events.append(f'[错误] {user.name} 无技能[{action.skill_index}]')
             return events
 
         # 所有 gate 检查结果都归属到此 action 内（由 to_frontend_events 统一包裹）
@@ -928,13 +953,15 @@ class Battle(BattleMechanicsMixin):
 
         # ═══ Gate: 冷却 ═══
         if bs.cooldown > 0:
-            events.append(f'[冷却中] {user.name} {bs.name} 还需{bs.cooldown}回合冷却')
+            if not mcts_sim:
+                events.append(f'[冷却中] {user.name} {bs.name} 还需{bs.cooldown}回合冷却')
             return events
 
         # ═══ Gate: 蓄力 ═══
         charge_result = self._gate_charge_vm(user, bs, action)
         if charge_result is True:
-            events.append(f'{user.name} 开始蓄力')
+            if not mcts_sim:
+                events.append(f'{user.name} 开始蓄力')
             charge_ctx = self._make_ctx(
                 user, target, None, None, self.globals,
                 team=team, turn=self.turn,
@@ -948,7 +975,7 @@ class Battle(BattleMechanicsMixin):
             return events  # blocked
 
         # ═══ 应对日志 ═══
-        if is_countered and countering_skill:
+        if is_countered and countering_skill and not mcts_sim:
             opp_sprite = opponent.active
             events.append(
                 f'{opp_sprite.name}应对{user.name}：{user.name}使用了'
@@ -962,6 +989,8 @@ class Battle(BattleMechanicsMixin):
             skill_type = getattr(bs.base, 'skill_type', '')
             consumed = user.consume_pending_modifiers(skill_type)
             for m in consumed:
+                if mcts_sim:
+                    continue
                 if m.stat == 'energy_cost':
                     events.append(f'{user.name} 触发待机效果: 能耗{m.value:+}')
                     continue
@@ -974,7 +1003,8 @@ class Battle(BattleMechanicsMixin):
         try:
             record = self._get_skill_record(bs.base.name)
         except FileNotFoundError:
-            events.append(f'[错误] 技能JSON未找到: {bs.base.name}')
+            if not mcts_sim:
+                events.append(f'[错误] 技能JSON未找到: {bs.base.name}')
             return events
 
         if getattr(record, 'use_devotion', False):
@@ -1033,7 +1063,8 @@ class Battle(BattleMechanicsMixin):
             _burst_r = _BurstReplayer(user, target, self.globals, self._vm_engine.registry, team=team, battle=self)
             burst_events = _burst_r.replay(burst_journal)
             events.extend(burst_events)
-            events.append(f'💥 {user.name} {bs.name} 迸发!')
+            if not mcts_sim:
+                events.append(f'💥 {user.name} {bs.name} 迸发!')
 
         # ═══ Gate: 能量支付 ═══
         cost = bs.energy_cost
@@ -1071,12 +1102,15 @@ class Battle(BattleMechanicsMixin):
                     if user.current_hp > hp_cost:
                         user.lose_energy(user.energy)
                         user.take_damage(hp_cost)
-                        events.append(f'{user.name} 消耗{hp_cost}HP代替{deficit}E')
+                        if not mcts_sim:
+                            events.append(f'{user.name} 消耗{hp_cost}HP代替{deficit}E')
                     else:
-                        events.append(f'{user.name} HP不足无法代替能量')
+                        if not mcts_sim:
+                            events.append(f'{user.name} HP不足无法代替能量')
                         return events
                 else:
-                    events.append(f'{user.name} E不足{user.energy}<{cost}')
+                    if not mcts_sim:
+                        events.append(f'{user.name} E不足{user.energy}<{cost}')
                     return events
 
         # Clear one-shot on_next energy_cost modifier after consumption.
@@ -1099,7 +1133,8 @@ class Battle(BattleMechanicsMixin):
         # ═══ Gate: 打断 ═══
         if user.interrupted:
             bs.nullified = True
-            events.append(f'{user.name} 被打断，技能无效')
+            if not mcts_sim:
+                events.append(f'{user.name} 被打断，技能无效')
             return events
 
         user.inc_counter(f'skill_used:{bs.name}')
@@ -1183,7 +1218,8 @@ class Battle(BattleMechanicsMixin):
                         "urgent": False,
                         "user_name": user.name,
                     }
-                    events.append(f'{user.name} 准备脱离(请选择替补)')
+                    if not mcts_sim:
+                        events.append(f'{user.name} 准备脱离(请选择替补)')
                 break  # Only first escape matters
 
         # ═══ Post-execution ═══
@@ -1194,7 +1230,8 @@ class Battle(BattleMechanicsMixin):
         if remaining > 0:
             user.first_action = True
             user._modifiers["_burst_extended"] = remaining - 1
-            events.append(f'{user.name} 迸发延长({remaining - 1}回剩余)')
+            if not mcts_sim:
+                events.append(f'{user.name} 迸发延长({remaining - 1}回剩余)')
         # Clear "charged" state — consumed after the sprite acts
         user.remove_effect("charged", "state")
 
@@ -1355,7 +1392,7 @@ class Battle(BattleMechanicsMixin):
         from backend.engine.snapshot import build_ctx
         from backend.vm.executor import process_effects
 
-        events: list[str] = []
+        events: list[str] = _NO_EVENTS if getattr(self, '_mcts_sim', False) else []
         due = [s for s in self.scheduled_effects
                if s['turn'] <= self.turn and s['phase'] == phase]
         for sched in due:
@@ -1384,7 +1421,8 @@ class Battle(BattleMechanicsMixin):
     # ═══════════════════════════════════════════════════════════════
 
     def _phase_turn_end(self) -> list[str]:
-        events: list[str] = []
+        mcts_sim = getattr(self, '_mcts_sim', False)
+        events: list[str] = _NO_EVENTS if mcts_sim else []
 
         # 延时效果结算（phase=end）
         events += self._execute_scheduled_effects('end')
@@ -1397,8 +1435,9 @@ class Battle(BattleMechanicsMixin):
                     continue
                 sprite.clear_effects('turn')
                 expired = sprite.decrement_ttl()
-                for eff in expired:
-                    events.append(f'{sprite.name} {eff.name} 到期消失')
+                if not mcts_sim:
+                    for eff in expired:
+                        events.append(f'{sprite.name} {eff.name} 到期消失')
 
         # 借用还原
         for (team, si), original in self._borrowed_restore.items():
@@ -1407,7 +1446,8 @@ class Battle(BattleMechanicsMixin):
                 bs = sprite.skills[si]
                 borrowed_name = bs.name
                 bs.replaced_by = None
-                events.append(f'{sprite.name} 归还 {borrowed_name}')
+                if not mcts_sim:
+                    events.append(f'{sprite.name} 归还 {borrowed_name}')
         self._borrowed_restore.clear()
 
         # 愿力还原（一回合后换回原技能）
@@ -1416,7 +1456,8 @@ class Battle(BattleMechanicsMixin):
             if not sprite.is_fainted and si < len(sprite.skills):
                 current_name = sprite.skills[si].name
                 sprite.skills[si] = original
-                events.append(f'{sprite.name} 愿力结束({current_name}→{original.name})')
+                if not mcts_sim:
+                    events.append(f'{sprite.name} 愿力结束({current_name}→{original.name})')
         self._wish_restore.clear()
 
         # 返场结算（过载回路）：清 battlefield 效果 + 下回合双倍
@@ -1442,7 +1483,8 @@ class Battle(BattleMechanicsMixin):
             for sprite in sprites.values()
         )
         if extra_turn:
-            events.append('⏳ 回合末效果额外触发 +1')
+            if not mcts_sim:
+                events.append('⏳ 回合末效果额外触发 +1')
             events += SkillResolver.turn_end(sprites, self.globals)
 
         # ── 异常 tick trait 通知（只读，不修改层数/HP）──
@@ -1514,7 +1556,8 @@ class Battle(BattleMechanicsMixin):
                 new.entry_turn = self.turn
                 new.first_action = True
                 new.inc_counter('times_entered')
-                events.append(f'{old.name} 能量0↓ {new.name}↑({swap_reason})' if swap_reason else f'{old.name}↓ {new.name}↑')
+                if not mcts_sim:
+                    events.append(f'{old.name} 能量0↓ {new.name}↑({swap_reason})' if swap_reason else f'{old.name}↓ {new.name}↑')
                 events += dispatch_leave(old, self, team)
                 events += dispatch_entry(new, self, team)
                 # Observer: post_leave + post_entry
@@ -1535,7 +1578,8 @@ class Battle(BattleMechanicsMixin):
         for team in ('A', 'B'):
             sprite = self.get_player(team).active
             if not sprite.is_fainted and sprite.check_freeze_death():
-                events.append(f'{sprite.name} 冻结斩杀(冻结{sprite.frozen_hp}HP)')
+                if not mcts_sim:
+                    events.append(f'{sprite.name} 冻结斩杀(冻结{sprite.frozen_hp}HP)')
 
         # 回合结束力竭检查
         for team in ('A', 'B'):

@@ -123,6 +123,8 @@ class BattleVMEngine:
         """
         # 0. Extract engine-only kwargs (not for build_ctx)
         battle = kwargs.pop('battle', None)
+        headless = getattr(battle, '_mcts_sim', False) if battle else False
+        counter_values = self._counter_values if headless else dict(self._counter_values)
 
         # 1. Build Ctx snapshot
         ctx = build_ctx(
@@ -130,7 +132,7 @@ class BattleVMEngine:
             self_skill, opp_skill, globals_,
             team=team, turn=turn, is_first=is_first,
             burst_triggered_count_own=self.burst_triggered_count(team),
-            counter_values=dict(self._counter_values),
+            counter_values=counter_values,
             battle_skill=battle_skill,
             **kwargs,
         )
@@ -151,7 +153,7 @@ class BattleVMEngine:
                 self_sprite, opp_sprite, self_skill, opp_skill, globals_,
                 team=team, turn=turn, is_first=is_first,
                 burst_triggered_count_own=self.burst_triggered_count(team),
-                counter_values=dict(self._counter_values),
+                counter_values=counter_values,
                 battle_skill=battle_skill,
                 **kwargs,
             )
@@ -252,6 +254,8 @@ class BattleVMEngine:
 
         Observers are filtered by listen set and owner sprite.
         """
+        if not self.registry.has_candidates(trigger, sprite_id if sprite_id else None):
+            return []
         mutations: Journal = []
         for obs in self.registry.candidates_for(trigger):
             # Owner filter: observers with an owner only fire for their sprite
@@ -274,6 +278,8 @@ class BattleVMEngine:
         (entry/leave/turn_end/post_abnormal_tick), owner filtering ensures
         each sprite's observers only fire for their own events.
         """
+        if not self.registry.has_candidates(trigger):
+            return []
         events: list[str] = []
         owner_id = id(replayer.self) if replayer.self else None
         for obs in self.registry.candidates_for(trigger):
@@ -358,6 +364,18 @@ class BattleVMEngine:
             ModifierInjection,
             StatChange,
         )
+
+        registry = self.registry
+        if not (
+            registry.has_candidates("post_damage")
+            or registry.has_candidates("post_ko")
+            or registry.has_candidates("post_energy_change")
+            or registry.has_candidates("post_abnormal_change")
+            or registry.has_candidates("post_abnormal_apply")
+            or registry.has_candidates("post_positive_change")
+            or registry.has_candidates("post_heal")
+        ):
+            return []
 
         events: list[str] = []
         fired: set[str] = set()  # deduplicate triggers per execution
@@ -449,6 +467,8 @@ class BattleVMEngine:
         turn_end, counter_success, etc.) where the engine's internal
         execute_skill() pipeline is not active.
         """
+        if not self.registry.has_candidates(trigger):
+            return []
         replayer = JournalReplayer(
             self_sprite, opp_sprite, globals_, self.registry, team=team,
             species_lookup=species_lookup,
