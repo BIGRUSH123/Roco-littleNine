@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
 
@@ -11,7 +12,7 @@ if str(_PROJ) not in sys.path:
 
 from backend.common.models import SpeciesStats
 from backend.sim.action import Action
-from backend.sim.battle import Battle
+from backend.sim.battle import Battle, _load_permanent_skill_mods_for_sprite
 from backend.sim.battleskill import BattleSkill
 from backend.sim.factory import SimFactory
 from backend.sim.player import Player
@@ -19,7 +20,8 @@ from backend.sim.pipeline import TurnPipeline
 from backend.sim.skill import Skill
 from backend.sim.sprite import Sprite
 from backend.sim.traits import dispatch_entry, dispatch_leave
-from backend.vm.effect import StatBuffEffect
+from backend.vm.effect import AbnormalEffect, StatBuffEffect
+from backend.vm.journal import CounterRegister
 
 factory = SimFactory()
 
@@ -71,6 +73,144 @@ def _active_effects_of(sprite, stat_key_filter: str | None = None):
             if getattr(e, 'stat_key', '') == stat_key_filter]
 
 
+def test_ctx_skill_summary_tracks_dynamic_skill_slot_state():
+    p1 = factory.build_player("A", [
+        {"name": "草衣虫", "skills": ["猛烈撞击"]},
+    ])
+    p2 = factory.build_player("B", [
+        {"name": "花衣蝶", "skills": ["猛烈撞击"]},
+    ])
+    battle = Battle(p1, p2, verbose=False)
+    sprite = battle.player_a.active
+    opp = battle.player_b.active
+
+    water = Skill(name="水测", element="水", energy_cost=2)
+    fire = Skill(name="火测", element="火", energy_cost=0)
+    grass = Skill(name="草测", element="草", energy_cost=5)
+    sprite.skills = [BattleSkill(water), BattleSkill(fire)]
+
+    ctx = battle._make_ctx(sprite, opp, None, None, battle.globals, team="A", turn=0)
+    assert ctx.skill_elements_self == frozenset({"水", "火"})
+    assert ctx.skill_element_counts_self == {"水": 1, "火": 1}
+    assert ctx.skills_energy_sum_self == 2
+    assert ctx.zero_cost_skill_count_self == 1
+
+    sprite.skills[0]._modifiers["energy_cost"] = -2
+    ctx = battle._make_ctx(sprite, opp, None, None, battle.globals, team="A", turn=0)
+    assert ctx.skills_energy_sum_self == 0
+    assert ctx.zero_cost_skill_count_self == 2
+
+    sprite.skills[1]._element_override = "电"
+    ctx = battle._make_ctx(sprite, opp, None, None, battle.globals, team="A", turn=0)
+    assert ctx.skill_elements_self == frozenset({"水", "电"})
+    assert ctx.skill_element_counts_self == {"水": 1, "电": 1}
+
+    sprite.skills[0].replaced_by = grass
+    ctx = battle._make_ctx(sprite, opp, None, None, battle.globals, team="A", turn=0)
+    assert ctx.skill_elements_self == frozenset({"草", "电"})
+    assert ctx.skills_energy_sum_self == 3
+
+    sprite.skills[0]._modifiers.clear()
+    sprite.skills[0].nullified = True
+    ctx = battle._make_ctx(sprite, opp, None, None, battle.globals, team="A", turn=0)
+    assert ctx.skill_elements_self == frozenset({"电"})
+    assert ctx.skills_energy_sum_self == 0
+    assert ctx.zero_cost_skill_count_self == 2
+
+
+def test_batch_load_permanent_skill_mods_matches_slot_base_name():
+    sprite = Sprite(
+        species=SpeciesStats(name="测试精灵", hp=100, atk=80, def_=80),
+        initial_stats={"hp": 100, "atk": 80, "def": 80, "sp_atk": 80, "sp_def": 80, "speed": 80},
+        current_hp=100,
+        max_hp=100,
+    )
+    sprite.skills = [
+        BattleSkill(Skill(name="同名技能", energy_cost=3)),
+        BattleSkill(Skill(name="同名技能", energy_cost=4)),
+        BattleSkill(Skill(name="其他技能", energy_cost=5)),
+    ]
+    sprite._modifiers.update({
+        "skill.同名技能.energy_cost": -1.0,
+        "skill.同名技能.power": 20.0,
+        "skill.其他技能.combo": 2.0,
+    })
+
+    _load_permanent_skill_mods_for_sprite(sprite)
+
+    assert sprite.skills[0]._modifiers["energy_cost"] == -1.0
+    assert sprite.skills[1]._modifiers["energy_cost"] == -1.0
+    assert sprite.skills[0]._modifiers["power"] == 20.0
+    assert sprite.skills[1]._modifiers["power"] == 20.0
+    assert "combo" not in sprite.skills[0]._modifiers
+    assert sprite.skills[2]._modifiers["combo"] == 2.0
+
+
+def test_execute_skill_vm_passes_full_team_ctx_kwargs():
+    p1 = factory.build_player("A", [
+        {"name": "草衣虫", "skills": ["猛烈撞击"]},
+        {"name": "神谕鲨", "skills": ["甩水"]},
+    ])
+    p2 = factory.build_player("B", [
+        {"name": "花衣蝶", "skills": ["猛烈撞击"]},
+        {"name": "草衣虫", "skills": ["猛烈撞击"]},
+    ])
+    battle = Battle(p1, p2, verbose=False)
+    battle.player_a.active_index = 0
+    battle.player_b.active_index = 0
+    battle.player_b.team[1].current_hp = 0
+    battle._invalidate_ctx_team_cache()
+    battle.player_a.lives = 3
+    battle.player_b.lives = 2
+    battle.player_a.devotion["测试专注"] = 2
+    battle.inc_team_counter("A", "element:水", 1)
+
+    captured = {}
+    original_execute_skill = battle._vm_engine.execute_skill
+
+    def spy_execute_skill(*args, **kwargs):
+        captured.update(kwargs)
+        return original_execute_skill(*args, **kwargs)
+
+    battle._vm_engine.execute_skill = spy_execute_skill
+    battle._execute_skill_vm("A", Action(kind="skill", skill_index=0))
+
+    assert captured["team_counters_own"]["element:水"] == 1
+    assert captured["fainted_own"] == 0
+    assert captured["fainted_opp"] == 1
+    assert captured["lives_own"] == 3
+    assert captured["lives_opp"] == 2
+    assert captured["devotion_own"]["测试专注"] == 2
+    assert "水" in captured["team_elements_own"]
+
+
+def test_ctx_team_moe_stacks_cache_excludes_self_and_invalidates():
+    p1 = factory.build_player("A", [
+        {"name": "草衣虫", "skills": ["猛烈撞击"]},
+        {"name": "神谕鲨", "skills": ["甩水"]},
+    ])
+    p2 = factory.build_player("B", [
+        {"name": "花衣蝶", "skills": ["猛烈撞击"]},
+    ])
+    battle = Battle(p1, p2, verbose=False)
+    self_sprite = battle.player_a.team[0]
+    bench = battle.player_a.team[1]
+    opp = battle.player_b.active
+    self_sprite.add_effect(AbnormalEffect(name="萌化", source="test", stacks=1))
+    bench.add_effect(AbnormalEffect(name="萌化", source="test", stacks=2))
+    battle._invalidate_ctx_team_cache()
+
+    ctx_self = battle._make_ctx(self_sprite, opp, None, None, battle.globals, team="A", turn=0)
+    ctx_bench = battle._make_ctx(bench, opp, None, None, battle.globals, team="A", turn=0)
+    assert ctx_self.moe_team_stacks == 2
+    assert ctx_bench.moe_team_stacks == 1
+
+    bench.update_stacks("萌化", 4)
+    battle._invalidate_ctx_team_cache()
+    ctx_self_after = battle._make_ctx(self_sprite, opp, None, None, battle.globals, team="A", turn=0)
+    assert ctx_self_after.moe_team_stacks == 4
+
+
 def _make_bench_sprite(name: str = "替补") -> Sprite:
     """Create a minimal bench sprite for switch testing."""
     return Sprite(
@@ -105,6 +245,33 @@ def _make_transmission_skill(name: str, transmission: int, energy_cost: int = 5)
     return BattleSkill(
         base=Skill(name=name, transmission=transmission, energy_cost=energy_cost)
     )
+
+
+def _make_gear_torque_skill(transmission: int = 1) -> BattleSkill:
+    data = json.loads((_PROJ / "data" / "skills" / "齿轮扭矩.json").read_text("utf-8"))
+    skill = Skill(
+        id=data.get("id", 0),
+        name=data["name"],
+        element=data.get("element", ""),
+        skill_type=data.get("skill_type", ""),
+        power=data.get("power", 0),
+        energy_cost=data.get("energy_cost", 0),
+        transmission=transmission,
+    )
+    return BattleSkill(base=skill)
+
+
+def _register_skill_observers(battle: Battle, sprite: Sprite, skill: BattleSkill) -> None:
+    record = battle._get_skill_record(skill.base.name)
+    ctx = battle._make_ctx(
+        sprite, battle.get_opponent("A").active,
+        record, None, battle.globals,
+        team="A", turn=battle.turn, battle_skill=skill,
+    )
+    journal = battle._vm_engine.execute_effects(ctx, record.effects)
+    for mutation in journal:
+        if isinstance(mutation, CounterRegister):
+            battle._vm_engine.register_counter(mutation, owner_sprite=sprite, owner_skill=skill)
 
 
 def _make_position_trait_battle(ability: str, ability_id: int = 0) -> tuple[Battle, Sprite, Sprite]:
@@ -194,6 +361,258 @@ def test_trait_机械变式_does_not_apply_to_other_traits():
     assert [bs._mech_energy_reduction for bs in sprite.skills] == [0, 0]
 
 
+def test_skill_齿轮扭矩_transmission_position_change_adds_power_to_moved_skill():
+    """齿轮扭矩: 已注册后，每次传动位置变化给移动技能对象永久威力+20。"""
+    battle, sprite, _ = _make_position_trait_battle("")
+    gear = _make_gear_torque_skill(transmission=1)
+    normal = _make_transmission_skill("普通", transmission=0)
+    sprite.skills = [gear, normal]
+    _register_skill_observers(battle, sprite, gear)
+
+    battle._apply_transmission(sprite, team="A")
+
+    assert [bs.name for bs in sprite.skills] == ["普通", "齿轮扭矩"]
+    assert gear._modifiers.get("power") == 20
+    assert normal._modifiers.get("power", 0) == 0
+
+
+def test_skill_齿轮扭矩_transmission2_counts_each_pass():
+    """齿轮扭矩: 传动2移动两次，累计+40。"""
+    battle, sprite, _ = _make_position_trait_battle("")
+    gear = _make_gear_torque_skill(transmission=2)
+    normal = _make_transmission_skill("普通", transmission=0)
+    sprite.skills = [gear, normal]
+    _register_skill_observers(battle, sprite, gear)
+
+    battle._apply_transmission(sprite, team="A")
+
+    assert [bs.name for bs in sprite.skills] == ["齿轮扭矩", "普通"]
+    assert gear._modifiers.get("power") == 40
+
+
+def test_skill_齿轮扭矩_exchange_adjacent_counts_and_follows_object():
+    """齿轮扭矩: 技能效果交换相邻位置也触发，且加成跟随技能对象。"""
+    from backend.engine.replayer import JournalReplayer
+    from backend.vm.journal import Exchange
+
+    battle, sprite, opp = _make_position_trait_battle("")
+    gear = _make_gear_torque_skill(transmission=0)
+    normal = _make_transmission_skill("普通", transmission=0)
+    other = _make_transmission_skill("其他", transmission=0)
+    sprite.skills = [gear, normal, other]
+    _register_skill_observers(battle, sprite, gear)
+
+    replayer = JournalReplayer(
+        sprite, opp, battle.globals, battle._vm_engine.registry,
+        team="A", battle=battle,
+    )
+    replayer.replay([Exchange(target="sprite_self", what="adjacent_skills")])
+
+    assert [bs.name for bs in sprite.skills] == ["普通", "齿轮扭矩", "其他"]
+    assert gear._modifiers.get("power") == 20
+    assert sprite.skills[1] is gear
+    assert sprite.skills[0]._modifiers.get("power", 0) == 0
+
+
+def test_battle_snapshot_restores_observer_registry():
+    """MCTS 回滚: 仿真中注册的技能 watcher 不应泄漏到原战斗状态。"""
+    battle, sprite, _ = _make_position_trait_battle("")
+    gear = _make_gear_torque_skill(transmission=1)
+    sprite.skills = [gear, _make_transmission_skill("普通", transmission=0)]
+    before_count = len(battle._vm_engine.registry._observers)
+
+    saved = battle.save_mutable_state()
+    _register_skill_observers(battle, sprite, gear)
+    assert len(battle._vm_engine.registry._observers) == before_count + 1
+    battle._vm_engine.registry._observers[-1]._hit_count = 7
+
+    battle.restore_mutable_state(saved)
+
+    assert len(battle._vm_engine.registry._observers) == before_count
+    assert not battle._vm_engine.registry.has_candidates("post_skill", id(sprite))
+
+
+def test_trait_interaction_copy_does_not_mutate_shared_species():
+    """复制/替换特性时不能污染共享 SpeciesStats（数据库/同物种替补）。"""
+    from backend.engine.replayer import JournalReplayer
+    from backend.vm.journal import TraitInteractionMutation
+
+    shared_species = SpeciesStats(
+        name="共享物种", hp=100, atk=80, def_=80,
+        sp_atk=80, sp_def=80, speed=80,
+        ability="原特性", ability_id=10001,
+    )
+    target = Sprite(species=shared_species, current_hp=100, max_hp=100)
+    bench_same_species = Sprite(species=shared_species, current_hp=100, max_hp=100)
+    source = Sprite(
+        species=SpeciesStats(
+            name="来源", hp=100, atk=80, def_=80,
+            sp_atk=80, sp_def=80, speed=80,
+            ability="向心力", ability_id=20024,
+        ),
+        current_hp=100,
+        max_hp=100,
+    )
+    battle = Battle(
+        Player(name="A", team=[target, bench_same_species]),
+        Player(name="B", team=[source]),
+        verbose=False,
+    )
+
+    replayer = JournalReplayer(
+        target, source, battle.globals, battle._vm_engine.registry,
+        team="A", battle=battle,
+    )
+    replayer.replay([
+        TraitInteractionMutation(
+            action="copy", target="sprite_self", copy_from="sprite_opp",
+        )
+    ])
+
+    assert target.species.ability == "向心力"
+    assert target.species.ability_id == 20024
+    assert target.species is not shared_species
+    assert bench_same_species.species is shared_species
+    assert bench_same_species.species.ability == "原特性"
+    assert bench_same_species.species.ability_id == 10001
+
+
+def test_battle_snapshot_restores_trait_fields_and_abnormal_damage_memory():
+    """MCTS 回滚: 特性交互和异常 tick 记忆都不能泄漏到后续分支。"""
+    from backend.engine.replayer import JournalReplayer
+    from backend.vm.journal import TraitInteractionMutation
+
+    target = _make_transmission_sprite(ability="原特性", ability_id=10001)
+    source = _make_transmission_sprite(ability="翼轴", ability_id=20109)
+    battle = Battle(
+        Player(name="A", team=[target]),
+        Player(name="B", team=[source]),
+        verbose=False,
+    )
+    target._last_abnormal_dmg["灼烧"] = 7
+
+    saved = battle.save_mutable_state()
+    replayer = JournalReplayer(
+        target, source, battle.globals, battle._vm_engine.registry,
+        team="A", battle=battle,
+    )
+    replayer.replay([
+        TraitInteractionMutation(
+            action="copy", target="sprite_self", copy_from="sprite_opp",
+        )
+    ])
+    target._last_abnormal_dmg["灼烧"] = 19
+
+    assert target.species.ability == "翼轴"
+    assert target.species.ability_id == 20109
+
+    battle.restore_mutable_state(saved)
+
+    assert target.species.ability == "原特性"
+    assert target.species.ability_id == 10001
+    assert target._last_abnormal_dmg == {"灼烧": 7}
+    assert getattr(target, "_trait_handler", None) is None
+
+
+def test_battle_snapshot_restores_trait_direct_modifier_state():
+    """MCTS 回滚: 特性 direct modifier 的重应用状态不能泄漏。"""
+    sprite = _make_transmission_sprite(ability="水翼飞升", ability_id=20078)
+    sprite.skills = [_make_transmission_skill("水花四溅", transmission=0, energy_cost=0)]
+    opp = _make_transmission_sprite()
+    battle = Battle(
+        Player(name="A", team=[sprite]),
+        Player(name="B", team=[opp]),
+        verbose=False,
+    )
+    sprite._trait_direct_effects = [
+        {
+            "op": "power_mod",
+            "attr": "energy_cost",
+            "delta": -1,
+            "mode": "add",
+            "ttl": 2,
+            "source": "测试特性",
+        }
+    ]
+    sprite._direct_mod_tracked = {"水花四溅": {"energy_cost": -1.0}}
+
+    saved = battle.save_mutable_state()
+    sprite._trait_direct_effects[0]["ttl"] = 1
+    sprite._trait_direct_effects.append({
+        "op": "power_mod",
+        "attr": "power_mult",
+        "delta": 1.3,
+        "mode": "set",
+        "source": "分支特性",
+    })
+    sprite._direct_mod_tracked["水花四溅"]["energy_cost"] = -3.0
+    sprite._direct_mod_tracked["水花四溅"]["power_mult"] = 1.3
+
+    battle.restore_mutable_state(saved)
+
+    assert sprite._trait_direct_effects == [
+        {
+            "op": "power_mod",
+            "attr": "energy_cost",
+            "delta": -1,
+            "mode": "add",
+            "ttl": 2,
+            "source": "测试特性",
+        }
+    ]
+    assert sprite._direct_mod_tracked == {"水花四溅": {"energy_cost": -1.0}}
+
+
+def test_ctx_team_elements_cache_invalidates_after_transform():
+    """同回合形态变化后，Ctx 队伍属性集合不能继续使用旧缓存。"""
+    from backend.engine.replayer import JournalReplayer
+    from backend.vm.journal import TransformMutation
+
+    class _SpeciesDB:
+        def get(self, name: str, form: str = ""):
+            return SpeciesStats(
+                name=name, hp=100, atk=80, def_=80,
+                sp_atk=80, sp_def=80, speed=80,
+                attributes="火",
+            )
+
+    target = Sprite(
+        species=SpeciesStats(
+            name="水形态", hp=100, atk=80, def_=80,
+            sp_atk=80, sp_def=80, speed=80,
+            attributes="水",
+        ),
+        current_hp=100,
+        max_hp=100,
+    )
+    opp = _make_transmission_sprite()
+    battle = Battle(
+        Player(name="A", team=[target]),
+        Player(name="B", team=[opp]),
+        verbose=False,
+    )
+    battle.species_db = _SpeciesDB()
+
+    before = battle._make_ctx(
+        target, opp, None, None, battle.globals, team="A", turn=battle.turn,
+    )
+    assert "水" in before.team_elements_own
+
+    replayer = JournalReplayer(
+        target, opp, battle.globals, battle._vm_engine.registry,
+        team="A", battle=battle,
+    )
+    replayer.replay([TransformMutation(species="火形态")])
+
+    after = battle._make_ctx(
+        target, opp, None, None, battle.globals, team="A", turn=battle.turn,
+    )
+
+    assert target.species.attributes == "火"
+    assert "火" in after.team_elements_own
+    assert "水" not in after.team_elements_own
+
+
 # ═══════════════════════════════════════════════════════════════════
 # 位置型入场/回合开始特性
 # ═══════════════════════════════════════════════════════════════════
@@ -212,6 +631,23 @@ def test_trait_向心力_turn_start_applies_before_transmission():
     assert moved["C"]._transmission == 1
     assert moved["A"]._transmission == 1
     assert moved["B"]._transmission == 0
+    assert moved["C"]._modifiers.get("power") == 30
+    assert moved["A"]._modifiers.get("power") == 30
+    assert "power" not in moved["B"]._modifiers
+
+
+def test_trait_向心力_turn_start_rebinds_in_mcts_headless_mode():
+    """MCTS/headless: 无传动日志时，位置效果仍需传动后重新投影。"""
+    battle, sprite, _ = _make_position_trait_battle("向心力", 20024)
+    battle._mcts_sim = True
+    for bs in sprite.skills:
+        bs._transmission = 0
+        bs._modifiers.clear()
+
+    TurnPipeline.execute_turn_start(battle)
+
+    assert [bs.name for bs in sprite.skills] == ["C", "A", "B"]
+    moved = {bs.name: bs for bs in sprite.skills}
     assert moved["C"]._modifiers.get("power") == 30
     assert moved["A"]._modifiers.get("power") == 30
     assert "power" not in moved["B"]._modifiers

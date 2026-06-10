@@ -88,6 +88,43 @@ _PER_TURN_KEYS = frozenset({
 _SKILL_PER_TURN_KEYS = _PER_TURN_KEYS | {"combo", "combo_mult"}
 
 
+def _load_permanent_skill_mods_for_sprite(sprite: "Sprite") -> None:
+    skills = sprite.skills or []
+    if not skills:
+        return
+
+    skill_mods = [
+        (key[6:], value)
+        for key, value in sprite._modifiers.items()
+        if key.startswith("skill.")
+    ]
+    if not skill_mods:
+        return
+
+    by_name: dict[str, list[BattleSkill]] = {}
+    for skill in skills:
+        name = getattr(skill.base, "name", "")
+        if name:
+            by_name.setdefault(name, []).append(skill)
+    if not by_name:
+        return
+
+    for key, value in skill_mods:
+        skill_name, sep, stat = key.rpartition(".")
+        if not sep or not skill_name or not stat:
+            continue
+        for skill in by_name.get(skill_name, ()):
+            skill._modifiers[stat] = value
+
+
+def _sprite_moe_stacks(sprite: "Sprite") -> int:
+    total = 0
+    for effect in getattr(sprite, 'active_effects', ()):
+        if getattr(effect, 'name', '') == '萌化':
+            total += getattr(effect, 'stacks', 0)
+    return total
+
+
 class Battle(BattleMechanicsMixin):
     """对局引擎。回合调度 + 动作执行。场地变动由 BattleMechanicsMixin 提供。"""
 
@@ -142,9 +179,19 @@ class Battle(BattleMechanicsMixin):
             for sprite in player.team:
                 sprites.append({
                     "sprite": sprite,
+                    "species": sprite.species,
+                    "species_ability": getattr(sprite.species, 'ability', ''),
+                    "species_ability_id": getattr(sprite.species, 'ability_id', 0),
+                    "bloodline": sprite.bloodline,
+                    "bloodline_skills": dict(getattr(sprite, 'bloodline_skills', {})),
+                    "initial_stats": dict(sprite.initial_stats),
+                    "max_hp": sprite.max_hp,
                     "hp": sprite.current_hp,
                     "energy": sprite.energy,
+                    "nature": sprite.nature,
+                    "iv": dict(sprite.iv),
                     "modifiers": dict(sprite._modifiers),
+                    "entry_turn": sprite.entry_turn,
                     "charging": getattr(sprite, '_charging', False),
                     "charged_idx": getattr(sprite, '_charged_skill_index', -1),
                     "charged_ref": getattr(sprite, '_charged_skill_ref', None),
@@ -155,6 +202,7 @@ class Battle(BattleMechanicsMixin):
                     "interrupted": getattr(sprite, 'interrupted', False),
                     "pending_return": getattr(sprite, 'pending_return', False),
                     "extra_skill_use": getattr(sprite, 'extra_skill_use', False),
+                    "last_abnormal_dmg": dict(getattr(sprite, '_last_abnormal_dmg', {})),
                 })
                 # 效果快照：按位置保存，避免 id() 复用导致的错乱
                 eff_snap = []
@@ -192,6 +240,20 @@ class Battle(BattleMechanicsMixin):
                     (copy(e), d) for e, d in getattr(sprite, '_pending_effects', [])
                 ]
                 sprites[-1]["trait_suppressed"] = getattr(sprite, '_trait_suppressed', False)
+                trait_direct_effects = getattr(sprite, '_trait_direct_effects', None)
+                sprites[-1]["trait_direct_effects"] = (
+                    None if trait_direct_effects is None
+                    else [copy(e) for e in trait_direct_effects]
+                )
+                direct_mod_tracked = getattr(sprite, '_direct_mod_tracked', None)
+                sprites[-1]["direct_mod_tracked"] = (
+                    None if direct_mod_tracked is None
+                    else {name: dict(mods) for name, mods in direct_mod_tracked.items()}
+                )
+                sprites[-1]["moe_chain"] = list(getattr(sprite, '_moe_chain', []))
+                sprites[-1]["moe_position"] = getattr(sprite, '_moe_position', 0)
+                sprites[-1]["moe_origin"] = getattr(sprite, '_moe_origin', None)
+                sprites[-1]["moe_origin_skills"] = list(getattr(sprite, '_moe_origin_skills', []))
         # ── 印记：用 copy.copy 替代 deepcopy（MarkEffect 全字段为 primitive，
         # 浅拷贝已足够隔离 MCTS 仿真中的 stacks 修改 / list append-remove） ──
         mark_snap = {team: [copy(me) for me in lst]
@@ -204,6 +266,10 @@ class Battle(BattleMechanicsMixin):
             "counter_values": dict(vm._counter_values),
             "skill_history": {k: list(v) for k, v in vm._skill_history.items()},
             "skill_tags": {k: dict(v) for k, v in vm._skill_tags.items()},
+            "observers": [copy(obs) for obs in vm.registry._observers],
+            "trait_sprite_sources": {
+                k: set(v) for k, v in vm.trait_loader._sprite_sources.items()
+            },
         }
         # ── 日志截断：只保留当前回合之前的记录（MCTS 仿真会追加额外回合） ──
         log_len = len(self.log)
@@ -228,6 +294,8 @@ class Battle(BattleMechanicsMixin):
             "active_b": self.player_b.active_index,
             "lives_a": self.player_a.lives,
             "lives_b": self.player_b.lives,
+            "item_a": copy(self.player_a.item) if self.player_a.item is not None else None,
+            "item_b": copy(self.player_b.item) if self.player_b.item is not None else None,
             "devotion_a": dict(getattr(self.player_a, 'devotion', {})),
             "devotion_b": dict(getattr(self.player_b, 'devotion', {})),
             "vm": vm_state,
@@ -240,9 +308,21 @@ class Battle(BattleMechanicsMixin):
         for player in (self.player_a, self.player_b):
             for sprite in player.team:
                 s = saved["sprites"][idx]; idx += 1
+                sprite.species = s["species"]
+                if "species_ability" in s:
+                    sprite.species.ability = s["species_ability"]
+                    sprite.species.ability_id = s.get("species_ability_id", 0)
+                    sprite._trait_handler = None
+                sprite.bloodline = s["bloodline"]
+                sprite.bloodline_skills = dict(s["bloodline_skills"])
+                sprite.initial_stats = dict(s["initial_stats"])
+                sprite.max_hp = s["max_hp"]
                 sprite.current_hp = s["hp"]
                 sprite.energy = s["energy"]
+                sprite.nature = s["nature"]
+                sprite.iv = dict(s["iv"])
                 sprite._modifiers = dict(s["modifiers"])
+                sprite.entry_turn = s["entry_turn"]
                 sprite._charging = s["charging"]
                 sprite._charged_skill_index = s["charged_idx"]
                 sprite._charged_skill_ref = s.get("charged_ref")
@@ -253,6 +333,8 @@ class Battle(BattleMechanicsMixin):
                 sprite.interrupted = s["interrupted"]
                 sprite.pending_return = s["pending_return"]
                 sprite.extra_skill_use = s["extra_skill_use"]
+                if "last_abnormal_dmg" in s:
+                    sprite._last_abnormal_dmg = dict(s["last_abnormal_dmg"])
                 # 效果：按位置恢复。先清空再按保存顺序重建，消除 id() 复用风险
                 saved_effects = s["effects"]  # list of (e, ttl, stacks, scope, steps?)
                 saved_refs = {id(e) for e, *_ in saved_effects}
@@ -322,6 +404,22 @@ class Battle(BattleMechanicsMixin):
                     ]
                 if "trait_suppressed" in s:
                     sprite._trait_suppressed = s["trait_suppressed"]
+                if "trait_direct_effects" in s:
+                    saved_direct = s["trait_direct_effects"]
+                    sprite._trait_direct_effects = (
+                        None if saved_direct is None else [copy(e) for e in saved_direct]
+                    )
+                if "direct_mod_tracked" in s:
+                    saved_tracked = s["direct_mod_tracked"]
+                    sprite._direct_mod_tracked = (
+                        None if saved_tracked is None
+                        else {name: dict(mods) for name, mods in saved_tracked.items()}
+                    )
+                if "moe_chain" in s:
+                    sprite._moe_chain = list(s["moe_chain"])
+                    sprite._moe_position = s["moe_position"]
+                    sprite._moe_origin = s["moe_origin"]
+                    sprite._moe_origin_skills = list(s["moe_origin_skills"])
                 # 效果缓存失效：active_effects 已恢复为新列表，缓存必须重建
                 if hasattr(sprite, '_invalidate_effects_cache'):
                     sprite._invalidate_effects_cache()
@@ -345,6 +443,8 @@ class Battle(BattleMechanicsMixin):
         self.player_b.active_index = saved["active_b"]
         self.player_a.lives = saved["lives_a"]
         self.player_b.lives = saved["lives_b"]
+        self.player_a.item = copy(saved["item_a"]) if saved["item_a"] is not None else None
+        self.player_b.item = copy(saved["item_b"]) if saved["item_b"] is not None else None
         if hasattr(self.player_a, 'devotion'):
             self.player_a.devotion = saved["devotion_a"]
         if hasattr(self.player_b, 'devotion'):
@@ -356,6 +456,11 @@ class Battle(BattleMechanicsMixin):
         self._vm_engine._counter_values = vs["counter_values"]
         self._vm_engine._skill_history = vs["skill_history"]
         self._vm_engine._skill_tags = vs["skill_tags"]
+        self._vm_engine.registry._observers = list(vs["observers"])
+        self._vm_engine.registry._rebuild_index()
+        self._vm_engine.trait_loader._sprite_sources = {
+            k: set(v) for k, v in vs["trait_sprite_sources"].items()
+        }
         self._ctx_team_cache.clear()
 
     def __init__(
@@ -384,6 +489,7 @@ class Battle(BattleMechanicsMixin):
         self._build_ctx = _build_ctx  # stored for use in execute_turn etc.
         self._skill_compiler = SkillCompiler()
         self._skill_cache: dict[str, CompiledSkill] = {}
+        self._charge_skill_cache: dict[str, bool] = {}
         self.team_counters: dict[str, dict[str, int]] = {'A': {}, 'B': {}}  # pre-entry accumulators
         self.pending_effects: dict[str, list] = {'A': [], 'B': []}  # leave-buff → next entry
         self.scheduled_effects: list[dict] = []  # 延时效果队列 [{turn, phase, effects, ...}]
@@ -456,44 +562,69 @@ class Battle(BattleMechanicsMixin):
         """读取队伍级事件计数器。"""
         return self.team_counters.get(team, {}).get(key, 0)
 
-    def _make_ctx(self, self_sprite, opp_sprite, self_skill=None, opp_skill=None,
-                  globals_=None, *, team: str = "A", **kwargs):
-        """Build a Ctx with team_counters, devotion, fainted pre-filled from battle state.
+    def _invalidate_ctx_team_cache(self) -> None:
+        """Clear cached team aggregates after active/species/fainted state changes."""
+        self._ctx_team_cache.clear()
 
-        Per-turn caching: team-level aggregates (fainted count, team elements, moe stacks)
-        are stable within a turn and computed once per team. This avoids iterating all
-        12 sprites on every _make_ctx call (~4-6 times per skill execution).
-        """
-        if globals_ is None:
-            globals_ = self.globals
-        opp_team = 'B' if team == 'A' else 'A'
-        own_player = self.get_player(team)
-        opp_player = self.get_player(opp_team)
+    def _build_ctx_team_cache(self) -> None:
+        player_a = self.player_a
+        player_b = self.player_b
 
-        # ── Per-turn team cache ──
+        fainted_a = 0
+        elements_a: set[str] = set()
+        moe_a = 0
+        for sprite in player_a.team:
+            if sprite.is_fainted:
+                fainted_a += 1
+                continue
+            elements_a.update(sprite.species.elements)
+            moe_a += _sprite_moe_stacks(sprite)
+
+        fainted_b = 0
+        elements_b: set[str] = set()
+        moe_b = 0
+        for sprite in player_b.team:
+            if sprite.is_fainted:
+                fainted_b += 1
+                continue
+            elements_b.update(sprite.species.elements)
+            moe_b += _sprite_moe_stacks(sprite)
+
+        frozen_elements_a = frozenset(elements_a)
+        frozen_elements_b = frozenset(elements_b)
+        self._ctx_team_cache["A"] = {
+            "fainted_own": fainted_a,
+            "fainted_opp": fainted_b,
+            "team_elements_own": frozen_elements_a,
+            "team_elements_opp": frozen_elements_b,
+            "moe_stacks_own": moe_a,
+        }
+        self._ctx_team_cache["B"] = {
+            "fainted_own": fainted_b,
+            "fainted_opp": fainted_a,
+            "team_elements_own": frozen_elements_b,
+            "team_elements_opp": frozen_elements_a,
+            "moe_stacks_own": moe_b,
+        }
+
+    def _ctx_team_kwargs(self, team: str, self_sprite) -> dict:
+        if team == 'A':
+            opp_team = 'B'
+            own_player = self.player_a
+            opp_player = self.player_b
+        else:
+            opp_team = 'A'
+            own_player = self.player_b
+            opp_player = self.player_a
+
         if team not in self._ctx_team_cache:
-            fainted_own = sum(1 for s in own_player.team if s.is_fainted)
-            fainted_opp = sum(1 for s in opp_player.team if s.is_fainted)
-            team_elements_own = frozenset(
-                e for s in own_player.team for e in s.species.elements)
-            team_elements_opp = frozenset(
-                e for s in opp_player.team for e in s.species.elements)
-            self._ctx_team_cache[team] = {
-                "fainted_own": fainted_own,
-                "fainted_opp": fainted_opp,
-                "team_elements_own": team_elements_own,
-                "team_elements_opp": team_elements_opp,
-            }
+            self._build_ctx_team_cache()
         cached = self._ctx_team_cache[team]
 
-        # Count 萌化 stacks on own team sprites (excluding self) — per-call still,
-        # since self_sprite changes between calls within a turn.
-        moe_team_stacks = 0
-        for s in own_player.team:
-            if s is not self_sprite and not s.is_fainted:
-                for e in getattr(s, 'active_effects', []):
-                    if getattr(e, 'name', '') == '萌化':
-                        moe_team_stacks += getattr(e, 'stacks', 0)
+        self_moe_stacks = 0
+        if cached["moe_stacks_own"] and self_sprite is not None and not self_sprite.is_fainted:
+            self_moe_stacks = _sprite_moe_stacks(self_sprite)
+        moe_team_stacks = max(0, cached["moe_stacks_own"] - self_moe_stacks)
 
         if getattr(self, '_mcts_sim', False):
             team_counters_own = self.team_counters.get(team, {})
@@ -506,20 +637,35 @@ class Battle(BattleMechanicsMixin):
             devotion_own = dict(getattr(own_player, 'devotion', {}))
             devotion_opp = dict(getattr(opp_player, 'devotion', {}))
 
+        return {
+            "team_counters_own": team_counters_own,
+            "team_counters_opp": team_counters_opp,
+            "devotion_own": devotion_own,
+            "devotion_opp": devotion_opp,
+            "fainted_own": cached["fainted_own"],
+            "fainted_opp": cached["fainted_opp"],
+            "lives_own": getattr(own_player, 'lives', 5),
+            "lives_opp": getattr(opp_player, 'lives', 5),
+            "team_elements_own": cached["team_elements_own"],
+            "team_elements_opp": cached["team_elements_opp"],
+            "moe_team_stacks": moe_team_stacks,
+        }
+
+    def _make_ctx(self, self_sprite, opp_sprite, self_skill=None, opp_skill=None,
+                  globals_=None, *, team: str = "A", **kwargs):
+        """Build a Ctx with team_counters, devotion, fainted pre-filled from battle state.
+
+        Per-turn caching: team-level aggregates (fainted count, team elements, moe stacks)
+        are stable within a turn and computed once per team. This avoids iterating all
+        12 sprites on every _make_ctx call (~4-6 times per skill execution).
+        """
+        if globals_ is None:
+            globals_ = self.globals
+        team_kwargs = self._ctx_team_kwargs(team, self_sprite)
         return self._build_ctx(
             self_sprite, opp_sprite, self_skill, opp_skill, globals_,
             team=team,
-            team_counters_own=team_counters_own,
-            team_counters_opp=team_counters_opp,
-            devotion_own=devotion_own,
-            devotion_opp=devotion_opp,
-            fainted_own=cached["fainted_own"],
-            fainted_opp=cached["fainted_opp"],
-            lives_own=getattr(own_player, 'lives', 5),
-            lives_opp=getattr(opp_player, 'lives', 5),
-            team_elements_own=cached["team_elements_own"],
-            team_elements_opp=cached["team_elements_opp"],
-            moe_team_stacks=moe_team_stacks,
+            **team_kwargs,
             **kwargs,
         )
 
@@ -575,8 +721,7 @@ class Battle(BattleMechanicsMixin):
         # power_mod with scope=permanent, e.g. 洄游 energy_cost -1).
         for team in (self.player_a.team, self.player_b.team):
             for sprite in team:
-                for skill in (sprite.skills or []):
-                    skill.load_permanent_mods(sprite._modifiers)
+                _load_permanent_skill_mods_for_sprite(sprite)
 
         s_a = self.player_a.active
         s_b = self.player_b.active
@@ -997,8 +1142,16 @@ class Battle(BattleMechanicsMixin):
                 events.append(f'[冷却中] {user.name} {bs.name} 还需{bs.cooldown}回合冷却')
             return events
 
+        # Load skill record once and reuse it across charge/devotion/VM execution.
+        try:
+            record = self._get_skill_record(bs.base.name)
+        except FileNotFoundError:
+            if not mcts_sim:
+                events.append(f'[错误] 技能JSON未找到: {bs.base.name}')
+            return events
+
         # ═══ Gate: 蓄力 ═══
-        charge_result = self._gate_charge_vm(user, bs, action)
+        charge_result = self._gate_charge_vm(user, bs, action, record)
         if charge_result is True:
             if not mcts_sim:
                 events.append(f'{user.name} 开始蓄力')
@@ -1039,14 +1192,6 @@ class Battle(BattleMechanicsMixin):
 
         # ═══ Devotion consumption ═══
         devotion_triggered = False
-        # Load skill record early so devotion can affect energy cost
-        try:
-            record = self._get_skill_record(bs.base.name)
-        except FileNotFoundError:
-            if not mcts_sim:
-                events.append(f'[错误] 技能JSON未找到: {bs.base.name}')
-            return events
-
         if getattr(record, 'use_devotion', False):
             devotion_stacks = dict(player.devotion)
             if devotion_stacks:
@@ -1189,9 +1334,11 @@ class Battle(BattleMechanicsMixin):
                 direct_effects = [e for e in counter_effects
                                   if not (hasattr(e, 'when') and e.when) and 'when' not in (e if isinstance(e, dict) else {})]
                 if direct_effects:
+                    opp_ctx_kwargs = self._ctx_team_kwargs(opp_team, target)
                     opp_ctx = self._build_ctx(
                         target, user, counter_record, None, self.globals,
                         team=opp_team, turn=self.turn,
+                        **opp_ctx_kwargs,
                     )
                     counter_journal = self._vm_engine.execute_effects(opp_ctx, direct_effects)
                     from backend.engine.replayer import JournalReplayer as _CR
@@ -1204,13 +1351,7 @@ class Battle(BattleMechanicsMixin):
         # (record already loaded above for devotion check)
 
         opp_skill = countered_skill or countering_skill or opp_skill
-        opp_team = 'B' if team == 'A' else 'A'
-        if getattr(self, '_mcts_sim', False):
-            team_counters_own = self.team_counters.get(team, {})
-            team_counters_opp = self.team_counters.get(opp_team, {})
-        else:
-            team_counters_own = dict(self.team_counters.get(team, {}))
-            team_counters_opp = dict(self.team_counters.get(opp_team, {}))
+        ctx_team_kwargs = self._ctx_team_kwargs(team, user)
 
         result = self._vm_engine.execute_skill(
             user, target,
@@ -1223,8 +1364,7 @@ class Battle(BattleMechanicsMixin):
             skill_index=action.skill_index or 0,
             species_lookup=self.lookup_species_by_number,
             battle_skill=bs,
-            team_counters_own=team_counters_own,
-            team_counters_opp=team_counters_opp,
+            **ctx_team_kwargs,
             battle=self,
             devotion_triggered=devotion_triggered,
         )
@@ -1289,16 +1429,22 @@ class Battle(BattleMechanicsMixin):
 
         return events
 
-    def _gate_charge_vm(self, user: Sprite, bs: BattleSkill, action: Action) -> bool | None:
+    def _gate_charge_vm(
+        self,
+        user: Sprite,
+        bs: BattleSkill,
+        action: Action,
+        record: CompiledSkill | None = None,
+    ) -> bool | None:
         """VM-compatible charge gate. Reads from RISC IR effects.
         True=entering charge, False=blocked, None=pass through.
         """
-        # Load record to check for charge opcode
-        try:
-            record = self._get_skill_record(bs.base.name)
-        except FileNotFoundError:
-            return None
-        has_charge = any(_has_charge_op(e) for e in record.effects)
+        if record is None:
+            try:
+                record = self._get_skill_record(bs.base.name)
+            except FileNotFoundError:
+                return None
+        has_charge = self._skill_has_charge(record)
 
         is_charging = getattr(user, '_charging', False)
         charged_idx, charged_skill = self._charged_skill(user)
@@ -1338,6 +1484,14 @@ class Battle(BattleMechanicsMixin):
             return True  # entering charge
 
         return None
+
+    def _skill_has_charge(self, record: CompiledSkill) -> bool:
+        cached = self._charge_skill_cache.get(record.name)
+        if cached is not None:
+            return cached
+        has_charge = any(_has_charge_op(e) for e in record.effects)
+        self._charge_skill_cache[record.name] = has_charge
+        return has_charge
 
     # ── 辅助 ──
 
@@ -1425,13 +1579,18 @@ class Battle(BattleMechanicsMixin):
         新格式（Skill IR Schedule opcode）: effects 列表走 VM → Replay。
         旧格式（trait_name/hook）: 已废弃，跳过。
         """
+        if not self.scheduled_effects:
+            return _NO_EVENTS if getattr(self, '_mcts_sim', False) else []
+        due = [s for s in self.scheduled_effects
+               if s['turn'] <= self.turn and s['phase'] == phase]
+        if not due:
+            return _NO_EVENTS if getattr(self, '_mcts_sim', False) else []
+
         from backend.engine.replayer import JournalReplayer
         from backend.engine.snapshot import build_ctx
         from backend.vm.executor import process_effects
 
         events: list[str] = _NO_EVENTS if getattr(self, '_mcts_sim', False) else []
-        due = [s for s in self.scheduled_effects
-               if s['turn'] <= self.turn and s['phase'] == phase]
         for sched in due:
             self.scheduled_effects.remove(sched)
             snap = sched.get('ctx_snapshot', {})
@@ -1470,8 +1629,11 @@ class Battle(BattleMechanicsMixin):
             for sprite in player.team:
                 if sprite.is_fainted:
                     continue
-                sprite.clear_effects('turn')
-                expired = sprite.decrement_ttl()
+                if sprite.active_effects or sprite._mod_scopes:
+                    sprite.clear_effects('turn')
+                    expired = sprite.decrement_ttl()
+                else:
+                    expired = ()
                 if not mcts_sim:
                     for eff in expired:
                         events.append(f'{sprite.name} {eff.name} 到期消失')
@@ -1588,6 +1750,7 @@ class Battle(BattleMechanicsMixin):
             if swap_index is not None and swap_index != player.active_index:
                 old = active
                 player.active_index = swap_index
+                self._invalidate_ctx_team_cache()
                 new = player.active
                 new.clear_effects('battlefield')
                 new.entry_turn = self.turn
@@ -1611,7 +1774,11 @@ class Battle(BattleMechanicsMixin):
         # 冻结斩杀检查
         for team in ('A', 'B'):
             sprite = self.get_player(team).active
-            if not sprite.is_fainted and sprite.check_freeze_death():
+            if (
+                not sprite.is_fainted
+                and sprite.get_stacks('冻结') > 0
+                and sprite.check_freeze_death()
+            ):
                 if not mcts_sim:
                     events.append(f'{sprite.name} 冻结斩杀(冻结{sprite.frozen_hp}HP)')
 
@@ -1635,6 +1802,7 @@ class Battle(BattleMechanicsMixin):
         lead_b = agent_b.choose_lead(self)
         self.player_a.active_index = lead_a
         self.player_b.active_index = lead_b
+        self._invalidate_ctx_team_cache()
 
         if self.verbose:
             print(f'\n{"═" * 50}')

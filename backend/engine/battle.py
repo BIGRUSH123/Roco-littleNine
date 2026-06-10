@@ -18,6 +18,7 @@ from backend.vm.cond import eval_one
 from backend.vm.ctx import Ctx
 from backend.vm.executor import compile_effects_batch, execute as vm_execute
 from backend.vm.executor import process_effects
+from backend.vm.ir_skill import AndCond, CondExpr, NotCond, OrCond
 from backend.vm.journal import CounterRegister, Journal, ModifierInjection, Replay
 
 from .modifiers import apply_modifiers_to_journal
@@ -56,6 +57,25 @@ def _is_positive_modifier(m) -> bool:
         return False
     if m.mode == "multiply":
         return m.value > 1.0
+    return False
+
+
+def _cond_contains(cond, cond_name: str) -> bool:
+    """Return True when a condition tree references cond_name."""
+    if isinstance(cond, CondExpr):
+        return cond.cond == cond_name
+    if isinstance(cond, AndCond) or isinstance(cond, OrCond):
+        return any(_cond_contains(c, cond_name) for c in cond.conditions)
+    if isinstance(cond, NotCond):
+        return _cond_contains(cond.condition, cond_name)
+    if isinstance(cond, dict):
+        key = cond.get("cond", "")
+        if key == cond_name:
+            return True
+        if key in ("and", "or"):
+            return any(_cond_contains(c, cond_name) for c in cond.get("conditions", ()))
+        if key == "not":
+            return _cond_contains(cond.get("condition", {}), cond_name)
     return False
 
 
@@ -201,7 +221,7 @@ class BattleVMEngine:
         events = pre_calc_events + replayer.replay(journal)
 
         # 6.5 Register counters from journal
-        self._register_counters_from_journal(journal, self_sprite)
+        self._register_counters_from_journal(journal, self_sprite, battle_skill)
 
         # 6.6 Track skill history for sprite_self replay
         skill_name = getattr(self_skill, 'name', '')
@@ -480,6 +500,49 @@ class BattleVMEngine:
         )
         return self._fire_post_event(trigger, ctx, replayer)
 
+    def fire_skill_position_changed(
+        self,
+        ctx: Ctx,
+        self_sprite: Sprite,
+        opp_sprite: Sprite,
+        globals_,
+        *,
+        team: str = "A",
+        self_skill = None,
+        battle = None,
+    ) -> list[str]:
+        """Fire only observers that explicitly watch skill_position_changed."""
+        if not self.registry.has_candidates("post_skill"):
+            return []
+        replayer = JournalReplayer(
+            self_sprite, opp_sprite, globals_, self.registry, team=team,
+            self_skill=self_skill, battle=battle,
+        )
+        events: list[str] = []
+        owner_id = id(self_sprite) if self_sprite else None
+        for obs in self.registry.candidates_for("post_skill"):
+            if not _cond_contains(obs.cond, "skill_position_changed"):
+                continue
+            if obs.owner_sprite_id is not None and owner_id is not None:
+                if obs.owner_sprite_id != owner_id:
+                    continue
+            if obs.owner_skill_id is not None:
+                if self_skill is None or obs.owner_skill_id != id(self_skill):
+                    continue
+            try:
+                if eval_one(ctx, obs.cond):
+                    _bake_inject_scope(obs.then, obs.scope)
+                    if obs.then and type(obs.then[0]) is dict:
+                        obs.then = compile_effects_batch(obs.then)
+                    journal = process_effects(ctx, obs.then)
+                    replayer._trait_sourcing = True
+                    ev = replayer.replay(journal)
+                    replayer._trait_sourcing = False
+                    events.extend(ev)
+            except Exception:
+                continue
+        return events
+
     def reapply_position_modifiers(
         self,
         trigger: str,
@@ -549,7 +612,7 @@ class BattleVMEngine:
                 return effs
         return []
 
-    def register_counter(self, mutation: CounterRegister, owner_sprite=None) -> None:
+    def register_counter(self, mutation: CounterRegister, owner_sprite=None, owner_skill=None) -> None:
         """Register a persistent counter from a CounterRegister mutation.
 
         Deduplicates: if an observer with the same cond+then+owner already
@@ -559,11 +622,13 @@ class BattleVMEngine:
 
         from .observer import Observer
         owner_id = id(owner_sprite) if owner_sprite else None
+        owner_skill_id = id(owner_skill) if owner_skill is not None else None
         # Check for duplicate
         for obs in self.registry._observers:
             if (obs.cond == mutation.cond
                     and obs.then == mutation.then
-                    and obs.owner_sprite_id == owner_id):
+                    and obs.owner_sprite_id == owner_id
+                    and obs.owner_skill_id == owner_skill_id):
                 return  # already registered
         self.registry.register(Observer(
             cond=mutation.cond,
@@ -575,13 +640,14 @@ class BattleVMEngine:
             threshold=mutation.threshold,
             reset_on_fire=mutation.reset_on_fire,
             owner_sprite_id=owner_id,
+            owner_skill_id=owner_skill_id,
         ))
 
-    def _register_counters_from_journal(self, journal: Journal, owner_sprite=None) -> None:
+    def _register_counters_from_journal(self, journal: Journal, owner_sprite=None, owner_skill=None) -> None:
         """Scan journal for CounterRegister mutations and register them."""
         for m in journal:
             if isinstance(m, CounterRegister):
-                self.register_counter(m, owner_sprite)
+                self.register_counter(m, owner_sprite, owner_skill)
                 # Initialize counter value for named counters
                 if m.name:
                     self._counter_values.setdefault(m.name, 0)

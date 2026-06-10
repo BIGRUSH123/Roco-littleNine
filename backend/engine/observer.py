@@ -106,6 +106,7 @@ class Observer:
     threshold: int = 1        # fire then every N condition hits (1 = every time)
     reset_on_fire: bool = True  # reset internal counter after then executes
     owner_sprite_id: int | None = None  # id() of the sprite that owns this observer
+    owner_skill_id: int | None = None   # id() of the BattleSkill that owns this observer
     _hit_count: int = field(default=0, repr=False)  # internal counter
 
     def is_active(self) -> bool:

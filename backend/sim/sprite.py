@@ -145,10 +145,17 @@ class Sprite:
 
     def effective_stat(self, stat_key: str, ignore_negative: bool = False, ignore_positive: bool = False) -> int:
         """返回六维属性经效果修正后的有效值。"""
-        if stat_key in _NON_PCT_KEYS:
-            return self._sum_steps(stat_key, ignore_negative, ignore_positive)
+        if not ignore_negative and not ignore_positive:
+            if self._effects_dirty:
+                self._rebuild_effects_cache()
+            total_steps = self._cached_stages.get(stat_key, 0)
+            if stat_key in _NON_PCT_KEYS:
+                return total_steps
+        else:
+            total_steps = self._sum_steps(stat_key, ignore_negative, ignore_positive)
+            if stat_key in _NON_PCT_KEYS:
+                return total_steps
         base = self.initial_stats.get(stat_key, 0)
-        total_steps = self._sum_steps(stat_key, ignore_negative, ignore_positive)
         if stat_key == 'speed':
             return max(0, base + total_steps * _SPEED_STEP)
         return max(0, round(base * (1.0 + total_steps / _STEP_PCT)))
@@ -249,8 +256,9 @@ class Sprite:
         return list(self.active_effects)
 
     def get_stacks(self, name: str) -> int:
-        ae = self._find_abnormal(name)
-        return ae.stacks if ae else 0
+        if self._effects_dirty:
+            self._rebuild_effects_cache()
+        return self._cached_abnormals.get(name, 0)
 
     @property
     def frozen_hp(self) -> int:

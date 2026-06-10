@@ -7,6 +7,7 @@ and observer-triggering events.
 
 from __future__ import annotations
 
+from copy import copy
 from typing import TYPE_CHECKING
 
 from backend.vm.journal import (
@@ -363,6 +364,10 @@ class JournalReplayer:
         self._energy_deltas: dict[int, int] = {}  # id(m) -> actual delta (capped by max_energy/floor 0)
         # MCTS 仿真模式下跳过所有 UI 显示逻辑（字符串格式化、_sync_mult_display_effect）
         self.is_headless: bool = getattr(battle, '_mcts_sim', False) if battle else False
+
+    def _invalidate_battle_ctx_cache(self) -> None:
+        if self._battle is not None and hasattr(self._battle, "_invalidate_ctx_team_cache"):
+            self._battle._invalidate_ctx_team_cache()
 
     # ── Main entry ──
 
@@ -835,6 +840,8 @@ class JournalReplayer:
         if m.delta > 0 and self._check_immune(sprite, "immune_abnormal", m.name):
             return f"{sprite.name} 免疫{m.name}"
         self._sync_abnormal_effect(sprite, m.name, m.delta, m.scope)
+        if m.name == '萌化':
+            self._invalidate_battle_ctx_cache()
         return f"{sprite.name} {m.name} +{m.delta}层"
 
     @staticmethod
@@ -897,6 +904,7 @@ class JournalReplayer:
             def lookup_species_by_number(_self, number):
                 return self._species_lookup(number)
         events = sprite.apply_moe(m.delta, _MoeBattle())
+        self._invalidate_battle_ctx_cache()
         return ' | '.join(events) if events else f"{sprite.name} {m.name} +{m.delta}层"
 
     def _apply_weather_set(self, m: WeatherSet) -> str:
@@ -918,6 +926,7 @@ class JournalReplayer:
                         return self._species_lookup(number)
                 old_name = sprite.name
                 removed = sprite.remove_moe(sprite._moe_position, _MoeBattle())
+                self._invalidate_battle_ctx_cache()
                 return f"{old_name} 萌化解除 → 变为{sprite.name}(-{removed}层)"
             if m.source:
                 n = self._remove_by_source(sprite, m.source, "abnormal")
@@ -925,6 +934,8 @@ class JournalReplayer:
                 return f"{sprite.name} 驱散异常(source={m.source}) x{n}"
             sprite.remove_effect(m.name, "abnormal")
             self._remove_abnormal_effect(sprite, name=m.name)
+            if m.name == '萌化':
+                self._invalidate_battle_ctx_cache()
             return f"{sprite.name} 驱散异常 {m.name}"
         elif m.what == "mark":
             team = self.team if m.target == "team_own" else ("B" if self.team == "A" else "A")
@@ -1331,7 +1342,17 @@ class JournalReplayer:
             self.self.skills, self.opp.skills = self.opp.skills, self.self.skills
             return "交换技能"
         elif m.what == "adjacent_skills":
+            pre_pos = {id(bs): i for i, bs in enumerate(self.self.skills or [])}
             self._swap_adjacent_skills(self.self)
+            position_events = []
+            if self._battle is not None:
+                for i, bs in enumerate(self.self.skills or []):
+                    if pre_pos.get(id(bs), -1) != i:
+                        position_events += self._battle._fire_skill_position_changed(
+                            self.team, self.self, bs
+                        )
+            if position_events:
+                return " | ".join(["交换相邻技能位置", *position_events])
             return "交换相邻技能位置"
         return ""
 
@@ -1485,6 +1506,7 @@ class JournalReplayer:
         if m.reset_energy:
             sprite.energy = getattr(sprite, 'max_energy', 10)
         result = sprite.transform(new_species, new_skills) if hasattr(sprite, 'transform') else f"{sprite.name} → {m.species}"
+        self._invalidate_battle_ctx_cache()
         if isinstance(result, list):
             return ' | '.join(str(x) for x in result)
         return result
@@ -1494,6 +1516,14 @@ class JournalReplayer:
         target = self.self if m.target in ("sprite_self", "self") else self.opp
         if target is None:
             return ""
+
+        def replace_ability(sprite, ability: str, ability_id: int = 0) -> None:
+            species = copy(sprite.species)
+            species.ability = ability
+            species.ability_id = ability_id
+            sprite.species = species
+            sprite._trait_handler = None
+
         if m.action == 'suppress':
             target._trait_suppressed = True
             target._trait_handler = None
@@ -1502,9 +1532,8 @@ class JournalReplayer:
             target._trait_suppressed = True
             target._trait_handler = None
             if m.new_ability:
-                target.species.ability = m.new_ability
+                replace_ability(target, m.new_ability)
                 target._trait_suppressed = False
-                target._trait_handler = None
                 return f'{target.name} 特性变为 {m.new_ability}'
             return f'{target.name} 特性被移除'
         if m.action == 'copy':
@@ -1512,12 +1541,12 @@ class JournalReplayer:
             if source is None or target is source:
                 return ""
             source_ability = source.species.ability
-            if not source_ability:
+            source_ability_id = getattr(source.species, 'ability_id', 0)
+            if not source_ability and not source_ability_id:
                 return ""
-            target.species.ability = source_ability
-            target._trait_handler = None
+            replace_ability(target, source_ability, source_ability_id)
             target._trait_suppressed = False
-            return f'{target.name} 复制特性 → {source_ability}'
+            return f'{target.name} 复制特性 → {source_ability or source_ability_id}'
         return ""
 
     def _apply_gain_skills(self, m: GainSkillsMutation) -> str:

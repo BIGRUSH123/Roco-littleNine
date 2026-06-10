@@ -43,9 +43,22 @@ class BattleMechanicsMixin:
             trigger, ctx, sprite, opp, self.globals, team=team, battle=self
         )
 
+    def _fire_skill_position_changed(self, team: str, sprite: 'Sprite', moved_skill) -> list[str]:
+        opp = self.get_opponent(team).active
+        ctx = self._make_ctx(
+            sprite, opp, moved_skill, None, self.globals,
+            team=team, turn=self.turn,
+            skill_position_changed=True,
+            battle_skill=moved_skill,
+        )
+        return self._vm_engine.fire_skill_position_changed(
+            ctx, sprite, opp, self.globals,
+            team=team, self_skill=moved_skill, battle=self,
+        )
+
     def _apply_entry_transmission(self, team: str, sprite: 'Sprite', opp: 'Sprite') -> list[str]:
-        events = self._apply_transmission(sprite)
-        if events:
+        events = self._apply_transmission(sprite, team=team)
+        if events or getattr(self, '_last_transmission_changed', False):
             events += self._reapply_position_modifiers("post_entry", team, sprite, opp)
         return events
 
@@ -70,6 +83,7 @@ class BattleMechanicsMixin:
                 events.append(f'{old.name} 蓄力中断（换宠）')
 
         player.active_index = action.switch_index
+        self._invalidate_ctx_team_cache()
         new = player.active
 
         opp_team = 'B' if team == 'A' else 'A'
@@ -169,8 +183,7 @@ class BattleMechanicsMixin:
             return
 
         # 力竭发生后 _make_ctx 的 fainted 计数已过期，清缓存使其重算
-        if hasattr(self, '_ctx_team_cache'):
-            self._ctx_team_cache.clear()
+        self._invalidate_ctx_team_cache()
 
         old = s
 
@@ -197,6 +210,7 @@ class BattleMechanicsMixin:
             return
 
         player.active_index = replacement
+        self._invalidate_ctx_team_cache()
         new = player.active
         new.clear_effects('battlefield')
         new.entry_turn = self.turn
@@ -290,6 +304,7 @@ class BattleMechanicsMixin:
             )
             hp_ratio = sprite.current_hp / max(1, sprite.max_hp)
             sprite.species = boss_species
+            self._invalidate_ctx_team_cache()
             sprite.initial_stats = dict(result.final_stats)
             sprite.max_hp = result.final_stats['hp']
             sprite.current_hp = max(1, round(result.final_stats['hp'] * hp_ratio))
@@ -365,6 +380,7 @@ class BattleMechanicsMixin:
             replacement = agent.choose_replacement(self)
         if replacement >= 0:
             player.active_index = replacement
+            self._invalidate_ctx_team_cache()
             new_sprite = player.active
             new_sprite.inc_counter('times_entered')
             new_sprite.clear_effects('battlefield')
@@ -403,6 +419,7 @@ class BattleMechanicsMixin:
             from backend.vm.effect import StatBuffEffect
             inherited = [e for e in old.active_effects if isinstance(e, StatBuffEffect) and e.steps > 0]
             player.active_index = replacement
+            self._invalidate_ctx_team_cache()
             new_sprite = player.active
             new_sprite.clear_effects('battlefield')
             new_sprite.entry_turn = self.turn
@@ -468,6 +485,7 @@ class BattleMechanicsMixin:
             return events
 
         player.active_index = switch_index
+        self._invalidate_ctx_team_cache()
         new_sprite = player.active
         new_sprite.inc_counter('times_entered')
         new_sprite.clear_effects('battlefield')
@@ -525,11 +543,12 @@ class BattleMechanicsMixin:
     # 传动系统
     # ═══════════════════════════════════════════════════════════════
 
-    def _apply_transmission(self, sprite: 'Sprite') -> list[str]:
+    def _apply_transmission(self, sprite: 'Sprite', team: str | None = None) -> list[str]:
         """执行一次传动 pass：传动技能向下移动一个槽位，相邻传动合成块。
 
         传动X: 传动 >= 当前 pass 的参与本次移动。_transmission=-1 为主轴（不参与不阻挡）。
         返回事件列表。"""
+        self._last_transmission_changed = False
         skills = sprite.skills
         n = len(skills)
         if n < 2:
@@ -537,6 +556,15 @@ class BattleMechanicsMixin:
 
         mcts_sim = getattr(self, '_mcts_sim', False)
         events: list[str] = []
+        if team is None:
+            team = None
+            for candidate in ("A", "B"):
+                try:
+                    if self.get_player(candidate).active is sprite:
+                        team = candidate
+                        break
+                except (IndexError, AttributeError):
+                    continue
         max_lv = max((getattr(bs, '_transmission', 0) for bs in skills), default=0)
         if max_lv <= 0:
             return events
@@ -544,10 +572,7 @@ class BattleMechanicsMixin:
         track_mech_variant = self._has_mechanical_variant(sprite)
         for pass_num in range(max_lv):
             # Snapshot pre-pass positions (id→index) for move tracking
-            pre_pos: dict[int, int] | None = (
-                {id(bs): i for i, bs in enumerate(skills)}
-                if track_mech_variant else None
-            )
+            pre_pos: dict[int, int] = {id(bs): i for i, bs in enumerate(skills)}
 
             # ── 第一步：提取非主轴技能组成虚拟数组 ──
             # 主轴不参与传动，也不阻挡——如同不存在
@@ -615,11 +640,21 @@ class BattleMechanicsMixin:
             for vi, oi in enumerate(active_map):
                 skills[oi] = active[vi]
 
-            # ── 第六步：机械变式。每次传动导致的位置变化使对应技能能耗-1，持续到退场。
-            if pre_pos is not None:
-                for i, bs in enumerate(skills):
-                    if pre_pos.get(id(bs), -1) != i:
+            # ── 第六步：位置变化结算。机械变式减耗；技能自身的
+            # skill_position_changed observer 绑定到移动的 BattleSkill 对象。
+            moved_skills = []
+            for i, bs in enumerate(skills):
+                if pre_pos.get(id(bs), -1) != i:
+                    moved_skills.append(bs)
+                    if track_mech_variant:
                         bs._mech_energy_reduction -= 1
+            if moved_skills:
+                self._last_transmission_changed = True
+            if team is not None:
+                for bs in moved_skills:
+                    position_events = self._fire_skill_position_changed(team, sprite, bs)
+                    if not mcts_sim:
+                        events += position_events
 
             if not mcts_sim:
                 names = '/'.join(bs.name for bs in skills)

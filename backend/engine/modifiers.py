@@ -23,18 +23,30 @@ if TYPE_CHECKING:
     from backend.vm.ctx import Ctx
 
 
-def collect_modifiers(journal: Journal, ctx: Ctx) -> dict:
+_DAMAGE_MOD_STATS = frozenset({
+    "power",
+    "power_mult",
+    "damage_mult",
+    "damage_reduction",
+    "combo",
+})
+
+
+def _collect_modifiers_from_entries(entries: list[ModifierInjection], ctx: Ctx) -> dict:
     """Collect ModifierInjections from journal and compute effective values.
 
     Returns a dict of modifier category → effective value. Uses ctx for
-    base values and the journal for same-skill adjustments.
+    combo/damage-reduction base values and the journal for same-skill
+    adjustments.
 
     Two-pass processing ensures deterministic mode priority regardless of
     journal entry order: all 'set' baselines are collected first, then
     'add' and 'multiply' are applied on top.
     """
     mods: dict[str, float] = {
-        "power_mult": ctx.power_mult_self,
+        # op_hit already applied ctx.power_mult_self to Damage. This value is
+        # only the same-skill delta emitted during the current VM execution.
+        "power_mult": 1.0,
         "damage_mult": 1.0,
         "damage_reduction": ctx.damage_reduction_opp,
         "combo_add": 0,
@@ -45,12 +57,10 @@ def collect_modifiers(journal: Journal, ctx: Ctx) -> dict:
     }
 
     # ── Pass 1: collect set baselines (last set in journal wins) ──
-    power_mult_base = ctx.power_mult_self
+    power_mult_base = 1.0
     dr_base = ctx.damage_reduction_opp
 
-    for m in journal:
-        if not isinstance(m, ModifierInjection):
-            continue
+    for m in entries:
         if m.mode != "set":
             continue
 
@@ -67,9 +77,7 @@ def collect_modifiers(journal: Journal, ctx: Ctx) -> dict:
     mods["damage_reduction"] = dr_base
 
     # ── Pass 2: apply adds and multiplies on top of baselines ──
-    for m in journal:
-        if not isinstance(m, ModifierInjection):
-            continue
+    for m in entries:
         stat = m.stat
         value = m.value
         mode = m.mode
@@ -107,6 +115,12 @@ def collect_modifiers(journal: Journal, ctx: Ctx) -> dict:
         mods["damage_reduction_delta"] = total_dr - base_dr
 
     return mods
+
+
+def collect_modifiers(journal: Journal, ctx: Ctx) -> dict:
+    """Collect same-skill damage modifiers from a Journal."""
+    entries = [m for m in journal if isinstance(m, ModifierInjection)]
+    return _collect_modifiers_from_entries(entries, ctx)
 
 
 def adjust_damage(dmg: Damage, mods: dict) -> Damage:
@@ -231,7 +245,34 @@ def apply_modifiers_to_journal(journal: Journal, ctx: Ctx) -> Journal:
     Returns a new Journal with adjusted Damage amounts. Non-Damage
     mutations pass through unchanged.
     """
-    mods = collect_modifiers(journal, ctx)
+    has_damage = False
+    has_damage_mod = False
+    entries: list[ModifierInjection] = []
+
+    for m in journal:
+        if isinstance(m, Damage):
+            has_damage = True
+        elif isinstance(m, ModifierInjection):
+            entries.append(m)
+            if m.stat in _DAMAGE_MOD_STATS:
+                has_damage_mod = True
+
+    if not has_damage:
+        return journal
+    if not has_damage_mod and ctx.combo_mult_self <= 0:
+        return journal
+
+    mods = _collect_modifiers_from_entries(entries, ctx)
+    if (
+        mods.get("power_mult", 1.0) == 1.0
+        and mods.get("damage_mult", 1.0) == 1.0
+        and mods.get("combo_add", 0) == 0
+        and mods.get("combo_set", 0) == 0
+        and mods.get("combo_mult", 0.0) <= 0
+        and mods.get("damage_reduction_delta", 0.0) <= 0
+    ):
+        return journal
+
     result: Journal = []
     for m in journal:
         if isinstance(m, Damage):

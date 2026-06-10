@@ -6,6 +6,7 @@ The entry point for the IR_GUIDE.md trait pipeline:
 
 from __future__ import annotations
 
+from copy import deepcopy
 import json
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -63,7 +64,7 @@ class TraitLoader:
 
         # Split effects: observer ops → compile to Observers; other ops → apply directly
         observer_effects = [e for e in effects if e.get("op") == "observer"]
-        direct_effects = [e for e in effects if e.get("op") != "observer"]
+        direct_effects = [deepcopy(e) for e in effects if e.get("op") != "observer"]
 
         # ── EffectObject construction (identity layer, IR-transparent) ──
         # Clear old ObserverEffect/ModifierEffect from same source (reload dedup).

@@ -8,7 +8,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from .traits import dispatch_turn_start
-from .traits.trait_engine import fire_hook
+from .traits.trait_engine import fire_hook, has_hook
 
 if TYPE_CHECKING:
     from .battle import Battle
@@ -39,33 +39,38 @@ class TurnPipeline:
             events += dispatch_turn_start(battle.player_b.active, battle, 'B')
 
         # 3. 传动（回合开始自动执行）
+        has_after_transmission_hook = has_hook('after_transmission')
         prev_a: list[str] = []
         prev_b: list[str] = []
         if not battle.player_a.active.is_fainted:
-            prev_a = [bs.name for bs in battle.player_a.active.skills]
-            transmission_events = battle._apply_transmission(battle.player_a.active)
+            if has_after_transmission_hook:
+                prev_a = [bs.name for bs in battle.player_a.active.skills]
+            transmission_events = battle._apply_transmission(battle.player_a.active, team="A")
             events += transmission_events
-            if transmission_events:
+            if transmission_events or getattr(battle, '_last_transmission_changed', False):
                 opp = battle.player_b.active
                 events += battle._reapply_position_modifiers("turn_start", "A", battle.player_a.active, opp)
         if not battle.player_b.active.is_fainted:
-            prev_b = [bs.name for bs in battle.player_b.active.skills]
-            transmission_events = battle._apply_transmission(battle.player_b.active)
+            if has_after_transmission_hook:
+                prev_b = [bs.name for bs in battle.player_b.active.skills]
+            transmission_events = battle._apply_transmission(battle.player_b.active, team="B")
             events += transmission_events
-            if transmission_events:
+            if transmission_events or getattr(battle, '_last_transmission_changed', False):
                 opp = battle.player_a.active
                 events += battle._reapply_position_modifiers("turn_start", "B", battle.player_b.active, opp)
 
         # 4. 传动后 hook（机械变式 等）
-        for team, sprite, prev in [('A', battle.player_a.active, prev_a), ('B', battle.player_b.active, prev_b)]:
-            if sprite.is_fainted or not prev:
-                continue
-            res = fire_hook('after_transmission', sprite, prev, battle, team)
-            if res:
-                events += res
+        if has_after_transmission_hook:
+            for team, sprite, prev in [('A', battle.player_a.active, prev_a), ('B', battle.player_b.active, prev_b)]:
+                if sprite.is_fainted or not prev:
+                    continue
+                res = fire_hook('after_transmission', sprite, prev, battle, team)
+                if res:
+                    events += res
 
-        # 5. 位置效果预扫描（传动后、行动前）
-        battle._position_power_bonus = TurnPipeline._scan_position_effects(battle)
+        # 5. 位置效果预扫描（仅用于 API 展示技能面板，MCTS/headless 跳过）
+        if not getattr(battle, '_mcts_sim', False):
+            battle._position_power_bonus = TurnPipeline._scan_position_effects(battle)
 
         # 6. 不朽：力竭后 3 回合复活
         for team in ('A', 'B'):
@@ -85,6 +90,7 @@ class TurnPipeline:
                 if player.active.is_fainted and i != player.active_index:
                     old_active = player.active
                     player.active_index = i
+                    battle._invalidate_ctx_team_cache()
                     new = player.active
                     new.clear_effects('battlefield')
                     new.entry_turn = battle.turn

@@ -56,6 +56,23 @@ def _collect_skill_summary(sprite: Sprite) -> tuple[frozenset, dict[str, int], i
     element_counts: dict[str, int] = {}
     energy_sum = 0
     zero_cost_count = 0
+    if skills and type(skills[0]) is BattleSkill:
+        for sk in skills:
+            if sk.nullified:
+                el = sk._element_override
+                cost = sk._mech_energy_reduction + int(sk._modifiers.get("energy_cost", 0))
+            else:
+                base = sk.replaced_by or sk.base
+                el = sk._element_override or base.element
+                cost = base.energy_cost + int(sk._modifiers.get("energy_cost", 0)) + sk._mech_energy_reduction
+            if el:
+                elements.add(el)
+                element_counts[el] = element_counts.get(el, 0) + 1
+            energy_sum += cost
+            if cost == 0:
+                zero_cost_count += 1
+        return frozenset(elements), element_counts, energy_sum, zero_cost_count
+
     for sk in skills:
         if isinstance(sk, BattleSkill):
             if sk.nullified:

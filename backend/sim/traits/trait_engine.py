@@ -32,6 +32,11 @@ def register_hook(hook_name: str, callback, trait_name: str = '') -> None:
     _HOOK_REGISTRY.setdefault(hook_name, []).append((callback, trait_name))
 
 
+def has_hook(hook_name: str) -> bool:
+    """Return True when any engine-level callback is registered for hook_name."""
+    return bool(_HOOK_REGISTRY.get(hook_name))
+
+
 
 def fire_hook(hook_name: str, *args, **kwargs):
     """触发 hook，合并所有 list 结果。非 list 结果返回第一个非 None。"""

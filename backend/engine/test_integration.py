@@ -196,6 +196,41 @@ def test_modifier_collection_end_to_end():
     print(f"  E2E modifier pipeline: damage {80}→{adjusted_journal[1].amount} with power_mult×1.5")
 
 
+def test_modifier_postprocess_skips_when_no_damage_modifier():
+    """Ctx snapshot multipliers are already applied by op_hit; do not reapply them."""
+    from backend.engine.modifiers import apply_modifiers_to_journal
+    from backend.vm.ctx import Ctx
+    from backend.vm.journal import Damage, Journal
+
+    ctx = Ctx(power_self=100, power_mult_self=1.5, damage_mult_self=1.4,
+              damage_reduction_opp=0.0, combo_self=1)
+    journal: Journal = [Damage(target="sprite_opp", amount=100, element="火", type="物攻")]
+
+    adjusted = apply_modifiers_to_journal(journal, ctx)
+
+    assert adjusted is journal
+    assert adjusted[0].amount == 100
+
+
+def test_modifier_postprocess_applies_only_same_skill_power_mult_delta():
+    """Current-skill power_mult is applied after op_hit without duplicating ctx power_mult."""
+    from backend.engine.modifiers import apply_modifiers_to_journal
+    from backend.vm.ctx import Ctx
+    from backend.vm.journal import Damage, Journal, ModifierInjection
+
+    ctx = Ctx(power_self=100, power_mult_self=1.5,
+              damage_reduction_opp=0.0, combo_self=1)
+    journal: Journal = [
+        ModifierInjection(target="skill_off_0", stat="power_mult", value=2.0, mode="multiply", scope="battlefield"),
+        Damage(target="sprite_opp", amount=100, element="火", type="物攻"),
+    ]
+
+    adjusted = apply_modifiers_to_journal(journal, ctx)
+
+    assert adjusted is not journal
+    assert adjusted[1].amount == 200
+
+
 def test_life_drain():
     """Test that life drain modifier heals attacker when dealing damage."""
     from backend.common.models import SpeciesStats

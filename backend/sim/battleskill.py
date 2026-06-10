@@ -60,56 +60,91 @@ class BattleSkill:
 
     @property
     def name(self) -> str:
-        return self.skill.name
+        if self.nullified:
+            return "(打断)"
+        skill = self.replaced_by or self.base
+        return skill.name
 
     @property
     def element(self) -> str:
-        return self._element_override or self.skill.element
+        if self._element_override:
+            return self._element_override
+        if self.nullified:
+            return ""
+        skill = self.replaced_by or self.base
+        return skill.element
 
     @property
     def skill_type(self) -> str:
-        return self.skill.skill_type
+        if self.nullified:
+            return "物攻"
+        skill = self.replaced_by or self.base
+        return skill.skill_type
 
     @property
     def counter(self) -> str:
-        return self.skill.counter
+        if self.nullified:
+            return "无"
+        skill = self.replaced_by or self.base
+        return skill.counter
 
     @property
     def priority(self) -> int:
-        return self.skill.priority
+        if self.nullified:
+            return 0
+        skill = self.replaced_by or self.base
+        return skill.priority
 
     @property
     def combo(self) -> int:
-        return self.skill.combo + int(self._modifiers.get("combo", 0))
+        base_combo = -1 if self.nullified else (self.replaced_by or self.base).combo
+        return base_combo + int(self._modifiers.get("combo", 0))
 
     @property
     def effects(self) -> list:
-        return self.skill.effects
+        if self.nullified:
+            return []
+        skill = self.replaced_by or self.base
+        return skill.effects
 
     @property
     def is_attack(self) -> bool:
-        return self.skill.is_attack
+        if self.nullified:
+            return True
+        skill = self.replaced_by or self.base
+        return skill.is_attack
 
     @property
     def is_defense(self) -> bool:
-        return self.skill.is_defense
+        if self.nullified:
+            return False
+        skill = self.replaced_by or self.base
+        return skill.is_defense
 
     @property
     def is_status(self) -> bool:
-        return self.skill.is_status
+        if self.nullified:
+            return False
+        skill = self.replaced_by or self.base
+        return skill.is_status
 
     def get_atk_def_keys(self, sprite=None) -> tuple[str, str] | None:
-        return self.skill.get_atk_def_keys(sprite)
+        if self.nullified:
+            return ("atk", "def")
+        skill = self.replaced_by or self.base
+        return skill.get_atk_def_keys(sprite)
 
     # ── 合成属性（从 _modifiers 统一读取）──
 
     @property
     def power(self) -> int:
-        return self.skill.power + int(self._modifiers.get("power", 0))
+        base_power = 0 if self.nullified else (self.replaced_by or self.base).power
+        return base_power + int(self._modifiers.get("power", 0))
 
     @property
     def energy_cost(self) -> int:
-        return self.skill.energy_cost + int(self._modifiers.get("energy_cost", 0)) + self._mech_energy_reduction
+        base_cost = 0 if self.nullified else (self.replaced_by or self.base).energy_cost
+        return base_cost + int(self._modifiers.get("energy_cost", 0)) + self._mech_energy_reduction
 
     @property
     def has_burst(self) -> bool:

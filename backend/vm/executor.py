@@ -155,9 +155,8 @@ def _sort_effects_cached(effects):
 def process_effects(ctx: Ctx, effects) -> list[Mutation]:
     """Process a list of effects sequentially and return accumulated mutations.
 
-    热路径优化：top-8 高频 op 类型（ModOp / StatStageOp / PowerModOp /
-    MultModOp / FlagSetOp / HealOp / EnergizeOp / ReviveOp）及 WhenBlock
-    直接通过 type() 恒等比较内联 dispatch，消除 process_one 调用帧开销。
+    热路径优化：高频 typed op 及 WhenBlock 直接通过 type() 恒等比较
+    内联 dispatch，消除 process_one 调用帧开销。
     其余 op 类型回退到 process_one 的 match/case 分发。
     """
     journal: list[Mutation] = []
@@ -184,6 +183,8 @@ def process_effects(ctx: Ctx, effects) -> list[Mutation]:
             journal.extend(op_energize(ctx, op))
         elif t is ReviveOp:
             journal.extend(op_revive(ctx, op))
+        elif t is HitOp:
+            journal.extend(op_hit(ctx, op))
         elif t is WhenBlock:
             journal.extend(_process_whenblock(ctx, op))
         # ── dict 回退：未预编译的效果（JIT 编译 + 一次性告警） ──
