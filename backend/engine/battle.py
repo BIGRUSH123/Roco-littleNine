@@ -14,7 +14,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from backend.vm.cond import eval_one
 from backend.vm.ctx import Ctx
 from backend.vm.executor import compile_effects_batch, execute as vm_execute
 from backend.vm.executor import process_effects
@@ -31,6 +30,19 @@ if TYPE_CHECKING:
     from backend.sim.globals import GlobalEffects
     from backend.sim.sprite import Sprite
 
+
+# Triggers fired per-sprite where a single owner's observers are relevant:
+# an owned observer fires only for its owner, ownerless ones always fire.
+# Used to drive the owner sub-index fast path in _fire_post_event.
+# Excludes post_ko (dual-owner) and post_damage/post_abnormal_*/
+# post_positive_change (no owner filter), which keep the full bucket.
+_SINGLE_OWNER_TRIGGERS = frozenset({
+    "post_entry", "post_leave", "post_skill",
+    "turn_end", "post_abnormal_tick", "turn_start",
+    "post_energy_change", "post_counter",
+    "post_enemy_leave", "post_charge",
+    "post_heal",
+})
 
 
 class SkillExecutionResult:
@@ -200,7 +212,7 @@ class BattleVMEngine:
             self._burst_names[team].add(skill_name)
 
         # 4.6 Handle Replay mutations
-        journal = self._handle_replay(journal, team, ctx)
+        journal = self._handle_replay(journal, team, ctx, id(self_sprite))
 
         # 4.7 Handle Borrow mutations (skill property substitution)
         journal = self._handle_borrow(journal, ctx)
@@ -279,12 +291,18 @@ class BattleVMEngine:
         if not self.registry.has_candidates(trigger, sprite_id if sprite_id else None):
             return []
         mutations: Journal = []
-        for obs in self.registry.candidates_for(trigger):
+        # Narrow to {ownerless ∪ owned-by-sprite_id} when a sprite is given;
+        # the in-loop filter below stays as a correctness safety net.
+        candidates = (
+            self.registry.candidates_for_owner(trigger, sprite_id)
+            if sprite_id else self.registry.candidates_for(trigger)
+        )
+        for obs in candidates:
             # Owner filter: observers with an owner only fire for their sprite
             if obs.owner_sprite_id is not None and sprite_id != 0 and obs.owner_sprite_id != sprite_id:
                 continue
             try:
-                if eval_one(ctx, obs.cond):
+                if obs.eval_cond(ctx):
                     # source 已在 ObserverRegistry._index() 注册时预注入，
                     # 无需运行时 copy.copy
                     result = process_effects(ctx, obs.then)
@@ -304,7 +322,15 @@ class BattleVMEngine:
             return []
         events: list[str] = []
         owner_id = id(replayer.self) if replayer.self else None
-        for obs in self.registry.candidates_for(trigger):
+        # Single-owner triggers iterate just {ownerless ∪ owned-by-owner} via the
+        # owner sub-index; other triggers (post_ko dual-owner, post_damage/etc.
+        # no-filter) keep the full bucket. The in-loop filter below stays as the
+        # authoritative safety net regardless of which candidate set is used.
+        if trigger in _SINGLE_OWNER_TRIGGERS:
+            candidates = self.registry.candidates_for_owner(trigger, owner_id)
+        else:
+            candidates = self.registry.candidates_for(trigger)
+        for obs in candidates:
             # Owner filter: only for triggers where "which sprite" matters.
             # turn_end and post_abnormal_tick are fired per-sprite in a loop,
             # so sprite-owned observers must only fire for their owner.
@@ -316,11 +342,7 @@ class BattleVMEngine:
                 if obs.owner_sprite_id is not None:
                     if obs.owner_sprite_id != owner_id and obs.owner_sprite_id != opp_id:
                         continue
-            elif trigger in ("post_entry", "post_leave", "post_skill",
-                           "turn_end", "post_abnormal_tick", "turn_start",
-                           "post_energy_change", "post_counter",
-                           "post_enemy_leave", "post_charge",
-                           "post_heal"):
+            elif trigger in _SINGLE_OWNER_TRIGGERS:
                 if obs.owner_sprite_id is not None and owner_id is not None:
                     if obs.owner_sprite_id != owner_id:
                         continue
@@ -344,7 +366,7 @@ class BattleVMEngine:
                     elif ctx.event.damage_taken_of == "sprite_self":
                         ctx.event.damage_taken_of = "sprite_opp"
             try:
-                if eval_one(ctx, obs.cond):
+                if obs.eval_cond(ctx):
                     # source 已在注册时预注入；scope 在此首次触发时原地注入（幂等，无拷贝）
                     _bake_inject_scope(obs.then, obs.scope)
                     # 首次触发后编译 obs.then 为 typed IR，消除后续 process_one 的 JIT 开销
@@ -520,7 +542,7 @@ class BattleVMEngine:
         )
         events: list[str] = []
         owner_id = id(self_sprite) if self_sprite else None
-        for obs in self.registry.candidates_for("post_skill"):
+        for obs in self.registry.candidates_for_owner("post_skill", owner_id):
             if not _cond_contains(obs.cond, "skill_position_changed"):
                 continue
             if obs.owner_sprite_id is not None and owner_id is not None:
@@ -530,7 +552,7 @@ class BattleVMEngine:
                 if self_skill is None or obs.owner_skill_id != id(self_skill):
                     continue
             try:
-                if eval_one(ctx, obs.cond):
+                if obs.eval_cond(ctx):
                     _bake_inject_scope(obs.then, obs.scope)
                     if obs.then and type(obs.then[0]) is dict:
                         obs.then = compile_effects_batch(obs.then)
@@ -565,12 +587,12 @@ class BattleVMEngine:
 
         journal: Journal = []
         owner_id = id(self_sprite) if self_sprite else None
-        for obs in self.registry.candidates_for(trigger):
+        for obs in self.registry.candidates_for_owner(trigger, owner_id):
             if obs.owner_sprite_id is not None and owner_id is not None:
                 if obs.owner_sprite_id != owner_id:
                     continue
             try:
-                if not eval_one(ctx, obs.cond):
+                if not obs.eval_cond(ctx):
                     continue
                 _bake_inject_scope(obs.then, obs.scope)
                 if obs.then and type(obs.then[0]) is dict:
@@ -740,7 +762,7 @@ class BattleVMEngine:
                 result.append(m)
         return result
 
-    def _handle_replay(self, journal: Journal, team: str, ctx: Ctx) -> Journal:
+    def _handle_replay(self, journal: Journal, team: str, ctx: Ctx, sprite_id: int | None = None) -> Journal:
         """Handle Replay mutations by executing burst/self skill effects.
 
         Scans journal for Replay mutations. For team_burst replays, finds
@@ -759,7 +781,7 @@ class BattleVMEngine:
                 for _skill_name, effects in self._burst_effects.get(team, []):
                     extra.extend(vm_execute(ctx, effects))
             elif r.from_ == "sprite_self":
-                extra.extend(self._collect_sprite_self_replay(ctx, r.skill_filter))
+                extra.extend(self._collect_sprite_self_replay(ctx, r.skill_filter, sprite_id))
 
         if extra:
             journal = [m for m in journal if not isinstance(m, Replay)]
@@ -783,20 +805,31 @@ class BattleVMEngine:
             journal = extra + journal
         return journal
 
-    def _collect_sprite_self_replay(self, ctx: Ctx, skill_filter: dict | None) -> Journal:
+    def _collect_sprite_self_replay(self, ctx: Ctx, skill_filter: dict | None, sprite_id: int | None = None) -> Journal:
         """Collect effects from sprite skill history matching the filter.
 
         Filters can include: tag, skill_type, element.
+        If sprite_id is provided, only replay that sprite's history.
         """
         accumulated: Journal = []
-        # Try all sprite histories (most battles have 2 sprites)
-        for _sprite_id, history in self._skill_history.items():
+        # If sprite_id specified, only replay that sprite's history
+        if sprite_id is not None:
+            history = self._skill_history.get(sprite_id, [])
             for skill_name, effects, tags in history:
                 if skill_filter and not self._matches_skill_filter(
                     skill_name, effects, tags, skill_filter
                 ):
                     continue
                 accumulated.extend(vm_execute(ctx, effects))
+        else:
+            # Fallback: try all sprite histories (backward compat)
+            for _sprite_id, history in self._skill_history.items():
+                for skill_name, effects, tags in history:
+                    if skill_filter and not self._matches_skill_filter(
+                        skill_name, effects, tags, skill_filter
+                    ):
+                        continue
+                    accumulated.extend(vm_execute(ctx, effects))
         return accumulated
 
     @staticmethod

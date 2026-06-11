@@ -43,6 +43,9 @@ def _collect_modifiers_from_entries(entries: list[ModifierInjection], ctx: Ctx) 
     journal entry order: all 'set' baselines are collected first, then
     'add' and 'multiply' are applied on top.
     """
+    if not entries:
+        return {}  # 快速路径：无修饰符
+
     mods: dict[str, float] = {
         # op_hit already applied ctx.power_mult_self to Damage. This value is
         # only the same-skill delta emitted during the current VM execution.
@@ -263,6 +266,9 @@ def apply_modifiers_to_journal(journal: Journal, ctx: Ctx) -> Journal:
         return journal
 
     mods = _collect_modifiers_from_entries(entries, ctx)
+    # 快速路径：无有效修饰符
+    if not mods:
+        return journal
     if (
         mods.get("power_mult", 1.0) == 1.0
         and mods.get("damage_mult", 1.0) == 1.0

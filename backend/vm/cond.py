@@ -485,6 +485,72 @@ def eval_one(ctx: Ctx, cond) -> bool:
     return False
 
 
+def compile_cond(cond):
+    """Compile a condition into a callable ``(ctx) -> bool``.
+
+    Memoizes the dispatch decision that ``eval_one`` otherwise re-derives on
+    every call (a 6-deep isinstance chain + dict lookup). Handler semantics are
+    unchanged — this only caches *which* handler runs and binds its params once.
+
+    Unknown conditions fall back to ``eval_one`` so error timing and and/or
+    short-circuit behavior remain byte-for-byte identical to the interpreted
+    path (the fallback raises lazily, only when actually evaluated).
+    """
+    # ── Typed CondExpr ──
+    if isinstance(cond, CondExpr):
+        handler = COND_EVAL.get(cond.cond)
+        if handler is None:
+            return lambda ctx: eval_one(ctx, cond)
+        params = cond.params
+        return lambda ctx: handler(ctx, params)
+
+    if isinstance(cond, AndCond):
+        compiled = [compile_cond(c) for c in cond.conditions]
+        return lambda ctx: all(c(ctx) for c in compiled)
+
+    if isinstance(cond, OrCond):
+        compiled = [compile_cond(c) for c in cond.conditions]
+        return lambda ctx: any(c(ctx) for c in compiled)
+
+    if isinstance(cond, NotCond):
+        inner = compile_cond(cond.condition)
+        return lambda ctx: not inner(ctx)
+
+    if isinstance(cond, FnCond):
+        fn = _FN_COND_REGISTRY.get(cond.name)
+        if fn is None:
+            return lambda ctx: False
+        return lambda ctx: fn(ctx)
+
+    # ── Plain string condition ──
+    if isinstance(cond, str):
+        handler = COND_EVAL.get(cond)
+        if handler is None:
+            return lambda ctx: False
+        params = {"cond": cond}
+        return lambda ctx: handler(ctx, params)
+
+    # ── Backward compat: raw dict ──
+    if isinstance(cond, dict):
+        key = cond["cond"]
+        if key == "and":
+            compiled = [compile_cond(c) for c in cond["conditions"]]
+            return lambda ctx: all(c(ctx) for c in compiled)
+        if key == "or":
+            compiled = [compile_cond(c) for c in cond["conditions"]]
+            return lambda ctx: any(c(ctx) for c in compiled)
+        if key == "not":
+            inner = compile_cond(cond["condition"])
+            return lambda ctx: not inner(ctx)
+        handler = COND_EVAL.get(key)
+        if handler is None:
+            # Unknown — defer to eval_one for identical lazy error semantics
+            return lambda ctx: eval_one(ctx, cond)
+        return lambda ctx: handler(ctx, cond)
+
+    return lambda ctx: False
+
+
 # ── Trait path bridge (Phase C3) ──
 
 # Map common trait path roots to Ctx fields

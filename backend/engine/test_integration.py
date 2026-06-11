@@ -797,6 +797,93 @@ def test_observer_registry_candidates_filter_by_trigger_and_owner():
     assert registry.has_candidates("post_damage", owner_a)
 
 
+def test_observer_candidates_for_owner_isolates_and_preserves_order():
+    """candidates_for_owner returns {ownerless ∪ owned-by-owner} in reg order.
+
+    Locks the Priority-2 owner sub-index invariants: a single-owner fire must
+    see only its own + ownerless observers (never the other sprite's), and the
+    merged result must stay in global registration order so behavior matches
+    the old full-bucket linear scan.
+    """
+    from backend.engine.observer import Observer, ObserverRegistry
+
+    registry = ObserverRegistry()
+    owner_a = 101
+    owner_b = 202
+
+    def mk(owner):
+        return Observer(
+            cond={"cond": "skill_use"},
+            then=[],
+            listen=frozenset({"post_skill"}),
+            owner_sprite_id=owner,
+        )
+
+    # Interleave A / B / ownerless registrations.
+    a1 = mk(owner_a)        # seq 0
+    b1 = mk(owner_b)        # seq 1
+    none1 = mk(None)        # seq 2
+    a2 = mk(owner_a)        # seq 3
+    b2 = mk(owner_b)        # seq 4
+    none2 = mk(None)        # seq 5
+    for obs in (a1, b1, none1, a2, b2, none2):
+        registry.register(obs)
+
+    # A's view: only A-owned + ownerless, in registration order.
+    a_view = list(registry.candidates_for_owner("post_skill", owner_a))
+    assert a_view == [a1, none1, a2, none2]
+
+    # B's view: only B-owned + ownerless, in registration order.
+    b_view = list(registry.candidates_for_owner("post_skill", owner_b))
+    assert b_view == [b1, none1, b2, none2]
+
+    # owner_id=None falls back to the full bucket (every candidate).
+    full = list(registry.candidates_for_owner("post_skill", None))
+    assert full == [a1, b1, none1, a2, b2, none2]
+
+    # A sprite with no observers still sees the ownerless ones.
+    assert list(registry.candidates_for_owner("post_skill", 999)) == [none1, none2]
+
+    # A listen-empty fallback observer forces the conservative full path.
+    fallback = Observer(cond={"cond": "always"}, then=[])
+    registry.register(fallback)
+    a_view2 = list(registry.candidates_for_owner("post_skill", owner_a))
+    assert a_view2 == [a1, b1, none1, a2, b2, none2, fallback]
+
+
+def test_observer_owner_index_rebuilds_after_unregister():
+    """The owner sub-index stays correct after unregister_by_owner rebuilds it."""
+    from backend.engine.observer import Observer, ObserverRegistry
+
+    registry = ObserverRegistry()
+    owner_a = 101
+    owner_b = 202
+
+    def mk(owner, scope="battlefield"):
+        return Observer(
+            cond={"cond": "skill_use"},
+            then=[],
+            listen=frozenset({"post_skill"}),
+            owner_sprite_id=owner,
+            scope=scope,
+        )
+
+    a1 = mk(owner_a)
+    b1 = mk(owner_b)
+    none1 = mk(None)
+    for obs in (a1, b1, none1):
+        registry.register(obs)
+
+    # Remove A's observers (battlefield scope clears on leave).
+    registry.unregister_by_owner(owner_a, reason="leave")
+
+    # A now sees only ownerless; B unaffected.
+    assert list(registry.candidates_for_owner("post_skill", owner_a)) == [none1]
+    assert list(registry.candidates_for_owner("post_skill", owner_b)) == [b1, none1]
+    # Reg-seq re-derived from list position: b1 before none1.
+    assert b1._reg_seq < none1._reg_seq
+
+
 def test_named_counter_value_tracking():
     """Test that named counters track their values and are queryable via counter_values."""
     from backend.engine.battle import BattleVMEngine

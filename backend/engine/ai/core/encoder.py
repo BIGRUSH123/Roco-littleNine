@@ -242,11 +242,25 @@ def _fill_sprite_entity(
     # ── stats (7): 绝对数值 — 交由模型做 log1p 归一化 ──
     stats[idx, 0] = float(sprite.current_hp)
     stats[idx, 1] = float(max(sprite.max_hp, 1))
-    stats[idx, 2] = float(sprite.effective_stat('atk'))
-    stats[idx, 3] = float(sprite.effective_stat('def'))
-    stats[idx, 4] = float(sprite.effective_stat('sp_atk'))
-    stats[idx, 5] = float(sprite.effective_stat('sp_def'))
-    stats[idx, 6] = float(sprite.effective_stat('speed'))
+
+    effect_snapshot = sprite.get_effects_snapshot()
+    stages = effect_snapshot["stages"]
+    initial_stats = sprite.initial_stats
+    atk_base = initial_stats.get('atk', 0)
+    def_base = initial_stats.get('def', 0)
+    sp_atk_base = initial_stats.get('sp_atk', 0)
+    sp_def_base = initial_stats.get('sp_def', 0)
+    speed_base = initial_stats.get('speed', 0)
+    atk_steps = stages.get('atk', 0)
+    def_steps = stages.get('def', 0)
+    sp_atk_steps = stages.get('sp_atk', 0)
+    sp_def_steps = stages.get('sp_def', 0)
+    speed_steps = stages.get('speed', 0)
+    stats[idx, 2] = float(max(0, round(atk_base * (1.0 + atk_steps / 10.0))))
+    stats[idx, 3] = float(max(0, round(def_base * (1.0 + def_steps / 10.0))))
+    stats[idx, 4] = float(max(0, round(sp_atk_base * (1.0 + sp_atk_steps / 10.0))))
+    stats[idx, 5] = float(max(0, round(sp_def_base * (1.0 + sp_def_steps / 10.0))))
+    stats[idx, 6] = float(max(0, speed_base + speed_steps * 10))
 
     # ── element: 双属性 ID (主/副, 0=PAD) ──
     species_elements = getattr(sprite.species, 'elements', [])
@@ -255,7 +269,6 @@ def _fill_sprite_entity(
 
     # ── states (前 25 维) ──
     s = states[idx]
-    effect_snapshot = sprite.get_effects_snapshot()
 
     # 1. energy / max_energy
     s[0] = float(sprite.energy) / max(float(sprite.max_energy), 1.0)
@@ -289,9 +302,13 @@ def _fill_sprite_entity(
         s[11 + i] = min(float(stacks) / float(max_s), 1.0)
 
     # 19-25. buff steps (7): atk/def/spa/spd/spe/power/energy_cost
-    for i, bk in enumerate(BUFF_KEYS):
-        steps = _sprite_buff_steps(sprite, bk)
-        s[18 + i] = max(-1.0, min(1.0, float(steps) / 10.0))
+    s[18] = max(-1.0, min(1.0, float(atk_steps) / 10.0))
+    s[19] = max(-1.0, min(1.0, float(def_steps) / 10.0))
+    s[20] = max(-1.0, min(1.0, float(sp_atk_steps) / 10.0))
+    s[21] = max(-1.0, min(1.0, float(sp_def_steps) / 10.0))
+    s[22] = max(-1.0, min(1.0, float(speed_steps) / 10.0))
+    s[23] = max(-1.0, min(1.0, float(int(sprite._modifiers.get('power', 0))) / 10.0))
+    s[24] = max(-1.0, min(1.0, float(int(sprite._modifiers.get('energy_cost', 0))) / 10.0))
 
 
 def _sprite_buff_steps(sprite: Sprite, key: str) -> int:
@@ -551,7 +568,7 @@ def _get_flat_skill_effect_tokens(name: str) -> tuple[tuple[str, ...], tuple[flo
 # ═══════════════════════════════════════════════════════════════════
 
 def _token_id(token: str) -> int:
-    return VOCAB_TO_ID.get(token, VOCAB_TO_ID["<UNK>"])
+    return VOCAB_TO_ID.get(token, _UNK_ID)
 
 
 def _get_flat_skill_effect_token_ids(name: str) -> tuple[tuple[int, ...], tuple[float, ...]]:
@@ -730,6 +747,7 @@ def _collect_ast_token_ids(
 from backend.engine.ai.core.vocab import VOCAB_TO_ID, VAL_NUMERIC, VAL_STRING
 
 _ENUM_TOKEN_CACHE: dict[tuple[str, tuple[str, ...]], str | None] = {}
+_UNK_ID = VOCAB_TO_ID["<UNK>"]  # 模块级常量，避免重复查找
 
 
 def _add_tok(tokens: list[str], values: list[float], tok_str: str, val: float = 0.0) -> None:

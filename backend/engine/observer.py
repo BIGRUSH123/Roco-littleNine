@@ -15,7 +15,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass, field
 
-from backend.vm.cond import eval_one, infer_triggers
+from backend.vm.cond import infer_triggers
 from backend.vm.ctx import Ctx
 from backend.vm.executor import process_effects
 from backend.vm.journal import Mutation
@@ -108,6 +108,22 @@ class Observer:
     owner_sprite_id: int | None = None  # id() of the sprite that owns this observer
     owner_skill_id: int | None = None   # id() of the BattleSkill that owns this observer
     _hit_count: int = field(default=0, repr=False)  # internal counter
+    # Lazily-compiled condition callable (ctx) -> bool. Memoizes eval_one's
+    # dispatch so repeated firings skip the isinstance chain + dict lookup.
+    # cond is immutable after registration, so the cache stays valid.
+    _compiled_cond: object = field(default=None, compare=False, repr=False)
+    # Global registration order, assigned by the registry. Used to merge the
+    # owner sub-index back into exact registration order on owner-filtered
+    # fires. compare=False so it never affects counter-dedup equality.
+    _reg_seq: int = field(default=0, compare=False, repr=False)
+
+    def eval_cond(self, ctx) -> bool:
+        """Evaluate this observer's condition, compiling+caching on first use."""
+        fn = self._compiled_cond
+        if fn is None:
+            from backend.vm.cond import compile_cond
+            fn = self._compiled_cond = compile_cond(self.cond)
+        return fn(ctx)
 
     def is_active(self) -> bool:
         """Permanent observers never deactivate; others may be cleared."""
@@ -150,6 +166,14 @@ class ObserverRegistry:
         # 按 trigger 分桶：fire(trigger) 只遍历匹配桶 + fallback，避免全量扫描
         self._by_trigger: dict[str, list[Observer]] = {}
         self._fallback: list[Observer] = []  # listen 为空 → 全部 trigger 触发
+        # Owner sub-index over the SAME population as _by_trigger (listen-matched
+        # observers only). Lets owner-filtered fires iterate just
+        # {ownerless ∪ owned-by-actor} instead of both teams' observers.
+        # trigger → owner_sprite_id → [observers]
+        self._owned_by_trigger: dict[str, dict[int, list[Observer]]] = {}
+        # trigger → [observers with owner_sprite_id is None]
+        self._ownerless_by_trigger: dict[str, list[Observer]] = {}
+        self._seq_counter: int = 0  # monotonic registration sequence
 
     # ── Registration ──
 
@@ -158,22 +182,41 @@ class ObserverRegistry:
         # 消除 _fire_pre_event / _fire_post_event 运行时的 copy.copy 开销。
         if obs.source and obs.then:
             _bake_inject_source(obs.then, obs.source)
+        obs._reg_seq = self._seq_counter
+        self._seq_counter += 1
         self._observers.append(obs)
         if obs.listen:
+            owner = obs.owner_sprite_id
             for t in obs.listen:
                 self._by_trigger.setdefault(t, []).append(obs)
+                if owner is None:
+                    self._ownerless_by_trigger.setdefault(t, []).append(obs)
+                else:
+                    self._owned_by_trigger.setdefault(t, {}).setdefault(owner, []).append(obs)
         else:
             self._fallback.append(obs)
 
     def _rebuild_index(self) -> None:
         self._by_trigger.clear()
         self._fallback.clear()
-        for obs in self._observers:
+        self._owned_by_trigger.clear()
+        self._ownerless_by_trigger.clear()
+        # Re-derive _reg_seq from list position (registration order) so the
+        # owner sub-index merge stays correct even after snapshot restore,
+        # where observers are copied in and may carry stale seq values.
+        for i, obs in enumerate(self._observers):
+            obs._reg_seq = i
             if obs.listen:
+                owner = obs.owner_sprite_id
                 for t in obs.listen:
                     self._by_trigger.setdefault(t, []).append(obs)
+                    if owner is None:
+                        self._ownerless_by_trigger.setdefault(t, []).append(obs)
+                    else:
+                        self._owned_by_trigger.setdefault(t, {}).setdefault(owner, []).append(obs)
             else:
                 self._fallback.append(obs)
+        self._seq_counter = len(self._observers)
 
     def register(self, observer: Observer) -> None:
         self._index(observer)
@@ -214,6 +257,29 @@ class ObserverRegistry:
             return self._fallback
         return (obs for obs in self._observers if not obs.listen or trigger in obs.listen)
 
+    def candidates_for_owner(self, trigger: str, owner_id: int | None):
+        """Return observers for trigger that pass a single-owner filter.
+
+        Single-owner semantics: an observer fires if it is ownerless OR owned
+        by owner_id. This is the filter used by per-sprite triggers
+        (post_entry/post_skill/turn_end/…). Returning only the relevant subset
+        avoids iterating the other sprite's owned observers on every fire.
+
+        Falls back to the full trigger bucket when owner_id is None or when
+        listen-empty fallback observers exist (rare), so the caller's in-loop
+        filter remains authoritative and registration order is preserved.
+        """
+        if owner_id is None or self._fallback:
+            return self.candidates_for(trigger)
+        owned = self._owned_by_trigger.get(trigger, {}).get(owner_id)
+        ownerless = self._ownerless_by_trigger.get(trigger, ())
+        if not owned:
+            return ownerless
+        if not ownerless:
+            return owned
+        # Merge two registration-ordered lists back into global order.
+        return sorted((*ownerless, *owned), key=lambda o: o._reg_seq)
+
     def has_candidates(self, trigger: str, owner_sprite_id: int | None = None) -> bool:
         """Fast pre-check before building expensive Ctx snapshots."""
         for obs in self._by_trigger.get(trigger, ()):
@@ -238,7 +304,7 @@ class ObserverRegistry:
             if not obs.is_active():
                 continue
             try:
-                if eval_one(ctx, obs.cond) and obs.hit():
+                if obs.eval_cond(ctx) and obs.hit():
                     mutations.extend(process_fn(ctx, obs.then))
             except Exception:
                 continue
@@ -246,7 +312,7 @@ class ObserverRegistry:
             if not obs.is_active():
                 continue
             try:
-                if eval_one(ctx, obs.cond) and obs.hit():
+                if obs.eval_cond(ctx) and obs.hit():
                     mutations.extend(process_fn(ctx, obs.then))
             except Exception:
                 continue
@@ -255,10 +321,10 @@ class ObserverRegistry:
     def fire_and_collect(self, trigger: str, ctx: Ctx) -> list[Observer]:
         result = []
         for obs in self._by_trigger.get(trigger, ()):
-            if obs.is_active() and eval_one(ctx, obs.cond):
+            if obs.is_active() and obs.eval_cond(ctx):
                 result.append(obs)
         for obs in self._fallback:
-            if obs.is_active() and eval_one(ctx, obs.cond):
+            if obs.is_active() and obs.eval_cond(ctx):
                 result.append(obs)
         return result
 
