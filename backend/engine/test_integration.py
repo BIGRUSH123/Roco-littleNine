@@ -762,6 +762,30 @@ def test_counter_does_not_fire_without_condition():
     print("  Counter correctly stayed silent when condition false")
 
 
+def test_pre_event_observer_then_is_compiled_after_first_fire():
+    """pre-event observers should not JIT-compile dict IR on every trigger."""
+    from backend.engine.battle import BattleVMEngine
+    from backend.engine.observer import Observer
+    from backend.vm.ctx import Ctx
+    from backend.vm.journal import StatChange
+
+    engine = BattleVMEngine()
+    observer = Observer(
+        cond={"cond": "always"},
+        then=[{"op": "mod", "target": "sprite_self", "stat": "atk", "steps": 1}],
+        listen=frozenset({"pre_calc"}),
+        owner_sprite_id=123,
+    )
+    engine.registry.register(observer)
+
+    mutations = engine._fire_pre_event("pre_calc", Ctx(), 123)
+
+    assert isinstance(observer.then, tuple)
+    assert observer.then
+    assert all(type(op) is not dict for op in observer.then)
+    assert any(isinstance(m, StatChange) and m.stat == "atk" for m in mutations)
+
+
 def test_observer_registry_candidates_filter_by_trigger_and_owner():
     """Observer candidate lookup should support hot-path trigger pre-checks."""
     from backend.engine.observer import Observer, ObserverRegistry

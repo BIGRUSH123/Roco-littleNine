@@ -816,7 +816,7 @@ def _step_battle(
         agent_a = agent_a_proxy or _PlayerSwappedAgent(opponent_agent, player_a)
         fixed_b = fixed_b_proxy or _OppFixedAgent(action_b, battle.player_b, opponent_agent)
         fixed_b._action = action_b
-        battle.execute_turn(
+        battle.execute_turn_headless(
             agent_a,
             fixed_b,
             fixed_action_a=action_a,
@@ -825,7 +825,11 @@ def _step_battle(
         return True
 
     agent_a = agent_a_proxy or _PlayerSwappedAgent(opponent_agent, player_a)
-    battle.execute_turn(fixed_action_a=action_a, agent_a=agent_a, agent_b=opponent_agent)
+    battle.execute_turn_headless(
+        fixed_action_a=action_a,
+        agent_a=agent_a,
+        agent_b=opponent_agent,
+    )
     return True
 
 

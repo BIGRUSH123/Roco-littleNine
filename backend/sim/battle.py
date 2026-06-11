@@ -740,9 +740,48 @@ class Battle(BattleMechanicsMixin):
         fixed_action_a: Action | None = None,
         fixed_action_b: Action | None = None,
     ) -> RoundRecord:
+        record_events = not getattr(self, '_mcts_sim', False)
+        return self._execute_turn_core(
+            agent_a,
+            agent_b,
+            fixed_action_a=fixed_action_a,
+            fixed_action_b=fixed_action_b,
+            record_events=record_events,
+        )
+
+    def execute_turn_headless(
+        self,
+        agent_a: Agent,
+        agent_b: Agent,
+        *,
+        fixed_action_a: Action | None = None,
+        fixed_action_b: Action | None = None,
+    ) -> None:
+        """Execute one turn for simulation without snapshots, logs, or full records."""
+        prev_mcts_sim = getattr(self, '_mcts_sim', False)
+        self._mcts_sim = True
+        try:
+            self._execute_turn_core(
+                agent_a,
+                agent_b,
+                fixed_action_a=fixed_action_a,
+                fixed_action_b=fixed_action_b,
+                record_events=False,
+            )
+        finally:
+            self._mcts_sim = prev_mcts_sim
+
+    def _execute_turn_core(
+        self,
+        agent_a: Agent,
+        agent_b: Agent,
+        *,
+        fixed_action_a: Action | None = None,
+        fixed_action_b: Action | None = None,
+        record_events: bool,
+    ) -> RoundRecord:
         self.turn += 1
-        mcts_sim = getattr(self, '_mcts_sim', False)
-        if not mcts_sim:
+        if record_events:
             self.save_snapshot()  # key = turn number AFTER increment, matches frontend
         self._agent_a = agent_a
         self._agent_b = agent_b
@@ -784,19 +823,19 @@ class Battle(BattleMechanicsMixin):
         s_a = self.player_a.active
         s_b = self.player_b.active
 
-        if mcts_sim:
-            rec = _HeadlessRoundRecord(self.turn)
-        else:
+        if record_events:
             rec = RoundRecord(
                 turn=self.turn,
                 weather=self.globals.weather,
                 sprite_a=s_a.name,
                 sprite_b=s_b.name,
             )
+        else:
+            rec = _HeadlessRoundRecord(self.turn)
 
         # 1. 回合开始阶段（已内含 >>>PHASE:TURN_START 标记）
         ts_events = self._phase_turn_start()
-        if not mcts_sim:
+        if record_events:
             rec.turn_start_events += ts_events
 
         # 2. 行动选择阶段（道具不互见）
@@ -810,7 +849,7 @@ class Battle(BattleMechanicsMixin):
             action_b, item_b = fixed_action_b, ''
 
         # 构建 ActionRecord
-        if not mcts_sim:
+        if record_events:
             rec.action_a = self._build_action_record('A', action_a, item_a)
             rec.action_b = self._build_action_record('B', action_b, item_b)
 
@@ -819,10 +858,10 @@ class Battle(BattleMechanicsMixin):
 
         # 4. 回合结束阶段（已内含 >>>PHASE:TURN_END 标记）
         te_events = self._phase_turn_end()
-        if not mcts_sim:
+        if record_events:
             rec.turn_end_events = te_events
 
-        if mcts_sim:
+        if not record_events:
             return rec
 
         # ── 组装 frontend events ──

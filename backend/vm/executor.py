@@ -109,14 +109,14 @@ def _get_parser():
     return _parser
 
 
-def compile_effects_batch(effects: list) -> list:
+def compile_effects_batch(effects: list) -> tuple:
     """批量预编译 dict 效果列表为 typed IR 对象。
 
     嵌套 when/then/else 由 SkillParsePass._parse_effect 递归处理。
-    返回新列表（不妨碍调用方复用原列表）。
+    返回不可变 tuple，方便调用方复用并命中排序缓存。
     """
     if not effects:
-        return effects
+        return ()
     parser = _get_parser()
     result = []
     for eff in effects:
@@ -126,7 +126,7 @@ def compile_effects_batch(effects: list) -> list:
                 result.append(compiled)
         else:
             result.append(eff)
-    return result
+    return tuple(result)
 
 
 def execute(ctx: Ctx, effects, *, sort: bool = True) -> Journal:

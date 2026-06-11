@@ -341,6 +341,43 @@ def test_mcts_sim_fixed_actions_match_regular_state():
     )
 
 
+def test_execute_turn_headless_fixed_actions_match_regular_state():
+    normal = _fixed_battle(SimFactory())
+    headless = _fixed_battle(SimFactory())
+    action_a = Action("gather")
+    action_b = Action("gather")
+
+    random.seed(11)
+    normal.execute_turn(
+        RuleAgent("A", normal.player_a),
+        RuleAgent("B", normal.player_b),
+        fixed_action_a=action_a,
+        fixed_action_b=action_b,
+    )
+
+    random.seed(11)
+    result = headless.execute_turn_headless(
+        RuleAgent("A", headless.player_a),
+        RuleAgent("B", headless.player_b),
+        fixed_action_a=action_a,
+        fixed_action_b=action_b,
+    )
+
+    assert result is None
+    assert len(normal.log) == 1
+    assert headless.log == []
+    assert headless.turn == normal.turn
+    assert headless.winner == normal.winner
+    _assert_encoded_equal(
+        encode_battle_state(headless, perspective="A"),
+        encode_battle_state(normal, perspective="A"),
+    )
+    _assert_encoded_equal(
+        encode_battle_state(headless, perspective="B"),
+        encode_battle_state(normal, perspective="B"),
+    )
+
+
 def test_mutable_state_restores_full_skill_runtime_state():
     battle = _fixed_battle(SimFactory())
     sprite = battle.player_a.active
@@ -557,7 +594,7 @@ def test_network_policy_step_uses_player_a_replacement_proxy(monkeypatch):
     opponent = NetworkPolicyAgent(evaluator=_SwitchBiasedEvaluator(11), greedy=True)
     seen = {}
 
-    def fake_execute_turn(agent_a, agent_b, *, fixed_action_a=None, fixed_action_b=None):
+    def fake_execute_turn_headless(agent_a, agent_b, *, fixed_action_a=None, fixed_action_b=None):
         seen["agent_a_team"] = agent_a.team
         seen["agent_a_replacement"] = agent_a.choose_replacement(battle)
         seen["agent_b_team"] = agent_b.team
@@ -565,6 +602,10 @@ def test_network_policy_step_uses_player_a_replacement_proxy(monkeypatch):
         seen["fixed_action_a"] = fixed_action_a
         seen["fixed_action_b"] = fixed_action_b
 
+    def fake_execute_turn(*args, **kwargs):
+        raise AssertionError("_step_battle should use execute_turn_headless")
+
+    monkeypatch.setattr(battle, "execute_turn_headless", fake_execute_turn_headless, raising=False)
     monkeypatch.setattr(battle, "execute_turn", fake_execute_turn)
 
     ok = _step_battle(

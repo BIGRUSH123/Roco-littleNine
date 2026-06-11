@@ -3,6 +3,8 @@ import pickle
 
 import pytest
 
+from backend.vm.ctx import Ctx
+from backend.vm.executor import compile_effects_batch, process_effects
 from backend.vm.ir_skill import (
     AbnormalOp,
     AndCond,
@@ -87,6 +89,28 @@ class TestModOp:
         op = ModOp(target="sprite_self", stat="atk", value=Literal(1))
         with pytest.raises(Exception):
             op.stat = "def"
+
+
+class TestCompileEffectsBatch:
+    def test_compile_effects_batch_returns_typed_tuple_equivalent_to_dict_path(self):
+        effects = [
+            {"op": "mod", "target": "sprite_self", "stat": "atk", "steps": 1},
+            {
+                "when": {"cond": "counter_succeeded"},
+                "then": [
+                    {"op": "mod", "target": "sprite_self", "stat": "energy", "value": 2}
+                ],
+            },
+        ]
+        ctx = Ctx()
+        ctx.event.counter_succeeded = True
+
+        compiled = compile_effects_batch(effects)
+
+        assert isinstance(compiled, tuple)
+        assert compiled
+        assert all(type(op) is not dict for op in compiled)
+        assert process_effects(ctx, compiled) == process_effects(ctx, effects)
 
 
 class TestHitOp:

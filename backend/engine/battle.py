@@ -303,6 +303,8 @@ class BattleVMEngine:
                 continue
             try:
                 if obs.eval_cond(ctx):
+                    if obs.then and type(obs.then[0]) is dict:
+                        obs.then = compile_effects_batch(obs.then)
                     # source 已在 ObserverRegistry._index() 注册时预注入，
                     # 无需运行时 copy.copy
                     result = process_effects(ctx, obs.then)
