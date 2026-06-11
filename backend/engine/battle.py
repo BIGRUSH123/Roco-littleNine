@@ -410,15 +410,16 @@ class BattleVMEngine:
         )
 
         registry = self.registry
-        if not (
-            registry.has_candidates("post_damage")
-            or registry.has_candidates("post_ko")
-            or registry.has_candidates("post_energy_change")
-            or registry.has_candidates("post_abnormal_change")
-            or registry.has_candidates("post_abnormal_apply")
-            or registry.has_candidates("post_positive_change")
-            or registry.has_candidates("post_heal")
-        ):
+        mutation_triggers = (
+            "post_damage",
+            "post_ko",
+            "post_energy_change",
+            "post_abnormal_change",
+            "post_abnormal_apply",
+            "post_positive_change",
+            "post_heal",
+        )
+        if not registry.has_any_candidates(mutation_triggers):
             return []
 
         events: list[str] = []

@@ -1,381 +1,443 @@
 # 格斗小九 PVP AI 训练全流程文档
 
-本文档详细说明 `backend/engine/ai/` 下这套 **AlphaZero 风格强化学习** 训练管线：
-数据如何生成、用什么方法训练、AI 如何自我强化、如何评估能力、关键指标、奖励定义、
-训练指令，以及**如何判断这套训练代码是否真的有效**。
+本文档说明 `backend/engine/ai/` 下的 AlphaZero 风格强化学习训练管线：
+状态如何编码、MCTS 如何生成策略目标、网络如何训练和晋升、如何评估 checkpoint，
+以及如何判断训练结果是否可信。
 
-> 适用代码版本：`mcts.py` / `train.py` / `model.py` / `encode.py` / `advise.py`（双头网络 + 真自我博弈 + 评估门控）。
+> 适用代码版本：`core/encoder.py` / `core/model.py` / `core/mcts.py` / `train.py` /
+> `evaluate_checkpoints.py` / `service/advisor.py`。当前主线模型是
+> `ModularBattleNet`，它是 `EntityBottleneckNet` 的兼容别名。
 
 ---
 
 ## 0. 一句话总览
 
-> 让网络**自己跟自己打** → 用 **MCTS** 把"网络的直觉"加工成更强的落子分布 →
-> 把（局面，MCTS 分布，最终胜负）当作监督数据训练网络 → **门控对打**确认变强了才晋升 →
-> 如此循环，网络越来越强。部署时用 **PIMC** 处理对手隐藏信息。
+> 让网络自己对自己打，用 MCTS 把网络先验加工成更强的访问分布，再用
+> `(局面, MCTS 分布, 合法动作 mask, 终局价值)` 训练双头网络。候选模型只有在门控对打中超过
+> `--gate` 才会晋升为新的 `best_model`。
 
 ```
-┌──────────────────────────────────────────────────────────────┐
-│  一轮 RL 迭代 (iteration)                                       │
-│                                                                │
-│  best_model ──► 自我博弈 collect_rl_samples ──► (X, P, v)       │
-│       ▲              │ MCTS×sims/步                  │          │
-│       │              ▼                              ▼          │
-│       │        经验回放 buffer(最近N轮) ──► train_rl(候选 model) │
-│       │                                             │          │
-│       │                                             ▼          │
-│       │        evaluate(候选 vs best, 门控)  ──► 胜率≥gate?      │
-│       │              │是                         │否           │
-│       └──────────────┘晋升 best=候选            回滚 候选=best   │
-└──────────────────────────────────────────────────────────────┘
+best_model
+   │
+   ├─ collect_rl_samples / collect_rl_samples_parallel
+   │     └─ 生成 states, policy, mask, outcome
+   │
+   ├─ DictReplayBuffer 保存最近 N 轮样本
+   │
+candidate model ── train_rl ── evaluate / evaluate_parallel
+   │                         ├─ 胜率 >= gate：晋升并保存 *_best.pt
+   └─────────────────────────└─ 胜率 <  gate：回滚到 best_model
 ```
 
 涉及文件：
 
 | 文件 | 职责 |
 |---|---|
-| `encode.py` | 把 `Battle` 局面编码成 **446 维** 向量（网络输入） |
-| `model.py` | 双头网络 `BattleNet`（value + policy）；单头 `BattleValueNet`（监督备用） |
-| `mcts.py` | 蒙特卡洛树搜索 + `NetworkPolicyAgent`（搜索内对手）+ 动作空间 |
-| `train.py` | 自我博弈采样、训练、评估门控、CLI 主入口（含多进程并行） |
-| `evaluator.py` | 推理抽象：本地 Torch / 队列批量 CUDA 服务 |
-| `advise.py` | 部署侧：PIMC 实战单回合建议 |
-| `test_selfplay.py` | 回滚一致性、双视角采样、建议管线测试 |
+| `core/encoder.py` | 将 `Battle` 编码为实体矩阵 + AST token 字典 |
+| `core/model.py` | `EntityBottleneckNet` / `ModularBattleNet`，输出价值和 17 维策略 |
+| `core/mcts.py` | 动作空间、合法动作 mask、MCTS 搜索、搜索内网络对手 |
+| `core/evaluator.py` | 单进程 Torch 推理、队列推理、CUDA 批量推理服务 |
+| `core/replay_buffer.py` | 字典型经验回放池，按实体 key 预分配数组 |
+| `core/outcome.py` | 终局裁决、打满回合评分、门控得分换算 |
+| `train.py` | 自我博弈采样、训练、门控评估、CLI 主入口 |
+| `evaluate_checkpoints.py` | 固定种子 checkpoint 评估，可对规则 AI 或参考模型 |
+| `benchmark_mcts.py` | 编码、推理、MCTS 热路径基准测试 |
+| `service/advisor.py` | 部署侧单局建议和 PIMC 多决定化建议 |
+| `tests/` | 自我博弈、编码形状、MCTS、并行、评估和 advisor 烟测 |
 
 ---
 
-## 1. 数据是怎么生成的
+## 1. 数据如何生成
 
-数据**不是人工标注的，也不是来自真实对局录像**，而是 AI **自我博弈**实时产生的。
+数据不是人工标注，也不是来自真实录像，而是自我博弈实时产生的。
 
-### 1.1 随机对阵（`_random_teams`）
-每局开始随机抽取双方队伍：
-- 从 `data/sprites/` + `data/skills/` 中读出"有合法技能的精灵"（`_load_sprite_skills`）。
-- 每队 **1~3 只**精灵，每只随机选 **≤4** 个技能。
-- 这样网络见到的局面足够多样，避免只会打固定阵容。
+### 1.1 随机对阵
 
-### 1.2 一局自我博弈（`collect_rl_samples`）
-双方都由 `MCTSAgent` 控制，**用同一个网络**：
+`train.py::_random_teams` 每局随机抽取双方队伍：
 
-1. 每个回合，轮到某方决策时：
-   - 以**本方视角**把局面编码成 446 维（`encode_battle_state`）。
-   - 跑一次 **MCTS**（`num_simulations` 次模拟）得到动作访问分布 `π`（10 维）。
-   - 把 `(state, π)` 记进该 agent 的 `history`。
-   - 按温度 `T` 从 `π` 采样真正执行的动作。
-2. 回合推进直到分出胜负或到 `max_turns`（默认 150）。
+- 精灵池来自 `backend/engine/ai/data/sprite_random_pool.py`。
+- 每队 1 到 3 只精灵，每只最多 4 个技能。
+- 性格随机，六维个体值随机选择 3 项设为 10，其余为 0。
+- 默认两队不复用同一批精灵；`--mirror-frac` 可让前若干比例迭代使用镜像阵容。
 
-### 1.3 双视角采样（关键改进）
-游戏是**同时出招**的：`battle.execute_turn` 会先让 A、B 各自 `choose_action`，再结算。
-因此**一局同时产出 A、B 两方的训练样本**：
-- A 的样本：状态按 A 视角编码，结果 `v = outcome_a`。
-- B 的样本：B 在内部把 `player_a/player_b` 临时交换，所以状态是**B 自己视角**，结果取反 `v = -outcome_a`。
+### 1.2 单局采样
 
-→ 数据量翻倍、消除先手偏置，且每个决策**只搜索一次**（旧实现 A 侧重复搜了两遍）。
+`collect_rl_samples` 中双方都由 `MCTSAgent` 控制，并共享当前 `best_model`：
 
-### 1.4 三元组与维度
-最终每个样本是 `(state, π, z)`：
+1. 每次决策先用 `encode_battle_state` 以本方视角编码局面。
+2. 运行 `mcts_search`，得到 17 维访问分布 `π`。
+3. 用 `get_valid_actions` 生成 17 维合法动作 mask。
+4. 将 `(state_dict, π, mask)` 记入当前 agent 的 `history`。
+5. 按温度 `T` 从 `π` 采样实际动作。
 
-| 张量 | 形状 | 含义 |
-|---|---|---|
-| `X` | `(N, 446)` | 局面向量 |
-| `P` | `(N, 10)` | MCTS 访问分布（策略目标） |
-| `v` | `(N,)` | 终局结果 `z ∈ {+1, 0, -1}`（本方视角：赢/平/输） |
+一局结束后，A 侧样本使用 `outcome_a`，B 侧样本使用 `-outcome_a`。这样一局同时产出双方视角样本，
+数据量翻倍，也减少先后手偏置。
 
-#### 446 维状态构成（`encode.py`）
+### 1.3 训练样本形状
+
+当前样本不是旧版扁平 446 维向量，而是实体化 dict：
+
+| 字段 | 形状 | 含义 |
+|---|---:|---|
+| `sprite_stats` | `(12, 7)` | 双方 12 个精灵槽的 HP、面板六维 |
+| `sprite_elements` | `(12, 2)` | 精灵双属性 ID，`0` 为 PAD |
+| `sprite_states` | `(12, 105)` | 能量、异常、buff、标记和场下技能摘要 |
+| `skill_stats` | `(10, 2)` | 当前己方技能槽的威力和能耗 |
+| `skill_elements` | `(10, 2)` | 技能属性 ID |
+| `skill_states` | `(10, 9)` | 封印、冷却、类型 one-hot、连击、传动等 |
+| `global_stats` | `(15,)` | 回合、印记、魔力、道具等全局数值 |
+| `global_elements` | `(1,)` | 天气 ID |
+| `ast_tokens` | `(384,)` | 技能/特性效果 AST token ID 序列 |
+| `ast_values` | `(384,)` | AST token 对应数值 |
+| `P` | `(N, 17)` | MCTS 策略目标 |
+| `M` | `(N, 17)` | 合法动作 mask |
+| `v` | `(N,)` | 本方视角终局价值，范围 `[-1, 1]` |
+
+### 1.4 动作空间
+
+`core/mcts.py::NUM_ACTIONS = 17`：
+
 ```
-全局 56  +  己方场上 115  +  己方板凳 80  +  对方场上 115  +  对方板凳 80  = 446
+0-9   → 技能槽 0-9
+10-14 → 换到板凳槽 0-4
+15    → 聚能
+16    → 使用道具
 ```
-- **全局 56**：回合(2)、天气(3)+剩余(1)、双方印记(7正+6负)×2、魔力(2)、双方道具(6)×2、双方奉献(5)×2。
-- **场上精灵 115**：本体 51（HP/能量/蓄力/修正/速度/元素 one-hot 18/异常 7/buff 10/先制/锁换…）+ 技能 4×16。
-- **板凳精灵 16/只 ×5 = 80**：HP/能量/克制关系/最强技能威力/可用技能数/异常/buff/特性时机等。
-- 约定：空槽位→全 0；不完全信息→ -1（自我博弈时全可见，故恒为 0/正常值）。
 
-#### 17 维动作空间（`mcts.py`）
-```
-0-9 → 技能槽 0-9      10-14 → 换宠到板凳 0-4      15 → 聚能      16 → 使用道具
-```
-`get_valid_actions` 会生成合法性 mask（冷却/封印/能量不足/无板凳/锁换/道具耗尽 → 屏蔽）。
+换宠使用固定板凳槽位映射：力竭精灵仍占槽但 mask 为 0，避免“输入槽位 N”和“动作 10+N”
+在不同状态下指向不同精灵。
 
 ---
 
-## 2. 用什么方法训练
+## 2. 模型结构
 
-### 2.1 网络结构（`model.py::BattleNet`）
-共享主干（MLP）+ **双头**：
-
-```
-输入(446) → [Linear→ReLU]×len(hidden) (默认 256,128) → 主干特征
-                              ├─ value_head : Linear→Tanh → v ∈ [-1, 1]
-                              └─ policy_head: Linear(→17)  → 动作 logits
-```
-- `forward_with_mask` 会把非法动作 logit 置 `-1e9` 再 softmax，保证只在合法动作上输出概率。
-- 默认参数量很小（~15万级），CPU 也能跑。
-
-### 2.2 损失函数（`train_rl`）
-对每个 batch：
+`EntityBottleneckNet` 采用实体瓶颈 + AST Transformer + 残差主干：
 
 ```
-value_loss  = MSE(v_pred, z)                          # 价值头：预测终局胜负
-policy_loss = - Σ_a  π_a · log_softmax(logits)_a       # 策略头：模仿 MCTS 分布（交叉熵）
-loss        = value_loss + policy_loss                 # 等权相加
+sprite entities ─┐
+skill entities  ─┼─ bottleneck ─ cross attention ─ flatten ┐
+global features ─┘                                          │
+AST tokens/values ─ token emb + value proj + Transformer ───┤
+                                                            ▼
+                                                     residual trunk
+                                                            │
+                                  ┌─────────────────────────┴─────────────────────────┐
+                                  ▼                                                   ▼
+                             value_head                                           policy heads
+                             tanh [-1,1]                 skill(10) + switch(5) + gather(1) + item(1)
 ```
-- 优化器：**Adam**，`lr=1e-3`，`weight_decay=1e-4`（L2 正则，抑制过拟合）。
-- 训练/验证按 `val_split=0.1` 切分；小数据集有保护（至少 1 个验证样本）。
 
-> 直觉：**value 头**学"这个局面我方赢面多大"，**policy 头**学"这个局面 MCTS 觉得该走哪"。
-> 网络变准 → MCTS 用它做先验和叶子评估更准 → 产出更强的 `π` 和更可信的 `z` → 网络又更准。
+关键点：
 
-### 2.3 MCTS 把"直觉"变"深思"（`mcts.py::mcts_search`）
-每步决策跑 `num_simulations` 次模拟，每次：
-1. **Selection**：沿 PUCT 最大的子节点下行
+- 原始数值交给模型内 `Log1pNorm` 归一化。
+- 属性和天气用 embedding，双属性通过 sum pooling 合成。
+- 己方 6 个精灵实体和对方 6 个精灵实体可做 mutual cross attention。
+- AST token 表示技能/特性效果结构，能让模型看到 JSON 效果的结构信息。
+- 策略头拆成四个子头，最后拼成 17 维 logits。
+- `forward_with_mask` 会把非法动作 logits 置为极小值，再 softmax 并乘 mask。
+
+---
+
+## 3. MCTS 如何使用网络
+
+每步决策运行 `num_simulations` 次模拟：
+
+1. **Selection**：按 PUCT 选择子节点。
    ```
-   score(a) = Q(a) + c_puct · P(a) · √N(parent) / (1 + N(a))      # c_puct=2.0
+   score(a) = Q(a) + c_puct * P(a) * sqrt(N(parent)) / (1 + N(a))
    ```
-   - `Q(a)`=该动作子树平均价值，`P(a)`=网络策略先验，`N`=访问次数。
-2. 每下行一层 = 推进一整回合（`_step_battle`）：**我方按选中动作**，**对手用 `NetworkPolicyAgent`（当前网络策略头，无搜索）**采样动作。
-3. **Expansion & Evaluation**：到叶子用网络估值 `value`；若已终局则用真实结果 ±1/0。
-4. **Backprop**：把叶子价值回传路径上所有节点（价值**始终从我方视角**，因对手被建模为固定策略，无需 negamax 翻号）。
+2. **Step**：我方执行当前树边动作，对手由 `NetworkPolicyAgent` 或外部 agent 选择动作。
+3. **Expansion/Evaluation**：叶节点用 `TorchEvaluator` 或队列 evaluator 调模型估值。
+4. **Backprop**：价值始终按当前搜索方视角回传。
 
-根节点加 **Dirichlet 噪声**（`α=0.3`，强度 `root_noise=0.25`）保证探索；
-最终输出 `π_a ∝ N(a)`（访问次数归一化）。
+根节点自我博弈时可加 Dirichlet 噪声（默认 `--root-noise 0.25`），评估和实战建议使用
+`root_noise=0.0`。`--leaf-batch-size` 控制叶节点批量评估大小，默认走批处理路径以降低模型
+forward 调用开销。
 
-> **真自我博弈的关键**：搜索内对手是**当前网络**而非规则 AI（`RuleAgent`）。
-> `NetworkPolicyAgent` 是"槽位驱动"的——永远为 `player_b` 决策、不持有会因状态回滚而失效的引用，
-> 因此对 A 侧、B 侧（已交换）的搜索都通用且正确。
-
----
-
-## 3. AI 如何自我强化（迭代循环，`main()`）
-
-每一轮 `iteration` 做四件事：
-
-1. **自我博弈产数据**：用 `best_model`（当前最强）跑 `--battles` 局，得到 `(X,P,v)`。
-   - 温度退火：`T = temperature × 0.9^(iter-1)`，前期多探索、后期更确定。
-2. **经验回放缓冲**：把本轮数据 `append` 进 `deque(maxlen=--buffer)`，
-   合并**最近 N 轮**数据一起训练 → 稳定、不过度依赖单轮噪声。
-3. **训练候选**：在 `model`（候选，初始=best 的副本）上用合并数据 `train_rl`。
-4. **门控评估 + 晋升/回滚**（见第 4 节）：
-   - 候选 vs best 对打，胜率 ≥ `--gate` → **晋升**（`best ← 候选`，存 `*_best.pt`）。
-   - 否则 **回滚**（`候选 ← best`），保证**单调不退化**。
-
-数据由 `best_model` 产生、训练作用于 `候选 model`，这正是 AlphaZero 的标准做法。
-最终保存的 `--output` 是**最优模型**。
+`NetworkPolicyAgent` 是槽位驱动的轻量对手：它始终为传入 battle 的 `player_b` 决策，
+因此 A 侧搜索和 B 侧交换视角后的搜索都可复用同一逻辑。
 
 ---
 
-## 4. 如何评估 AI 能力
+## 4. 训练循环
 
-### 4.1 门控评估（`evaluate`，训练内置）
-- **候选 vs 最优**对打 `--eval-games` 局，每步 `--eval-sims` 次 MCTS。
-- **贪心**（`temperature=0`）、**无探索噪声**（`root_noise=0`）——评估要"发挥真实水平"。
-- **交替先后手**：偶数局候选执 A、奇数局执 B，消除先后手偏置。
-- 胜率 = `(胜 + 0.5×平) / 局数`；`≥ gate(默认0.55)` 才晋升。
+每轮 `iteration`：
 
-> 这是**相对评估**（跟自己上一版比）。胜率 50% 表示没进步，>55% 表示确有提升。
+1. 用 `best_model` 自我博弈，得到 `X, P, M, v, reason_counts`。
+2. 将样本写入 `DictReplayBuffer`。容量约为 `buffer * battles * (max_turns // 6)`，最低 10000。
+3. 用回放池随机采样 batch 训练候选模型。
+4. 候选和当前最优模型门控对打。
+5. 胜率达到 `--gate` 则保存并晋升，否则候选回滚。
+6. 每轮保存 `model_rl_iterK.pt`，最终保存 `model_rl.pt`。
 
-### 4.2 测试（`test_selfplay.py`）
-- `test_rollback_determinism`：同一快照重建并以相同动作重放两次，结果必须**完全一致**
-  —— 这是 MCTS 可信的前提（确定性引擎 + 序列化无损）。
-- `test_network_policy_agent_valid_action`：对手 agent 产出合法动作。
-- `test_collect_rl_dual_perspective`：双视角采样、形状(446/10)、标签 ∈ {-1,0,1}。
-- `test_advise_single_smoke` / `test_pimc_advise_smoke`：建议管线可跑通。
+训练损失：
 
----
+```
+value_loss  = MSE(value_pred, outcome)
+policy_loss = -sum(policy_target * log(masked_policy_pred))
+loss        = value_loss + policy_loss
+```
 
-## 5. 关键指标一览
-
-| 指标 | 出处 | 含义 / 怎么看 |
-|---|---|---|
-| `train_v_loss` / `val_v_loss` | `train_rl` | 价值头 MSE，应随训练**下降**；val 明显高于 train = 过拟合 |
-| `train_p_loss` / `val_p_loss` | `train_rl` | 策略头交叉熵，越低说明越能模仿 MCTS |
-| `val_acc` | `train_rl` | 价值**符号**预测准确率（赢/输方向是否判对），是直观的能力代理 |
-| **候选胜率** | `evaluate` | 核心指标；>55% 晋升，长期停在 ~50% 说明触顶或学不动 |
-| 样本/秒 | 自动日志 / `collect_rl_samples` | 吞吐，决定一轮要多久（CPU 上 sims 越大越慢） |
-| 用时占比 | 自动日志 | 每轮拆分 `selfplay/train/eval/checkpoint/other`，用于判断优化方向 |
-| 结果分布（赢/输/平） | 每轮打印 | 平局过多 → 可能频繁打满 `max_turns`，需排查 |
-
-训练默认会在 `backend/engine/ai/log/` 写 3 类日志：
-
-- `run_<时间戳>.log`：完整控制台输出。
-- `run_<时间戳>.jsonl`：结构化指标（每轮一行），含平局率、门控胜率、loss、用时秒数和用时占比。
-- `run_<时间戳>_summary.txt`：训练结束汇总表，包含指标表和“用时占比”表。
-
-可用 `--log-dir` 改日志目录，或用 `--no-log` 关闭自动日志。
+优化器是 Adam，默认 `lr=1e-3`、`weight_decay=1e-4`，学习率用
+`CosineAnnealingLR` 跨全部 iteration 衰减。
 
 ---
 
-## 6. 奖励是怎么定义的
+## 5. 终局价值和打满回合裁决
 
-这是 **AlphaZero 式稀疏终局奖励**，不是逐步 reward shaping：
+`core/outcome.py::battle_outcome_a` 返回 `(outcome_a, end_reason)`：
 
-- **唯一奖励来自对局结果**：本方赢 `z=+1`、输 `z=-1`、平 `z=0`。
-- **一局内所有状态共享同一个 `z`**（无折扣，γ=1），作为 value 头的回归目标。
-- **没有任何中间奖励**（不奖励造成伤害、不惩罚掉血）——避免人为偏置，让网络自己发现
-  "什么局面更可能赢"。
-- 策略目标不是奖励，而是 **MCTS 访问分布 `π`**（搜索蒸馏）。
+- A 正常胜：`+1`，`decisive_a`
+- B 正常胜：`-1`，`decisive_b`
+- 未正常分胜负：按存活数、队伍 HP 比例、魔力、在场能量计算局面分
+- 分差小于 `--draw-margin`：记平局 `0`
+- 分差达到阈值：按局面领先方给 `+1/-1`
 
-> 含义：value 头本质在做"给定局面，预测最终胜负期望"的回归；
-> 长期胜负信号通过大量自我博弈反向塑造出对局面的价值判断。
+可选参数：
+
+- `--gamma < 1`：胜利价值随回合数衰减，鼓励速胜。
+- `--tanh-k > 0`：非决胜对局用 `tanh(k * margin)` 产生连续价值，替代硬阈值。
+
+训练日志会输出 `reason_counts`，用于判断是正常击杀、打满回合裁决、僵局还是 timeout。
+timeout 对局不会进入训练样本，因为截断局面的价值标签不可靠。
 
 ---
 
-## 7. 训练指令
+## 6. 评估方式
 
-### 7.1 完整参数（`python -m backend.engine.ai.train -h`）
+### 6.1 训练内门控
+
+`evaluate` / `evaluate_parallel` 比较候选模型和 best 模型：
+
+- 偶数局候选执 A，奇数局候选执 B。
+- 评估时温度为 0，根节点无噪声。
+- 得分为 `(胜 + 0.5 * 平) / 局数`。
+- `--eval-workers 0` 表示自动跟随 `--workers`。
+- 并行评估使用 `BatchedModelInferenceServer`，请求中区分 `candidate` 和 `best`。
+
+### 6.2 固定种子 checkpoint 评估
+
+`evaluate_checkpoints.py` 用固定 seed 序列横向比较 checkpoint：
+
+```bash
+python -m backend.engine.ai.evaluate_checkpoints \
+  --checkpoint-dir checkpoints/formal_v1 \
+  --opponent rule \
+  --games 20 \
+  --sims 32 \
+  --device cuda \
+  --output backend/engine/ai/log/formal_v1/benchmark_rule.json
+```
+
+也可以比较某个 checkpoint 对参考模型：
+
+```bash
+python -m backend.engine.ai.evaluate_checkpoints \
+  --checkpoints checkpoints/formal_v1/model_rl_iter13.pt checkpoints/formal_v1/model_rl_best.pt \
+  --reference checkpoints/formal_v1/model_rl_iter1.pt \
+  --opponent model
+```
+
+输出包含 score、95% 置信区间、W/D/L、平均回合数、终局原因统计和每局摘要。
+
+### 6.3 热路径基准
+
+```bash
+python -m backend.engine.ai.benchmark_mcts \
+  --device cuda \
+  --simulations 16 \
+  --mcts-repeats 3 \
+  --leaf-batch-size 16
+```
+
+该脚本分别统计编码、模型推理和 MCTS simulation 吞吐，适合验证优化是否真的改善了瓶颈。
+
+---
+
+## 7. 训练命令
+
+### 7.1 常用参数
 
 | 参数 | 默认 | 说明 |
-|---|---|---|
-| `--mode` | `rl` | `rl` 自我博弈 / `supervised` 用 RuleAgent 监督价值头 |
+|---|---:|---|
 | `--iterations` | `5` | RL 迭代轮数 |
 | `--battles` | `200` | 每轮自我博弈局数 |
 | `--sims` | `200` | 自我博弈每步 MCTS 模拟次数 |
 | `--epochs` | `20` | 每轮训练 epoch 数 |
-| `--batch-size` | `256` | |
-| `--lr` | `1e-3` | 学习率 |
-| `--hidden` | `256,128` | 主干隐藏层 |
-| `--dropout` | `0.0` | |
-| `--weight-decay` | `1e-4` | L2 正则 |
-| `--buffer` | `5` | 经验回放保留最近 N 轮数据 |
-| `--eval-games` | `20` | 门控对局数，`0`=关闭门控 |
-| `--eval-sims` | `100` | 门控每步模拟次数 |
-| `--eval-workers` | `1` | 门控评估并行 worker 数（`1`=串行） |
-| `--gate` | `0.55` | 晋升胜率阈值 |
-| `--root-noise` | `0.25` | 自我博弈根节点 Dirichlet 噪声 |
-| `--temperature` | `1.0` | 自我博弈采样温度（随迭代退火） |
-| `--output` | `checkpoints/model_rl.pt` | 最终（最优）模型路径；另存 `*_best.pt` 与每轮 `*_iterK.pt` |
-| `--resume` | `""` | 从已有 `.pt` 继续 |
+| `--batch-size` | `256` | 训练 batch size |
+| `--lr` | `1e-3` | 初始学习率 |
+| `--hidden` | `256,128` | 当前只用首项作为 `trunk_dim` |
+| `--dropout` | `0.0` | dropout |
+| `--weight-decay` | `1e-4` | Adam L2 正则 |
+| `--buffer` | `5` | 回放池容量估算乘数 |
+| `--resume` | `""` | 从已有 checkpoint 继续训练 |
+| `--base-model` | `""` | 无 `--resume` 时加载基座模型 |
+| `--output` | `checkpoints/model_rl.pt` | 兼容参数；当前保存路径实际为 `checkpoints/` 或 `checkpoints/<run-name>/` |
 | `--device` | 自动 | `cuda` / `cpu` |
-| `--workers` | `1` | 自我博弈并行 worker 数（`1`=串行） |
-| `--batched-inference` | 关 | 多 worker 时主进程 CUDA 批量推理 |
+| `--workers` | `1` | 自我博弈 worker 数 |
+| `--batched-inference` | 关 | 多 worker 时由主进程合并 CUDA 推理 |
 | `--inference-batch-size` | `128` | 批量推理最大 batch |
 | `--inference-timeout-ms` | `5` | 攒 batch 等待毫秒 |
-| `--progress-every` | `10` | 每 N 局打印自我博弈进度 |
-| `--max-turns` | `100` | 自我博弈单局回合上限（默认低于旧版 150，减少打满回合） |
+| `--leaf-batch-size` | `16` | MCTS 叶节点批量评估大小 |
+| `--worker-stall-timeout` | `600` | 并行 worker 长时间无完成对局时终止剩余 worker |
+| `--max-turns` | `60` | 自我博弈单局回合上限 |
 | `--eval-max-turns` | `150` | 门控评估单局回合上限 |
-| `--draw-margin` | `0.15` | 打满回合时，归一化局面分差低于此值才记 `z=0` |
+| `--draw-margin` | `0.15` | 打满回合局面分差小于该值记平 |
+| `--gamma` | `1.0` | 回合衰减因子 |
+| `--tanh-k` | `0.0` | 非决胜对局软裁决系数 |
+| `--mirror-frac` | `0.0` | 前 N 比例迭代使用镜像阵容 |
+| `--eval-games` | `20` | 门控对局数，`0` 关闭门控 |
+| `--eval-sims` | `100` | 门控每步 MCTS 模拟次数 |
+| `--eval-workers` | `0` | `0` 表示跟随 `--workers` |
+| `--gate` | `0.55` | 晋升阈值 |
+| `--log-dir` | `backend/engine/ai/log` | 日志目录 |
+| `--run-name` | `""` | 实验名；同时影响日志和 checkpoint 子目录 |
+| `--no-log` | 关 | 关闭自动日志 |
 
-**终局裁决（减少平局噪声）**：除正常击杀外，若单局打到 `--max-turns` / `--eval-max-turns` 仍未分胜负，会按双方存活数、队伍 HP 比例、魔力与在场能量计算局面分；分差 ≥ `--draw-margin` 则判胜负并写入样本 `z=±1`，否则记平局。训练日志会打印 `终局原因(局)`（如 `max_turns_a`、`decisive_b`）。
+### 7.2 冒烟自测
 
-### 7.2 常用配方
-
-冒烟自测（几分钟，确认管线能跑通）：
 ```bash
-python -m backend.engine.ai.train --iterations 1 --battles 4 --sims 16 --epochs 5 --eval-games 4 --eval-sims 16
+python -m backend.engine.ai.train \
+  --iterations 1 \
+  --battles 4 \
+  --sims 16 \
+  --epochs 1 \
+  --eval-games 2 \
+  --eval-sims 8
 ```
 
-并行自我博弈冒烟（2 worker + 批量推理，确认多进程能跑通）：
+### 7.3 并行 + CUDA 批量推理
+
 ```powershell
-python -m backend.engine.ai.train --device cuda --iterations 1 --battles 4 --sims 4 `
-  --epochs 1 --eval-games 0 --workers 2 --batched-inference `
+python -m backend.engine.ai.train --device cuda `
+  --iterations 1 --battles 8 --sims 16 `
+  --epochs 1 --eval-games 0 `
+  --workers 2 --batched-inference `
   --inference-batch-size 64 --progress-every 1
 ```
 
-**5060 Ti 16G 推荐并行长跑**（多核 CPU + 单卡批量推理；自我博弈和门控评估都可并行）：
+Windows 使用 multiprocessing `spawn`，建议始终通过 `python -m backend.engine.ai.train`
+启动，不要直接执行脚本文件。
+
+### 7.4 正式训练示例
+
 ```powershell
 python -m backend.engine.ai.train --device cuda `
+  --run-name formal_v1 `
   --iterations 50 --battles 40 --sims 64 `
   --epochs 80 --batch-size 512 --hidden 512,256 `
-  --buffer 8 --eval-games 16 --eval-sims 64 --eval-workers 8 --gate 0.55 `
-  --workers 8 --batched-inference `
+  --buffer 8 --eval-games 16 --eval-sims 64 --gate 0.55 `
+  --workers 8 --eval-workers 8 --batched-inference `
   --inference-batch-size 128 --inference-timeout-ms 5 `
-  --progress-every 1 `
-  --output checkpoints/model_rl.pt
+  --leaf-batch-size 16 `
+  --progress-every 1
 ```
-
-> **并行原理**：`N` 个子进程各自跑局级 self-play 或门控评估（吃满 CPU），所有 `forward_with_mask` 经队列送到主进程合并 batch 在 CUDA 上执行。自我博弈使用单模型 `BatchedInferenceServer`；门控评估使用双模型 `BatchedModelInferenceServer`，请求里区分 `candidate` / `best`。`--workers` 和 `--eval-workers` 建议设为物理核心数附近（如 6~10）；Windows 使用 `spawn`，请始终通过 `python -m backend.engine.ai.train` 启动。
-
-单 GPU / 较强 CPU 的正式训练（串行，兼容旧行为）：
-```bash
-python -m backend.engine.ai.train --iterations 30 --battles 60 --sims 200 \
-  --epochs 15 --buffer 5 --eval-games 20 --eval-sims 100 --gate 0.55 \
-  --output checkpoints/model_rl.pt
-```
-
-冷启动（先用规则 AI 监督价值头，再切 RL，收敛更快）：
-```bash
-# 1) 监督预热（只训练 BattleValueNet 价值头）
-python -m backend.engine.ai.train --mode supervised --battles 500 --epochs 30 \
-  --output checkpoints/value_pretrain.pt
-# 2) 正式 RL（BattleNet 是双头网络，价值头权重不能直接 load，故 RL 从头/或 --resume 双头权重）
-python -m backend.engine.ai.train --iterations 30 --battles 60 --sims 200
-```
-> 注意：监督模式产出的是**单头** `BattleValueNet`，与 RL 的**双头** `BattleNet` 结构不同，
-> 不能直接 `--resume` 互通；监督模式主要用于验证"价值是否可学"这一前提。
 
 继续训练：
+
 ```bash
-python -m backend.engine.ai.train --resume checkpoints/model_rl_best.pt --iterations 20
+python -m backend.engine.ai.train \
+  --resume checkpoints/formal_v1/model_rl_best.pt \
+  --run-name formal_v1_cont \
+  --iterations 20
 ```
 
-### 7.3 部署 / 实战建议（`advise.py`）
+---
+
+## 8. 部署和实战建议
+
+完全信息局面：
+
 ```python
-from backend.engine.ai.model import BattleNet
-from backend.engine.ai.advise import advise_single, advise, make_determinizations
+from backend.engine.ai import ModularBattleNet
+from backend.engine.ai.service.advisor import advise_single
 
-model = BattleNet.load("checkpoints/model_rl_best.pt")
-
-# 完全信息（复盘）：
-adv = advise_single(battle, model, factory, num_simulations=400)
-print(adv.summary())          # 估计胜率 + Top3 动作
-
-# 实战（对手板凳未知）→ PIMC：
-dets = make_determinizations(battle, factory, bench_pool=对手可能板凳列表, k=20)
-adv = advise(dets, model, factory, num_simulations=200)
-print(adv.best_action, adv.summary())
+model = ModularBattleNet.load("checkpoints/model_rl_best.pt", device="cuda")
+advice = advise_single(battle, model, factory, num_simulations=400, device="cuda")
+print(advice.summary())
 ```
-PIMC 思路：采样 K 套对手隐藏配置 → 每套跑一次 MCTS（无噪声）→ 访问分布加权平均。
+
+对手板凳未知时，用 PIMC 采样多套决定化：
+
+```python
+from backend.engine.ai.service.advisor import advise, make_determinizations
+
+dets = make_determinizations(battle, factory, bench_pool=opponent_pool, k=20)
+advice = advise(dets, model, factory, num_simulations=200, device="cuda")
+print(advice.best_action, advice.summary())
+```
+
+前端 AI 对手可通过 `backend.engine.ai.service.agent.NeuralMCTSAgent` 接入。
+默认 checkpoint 路径由 service agent 内部加载逻辑控制，也可用 `set_checkpoint` 切换。
 
 ---
 
-## 8. 如何判断"这套训练代码是否有效"
+## 9. 如何判断训练是否有效
 
-按下面顺序逐条确认，从"能不能跑"到"是不是真的在变强"：
+### 9.1 正确性前提
 
-### 8.1 正确性前提（必须先过）
 ```bash
-pytest backend/engine/ai/test_selfplay.py -x --tb=short
+pytest backend/engine/ai/tests -x --tb=short
 ```
-- 回滚一致性测试通过 → MCTS 的状态快照/恢复可信，搜索结果有意义。
-- 若回滚测试失败，**后面一切胜率都不可信**，先修引擎确定性/序列化。
 
-### 8.2 价值是否可学（监督模式做对照）
-先跑 `--mode supervised`：如果连"用规则 AI 数据预测胜负"的 `val_acc` 都上不去（比如 < 0.6），
-说明 **446 维状态信息量不足或编码有 bug**，RL 也难成功。这是最便宜的可学性体检。
+重点关注：
 
-### 8.3 RL 是否在自我强化（核心）
-看每轮的 **候选胜率**：
-- 健康：早期常 >55% 触发晋升，随版本变强逐渐回落到 ~50%（说明对手也在变强）。
-- 异常：长期 <50% 且频繁回滚 → 学习率/数据量/sims 配置不当，或奖励信号太稀疏。
-- 同时看 `val_v_loss` 是否下降、`val_acc` 是否上升。
+- 编码输出形状是否和模型一致。
+- `ModularBattleNet.NUM_ACTIONS` 是否等于 MCTS 的 `NUM_ACTIONS`。
+- MCTS save/restore 是否确定。
+- batch evaluator 和单条 evaluator 输出是否一致。
+- 并行 self-play / 并行 evaluate 是否能跑通。
+- PIMC 和 `NeuralMCTSAgent` 是否能烟测通过。
 
-### 8.4 绝对水平基线（建议补充）
-门控是**相对**评估（跟自己比），可能"菜鸡互啄也在涨胜率"。建议加一个**绝对基线**：
-让训练好的模型 vs `RuleAgent` 打 N 局看胜率（规则 AI 水平固定，是很好的标尺）。
-可参照 `evaluate` 写一个 `MCTSAgent` vs `RuleAgent` 的对打脚本——**当前仓库尚未内置该基线，
-是评估有效性时值得优先补的一项**。
+### 9.2 训练中指标
 
-### 8.5 已知局限 / 影响有效性的因素（评估时要心里有数）
-- **搜索内对手是"原始策略头"而非完整搜索**：是 PIMC/AlphaZero 在同时博弈下的常见近似，
-  对手建模偏弱时，搜索可能高估己方。
-- **单视角价值**：价值始终从我方视角、对手按固定策略推进，不是严格 minimax；同时出招的博弈
-  本身存在不可消除的对手不确定性。
-- **平局/打满回合**：`max_turns=150` 的对局记为平（`z=0`），过多平局会稀释训练信号。
-- **队伍随机**：泛化好，但也让"是否变强"更难一眼看出（建议固定评估阵容集做对照）。
-- **吞吐**：纯 CPU 下 `sims` 大时很慢；每步要重建 battle 做回滚，是主要开销。可用 `--workers` + `--batched-inference` 并行加速自我博弈阶段。
-- **无持久化指标**：目前只打印 stdout，建议自行落盘 loss/胜率曲线以便横向对比。
+| 指标 | 含义 |
+|---|---|
+| `train_v_loss` / `val_v_loss` | 价值头回归误差 |
+| `train_p_loss` / `val_p_loss` | 策略头模仿 MCTS 分布的交叉熵 |
+| `val_acc` | 价值符号预测准确率 |
+| `win_rate` | 候选 vs best 的门控得分 |
+| `draw_ratio` | 平局样本比例，过高会稀释价值信号 |
+| `reason_counts` | 正常终局、打满裁决、僵局、timeout 的来源分布 |
+| `samples_per_sec` | 自我博弈样本吞吐 |
+| `phase_percent` | selfplay/train/eval/checkpoint/other 用时占比 |
+
+### 9.3 绝对基线
+
+门控只说明“候选是否强于上一版 best”，不说明绝对水平。训练一段时间后应额外跑：
+
+```bash
+python -m backend.engine.ai.evaluate_checkpoints \
+  --checkpoints checkpoints/formal_v1/model_rl_best.pt \
+  --opponent rule \
+  --games 50 \
+  --sims 64 \
+  --device cuda
+```
+
+如果对 `RuleAgent` 长期没有优势，优先检查样本质量、平局比例、timeout 比例、动作 mask 和
+checkpoint 是否来自同一动作空间。
+
+### 9.4 已知局限
+
+- 搜索内默认对手是策略头，不是完整 MCTS，对手建模仍是近似。
+- 同时出招和隐藏信息使严格 minimax 不适用，PIMC 只是实战近似。
+- `max_turns` 过低会增加局面裁决样本，过高会拖慢 self-play。
+- 队伍随机提升泛化，但固定阵容上的进步需要单独评估。
+- CPU 下 MCTS 仍主要受 battle copy/restore 和模型 forward 开销影响。
 
 ---
 
-## 9. 名词速查
+## 10. 名词速查
 
 | 名词 | 含义 |
 |---|---|
-| 自我博弈 self-play | AI 用同一网络左右手互搏产生训练数据 |
-| MCTS | 蒙特卡洛树搜索；用网络当先验/估值，多次模拟后按访问次数给出动作分布 |
-| PUCT | MCTS 选择公式，平衡利用 `Q` 与探索 `c_puct·P·√N/(1+N)` |
-| 策略目标 π | MCTS 访问分布，策略头的监督标签 |
-| 价值目标 z | 终局结果 ±1/0，价值头的回归标签 |
-| 门控 gating | 候选须对打胜率 ≥ 阈值才替换最优模型，保证单调变强 |
-| 经验回放 buffer | 混合最近 N 轮数据训练，提升稳定性 |
-| PIMC | 完美信息蒙特卡洛；对未知信息多次"决定化"后求平均，用于实战部署 |
-```
+| self-play | 网络左右互搏生成训练数据 |
+| MCTS | 蒙特卡洛树搜索，用网络先验和估值扩展搜索 |
+| PUCT | MCTS 选择公式，平衡 Q 值与先验探索 |
+| policy target `π` | MCTS 访问分布，策略头监督目标 |
+| legal mask `M` | 合法动作 mask，保证训练和推理不选非法动作 |
+| value target `z` | 本方视角终局价值 |
+| gating | 候选模型达到阈值才晋升 |
+| replay buffer | 保存近期样本的循环经验池 |
+| PIMC | 对隐藏信息采样多套决定化后平均建议 |

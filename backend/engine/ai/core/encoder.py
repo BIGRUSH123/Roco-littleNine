@@ -277,22 +277,23 @@ def _fill_sprite_entity(
     # 3. hp_ratio
     s[2] = float(sprite.current_hp) / max(float(sprite.max_hp), 1.0)
     # 4. locked_turns / 3
-    s[3] = min(float(getattr(sprite, 'locked_turns', 0)) / 3.0, 1.0)
+    # 以下字段均为 Sprite 声明字段，在真实精灵上恒存在；直接属性访问
+    # 比 getattr 三参形式快（热路径每叶节点 ×12 实体）。
+    s[3] = min(float(sprite.locked_turns) / 3.0, 1.0)
     # 5. charging
     s[4] = 1.0 if effect_snapshot["charging"] else 0.0
     # 6. pending_return
-    s[5] = 1.0 if getattr(sprite, 'pending_return', False) else 0.0
+    s[5] = 1.0 if sprite.pending_return else 0.0
     # 7. first_action
-    s[6] = 1.0 if getattr(sprite, 'first_action', False) else 0.0
+    s[6] = 1.0 if sprite.first_action else 0.0
     # 8. extra_skill_use
-    s[7] = 1.0 if getattr(sprite, 'extra_skill_use', False) else 0.0
+    s[7] = 1.0 if sprite.extra_skill_use else 0.0
     # 9. interrupted
-    s[8] = 1.0 if getattr(sprite, 'interrupted', False) else 0.0
+    s[8] = 1.0 if sprite.interrupted else 0.0
     # 10. entry_age / 20
-    entry_turn = getattr(sprite, 'entry_turn', 0)
-    s[9] = min(float(battle.turn - entry_turn) / 20.0, 1.0)
+    s[9] = min(float(battle.turn - sprite.entry_turn) / 20.0, 1.0)
     # 11. trait_suppressed
-    s[10] = 1.0 if getattr(sprite, '_trait_suppressed', False) else 0.0
+    s[10] = 1.0 if sprite._trait_suppressed else 0.0
 
     # 12-18. abnormal stacks (7)
     abnormal_stacks = effect_snapshot["abnormals"]

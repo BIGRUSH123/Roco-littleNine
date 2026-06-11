@@ -176,11 +176,11 @@ class BattleMechanicsMixin:
 
     def _check_faint_interrupt(self, team: str, events: list[str]) -> None:
         """检查力竭并立即强制换宠。扣减魔力，无存活则判负。"""
-        mcts_sim = getattr(self, '_mcts_sim', False)
         player = self.get_player(team)
         s = player.active
         if not s.is_fainted:
             return
+        mcts_sim = getattr(self, '_mcts_sim', False)
 
         # 力竭发生后 _make_ctx 的 fainted 计数已过期，清缓存使其重算
         self._invalidate_ctx_team_cache()

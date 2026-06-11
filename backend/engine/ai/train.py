@@ -132,6 +132,7 @@ class MCTSAgent:
         device: str = "cpu",
         evaluator=None,
         max_turns: int = DEFAULT_SELFPLAY_MAX_TURNS,
+        draw_margin: float = DEFAULT_DRAW_MARGIN,
         gamma: float = 1.0,
         tanh_k: float = 0.0,
         leaf_batch_size: int = DEFAULT_MCTS_LEAF_BATCH_SIZE,
@@ -146,6 +147,7 @@ class MCTSAgent:
         self._record = record
         self._opp_greedy = opp_greedy
         self._max_turns = max_turns
+        self._draw_margin = draw_margin
         self._gamma = gamma
         self._tanh_k = tanh_k
         self._leaf_batch_size = leaf_batch_size
@@ -180,6 +182,7 @@ class MCTSAgent:
                 opp_greedy=self._opp_greedy,
                 evaluator=self._evaluator,
                 root_state=state,  # 复用已编码状态，省掉 mcts_search 内部二次编码
+                draw_margin=self._draw_margin,
                 gamma=self._gamma,
                 tanh_k=self._tanh_k,
                 leaf_batch_size=self._leaf_batch_size,
@@ -340,6 +343,7 @@ def collect_rl_samples(
             "A", p1, factory, opp_a, num_simulations,
             temperature, root_noise=root_noise, record=True,
             evaluator=evaluator, max_turns=max_turns,
+            draw_margin=draw_margin,
             gamma=gamma, tanh_k=tanh_k,
             leaf_batch_size=leaf_batch_size,
         )
@@ -347,6 +351,7 @@ def collect_rl_samples(
             "B", p2, factory, opp_b, num_simulations,
             temperature, root_noise=root_noise, record=True,
             evaluator=evaluator, max_turns=max_turns,
+            draw_margin=draw_margin,
             gamma=gamma, tanh_k=tanh_k,
             leaf_batch_size=leaf_batch_size,
         )
@@ -447,6 +452,7 @@ def _play_one_rl_battle(
         "A", p1, factory, opp_a, num_simulations,
         temperature, root_noise=root_noise, record=True,
         evaluator=evaluator, max_turns=max_turns,
+        draw_margin=draw_margin,
         gamma=gamma, tanh_k=tanh_k,
         leaf_batch_size=leaf_batch_size,
     )
@@ -454,6 +460,7 @@ def _play_one_rl_battle(
         "B", p2, factory, opp_b, num_simulations,
         temperature, root_noise=root_noise, record=True,
         evaluator=evaluator, max_turns=max_turns,
+        draw_margin=draw_margin,
         gamma=gamma, tanh_k=tanh_k,
         leaf_batch_size=leaf_batch_size,
     )
@@ -706,6 +713,10 @@ def collect_rl_samples_parallel(
 
 
 
+def _value_classes(values: torch.Tensor, draw_margin: float) -> torch.Tensor:
+    return (values > draw_margin).float() - (values < -draw_margin).float()
+
+
 def train_rl(
     model: ModularBattleNet,
     replay,
@@ -715,6 +726,7 @@ def train_rl(
     optimizer: torch.optim.Optimizer,
     scheduler: torch.optim.lr_scheduler.LRScheduler | None = None,
     val_split: float = 0.1,
+    draw_margin: float = DEFAULT_DRAW_MARGIN,
 ) -> list[dict]:
     """训练双头网络：value loss (MSE) + policy loss (cross-entropy)。
 
@@ -817,8 +829,8 @@ def train_rl(
                 # 按 draw_margin 三分类：+1=胜, 0=平, -1=负，与训练标签一致
                 val_flat = val_v.squeeze(1)
                 vv_flat = vv.squeeze(1)
-                pred = (val_flat > DEFAULT_DRAW_MARGIN).float() - (val_flat < -DEFAULT_DRAW_MARGIN).float()
-                true = (vv_flat > DEFAULT_DRAW_MARGIN).float() - (vv_flat < -DEFAULT_DRAW_MARGIN).float()
+                pred = _value_classes(val_flat, draw_margin)
+                true = _value_classes(vv_flat, draw_margin)
                 val_correct += (pred == true).float().sum().item()
         val_v_loss /= n_val
         val_p_loss /= n_val
@@ -922,12 +934,14 @@ def evaluate(
             "A", p1, factory, opp_a, num_simulations,
             temperature=0.0, root_noise=0.0, record=False,
             evaluator=eval_a, opp_greedy=True, max_turns=max_turns,
+            draw_margin=draw_margin,
             leaf_batch_size=leaf_batch_size,
         )
         agent_b = MCTSAgent(
             "B", p2, factory, opp_b, num_simulations,
             temperature=0.0, root_noise=0.0, record=False,
             evaluator=eval_b, opp_greedy=True, max_turns=max_turns,
+            draw_margin=draw_margin,
             leaf_batch_size=leaf_batch_size,
         )
 
@@ -990,12 +1004,14 @@ def _play_one_eval_game(
         "A", p1, factory, opp_a, num_simulations,
         temperature=0.0, root_noise=0.0, record=False,
         evaluator=eval_a, opp_greedy=True, max_turns=max_turns,
+        draw_margin=draw_margin,
         leaf_batch_size=leaf_batch_size,
     )
     agent_b = MCTSAgent(
         "B", p2, factory, opp_b, num_simulations,
         temperature=0.0, root_noise=0.0, record=False,
         evaluator=eval_b, opp_greedy=True, max_turns=max_turns,
+        draw_margin=draw_margin,
         leaf_batch_size=leaf_batch_size,
     )
 
@@ -1481,6 +1497,7 @@ def main():
         history = train_rl(
             model, replay, args.epochs, args.batch_size,
             device, optimizer=optimizer, scheduler=scheduler,
+            draw_margin=args.draw_margin,
         )
         train_sec = time.time() - t0
         _log(f"  完成: {train_sec:.1f}s")

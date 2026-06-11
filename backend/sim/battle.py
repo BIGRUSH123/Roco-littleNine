@@ -22,6 +22,7 @@ from .globals import GlobalEffects
 from .resolver import SkillResolver
 from .round_record import ActionRecord, RoundRecord
 from .round_record import _action_short as _rr_action_short
+from .pipeline import TurnPipeline
 from .traits import dispatch_entry, dispatch_leave
 from .traits.trait_engine import fire_hook_first
 
@@ -144,6 +145,57 @@ class Battle(BattleMechanicsMixin):
         sprite._charging = False
         sprite._charged_skill_ref = None
         sprite._charged_skill_index = -1
+
+    def skill_energy_cost(
+        self,
+        team: str,
+        user: "Sprite",
+        skill: BattleSkill,
+        skill_index: int | None = None,
+    ) -> int:
+        """Return the actual payable energy cost without mutating battle state."""
+        cost = skill.energy_cost
+
+        ec_mod = user._modifiers.get("energy_cost", 0)
+        if ec_mod:
+            cost += round(ec_mod)
+
+        ec_mult = user._modifiers.get("energy_cost_mult", 0)
+        if ec_mult:
+            cost = round(cost * (1.0 + ec_mult))
+
+        if skill_index is not None:
+            for offset in (-1, 1):
+                ni = skill_index + offset
+                if 0 <= ni < len(user.skills) and user.skills[ni].name == '轴承支撑':
+                    cost -= 1
+                    break
+
+        if hasattr(skill.base, 'element') and skill.base.element and self.globals.weather:
+            cost = round(cost * self.globals.weather_energy_mod(skill.base.element))
+
+        cost -= self.globals.mark_energy_mod(team)
+        return max(0, cost)
+
+    def can_pay_skill_energy_cost(
+        self,
+        team: str,
+        user: "Sprite",
+        skill: BattleSkill,
+        skill_index: int | None = None,
+    ) -> tuple[bool, int, int]:
+        """Return (can_pay, energy_cost, hp_cost) without mutating battle state."""
+        cost = self.skill_energy_cost(team, user, skill, skill_index)
+        if cost <= 0 or user.energy >= cost:
+            return True, cost, 0
+
+        blood_price = user._modifiers.get("blood_price", 0)
+        if blood_price <= 0:
+            return False, cost, 0
+
+        deficit = cost - user.energy
+        hp_cost = round(user.max_hp * blood_price * deficit)
+        return user.current_hp > hp_cost, cost, hp_cost
 
     @staticmethod
     def _charged_skill_index(sprite: "Sprite") -> int:
@@ -270,6 +322,7 @@ class Battle(BattleMechanicsMixin):
             "trait_sprite_sources": {
                 k: set(v) for k, v in vm.trait_loader._sprite_sources.items()
             },
+            "direct_mod_sprite_ids": set(getattr(vm.trait_loader, '_direct_mod_sprite_ids', set())),
         }
         # ── 日志截断：只保留当前回合之前的记录（MCTS 仿真会追加额外回合） ──
         log_len = len(self.log)
@@ -461,6 +514,9 @@ class Battle(BattleMechanicsMixin):
         self._vm_engine.trait_loader._sprite_sources = {
             k: set(v) for k, v in vs["trait_sprite_sources"].items()
         }
+        self._vm_engine.trait_loader._direct_mod_sprite_ids = set(
+            vs.get("direct_mod_sprite_ids", set())
+        )
         self._ctx_team_cache.clear()
 
     def __init__(
@@ -685,7 +741,9 @@ class Battle(BattleMechanicsMixin):
         fixed_action_b: Action | None = None,
     ) -> RoundRecord:
         self.turn += 1
-        self.save_snapshot()  # key = turn number AFTER increment, matches frontend
+        mcts_sim = getattr(self, '_mcts_sim', False)
+        if not mcts_sim:
+            self.save_snapshot()  # key = turn number AFTER increment, matches frontend
         self._agent_a = agent_a
         self._agent_b = agent_b
         # 新回合一并清空 Ctx 缓存（key 含 turn 号自动失效，但清掉优化内存）
@@ -725,7 +783,6 @@ class Battle(BattleMechanicsMixin):
 
         s_a = self.player_a.active
         s_b = self.player_b.active
-        mcts_sim = getattr(self, '_mcts_sim', False)
 
         if mcts_sim:
             rec = _HeadlessRoundRecord(self.turn)
@@ -839,7 +896,6 @@ class Battle(BattleMechanicsMixin):
                     for eff in activated:
                         events.append(f'{sprite.name} 延迟效果生效: {eff.name}')
 
-        from .pipeline import TurnPipeline
         events += TurnPipeline.execute_turn_start(self)
         return events
 
@@ -1252,29 +1308,7 @@ class Battle(BattleMechanicsMixin):
                 events.append(f'💥 {user.name} {bs.name} 迸发!')
 
         # ═══ Gate: 能量支付 ═══
-        cost = bs.energy_cost
-        # Energy cost modifier from VM pipeline (accumulated via ModifierInjection)
-        ec_mod = user._modifiers.get("energy_cost", 0)
-        if ec_mod:
-            cost += round(ec_mod)
-        # Energy cost multiplier from VM pipeline
-        ec_mult = user._modifiers.get("energy_cost_mult", 0)
-        if ec_mult:
-            cost = round(cost * (1.0 + ec_mult))
-        # 轴承支撑被动
-        si = action.skill_index
-        if si is not None:
-            for offset in (-1, 1):
-                ni = si + offset
-                if 0 <= ni < len(user.skills) and user.skills[ni].name == '轴承支撑':
-                    cost -= 1
-                    break
-        # Weather energy cost modifier
-        if hasattr(bs.base, 'element') and bs.base.element and self.globals.weather:
-            cost = round(cost * self.globals.weather_energy_mod(bs.base.element))
-        # 印记能耗减免
-        cost -= self.globals.mark_energy_mod(team)
-        cost = max(0, cost)
+        cost = self.skill_energy_cost(team, user, bs, action.skill_index)
         if cost > 0:
             if user.energy >= cost:
                 user.lose_energy(cost)

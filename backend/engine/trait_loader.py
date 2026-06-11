@@ -32,6 +32,7 @@ class TraitLoader:
         self._data_dir = Path(data_dir) if data_dir else Path(__file__).parent.parent.parent / "data" / "traits"
         # Track which observers belong to which sprite for cleanup
         self._sprite_sources: dict[int, set[str]] = {}  # sprite_id → {source_name}
+        self._direct_mod_sprite_ids: set[int] = set()
 
     # ── Loading ──
 
@@ -112,8 +113,10 @@ class TraitLoader:
         if direct_effects:
             self._apply_direct_mods(sprite, direct_effects)
             sprite._trait_direct_effects = direct_effects
+            self._direct_mod_sprite_ids.add(sprite_id)
         else:
             sprite._trait_direct_effects = None
+            self._direct_mod_sprite_ids.discard(sprite_id)
 
         self._sprite_sources[sprite_id] = sources
 
@@ -129,6 +132,7 @@ class TraitLoader:
         sprite_id = id(sprite)
         self.registry.unregister_by_owner(sprite_id, reason)
         self._sprite_sources.pop(sprite_id, None)
+        self._direct_mod_sprite_ids.discard(sprite_id)
         self._remove_direct_mods(sprite)
 
         # Clear EffectObjects matching this reason
@@ -138,7 +142,12 @@ class TraitLoader:
 
     def reapply_all_direct_mods(self, sprites: list, mark_mods: dict[int, int] | None = None):
         """Re-apply trait direct modifiers to all sprites (after _PER_TURN_KEYS cleanup)."""
+        if not self._direct_mod_sprite_ids:
+            return
         for sprite in sprites:
+            sprite_id = id(sprite)
+            if sprite_id not in self._direct_mod_sprite_ids:
+                continue
             effects = getattr(sprite, '_trait_direct_effects', None)
             if effects:
                 # Decrement ttl before re-applying; remove expired effects
@@ -154,6 +163,7 @@ class TraitLoader:
                     # Clean up display StatBuffEffect when modifier expires
                     self._remove_display_effect(sprite, e)
                 if not effects:
+                    self._direct_mod_sprite_ids.discard(sprite_id)
                     continue
                 mark_mod = (mark_mods or {}).get(id(sprite), 0)
                 self._apply_direct_mods(sprite, effects, mark_energy_mod=mark_mod)

@@ -3,7 +3,9 @@ from __future__ import annotations
 import random
 
 import numpy as np
+import torch
 
+import backend.engine.ai.core.mcts as mcts_module
 from backend.engine.ai.benchmark_mcts import _fixed_battle, run_benchmark
 from backend.engine.ai.core.encoder import encode_battle_state
 from backend.engine.ai.core.mcts import (
@@ -16,6 +18,7 @@ from backend.engine.ai.core.mcts import (
     mcts_search,
     policy_select_idx,
 )
+from backend.engine.ai.train import _value_classes
 from backend.sim.action import Action
 from backend.sim.agent import RuleAgent
 from backend.sim.battleskill import BattleSkill
@@ -78,6 +81,21 @@ class _MarkedEvaluator(_UniformEvaluator):
         return np.full(len(states), self.mark, dtype=np.float32), probs
 
 
+class _SwitchBiasedEvaluator(_UniformEvaluator):
+    def __init__(self, action_idx: int) -> None:
+        super().__init__()
+        self.action_idx = action_idx
+
+    def evaluate(self, state: dict, mask: np.ndarray) -> tuple[float, np.ndarray]:
+        self.evaluate_calls += 1
+        probs = np.zeros(NUM_ACTIONS, dtype=np.float32)
+        if mask[self.action_idx] > 0:
+            probs[self.action_idx] = 1.0
+        else:
+            probs = self._probs(mask)
+        return 0.0, probs
+
+
 class _CountingOpponent:
     team = "B"
 
@@ -112,6 +130,20 @@ def _make_charge_mask_battle():
     opp = Sprite(species=species, current_hp=100, max_hp=100, energy=10)
     opp.skills = [BattleSkill(base=Skill(name="猛烈撞击", energy_cost=0))]
     return Battle(Player("A", [active, bench]), Player("B", [opp]), verbose=False), active
+
+
+def _make_replacement_battle():
+    from backend.sim.battle import Battle
+
+    def make_sprite(name: str) -> Sprite:
+        species = SpeciesStats(name=name, hp=100, atk=80, def_=80, sp_atk=80, sp_def=80, speed=80)
+        sprite = Sprite(species=species, current_hp=100, max_hp=100, energy=10)
+        sprite.skills = [BattleSkill(base=Skill(name="猛烈撞击", energy_cost=0))]
+        return sprite
+
+    team_a = [make_sprite("A0"), make_sprite("A1"), make_sprite("A2")]
+    team_b = [make_sprite("B0"), make_sprite("B1"), make_sprite("B2")]
+    return Battle(Player("A", team_a), Player("B", team_b), verbose=False)
 
 
 def test_valid_actions_charge_tracks_skill_ref_after_transmission():
@@ -193,6 +225,34 @@ def test_get_valid_actions_matches_mask_nonzero_indices():
     valid, mask = get_valid_actions(battle.player_a, battle)
 
     assert valid == np.flatnonzero(mask > 0).tolist()
+
+
+def test_get_valid_actions_uses_weather_energy_discount():
+    factory = SimFactory()
+    p1 = factory.build_player("A", [{"name": "巨灵石", "skills": ["地震", "防御"]}])
+    p2 = factory.build_player("B", [{"name": "果冻", "skills": ["防御"]}])
+    battle = factory.build_battle(p1, p2)
+    p1.active.energy = 5
+    battle.globals.set_weather("sand")
+
+    valid, mask = get_valid_actions(p1, battle)
+
+    assert mask[0] == 1.0
+    assert 0 in valid
+
+
+def test_get_valid_actions_allows_blood_price_energy_substitution():
+    factory = SimFactory()
+    p1 = factory.build_player("A", [{"name": "巨灵石", "skills": ["地震", "防御"]}])
+    p2 = factory.build_player("B", [{"name": "果冻", "skills": ["防御"]}])
+    battle = factory.build_battle(p1, p2)
+    p1.active.energy = 5
+    p1.active._modifiers["blood_price"] = 0.01
+
+    valid, mask = get_valid_actions(p1, battle)
+
+    assert mask[0] == 1.0
+    assert 0 in valid
 
 
 def test_action_index_to_action_uses_fixed_bench_slot_mapping():
@@ -493,15 +553,15 @@ def test_network_opponent_leaf_batch_uses_both_batch_evaluators():
 
 
 def test_network_policy_step_uses_player_a_replacement_proxy(monkeypatch):
-    factory = SimFactory()
-    battle = _fixed_battle(factory)
-    opponent = NetworkPolicyAgent(evaluator=_UniformEvaluator(), greedy=True)
+    battle = _make_replacement_battle()
+    opponent = NetworkPolicyAgent(evaluator=_SwitchBiasedEvaluator(11), greedy=True)
     seen = {}
 
     def fake_execute_turn(agent_a, agent_b, *, fixed_action_a=None, fixed_action_b=None):
         seen["agent_a_team"] = agent_a.team
         seen["agent_a_replacement"] = agent_a.choose_replacement(battle)
         seen["agent_b_team"] = agent_b.team
+        seen["agent_b_replacement"] = agent_b.choose_replacement(battle)
         seen["fixed_action_a"] = fixed_action_a
         seen["fixed_action_b"] = fixed_action_b
 
@@ -517,7 +577,44 @@ def test_network_policy_step_uses_player_a_replacement_proxy(monkeypatch):
 
     assert ok
     assert seen["agent_a_team"] == "A"
-    assert seen["agent_a_replacement"] == 1
+    assert seen["agent_a_replacement"] == 2
     assert seen["agent_b_team"] == "B"
+    assert seen["agent_b_replacement"] == 2
     assert seen["fixed_action_a"].kind == "gather"
     assert seen["fixed_action_b"].kind == "gather"
+
+
+def test_mcts_terminal_uses_configured_draw_margin(monkeypatch):
+    factory = SimFactory()
+    battle = _fixed_battle(factory)
+    seen = {}
+
+    def fake_outcome(battle_arg, max_turns, *, draw_margin, gamma=1.0, tanh_k=0.0):
+        seen["draw_margin"] = draw_margin
+        return 0.0, "draw"
+
+    monkeypatch.setattr(mcts_module, "battle_outcome_a", fake_outcome)
+
+    mcts_module.mcts_search(
+        battle,
+        None,
+        factory,
+        _CountingOpponent(),
+        num_simulations=1,
+        root_noise=0.0,
+        max_turns=0,
+        draw_margin=0.42,
+        evaluator=_UniformEvaluator(),
+    )
+
+    assert seen["draw_margin"] == 0.42
+
+
+def test_value_classes_use_supplied_draw_margin():
+    values = torch.tensor([-0.2, 0.2, 0.4])
+
+    defaultish = _value_classes(values, 0.15)
+    wider = _value_classes(values, 0.3)
+
+    torch.testing.assert_close(defaultish, torch.tensor([-1.0, 1.0, 1.0]))
+    torch.testing.assert_close(wider, torch.tensor([0.0, 0.0, 1.0]))

@@ -174,7 +174,7 @@ def _apply_to_all_skills(sprite, m, replayer=None) -> str:
     return f"{sprite.name} 全技能{label}{delta:+.0f}"
 
 
-def _apply_to_matching_skills(sprite, m, mark_energy_mod: int = 0) -> str:
+def _apply_to_matching_skills(sprite, m, mark_energy_mod: int = 0, replayer=None) -> str:
     """Apply a modifier to BattleSkills matching skill_where.
 
     Also registers the effect in sprite._trait_direct_effects so
@@ -235,6 +235,8 @@ def _apply_to_matching_skills(sprite, m, mark_energy_mod: int = 0) -> str:
             sprite._trait_direct_effects = []
         if effect_dict not in sprite._trait_direct_effects:
             sprite._trait_direct_effects.append(effect_dict)
+        if replayer is not None and replayer._battle is not None:
+            replayer._battle._vm_engine.trait_loader._direct_mod_sprite_ids.add(id(sprite))
 
     if applied:
         source = m.source or ""
@@ -510,7 +512,7 @@ class JournalReplayer:
             mark_mod = 0
             if self._battle is not None and self.team:
                 mark_mod = self._battle.globals.mark_energy_mod(self.team)
-            return _apply_to_matching_skills(sprite, m, mark_energy_mod=mark_mod)
+            return _apply_to_matching_skills(sprite, m, mark_energy_mod=mark_mod, replayer=self)
 
         if skill_scoped:
             if m.target.startswith("skill_at_"):

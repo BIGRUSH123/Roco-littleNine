@@ -7,6 +7,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from backend.vm.effect import AbnormalEffect
+
 if TYPE_CHECKING:
     from .battleskill import SkillUse
     from .globals import GlobalEffects
@@ -122,7 +124,9 @@ class SkillResolver:
         elem = skill.element
         if not elem:
             return 1.0
-        def_elems = [e.strip() for e in (defender.species.attributes or '').split(',') if e.strip()]
+        def_elems = defender.species.elements or tuple(
+            e.strip() for e in (defender.species.attributes or '').split(',') if e.strip()
+        )
         if not def_elems:
             return 1.0
         chart = _TYPE_CHART.get(elem, {})
@@ -136,7 +140,9 @@ class SkillResolver:
         elem = skill.element
         if not elem:
             return 1.0
-        attrs = attacker.species.attributes or ''
+        attrs = attacker.species.elements or tuple(
+            e.strip() for e in (attacker.species.attributes or '').split(',') if e.strip()
+        )
         if elem in attrs:
             return 1.25
         return 1.0
@@ -149,9 +155,11 @@ class SkillResolver:
         elem = element or SkillResolver._TICK_ELEMENT.get(tick_name, '')
         if not elem:
             return 1.0
-        attrs = getattr(sprite.species, 'attributes', '')
+        attrs = sprite.species.elements or tuple(
+            e.strip() for e in (getattr(sprite.species, 'attributes', '') or '').split(',') if e.strip()
+        )
         mult = 1.0
-        for attr in (attrs.split(',') if attrs else []):
+        for attr in attrs:
             mult *= _TYPE_CHART.get(elem, {}).get(attr, 1.0)
         return mult
 
@@ -163,13 +171,13 @@ class SkillResolver:
 
         events: list[str] = []
         all_sprites = list(sprites.values())
+        cinder_grass_active: bool | None = None
 
         for s in all_sprites:
             if s.is_fainted:
                 continue
 
             # Tick damage from AbnormalEffect in active_effects
-            from backend.vm.effect import AbnormalEffect
             active = getattr(s, 'active_effects', None) or []
 
             for ae in active:
@@ -190,11 +198,12 @@ class SkillResolver:
 
                 if ae.decay_on_tick:
                     # 煤渣草：在场时灼烧衰减变为增长
-                    cinder = any(
-                        sp._modifiers.get("_cinder_grass", False)
-                        for sp in all_sprites if not sp.is_fainted
-                    )
-                    if cinder and name == "灼烧":
+                    if name == "灼烧" and cinder_grass_active is None:
+                        cinder_grass_active = any(
+                            sp._modifiers.get("_cinder_grass", False)
+                            for sp in all_sprites if not sp.is_fainted
+                        )
+                    if name == "灼烧" and cinder_grass_active:
                         growth = ae.stacks // 2
                         ae.stacks += growth
                         s.update_stacks(name, ae.stacks)

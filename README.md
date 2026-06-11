@@ -55,6 +55,8 @@ npm run dev
 
 内置 RuleAgent（基于启发式评分的规则 AI）、RandomAgent（随机选择），也支持加载外部 Python 脚本作为自定义 Agent。提供锦标赛模式，可进行多 Agent 循环赛并输出胜负矩阵。
 
+强化学习管线位于 `backend/engine/ai/`：当前主线使用实体化状态编码、`ModularBattleNet` 双头网络、17 维动作空间、MCTS 自我博弈、门控晋升和固定种子 checkpoint 评估。完整训练、评估和实战建议流程见 `backend/engine/ai/TRAINING.md`。
+
 ### Wiki 知识库
 
 Markdown 格式的游戏维基，包含 701 篇精灵图鉴、494 篇技能图鉴、174 篇特性文档，以及完整的对战机制说明（属性克制、状态效果、回合流程等）。按属性分类组织，支持 Obsidian 阅读。
@@ -323,13 +325,13 @@ JSON 数据  →  编译器（解析/校验/注入命中/排序）  →  RISC �
 格斗小九/
 ├── backend/
 │   ├── api/          FastAPI 服务端（对战 API、精灵/技能数据接口）
-│   ├── engine/       VM 执行器、快照、回放、序列化、特性观察者
+│   ├── engine/       VM 执行器、快照、回放、序列化、特性观察者、AI 训练管线
 │   ├── vm/           Battle VM 编译器管线（解析 → 校验 → 排序 → 执行）
 │   ├── sim/          模拟层（精灵、技能、对战流程、回合记录、回溯快照）
 │   └── common/       共享模型、数值公式、常量、精灵种族值数据库
 ├── frontend/         Vue 3 + Pinia + Tailwind CSS 前端 SPA
 │   └── src/
-│       ├── components/   11 个对战相关组件
+│       ├── components/   12 个对战相关组件
 │       └── stores/       Pinia 状态管理（对战状态、精灵素材）
 ├── roco/             SDK 包：AI Agent 协议、VM 桥接层、锦标赛运行器
 ├── data/             游戏数据：精灵(465) / 技能(472) / 特性(166) JSON

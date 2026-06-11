@@ -13,6 +13,7 @@ import numpy as np
 
 from backend.engine.ai.core.encoder import encode_battle_state
 from backend.engine.ai.core.evaluator import PolicyValueEvaluator, TorchEvaluator
+from backend.engine.ai.core.outcome import DEFAULT_DRAW_MARGIN, battle_outcome_a
 from backend.sim.action import Action
 
 if TYPE_CHECKING:
@@ -48,6 +49,33 @@ def _effective_skill_cost(sk, energy_cost_mod: float, energy_cost_mult: float, m
     if mark_energy_mod:
         cost -= mark_energy_mod
     return max(0, cost)
+
+
+def _can_pay_skill_cost(
+    player: Player,
+    active,
+    sk,
+    skill_index: int,
+    battle,
+    energy_cost_mod: float,
+    energy_cost_mult: float,
+    mark_energy_mod: int,
+) -> bool:
+    if battle is not None and hasattr(battle, "can_pay_skill_energy_cost"):
+        team = "A" if battle.player_a is player else "B"
+        can_pay, _, _ = battle.can_pay_skill_energy_cost(team, active, sk, skill_index)
+        return can_pay
+
+    cost = _effective_skill_cost(sk, energy_cost_mod, energy_cost_mult, mark_energy_mod)
+    if active.energy >= cost:
+        return True
+
+    blood_price = active._modifiers.get("blood_price", 0)
+    if blood_price <= 0:
+        return False
+    deficit = cost - active.energy
+    hp_cost = round(active.max_hp * blood_price * deficit)
+    return active.current_hp > hp_cost
 
 
 def get_valid_actions(player: Player, battle=None) -> tuple[list[int], np.ndarray]:
@@ -94,7 +122,10 @@ def get_valid_actions(player: Player, battle=None) -> tuple[list[int], np.ndarra
             if (
                 sk
                 and sk.cooldown <= 0
-                and _effective_skill_cost(sk, energy_cost_mod, energy_cost_mult, mark_energy_mod) <= active.energy
+                and _can_pay_skill_cost(
+                    player, active, sk, charged_idx, battle,
+                    energy_cost_mod, energy_cost_mult, mark_energy_mod,
+                )
             ):
                 mask[charged_idx] = 1.0
         # 换宠 (10-14)：引擎允许蓄力中断换宠（_resolve_switch 取消 _charging）
@@ -113,7 +144,10 @@ def get_valid_actions(player: Player, battle=None) -> tuple[list[int], np.ndarra
         if (
             not sk.sealed
             and sk.cooldown <= 0
-            and _effective_skill_cost(sk, energy_cost_mod, energy_cost_mult, mark_energy_mod) <= active.energy
+            and _can_pay_skill_cost(
+                player, active, sk, i, battle,
+                energy_cost_mod, energy_cost_mult, mark_energy_mod,
+            )
         ):
             mask[i] = 1.0
 
@@ -213,6 +247,56 @@ def _sample_weighted_idx(weights: np.ndarray, total: float) -> int:
     return last_valid
 
 
+def _replacement_mask(player) -> tuple[list[int], np.ndarray]:
+    alive: list[int] = []
+    mask = np.zeros(NUM_ACTIONS, dtype=np.float32)
+    bench_slot = 0
+    for i, s in enumerate(player.team):
+        if i == player.active_index:
+            continue
+        if bench_slot < 5:
+            if not s.is_fainted:
+                alive.append(i)
+                mask[10 + bench_slot] = 1.0
+            bench_slot += 1
+    return alive, mask
+
+
+def _choose_policy_replacement(
+    battle,
+    player,
+    evaluator: PolicyValueEvaluator,
+    *,
+    perspective: str,
+    temperature: float = 0.0,
+    greedy: bool = True,
+) -> int:
+    alive, mask = _replacement_mask(player)
+    if not alive:
+        return -1
+
+    state = encode_battle_state(battle, perspective=perspective)
+    _, probs = evaluator.evaluate(state, mask)
+    action_idx = policy_select_idx(probs, temperature=temperature, greedy=greedy)
+    if 10 <= action_idx < 15:
+        team_idx = _bench_to_team_index(player, action_idx - 10)
+        if team_idx is not None and team_idx in alive:
+            return team_idx
+
+    best_idx = -1
+    best_score = -1.0
+    bench_slot = 0
+    for i, s in enumerate(player.team):
+        if i == player.active_index:
+            continue
+        if bench_slot < 5:
+            if not s.is_fainted and probs[10 + bench_slot] > best_score:
+                best_score = float(probs[10 + bench_slot])
+                best_idx = i
+            bench_slot += 1
+    return best_idx if best_idx >= 0 else alive[0]
+
+
 # ═══════════════════════════════════════════════════════════════════
 # NetworkPolicyAgent — MCTS 内部对手（仅策略头，无搜索）
 # ═══════════════════════════════════════════════════════════════════
@@ -291,9 +375,14 @@ class NetworkPolicyAgent:
 
     def choose_replacement(self, battle) -> int:
         player = battle.player_b
-        alive = [i for i, s in enumerate(player.team)
-                 if not s.is_fainted and i != player.active_index]
-        return alive[0] if alive else -1  # -1 通知引擎扣魔力
+        return _choose_policy_replacement(
+            battle,
+            player,
+            self._evaluator,
+            perspective="B",
+            temperature=self._temperature,
+            greedy=self._greedy,
+        )
 
     def on_game_end(self, winner: str) -> None:
         pass
@@ -376,6 +465,7 @@ def mcts_search(
     opp_greedy: bool = False,
     evaluator: PolicyValueEvaluator | None = None,
     root_state: np.ndarray | None = None,
+    draw_margin: float = DEFAULT_DRAW_MARGIN,
     gamma: float = 1.0,
     tanh_k: float = 0.0,
     leaf_batch_size: int = 1,
@@ -394,6 +484,7 @@ def mcts_search(
         max_turns: 终端节点平局判定所用的最大回合数（与外部 RL 训练标签一致）。
         evaluator: 可选推理后端（并行训练时由主进程批量服务）。
         root_state: 可选预编码状态（调用方已编码时复用，避免重复编码）。
+        draw_margin: 终端节点平局判定阈值（与训练标签一致）。
         gamma: 回合衰减因子，叶节点 value *= gamma**turn（1.0 = 不衰减）。
         tanh_k: tanh 软裁决缩放系数（0 = 硬阈值）。
 
@@ -456,12 +547,10 @@ def mcts_search(
             root.opp_policy = opp_mask / max(opp_mask.sum(), 1.0)
 
         agent_a_proxy = _PlayerSwappedAgent(opponent_agent, battle.player_a)
-        fixed_b_proxy = _OppFixedAgent(_GATHER_ACTION, battle.player_b) if use_network_opponent else None
+        fixed_b_proxy = _OppFixedAgent(_GATHER_ACTION, battle.player_b, opponent_agent) if use_network_opponent else None
 
         batch_leaf_eval = leaf_batch_size > 1 and callable(batch_eval)
         if batch_leaf_eval:
-            from backend.engine.ai.core.outcome import DEFAULT_DRAW_MARGIN, battle_outcome_a
-
             batch_size = max(1, int(leaf_batch_size))
             simulations_left = num_simulations
             pending_states: list[dict[str, np.ndarray]] = []
@@ -542,7 +631,7 @@ def mcts_search(
                             pending_meta.append((node, path, sim_valid, leaf_idx, opp_idx))
                         else:
                             leaf_value, _ = battle_outcome_a(
-                                battle, max_turns, draw_margin=DEFAULT_DRAW_MARGIN,
+                                battle, max_turns, draw_margin=draw_margin,
                                 gamma=gamma, tanh_k=tanh_k,
                             )
                             for parent, _ in reversed(path):
@@ -654,9 +743,8 @@ def mcts_search(
                     # 终端节点：使用 battle_outcome_a 计算 value，确保与训练标签一致。
                     # max_turns 平局时按局面分差判定（而非简单返回 0），消除 MCTS value
                     # 估计与 RL 训练目标之间的系统性偏差。
-                    from backend.engine.ai.core.outcome import DEFAULT_DRAW_MARGIN, battle_outcome_a
                     leaf_value, _ = battle_outcome_a(
-                        battle, max_turns, draw_margin=DEFAULT_DRAW_MARGIN,
+                        battle, max_turns, draw_margin=draw_margin,
                         gamma=gamma, tanh_k=tanh_k,
                     )
 
@@ -726,7 +814,7 @@ def _step_battle(
             if action_b is None:
                 action_b = _GATHER_ACTION
         agent_a = agent_a_proxy or _PlayerSwappedAgent(opponent_agent, player_a)
-        fixed_b = fixed_b_proxy or _OppFixedAgent(action_b, battle.player_b)
+        fixed_b = fixed_b_proxy or _OppFixedAgent(action_b, battle.player_b, opponent_agent)
         fixed_b._action = action_b
         battle.execute_turn(
             agent_a,
@@ -756,6 +844,15 @@ class _PlayerSwappedAgent:
         return alive[0] if alive else 0
 
     def choose_replacement(self, battle) -> int:
+        if isinstance(self._source, NetworkPolicyAgent):
+            return _choose_policy_replacement(
+                battle,
+                self.player,
+                self._source._evaluator,
+                perspective="A",
+                temperature=self._source._temperature,
+                greedy=self._source._greedy,
+            )
         alive = [i for i, s in enumerate(self.player.team)
                  if not s.is_fainted and i != self.player.active_index]
         return alive[0] if alive else -1  # -1 通知引擎扣魔力
@@ -767,10 +864,11 @@ class _PlayerSwappedAgent:
 class _OppFixedAgent:
     """对手 FixedAgent：choose_action 返回预定动作，其余委托给 player 自身。"""
 
-    __slots__ = ("_action", "player", "team")
+    __slots__ = ("_action", "_source", "player", "team")
 
-    def __init__(self, action, player):
+    def __init__(self, action, player, source=None):
         self._action = action
+        self._source = source
         self.player = player
         self.team = "B"
 
@@ -782,6 +880,15 @@ class _OppFixedAgent:
         return alive[0] if alive else 0
 
     def choose_replacement(self, battle) -> int:
+        if isinstance(self._source, NetworkPolicyAgent):
+            return _choose_policy_replacement(
+                battle,
+                self.player,
+                self._source._evaluator,
+                perspective="B",
+                temperature=self._source._temperature,
+                greedy=self._source._greedy,
+            )
         alive = [i for i, s in enumerate(self.player.team)
                  if not s.is_fainted and i != self.player.active_index]
         return alive[0] if alive else -1

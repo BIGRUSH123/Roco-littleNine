@@ -173,6 +173,7 @@ class ObserverRegistry:
         self._owned_by_trigger: dict[str, dict[int, list[Observer]]] = {}
         # trigger → [observers with owner_sprite_id is None]
         self._ownerless_by_trigger: dict[str, list[Observer]] = {}
+        self._owner_candidate_cache: dict[tuple[str, int], tuple[Observer, ...]] = {}
         self._seq_counter: int = 0  # monotonic registration sequence
 
     # ── Registration ──
@@ -185,6 +186,7 @@ class ObserverRegistry:
         obs._reg_seq = self._seq_counter
         self._seq_counter += 1
         self._observers.append(obs)
+        self._owner_candidate_cache.clear()
         if obs.listen:
             owner = obs.owner_sprite_id
             for t in obs.listen:
@@ -201,6 +203,7 @@ class ObserverRegistry:
         self._fallback.clear()
         self._owned_by_trigger.clear()
         self._ownerless_by_trigger.clear()
+        self._owner_candidate_cache.clear()
         # Re-derive _reg_seq from list position (registration order) so the
         # owner sub-index merge stays correct even after snapshot restore,
         # where observers are copied in and may carry stale seq values.
@@ -271,26 +274,45 @@ class ObserverRegistry:
         """
         if owner_id is None or self._fallback:
             return self.candidates_for(trigger)
+        cache_key = (trigger, owner_id)
+        cached = self._owner_candidate_cache.get(cache_key)
+        if cached is not None:
+            return cached
         owned = self._owned_by_trigger.get(trigger, {}).get(owner_id)
         ownerless = self._ownerless_by_trigger.get(trigger, ())
         if not owned:
-            return ownerless
+            result = tuple(ownerless)
+            self._owner_candidate_cache[cache_key] = result
+            return result
         if not ownerless:
-            return owned
+            result = tuple(owned)
+            self._owner_candidate_cache[cache_key] = result
+            return result
         # Merge two registration-ordered lists back into global order.
-        return sorted((*ownerless, *owned), key=lambda o: o._reg_seq)
+        result = tuple(sorted((*ownerless, *owned), key=lambda o: o._reg_seq))
+        self._owner_candidate_cache[cache_key] = result
+        return result
 
     def has_candidates(self, trigger: str, owner_sprite_id: int | None = None) -> bool:
         """Fast pre-check before building expensive Ctx snapshots."""
-        for obs in self._by_trigger.get(trigger, ()):
-            owner = obs.owner_sprite_id
-            if owner_sprite_id is None or owner is None or owner == owner_sprite_id:
-                return True
+        if owner_sprite_id is None:
+            return bool(self._by_trigger.get(trigger) or self._fallback)
+        if (
+            self._ownerless_by_trigger.get(trigger)
+            or self._owned_by_trigger.get(trigger, {}).get(owner_sprite_id)
+        ):
+            return True
         for obs in self._fallback:
             owner = obs.owner_sprite_id
-            if owner_sprite_id is None or owner is None or owner == owner_sprite_id:
+            if owner is None or owner == owner_sprite_id:
                 return True
         return False
+
+    def has_any_candidates(self, triggers) -> bool:
+        """Fast pre-check for multiple ownerless trigger points."""
+        if self._fallback:
+            return True
+        return any(self._by_trigger.get(trigger) for trigger in triggers)
 
     def fire(self, trigger: str, ctx: Ctx,
              process_fn: Callable = None) -> list[Mutation]:
