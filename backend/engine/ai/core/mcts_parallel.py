@@ -27,6 +27,7 @@ def parallel_mcts_search_root(
     num_simulations: int = 200,
     num_workers: int = 4,
     device: str = "cpu",
+    pool=None,  # 可选：复用的进程池
     **kwargs
 ) -> np.ndarray:
     """根并行 MCTS：每个 worker 独立运行完整搜索，最后合并结果
@@ -39,6 +40,7 @@ def parallel_mcts_search_root(
         num_simulations: 总模拟次数
         num_workers: 并行 worker 数量
         device: 推理设备
+        pool: 可选的复用进程池（显著减少开销）
         **kwargs: 传递给 mcts_search 的其他参数
 
     Returns:
@@ -75,8 +77,13 @@ def parallel_mcts_search_root(
     ]
 
     # 并行执行
-    with mp.Pool(num_workers) as pool:
+    if pool is not None:
+        # 复用进程池
         results = pool.starmap(_worker_mcts, worker_args)
+    else:
+        # 创建新进程池
+        with mp.Pool(num_workers) as pool:
+            results = pool.starmap(_worker_mcts, worker_args)
 
     # 合并结果：累加访问次数
     merged_visits = np.zeros(NUM_ACTIONS, dtype=np.float32)
