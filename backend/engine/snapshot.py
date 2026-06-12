@@ -329,6 +329,40 @@ def build_ctx(
         damage_taken_of=damage_taken_of,
     )
 
+    # ── 批量提取字典值（减少重复查找，提升性能） ──
+    # Self sprite 基础属性
+    atk_base_self = ss_stats.get("atk", 100)
+    def_base_self = ss_stats.get("def", 100)
+    sp_atk_base_self = ss_stats.get("sp_atk", 100)
+    sp_def_base_self = ss_stats.get("sp_def", 100)
+
+    # Self sprite 修正值
+    atk_mod_self = ss_mods.get("atk", 0)
+    def_mod_self = ss_mods.get("def", 0)
+    sp_atk_mod_self = ss_mods.get("sp_atk", 0)
+    sp_def_mod_self = ss_mods.get("sp_def", 0)
+    damage_reduction_mod_self = ss_mods.get("damage_reduction", 0.0)
+    power_mult_mod_self = ss_mods.get("power_mult", 1.0)
+    damage_mult_mod_self = ss_mods.get("damage_mult", 1.0)
+    energy_cost_mult_mod_self = ss_mods.get("energy_cost_mult", 0.0)
+    combo_mult_mod_self = ss_mods.get("combo_mult", 0.0)
+    life_drain_mod_self = ss_mods.get("life_drain", 0.0)
+
+    # Self sprite counters
+    times_entered_val = ss_counters.get("times_entered", 0)
+    times_left_val = ss_counters.get("times_left", 0)
+
+    # Opponent sprite 基础属性
+    atk_base_opp = os_stats.get("atk", 100)
+    def_base_opp = os_stats.get("def", 100)
+    sp_atk_base_opp = os_stats.get("sp_atk", 100)
+    sp_def_base_opp = os_stats.get("sp_def", 100)
+
+    # Opponent sprite 修正值
+    damage_reduction_mod_opp = os_mods.get("damage_reduction", 0.0)
+    power_mult_mod_opp = os_mods.get("power_mult", 1.0)
+    damage_mult_mod_opp = os_mods.get("damage_mult", 1.0)
+
     # ── Build Ctx ──
     return Ctx(
         event=event_ctx,
@@ -346,24 +380,24 @@ def build_ctx(
         # Use initial_stats (base without stage multipliers) because
         # calc_damage applies stat_stages separately in the formula.
         # Apply _modifiers multipliers for mult_mod {attr: atk/def/etc.}
-        atk_self=round(ss_stats.get("atk", 100) * (1.0 + ss_mods.get("atk", 0))),
-        def_self=round(ss_stats.get("def", 100) * (1.0 + ss_mods.get("def", 0))),
-        sp_atk_self=round(ss_stats.get("sp_atk", 100) * (1.0 + ss_mods.get("sp_atk", 0))),
-        sp_def_self=round(ss_stats.get("sp_def", 100) * (1.0 + ss_mods.get("sp_def", 0))),
+        atk_self=round(atk_base_self * (1.0 + atk_mod_self)),
+        def_self=round(def_base_self * (1.0 + def_mod_self)),
+        sp_atk_self=round(sp_atk_base_self * (1.0 + sp_atk_mod_self)),
+        sp_def_self=round(sp_def_base_self * (1.0 + sp_def_mod_self)),
         speed_self=_compute_speed_self(ss, stat_stages_self),
         # Sprite + skill modifier delta 相加（同类型 buff 加性叠加，非相乘）
         damage_reduction_self=min(1.0,
-            ss_mods.get("damage_reduction", 0.0)
+            damage_reduction_mod_self
             + skill_mods.get("damage_reduction", 0.0)),
         power_mult_self=1.0
-            + (ss_mods.get("power_mult", 1.0) - 1.0)
+            + (power_mult_mod_self - 1.0)
             + (skill_mods.get("power_mult", 1.0) - 1.0),
         damage_mult_self=1.0
-            + (ss_mods.get("damage_mult", 1.0) - 1.0)
+            + (damage_mult_mod_self - 1.0)
             + (skill_mods.get("damage_mult", 1.0) - 1.0),
-        energy_cost_mult_self=ss_mods.get("energy_cost_mult", 0.0),
-        combo_mult_self=ss_mods.get("combo_mult", 0.0),
-        life_drain_self=ss_mods.get("life_drain", 0.0),
+        energy_cost_mult_self=energy_cost_mult_mod_self,
+        combo_mult_self=combo_mult_mod_self,
+        life_drain_self=life_drain_mod_self,
         abnormal_count_self=sum(abnormal_stacks_self.values()),
         abnormal_stacks_self=abnormal_stacks_self,
         positive_count_self=positive_count_self,
@@ -372,8 +406,8 @@ def build_ctx(
         charged_self=charged_self,
         is_charging_self=is_charging_self,
         is_charging_opp=is_charging_opp,
-        times_entered_self=ss_counters.get("times_entered", 0),
-        times_left_self=ss_counters.get("times_left", 0),
+        times_entered_self=times_entered_val,
+        times_left_self=times_left_val,
         elements_used_count_self=elements_used_count_self,
         skills_energy_sum_self=skills_energy_sum_self,
         just_entered=getattr(ss, 'entry_turn', -1) == turn and turn >= 0,
@@ -390,14 +424,14 @@ def build_ctx(
         hp_opp_max=hp_opp_max,
         energy_opp=os.energy,
         # Use initial_stats for non-speed stats (see self-sprite comment above)
-        atk_opp=os_stats.get("atk", 100),
-        def_opp=os_stats.get("def", 100),
-        sp_atk_opp=os_stats.get("sp_atk", 100),
-        sp_def_opp=os_stats.get("sp_def", 100),
+        atk_opp=atk_base_opp,
+        def_opp=def_base_opp,
+        sp_atk_opp=sp_atk_base_opp,
+        sp_def_opp=sp_def_base_opp,
         speed_opp=_compute_speed(os_stats, stat_stages_opp),
-        damage_reduction_opp=os_mods.get("damage_reduction", 0.0),
-        power_mult_opp=os_mods.get("power_mult", 1.0),
-        damage_mult_opp=os_mods.get("damage_mult", 1.0),
+        damage_reduction_opp=damage_reduction_mod_opp,
+        power_mult_opp=power_mult_mod_opp,
+        damage_mult_opp=damage_mult_mod_opp,
         abnormal_count_opp=sum(abnormal_stacks_opp.values()),
         abnormal_stacks_opp=abnormal_stacks_opp,
         positive_count_opp=positive_count_opp,
