@@ -49,6 +49,7 @@ from backend.engine.ai.core.mcts import (
     get_valid_actions,
     mcts_search,
 )
+from backend.engine.ai.parallel_agent import ParallelMCTSAgent
 from backend.sim.factory import SimFactory
 from backend.sim.player import Item
 
@@ -304,6 +305,9 @@ def collect_rl_samples(
     tanh_k: float = 0.0,
     leaf_batch_size: int = DEFAULT_MCTS_LEAF_BATCH_SIZE,
     mirror: bool = False,
+    mcts_parallel: bool = False,  # 新增：启用 MCTS 根并行
+    mcts_workers: int = 4,  # 新增：MCTS 并行 worker 数
+    mcts_pool = None,  # 新增：复用的进程池
 ) -> tuple[list[dict[str, np.ndarray]], np.ndarray, np.ndarray, np.ndarray, dict[str, int]]:
     """MCTS 自我博弈收集 (state_dict, target_probs, mask, outcome) 四元组。
 
@@ -339,22 +343,34 @@ def collect_rl_samples(
         # 搜索内的对手 = 当前网络策略头（贪心，不含温度噪声，确保对手强度）
         opp_a = NetworkPolicyAgent(evaluator=evaluator, greedy=True)
         opp_b = NetworkPolicyAgent(evaluator=evaluator, greedy=True)
-        agent_a = MCTSAgent(
-            "A", p1, factory, opp_a, num_simulations,
-            temperature, root_noise=root_noise, record=True,
-            evaluator=evaluator, max_turns=max_turns,
-            draw_margin=draw_margin,
-            gamma=gamma, tanh_k=tanh_k,
-            leaf_batch_size=leaf_batch_size,
-        )
-        agent_b = MCTSAgent(
-            "B", p2, factory, opp_b, num_simulations,
-            temperature, root_noise=root_noise, record=True,
-            evaluator=evaluator, max_turns=max_turns,
-            draw_margin=draw_margin,
-            gamma=gamma, tanh_k=tanh_k,
-            leaf_batch_size=leaf_batch_size,
-        )
+
+        # 根据 mcts_parallel 选择 Agent 类型
+        AgentClass = ParallelMCTSAgent if mcts_parallel else MCTSAgent
+        agent_kwargs = {
+            "factory": factory,
+            "opponent_agent": None,  # 将在下面单独设置
+            "num_simulations": num_simulations,
+            "temperature": temperature,
+            "root_noise": root_noise,
+            "record": True,
+            "evaluator": evaluator,
+            "max_turns": max_turns,
+            "draw_margin": draw_margin,
+            "gamma": gamma,
+            "tanh_k": tanh_k,
+            "leaf_batch_size": leaf_batch_size,
+        }
+
+        if mcts_parallel:
+            # 添加并行化参数
+            agent_kwargs["num_workers"] = mcts_workers
+            agent_kwargs["pool"] = mcts_pool
+
+        agent_kwargs["opponent_agent"] = opp_a
+        agent_a = AgentClass("A", p1, **agent_kwargs)
+
+        agent_kwargs["opponent_agent"] = opp_b
+        agent_b = AgentClass("B", p2, **agent_kwargs)
 
         battle_started = time.monotonic()
         turn = 0
@@ -1261,6 +1277,10 @@ def main():
                         help="攒 batch 等待毫秒 (default: 5)")
     parser.add_argument("--leaf-batch-size", type=int, default=DEFAULT_MCTS_LEAF_BATCH_SIZE,
                         help=f"MCTS 叶节点批量评估大小；1=串行路径 (default: {DEFAULT_MCTS_LEAF_BATCH_SIZE})")
+    parser.add_argument("--mcts-parallel", action="store_true",
+                        help="启用 MCTS 根并行（每次搜索并行化，预期 2x 加速）")
+    parser.add_argument("--mcts-workers", type=int, default=4,
+                        help="MCTS 根并行 worker 数 (default: 4)")
     parser.add_argument("--progress-every", type=int, default=10,
                         help="自我博弈每 N 局打印进度 (default: 10)")
     parser.add_argument("--worker-stall-timeout", type=float, default=600.0,
@@ -1382,6 +1402,13 @@ def main():
     replay = DictReplayBuffer(capacity=max(10000, buffer_capacity))
     best_iteration: int | None = None
 
+    # ── MCTS 并行化：创建进程池 ──
+    mcts_pool = None
+    if args.mcts_parallel:
+        mcts_pool = mp.Pool(args.mcts_workers)
+        _log(f"🚀 MCTS 并行化已启用: {args.mcts_workers} workers")
+        _log(f"   预期加速: ~2x, 推荐模拟次数: 800+")
+
     # ── 全局学习率衰减 + 预热 ──
     # optimizer 和 scheduler 在训练循环外部管理，跨所有 iteration 持续衰减。
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
@@ -1464,6 +1491,9 @@ def main():
                 tanh_k=args.tanh_k,
                 leaf_batch_size=args.leaf_batch_size,
                 mirror=all_mirror,
+                mcts_parallel=args.mcts_parallel,  # 新增
+                mcts_workers=args.mcts_workers,    # 新增
+                mcts_pool=mcts_pool,              # 新增
             )
         selfplay_sec = time.time() - t0
         rate = len(X) / selfplay_sec if selfplay_sec > 0 else 0.0
@@ -1614,6 +1644,12 @@ def main():
 
     best_model.save(f"{checkpoints_dir}/model_rl.pt")
     _log(f"\n最终模型（最优）: {checkpoints_dir}/model_rl.pt")
+
+    # ── 关闭 MCTS 并行进程池 ──
+    if mcts_pool is not None:
+        mcts_pool.close()
+        mcts_pool.join()
+        _log("🚀 MCTS 并行进程池已关闭")
 
     if logger is not None:
         logger.finalize(best_iteration=best_iteration)
