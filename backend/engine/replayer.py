@@ -585,8 +585,10 @@ class JournalReplayer:
             target_mods[m.stat] = m.value
         final = target_mods[m.stat]
 
-        # 失效属性缓存（当修改四维属性修正时）
-        if m.stat in ("atk", "def", "sp_atk", "sp_def"):
+        # 失效属性缓存（当修改任何缓存的修正值时）
+        if m.stat in ("atk", "def", "sp_atk", "sp_def",
+                      "damage_reduction", "power_mult", "damage_mult",
+                      "energy_cost_mult", "combo_mult", "life_drain"):
             sprite._invalidate_stat_cache()
 
         # Sync sprite-level attrs (max_energy, starfall_consume_ratio) to active_effects.

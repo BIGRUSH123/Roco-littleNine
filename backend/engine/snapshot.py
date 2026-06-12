@@ -330,22 +330,22 @@ def build_ctx(
     )
 
     # ── 批量提取字典值（减少重复查找，提升性能） ──
-    # Self sprite 修正值（非四维属性）
-    damage_reduction_mod_self = ss_mods.get("damage_reduction", 0.0)
-    power_mult_mod_self = ss_mods.get("power_mult", 1.0)
-    damage_mult_mod_self = ss_mods.get("damage_mult", 1.0)
-    energy_cost_mult_mod_self = ss_mods.get("energy_cost_mult", 0.0)
-    combo_mult_mod_self = ss_mods.get("combo_mult", 0.0)
-    life_drain_mod_self = ss_mods.get("life_drain", 0.0)
+    # Self sprite 修正值（非四维属性）- 使用 Sprite 缓存
+    damage_reduction_mod_self = ss.damage_reduction_modifier
+    power_mult_mod_self = ss.power_mult_modifier
+    damage_mult_mod_self = ss.damage_mult_modifier
+    energy_cost_mult_mod_self = ss.energy_cost_mult_modifier
+    combo_mult_mod_self = ss.combo_mult_modifier
+    life_drain_mod_self = ss.life_drain_modifier
 
     # Self sprite counters
     times_entered_val = ss_counters.get("times_entered", 0)
     times_left_val = ss_counters.get("times_left", 0)
 
-    # Opponent sprite 修正值
-    damage_reduction_mod_opp = os_mods.get("damage_reduction", 0.0)
-    power_mult_mod_opp = os_mods.get("power_mult", 1.0)
-    damage_mult_mod_opp = os_mods.get("damage_mult", 1.0)
+    # Opponent sprite 修正值 - 使用 Sprite 缓存
+    damage_reduction_mod_opp = os.damage_reduction_modifier
+    power_mult_mod_opp = os.power_mult_modifier
+    damage_mult_mod_opp = os.damage_mult_modifier
 
     # ── Build Ctx ──
     return Ctx(
