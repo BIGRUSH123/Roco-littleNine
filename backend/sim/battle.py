@@ -235,26 +235,26 @@ class Battle(BattleMechanicsMixin):
                     "species_ability": getattr(sprite.species, 'ability', ''),
                     "species_ability_id": getattr(sprite.species, 'ability_id', 0),
                     "bloodline": sprite.bloodline,
-                    "bloodline_skills": dict(getattr(sprite, 'bloodline_skills', {})),
-                    "initial_stats": dict(sprite.initial_stats),
+                    "bloodline_skills": getattr(sprite, 'bloodline_skills', {}).copy(),
+                    "initial_stats": sprite.initial_stats.copy(),
                     "max_hp": sprite.max_hp,
                     "hp": sprite.current_hp,
                     "energy": sprite.energy,
                     "nature": sprite.nature,
-                    "iv": dict(sprite.iv),
-                    "modifiers": dict(sprite._modifiers),
+                    "iv": sprite.iv.copy(),
+                    "modifiers": sprite._modifiers.copy(),
                     "entry_turn": sprite.entry_turn,
                     "charging": getattr(sprite, '_charging', False),
                     "charged_idx": getattr(sprite, '_charged_skill_index', -1),
                     "charged_ref": getattr(sprite, '_charged_skill_ref', None),
-                    "counters": dict(getattr(sprite, 'counters', {})),
+                    "counters": getattr(sprite, 'counters', {}).copy(),
                     "first_action": sprite.first_action,
                     "first_action_battle": sprite.first_action_battle,
                     "locked_turns": getattr(sprite, 'locked_turns', 0),
                     "interrupted": getattr(sprite, 'interrupted', False),
                     "pending_return": getattr(sprite, 'pending_return', False),
                     "extra_skill_use": getattr(sprite, 'extra_skill_use', False),
-                    "last_abnormal_dmg": dict(getattr(sprite, '_last_abnormal_dmg', {})),
+                    "last_abnormal_dmg": getattr(sprite, '_last_abnormal_dmg', {}).copy(),
                 })
                 # 效果快照：按位置保存，避免 id() 复用导致的错乱
                 eff_snap = []
@@ -269,7 +269,7 @@ class Battle(BattleMechanicsMixin):
                 sprites[-1]["skill_refs"] = skills
                 sprites[-1]["skill_states"] = [
                     (
-                        dict(sk._modifiers),
+                        sk._modifiers.copy(),
                         sk.cooldown,
                         sk.sealed,
                         sk.replaced_by,
@@ -284,7 +284,7 @@ class Battle(BattleMechanicsMixin):
                     for sk in skills
                 ]
                 # 精灵级可变状态（此前遗漏，MCTS 仿真残留会泄漏到真实对局）
-                sprites[-1]["mod_scopes"] = dict(getattr(sprite, '_mod_scopes', {}))
+                sprites[-1]["mod_scopes"] = getattr(sprite, '_mod_scopes', {}).copy()
                 sprites[-1]["pending_mods"] = [
                     copy(m) for m in getattr(sprite, '_pending_modifiers', [])
                 ]
@@ -367,19 +367,19 @@ class Battle(BattleMechanicsMixin):
                     sprite.species.ability_id = s.get("species_ability_id", 0)
                     sprite._trait_handler = None
                 sprite.bloodline = s["bloodline"]
-                sprite.bloodline_skills = dict(s["bloodline_skills"])
-                sprite.initial_stats = dict(s["initial_stats"])
+                sprite.bloodline_skills = s["bloodline_skills"].copy()
+                sprite.initial_stats = s["initial_stats"].copy()
                 sprite.max_hp = s["max_hp"]
                 sprite.current_hp = s["hp"]
                 sprite.energy = s["energy"]
                 sprite.nature = s["nature"]
-                sprite.iv = dict(s["iv"])
-                sprite._modifiers = dict(s["modifiers"])
+                sprite.iv = s["iv"].copy()
+                sprite._modifiers = s["modifiers"].copy()
                 sprite.entry_turn = s["entry_turn"]
                 sprite._charging = s["charging"]
                 sprite._charged_skill_index = s["charged_idx"]
                 sprite._charged_skill_ref = s.get("charged_ref")
-                sprite.counters = dict(s["counters"])
+                sprite.counters = s["counters"].copy()
                 sprite.first_action = s["first_action"]
                 sprite.first_action_battle = s["first_action_battle"]
                 sprite.locked_turns = s["locked_turns"]
@@ -387,7 +387,7 @@ class Battle(BattleMechanicsMixin):
                 sprite.pending_return = s["pending_return"]
                 sprite.extra_skill_use = s["extra_skill_use"]
                 if "last_abnormal_dmg" in s:
-                    sprite._last_abnormal_dmg = dict(s["last_abnormal_dmg"])
+                    sprite._last_abnormal_dmg = s["last_abnormal_dmg"].copy()
                 # 效果：按位置恢复。先清空再按保存顺序重建，消除 id() 复用风险
                 saved_effects = s["effects"]  # list of (e, ttl, stacks, scope, steps?)
                 saved_refs = {id(e) for e, *_ in saved_effects}
@@ -427,7 +427,7 @@ class Battle(BattleMechanicsMixin):
                             mech_energy_reduction,
                             burst_effects,
                         ) = state
-                        sk._modifiers = dict(modifiers)
+                        sk._modifiers = modifiers.copy()
                         sk.cooldown = cooldown
                         sk.sealed = sealed
                         sk.replaced_by = replaced_by
@@ -441,14 +441,14 @@ class Battle(BattleMechanicsMixin):
                 else:
                     for si, sk in enumerate(sprite.skills or []):
                         if si in s.get("skill_mods", {}):
-                            sk._modifiers = dict(s["skill_mods"][si])
+                            sk._modifiers = s["skill_mods"][si].copy()
                         if si in s.get("skill_cd", {}):
                             sk.cooldown = s["skill_cd"][si]
                         if si in s.get("skill_sealed", {}):
                             sk.sealed = s["skill_sealed"][si]
                 # 精灵级可变状态回滚（此前遗漏，MCTS 仿真残留会泄漏到真实对局）
                 if "mod_scopes" in s:
-                    sprite._mod_scopes = dict(s["mod_scopes"])
+                    sprite._mod_scopes = s["mod_scopes"].copy()
                 if "pending_mods" in s:
                     sprite._pending_modifiers = list(s["pending_mods"])
                 if "pending_effs" in s:
@@ -466,7 +466,7 @@ class Battle(BattleMechanicsMixin):
                     saved_tracked = s["direct_mod_tracked"]
                     sprite._direct_mod_tracked = (
                         None if saved_tracked is None
-                        else {name: dict(mods) for name, mods in saved_tracked.items()}
+                        else {name: mods.copy() for name, mods in saved_tracked.items()}
                     )
                 if "moe_chain" in s:
                     sprite._moe_chain = list(s["moe_chain"])
