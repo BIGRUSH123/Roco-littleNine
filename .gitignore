@@ -23,3 +23,9 @@ docs/
 tests/
 CHANGELOG.md
 env/
+# Cython 编译产物
+*.c
+*.pyd
+*.so
+*.html
+build/
