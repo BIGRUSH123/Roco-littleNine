@@ -15,6 +15,7 @@ from cpython.dict cimport PyDict_GetItem, PyDict_Contains
 
 # 导入 Python 类型
 from backend.vm.ctx import Ctx, EventContext
+from backend.sim.resolver import _TYPE_CHART
 
 
 # ============================================================================
@@ -301,7 +302,398 @@ cpdef tuple collect_skill_summary_cy(
 
 
 # ============================================================================
-# TODO: Week 1 Day 3-4 - build_ctx_cy 完整实现
+# Week 1 Day 3-4 - build_ctx_cy 完整实现
 # ============================================================================
 
-# 暂时保留，Week 1 完成后实现
+cpdef build_ctx_cy(
+    self_sprite,
+    opp_sprite,
+    self_skill,
+    opp_skill=None,
+    globals_=None,
+    str team="A",
+    int turn=0,
+    bint is_first=False,
+    bint opp_switched=False,
+    bint self_switched=False,
+    bint counter_succeeded=False,
+    bint was_countered=False,
+    bint prev_counter_succeeded=False,
+    int damage_taken_this_turn=0,
+    bint target_fainted=False,
+    int damage_reduced_self=0,
+    int skill_index=0,
+    bint skill_position_changed=False,
+    bint devotion_triggered=False,
+    bint prev_damage_taken_self=False,
+    bint prev_damage_taken_opp=False,
+    str prev_skill_type="",
+    str last_tick_abnormal="",
+    str last_tick_target="",
+    str abnormal_changed_name="",
+    str abnormal_changed_target="",
+    str abnormal_applied_name="",
+    str abnormal_applied_target="",
+    str skills_energy_changed_of="",
+    str positive_changed_of="",
+    str energy_changed_of="",
+    str damage_taken_of="",
+    int last_tick_damage_self=0,
+    int last_tick_damage_opp=0,
+    bint turn_end=False,
+    dict counter_values=None,
+    dict skill_count_own=None,
+    dict team_counters_own=None,
+    dict team_counters_opp=None,
+    dict energy_cost_sum_self=None,
+    int elements_used_count_self=0,
+    int burst_triggered_count_own=0,
+    int fainted_own=0,
+    int fainted_opp=0,
+    int lives_own=5,
+    int lives_opp=5,
+    team_elements_own=frozenset(),
+    team_elements_opp=frozenset(),
+    dict devotion_own=None,
+    dict devotion_opp=None,
+    dict abnormal_stacks_battle=None,
+    int moe_team_stacks=0,
+    battle_skill=None,
+):
+    """Cython 优化版本的 build_ctx
+
+    通过将 Python 对象数据提取到 C 类型变量，大幅减少对象访问开销。
+    """
+    # ── Self sprite 数据提取 ──
+    cdef dict ss_mods = self_sprite._modifiers
+    cdef dict ss_stats = self_sprite.initial_stats
+    cdef dict ss_counters = self_sprite.counters
+
+    cdef int hp_self = self_sprite.current_hp
+    cdef int hp_self_max = self_sprite.max_hp
+    cdef double hp_self_ratio = safe_hp_ratio(hp_self, hp_self_max)
+    cdef int priority_self = int(ss_mods.get("priority", 0))
+    cdef int energy_self = self_sprite.energy
+
+    # Bloodline & elements
+    species_self = self_sprite.species
+    bloodline_self = self_sprite.bloodline
+    elements_self = tuple(species_self.elements) if species_self else ()
+
+    # 调用 Python 的 _extract_sprite_effects (已高度优化，使用 Sprite 缓存)
+    from backend.engine.snapshot import _extract_sprite_effects
+    (
+        stat_stages_self,
+        abnormal_stacks_self,
+        is_charging_self,
+        charged_self,
+        positive_count_self,
+    ) = _extract_sprite_effects(self_sprite)
+
+    # 调用 Cython 版本的技能摘要
+    (
+        skill_elements_self,
+        skill_element_counts_self,
+        skills_energy_sum_self,
+        zero_cost_skill_count_self,
+    ) = collect_skill_summary_cy(getattr(self_sprite, 'skills', None) or [])
+
+    cdef int skill_element_count_self = len(skill_elements_self)
+
+    # 四维属性（已应用修正）
+    cdef int atk_self = self_sprite.atk_with_modifiers
+    cdef int def_self = self_sprite.def_with_modifiers
+    cdef int sp_atk_self = self_sprite.sp_atk_with_modifiers
+    cdef int sp_def_self = self_sprite.sp_def_with_modifiers
+    cdef int speed_self = compute_speed_self_cy(ss_stats, ss_mods, stat_stages_self)
+
+    # 修正值（使用 Sprite 缓存）
+    cdef double damage_reduction_mod_self = self_sprite.damage_reduction_modifier
+    cdef double power_mult_mod_self = self_sprite.power_mult_modifier
+    cdef double damage_mult_mod_self = self_sprite.damage_mult_modifier
+    cdef double energy_cost_mult_mod_self = self_sprite.energy_cost_mult_modifier
+    cdef double combo_mult_mod_self = self_sprite.combo_mult_modifier
+    cdef double life_drain_mod_self = self_sprite.life_drain_modifier
+
+    # 计数器
+    cdef int times_entered_val = ss_counters.get("times_entered", 0)
+    cdef int times_left_val = ss_counters.get("times_left", 0)
+
+    # 状态
+    cdef bint first_action_self = self_sprite.first_action
+    cdef bint first_action_battle_self = self_sprite.first_action_battle
+    cdef bint is_fainted_self = self_sprite.is_fainted
+    cdef int entry_turn = self_sprite.entry_turn
+    cdef bint just_entered = (entry_turn == turn and turn >= 0)
+
+    # Energy cost sum
+    ecs = energy_cost_sum_self or {}
+
+    # ── Opponent sprite 数据提取 ──
+    cdef dict os_mods = opp_sprite._modifiers
+    cdef dict os_stats = opp_sprite.initial_stats
+
+    cdef int hp_opp = opp_sprite.current_hp
+    cdef int hp_opp_max = opp_sprite.max_hp
+    cdef double hp_opp_ratio = safe_hp_ratio(hp_opp, hp_opp_max)
+    cdef int energy_opp = opp_sprite.energy
+
+    # Bloodline & elements
+    species_opp = opp_sprite.species
+    bloodline_opp = opp_sprite.bloodline if opp_sprite else ''
+    elements_opp = tuple(species_opp.elements) if species_opp else ()
+
+    # 效果提取
+    (
+        stat_stages_opp,
+        abnormal_stacks_opp,
+        is_charging_opp,
+        charged_opp,
+        positive_count_opp,
+    ) = _extract_sprite_effects(opp_sprite)
+
+    # 技能摘要
+    (
+        skill_elements_opp,
+        skill_element_counts_opp,
+        skills_energy_sum_opp,
+        _zero_cost_skill_count_opp,
+    ) = collect_skill_summary_cy(getattr(opp_sprite, 'skills', None) or [])
+
+    cdef int skill_element_count_opp = len(skill_elements_opp)
+
+    # 四维属性
+    cdef int atk_opp = opp_sprite.atk_with_modifiers
+    cdef int def_opp = opp_sprite.def_with_modifiers
+    cdef int sp_atk_opp = opp_sprite.sp_atk_with_modifiers
+    cdef int sp_def_opp = opp_sprite.sp_def_with_modifiers
+    cdef int speed_opp = compute_speed_cy(os_stats, stat_stages_opp)
+
+    # 修正值
+    cdef double damage_reduction_mod_opp = opp_sprite.damage_reduction_modifier
+    cdef double power_mult_mod_opp = opp_sprite.power_mult_modifier
+    cdef double damage_mult_mod_opp = opp_sprite.damage_mult_modifier
+
+    # ── Teams (from GlobalEffects) ──
+    cdef str own_team = team
+    cdef str opp_team = "B" if team == "A" else "A"
+    cdef dict mark_stacks_own = {}
+    cdef int mark_count_own = 0
+    cdef dict mark_stacks_opp = {}
+    cdef int mark_count_opp = 0
+    cdef double mark_bonus_own = 0.0
+    cdef str weather = ""
+
+    # 导入 MarkEffect 类型
+    from backend.vm.effect import MarkEffect
+
+    if globals_:
+        for m in globals_.mark_effects.get(own_team, ()):
+            if not isinstance(m, MarkEffect):
+                continue
+            mark_stacks_own[m.name] = mark_stacks_own.get(m.name, 0) + m.stacks
+            mark_count_own += m.stacks
+            if m.damage_mult:
+                cond = m.condition
+                if cond == '' or (cond == 'is_first' and is_first) or (cond == 'not_first' and not is_first):
+                    mark_bonus_own += m.damage_mult * m.stacks
+        for m in globals_.mark_effects.get(opp_team, ()):
+            if not isinstance(m, MarkEffect):
+                continue
+            mark_stacks_opp[m.name] = mark_stacks_opp.get(m.name, 0) + m.stacks
+            mark_count_opp += m.stacks
+        weather = globals_.weather if globals_ else ""
+
+    # ── Skill ──
+    sk = self_skill
+    bs = battle_skill
+    skill_mods = getattr(bs, '_modifiers', {}) if bs is not None else getattr(sk, '_modifiers', {}) if sk else {}
+
+    cdef int power_self
+    cdef int combo_base
+    cdef int energy_cost_self
+    cdef int combo_mod
+    cdef int combo_set
+    cdef int combo_self
+
+    if bs is not None:
+        power_self = bs.power
+        combo_base = bs.base.combo if hasattr(bs, 'base') else getattr(sk, 'combo', 1)
+        energy_cost_self = bs.energy_cost
+    else:
+        power_self = sk.power if hasattr(sk, 'power') else 0
+        combo_base = sk.combo if hasattr(sk, 'combo') else 1
+        energy_cost_self = sk.energy_cost if hasattr(sk, 'energy_cost') else 0
+
+    combo_mod = int(ss_mods.get("combo", 0))
+    combo_set = int(ss_mods.get("combo_set", 0))
+    combo_self = max(1, combo_set) if combo_set > 0 else max(1, combo_base + combo_mod)
+
+    cdef int energy_cost_reduction_self = 0  # engine tracks this
+
+    # ── Opp skill ──
+    osk = opp_skill
+    cdef int power_opp = osk.power if osk and hasattr(osk, 'power') else 0
+    cdef int energy_cost_opp = osk.energy_cost if osk and hasattr(osk, 'energy_cost') else 0
+
+    # Skill 属性
+    skill_type_self = getattr(sk, 'skill_type', "")
+    skill_type_opp = getattr(osk, 'skill_type', "") if osk else ""
+    element_self = getattr(sk, 'element', "")
+    element_opp = getattr(osk, 'element', "") if osk else ""
+    skill_tag_self = getattr(sk, 'tag', "")
+
+    # Element advantage (使用 Cython 优化版本)
+    cdef double element_advantage = get_element_advantage_cy(
+        element_self,
+        list(elements_opp),
+        _TYPE_CHART
+    ) if sk else 1.0
+
+    # ── Build EventContext ──
+    event_ctx = EventContext(
+        counter_succeeded=counter_succeeded,
+        was_countered=was_countered,
+        prev_counter_succeeded=prev_counter_succeeded,
+        target_fainted=target_fainted,
+        self_koed=is_fainted_self,
+        opp_switched=opp_switched,
+        self_switched=self_switched,
+        turn_end=turn_end,
+        skill_position_changed=skill_position_changed,
+        devotion_triggered=devotion_triggered,
+        last_tick_abnormal=last_tick_abnormal,
+        last_tick_target=last_tick_target,
+        abnormal_changed_name=abnormal_changed_name,
+        abnormal_changed_target=abnormal_changed_target,
+        abnormal_applied_name=abnormal_applied_name,
+        abnormal_applied_target=abnormal_applied_target,
+        skills_energy_changed_of=skills_energy_changed_of,
+        positive_changed_of=positive_changed_of,
+        energy_changed_of=energy_changed_of,
+        damage_taken_of=damage_taken_of,
+    )
+
+    # ── 计算 modifier 合并值 ──
+    cdef double damage_reduction_self = min(1.0,
+        damage_reduction_mod_self + skill_mods.get("damage_reduction", 0.0))
+    cdef double power_mult_self = 1.0 + (power_mult_mod_self - 1.0) + (skill_mods.get("power_mult", 1.0) - 1.0)
+    cdef double damage_mult_self = 1.0 + (damage_mult_mod_self - 1.0) + (skill_mods.get("damage_mult", 1.0) - 1.0)
+
+    # ── Build Ctx ──
+    return Ctx(
+        event=event_ctx,
+        # Bloodline / Elements
+        bloodline_self=bloodline_self,
+        bloodline_opp=bloodline_opp,
+        elements_self=elements_self,
+        elements_opp=elements_opp,
+        # Self sprite
+        hp_self=hp_self,
+        hp_self_ratio=hp_self_ratio,
+        hp_self_max=hp_self_max,
+        energy_self=energy_self,
+        priority_self=priority_self,
+        atk_self=atk_self,
+        def_self=def_self,
+        sp_atk_self=sp_atk_self,
+        sp_def_self=sp_def_self,
+        speed_self=speed_self,
+        damage_reduction_self=damage_reduction_self,
+        power_mult_self=power_mult_self,
+        damage_mult_self=damage_mult_self,
+        energy_cost_mult_self=energy_cost_mult_mod_self,
+        combo_mult_self=combo_mult_mod_self,
+        life_drain_self=life_drain_mod_self,
+        abnormal_count_self=sum(abnormal_stacks_self.values()),
+        abnormal_stacks_self=abnormal_stacks_self,
+        positive_count_self=positive_count_self,
+        first_action_self=first_action_self,
+        first_action_battle_self=first_action_battle_self,
+        charged_self=charged_self,
+        is_charging_self=is_charging_self,
+        is_charging_opp=is_charging_opp,
+        times_entered_self=times_entered_val,
+        times_left_self=times_left_val,
+        elements_used_count_self=elements_used_count_self,
+        skills_energy_sum_self=skills_energy_sum_self,
+        just_entered=just_entered,
+        skill_elements_self=skill_elements_self,
+        skill_element_counts_self=skill_element_counts_self,
+        skill_element_count_self=skill_element_count_self,
+        stat_stages_self=stat_stages_self,
+        energy_cost_sum_self=ecs,
+        zero_cost_skill_count_self=zero_cost_skill_count_self,
+        # Opp sprite
+        hp_opp=hp_opp,
+        hp_opp_ratio=hp_opp_ratio,
+        hp_opp_max=hp_opp_max,
+        energy_opp=energy_opp,
+        atk_opp=atk_opp,
+        def_opp=def_opp,
+        sp_atk_opp=sp_atk_opp,
+        sp_def_opp=sp_def_opp,
+        speed_opp=speed_opp,
+        damage_reduction_opp=damage_reduction_mod_opp,
+        power_mult_opp=power_mult_mod_opp,
+        damage_mult_opp=damage_mult_mod_opp,
+        abnormal_count_opp=sum(abnormal_stacks_opp.values()),
+        abnormal_stacks_opp=abnormal_stacks_opp,
+        positive_count_opp=positive_count_opp,
+        charged_opp=charged_opp,
+        skill_elements_opp=skill_elements_opp,
+        skill_element_counts_opp=skill_element_counts_opp,
+        skill_element_count_opp=skill_element_count_opp,
+        stat_stages_opp=stat_stages_opp,
+        skills_energy_sum_opp=skills_energy_sum_opp,
+        # Teams
+        mark_count_own=mark_count_own,
+        mark_stacks_own=mark_stacks_own,
+        mark_count_opp=mark_count_opp,
+        mark_stacks_opp=mark_stacks_opp,
+        mark_bonus_own=mark_bonus_own,
+        mark_count_both=mark_count_own + mark_count_opp,
+        skill_count_own=skill_count_own or {},
+        team_counters_own=team_counters_own or {},
+        team_counters_opp=team_counters_opp or {},
+        team_elements_own=team_elements_own,
+        team_elements_opp=team_elements_opp,
+        devotion_own=devotion_own or {},
+        devotion_opp=devotion_opp or {},
+        abnormal_stacks_battle=abnormal_stacks_battle or {},
+        fainted_own=fainted_own,
+        fainted_opp=fainted_opp,
+        lives_own=lives_own,
+        lives_opp=lives_opp,
+        burst_triggered_count_own=burst_triggered_count_own,
+        moe_team_stacks=moe_team_stacks,
+        # Skill
+        power_self=power_self,
+        adjacent_power_sum=0,
+        power_opp=power_opp,
+        skill_type_self=skill_type_self,
+        skill_type_opp=skill_type_opp,
+        element_self=element_self,
+        element_opp=element_opp,
+        skill_tag_self=skill_tag_self,
+        combo_self=combo_self,
+        element_advantage=element_advantage,
+        energy_cost_self=energy_cost_self,
+        energy_cost_reduction_self=energy_cost_reduction_self,
+        energy_cost_opp=energy_cost_opp,
+        damage_taken_this_turn=damage_taken_this_turn,
+        damage_reduced_self=damage_reduced_self,
+        prev_skill_type=prev_skill_type,
+        prev_damage_taken_self=prev_damage_taken_self,
+        prev_damage_taken_opp=prev_damage_taken_opp,
+        # Skill tracking
+        skill_index=skill_index,
+        last_tick_damage_self=last_tick_damage_self,
+        last_tick_damage_opp=last_tick_damage_opp,
+        # Battlefield
+        weather=weather,
+        turn=turn,
+        is_first=is_first,
+        # Counters
+        counter_values=counter_values or {},
+    )

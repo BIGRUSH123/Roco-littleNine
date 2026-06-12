@@ -26,6 +26,16 @@ from .replayer import JournalReplayer
 from .snapshot import build_ctx
 from .trait_loader import TraitLoader
 
+# Cython 优化的 build_ctx（如果可用）
+_USE_CYTHON_BUILD_CTX = True
+_build_ctx_cy = None
+if _USE_CYTHON_BUILD_CTX:
+    try:
+        from .snapshot_cy import build_ctx_cy
+        _build_ctx_cy = build_ctx_cy
+    except ImportError:
+        pass  # 回退到 Python 版本
+
 if TYPE_CHECKING:
     from backend.sim.globals import GlobalEffects
     from backend.sim.sprite import Sprite
@@ -43,6 +53,13 @@ _SINGLE_OWNER_TRIGGERS = frozenset({
     "post_enemy_leave", "post_charge",
     "post_heal",
 })
+
+
+def _make_ctx(*args, **kwargs):
+    """智能选择 build_ctx 实现（Cython 或 Python）"""
+    if _build_ctx_cy is not None:
+        return _build_ctx_cy(*args, **kwargs)
+    return build_ctx(*args, **kwargs)
 
 
 class SkillExecutionResult:
@@ -159,7 +176,7 @@ class BattleVMEngine:
         counter_values = self._counter_values if headless else dict(self._counter_values)
 
         # 1. Build Ctx snapshot
-        ctx = build_ctx(
+        ctx = _make_ctx(
             self_sprite, opp_sprite,
             self_skill, opp_skill, globals_,
             team=team, turn=turn, is_first=is_first,
@@ -181,7 +198,7 @@ class BattleVMEngine:
             from .replayer import JournalReplayer as _JR
             _pre_r = _JR(self_sprite, opp_sprite, globals_, self.registry, team=team, battle=battle)
             pre_calc_events = _pre_r.replay(pre_calc_mods)
-            ctx = build_ctx(
+            ctx = _make_ctx(
                 self_sprite, opp_sprite, self_skill, opp_skill, globals_,
                 team=team, turn=turn, is_first=is_first,
                 burst_triggered_count_own=self.burst_triggered_count(team),
