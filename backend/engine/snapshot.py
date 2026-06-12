@@ -50,8 +50,33 @@ def _compute_speed(stats: dict[str, int], stat_stages: dict[str, int]) -> int:
     return max(0, stats.get("speed", 100) + stat_stages.get("speed", 0) * _SPEED_STEP)
 
 
+def _battle_skill_summary_key(skills) -> tuple | None:
+    key = []
+    for sk in skills:
+        if type(sk) is not BattleSkill:
+            return None
+        base = sk.replaced_by or sk.base
+        key.append((
+            id(sk),
+            id(base),
+            sk.nullified,
+            sk._element_override,
+            sk._mech_energy_reduction,
+            sk._modifiers.get("energy_cost", 0),
+        ))
+    return tuple(key)
+
+
 def _collect_skill_summary(sprite: Sprite) -> tuple[frozenset, dict[str, int], int, int]:
     skills = getattr(sprite, 'skills', None) or ()
+    if skills:
+        cache_key = _battle_skill_summary_key(skills)
+        if cache_key is not None:
+            cached = getattr(sprite, '_skill_summary_cache', None)
+            if cached is not None and cached[0] == cache_key:
+                return cached[1]
+    else:
+        cache_key = None
     elements: set[str] = set()
     element_counts: dict[str, int] = {}
     energy_sum = 0
@@ -71,7 +96,10 @@ def _collect_skill_summary(sprite: Sprite) -> tuple[frozenset, dict[str, int], i
             energy_sum += cost
             if cost == 0:
                 zero_cost_count += 1
-        return frozenset(elements), element_counts, energy_sum, zero_cost_count
+        result = (frozenset(elements), element_counts, energy_sum, zero_cost_count)
+        if cache_key is not None:
+            sprite._skill_summary_cache = (cache_key, result)
+        return result
 
     for sk in skills:
         if isinstance(sk, BattleSkill):
