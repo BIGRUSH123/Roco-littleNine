@@ -407,15 +407,26 @@ with tab3:
         if not st.session_state.training_running:
             if st.button("🚀 启动训练", type="primary", use_container_width=True):
                 try:
-                    # 使用虚拟环境中的 Python
+                    # 使用虚拟环境中的 Python（支持多种路径）
                     import sys
                     from pathlib import Path
 
                     # 检测虚拟环境
                     project_root = Path(__file__).parent
-                    venv_python = project_root / "env" / "Scripts" / "python.exe"
 
-                    if venv_python.exists():
+                    # 尝试多种可能的虚拟环境路径
+                    venv_paths = [
+                        project_root / "env" / "python.exe",           # Conda/独立环境
+                        project_root / "env" / "Scripts" / "python.exe", # venv
+                    ]
+
+                    venv_python = None
+                    for path in venv_paths:
+                        if path.exists():
+                            venv_python = path
+                            break
+
+                    if venv_python:
                         python_exe = str(venv_python)
                         st.info(f"✅ 使用虚拟环境: {python_exe}")
                     else:
