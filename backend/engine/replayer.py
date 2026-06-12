@@ -585,6 +585,10 @@ class JournalReplayer:
             target_mods[m.stat] = m.value
         final = target_mods[m.stat]
 
+        # 失效属性缓存（当修改四维属性修正时）
+        if m.stat in ("atk", "def", "sp_atk", "sp_def"):
+            sprite._invalidate_stat_cache()
+
         # Sync sprite-level attrs (max_energy, starfall_consume_ratio) to active_effects.
         # Observer-triggered power_mod writes to _modifiers but property methods read
         # from active_effects → ModifierEffect (see Sprite.max_energy).

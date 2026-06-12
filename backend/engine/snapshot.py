@@ -330,17 +330,7 @@ def build_ctx(
     )
 
     # ── 批量提取字典值（减少重复查找，提升性能） ──
-    # Self sprite 基础属性
-    atk_base_self = ss_stats.get("atk", 100)
-    def_base_self = ss_stats.get("def", 100)
-    sp_atk_base_self = ss_stats.get("sp_atk", 100)
-    sp_def_base_self = ss_stats.get("sp_def", 100)
-
-    # Self sprite 修正值
-    atk_mod_self = ss_mods.get("atk", 0)
-    def_mod_self = ss_mods.get("def", 0)
-    sp_atk_mod_self = ss_mods.get("sp_atk", 0)
-    sp_def_mod_self = ss_mods.get("sp_def", 0)
+    # Self sprite 修正值（非四维属性）
     damage_reduction_mod_self = ss_mods.get("damage_reduction", 0.0)
     power_mult_mod_self = ss_mods.get("power_mult", 1.0)
     damage_mult_mod_self = ss_mods.get("damage_mult", 1.0)
@@ -351,12 +341,6 @@ def build_ctx(
     # Self sprite counters
     times_entered_val = ss_counters.get("times_entered", 0)
     times_left_val = ss_counters.get("times_left", 0)
-
-    # Opponent sprite 基础属性
-    atk_base_opp = os_stats.get("atk", 100)
-    def_base_opp = os_stats.get("def", 100)
-    sp_atk_base_opp = os_stats.get("sp_atk", 100)
-    sp_def_base_opp = os_stats.get("sp_def", 100)
 
     # Opponent sprite 修正值
     damage_reduction_mod_opp = os_mods.get("damage_reduction", 0.0)
@@ -380,10 +364,10 @@ def build_ctx(
         # Use initial_stats (base without stage multipliers) because
         # calc_damage applies stat_stages separately in the formula.
         # Apply _modifiers multipliers for mult_mod {attr: atk/def/etc.}
-        atk_self=round(atk_base_self * (1.0 + atk_mod_self)),
-        def_self=round(def_base_self * (1.0 + def_mod_self)),
-        sp_atk_self=round(sp_atk_base_self * (1.0 + sp_atk_mod_self)),
-        sp_def_self=round(sp_def_base_self * (1.0 + sp_def_mod_self)),
+        atk_self=ss.atk_with_modifiers,
+        def_self=ss.def_with_modifiers,
+        sp_atk_self=ss.sp_atk_with_modifiers,
+        sp_def_self=ss.sp_def_with_modifiers,
         speed_self=_compute_speed_self(ss, stat_stages_self),
         # Sprite + skill modifier delta 相加（同类型 buff 加性叠加，非相乘）
         damage_reduction_self=min(1.0,
@@ -424,10 +408,10 @@ def build_ctx(
         hp_opp_max=hp_opp_max,
         energy_opp=os.energy,
         # Use initial_stats for non-speed stats (see self-sprite comment above)
-        atk_opp=atk_base_opp,
-        def_opp=def_base_opp,
-        sp_atk_opp=sp_atk_base_opp,
-        sp_def_opp=sp_def_base_opp,
+        atk_opp=os.atk_with_modifiers,
+        def_opp=os.def_with_modifiers,
+        sp_atk_opp=os.sp_atk_with_modifiers,
+        sp_def_opp=os.sp_def_with_modifiers,
         speed_opp=_compute_speed(os_stats, stat_stages_opp),
         damage_reduction_opp=damage_reduction_mod_opp,
         power_mult_opp=power_mult_mod_opp,

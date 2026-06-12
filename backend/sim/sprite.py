@@ -55,6 +55,13 @@ class Sprite:
     _cached_charged: bool = False
     _cached_positive: int = 0
 
+    # ── 属性缓存（减少重复计算，避免 build_ctx 时重复计算 base * (1+mod)） ──
+    _stat_cache_dirty: bool = field(default=True, repr=False)
+    _cached_atk: int = 0
+    _cached_def: int = 0
+    _cached_sp_atk: int = 0
+    _cached_sp_def: int = 0
+
     # 进场回合
     entry_turn: int = 0
 
@@ -427,6 +434,64 @@ class Sprite:
             "charged": self._cached_charged,
             "positive": self._cached_positive,
         }
+
+    # ── 属性缓存（减少重复计算） ──
+
+    def _invalidate_stat_cache(self) -> None:
+        """标记属性缓存失效。当 _modifiers 或 initial_stats 变化时调用。"""
+        self._stat_cache_dirty = True
+
+    def _rebuild_stat_cache(self) -> None:
+        """重建属性缓存（仅在 dirty 时触发）。"""
+        if not self._stat_cache_dirty:
+            return
+
+        # 读取基础值和修正值
+        atk_base = self.initial_stats.get("atk", 100)
+        def_base = self.initial_stats.get("def", 100)
+        sp_atk_base = self.initial_stats.get("sp_atk", 100)
+        sp_def_base = self.initial_stats.get("sp_def", 100)
+
+        atk_mod = self._modifiers.get("atk", 0)
+        def_mod = self._modifiers.get("def", 0)
+        sp_atk_mod = self._modifiers.get("sp_atk", 0)
+        sp_def_mod = self._modifiers.get("sp_def", 0)
+
+        # 计算并缓存
+        self._cached_atk = round(atk_base * (1.0 + atk_mod))
+        self._cached_def = round(def_base * (1.0 + def_mod))
+        self._cached_sp_atk = round(sp_atk_base * (1.0 + sp_atk_mod))
+        self._cached_sp_def = round(sp_def_base * (1.0 + sp_def_mod))
+
+        self._stat_cache_dirty = False
+
+    @property
+    def atk_with_modifiers(self) -> int:
+        """攻击力（含修正）。"""
+        if self._stat_cache_dirty:
+            self._rebuild_stat_cache()
+        return self._cached_atk
+
+    @property
+    def def_with_modifiers(self) -> int:
+        """防御力（含修正）。"""
+        if self._stat_cache_dirty:
+            self._rebuild_stat_cache()
+        return self._cached_def
+
+    @property
+    def sp_atk_with_modifiers(self) -> int:
+        """特攻（含修正）。"""
+        if self._stat_cache_dirty:
+            self._rebuild_stat_cache()
+        return self._cached_sp_atk
+
+    @property
+    def sp_def_with_modifiers(self) -> int:
+        """特防（含修正）。"""
+        if self._stat_cache_dirty:
+            self._rebuild_stat_cache()
+        return self._cached_sp_def
 
     # ── 效果生命周期：TTL / Delay / Cooldown ──
 
