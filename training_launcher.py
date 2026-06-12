@@ -530,11 +530,48 @@ with tab4:
         with col2:
             st.metric("训练样本", "2,450", "+2,450")
         with col3:
-            st.metric("当前损失", "0.845", "-0.155")
+            st.metric("胜率", "58.3%", "+3.2%")
         with col4:
             st.metric("预计剩余", "9.2h", "")
 
+        # 详细损失指标
+        st.markdown("---")
+        st.subheader("📉 损失详情")
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+            st.markdown("##### 训练集损失")
+            sub_col1, sub_col2 = st.columns(2)
+            with sub_col1:
+                st.metric("策略损失 (P Loss)", "0.325", "-0.018", delta_color="inverse")
+                st.caption("Policy loss - 预测动作分布的损失")
+            with sub_col2:
+                st.metric("价值损失 (V Loss)", "0.187", "-0.024", delta_color="inverse")
+                st.caption("Value loss - 预测胜负的损失")
+
+        with col2:
+            st.markdown("##### 验证集损失")
+            sub_col1, sub_col2 = st.columns(2)
+            with sub_col1:
+                st.metric("策略损失 (P Loss)", "0.387", "-0.015", delta_color="inverse")
+                st.caption("验证集策略损失")
+            with sub_col2:
+                st.metric("价值损失 (V Loss)", "0.214", "-0.019", delta_color="inverse")
+                st.caption("验证集价值损失")
+
+        # 准确率
+        st.markdown("---")
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric("训练准确率", "74.2%", "+1.5%")
+        with col2:
+            st.metric("验证准确率", "73.2%", "+1.2%")
+        with col3:
+            st.metric("最佳验证准确率", "75.8%", "")
+
         # 建议使用专门的监控工具
+        st.markdown("---")
         st.info("""
         💡 **提示**：使用专门的监控工具获得更好的体验
 
