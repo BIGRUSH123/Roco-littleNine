@@ -335,6 +335,16 @@ with tab2:
 with tab3:
     st.header("启动训练")
 
+    # 调试信息
+    with st.expander("🔍 参数调试信息", expanded=False):
+        st.write(f"battles = {battles}")
+        st.write(f"sims = {sims}")
+        st.write(f"iterations = {iterations}")
+        st.write(f"epochs = {epochs}")
+        st.write(f"mcts_parallel = {mcts_parallel}")
+        if mcts_parallel:
+            st.write(f"mcts_workers = {mcts_workers}")
+
     # 预览命令
     st.subheader("📝 命令预览")
 
