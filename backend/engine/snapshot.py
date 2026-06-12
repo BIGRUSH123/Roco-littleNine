@@ -203,7 +203,7 @@ def build_ctx(
     hp_self_max = ss.max_hp
     hp_self_ratio = hp_self / hp_self_max if hp_self_max > 0 else 0.0
     priority_self = int(ss_mods.get("priority", 0))
-    species_self = getattr(ss, 'species', None)
+    species_self = ss.species
     elements_self = tuple(species_self.elements) if species_self else ()
 
     # 单次遍历 active_effects，同时提取 stat_stages/abnormal_stacks/charging/charged/positive_count
@@ -232,7 +232,7 @@ def build_ctx(
     hp_opp = os.current_hp
     hp_opp_max = os.max_hp
     hp_opp_ratio = hp_opp / hp_opp_max if hp_opp_max > 0 else 0.0
-    species_opp = getattr(os, 'species', None)
+    species_opp = os.species
     elements_opp = tuple(species_opp.elements) if species_opp else ()
 
     (
@@ -351,8 +351,8 @@ def build_ctx(
     return Ctx(
         event=event_ctx,
         # Bloodline / Elements
-        bloodline_self=getattr(ss, 'bloodline', ''),
-        bloodline_opp=getattr(os, 'bloodline', '') if os else '',
+        bloodline_self=ss.bloodline,
+        bloodline_opp=os.bloodline if os else '',
         elements_self=elements_self,
         elements_opp=elements_opp,
         # Self sprite
@@ -385,8 +385,8 @@ def build_ctx(
         abnormal_count_self=sum(abnormal_stacks_self.values()),
         abnormal_stacks_self=abnormal_stacks_self,
         positive_count_self=positive_count_self,
-        first_action_self=getattr(ss, 'first_action', True),
-        first_action_battle_self=getattr(ss, 'first_action_battle', True),
+        first_action_self=ss.first_action,
+        first_action_battle_self=ss.first_action_battle,
         charged_self=charged_self,
         is_charging_self=is_charging_self,
         is_charging_opp=is_charging_opp,
@@ -394,7 +394,7 @@ def build_ctx(
         times_left_self=times_left_val,
         elements_used_count_self=elements_used_count_self,
         skills_energy_sum_self=skills_energy_sum_self,
-        just_entered=getattr(ss, 'entry_turn', -1) == turn and turn >= 0,
+        just_entered=ss.entry_turn == turn and turn >= 0,
         skill_elements_self=skill_elements_self,
         skill_element_counts_self=skill_element_counts_self,
         skill_element_count_self=skill_element_count_self,
