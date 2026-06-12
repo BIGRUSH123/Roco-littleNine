@@ -407,8 +407,23 @@ with tab3:
         if not st.session_state.training_running:
             if st.button("🚀 启动训练", type="primary", use_container_width=True):
                 try:
+                    # 使用虚拟环境中的 Python
+                    import sys
+                    from pathlib import Path
+
+                    # 检测虚拟环境
+                    project_root = Path(__file__).parent
+                    venv_python = project_root / "env" / "Scripts" / "python.exe"
+
+                    if venv_python.exists():
+                        python_exe = str(venv_python)
+                        st.info(f"✅ 使用虚拟环境: {python_exe}")
+                    else:
+                        python_exe = sys.executable
+                        st.warning(f"⚠️ 虚拟环境未找到，使用当前 Python: {python_exe}")
+
                     # 构建命令
-                    cmd = ["python", "-m", "backend.engine.ai.train"]
+                    cmd = [python_exe, "-m", "backend.engine.ai.train"]
                     cmd.extend([
                         "--battles", str(battles),
                         "--sims", str(sims),
