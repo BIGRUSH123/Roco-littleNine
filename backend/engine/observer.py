@@ -17,7 +17,7 @@ from dataclasses import dataclass, field
 
 from backend.vm.cond import infer_triggers
 from backend.vm.ctx import Ctx
-from backend.vm.executor import process_effects
+from backend.vm.executor import compile_effects_batch, process_effects
 from backend.vm.journal import Mutation
 
 
@@ -88,6 +88,13 @@ TRIGGER_POINTS = frozenset({
     "post_positive_change",# after positive effect count changes
     # Turn boundaries
     "turn_end",            # at turn-end settlement
+})
+
+POST_EVENT_TRIGGERS = frozenset({
+    "post_skill", "post_damage", "post_ko", "post_switch", "post_entry",
+    "post_leave", "post_enemy_leave", "post_counter", "post_abnormal_tick",
+    "post_abnormal_change", "post_abnormal_apply", "post_energy_change",
+    "post_heal", "post_positive_change", "turn_end",
 })
 
 
@@ -175,6 +182,7 @@ class ObserverRegistry:
         self._ownerless_by_trigger: dict[str, list[Observer]] = {}
         self._owner_candidate_cache: dict[tuple[str, int], tuple[Observer, ...]] = {}
         self._seq_counter: int = 0  # monotonic registration sequence
+        self._version: int = 0      # increments when registry structure changes
 
     # ── Registration ──
 
@@ -183,6 +191,16 @@ class ObserverRegistry:
         # 消除 _fire_pre_event / _fire_post_event 运行时的 copy.copy 开销。
         if obs.source and obs.then:
             _bake_inject_source(obs.then, obs.source)
+
+        # 注册时一次性编译 obs.then 为 typed IR，消除触发时的 JIT 开销。
+        # Post-event observers 需要先 bake scope（因为 Observer 默认 scope="persistent"，
+        # 而 parser 默认大多数 op 为 "battlefield"），pre-event observers 保持 parser 默认。
+        # 通过检查 listen 集合判断：若包含任何 post_* 或 turn_end 触发点，则 bake scope。
+        if obs.then and obs.then and type(obs.then[0]) is dict:
+            if obs.listen and obs.listen & POST_EVENT_TRIGGERS:
+                _bake_inject_scope(obs.then, obs.scope)
+            obs.then = compile_effects_batch(obs.then)
+
         obs._reg_seq = self._seq_counter
         self._seq_counter += 1
         self._observers.append(obs)
@@ -197,6 +215,7 @@ class ObserverRegistry:
                     self._owned_by_trigger.setdefault(t, {}).setdefault(owner, []).append(obs)
         else:
             self._fallback.append(obs)
+        self._version += 1
 
     def _rebuild_index(self) -> None:
         self._by_trigger.clear()
@@ -228,14 +247,48 @@ class ObserverRegistry:
         for obs in observers:
             self._index(obs)
 
+    def save_state(self) -> dict:
+        """Snapshot registry structure for high-frequency MCTS rollback.
+
+        Most simulations do not change the observer set. Store the structural
+        version and observer list only; restore can skip index rebuilding unless
+        a simulated branch registered/unregistered observers.
+        """
+        return {
+            "version": self._version,
+            "observers": list(self._observers),
+            "seq_counter": self._seq_counter,
+            "observer_runtime": [
+                (obs, obs._hit_count, obs._reg_seq)
+                for obs in self._observers
+            ],
+        }
+
+    def restore_state(self, state: dict) -> None:
+        """Restore a snapshot produced by save_state."""
+        structure_changed = self._version != state["version"]
+        if structure_changed:
+            self._observers = list(state["observers"])
+            self._rebuild_index()
+            self._version = state["version"]
+        else:
+            self._owner_candidate_cache.clear()
+            self._seq_counter = state["seq_counter"]
+        for obs, hit_count, reg_seq in state["observer_runtime"]:
+            obs._hit_count = hit_count
+            obs._reg_seq = reg_seq
+
     def unregister_by_owner(self, sprite_id: int, reason: str = "leave") -> int:
         before = len(self._observers)
         self._observers = [
             obs for obs in self._observers
             if obs.owner_sprite_id != sprite_id or not obs.should_clear(reason)
         ]
-        self._rebuild_index()
-        return before - len(self._observers)
+        removed = before - len(self._observers)
+        if removed:
+            self._rebuild_index()
+            self._version += 1
+        return removed
 
     def register_from_counter(self, counter) -> None:
         explicit_listen = getattr(counter, 'listen', None)
@@ -355,19 +408,31 @@ class ObserverRegistry:
     def clear_by_scope(self, scope: str) -> int:
         before = len(self._observers)
         self._observers = [o for o in self._observers if o.scope != scope]
-        self._rebuild_index()
-        return before - len(self._observers)
+        removed = before - len(self._observers)
+        if removed:
+            self._rebuild_index()
+            self._version += 1
+        return removed
 
     def clear_by_source(self, source: str) -> int:
         before = len(self._observers)
         self._observers = [o for o in self._observers if o.source != source]
-        self._rebuild_index()
-        return before - len(self._observers)
+        removed = before - len(self._observers)
+        if removed:
+            self._rebuild_index()
+            self._version += 1
+        return removed
 
     def clear_all(self) -> None:
-        self._observers.clear()
-        self._by_trigger.clear()
-        self._fallback.clear()
+        if self._observers or self._by_trigger or self._fallback:
+            self._observers.clear()
+            self._by_trigger.clear()
+            self._fallback.clear()
+            self._owned_by_trigger.clear()
+            self._ownerless_by_trigger.clear()
+            self._owner_candidate_cache.clear()
+            self._seq_counter = 0
+            self._version += 1
 
     def __len__(self) -> int:
         return len(self._observers)

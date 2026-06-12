@@ -7,7 +7,7 @@ from .ir_values import IRValue
 
 # ── Condition ──
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class CondExpr:
     cond: str
     params: dict[str, object] = field(default_factory=dict)
@@ -15,15 +15,15 @@ class CondExpr:
     def __hash__(self):
         return hash((self.cond, str(sorted(self.params.items()))))
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class AndCond:
     conditions: tuple[SkillCondition, ...]
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class OrCond:
     conditions: tuple[SkillCondition, ...]
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class NotCond:
     condition: SkillCondition
 
@@ -32,12 +32,12 @@ SkillCondition = CondExpr | AndCond | OrCond | NotCond
 
 # ── When block ──
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class WhenBranch:
     cond: SkillCondition
     then: tuple[SkillIROp, ...]
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class WhenBlock:
     cond: SkillCondition
     then: tuple[SkillIROp, ...]
@@ -51,7 +51,7 @@ class WhenBlock:
 # ── Op nodes (28: 7 RISC + 14 specialist + 7 legacy) ──
 
 # RISC register-modifying ops (split from ModOp)
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class StatStageOp:
     """RISC: stat_stage — modify sprite stat stages (atk/def/sp_atk/sp_def/speed)."""
     target: str = "sprite_self"
@@ -65,7 +65,7 @@ class StatStageOp:
     needs: str = ""
     priority: int = 0
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class PowerModOp:
     """RISC: power_mod — modify skill attributes (power/energy_cost/combo/priority)."""
     target: str = "sprite_self"
@@ -85,7 +85,7 @@ class PowerModOp:
     needs: str = ""
     priority: int = 0
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class MultModOp:
     """RISC: mult_mod — modify multipliers (power_mult/damage_mult/damage_reduction/life_drain)."""
     target: str = "sprite_self"
@@ -105,7 +105,7 @@ class MultModOp:
     needs: str = ""
     priority: int = 0
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class FlagSetOp:
     """RISC: flag_set — set/clear boolean flags (immune/freeze_immune/survive/...)."""
     target: str = "sprite_self"
@@ -118,7 +118,7 @@ class FlagSetOp:
     needs: str = ""
     priority: int = 0
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class HealOp:
     """RISC: heal — HP recovery or damage."""
     target: str = "sprite_self"
@@ -128,7 +128,7 @@ class HealOp:
     needs: str = ""
     priority: int = 0
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class EnergizeOp:
     """RISC: energize — energy recovery or drain."""
     target: str = "sprite_self"
@@ -137,7 +137,7 @@ class EnergizeOp:
     needs: str = ""
     priority: int = 0
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class ReviveOp:
     """RISC: revive — revive a fainted sprite."""
     target: str = "sprite_self"
@@ -147,7 +147,7 @@ class ReviveOp:
     priority: int = 0
 
 # Legacy mega-opcode — still accepted but new code should use the 7 RISC types above
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class ModOp:
     target: str
     stat: str
@@ -173,7 +173,7 @@ class ModOp:
     needs: str = ""
     priority: int = 0
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class HitOp:
     power: IRValue
     type: str
@@ -183,7 +183,7 @@ class HitOp:
     needs: str = ""
     priority: int = 0
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class MarkOp:
     target: str
     name: str
@@ -199,7 +199,7 @@ class MarkOp:
     needs: str = ""
     priority: int = 0
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class AbnormalOp:
     target: str
     name: str
@@ -216,7 +216,7 @@ class AbnormalOp:
     needs: str = ""
     priority: int = 0
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class WeatherOp:
     weather: str
     turns: int = 8
@@ -224,7 +224,7 @@ class WeatherOp:
     needs: str = ""
     priority: int = 0
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class DispelOp:
     target: str
     what: str
@@ -236,7 +236,7 @@ class DispelOp:
     needs: str = ""
     priority: int = 0
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class StealOp:
     target: str
     what: str
@@ -247,7 +247,7 @@ class StealOp:
     needs: str = ""
     priority: int = 0
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class TickOp:
     target: str
     name: str
@@ -255,7 +255,7 @@ class TickOp:
     needs: str = ""
     priority: int = 0
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class DoubleOp:
     target: str
     what: str
@@ -264,7 +264,7 @@ class DoubleOp:
     needs: str = ""
     priority: int = 0
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class EffectDeltaOp:
     target: str
     what: str = "negative"
@@ -273,14 +273,14 @@ class EffectDeltaOp:
     needs: str = ""
     priority: int = 0
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class ChargeOp:
     target: str = "sprite_self"
     feeds: str = ""
     needs: str = ""
     priority: int = 0
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class EscapeOp:
     target: str
     inherit: bool = False
@@ -290,14 +290,14 @@ class EscapeOp:
     needs: str = ""
     priority: int = 0
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class ReturnOp:
     target: str
     feeds: str = ""
     needs: str = ""
     priority: int = 0
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class LockOp:
     target: str
     turns: int = 1
@@ -305,21 +305,21 @@ class LockOp:
     needs: str = ""
     priority: int = 0
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class InterruptOp:
     target: str
     feeds: str = ""
     needs: str = ""
     priority: int = 0
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class ExchangeOp:
     what: str
     feeds: str = ""
     needs: str = ""
     priority: int = 0
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class ResetOp:
     target: str
     stat: str
@@ -327,14 +327,14 @@ class ResetOp:
     needs: str = ""
     priority: int = 0
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class RedirectOp:
     target: str
     feeds: str = ""
     needs: str = ""
     priority: int = 0
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class ReplayOp:
     from_: str
     skill_filter: dict | None = field(default=None, hash=False, compare=False)
@@ -343,14 +343,14 @@ class ReplayOp:
     needs: str = ""
     priority: int = 0
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class BorrowOp:
     from_: str
     feeds: str = ""
     needs: str = ""
     priority: int = 0
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class CountOp:
     name: str = ""
     when: SkillCondition | None = None
@@ -365,7 +365,7 @@ class CountOp:
 
 # ── Trait-level ops (engine-replayed, added Phase C1) ──
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class TeamCounterWrite:
     """Write to a team-level counter (e.g. skill element usage count)."""
     target: str = "own"     # "own" | "opp"
@@ -375,7 +375,7 @@ class TeamCounterWrite:
     needs: str = ""
     priority: int = 0
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class LivesChange:
     """Modify player lives (魔力)."""
     target_team: str = "own"  # "own" | "opp"
@@ -384,7 +384,7 @@ class LivesChange:
     needs: str = ""
     priority: int = 0
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class Schedule:
     """Register delayed effects for a future turn (RISC: defer)."""
     turns: int = 0
@@ -394,7 +394,7 @@ class Schedule:
     needs: str = ""
     priority: int = 0
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class InheritEffects:
     """Transfer effects from one sprite to another on switch."""
     source: str = "self"          # "self" | "target"
@@ -407,7 +407,7 @@ class InheritEffects:
     needs: str = ""
     priority: int = 0
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class Transform:
     """Transform a sprite's species and optionally skills."""
     species: str
@@ -418,7 +418,7 @@ class Transform:
     needs: str = ""
     priority: int = 0
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class GainSkills:
     """Grant temporary skills to a sprite from a skill pool (learnset or global)."""
     count: int = 1
@@ -430,7 +430,7 @@ class GainSkills:
     priority: int = 0
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class TraitInteraction:
     """Suppress, remove, or copy a trait."""
     action: str         # "suppress" | "remove" | "copy"
@@ -442,7 +442,7 @@ class TraitInteraction:
     priority: int = 0
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class BurstGrantOp:
     """Grant burst effects to matching skills (trait direct effect)."""
     target: str = "sprite_self"
@@ -475,7 +475,7 @@ SkillIROp = (
 
 # ── Compiled skill (frozen output of SkillCompiler) ──
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class CompiledSkill:
     """Frozen, validated skill produced by the SkillCompiler pipeline."""
     id: int

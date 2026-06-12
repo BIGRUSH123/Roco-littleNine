@@ -1,0 +1,318 @@
+{
+  "params": {
+    "opponent": "rule",
+    "reference": null,
+    "games": 4,
+    "seed": 20260607,
+    "sims": 4,
+    "max_turns": 30,
+    "draw_margin": 0.15,
+    "device": "cpu"
+  },
+  "elapsed_sec": 9.876,
+  "results": [
+    {
+      "checkpoint": "checkpoints\\formal_v1\\model_rl_iter1.pt",
+      "reference": null,
+      "opponent": "rule",
+      "games": 4,
+      "sims": 4,
+      "max_turns": 30,
+      "score": 0.125,
+      "ci95": [
+        0.0,
+        0.44910453560541236
+      ],
+      "wins": 0,
+      "draws": 1,
+      "losses": 3,
+      "avg_turns": 12.5,
+      "reason_counts": {
+        "decisive_b": 1,
+        "decisive_a": 2,
+        "max_turns_draw": 1
+      },
+      "side_counts": {
+        "A": 2,
+        "B": 2
+      },
+      "game_results": [
+        {
+          "seed": 20260607,
+          "candidate_side": "A",
+          "score": 0.0,
+          "winner": "B",
+          "end_reason": "decisive_b",
+          "turns": 9,
+          "teams": {
+            "A": [
+              "獠牙猪"
+            ],
+            "B": [
+              "脆筒甜甜",
+              "岚鸟",
+              "罗隐"
+            ]
+          }
+        },
+        {
+          "seed": 20260608,
+          "candidate_side": "B",
+          "score": 0.0,
+          "winner": "A",
+          "end_reason": "decisive_a",
+          "turns": 4,
+          "teams": {
+            "A": [
+              "火焰猿"
+            ],
+            "B": [
+              "厉毒修萝",
+              "怒目怂猫",
+              "翼龙"
+            ]
+          }
+        },
+        {
+          "seed": 20260609,
+          "candidate_side": "A",
+          "score": 0.5,
+          "winner": "draw",
+          "end_reason": "max_turns_draw",
+          "turns": 30,
+          "teams": {
+            "A": [
+              "黑猫巫师",
+              "晶石蜗",
+              "棋绮后"
+            ],
+            "B": [
+              "画间沉铁兽",
+              "魔眷鸟",
+              "梦悠悠"
+            ]
+          }
+        },
+        {
+          "seed": 20260610,
+          "candidate_side": "B",
+          "score": 0.0,
+          "winner": "A",
+          "end_reason": "decisive_a",
+          "turns": 7,
+          "teams": {
+            "A": [
+              "小皮球",
+              "獠牙猪"
+            ],
+            "B": [
+              "九幽菇"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "checkpoint": "checkpoints\\formal_v1\\model_rl_iter13.pt",
+      "reference": null,
+      "opponent": "rule",
+      "games": 4,
+      "sims": 4,
+      "max_turns": 30,
+      "score": 0.25,
+      "ci95": [
+        0.0,
+        0.674352447854375
+      ],
+      "wins": 1,
+      "draws": 0,
+      "losses": 3,
+      "avg_turns": 8.5,
+      "reason_counts": {
+        "decisive_b": 1,
+        "decisive_a": 3
+      },
+      "side_counts": {
+        "A": 2,
+        "B": 2
+      },
+      "game_results": [
+        {
+          "seed": 20260607,
+          "candidate_side": "A",
+          "score": 0.0,
+          "winner": "B",
+          "end_reason": "decisive_b",
+          "turns": 8,
+          "teams": {
+            "A": [
+              "獠牙猪"
+            ],
+            "B": [
+              "脆筒甜甜",
+              "岚鸟",
+              "罗隐"
+            ]
+          }
+        },
+        {
+          "seed": 20260608,
+          "candidate_side": "B",
+          "score": 0.0,
+          "winner": "A",
+          "end_reason": "decisive_a",
+          "turns": 4,
+          "teams": {
+            "A": [
+              "火焰猿"
+            ],
+            "B": [
+              "厉毒修萝",
+              "怒目怂猫",
+              "翼龙"
+            ]
+          }
+        },
+        {
+          "seed": 20260609,
+          "candidate_side": "A",
+          "score": 1.0,
+          "winner": "A",
+          "end_reason": "decisive_a",
+          "turns": 15,
+          "teams": {
+            "A": [
+              "黑猫巫师",
+              "晶石蜗",
+              "棋绮后"
+            ],
+            "B": [
+              "画间沉铁兽",
+              "魔眷鸟",
+              "梦悠悠"
+            ]
+          }
+        },
+        {
+          "seed": 20260610,
+          "candidate_side": "B",
+          "score": 0.0,
+          "winner": "A",
+          "end_reason": "decisive_a",
+          "turns": 7,
+          "teams": {
+            "A": [
+              "小皮球",
+              "獠牙猪"
+            ],
+            "B": [
+              "九幽菇"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "checkpoint": "checkpoints\\formal_v1\\model_rl_best.pt",
+      "reference": null,
+      "opponent": "rule",
+      "games": 4,
+      "sims": 4,
+      "max_turns": 30,
+      "score": 0.125,
+      "ci95": [
+        0.0,
+        0.44910453560541236
+      ],
+      "wins": 0,
+      "draws": 1,
+      "losses": 3,
+      "avg_turns": 18.25,
+      "reason_counts": {
+        "decisive_b": 1,
+        "decisive_a": 1,
+        "max_turns_draw": 1,
+        "max_turns_a": 1
+      },
+      "side_counts": {
+        "A": 2,
+        "B": 2
+      },
+      "game_results": [
+        {
+          "seed": 20260607,
+          "candidate_side": "A",
+          "score": 0.0,
+          "winner": "B",
+          "end_reason": "decisive_b",
+          "turns": 9,
+          "teams": {
+            "A": [
+              "獠牙猪"
+            ],
+            "B": [
+              "脆筒甜甜",
+              "岚鸟",
+              "罗隐"
+            ]
+          }
+        },
+        {
+          "seed": 20260608,
+          "candidate_side": "B",
+          "score": 0.0,
+          "winner": "A",
+          "end_reason": "decisive_a",
+          "turns": 4,
+          "teams": {
+            "A": [
+              "火焰猿"
+            ],
+            "B": [
+              "厉毒修萝",
+              "怒目怂猫",
+              "翼龙"
+            ]
+          }
+        },
+        {
+          "seed": 20260609,
+          "candidate_side": "A",
+          "score": 0.5,
+          "winner": "draw",
+          "end_reason": "max_turns_draw",
+          "turns": 30,
+          "teams": {
+            "A": [
+              "黑猫巫师",
+              "晶石蜗",
+              "棋绮后"
+            ],
+            "B": [
+              "画间沉铁兽",
+              "魔眷鸟",
+              "梦悠悠"
+            ]
+          }
+        },
+        {
+          "seed": 20260610,
+          "candidate_side": "B",
+          "score": 0.0,
+          "winner": "draw",
+          "end_reason": "max_turns_a",
+          "turns": 30,
+          "teams": {
+            "A": [
+              "小皮球",
+              "獠牙猪"
+            ],
+            "B": [
+              "九幽菇"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

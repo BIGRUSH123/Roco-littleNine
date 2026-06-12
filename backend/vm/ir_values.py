@@ -4,13 +4,13 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class Literal:
     """编译期已知的字面量。"""
     value: int | float | str | bool
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class Query:
     """编译期已解析的寄存器查询。field 是 Ctx 属性名，运行时 O(1) getattr。"""
     field: str
@@ -24,7 +24,7 @@ class Query:
     pre_offset: float = 0.0       # applied BEFORE per
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class RefExpr:
     """编译期解析的路径表达式。用于特性 IR 的动态值。"""
     root: str

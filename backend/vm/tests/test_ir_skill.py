@@ -91,6 +91,23 @@ class TestModOp:
             op.stat = "def"
 
 
+class TestIRNodeMemoryLayout:
+    def test_typed_ir_nodes_are_slots_backed_and_pickleable(self):
+        nodes = (
+            CondExpr(cond="always"),
+            WhenBlock(
+                cond=CondExpr(cond="always"),
+                then=(ModOp(target="sprite_self", stat="atk", value=Literal(1)),),
+            ),
+            ModOp(target="sprite_self", stat="atk", value=Literal(1)),
+            HitOp(power=Literal(90), type="物攻"),
+        )
+
+        for node in nodes:
+            assert not hasattr(node, "__dict__")
+            assert pickle.loads(pickle.dumps(node)) == node
+
+
 class TestCompileEffectsBatch:
     def test_compile_effects_batch_returns_typed_tuple_equivalent_to_dict_path(self):
         effects = [

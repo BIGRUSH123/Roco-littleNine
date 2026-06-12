@@ -1,0 +1,2696 @@
+{
+  "params": {
+    "opponent": "rule",
+    "reference": null,
+    "games": 20,
+    "seed": 20260607,
+    "sims": 16,
+    "max_turns": 100,
+    "draw_margin": 0.15,
+    "device": "cuda"
+  },
+  "elapsed_sec": 583.708,
+  "results": [
+    {
+      "checkpoint": "checkpoints\\formal_v1\\model_rl_iter1.pt",
+      "reference": null,
+      "opponent": "rule",
+      "games": 20,
+      "sims": 16,
+      "max_turns": 100,
+      "score": 0.25,
+      "ci95": [
+        0.06022381603583657,
+        0.4397761839641634
+      ],
+      "wins": 5,
+      "draws": 0,
+      "losses": 15,
+      "avg_turns": 12.85,
+      "reason_counts": {
+        "decisive_b": 10,
+        "decisive_a": 9,
+        "max_turns_b": 1
+      },
+      "side_counts": {
+        "A": 10,
+        "B": 10
+      },
+      "game_results": [
+        {
+          "seed": 20260607,
+          "candidate_side": "A",
+          "score": 0.0,
+          "winner": "B",
+          "end_reason": "decisive_b",
+          "turns": 7,
+          "teams": {
+            "A": [
+              "獠牙猪"
+            ],
+            "B": [
+              "脆筒甜甜",
+              "岚鸟",
+              "罗隐"
+            ]
+          }
+        },
+        {
+          "seed": 20260608,
+          "candidate_side": "B",
+          "score": 0.0,
+          "winner": "A",
+          "end_reason": "decisive_a",
+          "turns": 4,
+          "teams": {
+            "A": [
+              "火焰猿"
+            ],
+            "B": [
+              "厉毒修萝",
+              "怒目怂猫",
+              "翼龙"
+            ]
+          }
+        },
+        {
+          "seed": 20260609,
+          "candidate_side": "A",
+          "score": 0.0,
+          "winner": "B",
+          "end_reason": "decisive_b",
+          "turns": 9,
+          "teams": {
+            "A": [
+              "黑猫巫师",
+              "晶石蜗",
+              "棋绮后"
+            ],
+            "B": [
+              "画间沉铁兽",
+              "魔眷鸟",
+              "梦悠悠"
+            ]
+          }
+        },
+        {
+          "seed": 20260610,
+          "candidate_side": "B",
+          "score": 0.0,
+          "winner": "A",
+          "end_reason": "decisive_a",
+          "turns": 5,
+          "teams": {
+            "A": [
+              "小皮球",
+              "獠牙猪"
+            ],
+            "B": [
+              "九幽菇"
+            ]
+          }
+        },
+        {
+          "seed": 20260611,
+          "candidate_side": "A",
+          "score": 1.0,
+          "winner": "A",
+          "end_reason": "decisive_a",
+          "turns": 5,
+          "teams": {
+            "A": [
+              "声波缇塔"
+            ],
+            "B": [
+              "寂灭骨龙"
+            ]
+          }
+        },
+        {
+          "seed": 20260612,
+          "candidate_side": "B",
+          "score": 1.0,
+          "winner": "B",
+          "end_reason": "decisive_b",
+          "turns": 11,
+          "teams": {
+            "A": [
+              "巨灵石"
+            ],
+            "B": [
+              "棋绮后"
+            ]
+          }
+        },
+        {
+          "seed": 20260613,
+          "candidate_side": "A",
+          "score": 0.0,
+          "winner": "draw",
+          "end_reason": "max_turns_b",
+          "turns": 100,
+          "teams": {
+            "A": [
+              "春团",
+              "仪式巨像"
+            ],
+            "B": [
+              "秩序鱿墨",
+              "落陨星兔"
+            ]
+          }
+        },
+        {
+          "seed": 20260614,
+          "candidate_side": "B",
+          "score": 0.0,
+          "winner": "A",
+          "end_reason": "decisive_a",
+          "turns": 4,
+          "teams": {
+            "A": [
+              "火焰猿",
+              "白发路路"
+            ],
+            "B": [
+              "恶魔红钻",
+              "铠甲虫",
+              "水泡壳"
+            ]
+          }
+        },
+        {
+          "seed": 20260615,
+          "candidate_side": "A",
+          "score": 0.0,
+          "winner": "B",
+          "end_reason": "decisive_b",
+          "turns": 8,
+          "teams": {
+            "A": [
+              "深蓝鲸"
+            ],
+            "B": [
+              "月亮砣",
+              "幻影灵菇",
+              "棋绮后"
+            ]
+          }
+        },
+        {
+          "seed": 20260616,
+          "candidate_side": "B",
+          "score": 0.0,
+          "winner": "A",
+          "end_reason": "decisive_a",
+          "turns": 17,
+          "teams": {
+            "A": [
+              "红绒十字",
+              "黑羽夫人"
+            ],
+            "B": [
+              "遁地鼠"
+            ]
+          }
+        },
+        {
+          "seed": 20260617,
+          "candidate_side": "A",
+          "score": 0.0,
+          "winner": "B",
+          "end_reason": "decisive_b",
+          "turns": 2,
+          "teams": {
+            "A": [
+              "尖嘴狐仙",
+              "圣代甜甜",
+              "格兰球"
+            ],
+            "B": [
+              "兽花蕾"
+            ]
+          }
+        },
+        {
+          "seed": 20260618,
+          "candidate_side": "B",
+          "score": 1.0,
+          "winner": "B",
+          "end_reason": "decisive_b",
+          "turns": 14,
+          "teams": {
+            "A": [
+              "电球咩咩",
+              "翼龙"
+            ],
+            "B": [
+              "古卷执政官"
+            ]
+          }
+        },
+        {
+          "seed": 20260619,
+          "candidate_side": "A",
+          "score": 1.0,
+          "winner": "A",
+          "end_reason": "decisive_a",
+          "turns": 3,
+          "teams": {
+            "A": [
+              "朔夜伊芙",
+              "荆棘电环"
+            ],
+            "B": [
+              "爵士鹿"
+            ]
+          }
+        },
+        {
+          "seed": 20260620,
+          "candidate_side": "B",
+          "score": 0.0,
+          "winner": "A",
+          "end_reason": "decisive_a",
+          "turns": 6,
+          "teams": {
+            "A": [
+              "圣羽翼王",
+              "蹦床松鼠",
+              "噼啪鸟"
+            ],
+            "B": [
+              "音速犬",
+              "巨噬针鼹",
+              "寂灭骨龙"
+            ]
+          }
+        },
+        {
+          "seed": 20260621,
+          "candidate_side": "A",
+          "score": 0.0,
+          "winner": "B",
+          "end_reason": "decisive_b",
+          "turns": 10,
+          "teams": {
+            "A": [
+              "圆号鱼"
+            ],
+            "B": [
+              "火焰猿"
+            ]
+          }
+        },
+        {
+          "seed": 20260622,
+          "candidate_side": "B",
+          "score": 0.0,
+          "winner": "A",
+          "end_reason": "decisive_a",
+          "turns": 22,
+          "teams": {
+            "A": [
+              "抹茶布丁",
+              "嗜波螺",
+              "白金独角兽"
+            ],
+            "B": [
+              "针叶巡林",
+              "嘟嘟锅",
+              "斑斑"
+            ]
+          }
+        },
+        {
+          "seed": 20260623,
+          "candidate_side": "A",
+          "score": 0.0,
+          "winner": "B",
+          "end_reason": "decisive_b",
+          "turns": 3,
+          "teams": {
+            "A": [
+              "圆号鱼",
+              "怖哭菇"
+            ],
+            "B": [
+              "皇家狮鹫"
+            ]
+          }
+        },
+        {
+          "seed": 20260624,
+          "candidate_side": "B",
+          "score": 1.0,
+          "winner": "B",
+          "end_reason": "decisive_b",
+          "turns": 5,
+          "teams": {
+            "A": [
+              "上岸蛙"
+            ],
+            "B": [
+              "巨噬针鼹",
+              "晶石蜗"
+            ]
+          }
+        },
+        {
+          "seed": 20260625,
+          "candidate_side": "A",
+          "score": 0.0,
+          "winner": "B",
+          "end_reason": "decisive_b",
+          "turns": 7,
+          "teams": {
+            "A": [
+              "绅士鸡",
+              "爵士鹿"
+            ],
+            "B": [
+              "卷毛鸭",
+              "炽心勇狮"
+            ]
+          }
+        },
+        {
+          "seed": 20260626,
+          "candidate_side": "B",
+          "score": 0.0,
+          "winner": "A",
+          "end_reason": "decisive_a",
+          "turns": 15,
+          "teams": {
+            "A": [
+              "春花兔"
+            ],
+            "B": [
+              "棋绮后",
+              "流浪鼠"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "checkpoint": "checkpoints\\formal_v1\\model_rl_iter2.pt",
+      "reference": null,
+      "opponent": "rule",
+      "games": 20,
+      "sims": 16,
+      "max_turns": 100,
+      "score": 0.2,
+      "ci95": [
+        0.02469227056401646,
+        0.37530772943598356
+      ],
+      "wins": 4,
+      "draws": 0,
+      "losses": 16,
+      "avg_turns": 21.15,
+      "reason_counts": {
+        "max_turns_b": 1,
+        "decisive_a": 11,
+        "max_turns_a": 1,
+        "decisive_b": 7
+      },
+      "side_counts": {
+        "A": 10,
+        "B": 10
+      },
+      "game_results": [
+        {
+          "seed": 20260607,
+          "candidate_side": "A",
+          "score": 0.0,
+          "winner": "draw",
+          "end_reason": "max_turns_b",
+          "turns": 100,
+          "teams": {
+            "A": [
+              "獠牙猪"
+            ],
+            "B": [
+              "脆筒甜甜",
+              "岚鸟",
+              "罗隐"
+            ]
+          }
+        },
+        {
+          "seed": 20260608,
+          "candidate_side": "B",
+          "score": 0.0,
+          "winner": "A",
+          "end_reason": "decisive_a",
+          "turns": 4,
+          "teams": {
+            "A": [
+              "火焰猿"
+            ],
+            "B": [
+              "厉毒修萝",
+              "怒目怂猫",
+              "翼龙"
+            ]
+          }
+        },
+        {
+          "seed": 20260609,
+          "candidate_side": "A",
+          "score": 1.0,
+          "winner": "draw",
+          "end_reason": "max_turns_a",
+          "turns": 100,
+          "teams": {
+            "A": [
+              "黑猫巫师",
+              "晶石蜗",
+              "棋绮后"
+            ],
+            "B": [
+              "画间沉铁兽",
+              "魔眷鸟",
+              "梦悠悠"
+            ]
+          }
+        },
+        {
+          "seed": 20260610,
+          "candidate_side": "B",
+          "score": 0.0,
+          "winner": "A",
+          "end_reason": "decisive_a",
+          "turns": 100,
+          "teams": {
+            "A": [
+              "小皮球",
+              "獠牙猪"
+            ],
+            "B": [
+              "九幽菇"
+            ]
+          }
+        },
+        {
+          "seed": 20260611,
+          "candidate_side": "A",
+          "score": 1.0,
+          "winner": "A",
+          "end_reason": "decisive_a",
+          "turns": 4,
+          "teams": {
+            "A": [
+              "声波缇塔"
+            ],
+            "B": [
+              "寂灭骨龙"
+            ]
+          }
+        },
+        {
+          "seed": 20260612,
+          "candidate_side": "B",
+          "score": 0.0,
+          "winner": "A",
+          "end_reason": "decisive_a",
+          "turns": 7,
+          "teams": {
+            "A": [
+              "巨灵石"
+            ],
+            "B": [
+              "棋绮后"
+            ]
+          }
+        },
+        {
+          "seed": 20260613,
+          "candidate_side": "A",
+          "score": 0.0,
+          "winner": "B",
+          "end_reason": "decisive_b",
+          "turns": 7,
+          "teams": {
+            "A": [
+              "春花兔",
+              "仪式巨像"
+            ],
+            "B": [
+              "秩序鱿墨",
+              "落陨星兔"
+            ]
+          }
+        },
+        {
+          "seed": 20260614,
+          "candidate_side": "B",
+          "score": 0.0,
+          "winner": "A",
+          "end_reason": "decisive_a",
+          "turns": 13,
+          "teams": {
+            "A": [
+              "火焰猿",
+              "白发路路"
+            ],
+            "B": [
+              "恶魔红钻",
+              "铠甲虫",
+              "水泡壳"
+            ]
+          }
+        },
+        {
+          "seed": 20260615,
+          "candidate_side": "A",
+          "score": 0.0,
+          "winner": "B",
+          "end_reason": "decisive_b",
+          "turns": 6,
+          "teams": {
+            "A": [
+              "深蓝鲸"
+            ],
+            "B": [
+              "月亮砣",
+              "幻影灵菇",
+              "棋绮后"
+            ]
+          }
+        },
+        {
+          "seed": 20260616,
+          "candidate_side": "B",
+          "score": 0.0,
+          "winner": "A",
+          "end_reason": "decisive_a",
+          "turns": 8,
+          "teams": {
+            "A": [
+              "红绒十字",
+              "黑羽夫人"
+            ],
+            "B": [
+              "遁地鼠"
+            ]
+          }
+        },
+        {
+          "seed": 20260617,
+          "candidate_side": "A",
+          "score": 0.0,
+          "winner": "B",
+          "end_reason": "decisive_b",
+          "turns": 2,
+          "teams": {
+            "A": [
+              "尖嘴狐仙",
+              "圣代甜甜",
+              "格兰球"
+            ],
+            "B": [
+              "兽花蕾"
+            ]
+          }
+        },
+        {
+          "seed": 20260618,
+          "candidate_side": "B",
+          "score": 0.0,
+          "winner": "A",
+          "end_reason": "decisive_a",
+          "turns": 9,
+          "teams": {
+            "A": [
+              "电球咩咩",
+              "翼龙"
+            ],
+            "B": [
+              "古卷执政官"
+            ]
+          }
+        },
+        {
+          "seed": 20260619,
+          "candidate_side": "A",
+          "score": 1.0,
+          "winner": "A",
+          "end_reason": "decisive_a",
+          "turns": 5,
+          "teams": {
+            "A": [
+              "朔夜伊芙",
+              "荆棘电环"
+            ],
+            "B": [
+              "爵士鹿"
+            ]
+          }
+        },
+        {
+          "seed": 20260620,
+          "candidate_side": "B",
+          "score": 0.0,
+          "winner": "A",
+          "end_reason": "decisive_a",
+          "turns": 12,
+          "teams": {
+            "A": [
+              "圣羽翼王",
+              "蹦床松鼠",
+              "噼啪鸟"
+            ],
+            "B": [
+              "音速犬",
+              "巨噬针鼹",
+              "寂灭骨龙"
+            ]
+          }
+        },
+        {
+          "seed": 20260621,
+          "candidate_side": "A",
+          "score": 0.0,
+          "winner": "B",
+          "end_reason": "decisive_b",
+          "turns": 6,
+          "teams": {
+            "A": [
+              "圆号鱼"
+            ],
+            "B": [
+              "火焰猿"
+            ]
+          }
+        },
+        {
+          "seed": 20260622,
+          "candidate_side": "B",
+          "score": 0.0,
+          "winner": "A",
+          "end_reason": "decisive_a",
+          "turns": 18,
+          "teams": {
+            "A": [
+              "抹茶布丁",
+              "嗜波螺",
+              "白金独角兽"
+            ],
+            "B": [
+              "松仔",
+              "嘟嘟锅",
+              "斑枭"
+            ]
+          }
+        },
+        {
+          "seed": 20260623,
+          "candidate_side": "A",
+          "score": 0.0,
+          "winner": "B",
+          "end_reason": "decisive_b",
+          "turns": 3,
+          "teams": {
+            "A": [
+              "圆号鱼",
+              "怖哭菇"
+            ],
+            "B": [
+              "皇家狮鹫"
+            ]
+          }
+        },
+        {
+          "seed": 20260624,
+          "candidate_side": "B",
+          "score": 1.0,
+          "winner": "B",
+          "end_reason": "decisive_b",
+          "turns": 5,
+          "teams": {
+            "A": [
+              "上岸蛙"
+            ],
+            "B": [
+              "巨噬针鼹",
+              "晶石蜗"
+            ]
+          }
+        },
+        {
+          "seed": 20260625,
+          "candidate_side": "A",
+          "score": 0.0,
+          "winner": "B",
+          "end_reason": "decisive_b",
+          "turns": 5,
+          "teams": {
+            "A": [
+              "绅士鸡",
+              "爵士鹿"
+            ],
+            "B": [
+              "卷毛鸭",
+              "炽心勇狮"
+            ]
+          }
+        },
+        {
+          "seed": 20260626,
+          "candidate_side": "B",
+          "score": 0.0,
+          "winner": "A",
+          "end_reason": "decisive_a",
+          "turns": 9,
+          "teams": {
+            "A": [
+              "春花兔"
+            ],
+            "B": [
+              "棋绮后",
+              "流浪鼠"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "checkpoint": "checkpoints\\formal_v1\\model_rl_iter3.pt",
+      "reference": null,
+      "opponent": "rule",
+      "games": 20,
+      "sims": 16,
+      "max_turns": 100,
+      "score": 0.2,
+      "ci95": [
+        0.02469227056401646,
+        0.37530772943598356
+      ],
+      "wins": 4,
+      "draws": 0,
+      "losses": 16,
+      "avg_turns": 21.15,
+      "reason_counts": {
+        "max_turns_b": 1,
+        "decisive_a": 11,
+        "max_turns_a": 1,
+        "decisive_b": 7
+      },
+      "side_counts": {
+        "A": 10,
+        "B": 10
+      },
+      "game_results": [
+        {
+          "seed": 20260607,
+          "candidate_side": "A",
+          "score": 0.0,
+          "winner": "draw",
+          "end_reason": "max_turns_b",
+          "turns": 100,
+          "teams": {
+            "A": [
+              "獠牙猪"
+            ],
+            "B": [
+              "脆筒甜甜",
+              "岚鸟",
+              "罗隐"
+            ]
+          }
+        },
+        {
+          "seed": 20260608,
+          "candidate_side": "B",
+          "score": 0.0,
+          "winner": "A",
+          "end_reason": "decisive_a",
+          "turns": 4,
+          "teams": {
+            "A": [
+              "火焰猿"
+            ],
+            "B": [
+              "厉毒修萝",
+              "怒目怂猫",
+              "翼龙"
+            ]
+          }
+        },
+        {
+          "seed": 20260609,
+          "candidate_side": "A",
+          "score": 1.0,
+          "winner": "draw",
+          "end_reason": "max_turns_a",
+          "turns": 100,
+          "teams": {
+            "A": [
+              "黑猫巫师",
+              "晶石蜗",
+              "棋绮后"
+            ],
+            "B": [
+              "画间沉铁兽",
+              "魔眷鸟",
+              "梦悠悠"
+            ]
+          }
+        },
+        {
+          "seed": 20260610,
+          "candidate_side": "B",
+          "score": 0.0,
+          "winner": "A",
+          "end_reason": "decisive_a",
+          "turns": 100,
+          "teams": {
+            "A": [
+              "小皮球",
+              "獠牙猪"
+            ],
+            "B": [
+              "九幽菇"
+            ]
+          }
+        },
+        {
+          "seed": 20260611,
+          "candidate_side": "A",
+          "score": 1.0,
+          "winner": "A",
+          "end_reason": "decisive_a",
+          "turns": 4,
+          "teams": {
+            "A": [
+              "声波缇塔"
+            ],
+            "B": [
+              "寂灭骨龙"
+            ]
+          }
+        },
+        {
+          "seed": 20260612,
+          "candidate_side": "B",
+          "score": 0.0,
+          "winner": "A",
+          "end_reason": "decisive_a",
+          "turns": 7,
+          "teams": {
+            "A": [
+              "巨灵石"
+            ],
+            "B": [
+              "棋绮后"
+            ]
+          }
+        },
+        {
+          "seed": 20260613,
+          "candidate_side": "A",
+          "score": 0.0,
+          "winner": "B",
+          "end_reason": "decisive_b",
+          "turns": 7,
+          "teams": {
+            "A": [
+              "春花兔",
+              "仪式巨像"
+            ],
+            "B": [
+              "秩序鱿墨",
+              "落陨星兔"
+            ]
+          }
+        },
+        {
+          "seed": 20260614,
+          "candidate_side": "B",
+          "score": 0.0,
+          "winner": "A",
+          "end_reason": "decisive_a",
+          "turns": 13,
+          "teams": {
+            "A": [
+              "火焰猿",
+              "白发路路"
+            ],
+            "B": [
+              "恶魔红钻",
+              "铠甲虫",
+              "水泡壳"
+            ]
+          }
+        },
+        {
+          "seed": 20260615,
+          "candidate_side": "A",
+          "score": 0.0,
+          "winner": "B",
+          "end_reason": "decisive_b",
+          "turns": 6,
+          "teams": {
+            "A": [
+              "深蓝鲸"
+            ],
+            "B": [
+              "月亮砣",
+              "幻影灵菇",
+              "棋绮后"
+            ]
+          }
+        },
+        {
+          "seed": 20260616,
+          "candidate_side": "B",
+          "score": 0.0,
+          "winner": "A",
+          "end_reason": "decisive_a",
+          "turns": 8,
+          "teams": {
+            "A": [
+              "红绒十字",
+              "黑羽夫人"
+            ],
+            "B": [
+              "遁地鼠"
+            ]
+          }
+        },
+        {
+          "seed": 20260617,
+          "candidate_side": "A",
+          "score": 0.0,
+          "winner": "B",
+          "end_reason": "decisive_b",
+          "turns": 2,
+          "teams": {
+            "A": [
+              "尖嘴狐仙",
+              "圣代甜甜",
+              "格兰球"
+            ],
+            "B": [
+              "兽花蕾"
+            ]
+          }
+        },
+        {
+          "seed": 20260618,
+          "candidate_side": "B",
+          "score": 0.0,
+          "winner": "A",
+          "end_reason": "decisive_a",
+          "turns": 9,
+          "teams": {
+            "A": [
+              "电球咩咩",
+              "翼龙"
+            ],
+            "B": [
+              "古卷执政官"
+            ]
+          }
+        },
+        {
+          "seed": 20260619,
+          "candidate_side": "A",
+          "score": 1.0,
+          "winner": "A",
+          "end_reason": "decisive_a",
+          "turns": 5,
+          "teams": {
+            "A": [
+              "朔夜伊芙",
+              "荆棘电环"
+            ],
+            "B": [
+              "爵士鹿"
+            ]
+          }
+        },
+        {
+          "seed": 20260620,
+          "candidate_side": "B",
+          "score": 0.0,
+          "winner": "A",
+          "end_reason": "decisive_a",
+          "turns": 12,
+          "teams": {
+            "A": [
+              "圣羽翼王",
+              "蹦床松鼠",
+              "噼啪鸟"
+            ],
+            "B": [
+              "音速犬",
+              "巨噬针鼹",
+              "寂灭骨龙"
+            ]
+          }
+        },
+        {
+          "seed": 20260621,
+          "candidate_side": "A",
+          "score": 0.0,
+          "winner": "B",
+          "end_reason": "decisive_b",
+          "turns": 6,
+          "teams": {
+            "A": [
+              "圆号鱼"
+            ],
+            "B": [
+              "火焰猿"
+            ]
+          }
+        },
+        {
+          "seed": 20260622,
+          "candidate_side": "B",
+          "score": 0.0,
+          "winner": "A",
+          "end_reason": "decisive_a",
+          "turns": 18,
+          "teams": {
+            "A": [
+              "抹茶布丁",
+              "嗜波螺",
+              "白金独角兽"
+            ],
+            "B": [
+              "松仔",
+              "嘟嘟锅",
+              "斑枭"
+            ]
+          }
+        },
+        {
+          "seed": 20260623,
+          "candidate_side": "A",
+          "score": 0.0,
+          "winner": "B",
+          "end_reason": "decisive_b",
+          "turns": 3,
+          "teams": {
+            "A": [
+              "圆号鱼",
+              "怖哭菇"
+            ],
+            "B": [
+              "皇家狮鹫"
+            ]
+          }
+        },
+        {
+          "seed": 20260624,
+          "candidate_side": "B",
+          "score": 1.0,
+          "winner": "B",
+          "end_reason": "decisive_b",
+          "turns": 5,
+          "teams": {
+            "A": [
+              "上岸蛙"
+            ],
+            "B": [
+              "巨噬针鼹",
+              "晶石蜗"
+            ]
+          }
+        },
+        {
+          "seed": 20260625,
+          "candidate_side": "A",
+          "score": 0.0,
+          "winner": "B",
+          "end_reason": "decisive_b",
+          "turns": 5,
+          "teams": {
+            "A": [
+              "绅士鸡",
+              "爵士鹿"
+            ],
+            "B": [
+              "卷毛鸭",
+              "炽心勇狮"
+            ]
+          }
+        },
+        {
+          "seed": 20260626,
+          "candidate_side": "B",
+          "score": 0.0,
+          "winner": "A",
+          "end_reason": "decisive_a",
+          "turns": 9,
+          "teams": {
+            "A": [
+              "春花兔"
+            ],
+            "B": [
+              "棋绮后",
+              "流浪鼠"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "checkpoint": "checkpoints\\formal_v1\\model_rl_iter6.pt",
+      "reference": null,
+      "opponent": "rule",
+      "games": 20,
+      "sims": 16,
+      "max_turns": 100,
+      "score": 0.325,
+      "ci95": [
+        0.11972567135659656,
+        0.5302743286434035
+      ],
+      "wins": 6,
+      "draws": 1,
+      "losses": 13,
+      "avg_turns": 24.3,
+      "reason_counts": {
+        "decisive_a": 10,
+        "max_turns_a": 1,
+        "max_turns_draw": 1,
+        "max_turns_b": 1,
+        "decisive_b": 7
+      },
+      "side_counts": {
+        "A": 10,
+        "B": 10
+      },
+      "game_results": [
+        {
+          "seed": 20260607,
+          "candidate_side": "A",
+          "score": 1.0,
+          "winner": "A",
+          "end_reason": "decisive_a",
+          "turns": 32,
+          "teams": {
+            "A": [
+              "獠牙猪"
+            ],
+            "B": [
+              "脆筒甜甜",
+              "岚鸟",
+              "罗隐"
+            ]
+          }
+        },
+        {
+          "seed": 20260608,
+          "candidate_side": "B",
+          "score": 0.0,
+          "winner": "A",
+          "end_reason": "decisive_a",
+          "turns": 10,
+          "teams": {
+            "A": [
+              "火焰猿"
+            ],
+            "B": [
+              "厉毒修萝",
+              "怒目怂猫",
+              "翼龙"
+            ]
+          }
+        },
+        {
+          "seed": 20260609,
+          "candidate_side": "A",
+          "score": 1.0,
+          "winner": "A",
+          "end_reason": "decisive_a",
+          "turns": 14,
+          "teams": {
+            "A": [
+              "黑猫巫师",
+              "晶石蜗",
+              "棋绮后"
+            ],
+            "B": [
+              "画间沉铁兽",
+              "魔眷鸟",
+              "梦悠悠"
+            ]
+          }
+        },
+        {
+          "seed": 20260610,
+          "candidate_side": "B",
+          "score": 0.0,
+          "winner": "draw",
+          "end_reason": "max_turns_a",
+          "turns": 100,
+          "teams": {
+            "A": [
+              "小皮球",
+              "獠牙猪"
+            ],
+            "B": [
+              "九幽菇"
+            ]
+          }
+        },
+        {
+          "seed": 20260611,
+          "candidate_side": "A",
+          "score": 1.0,
+          "winner": "A",
+          "end_reason": "decisive_a",
+          "turns": 7,
+          "teams": {
+            "A": [
+              "声波缇塔"
+            ],
+            "B": [
+              "寂灭骨龙"
+            ]
+          }
+        },
+        {
+          "seed": 20260612,
+          "candidate_side": "B",
+          "score": 0.5,
+          "winner": "draw",
+          "end_reason": "max_turns_draw",
+          "turns": 100,
+          "teams": {
+            "A": [
+              "巨灵石"
+            ],
+            "B": [
+              "棋绮后"
+            ]
+          }
+        },
+        {
+          "seed": 20260613,
+          "candidate_side": "A",
+          "score": 0.0,
+          "winner": "draw",
+          "end_reason": "max_turns_b",
+          "turns": 100,
+          "teams": {
+            "A": [
+              "春团",
+              "仪式巨像"
+            ],
+            "B": [
+              "秩序鱿墨",
+              "落陨星兔"
+            ]
+          }
+        },
+        {
+          "seed": 20260614,
+          "candidate_side": "B",
+          "score": 0.0,
+          "winner": "A",
+          "end_reason": "decisive_a",
+          "turns": 24,
+          "teams": {
+            "A": [
+              "火焰猿",
+              "白发路路"
+            ],
+            "B": [
+              "恶魔红钻",
+              "铠甲虫",
+              "水泡壳"
+            ]
+          }
+        },
+        {
+          "seed": 20260615,
+          "candidate_side": "A",
+          "score": 0.0,
+          "winner": "B",
+          "end_reason": "decisive_b",
+          "turns": 7,
+          "teams": {
+            "A": [
+              "深蓝鲸"
+            ],
+            "B": [
+              "月亮砣",
+              "幻影灵菇",
+              "棋绮后"
+            ]
+          }
+        },
+        {
+          "seed": 20260616,
+          "candidate_side": "B",
+          "score": 1.0,
+          "winner": "B",
+          "end_reason": "decisive_b",
+          "turns": 9,
+          "teams": {
+            "A": [
+              "红绒十字",
+              "黑羽夫人"
+            ],
+            "B": [
+              "遁地鼠"
+            ]
+          }
+        },
+        {
+          "seed": 20260617,
+          "candidate_side": "A",
+          "score": 0.0,
+          "winner": "B",
+          "end_reason": "decisive_b",
+          "turns": 2,
+          "teams": {
+            "A": [
+              "尖嘴狐仙",
+              "圣代甜甜",
+              "格兰球"
+            ],
+            "B": [
+              "兽花蕾"
+            ]
+          }
+        },
+        {
+          "seed": 20260618,
+          "candidate_side": "B",
+          "score": 0.0,
+          "winner": "A",
+          "end_reason": "decisive_a",
+          "turns": 7,
+          "teams": {
+            "A": [
+              "电球咩咩",
+              "翼龙"
+            ],
+            "B": [
+              "古卷执政官"
+            ]
+          }
+        },
+        {
+          "seed": 20260619,
+          "candidate_side": "A",
+          "score": 1.0,
+          "winner": "A",
+          "end_reason": "decisive_a",
+          "turns": 15,
+          "teams": {
+            "A": [
+              "朔夜伊芙",
+              "荆棘电环"
+            ],
+            "B": [
+              "爵士鹿"
+            ]
+          }
+        },
+        {
+          "seed": 20260620,
+          "candidate_side": "B",
+          "score": 0.0,
+          "winner": "A",
+          "end_reason": "decisive_a",
+          "turns": 7,
+          "teams": {
+            "A": [
+              "圣羽翼王",
+              "蹦床松鼠",
+              "噼啪鸟"
+            ],
+            "B": [
+              "音速犬",
+              "巨噬针鼹",
+              "寂灭骨龙"
+            ]
+          }
+        },
+        {
+          "seed": 20260621,
+          "candidate_side": "A",
+          "score": 0.0,
+          "winner": "B",
+          "end_reason": "decisive_b",
+          "turns": 2,
+          "teams": {
+            "A": [
+              "圆号鱼"
+            ],
+            "B": [
+              "火焰猿"
+            ]
+          }
+        },
+        {
+          "seed": 20260622,
+          "candidate_side": "B",
+          "score": 0.0,
+          "winner": "A",
+          "end_reason": "decisive_a",
+          "turns": 28,
+          "teams": {
+            "A": [
+              "抹茶布丁",
+              "嗜波螺",
+              "白金独角兽"
+            ],
+            "B": [
+              "松仔",
+              "嘟嘟煲",
+              "斑斑"
+            ]
+          }
+        },
+        {
+          "seed": 20260623,
+          "candidate_side": "A",
+          "score": 0.0,
+          "winner": "B",
+          "end_reason": "decisive_b",
+          "turns": 3,
+          "teams": {
+            "A": [
+              "圆号鱼",
+              "怖哭菇"
+            ],
+            "B": [
+              "皇家狮鹫"
+            ]
+          }
+        },
+        {
+          "seed": 20260624,
+          "candidate_side": "B",
+          "score": 1.0,
+          "winner": "B",
+          "end_reason": "decisive_b",
+          "turns": 7,
+          "teams": {
+            "A": [
+              "上岸蛙"
+            ],
+            "B": [
+              "巨噬针鼹",
+              "晶石蜗"
+            ]
+          }
+        },
+        {
+          "seed": 20260625,
+          "candidate_side": "A",
+          "score": 0.0,
+          "winner": "B",
+          "end_reason": "decisive_b",
+          "turns": 7,
+          "teams": {
+            "A": [
+              "绅士鸡",
+              "爵士鹿"
+            ],
+            "B": [
+              "卷毛鸭",
+              "炽心勇狮"
+            ]
+          }
+        },
+        {
+          "seed": 20260626,
+          "candidate_side": "B",
+          "score": 0.0,
+          "winner": "A",
+          "end_reason": "decisive_a",
+          "turns": 5,
+          "teams": {
+            "A": [
+              "春花兔"
+            ],
+            "B": [
+              "棋绮后",
+              "流浪鼠"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "checkpoint": "checkpoints\\formal_v1\\model_rl_iter8.pt",
+      "reference": null,
+      "opponent": "rule",
+      "games": 20,
+      "sims": 16,
+      "max_turns": 100,
+      "score": 0.275,
+      "ci95": [
+        0.07930648963238462,
+        0.4706935103676154
+      ],
+      "wins": 5,
+      "draws": 1,
+      "losses": 14,
+      "avg_turns": 17.85,
+      "reason_counts": {
+        "decisive_b": 10,
+        "decisive_a": 8,
+        "max_turns_draw": 1,
+        "max_turns_b": 1
+      },
+      "side_counts": {
+        "A": 10,
+        "B": 10
+      },
+      "game_results": [
+        {
+          "seed": 20260607,
+          "candidate_side": "A",
+          "score": 0.0,
+          "winner": "B",
+          "end_reason": "decisive_b",
+          "turns": 22,
+          "teams": {
+            "A": [
+              "獠牙猪"
+            ],
+            "B": [
+              "脆筒甜甜",
+              "岚鸟",
+              "罗隐"
+            ]
+          }
+        },
+        {
+          "seed": 20260608,
+          "candidate_side": "B",
+          "score": 1.0,
+          "winner": "B",
+          "end_reason": "decisive_b",
+          "turns": 9,
+          "teams": {
+            "A": [
+              "火焰猿"
+            ],
+            "B": [
+              "厉毒修萝",
+              "怒目怂猫",
+              "翼龙"
+            ]
+          }
+        },
+        {
+          "seed": 20260609,
+          "candidate_side": "A",
+          "score": 0.0,
+          "winner": "B",
+          "end_reason": "decisive_b",
+          "turns": 16,
+          "teams": {
+            "A": [
+              "黑猫巫师",
+              "晶石蜗",
+              "棋绮后"
+            ],
+            "B": [
+              "画间沉铁兽",
+              "魔眷鸟",
+              "梦悠悠"
+            ]
+          }
+        },
+        {
+          "seed": 20260610,
+          "candidate_side": "B",
+          "score": 0.0,
+          "winner": "A",
+          "end_reason": "decisive_a",
+          "turns": 7,
+          "teams": {
+            "A": [
+              "小皮球",
+              "獠牙猪"
+            ],
+            "B": [
+              "九幽菇"
+            ]
+          }
+        },
+        {
+          "seed": 20260611,
+          "candidate_side": "A",
+          "score": 1.0,
+          "winner": "A",
+          "end_reason": "decisive_a",
+          "turns": 5,
+          "teams": {
+            "A": [
+              "声波缇塔"
+            ],
+            "B": [
+              "寂灭骨龙"
+            ]
+          }
+        },
+        {
+          "seed": 20260612,
+          "candidate_side": "B",
+          "score": 0.5,
+          "winner": "draw",
+          "end_reason": "max_turns_draw",
+          "turns": 100,
+          "teams": {
+            "A": [
+              "巨灵石"
+            ],
+            "B": [
+              "棋绮后"
+            ]
+          }
+        },
+        {
+          "seed": 20260613,
+          "candidate_side": "A",
+          "score": 0.0,
+          "winner": "draw",
+          "end_reason": "max_turns_b",
+          "turns": 100,
+          "teams": {
+            "A": [
+              "春团",
+              "仪式巨像"
+            ],
+            "B": [
+              "秩序鱿墨",
+              "落陨星兔"
+            ]
+          }
+        },
+        {
+          "seed": 20260614,
+          "candidate_side": "B",
+          "score": 0.0,
+          "winner": "A",
+          "end_reason": "decisive_a",
+          "turns": 12,
+          "teams": {
+            "A": [
+              "火焰猿",
+              "白发路路"
+            ],
+            "B": [
+              "恶魔红钻",
+              "铠甲虫",
+              "水泡壳"
+            ]
+          }
+        },
+        {
+          "seed": 20260615,
+          "candidate_side": "A",
+          "score": 0.0,
+          "winner": "B",
+          "end_reason": "decisive_b",
+          "turns": 9,
+          "teams": {
+            "A": [
+              "深蓝鲸"
+            ],
+            "B": [
+              "月亮砣",
+              "幻影灵菇",
+              "棋绮后"
+            ]
+          }
+        },
+        {
+          "seed": 20260616,
+          "candidate_side": "B",
+          "score": 1.0,
+          "winner": "B",
+          "end_reason": "decisive_b",
+          "turns": 14,
+          "teams": {
+            "A": [
+              "红绒十字",
+              "黑羽夫人"
+            ],
+            "B": [
+              "遁地鼠"
+            ]
+          }
+        },
+        {
+          "seed": 20260617,
+          "candidate_side": "A",
+          "score": 0.0,
+          "winner": "B",
+          "end_reason": "decisive_b",
+          "turns": 2,
+          "teams": {
+            "A": [
+              "尖嘴狐仙",
+              "圣代甜甜",
+              "格兰球"
+            ],
+            "B": [
+              "兽花蕾"
+            ]
+          }
+        },
+        {
+          "seed": 20260618,
+          "candidate_side": "B",
+          "score": 0.0,
+          "winner": "A",
+          "end_reason": "decisive_a",
+          "turns": 14,
+          "teams": {
+            "A": [
+              "电球咩咩",
+              "翼龙"
+            ],
+            "B": [
+              "古卷执政官"
+            ]
+          }
+        },
+        {
+          "seed": 20260619,
+          "candidate_side": "A",
+          "score": 1.0,
+          "winner": "A",
+          "end_reason": "decisive_a",
+          "turns": 5,
+          "teams": {
+            "A": [
+              "朔夜伊芙",
+              "荆棘电环"
+            ],
+            "B": [
+              "爵士鹿"
+            ]
+          }
+        },
+        {
+          "seed": 20260620,
+          "candidate_side": "B",
+          "score": 0.0,
+          "winner": "A",
+          "end_reason": "decisive_a",
+          "turns": 6,
+          "teams": {
+            "A": [
+              "圣羽翼王",
+              "蹦床松鼠",
+              "噼啪鸟"
+            ],
+            "B": [
+              "音速犬",
+              "巨噬针鼹",
+              "寂灭骨龙"
+            ]
+          }
+        },
+        {
+          "seed": 20260621,
+          "candidate_side": "A",
+          "score": 0.0,
+          "winner": "B",
+          "end_reason": "decisive_b",
+          "turns": 6,
+          "teams": {
+            "A": [
+              "圆号鱼"
+            ],
+            "B": [
+              "火焰猿"
+            ]
+          }
+        },
+        {
+          "seed": 20260622,
+          "candidate_side": "B",
+          "score": 0.0,
+          "winner": "A",
+          "end_reason": "decisive_a",
+          "turns": 4,
+          "teams": {
+            "A": [
+              "抹茶布丁",
+              "嗜波螺",
+              "白金独角兽"
+            ],
+            "B": [
+              "针叶巡林",
+              "嘟嘟锅",
+              "斑斑"
+            ]
+          }
+        },
+        {
+          "seed": 20260623,
+          "candidate_side": "A",
+          "score": 0.0,
+          "winner": "B",
+          "end_reason": "decisive_b",
+          "turns": 3,
+          "teams": {
+            "A": [
+              "圆号鱼",
+              "怖哭菇"
+            ],
+            "B": [
+              "皇家狮鹫"
+            ]
+          }
+        },
+        {
+          "seed": 20260624,
+          "candidate_side": "B",
+          "score": 1.0,
+          "winner": "B",
+          "end_reason": "decisive_b",
+          "turns": 7,
+          "teams": {
+            "A": [
+              "上岸蛙"
+            ],
+            "B": [
+              "巨噬针鼹",
+              "晶石蜗"
+            ]
+          }
+        },
+        {
+          "seed": 20260625,
+          "candidate_side": "A",
+          "score": 0.0,
+          "winner": "B",
+          "end_reason": "decisive_b",
+          "turns": 7,
+          "teams": {
+            "A": [
+              "绅士鸡",
+              "爵士鹿"
+            ],
+            "B": [
+              "卷毛鸭",
+              "炽心勇狮"
+            ]
+          }
+        },
+        {
+          "seed": 20260626,
+          "candidate_side": "B",
+          "score": 0.0,
+          "winner": "A",
+          "end_reason": "decisive_a",
+          "turns": 9,
+          "teams": {
+            "A": [
+              "春花兔"
+            ],
+            "B": [
+              "棋绮后",
+              "流浪鼠"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "checkpoint": "checkpoints\\formal_v1\\model_rl_iter13.pt",
+      "reference": null,
+      "opponent": "rule",
+      "games": 20,
+      "sims": 16,
+      "max_turns": 100,
+      "score": 0.275,
+      "ci95": [
+        0.07930648963238462,
+        0.4706935103676154
+      ],
+      "wins": 5,
+      "draws": 1,
+      "losses": 14,
+      "avg_turns": 18.95,
+      "reason_counts": {
+        "decisive_b": 8,
+        "decisive_a": 10,
+        "max_turns_a": 1,
+        "max_turns_draw": 1
+      },
+      "side_counts": {
+        "A": 10,
+        "B": 10
+      },
+      "game_results": [
+        {
+          "seed": 20260607,
+          "candidate_side": "A",
+          "score": 0.0,
+          "winner": "B",
+          "end_reason": "decisive_b",
+          "turns": 8,
+          "teams": {
+            "A": [
+              "獠牙猪"
+            ],
+            "B": [
+              "脆筒甜甜",
+              "岚鸟",
+              "罗隐"
+            ]
+          }
+        },
+        {
+          "seed": 20260608,
+          "candidate_side": "B",
+          "score": 0.0,
+          "winner": "A",
+          "end_reason": "decisive_a",
+          "turns": 7,
+          "teams": {
+            "A": [
+              "火焰猿"
+            ],
+            "B": [
+              "厉毒修萝",
+              "怒目怂猫",
+              "翼龙"
+            ]
+          }
+        },
+        {
+          "seed": 20260609,
+          "candidate_side": "A",
+          "score": 1.0,
+          "winner": "draw",
+          "end_reason": "max_turns_a",
+          "turns": 100,
+          "teams": {
+            "A": [
+              "黑猫巫师",
+              "晶石蜗",
+              "棋绮后"
+            ],
+            "B": [
+              "画间沉铁兽",
+              "魔眷鸟",
+              "梦悠悠"
+            ]
+          }
+        },
+        {
+          "seed": 20260610,
+          "candidate_side": "B",
+          "score": 0.0,
+          "winner": "A",
+          "end_reason": "decisive_a",
+          "turns": 9,
+          "teams": {
+            "A": [
+              "小皮球",
+              "獠牙猪"
+            ],
+            "B": [
+              "九幽菇"
+            ]
+          }
+        },
+        {
+          "seed": 20260611,
+          "candidate_side": "A",
+          "score": 1.0,
+          "winner": "A",
+          "end_reason": "decisive_a",
+          "turns": 5,
+          "teams": {
+            "A": [
+              "声波缇塔"
+            ],
+            "B": [
+              "寂灭骨龙"
+            ]
+          }
+        },
+        {
+          "seed": 20260612,
+          "candidate_side": "B",
+          "score": 0.0,
+          "winner": "A",
+          "end_reason": "decisive_a",
+          "turns": 16,
+          "teams": {
+            "A": [
+              "巨灵石"
+            ],
+            "B": [
+              "棋绮后"
+            ]
+          }
+        },
+        {
+          "seed": 20260613,
+          "candidate_side": "A",
+          "score": 0.5,
+          "winner": "draw",
+          "end_reason": "max_turns_draw",
+          "turns": 100,
+          "teams": {
+            "A": [
+              "春团",
+              "仪式巨像"
+            ],
+            "B": [
+              "秩序鱿墨",
+              "落陨星兔"
+            ]
+          }
+        },
+        {
+          "seed": 20260614,
+          "candidate_side": "B",
+          "score": 0.0,
+          "winner": "A",
+          "end_reason": "decisive_a",
+          "turns": 20,
+          "teams": {
+            "A": [
+              "火焰猿",
+              "白发路路"
+            ],
+            "B": [
+              "恶魔红钻",
+              "铠甲虫",
+              "水泡壳"
+            ]
+          }
+        },
+        {
+          "seed": 20260615,
+          "candidate_side": "A",
+          "score": 0.0,
+          "winner": "B",
+          "end_reason": "decisive_b",
+          "turns": 8,
+          "teams": {
+            "A": [
+              "深蓝鲸"
+            ],
+            "B": [
+              "月亮砣",
+              "幻影灵菇",
+              "棋绮后"
+            ]
+          }
+        },
+        {
+          "seed": 20260616,
+          "candidate_side": "B",
+          "score": 1.0,
+          "winner": "B",
+          "end_reason": "decisive_b",
+          "turns": 13,
+          "teams": {
+            "A": [
+              "红绒十字",
+              "黑羽夫人"
+            ],
+            "B": [
+              "遁地鼠"
+            ]
+          }
+        },
+        {
+          "seed": 20260617,
+          "candidate_side": "A",
+          "score": 0.0,
+          "winner": "B",
+          "end_reason": "decisive_b",
+          "turns": 2,
+          "teams": {
+            "A": [
+              "尖嘴狐仙",
+              "圣代甜甜",
+              "格兰球"
+            ],
+            "B": [
+              "兽花蕾"
+            ]
+          }
+        },
+        {
+          "seed": 20260618,
+          "candidate_side": "B",
+          "score": 0.0,
+          "winner": "A",
+          "end_reason": "decisive_a",
+          "turns": 13,
+          "teams": {
+            "A": [
+              "电球咩咩",
+              "翼龙"
+            ],
+            "B": [
+              "古卷执政官"
+            ]
+          }
+        },
+        {
+          "seed": 20260619,
+          "candidate_side": "A",
+          "score": 1.0,
+          "winner": "A",
+          "end_reason": "decisive_a",
+          "turns": 5,
+          "teams": {
+            "A": [
+              "朔夜伊芙",
+              "荆棘电环"
+            ],
+            "B": [
+              "爵士鹿"
+            ]
+          }
+        },
+        {
+          "seed": 20260620,
+          "candidate_side": "B",
+          "score": 0.0,
+          "winner": "A",
+          "end_reason": "decisive_a",
+          "turns": 15,
+          "teams": {
+            "A": [
+              "圣羽翼王",
+              "蹦床松鼠",
+              "噼啪鸟"
+            ],
+            "B": [
+              "音速犬",
+              "巨噬针鼹",
+              "寂灭骨龙"
+            ]
+          }
+        },
+        {
+          "seed": 20260621,
+          "candidate_side": "A",
+          "score": 0.0,
+          "winner": "B",
+          "end_reason": "decisive_b",
+          "turns": 10,
+          "teams": {
+            "A": [
+              "圆号鱼"
+            ],
+            "B": [
+              "火焰猿"
+            ]
+          }
+        },
+        {
+          "seed": 20260622,
+          "candidate_side": "B",
+          "score": 0.0,
+          "winner": "A",
+          "end_reason": "decisive_a",
+          "turns": 22,
+          "teams": {
+            "A": [
+              "抹茶布丁",
+              "嗜波螺",
+              "白金独角兽"
+            ],
+            "B": [
+              "针叶巡林",
+              "嘟嘟锅",
+              "斑斑"
+            ]
+          }
+        },
+        {
+          "seed": 20260623,
+          "candidate_side": "A",
+          "score": 0.0,
+          "winner": "B",
+          "end_reason": "decisive_b",
+          "turns": 3,
+          "teams": {
+            "A": [
+              "圆号鱼",
+              "怖哭菇"
+            ],
+            "B": [
+              "皇家狮鹫"
+            ]
+          }
+        },
+        {
+          "seed": 20260624,
+          "candidate_side": "B",
+          "score": 1.0,
+          "winner": "B",
+          "end_reason": "decisive_b",
+          "turns": 7,
+          "teams": {
+            "A": [
+              "上岸蛙"
+            ],
+            "B": [
+              "巨噬针鼹",
+              "晶石蜗"
+            ]
+          }
+        },
+        {
+          "seed": 20260625,
+          "candidate_side": "A",
+          "score": 0.0,
+          "winner": "B",
+          "end_reason": "decisive_b",
+          "turns": 7,
+          "teams": {
+            "A": [
+              "绅士鸡",
+              "爵士鹿"
+            ],
+            "B": [
+              "卷毛鸭",
+              "炽心勇狮"
+            ]
+          }
+        },
+        {
+          "seed": 20260626,
+          "candidate_side": "B",
+          "score": 0.0,
+          "winner": "A",
+          "end_reason": "decisive_a",
+          "turns": 9,
+          "teams": {
+            "A": [
+              "春花兔"
+            ],
+            "B": [
+              "棋绮后",
+              "流浪鼠"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "checkpoint": "checkpoints\\formal_v1\\model_rl_best.pt",
+      "reference": null,
+      "opponent": "rule",
+      "games": 20,
+      "sims": 16,
+      "max_turns": 100,
+      "score": 0.2,
+      "ci95": [
+        0.02469227056401646,
+        0.37530772943598356
+      ],
+      "wins": 4,
+      "draws": 0,
+      "losses": 16,
+      "avg_turns": 21.15,
+      "reason_counts": {
+        "max_turns_b": 1,
+        "decisive_a": 11,
+        "max_turns_a": 1,
+        "decisive_b": 7
+      },
+      "side_counts": {
+        "A": 10,
+        "B": 10
+      },
+      "game_results": [
+        {
+          "seed": 20260607,
+          "candidate_side": "A",
+          "score": 0.0,
+          "winner": "draw",
+          "end_reason": "max_turns_b",
+          "turns": 100,
+          "teams": {
+            "A": [
+              "獠牙猪"
+            ],
+            "B": [
+              "脆筒甜甜",
+              "岚鸟",
+              "罗隐"
+            ]
+          }
+        },
+        {
+          "seed": 20260608,
+          "candidate_side": "B",
+          "score": 0.0,
+          "winner": "A",
+          "end_reason": "decisive_a",
+          "turns": 4,
+          "teams": {
+            "A": [
+              "火焰猿"
+            ],
+            "B": [
+              "厉毒修萝",
+              "怒目怂猫",
+              "翼龙"
+            ]
+          }
+        },
+        {
+          "seed": 20260609,
+          "candidate_side": "A",
+          "score": 1.0,
+          "winner": "draw",
+          "end_reason": "max_turns_a",
+          "turns": 100,
+          "teams": {
+            "A": [
+              "黑猫巫师",
+              "晶石蜗",
+              "棋绮后"
+            ],
+            "B": [
+              "画间沉铁兽",
+              "魔眷鸟",
+              "梦悠悠"
+            ]
+          }
+        },
+        {
+          "seed": 20260610,
+          "candidate_side": "B",
+          "score": 0.0,
+          "winner": "A",
+          "end_reason": "decisive_a",
+          "turns": 100,
+          "teams": {
+            "A": [
+              "小皮球",
+              "獠牙猪"
+            ],
+            "B": [
+              "九幽菇"
+            ]
+          }
+        },
+        {
+          "seed": 20260611,
+          "candidate_side": "A",
+          "score": 1.0,
+          "winner": "A",
+          "end_reason": "decisive_a",
+          "turns": 4,
+          "teams": {
+            "A": [
+              "声波缇塔"
+            ],
+            "B": [
+              "寂灭骨龙"
+            ]
+          }
+        },
+        {
+          "seed": 20260612,
+          "candidate_side": "B",
+          "score": 0.0,
+          "winner": "A",
+          "end_reason": "decisive_a",
+          "turns": 7,
+          "teams": {
+            "A": [
+              "巨灵石"
+            ],
+            "B": [
+              "棋绮后"
+            ]
+          }
+        },
+        {
+          "seed": 20260613,
+          "candidate_side": "A",
+          "score": 0.0,
+          "winner": "B",
+          "end_reason": "decisive_b",
+          "turns": 7,
+          "teams": {
+            "A": [
+              "春花兔",
+              "仪式巨像"
+            ],
+            "B": [
+              "秩序鱿墨",
+              "落陨星兔"
+            ]
+          }
+        },
+        {
+          "seed": 20260614,
+          "candidate_side": "B",
+          "score": 0.0,
+          "winner": "A",
+          "end_reason": "decisive_a",
+          "turns": 13,
+          "teams": {
+            "A": [
+              "火焰猿",
+              "白发路路"
+            ],
+            "B": [
+              "恶魔红钻",
+              "铠甲虫",
+              "水泡壳"
+            ]
+          }
+        },
+        {
+          "seed": 20260615,
+          "candidate_side": "A",
+          "score": 0.0,
+          "winner": "B",
+          "end_reason": "decisive_b",
+          "turns": 6,
+          "teams": {
+            "A": [
+              "深蓝鲸"
+            ],
+            "B": [
+              "月亮砣",
+              "幻影灵菇",
+              "棋绮后"
+            ]
+          }
+        },
+        {
+          "seed": 20260616,
+          "candidate_side": "B",
+          "score": 0.0,
+          "winner": "A",
+          "end_reason": "decisive_a",
+          "turns": 8,
+          "teams": {
+            "A": [
+              "红绒十字",
+              "黑羽夫人"
+            ],
+            "B": [
+              "遁地鼠"
+            ]
+          }
+        },
+        {
+          "seed": 20260617,
+          "candidate_side": "A",
+          "score": 0.0,
+          "winner": "B",
+          "end_reason": "decisive_b",
+          "turns": 2,
+          "teams": {
+            "A": [
+              "尖嘴狐仙",
+              "圣代甜甜",
+              "格兰球"
+            ],
+            "B": [
+              "兽花蕾"
+            ]
+          }
+        },
+        {
+          "seed": 20260618,
+          "candidate_side": "B",
+          "score": 0.0,
+          "winner": "A",
+          "end_reason": "decisive_a",
+          "turns": 9,
+          "teams": {
+            "A": [
+              "电球咩咩",
+              "翼龙"
+            ],
+            "B": [
+              "古卷执政官"
+            ]
+          }
+        },
+        {
+          "seed": 20260619,
+          "candidate_side": "A",
+          "score": 1.0,
+          "winner": "A",
+          "end_reason": "decisive_a",
+          "turns": 5,
+          "teams": {
+            "A": [
+              "朔夜伊芙",
+              "荆棘电环"
+            ],
+            "B": [
+              "爵士鹿"
+            ]
+          }
+        },
+        {
+          "seed": 20260620,
+          "candidate_side": "B",
+          "score": 0.0,
+          "winner": "A",
+          "end_reason": "decisive_a",
+          "turns": 12,
+          "teams": {
+            "A": [
+              "圣羽翼王",
+              "蹦床松鼠",
+              "噼啪鸟"
+            ],
+            "B": [
+              "音速犬",
+              "巨噬针鼹",
+              "寂灭骨龙"
+            ]
+          }
+        },
+        {
+          "seed": 20260621,
+          "candidate_side": "A",
+          "score": 0.0,
+          "winner": "B",
+          "end_reason": "decisive_b",
+          "turns": 6,
+          "teams": {
+            "A": [
+              "圆号鱼"
+            ],
+            "B": [
+              "火焰猿"
+            ]
+          }
+        },
+        {
+          "seed": 20260622,
+          "candidate_side": "B",
+          "score": 0.0,
+          "winner": "A",
+          "end_reason": "decisive_a",
+          "turns": 18,
+          "teams": {
+            "A": [
+              "抹茶布丁",
+              "嗜波螺",
+              "白金独角兽"
+            ],
+            "B": [
+              "松仔",
+              "嘟嘟锅",
+              "斑枭"
+            ]
+          }
+        },
+        {
+          "seed": 20260623,
+          "candidate_side": "A",
+          "score": 0.0,
+          "winner": "B",
+          "end_reason": "decisive_b",
+          "turns": 3,
+          "teams": {
+            "A": [
+              "圆号鱼",
+              "怖哭菇"
+            ],
+            "B": [
+              "皇家狮鹫"
+            ]
+          }
+        },
+        {
+          "seed": 20260624,
+          "candidate_side": "B",
+          "score": 1.0,
+          "winner": "B",
+          "end_reason": "decisive_b",
+          "turns": 5,
+          "teams": {
+            "A": [
+              "上岸蛙"
+            ],
+            "B": [
+              "巨噬针鼹",
+              "晶石蜗"
+            ]
+          }
+        },
+        {
+          "seed": 20260625,
+          "candidate_side": "A",
+          "score": 0.0,
+          "winner": "B",
+          "end_reason": "decisive_b",
+          "turns": 5,
+          "teams": {
+            "A": [
+              "绅士鸡",
+              "爵士鹿"
+            ],
+            "B": [
+              "卷毛鸭",
+              "炽心勇狮"
+            ]
+          }
+        },
+        {
+          "seed": 20260626,
+          "candidate_side": "B",
+          "score": 0.0,
+          "winner": "A",
+          "end_reason": "decisive_a",
+          "turns": 9,
+          "teams": {
+            "A": [
+              "春花兔"
+            ],
+            "B": [
+              "棋绮后",
+              "流浪鼠"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

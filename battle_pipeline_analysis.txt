@@ -1,0 +1,283 @@
+Traceback (most recent call last):
+  File "D:\projects\Roco-LittleNine\analyze_battle_pipeline.py", line 315, in <module>
+    profile_battle_turn_detailed()
+  File "D:\projects\Roco-LittleNine\analyze_battle_pipeline.py", line 55, in profile_battle_turn_detailed
+    battle._execute_turn_headless(action_a, action_b)
+AttributeError: 'Battle' object has no attribute '_execute_turn_headless'
+Exception ignored When destroying _lsprof profiler:
+Traceback (most recent call last):
+  File "D:\projects\Roco-LittleNine\analyze_battle_pipeline.py", line 103, in profile_ir_execution_detailed
+    profiler.enable()
+RuntimeError: Cannot install a profile function while another profile function is being installed
+Traceback (most recent call last):
+  File "D:\projects\Roco-LittleNine\analyze_battle_pipeline.py", line 329, in <module>
+    profile_snapshot_detailed()
+  File "D:\projects\Roco-LittleNine\analyze_battle_pipeline.py", line 168, in profile_snapshot_detailed
+    snapshot = battle.save_state()
+AttributeError: 'Battle' object has no attribute 'save_state'
+Exception ignored When destroying _lsprof profiler:
+Traceback (most recent call last):
+  File "D:\projects\Roco-LittleNine\analyze_battle_pipeline.py", line 220, in profile_build_ctx
+    profiler.enable()
+RuntimeError: Cannot install a profile function while another profile function is being installed
+================================================================================
+战斗引擎和 IR 层性能分析
+================================================================================
+
+================================================================================
+分析 1: 战斗回合执行性能 (1000 回合)
+================================================================================
+❌ 战斗回合分析失败: 'Battle' object has no attribute '_execute_turn_headless'
+
+================================================================================
+分析 2: IR 技能执行性能 (1000 次技能执行)
+================================================================================
+
+总耗时: 0.263s
+每次技能: 0.26ms
+吞吐量: 3805 skills/s
+
+================================================================================
+Top 50 热点函数 (按累计时间):
+================================================================================
+
+         656091 function calls in 0.246 seconds
+
+   Ordered by: cumulative time
+   List reduced from 197 to 50 due to restriction <50>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+     1000    0.013    0.000    0.240    0.000 battle.py:521(__init__)
+     2000    0.004    0.000    0.097    0.000 battle.py:709(_make_ctx)
+     2000    0.009    0.000    0.096    0.000 __init__.py:73(dispatch_entry)
+     2000    0.016    0.000    0.084    0.000 trait_loader.py:39(load_for_sprite)
+     2010    0.044    0.000    0.083    0.000 snapshot.py:130(build_ctx)
+     2000    0.001    0.000    0.043    0.000 observer.py:243(register)
+     2000    0.007    0.000    0.042    0.000 observer.py:189(_index)
+     2000    0.003    0.000    0.029    0.000 executor.py:112(compile_effects_batch)
+     1000    0.002    0.000    0.029    0.000 battle.py:100(__init__)
+     1000    0.003    0.000    0.027    0.000 trait_loader.py:30(__init__)
+     2000    0.002    0.000    0.026    0.000 skill_parse.py:73(_parse_effect)
+     2000    0.010    0.000    0.024    0.000 skill_parse.py:277(_parse_mod)
+     1000    0.005    0.000    0.019    0.000 battle.py:1179(_execute_skill_vm)
+     4020    0.003    0.000    0.018    0.000 snapshot.py:70(_collect_skill_summary)
+     3000    0.003    0.000    0.015    0.000 pathlib.py:569(_parse_args)
+     4020    0.010    0.000    0.014    0.000 snapshot.py:53(_battle_skill_summary_key)
+   200893    0.012    0.000    0.012    0.000 {method 'get' of 'dict' objects}
+     3000    0.006    0.000    0.011    0.000 pathlib.py:56(parse_parts)
+     2000    0.001    0.000    0.011    0.000 pathlib.py:853(__truediv__)
+     2010    0.005    0.000    0.011    0.000 battle.py:665(_ctx_team_kwargs)
+     1000    0.001    0.000    0.010    0.000 pathlib.py:957(__new__)
+     2000    0.002    0.000    0.010    0.000 pathlib.py:615(_make_child)
+     1000    0.001    0.000    0.010    0.000 pathlib.py:589(_from_parts)
+     2000    0.005    0.000    0.008    0.000 effect_factory.py:23(from_dict)
+     2000    0.002    0.000    0.007    0.000 trait_to_observer.py:17(compile)
+    62353    0.005    0.000    0.005    0.000 {built-in method builtins.getattr}
+     1000    0.001    0.000    0.005    0.000 battle.py:1512(_gate_charge_vm)
+     2000    0.003    0.000    0.005    0.000 trait_to_observer.py:32(_compile_one)
+     1000    0.002    0.000    0.004    0.000 battle.py:149(skill_energy_cost)
+     1000    0.002    0.000    0.004    0.000 battle.py:624(_build_ctx_team_cache)
+     2000    0.001    0.000    0.004    0.000 skill_parse.py:225(_parse_value_optional)
+    45160    0.003    0.000    0.003    0.000 {built-in method builtins.isinstance}
+     3000    0.002    0.000    0.003    0.000 pathlib.py:865(parent)
+     1000    0.001    0.000    0.003    0.000 battle.py:1568(_skill_has_charge)
+     2000    0.002    0.000    0.003    0.000 skill_parse.py:141(_parse_value)
+     4020    0.002    0.000    0.003    0.000 snapshot.py:473(_extract_sprite_effects)
+    39091    0.003    0.000    0.003    0.000 {method 'append' of 'list' objects}
+     2000    0.002    0.000    0.003    0.000 observer.py:281(unregister_by_owner)
+     2000    0.002    0.000    0.003    0.000 observer.py:28(_bake_inject_source)
+     8000    0.002    0.000    0.002    0.000 skill_parse.py:233(_str_or)
+     1021    0.000    0.000    0.002    0.000 {built-in method builtins.any}
+     3000    0.002    0.000    0.002    0.000 pathlib.py:147(splitroot)
+     5000    0.002    0.000    0.002    0.000 pathlib.py:600(_from_parsed_parts)
+     2000    0.001    0.000    0.002    0.000 observer.py:48(_bake_inject_scope)
+     2010    0.001    0.000    0.002    0.000 snapshot.py:40(_compute_speed_self)
+    34230    0.002    0.000    0.002    0.000 {built-in method builtins.id}
+     4060    0.002    0.000    0.002    0.000 observer.py:349(has_candidates)
+     2000    0.001    0.000    0.002    0.000 battle.py:491(fire_trigger)
+     8000    0.001    0.000    0.002    0.000 skill_parse.py:239(_int_or)
+     2000    0.000    0.000    0.002    0.000 battle.py:1572(<genexpr>)
+
+
+
+
+================================================================================
+Top 30 热点函数 (按自身时间):
+================================================================================
+
+         656091 function calls in 0.246 seconds
+
+   Ordered by: internal time
+   List reduced from 197 to 30 due to restriction <30>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+     2010    0.044    0.000    0.083    0.000 snapshot.py:130(build_ctx)
+     2000    0.016    0.000    0.084    0.000 trait_loader.py:39(load_for_sprite)
+     1000    0.013    0.000    0.240    0.000 battle.py:521(__init__)
+   200893    0.012    0.000    0.012    0.000 {method 'get' of 'dict' objects}
+     4020    0.010    0.000    0.014    0.000 snapshot.py:53(_battle_skill_summary_key)
+     2000    0.010    0.000    0.024    0.000 skill_parse.py:277(_parse_mod)
+     2000    0.009    0.000    0.096    0.000 __init__.py:73(dispatch_entry)
+     2000    0.007    0.000    0.042    0.000 observer.py:189(_index)
+     3000    0.006    0.000    0.011    0.000 pathlib.py:56(parse_parts)
+    62353    0.005    0.000    0.005    0.000 {built-in method builtins.getattr}
+     2010    0.005    0.000    0.011    0.000 battle.py:665(_ctx_team_kwargs)
+     2000    0.005    0.000    0.008    0.000 effect_factory.py:23(from_dict)
+     1000    0.005    0.000    0.019    0.000 battle.py:1179(_execute_skill_vm)
+     2000    0.004    0.000    0.097    0.000 battle.py:709(_make_ctx)
+    45160    0.003    0.000    0.003    0.000 {built-in method builtins.isinstance}
+     3000    0.003    0.000    0.015    0.000 pathlib.py:569(_parse_args)
+     2000    0.003    0.000    0.005    0.000 trait_to_observer.py:32(_compile_one)
+     4020    0.003    0.000    0.018    0.000 snapshot.py:70(_collect_skill_summary)
+    39091    0.003    0.000    0.003    0.000 {method 'append' of 'list' objects}
+     2000    0.003    0.000    0.029    0.000 executor.py:112(compile_effects_batch)
+     1000    0.003    0.000    0.027    0.000 trait_loader.py:30(__init__)
+     1000    0.002    0.000    0.004    0.000 battle.py:149(skill_energy_cost)
+     1000    0.002    0.000    0.004    0.000 battle.py:624(_build_ctx_team_cache)
+     3000    0.002    0.000    0.002    0.000 pathlib.py:147(splitroot)
+    34230    0.002    0.000    0.002    0.000 {built-in method builtins.id}
+     8000    0.002    0.000    0.002    0.000 skill_parse.py:233(_str_or)
+     4020    0.002    0.000    0.003    0.000 snapshot.py:473(_extract_sprite_effects)
+     2000    0.002    0.000    0.003    0.000 skill_parse.py:141(_parse_value)
+     2000    0.002    0.000    0.003    0.000 observer.py:28(_bake_inject_source)
+     2000    0.002    0.000    0.003    0.000 observer.py:281(unregister_by_owner)
+
+
+
+
+================================================================================
+分析 3: 快照/恢复性能 (1000 次 save+restore)
+================================================================================
+❌ 快照分析失败: 'Battle' object has no attribute 'save_state'
+
+================================================================================
+分析 4: build_ctx 调用性能 (10000 次)
+================================================================================
+
+总耗时: 0.460s
+每次调用: 0.05ms = 45.98μs
+吞吐量: 21,751 calls/s
+
+================================================================================
+Top 30 热点函数 (按累计时间):
+================================================================================
+
+         1500003 function calls in 0.443 seconds
+
+   Ordered by: cumulative time
+   List reduced from 31 to 30 due to restriction <30>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+    10000    0.015    0.000    0.445    0.000 battle.py:709(_make_ctx)
+    10000    0.189    0.000    0.406    0.000 snapshot.py:130(build_ctx)
+    20000    0.012    0.000    0.079    0.000 snapshot.py:70(_collect_skill_summary)
+    20000    0.047    0.000    0.064    0.000 snapshot.py:53(_battle_skill_summary_key)
+   550000    0.028    0.000    0.028    0.000 {method 'get' of 'dict' objects}
+   230000    0.021    0.000    0.026    0.000 {built-in method builtins.getattr}
+    10000    0.018    0.000    0.024    0.000 battle.py:665(_ctx_team_kwargs)
+    10000    0.024    0.000    0.024    0.000 <string>:2(__init__)
+    50000    0.008    0.000    0.019    0.000 {built-in method builtins.hasattr}
+    20000    0.008    0.000    0.011    0.000 snapshot.py:473(_extract_sprite_effects)
+    10000    0.006    0.000    0.009    0.000 snapshot.py:40(_compute_speed_self)
+    10000    0.006    0.000    0.009    0.000 snapshot.py:26(_get_element_advantage)
+   160000    0.008    0.000    0.008    0.000 {built-in method builtins.id}
+    20000    0.007    0.000    0.008    0.000 battleskill.py:139(power)
+    20000    0.006    0.000    0.007    0.000 battleskill.py:144(energy_cost)
+    10000    0.004    0.000    0.007    0.000 snapshot.py:49(_compute_speed)
+    20000    0.005    0.000    0.006    0.000 battleskill.py:98(combo)
+    40000    0.005    0.000    0.005    0.000 {built-in method builtins.max}
+    80000    0.005    0.000    0.005    0.000 {method 'append' of 'list' objects}
+    40000    0.004    0.000    0.004    0.000 {built-in method builtins.round}
+    20000    0.003    0.000    0.003    0.000 battleskill.py:68(element)
+    30000    0.003    0.000    0.003    0.000 player.py:71(active)
+    20000    0.002    0.000    0.002    0.000 {built-in method builtins.sum}
+    20000    0.002    0.000    0.002    0.000 models.py:44(elements)
+    10000    0.002    0.000    0.002    0.000 battleskill.py:77(skill_type)
+    20000    0.002    0.000    0.002    0.000 {built-in method builtins.len}
+    20000    0.001    0.000    0.001    0.000 {method 'values' of 'dict' objects}
+    10000    0.001    0.000    0.001    0.000 sprite.py:104(is_fainted)
+    10000    0.001    0.000    0.001    0.000 {built-in method builtins.min}
+        1    0.000    0.000    0.000    0.000 {method 'disable' of '_lsprof.Profiler' objects}
+
+
+
+
+================================================================================
+Top 20 热点函数 (按自身时间):
+================================================================================
+
+         1500003 function calls in 0.443 seconds
+
+   Ordered by: internal time
+   List reduced from 31 to 20 due to restriction <20>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+    10000    0.189    0.000    0.406    0.000 snapshot.py:130(build_ctx)
+    20000    0.047    0.000    0.064    0.000 snapshot.py:53(_battle_skill_summary_key)
+   550000    0.028    0.000    0.028    0.000 {method 'get' of 'dict' objects}
+    10000    0.024    0.000    0.024    0.000 <string>:2(__init__)
+   230000    0.021    0.000    0.026    0.000 {built-in method builtins.getattr}
+    10000    0.018    0.000    0.024    0.000 battle.py:665(_ctx_team_kwargs)
+    10000    0.015    0.000    0.445    0.000 battle.py:709(_make_ctx)
+    20000    0.012    0.000    0.079    0.000 snapshot.py:70(_collect_skill_summary)
+    50000    0.008    0.000    0.019    0.000 {built-in method builtins.hasattr}
+   160000    0.008    0.000    0.008    0.000 {built-in method builtins.id}
+    20000    0.008    0.000    0.011    0.000 snapshot.py:473(_extract_sprite_effects)
+    20000    0.007    0.000    0.008    0.000 battleskill.py:139(power)
+    10000    0.006    0.000    0.009    0.000 snapshot.py:26(_get_element_advantage)
+    10000    0.006    0.000    0.009    0.000 snapshot.py:40(_compute_speed_self)
+    20000    0.006    0.000    0.007    0.000 battleskill.py:144(energy_cost)
+    20000    0.005    0.000    0.006    0.000 battleskill.py:98(combo)
+    40000    0.005    0.000    0.005    0.000 {built-in method builtins.max}
+    80000    0.005    0.000    0.005    0.000 {method 'append' of 'list' objects}
+    10000    0.004    0.000    0.007    0.000 snapshot.py:49(_compute_speed)
+    40000    0.004    0.000    0.004    0.000 {built-in method builtins.round}
+
+
+
+
+================================================================================
+优化建议总结
+================================================================================
+
+根据 profile 数据，按优先级排序的优化方向：
+
+【高优先级】
+1. 快照/恢复操作
+   - 当前: 每次 MCTS 模拟需要多次 save/restore
+   - 优化方向: 增量快照、copy-on-write、对象池复用
+   - 预期收益: 20-30%
+
+2. build_ctx 热路径
+   - 当前: 每次技能执行调用多次
+   - 优化方向: 更多字段缓存、减少字典拷贝
+   - 预期收益: 5-10%
+
+3. _collect_skill_summary
+   - 当前: 已优化（技能摘要缓存）
+   - 实测收益: 2.29x 加速
+   - 状态: ✅ 已完成
+
+【中优先级】
+4. IR 执行热路径
+   - 当前: 已预编译 effects
+   - 优化方向: 热点操作内联、条件分支优化
+   - 预期收益: 5-10%
+
+5. Observer 触发
+   - 当前: 已注册时编译
+   - 实测收益: 15.7% 加速
+   - 状态: ✅ 已完成
+
+【低优先级】
+6. 字典/列表操作
+   - 优化方向: 使用 __slots__、frozenset 替代 dict
+   - 预期收益: 2-5%
+
+【综合建议】
+最值得优化: 快照/恢复机制（占 MCTS 时间 30-40%）
+次优选择: build_ctx 继续优化（已有基础，增量收益）
+
+================================================================================
+✅ 分析完成！查看上方输出找到最值得优化的热点。
+================================================================================

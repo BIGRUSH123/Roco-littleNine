@@ -762,7 +762,7 @@ def test_counter_does_not_fire_without_condition():
     print("  Counter correctly stayed silent when condition false")
 
 
-def test_pre_event_observer_then_is_compiled_after_first_fire():
+def test_pre_event_observer_then_is_compiled_on_registration():
     """pre-event observers should not JIT-compile dict IR on every trigger."""
     from backend.engine.battle import BattleVMEngine
     from backend.engine.observer import Observer
@@ -778,12 +778,53 @@ def test_pre_event_observer_then_is_compiled_after_first_fire():
     )
     engine.registry.register(observer)
 
+    assert isinstance(observer.then, tuple)
+    assert observer.then
+    assert all(type(op) is not dict for op in observer.then)
+
     mutations = engine._fire_pre_event("pre_calc", Ctx(), 123)
+
+    assert any(isinstance(m, StatChange) and m.stat == "atk" for m in mutations)
+
+
+def test_post_event_observer_then_is_scoped_and_compiled_on_registration():
+    """post-event observers should bake scope once before typed compilation."""
+    from backend.engine.battle import BattleVMEngine
+    from backend.engine.observer import Observer
+    from backend.engine.replayer import JournalReplayer
+    from backend.vm.ctx import Ctx
+
+    class _Sprite:
+        current_hp = 100
+        max_hp = 100
+        active_effects = []
+        _modifiers = {}
+        _mod_scopes = {}
+
+        def add_effect(self, effect):
+            self.active_effects.append(effect)
+
+    engine = BattleVMEngine()
+    sprite = _Sprite()
+    opp = _Sprite()
+    observer = Observer(
+        cond={"cond": "always"},
+        then=[{"op": "mod", "target": "sprite_self", "stat": "atk", "steps": 1}],
+        scope="turn",
+        listen=frozenset({"post_skill"}),
+    )
+    engine.registry.register(observer)
 
     assert isinstance(observer.then, tuple)
     assert observer.then
     assert all(type(op) is not dict for op in observer.then)
-    assert any(isinstance(m, StatChange) and m.stat == "atk" for m in mutations)
+
+    replayer = JournalReplayer(sprite, opp, None, engine.registry, team="A")
+
+    engine._fire_post_event("post_skill", Ctx(), replayer)
+
+    assert sprite.active_effects
+    assert sprite.active_effects[0].scope == "turn"
 
 
 def test_observer_registry_candidates_filter_by_trigger_and_owner():
@@ -906,6 +947,46 @@ def test_observer_owner_index_rebuilds_after_unregister():
     assert list(registry.candidates_for_owner("post_skill", owner_b)) == [b1, none1]
     # Reg-seq re-derived from list position: b1 before none1.
     assert b1._reg_seq < none1._reg_seq
+
+
+def test_observer_registry_snapshot_restores_indexes_without_rebuild():
+    """MCTS registry rollback restores indexes and observer runtime counters."""
+    from backend.engine.observer import Observer, ObserverRegistry
+
+    registry = ObserverRegistry()
+    owner_a = 101
+    owner_b = 202
+    a_obs = Observer(
+        cond={"cond": "skill_use"},
+        then=[],
+        listen=frozenset({"post_skill"}),
+        owner_sprite_id=owner_a,
+    )
+    ownerless = Observer(
+        cond={"cond": "skill_use"},
+        then=[],
+        listen=frozenset({"post_skill"}),
+    )
+    registry.register(a_obs)
+    registry.register(ownerless)
+    before_view = list(registry.candidates_for_owner("post_skill", owner_a))
+    saved = registry.save_state()
+
+    b_obs = Observer(
+        cond={"cond": "skill_use"},
+        then=[],
+        listen=frozenset({"post_skill"}),
+        owner_sprite_id=owner_b,
+    )
+    registry.register(b_obs)
+    a_obs._hit_count = 9
+
+    registry.restore_state(saved)
+
+    assert list(registry.candidates_for_owner("post_skill", owner_a)) == before_view
+    assert list(registry.candidates_for_owner("post_skill", owner_b)) == [ownerless]
+    assert b_obs not in registry._observers
+    assert a_obs._hit_count == 0
 
 
 def test_named_counter_value_tracking():

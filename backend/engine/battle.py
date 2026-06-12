@@ -21,7 +21,7 @@ from backend.vm.ir_skill import AndCond, CondExpr, NotCond, OrCond
 from backend.vm.journal import CounterRegister, Journal, ModifierInjection, Replay
 
 from .modifiers import apply_modifiers_to_journal
-from .observer import ObserverRegistry, _bake_inject_scope
+from .observer import ObserverRegistry
 from .replayer import JournalReplayer
 from .snapshot import build_ctx
 from .trait_loader import TraitLoader
@@ -303,10 +303,8 @@ class BattleVMEngine:
                 continue
             try:
                 if obs.eval_cond(ctx):
-                    if obs.then and type(obs.then[0]) is dict:
-                        obs.then = compile_effects_batch(obs.then)
                     # source 已在 ObserverRegistry._index() 注册时预注入，
-                    # 无需运行时 copy.copy
+                    # obs.then 已在注册时编译为 typed IR tuple
                     result = process_effects(ctx, obs.then)
                     mutations.extend(result)
             except Exception:
@@ -369,11 +367,7 @@ class BattleVMEngine:
                         ctx.event.damage_taken_of = "sprite_opp"
             try:
                 if obs.eval_cond(ctx):
-                    # source 已在注册时预注入；scope 在此首次触发时原地注入（幂等，无拷贝）
-                    _bake_inject_scope(obs.then, obs.scope)
-                    # 首次触发后编译 obs.then 为 typed IR，消除后续 process_one 的 JIT 开销
-                    if obs.then and type(obs.then[0]) is dict:
-                        obs.then = compile_effects_batch(obs.then)
+                    # source 已在注册时预注入；scope 已在注册时预注入并编译为 typed IR
                     journal = process_effects(ctx, obs.then)
                     replayer._trait_sourcing = True
                     ev = replayer.replay(journal)
@@ -556,9 +550,7 @@ class BattleVMEngine:
                     continue
             try:
                 if obs.eval_cond(ctx):
-                    _bake_inject_scope(obs.then, obs.scope)
-                    if obs.then and type(obs.then[0]) is dict:
-                        obs.then = compile_effects_batch(obs.then)
+                    # scope 已在注册时预注入并编译为 typed IR
                     journal = process_effects(ctx, obs.then)
                     replayer._trait_sourcing = True
                     ev = replayer.replay(journal)
@@ -597,9 +589,7 @@ class BattleVMEngine:
             try:
                 if not obs.eval_cond(ctx):
                     continue
-                _bake_inject_scope(obs.then, obs.scope)
-                if obs.then and type(obs.then[0]) is dict:
-                    obs.then = compile_effects_batch(obs.then)
+                # scope 已在注册时预注入并编译为 typed IR
                 for mutation in process_effects(ctx, obs.then):
                     if (
                         isinstance(mutation, ModifierInjection)
@@ -648,16 +638,21 @@ class BattleVMEngine:
         from .observer import Observer
         owner_id = id(owner_sprite) if owner_sprite else None
         owner_skill_id = id(owner_skill) if owner_skill is not None else None
+
+        # Compile mutation.then to match registered observers' typed IR for dedup check.
+        # mutation.then arrives as list[dict]; registered observers compile at registration.
+        compiled_then = compile_effects_batch(mutation.then) if mutation.then else ()
+
         # Check for duplicate
         for obs in self.registry._observers:
             if (obs.cond == mutation.cond
-                    and obs.then == mutation.then
+                    and obs.then == compiled_then
                     and obs.owner_sprite_id == owner_id
                     and obs.owner_skill_id == owner_skill_id):
                 return  # already registered
         self.registry.register(Observer(
             cond=mutation.cond,
-            then=mutation.then,
+            then=mutation.then,  # Pass raw dict list; _index() will compile it
             scope=mutation.scope,
             name=mutation.name or "",
             source="counter",

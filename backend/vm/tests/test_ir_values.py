@@ -7,6 +7,18 @@ from backend.vm.ir_values import Literal, Query, RefExpr
 from backend.vm.resolve import resolve
 
 
+def test_ir_values_are_slots_backed_and_pickleable():
+    values = (
+        Literal(1),
+        Query(field="atk_self"),
+        RefExpr(root="self", path=["energy"]),
+    )
+
+    for value in values:
+        assert not hasattr(value, "__dict__")
+        assert pickle.loads(pickle.dumps(value)) == value
+
+
 class TestLiteral:
     def test_literal_int(self):
         v = Literal(42)

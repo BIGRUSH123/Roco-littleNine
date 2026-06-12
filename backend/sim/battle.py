@@ -318,7 +318,7 @@ class Battle(BattleMechanicsMixin):
             "counter_values": dict(vm._counter_values),
             "skill_history": {k: list(v) for k, v in vm._skill_history.items()},
             "skill_tags": {k: dict(v) for k, v in vm._skill_tags.items()},
-            "observers": [copy(obs) for obs in vm.registry._observers],
+            "registry": vm.registry.save_state(),
             "trait_sprite_sources": {
                 k: set(v) for k, v in vm.trait_loader._sprite_sources.items()
             },
@@ -509,8 +509,7 @@ class Battle(BattleMechanicsMixin):
         self._vm_engine._counter_values = vs["counter_values"]
         self._vm_engine._skill_history = vs["skill_history"]
         self._vm_engine._skill_tags = vs["skill_tags"]
-        self._vm_engine.registry._observers = list(vs["observers"])
-        self._vm_engine.registry._rebuild_index()
+        self._vm_engine.registry.restore_state(vs["registry"])
         self._vm_engine.trait_loader._sprite_sources = {
             k: set(v) for k, v in vs["trait_sprite_sources"].items()
         }
@@ -997,7 +996,8 @@ class Battle(BattleMechanicsMixin):
 
     def _resolve_both_skills(self, action_a: Action, action_b: Action, record: RoundRecord) -> list[str]:
         """执行双方技能，直接填充 record.action_a / action_b / faint_check_events。"""
-        ar = {'A': record.action_a, 'B': record.action_b}
+        ar_a = record.action_a
+        ar_b = record.action_b
         s_a = self.player_a.active
         s_b = self.player_b.active
 
@@ -1023,39 +1023,44 @@ class Battle(BattleMechanicsMixin):
 
         if countered:
             # 应对成功 → A 先执行，力竭中断 B
-            ar['A'].events = self._execute_single_action(
+            ar_a.events = self._execute_single_action(
                 'A', action_a, is_countered=counter_b,
                 countered_skill=countered_skill_a,
                 countering_skill=countering_skill_a, is_first=True,
             )
-            self._check_faint_interrupt('A', ar['A'].events)
-            self._check_faint_interrupt('B', ar['A'].events)
+            self._check_faint_interrupt('A', ar_a.events)
+            self._check_faint_interrupt('B', ar_a.events)
             if not self.is_finished:
                 b_sprite_now = self.get_player('B').active
                 if not b_sprite_now.is_fainted and b_sprite_now is s_b:
-                    ar['B'].events = self._execute_single_action(
+                    ar_b.events = self._execute_single_action(
                         'B', action_b, is_countered=counter_a,
                         countered_skill=countered_skill_b,
                         countering_skill=countering_skill_b, is_first=True,
                     )
-                    self._check_faint_interrupt('A', ar['B'].events)
-                    self._check_faint_interrupt('B', ar['B'].events)
+                    self._check_faint_interrupt('A', ar_b.events)
+                    self._check_faint_interrupt('B', ar_b.events)
             # trait: counter success hooks → 附加到对应 action
             if counter_a:
                 self.inc_team_counter('A', 'counter_success')
                 # Observer: post_counter
                 ctx_ca = self._make_ctx(s_a, s_b, skill_a, None, self.globals, team='A', turn=self.turn, counter_succeeded=True)
-                ar['A'].events += self._vm_engine.fire_trigger("post_counter", ctx_ca, s_a, s_b, self.globals, team='A', battle=self)
+                ar_a.events += self._vm_engine.fire_trigger("post_counter", ctx_ca, s_a, s_b, self.globals, team='A', battle=self)
             if counter_b:
                 self.inc_team_counter('B', 'counter_success')
                 # Observer: post_counter
                 ctx_cb = self._make_ctx(s_b, s_a, skill_b, None, self.globals, team='B', turn=self.turn, counter_succeeded=True)
-                ar['B'].events += self._vm_engine.fire_trigger("post_counter", ctx_cb, s_b, s_a, self.globals, team='B', battle=self)
+                ar_b.events += self._vm_engine.fire_trigger("post_counter", ctx_cb, s_b, s_a, self.globals, team='B', battle=self)
             return []
 
-        # 无应对 → 按优先级先后执行
-        priority_a = self._effective_priority('A', action_a)
-        priority_b = self._effective_priority('B', action_b)
+        # 无应对 → 按优先级先后执行。skill_a/skill_b 已在上方解析过，
+        # 避免为 priority 再次通过 action 查 active skill。
+        priority_a = 0 if action_a.kind == 'gather' else (
+            (skill_a.priority if skill_a else 0) + s_a.priority_mod
+        )
+        priority_b = 0 if action_b.kind == 'gather' else (
+            (skill_b.priority if skill_b else 0) + s_b.priority_mod
+        )
 
         if priority_a > priority_b:
             first_team, first_action = 'A', action_a
@@ -1090,22 +1095,24 @@ class Battle(BattleMechanicsMixin):
 
         # 先手执行 (is_first=True)
         second_sprite_before = self.get_player(second_team).active
-        ar[first_team].events = self._execute_single_action(
+        first_ar = ar_a if first_team == 'A' else ar_b
+        second_ar = ar_a if second_team == 'A' else ar_b
+        first_ar.events = self._execute_single_action(
             first_team, first_action, is_first=True,
             opp_skill=opp_skill_for_first,
         )
-        self._check_faint_interrupt(first_team, ar[first_team].events)
-        self._check_faint_interrupt(second_team, ar[first_team].events)
+        self._check_faint_interrupt(first_team, first_ar.events)
+        self._check_faint_interrupt(second_team, first_ar.events)
 
         # 后手执行 (is_first=False)，力竭中断或已换宠则跳过
         if not self.is_finished:
             second_sprite_now = self.get_player(second_team).active
             if not second_sprite_now.is_fainted and second_sprite_now is second_sprite_before:
-                ar[second_team].events = self._execute_single_action(
+                second_ar.events = self._execute_single_action(
                     second_team, second_action, is_first=False,
                     opp_skill=opp_skill_for_second,
                 )
-                self._check_faint_interrupt(second_team, ar[second_team].events)
+                self._check_faint_interrupt(second_team, second_ar.events)
 
         return []
 
