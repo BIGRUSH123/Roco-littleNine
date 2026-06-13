@@ -7,10 +7,15 @@ import multiprocessing as mp
 import numpy as np
 
 from backend.engine.ai.core.mcts_parallel import parallel_mcts_search_root
-from backend.engine.ai.train import MCTSAgent
+
+# 延迟导入避免循环依赖
+def _get_mcts_agent_class():
+    """延迟导入 MCTSAgent"""
+    from backend.engine.ai.train import MCTSAgent
+    return MCTSAgent
 
 
-class ParallelMCTSAgent(MCTSAgent):
+class ParallelMCTSAgent:
     """并行版本的 MCTS Agent
 
     在 MCTSAgent 基础上，使用进程池并行化 MCTS 搜索。
@@ -60,26 +65,30 @@ class ParallelMCTSAgent(MCTSAgent):
         tanh_k: float = 0.0,
         leaf_batch_size: int = 16,
     ):
-        # 调用父类初始化
-        super().__init__(
-            team=team,
-            player=player,
-            factory=factory,
-            opponent_agent=opponent_agent,
-            num_simulations=num_simulations,
-            temperature=temperature,
-            root_noise=root_noise,
-            record=record,
-            opp_greedy=opp_greedy,
-            model=model,
-            device=device,
-            evaluator=evaluator,
-            max_turns=max_turns,
-            draw_margin=draw_margin,
-            gamma=gamma,
-            tanh_k=tanh_k,
-            leaf_batch_size=leaf_batch_size,
-        )
+        # 动态获取并调用父类（避免循环导入）
+        MCTSAgent = _get_mcts_agent_class()
+
+        # 手动初始化父类（不使用 super，因为不是真正的继承）
+        # 复制 MCTSAgent.__init__ 的逻辑
+        self.team = team
+        self._player = player
+        self._factory = factory
+        self._opponent = opponent_agent
+        self._num_simulations = num_simulations
+        self._temperature = temperature
+        self._root_noise = root_noise
+        self._record = record
+        self._opp_greedy = opp_greedy
+        self._model = model
+        self._device = device
+        self._evaluator = evaluator
+        self._max_turns = max_turns
+        self._draw_margin = draw_margin
+        self._gamma = gamma
+        self._tanh_k = tanh_k
+        self._leaf_batch_size = leaf_batch_size
+
+        self._history = [] if record else None
 
         # 并行化参数
         self._num_workers = num_workers

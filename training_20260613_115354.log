@@ -1,0 +1,10 @@
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "D:\projects\Roco-LittleNine\backend\engine\ai\train.py", line 52, in <module>
+    from backend.engine.ai.parallel_agent import ParallelMCTSAgent
+  File "D:\projects\Roco-LittleNine\backend\engine\ai\parallel_agent.py", line 10, in <module>
+    from backend.engine.ai.train import MCTSAgent
+  File "D:\projects\Roco-LittleNine\backend\engine\ai\train.py", line 52, in <module>
+    from backend.engine.ai.parallel_agent import ParallelMCTSAgent
+ImportError: cannot import name 'ParallelMCTSAgent' from partially initialized module 'backend.engine.ai.parallel_agent' (most likely due to a circular import) (D:\projects\Roco-LittleNine\backend\engine\ai\parallel_agent.py)
