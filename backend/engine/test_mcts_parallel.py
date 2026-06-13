@@ -17,6 +17,11 @@ class UniformEvaluator:
         return np.zeros(len(states), dtype=np.float32), probs
 
 
+class InlinePool:
+    def starmap(self, func, args):
+        return [func(*arg) for arg in args]
+
+
 def _build_battle():
     from backend.sim.factory import SimFactory
 
@@ -85,3 +90,35 @@ def test_parallel_mcts_search_root_with_process_pool():
 
     assert probs.shape == (17,)
     assert np.isclose(probs.sum(), 1.0)
+
+
+def test_parallel_agent_records_public_history():
+    from backend.engine.ai.core.mcts import NetworkPolicyAgent
+    from backend.engine.ai.parallel_agent import ParallelMCTSAgent
+    from backend.sim.action import Action
+
+    factory, battle = _build_battle()
+    evaluator = UniformEvaluator()
+    opponent = NetworkPolicyAgent(evaluator=evaluator, greedy=True)
+    agent = ParallelMCTSAgent(
+        "A",
+        battle.player_a,
+        factory=factory,
+        opponent_agent=opponent,
+        num_simulations=1,
+        num_workers=1,
+        pool=InlinePool(),
+        record=True,
+        evaluator=evaluator,
+        root_noise=0.0,
+        leaf_batch_size=1,
+    )
+
+    action = agent.choose_action(battle)
+
+    assert isinstance(action, Action)
+    assert len(agent.history) == 1
+    state, probs, mask = agent.history[0]
+    assert state
+    assert probs.shape == (17,)
+    assert mask.shape == (17,)

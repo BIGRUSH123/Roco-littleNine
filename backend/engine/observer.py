@@ -253,7 +253,13 @@ class ObserverRegistry:
         Most simulations do not change the observer set. Store the structural
         version and observer list only; restore can skip index rebuilding unless
         a simulated branch registered/unregistered observers.
+
+        Clear compiled_cond cache before saving to avoid pickle errors with lambda.
         """
+        # 清除编译缓存（lambda 无法序列化）
+        for obs in self._observers:
+            obs._compiled_cond = None
+
         return {
             "version": self._version,
             "observers": list(self._observers),
