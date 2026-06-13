@@ -19,6 +19,7 @@ import queue
 import random
 import tempfile
 import time
+from datetime import datetime
 import warnings
 from pathlib import Path
 
@@ -65,6 +66,13 @@ DEFAULT_MCTS_LEAF_BATCH_SIZE = 16
 # ═══════════════════════════════════════════════════════════════════
 # 数据加载
 # ═══════════════════════════════════════════════════════════════════
+
+
+def _timestamp_print(msg: str, **kwargs) -> None:
+    """带时间戳的print函数"""
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    print(f"[{timestamp}] {msg}", **kwargs)
+
 
 def _load_sprite_skills() -> dict[str, list[str]]:
     from backend.engine.ai.data.sprite_random_pool import SPRITE_RANDOM_POOL
@@ -404,7 +412,7 @@ def collect_rl_samples(
             reason_counts[end_reason] = reason_counts.get(end_reason, 0) + 1
             pe = max(1, progress_every)
             if verbose and (i + 1) % pe == 0:
-                print(f"  RL 自我博弈 {i + 1}/{num_battles} 局 (timeout, 跳过), 样本 {len(all_states)}", flush=True)
+                _timestamp_print(f"  RL 自我博弈 {i + 1}/{num_battles} 局 (timeout, 跳过), 样本 {len(all_states)}", flush=True)
             continue
 
         reason_counts[end_reason] = reason_counts.get(end_reason, 0) + 1
@@ -422,7 +430,7 @@ def collect_rl_samples(
 
         pe = max(1, progress_every)
         if verbose and (i + 1) % pe == 0:
-            print(f"  RL 自我博弈 {i + 1}/{num_battles} 局, 样本 {len(all_states)}", flush=True)
+            _timestamp_print(f"  RL 自我博弈 {i + 1}/{num_battles} 局, 样本 {len(all_states)}", flush=True)
 
     if not all_states:
         return (
@@ -873,7 +881,7 @@ def train_rl(
 
         if (epoch + 1) % 5 == 0 or epoch == 0:
             current_lr = scheduler.get_last_lr()[0] if scheduler is not None else optimizer.param_groups[0]["lr"]
-            print(f"  Epoch {epoch + 1:3d}/{epochs}  "
+            _timestamp_print(f"  Epoch {epoch + 1:3d}/{epochs}  "
                   f"v_loss={train_v_loss:.4f}/{val_v_loss:.4f}  "
                   f"p_loss={train_p_loss:.4f}/{val_p_loss:.4f}  "
                   f"val_acc={val_acc:.3f}  "
@@ -1330,12 +1338,12 @@ def main():
     log_dir = args.log_dir
 
     def _log(msg: str) -> None:
-        """同时输出到控制台和全量日志。"""
-        print(msg, flush=True)
+        """同时输出到控制台和全量日志（带时间戳）。"""
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        timestamped_msg = f"[{timestamp}] {msg}"
+        print(timestamped_msg, flush=True)
         if logger is not None:
-            logger.info(msg)
-
-    checkpoints_dir = "checkpoints"
+            logger.info(msg)  # logger自带时间戳，不重复添加
     if run_name:
         log_dir = f"{args.log_dir}/{run_name}"
         checkpoints_dir = f"checkpoints/{run_name}"
