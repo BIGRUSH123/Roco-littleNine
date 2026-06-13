@@ -477,21 +477,41 @@ with tab3:
                     if run_name:
                         cmd.extend(["--run-name", run_name])
                         st.session_state.run_name = run_name
+                    else:
+                        run_name = "default"
 
-                    # 启动进程
+                    # 创建日志文件
+                    from datetime import datetime
+                    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                    log_file = f"training_{timestamp}.log"
+
+                    # 启动进程（输出到文件）
+                    log_handle = open(log_file, "w", encoding="utf-8")
+
                     process = subprocess.Popen(
                         cmd,
-                        stdout=subprocess.PIPE,
+                        stdout=log_handle,
                         stderr=subprocess.STDOUT,
-                        text=True,
-                        bufsize=1
+                        text=True
                     )
 
                     st.session_state.training_process = process
                     st.session_state.training_running = True
+                    st.session_state.log_file = log_file
 
-                    st.success("✅ 训练已启动！")
-                    time.sleep(1)
+                    st.success(f"✅ 训练已启动！")
+                    st.info(f"📝 日志文件: {log_file}")
+                    st.info(f"🔍 进程 ID: {process.pid}")
+
+                    st.warning("""
+                    ⚠️ **重要提示**：
+                    - 关闭此页面**不会**停止训练
+                    - 训练会在后台继续运行
+                    - 日志保存在当前目录的 `{log_file}`
+                    - 使用任务管理器或 `run_monitor.bat` 监控进度
+                    """)
+
+                    time.sleep(2)
                     st.rerun()
 
                 except Exception as e:
@@ -505,20 +525,45 @@ with tab4:
     if st.session_state.training_running:
         st.success("✅ 训练运行中")
 
+        # 显示训练信息
+        if hasattr(st.session_state, 'log_file'):
+            st.info(f"📝 日志文件: `{st.session_state.log_file}`")
+
+        if st.session_state.training_process:
+            st.info(f"🔍 进程 ID: {st.session_state.training_process.pid}")
+
+            # 检查进程是否还在运行
+            poll = st.session_state.training_process.poll()
+            if poll is not None:
+                st.warning(f"⚠️ 训练进程已结束（退出码: {poll}）")
+                st.session_state.training_running = False
+
         # 实时日志
         st.subheader("📝 实时日志")
 
-        log_placeholder = st.empty()
-
-        if st.session_state.training_process:
-            # 读取最近的输出
+        if hasattr(st.session_state, 'log_file'):
             try:
-                # 这里应该实时读取进程输出
-                # 当前是简化版本
-                st.info("日志流功能正在开发中...")
-                st.code("训练日志将在这里显示...")
+                # 读取日志文件的最后 100 行
+                with open(st.session_state.log_file, 'r', encoding='utf-8') as f:
+                    lines = f.readlines()
+                    last_lines = lines[-100:] if len(lines) > 100 else lines
+                    log_text = ''.join(last_lines)
+
+                    if log_text:
+                        st.code(log_text, language="text")
+                    else:
+                        st.info("等待日志输出...")
+
+                # 添加刷新按钮
+                if st.button("🔄 刷新日志"):
+                    st.rerun()
+
+            except FileNotFoundError:
+                st.error(f"❌ 日志文件不存在: {st.session_state.log_file}")
             except Exception as e:
-                st.error(f"读取日志失败: {e}")
+                st.error(f"❌ 读取日志失败: {e}")
+        else:
+            st.info("日志文件信息不可用")
 
         # 监控指标（模拟）
         st.markdown("---")
