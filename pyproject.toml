@@ -68,3 +68,6 @@ ignore = [
 [tool.pytest.ini_options]
 testpaths = ["tests", "roco/tests", "backend"]
 addopts = "-x --tb=short"
+filterwarnings = [
+    "ignore:The PyTorch API of nested tensors is in prototype stage.*:UserWarning",
+]

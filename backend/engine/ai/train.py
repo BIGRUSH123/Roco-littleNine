@@ -19,11 +19,18 @@ import queue
 import random
 import tempfile
 import time
+import warnings
 from pathlib import Path
 
 import numpy as np
 import torch
 import torch.nn.functional as F
+
+warnings.filterwarnings(
+    "ignore",
+    message="The PyTorch API of nested tensors is in prototype stage.*",
+    category=UserWarning,
+)
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent
 

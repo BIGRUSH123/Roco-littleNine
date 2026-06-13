@@ -12,6 +12,7 @@
 from __future__ import annotations
 
 import math
+import warnings
 from pathlib import Path
 
 import torch
@@ -20,6 +21,12 @@ import torch.nn.functional as F
 
 from backend.engine.ai.core.mcts import NUM_ACTIONS as MCTS_NUM_ACTIONS
 from backend.engine.ai.core.vocab import VOCAB_SIZE
+
+warnings.filterwarnings(
+    "ignore",
+    message="The PyTorch API of nested tensors is in prototype stage.*",
+    category=UserWarning,
+)
 
 
 # ═══════════════════════════════════════════════════════════════════
