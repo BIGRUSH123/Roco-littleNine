@@ -51,30 +51,13 @@ def parallel_mcts_search_root(
     remainder = num_simulations % num_workers
     worker_sims = [sims_per_worker + (1 if i < remainder else 0) for i in range(num_workers)]
 
-    # 序列化初始状态（使用 pickle）
-    import pickle
-
-    # 临时清理 battle 中的不可序列化对象
-    # 保存并移除 battle 的 agents 引用（可能包含 pool）
-    saved_agents = {}
-    if hasattr(battle, 'player_a') and hasattr(battle.player_a, 'agent'):
-        saved_agents['player_a'] = battle.player_a.agent
-        battle.player_a.agent = None
-    if hasattr(battle, 'player_b') and hasattr(battle.player_b, 'agent'):
-        saved_agents['player_b'] = battle.player_b.agent
-        battle.player_b.agent = None
-
-    try:
-        initial_state = {
-            'battle_pickle': pickle.dumps(battle),
-            'mutable_state': battle.save_mutable_state(),  # 备用
-        }
-    finally:
-        # 恢复 agents
-        if 'player_a' in saved_agents:
-            battle.player_a.agent = saved_agents['player_a']
-        if 'player_b' in saved_agents:
-            battle.player_b.agent = saved_agents['player_b']
+    # 序列化初始状态
+    # 不使用 pickle.dumps(battle)，因为 battle 可能包含不可序列化对象
+    # 只保存可恢复的状态
+    initial_state = {
+        'battle_pickle': None,  # 不再序列化整个 battle
+        'mutable_state': battle.save_mutable_state(),  # 使用这个恢复
+    }
 
     # 序列化对手 agent（如果需要）
     opponent_config = _serialize_opponent(opponent_agent)
@@ -138,16 +121,19 @@ def _worker_mcts(
     np.random.seed((np.random.randint(0, 2**31) + worker_id * 1000) % (2**32))
 
     # 从保存的状态恢复 battle
-    # 注意：initial_state 包含完整的 battle 状态
-    # 我们需要在 worker 中重建 battle 对象
+    # 使用 factory.create_battle() + restore_mutable_state() 而不是 pickle
+    mutable_state = initial_state['mutable_state']
 
-    # TODO: 实现状态恢复
-    # 目前的 save_mutable_state 需要一个已存在的 battle 对象
-    # 我们需要另一种方式：pickle 整个 battle 或实现 restore_battle
+    # 创建新的 battle 对象
+    # 需要从 mutable_state 中获取必要信息
+    from backend.sim.battle import Battle
 
-    # 临时方案：使用 pickle
-    import pickle
-    battle = pickle.loads(initial_state['battle_pickle'])
+    # 从 mutable_state 恢复（假设 mutable_state 包含足够信息）
+    # 简化实现：直接创建空 battle 然后恢复状态
+    battle = factory.create_battle()
+
+    # 恢复状态
+    battle.restore_mutable_state(mutable_state)
 
     # 恢复对手 agent
     opponent_agent = _deserialize_opponent(opponent_config, model, device)
