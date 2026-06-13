@@ -53,10 +53,28 @@ def parallel_mcts_search_root(
 
     # 序列化初始状态（使用 pickle）
     import pickle
-    initial_state = {
-        'battle_pickle': pickle.dumps(battle),
-        'mutable_state': battle.save_mutable_state(),  # 备用
-    }
+
+    # 临时清理 battle 中的不可序列化对象
+    # 保存并移除 battle 的 agents 引用（可能包含 pool）
+    saved_agents = {}
+    if hasattr(battle, 'player_a') and hasattr(battle.player_a, 'agent'):
+        saved_agents['player_a'] = battle.player_a.agent
+        battle.player_a.agent = None
+    if hasattr(battle, 'player_b') and hasattr(battle.player_b, 'agent'):
+        saved_agents['player_b'] = battle.player_b.agent
+        battle.player_b.agent = None
+
+    try:
+        initial_state = {
+            'battle_pickle': pickle.dumps(battle),
+            'mutable_state': battle.save_mutable_state(),  # 备用
+        }
+    finally:
+        # 恢复 agents
+        if 'player_a' in saved_agents:
+            battle.player_a.agent = saved_agents['player_a']
+        if 'player_b' in saved_agents:
+            battle.player_b.agent = saved_agents['player_b']
 
     # 序列化对手 agent（如果需要）
     opponent_config = _serialize_opponent(opponent_agent)
