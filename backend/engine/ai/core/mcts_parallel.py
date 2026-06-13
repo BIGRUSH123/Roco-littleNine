@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 import multiprocessing as mp
+from copy import deepcopy
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -55,7 +56,9 @@ def parallel_mcts_search_root(
     # 不使用 pickle.dumps(battle)，因为 battle 可能包含不可序列化对象
     # 只保存可恢复的状态
     initial_state = {
-        'battle_pickle': None,  # 不再序列化整个 battle
+        'player_a': deepcopy(battle.player_a),
+        'player_b': deepcopy(battle.player_b),
+        'weather': battle.globals.weather,
         'mutable_state': battle.save_mutable_state(),  # 使用这个恢复
     }
 
@@ -120,23 +123,22 @@ def _worker_mcts(
     # 设置不同的随机种子（避免所有 worker 产生相同的结果）
     np.random.seed((np.random.randint(0, 2**31) + worker_id * 1000) % (2**32))
 
-    # 从保存的状态恢复 battle
-    # 使用 factory.create_battle() + restore_mutable_state() 而不是 pickle
+    # 从保存的状态恢复 battle。save_mutable_state() 是回滚快照，需要先
+    # 构造出同构 Battle，再把快照覆盖上去。
     mutable_state = initial_state['mutable_state']
-
-    # 创建新的 battle 对象
-    # 需要从 mutable_state 中获取必要信息
-    from backend.sim.battle import Battle
-
-    # 从 mutable_state 恢复（假设 mutable_state 包含足够信息）
-    # 简化实现：直接创建空 battle 然后恢复状态
-    battle = factory.create_battle()
+    battle = factory.build_battle(
+        initial_state['player_a'],
+        initial_state['player_b'],
+        weather=initial_state.get('weather', ''),
+    )
 
     # 恢复状态
     battle.restore_mutable_state(mutable_state)
 
+    evaluator = kwargs.get('evaluator')
+
     # 恢复对手 agent
-    opponent_agent = _deserialize_opponent(opponent_config, model, device)
+    opponent_agent = _deserialize_opponent(opponent_config, model, device, evaluator=evaluator)
 
     # 运行 MCTS
     from backend.engine.ai.core.mcts import mcts_search
@@ -176,13 +178,16 @@ def _serialize_opponent(opponent_agent) -> dict:
         }
 
 
-def _deserialize_opponent(config: dict, model, device: str):
+def _deserialize_opponent(config: dict, model, device: str, evaluator=None):
     """反序列化对手 agent"""
     from backend.engine.ai.core.mcts import NetworkPolicyAgent
     from backend.engine.ai.core.evaluator import TorchEvaluator
 
     if config['type'] == 'NetworkPolicyAgent':
-        evaluator = TorchEvaluator(model, device)
+        if evaluator is None:
+            if model is None:
+                raise ValueError("反序列化 NetworkPolicyAgent 需要 model 或 evaluator")
+            evaluator = TorchEvaluator(model, device)
         return NetworkPolicyAgent(
             evaluator=evaluator,
             temperature=config['temperature'],
