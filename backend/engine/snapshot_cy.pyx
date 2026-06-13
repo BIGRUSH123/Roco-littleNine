@@ -380,8 +380,8 @@ cpdef build_ctx_cy(
     bloodline_self = self_sprite.bloodline
     elements_self = tuple(species_self.elements) if species_self else ()
 
-    # 调用 Python 的 _extract_sprite_effects (已高度优化，使用 Sprite 缓存)
-    from backend.engine.snapshot import _extract_sprite_effects
+    # 调用 Python 侧已优化且完整的 helpers，保证与 build_ctx 语义一致。
+    from backend.engine.snapshot import _collect_skill_summary, _extract_sprite_effects
     (
         stat_stages_self,
         abnormal_stacks_self,
@@ -390,13 +390,12 @@ cpdef build_ctx_cy(
         positive_count_self,
     ) = _extract_sprite_effects(self_sprite)
 
-    # 调用 Cython 版本的技能摘要
     (
         skill_elements_self,
         skill_element_counts_self,
         skills_energy_sum_self,
         zero_cost_skill_count_self,
-    ) = collect_skill_summary_cy(getattr(self_sprite, 'skills', None) or [])
+    ) = _collect_skill_summary(self_sprite)
 
     cdef int skill_element_count_self = len(skill_elements_self)
 
@@ -452,13 +451,12 @@ cpdef build_ctx_cy(
         positive_count_opp,
     ) = _extract_sprite_effects(opp_sprite)
 
-    # 技能摘要
     (
         skill_elements_opp,
         skill_element_counts_opp,
         skills_energy_sum_opp,
         _zero_cost_skill_count_opp,
-    ) = collect_skill_summary_cy(getattr(opp_sprite, 'skills', None) or [])
+    ) = _collect_skill_summary(opp_sprite)
 
     cdef int skill_element_count_opp = len(skill_elements_opp)
 

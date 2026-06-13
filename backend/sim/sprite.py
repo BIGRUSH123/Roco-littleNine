@@ -511,44 +511,32 @@ class Sprite:
     @property
     def damage_reduction_modifier(self) -> float:
         """伤害减免修正。"""
-        if self._stat_cache_dirty:
-            self._rebuild_stat_cache()
-        return self._cached_damage_reduction
+        return self._modifiers.get("damage_reduction", 0.0)
 
     @property
     def power_mult_modifier(self) -> float:
         """威力倍率修正。"""
-        if self._stat_cache_dirty:
-            self._rebuild_stat_cache()
-        return self._cached_power_mult
+        return self._modifiers.get("power_mult", 1.0)
 
     @property
     def damage_mult_modifier(self) -> float:
         """伤害倍率修正。"""
-        if self._stat_cache_dirty:
-            self._rebuild_stat_cache()
-        return self._cached_damage_mult
+        return self._modifiers.get("damage_mult", 1.0)
 
     @property
     def energy_cost_mult_modifier(self) -> float:
         """能耗倍率修正。"""
-        if self._stat_cache_dirty:
-            self._rebuild_stat_cache()
-        return self._cached_energy_cost_mult
+        return self._modifiers.get("energy_cost_mult", 0.0)
 
     @property
     def combo_mult_modifier(self) -> float:
         """连击倍率修正。"""
-        if self._stat_cache_dirty:
-            self._rebuild_stat_cache()
-        return self._cached_combo_mult
+        return self._modifiers.get("combo_mult", 0.0)
 
     @property
     def life_drain_modifier(self) -> float:
         """吸血修正。"""
-        if self._stat_cache_dirty:
-            self._rebuild_stat_cache()
-        return self._cached_life_drain
+        return self._modifiers.get("life_drain", 0.0)
 
     # ── 效果生命周期：TTL / Delay / Cooldown ──
 
