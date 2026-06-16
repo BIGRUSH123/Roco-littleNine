@@ -30,3 +30,10 @@ env/
 *.html
 build/
 backend/engine/ai/log/
+
+# 模型权重不入库；仅保留索引性 README
+/checkpoints/*
+!/checkpoints/README.md
+!/checkpoints/archive/
+/checkpoints/archive/*
+!/checkpoints/archive/README.md
