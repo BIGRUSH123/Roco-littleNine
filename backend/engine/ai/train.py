@@ -1410,11 +1410,12 @@ def main():
     best_ckpt = f"{checkpoints_dir}/model_rl_best.pt"
 
     # 经验回放缓冲：预分配 numpy 数组，按 sample 粒度循环覆盖。
-    # 容量 = buffer × battles × expected_turns_per_game
-    # expected_turns_per_game ≈ max_turns // 6（实际数据：200局 ≈3000样本 ≈15回合/局）
-    expected_tpg = max(1, args.max_turns // 6)
+    # 容量 = buffer × battles × expected_turns_per_game（双方各记录一份样本）
+    # 实际数据：max_turns=60 时 200 局约产生 5000-12500 条样本，
+    #          即 ~25-62 条/局（含双方），故用 max_turns // 2 估算单边约 30 回合/局
+    expected_tpg = max(1, args.max_turns // 2)
     buffer_capacity = args.buffer * args.battles * expected_tpg
-    replay = DictReplayBuffer(capacity=max(10000, buffer_capacity))
+    replay = DictReplayBuffer(capacity=max(50000, buffer_capacity))
     best_iteration: int | None = None
 
     # ── MCTS 并行化：创建进程池 ──
@@ -1429,7 +1430,7 @@ def main():
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
     total_steps = args.iterations * args.epochs
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
-        optimizer, T_max=total_steps, eta_min=args.lr * 0.01,
+        optimizer, T_max=total_steps, eta_min=args.lr * 0.1,
     )
 
     for iteration in range(1, args.iterations + 1):
@@ -1454,7 +1455,7 @@ def main():
                     param_group["lr"] = warmup_lr
                 remaining_steps = (args.iterations - iteration + 1) * args.epochs
                 scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
-                    optimizer, T_max=remaining_steps, eta_min=args.lr * 0.01,
+                    optimizer, T_max=remaining_steps, eta_min=args.lr * 0.1,
                 )
                 _log(
                     f"\n  [Phase Shift] 镜像迭代结束，切换数据分布，执行学习率预热 (Warmup)\n"

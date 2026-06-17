@@ -6,7 +6,8 @@
 checkpoints/
 ├── README.md                ← 本文档（入库）
 ├── formal_v1/               ← active 主线模型，被 service/agent.py 默认引用
-├── exp2/                    ← active 最新实验，待评估
+├── exp2/                    ← active 实验（待评估）
+├── exp3/                    ← active 最新实验（6/17，10 轮 RL，6 次晋升）
 └── archive/                 ← 已归档的历史实验
     ├── README.md            ← 归档清单（入库）
     ├── mcts_v2_formal/
