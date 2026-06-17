@@ -199,7 +199,7 @@ class RunLogger:
         header = (
             f"{'轮':>3} {'样本':>6} {'平%':>5} {'胜负局':>7} "
             f"{'val_acc':>8} {'v(tr/val)':>13} {'p(tr/val)':>13} "
-            f"{'门控%':>6} {'晋升':>4}"
+            f"{'p_top1':>7} {'H':>5} {'门控%':>6} {'晋升':>4}"
         )
         lines.append(header)
         lines.append("-" * 78)
@@ -215,6 +215,8 @@ class RunLogger:
                 f"{r.get('final_val_acc', 0.0):>8.3f} "
                 f"{r.get('final_train_v_loss', 0.0):>6.4f}/{r.get('final_val_v_loss', 0.0):<6.4f} "
                 f"{r.get('final_train_p_loss', 0.0):>6.4f}/{r.get('final_val_p_loss', 0.0):<6.4f} "
+                f"{r.get('final_val_policy_top1', 0.0):>7.3f} "
+                f"{r.get('final_val_policy_entropy', 0.0):>5.2f} "
                 f"{win_s:>6} {promoted:>4}"
             )
         lines.append("-" * 78)
@@ -248,11 +250,14 @@ class RunLogger:
 
 _TB_MAPPING: list[tuple[str, str]] = [
     # metrics key → TensorBoard tag
-    ("final_train_v_loss", "Loss/Train_Value"),
-    ("final_val_v_loss",   "Loss/Val_Value"),
-    ("final_train_p_loss", "Loss/Train_Policy"),
-    ("final_val_p_loss",   "Loss/Val_Policy"),
-    ("final_val_acc",      "Eval/Val_Acc"),
-    ("win_rate",           "Eval/Win_Rate"),
-    ("samples_per_sec",    "Sys/Samples_Per_Sec"),
+    ("final_train_v_loss",       "Loss/Train_Value"),
+    ("final_val_v_loss",         "Loss/Val_Value"),
+    ("final_train_p_loss",       "Loss/Train_Policy"),
+    ("final_val_p_loss",         "Loss/Val_Policy"),
+    ("final_val_acc",            "Eval/Val_Acc"),
+    ("final_val_policy_top1",    "Eval/Policy_Top1"),
+    ("final_val_policy_top3",    "Eval/Policy_Top3"),
+    ("final_val_policy_entropy", "Eval/Policy_Entropy"),
+    ("win_rate",                 "Eval/Win_Rate"),
+    ("samples_per_sec",          "Sys/Samples_Per_Sec"),
 ]

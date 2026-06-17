@@ -93,13 +93,6 @@ def run_selfplay_worker(
 
                 battle_counter += 1
                 done += 1
-                if done % pe == 0:
-                    elapsed = time.monotonic() - battle_started
-                    print(
-                        f"  [worker {worker_id}] 已完成 {done} 局, "
-                        f"本局 {len(v)} 样本 {elapsed:.1f}s",
-                        flush=True,
-                    )
         finally:
             result_queue.put(("done", worker_id, None, None, None, None, None, None))
     except Exception:  # noqa: BLE001
@@ -164,13 +157,6 @@ def run_evaluate_worker(
                 result_queue.put(("game", worker_id, float(score), None))
 
                 done += 1
-                if done % pe == 0:
-                    elapsed = time.monotonic() - battle_started
-                    print(
-                        f"    [eval worker {worker_id}] 已完成 {done} 局 "
-                        f"(本局得分 {score:.1f}, {elapsed:.1f}s)",
-                        flush=True,
-                    )
         finally:
             result_queue.put(("done", worker_id, None, None))
     except Exception:  # noqa: BLE001

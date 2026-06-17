@@ -853,6 +853,9 @@ def train_rl(
         val_v_loss = 0.0
         val_p_loss = 0.0
         val_correct = 0.0
+        val_top1_count = 0.0
+        val_top3_count = 0.0
+        val_entropy_sum = 0.0
         with torch.no_grad():
             for batch in iter_batches(val_indices):
                 xv, pv, mv, vv = move_batch(batch)
@@ -869,9 +872,21 @@ def train_rl(
                 pred = _value_classes(val_flat, draw_margin)
                 true = _value_classes(vv_flat, draw_margin)
                 val_correct += (pred == true).float().sum().item()
+                # ── policy 头诊断指标 ──
+                probs = F.softmax(masked_logits, dim=-1)
+                target_best = torch.argmax(pb_safe, dim=-1)          # MCTS target 最优动作
+                _, top1 = torch.topk(masked_logits, 1, dim=-1)
+                val_top1_count += (top1.squeeze(1) == target_best).float().sum().item()
+                _, top3 = torch.topk(masked_logits, min(3, masked_logits.size(-1)), dim=-1)
+                val_top3_count += top3.eq(target_best.unsqueeze(1)).any(dim=1).float().sum().item()
+                log_probs = F.log_softmax(masked_logits, dim=-1)
+                val_entropy_sum += -torch.sum(probs * log_probs, dim=-1).sum().item()
         val_v_loss /= n_val
         val_p_loss /= n_val
         val_acc = val_correct / n_val
+        val_policy_top1 = val_top1_count / n_val
+        val_policy_top3 = val_top3_count / n_val
+        val_policy_entropy = val_entropy_sum / n_val
 
         if scheduler is not None:
             scheduler.step()
@@ -883,6 +898,9 @@ def train_rl(
             "val_v_loss": val_v_loss,
             "val_p_loss": val_p_loss,
             "val_acc": val_acc,
+            "val_policy_top1": val_policy_top1,
+            "val_policy_top3": val_policy_top3,
+            "val_policy_entropy": val_policy_entropy,
         })
 
         if (epoch + 1) % 5 == 0 or epoch == 0:
@@ -890,7 +908,7 @@ def train_rl(
             _timestamp_print(f"  Epoch {epoch + 1:3d}/{epochs}  "
                   f"v_loss={train_v_loss:.4f}/{val_v_loss:.4f}  "
                   f"p_loss={train_p_loss:.4f}/{val_p_loss:.4f}  "
-                  f"val_acc={val_acc:.3f}  "
+                  f"val_acc={val_acc:.3f}  p_top1={val_policy_top1:.3f}  H={val_policy_entropy:.2f}  "
                   f"lr={current_lr:.2e}")
 
     return history
@@ -1659,6 +1677,9 @@ def main():
                 "final_val_p_loss": round(final_metrics.get("val_p_loss", 0.0), 4),
                 "final_val_acc": round(final_metrics.get("val_acc", 0.0), 4),
                 "best_val_acc": round(best_val_acc, 4),
+                "final_val_policy_top1": round(final_metrics.get("val_policy_top1", 0.0), 4),
+                "final_val_policy_top3": round(final_metrics.get("val_policy_top3", 0.0), 4),
+                "final_val_policy_entropy": round(final_metrics.get("val_policy_entropy", 0.0), 4),
                 "win_rate": round(win_rate, 4) if win_rate is not None else None,
                 "gate": args.gate,
                 "promoted": promoted,
