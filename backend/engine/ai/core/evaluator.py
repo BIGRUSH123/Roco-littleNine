@@ -17,6 +17,8 @@ from typing import TYPE_CHECKING, Protocol, runtime_checkable
 import numpy as np
 import torch
 
+from multiprocessing.reduction import ForkingPickler as _ForkingPickler
+
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
@@ -24,6 +26,58 @@ if TYPE_CHECKING:
 
 # 请求队列结束哨兵
 INFERENCE_STOP = object()
+
+
+# ═══════════════════════════════════════════════════════════════════
+# SyncPickleQueue：同步 pickle 队列包装器
+# ═══════════════════════════════════════════════════════════════════
+
+class SyncPickleQueue:
+    """mp.Queue 包装器：在 put() 中同步完成 pickle，消除 _feed 线程异步序列化风险。
+
+    mp.Queue 默认将原始对象放入内部缓冲区，由后台 daemon _feed 线程异步序列化
+    后写入管道。在 Windows 上传输大量 numpy 数组时，异步序列化存在以下脆弱性：
+
+    1. _feed 线程在 pickle 大对象期间可能与管道错误并发，导致消息丢失或损坏
+    2. Windows 管道 _wlock=None（依赖消息模式原子性），多 _feed 线程并发写
+       同一管道的错误恢复路径行为不确定
+    3. 间歇性触发 _pickle.UnpicklingError: Memo value not found
+
+    本包装器在调用方线程中同步完成 pickle，底层 _feed 线程仅搬运不可变的
+    bytes 对象，从根源上消除了上述竞态窗口。
+
+    用法（完全兼容 mp.Queue API）：
+        q = SyncPickleQueue(maxsize=16, ctx=mp.get_context("spawn"))
+        q.put(large_numpy_dict)        # pickle 在调用方线程同步执行
+        result = q.get(timeout=5.0)    # 自动反序列化为原始对象
+    """
+
+    def __init__(self, maxsize: int = 0, *, ctx):
+        import multiprocessing as _mp
+        self._queue: _mp.Queue = ctx.Queue(maxsize=maxsize)
+
+    def put(self, obj, block: bool = True, timeout: float | None = None) -> None:
+        """同步 pickle 后放入队列（线程安全，跨进程安全）。"""
+        data = _ForkingPickler.dumps(obj)
+        # Python 3.12 ForkingPickler.dumps() 返回 memoryview（零拷贝优化），
+        # 而 memoryview 不可被 _feed 线程二次 pickle。强制转为 bytes。
+        if isinstance(data, memoryview):
+            data = bytes(data)
+        self._queue.put(data, block=block, timeout=timeout)
+
+    def get(self, block: bool = True, timeout: float | None = None):
+        """从队列取出并自动反序列化为原始对象。"""
+        data = self._queue.get(block=block, timeout=timeout)
+        return _ForkingPickler.loads(data)
+
+    def close(self) -> None:
+        self._queue.close()
+
+    def join_thread(self) -> None:
+        self._queue.join_thread()
+
+    def cancel_join_thread(self) -> None:
+        self._queue.cancel_join_thread()
 
 
 def _state_dict_to_tensors(state: dict[str, np.ndarray], device: str = "cpu") -> dict[str, torch.Tensor]:

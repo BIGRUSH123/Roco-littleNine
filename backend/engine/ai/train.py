@@ -38,7 +38,12 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent
 from backend.common.skill_trait_ids import SKILL_ID_TO_NAME
 from backend.engine.ai.battle_log import BattleLogWriter, extract_battle_summary
 from backend.engine.ai.core.encoder import encode_battle_state
-from backend.engine.ai.core.evaluator import BatchedInferenceServer, BatchedModelInferenceServer, TorchEvaluator
+from backend.engine.ai.core.evaluator import (
+    BatchedInferenceServer,
+    BatchedModelInferenceServer,
+    SyncPickleQueue,
+    TorchEvaluator,
+)
 from backend.engine.ai.core.outcome import (
     DEFAULT_DRAW_MARGIN,
     DEFAULT_EVAL_MAX_TURNS,
@@ -571,8 +576,9 @@ def collect_rl_samples_parallel(
         )
 
     ctx = mp.get_context("spawn")
-    # maxsize 限制队列容量，防止 Windows pipe 缓冲区溢出导致 _feed 线程崩溃
-    request_queue = ctx.Queue(maxsize=n_workers * 4)
+    # 使用 SyncPickleQueue 替代 ctx.Queue：在 put() 中同步 pickle，
+    # 消除 _feed 线程异步序列化大 numpy 数组时的间歇性 pickle 损坏
+    request_queue = SyncPickleQueue(maxsize=n_workers * 4, ctx=ctx)
     result_queue = ctx.Queue(maxsize=n_workers * 2)
     # 任务队列：num_battles 个单局任务 + 每个 worker 一个 None 停止哨兵。
     task_queue = ctx.Queue()
@@ -1097,7 +1103,7 @@ def evaluate_parallel(
         )
 
     ctx = mp.get_context("spawn")
-    request_queue = ctx.Queue(maxsize=n_workers * 4)
+    request_queue = SyncPickleQueue(maxsize=n_workers * 4, ctx=ctx)
     result_queue = ctx.Queue(maxsize=n_workers * 2)
     # 任务队列：n_games 个 game_index（决定先后手交替）+ 每 worker 一个停止哨兵。
     task_queue = ctx.Queue()
