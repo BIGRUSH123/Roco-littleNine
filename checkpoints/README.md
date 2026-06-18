@@ -10,7 +10,11 @@ checkpoints/
 ├── exp3/                    ← active 实验（6/17，10 轮 RL，6 次晋升，warm start 基座）
 ├── exp4/                    ← active 实验（6/17，1 次晋升，warm start 失败分析）
 ├── exp5/                    ← active 实验（6/18，2 次晋升，dropout=0.1 正则化探索）
-├── exp6/                    ← active 最新实验（6/18，2 次晋升，过拟合治理里程碑，val v-loss历史最低）
+├── exp6/                    ← active 实验（6/18，2 次晋升，过拟合治理里程碑）
+├── exp7/                    ← active 实验（6/18，4 次晋升，trunk 512→3.71M，p_top1=0.674 历史最高）
+├── exp8/                    ← active 实验（6/18，3 次晋升，纯非镜像反证：取消镜像后策略全面退步）
+├── exp9/                    ← active 实验（6/18，2 次晋升，80%镜像反证：过量镜像导致策略内部退化）
+├── exp10/                   ← active 最新实验（6/18，3 次晋升，T=1.0 恒温半证实：消除衰减阻止了后期退化但初始崩溃另有元凶）
 └── archive/                 ← 已归档的历史实验
     ├── README.md            ← 归档清单（入库）
     ├── mcts_v2_formal/

@@ -1290,6 +1290,8 @@ def main():
                         help="监督模式: 预生成数据缓存路径")
     parser.add_argument("--temperature", type=float, default=1.0,
                         help="自我博弈动作采样温度 (default: 1.0)")
+    parser.add_argument("--temp-decay", type=float, default=0.9,
+                        help="温度衰减率，每轮乘以该值。设 1.0 取消衰减 (default: 0.9)")
     parser.add_argument("--weight-decay", type=float, default=1e-4,
                         help="L2 正则系数 (default: 1e-4)")
     parser.add_argument("--buffer", type=int, default=5,
@@ -1485,7 +1487,7 @@ def main():
                 )
 
         # ── 自我博弈收集数据（用当前最优模型产生对局，质量更稳） ──
-        temp = args.temperature * (0.9 ** (iteration - 1))  # 温度递减
+        temp = args.temperature * (args.temp_decay ** (iteration - 1))  # 温度递减
         # 镜像迭代：降低 sims 加速回合推进，减少 timeout（相同阵容不确定性低）
         effective_sims = max(args.sims, 50) if all_mirror else args.sims
         use_parallel = args.batched_inference and args.workers > 1
