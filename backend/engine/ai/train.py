@@ -569,7 +569,7 @@ def collect_rl_samples_parallel(
     n_workers = max(1, min(num_workers, num_battles))
 
     if verbose:
-        print(
+        _timestamp_print(
             f"  并行自我博弈: {n_workers} workers 动态领取 {num_battles} 局, "
             f"batch={inference_batch_size}, timeout={inference_timeout_ms}ms",
             flush=True,
@@ -653,7 +653,7 @@ def collect_rl_samples_parallel(
                         wid for wid in range(n_workers)
                         if wid not in finished
                     ]
-                    print(
+                    _timestamp_print(
                         f"  ⚠ 卡死保护：{stall_timeout_s:.0f}s 内无任何对局完成，"
                         f"判定 worker {alive} 单局死循环，终止剩余 worker，"
                         f"用已完成的 {battles_done}/{num_battles} 局继续",
@@ -662,9 +662,8 @@ def collect_rl_samples_parallel(
                     stalled = True
                     break
                 if verbose and now - last_wait_report >= 60.0:
-                    print(
-                        f"  进度: {battles_done}/{num_battles} 局完成, "
-                        f"{done_workers}/{n_workers} workers 退出",
+                    _timestamp_print(
+                        f"  进度: {battles_done}/{num_battles} 局完成",
                         flush=True,
                     )
                     last_wait_report = now
@@ -708,7 +707,7 @@ def collect_rl_samples_parallel(
             if battle_log_writer is not None and battle_summary is not None:
                 battle_log_writer.write(battle_summary)
             if verbose and (battles_done % max(1, progress_every) == 0):
-                print(
+                _timestamp_print(
                     f"  进度: {battles_done}/{num_battles} 局完成",
                     flush=True,
                 )
@@ -1014,7 +1013,7 @@ def evaluate(
             if decision is not None:
                 if verbose:
                     status = "pass" if decision else "fail"
-                    print(
+                    _timestamp_print(
                         f"    eval early-stop {status}: {g + 1}/{n_games} games, "
                         f"score_floor={wins / n_games:.2%}, gate={early_stop_gate:.2%}",
                         flush=True,
@@ -1022,7 +1021,7 @@ def evaluate(
                 return early_stop_gate if decision else wins / n_games
 
         if verbose and (g + 1) % 10 == 0:
-            print(f"    评估 {g + 1}/{n_games} 局, 当前胜率 {wins / (g + 1):.2%}")
+            _timestamp_print(f"    评估 {g + 1}/{n_games} 局, 当前胜率 {wins / (g + 1):.2%}")
 
     return wins / n_games
 
@@ -1114,7 +1113,7 @@ def evaluate_parallel(
     n_workers = max(1, min(num_workers, n_games))
 
     if verbose:
-        print(
+        _timestamp_print(
             f"  并行门控评估: {n_workers} workers 动态领取 {n_games} 局, "
             f"batch={inference_batch_size}, timeout={inference_timeout_ms}ms",
             flush=True,
@@ -1191,7 +1190,7 @@ def evaluate_parallel(
                         wid for wid in range(n_workers)
                         if wid not in finished
                     ]
-                    print(
+                    _timestamp_print(
                         f"  ⚠ 卡死保护：{stall_timeout_s:.0f}s 内无任何对局完成，"
                         f"判定 eval worker {alive} 单局死循环，终止剩余 worker，"
                         f"用已完成的 {completed_games}/{n_games} 局计算胜率",
@@ -1200,9 +1199,8 @@ def evaluate_parallel(
                     stalled = True
                     break
                 if verbose and now - last_wait_report >= 60.0:
-                    print(
-                        f"  评估进度: {completed_games}/{n_games} 局完成, "
-                        f"{done_workers}/{n_workers} workers 退出",
+                    _timestamp_print(
+                        f"  评估进度: {completed_games}/{n_games} 局完成",
                         flush=True,
                     )
                     last_wait_report = now
@@ -1224,13 +1222,13 @@ def evaluate_parallel(
                 )
                 if gate_decision is not None and verbose:
                     status = "pass" if gate_decision else "fail"
-                    print(
+                    _timestamp_print(
                         f"  eval early-stop {status}: {completed_games}/{n_games} games, "
                         f"score_floor={wins / n_games:.2%}, gate={early_stop_gate:.2%}",
                         flush=True,
                     )
             if verbose and (completed_games % max(1, progress_every) == 0):
-                print(
+                _timestamp_print(
                     f"  评估进度: {completed_games}/{n_games} 局, "
                     f"当前胜率 {wins / max(1, completed_games):.2%}",
                     flush=True,
@@ -1581,7 +1579,7 @@ def main():
         checkpoint_sec = 0.0
         if args.eval_games > 0:
             eval_mode = f"{eval_workers} workers + 批量推理" if eval_workers > 1 else "串行"
-            print(
+            _log(
                 f"门控评估（候选 vs 最优, {args.eval_games} 局, "
                 f"{args.eval_sims} sims, {eval_mode}）..."
             )

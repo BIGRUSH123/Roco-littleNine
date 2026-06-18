@@ -8,7 +8,9 @@ checkpoints/
 ├── formal_v1/               ← active 主线模型，被 service/agent.py 默认引用
 ├── exp2/                    ← active 实验（待评估）
 ├── exp3/                    ← active 实验（6/17，10 轮 RL，6 次晋升，warm start 基座）
-├── exp4/                    ← active 最新实验（6/17，1 次晋升，warm start 失败分析）
+├── exp4/                    ← active 实验（6/17，1 次晋升，warm start 失败分析）
+├── exp5/                    ← active 实验（6/18，2 次晋升，dropout=0.1 正则化探索）
+├── exp6/                    ← active 最新实验（6/18，2 次晋升，过拟合治理里程碑，val v-loss历史最低）
 └── archive/                 ← 已归档的历史实验
     ├── README.md            ← 归档清单（入库）
     ├── mcts_v2_formal/
