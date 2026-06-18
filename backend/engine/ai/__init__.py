@@ -71,6 +71,7 @@ _LAZY_IMPORTS: dict[str, tuple[str, tuple[str, ...]]] = {
     "describe_action":      ("backend.engine.ai.service.advisor", ("describe_action",)),
     # core.replay_buffer
     "DictReplayBuffer":   ("backend.engine.ai.core.replay_buffer", ("DictReplayBuffer",)),
+    "RecentIterationsReplayBuffer": ("backend.engine.ai.core.replay_buffer", ("RecentIterationsReplayBuffer",)),
     "DictReplayDataset":  ("backend.engine.ai.core.replay_buffer", ("DictReplayDataset",)),
     "dict_replay_collate": ("backend.engine.ai.core.replay_buffer", ("dict_replay_collate",)),
 }

@@ -1295,7 +1295,7 @@ def main():
     parser.add_argument("--weight-decay", type=float, default=1e-4,
                         help="L2 正则系数 (default: 1e-4)")
     parser.add_argument("--buffer", type=int, default=5,
-                        help="经验回放缓冲：保留最近 N 轮自我博弈数据混合训练 (default: 5)")
+                        help="经验回放缓冲：严格保留最近 N 轮完整自我博弈数据 (default: 5)")
     parser.add_argument("--eval-games", type=int, default=20,
                         help="每轮门控评估对局数，0=关闭门控 (default: 20)")
     parser.add_argument("--eval-sims", type=int, default=100,
@@ -1406,7 +1406,7 @@ def main():
 
     # ── RL 模式 ──
     from backend.engine.ai.core.model import ModularBattleNet
-    from backend.engine.ai.core.replay_buffer import DictReplayBuffer
+    from backend.engine.ai.core.replay_buffer import RecentIterationsReplayBuffer
 
     if args.resume:
         _log(f"加载模型: {args.resume}")
@@ -1433,13 +1433,9 @@ def main():
     Path(checkpoints_dir).mkdir(parents=True, exist_ok=True)
     best_ckpt = f"{checkpoints_dir}/model_rl_best.pt"
 
-    # 经验回放缓冲：预分配 numpy 数组，按 sample 粒度循环覆盖。
-    # 容量 = buffer × battles × expected_turns_per_game（双方各记录一份样本）
-    # 实际数据：max_turns=60 时 200 局约产生 5000-12500 条样本，
-    #          即 ~25-62 条/局（含双方），故用 max_turns // 2 估算单边约 30 回合/局
-    expected_tpg = max(1, args.max_turns // 2)
-    buffer_capacity = args.buffer * args.battles * expected_tpg
-    replay = DictReplayBuffer(capacity=max(50000, buffer_capacity))
+    # 经验回放缓冲：按 iteration 保留最近 N 轮完整样本。
+    # 与旧的样本级环形覆盖不同，这里的 --buffer 语义是“最近 N 轮”。
+    replay = RecentIterationsReplayBuffer(keep_iterations=args.buffer)
     best_iteration: int | None = None
 
     # ── MCTS 并行化：创建进程池 ──

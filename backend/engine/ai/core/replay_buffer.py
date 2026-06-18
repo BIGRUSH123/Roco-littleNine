@@ -8,6 +8,8 @@
 
 from __future__ import annotations
 
+from collections import deque
+
 import numpy as np
 import torch
 
@@ -189,6 +191,124 @@ class DictReplayBuffer:
         self.policy_buffer.fill(0)
         self.mask_buffer.fill(0)
         self.outcome_buffer.fill(0)
+
+
+class RecentIterationsReplayBuffer:
+    """按 iteration 保留最近 N 轮完整样本的经验回放池。
+
+    语义与 DictReplayBuffer 不同：
+      - `buffer=3` 代表严格保留最近 3 轮自博数据
+      - 超过 N 轮时，整轮丢弃最旧数据，不保留残缺旧轮次
+
+    为兼容现有训练逻辑，暴露与 DictReplayBuffer 相同的只读视图字段：
+      - buffers / policy_buffer / mask_buffer / outcome_buffer
+      - __len__ / sample / sample_obs_only / clear
+    """
+
+    def __init__(self, keep_iterations: int):
+        self.keep_iterations = max(1, int(keep_iterations))
+        self._iterations: deque[dict[str, object]] = deque(maxlen=self.keep_iterations)
+        self.buffers: dict[str, np.ndarray] = {}
+        self.policy_buffer = np.zeros((0, NUM_ACTIONS), dtype=np.float32)
+        self.mask_buffer = np.zeros((0, NUM_ACTIONS), dtype=np.float32)
+        self.outcome_buffer = np.zeros((0,), dtype=np.float32)
+        self.size = 0
+        self._reset_obs_buffers()
+
+    def _reset_obs_buffers(self) -> None:
+        self.buffers = {
+            key: np.zeros((0, *shape), dtype=dtype)
+            for key, (shape, dtype) in _OBS_SPEC.items()
+        }
+
+    def _stack_states(self, states: list[dict[str, np.ndarray]], n: int) -> dict[str, np.ndarray]:
+        return {
+            key: np.stack([state[key] for state in states[:n]], axis=0)
+            for key in _OBS_KEYS
+        }
+
+    def _rebuild_view(self) -> None:
+        if not self._iterations:
+            self._reset_obs_buffers()
+            self.policy_buffer = np.zeros((0, NUM_ACTIONS), dtype=np.float32)
+            self.mask_buffer = np.zeros((0, NUM_ACTIONS), dtype=np.float32)
+            self.outcome_buffer = np.zeros((0,), dtype=np.float32)
+            self.size = 0
+            return
+
+        self.buffers = {
+            key: np.concatenate(
+                [chunk["buffers"][key] for chunk in self._iterations], axis=0,
+            )
+            for key in _OBS_KEYS
+        }
+        self.policy_buffer = np.concatenate(
+            [chunk["policy"] for chunk in self._iterations], axis=0,
+        )
+        self.mask_buffer = np.concatenate(
+            [chunk["mask"] for chunk in self._iterations], axis=0,
+        )
+        self.outcome_buffer = np.concatenate(
+            [chunk["outcome"] for chunk in self._iterations], axis=0,
+        )
+        self.size = int(self.outcome_buffer.shape[0])
+
+    def push_batch(
+        self,
+        states: list[dict[str, np.ndarray]],
+        policies: np.ndarray,
+        masks: np.ndarray,
+        outcomes: np.ndarray,
+    ) -> int:
+        """将一整轮样本作为一个 chunk 追加到 replay。"""
+        n = min(len(states), len(policies), len(masks), len(outcomes))
+        if n == 0:
+            return 0
+
+        chunk = {
+            "buffers": self._stack_states(states, n),
+            "policy": np.asarray(policies[:n], dtype=np.float32).copy(),
+            "mask": np.asarray(masks[:n], dtype=np.float32).copy(),
+            "outcome": np.asarray(outcomes[:n], dtype=np.float32).copy(),
+        }
+        self._iterations.append(chunk)
+        self._rebuild_view()
+        return n
+
+    def sample(self, batch_size: int) -> dict[str, torch.Tensor]:
+        n = min(batch_size, self.size)
+        if n == 0:
+            raise RuntimeError("RecentIterationsReplayBuffer 为空，无法采样")
+        idxs = np.random.choice(self.size, size=n, replace=False)
+
+        batch = {}
+        for key in _OBS_KEYS:
+            batch[key] = torch.from_numpy(self.buffers[key][idxs].copy())
+        batch["policy"] = torch.from_numpy(self.policy_buffer[idxs].copy())
+        batch["mask"] = torch.from_numpy(self.mask_buffer[idxs].copy())
+        batch["outcome"] = torch.from_numpy(self.outcome_buffer[idxs].copy())
+        return batch
+
+    def sample_obs_only(self, batch_size: int) -> dict[str, torch.Tensor]:
+        n = min(batch_size, self.size)
+        if n == 0:
+            raise RuntimeError("RecentIterationsReplayBuffer 为空，无法采样")
+        idxs = np.random.choice(self.size, size=n, replace=False)
+
+        batch = {}
+        for key in _OBS_KEYS:
+            batch[key] = torch.from_numpy(self.buffers[key][idxs].copy())
+        return batch
+
+    def __len__(self) -> int:
+        return self.size
+
+    def is_full(self) -> bool:
+        return len(self._iterations) >= self.keep_iterations
+
+    def clear(self) -> None:
+        self._iterations.clear()
+        self._rebuild_view()
 
 
 # ═══════════════════════════════════════════════════════════════════
