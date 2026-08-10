@@ -22,7 +22,7 @@ best_model
    ├─ collect_rl_samples / collect_rl_samples_parallel
    │     └─ 生成 states, policy, mask, outcome
    │
-   ├─ DictReplayBuffer 保存最近 N 轮样本
+   ├─ RecentIterationsReplayBuffer 保存最近 N 轮完整样本
    │
 candidate model ── train_rl ── evaluate / evaluate_parallel
    │                         ├─ 胜率 >= gate：晋升并保存 *_best.pt
@@ -56,7 +56,7 @@ candidate model ── train_rl ── evaluate / evaluate_parallel
 `train.py::_random_teams` 每局随机抽取双方队伍：
 
 - 精灵池来自 `backend/engine/ai/data/sprite_random_pool.py`。
-- 每队 1 到 3 只精灵，每只最多 4 个技能。
+- 每局抽取一次 1 到 3 的队伍规模，双方使用相同人数；每只精灵最多 4 个技能。
 - 性格随机，六维个体值随机选择 3 项设为 10，其余为 0。
 - 默认两队不复用同一批精灵；`--mirror-frac` 可让前若干比例迭代使用镜像阵容。
 
@@ -155,7 +155,9 @@ AST tokens/values ─ token emb + value proj + Transformer ───┤
 forward 调用开销。
 
 `NetworkPolicyAgent` 是槽位驱动的轻量对手：它始终为传入 battle 的 `player_b` 决策，
-因此 A 侧搜索和 B 侧交换视角后的搜索都可复用同一逻辑。
+因此 A 侧搜索和 B 侧交换视角后的搜索都可复用同一逻辑。训练和部署搜索默认让该对手
+选择策略头概率最高的合法动作（`opp_greedy=True`），确保同一树节点对应稳定的后继状态；
+根节点的实际自我博弈动作仍可按温度采样，保留数据探索性。
 
 ---
 
@@ -164,7 +166,7 @@ forward 调用开销。
 每轮 `iteration`：
 
 1. 用 `best_model` 自我博弈，得到 `X, P, M, v, reason_counts`。
-2. 将样本写入 `DictReplayBuffer`。容量约为 `buffer * battles * (max_turns // 6)`，最低 10000。
+2. 将样本写入 `RecentIterationsReplayBuffer`，只保留最近 `--buffer` 轮完整样本。
 3. 用回放池随机采样 batch 训练候选模型。
 4. 候选和当前最优模型门控对打。
 5. 胜率达到 `--gate` 则保存并晋升，否则候选回滚。
@@ -175,11 +177,13 @@ forward 调用开销。
 ```
 value_loss  = MSE(value_pred, outcome)
 policy_loss = -sum(policy_target * log(masked_policy_pred))
-loss        = value_loss + policy_loss
+loss        = value_loss + policy_loss_weight * policy_loss
 ```
 
 优化器是 Adam，默认 `lr=1e-3`、`weight_decay=1e-4`，学习率用
-`CosineAnnealingLR` 跨全部 iteration 衰减。
+`CosineAnnealingLR` 跨全部 iteration 衰减。`policy_loss_weight` 由
+`--policy-loss-weight` 控制，默认 `1.0`。候选未通过门控时，模型参数和本轮产生的 Adam
+动量会一起回滚；调度器已经推进的当前学习率会保留，避免被旧优化器状态覆盖。
 
 ---
 
@@ -209,9 +213,10 @@ timeout 对局不会进入训练样本，因为截断局面的价值标签不可
 
 `evaluate` / `evaluate_parallel` 比较候选模型和 best 模型：
 
-- 偶数局候选执 A，奇数局候选执 B。
+- 每两局组成一个配对：复用相同队伍和道具，候选分别执 A、执 B。
 - 评估时温度为 0，根节点无噪声。
 - 得分为 `(胜 + 0.5 * 平) / 局数`。
+- 提前晋升或淘汰只在完整配对结束后判断，避免单边先后手结果造成门控偏差。
 - `--eval-workers 0` 表示自动跟随 `--workers`。
 - 并行评估使用 `BatchedModelInferenceServer`，请求中区分 `candidate` 和 `best`。
 
@@ -269,7 +274,8 @@ python -m backend.engine.ai.benchmark_mcts \
 | `--hidden` | `256,128` | 当前只用首项作为 `trunk_dim` |
 | `--dropout` | `0.0` | dropout |
 | `--weight-decay` | `1e-4` | Adam L2 正则 |
-| `--buffer` | `5` | 回放池容量估算乘数 |
+| `--policy-loss-weight` | `1.0` | 策略损失在总损失中的权重 |
+| `--buffer` | `5` | 回放池保留的最近完整迭代数 |
 | `--resume` | `""` | 从已有 checkpoint 继续训练 |
 | `--base-model` | `""` | 无 `--resume` 时加载基座模型 |
 | `--output` | `checkpoints/model_rl.pt` | 兼容参数；当前保存路径实际为 `checkpoints/` 或 `checkpoints/<run-name>/` |

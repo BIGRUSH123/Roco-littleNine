@@ -9,6 +9,8 @@
 
 from __future__ import annotations
 
+import copy
+import io
 import inspect
 import queue
 import sys
@@ -18,6 +20,7 @@ sys.path.insert(0, ".")
 import numpy as np
 import torch
 
+from backend.engine.ai import train as train_module
 from backend.engine.ai.service import advisor as advisor_module
 from backend.engine.ai.service import agent as service_agent_module
 from backend.engine.ai.core import encoder as encoder_module
@@ -27,6 +30,7 @@ from backend.engine.ai.core.evaluator import BatchedInferenceServer, QueuePolicy
 from backend.engine.ai.core.mcts import NUM_ACTIONS, NetworkPolicyAgent
 from backend.engine.ai.core.model import ModularBattleNet
 from backend.engine.ai.core.replay_buffer import DictReplayBuffer
+from backend.engine.ai.run_logger import RunLogger
 from backend.engine.ai.train import (
     DEFAULT_MCTS_LEAF_BATCH_SIZE,
     MCTSAgent,
@@ -69,6 +73,53 @@ def _hp_vector(battle):
         for p in (battle.player_a, battle.player_b)
         for s in p.team
     )
+
+
+def test_console_print_replaces_characters_unsupported_by_gbk():
+    """Windows GBK 控制台不能因状态符号导致训练进程退出。"""
+    raw = io.BytesIO()
+    stream = io.TextIOWrapper(raw, encoding="gbk", errors="strict")
+
+    train_module._console_print("✗ 未达门控阈值", file=stream, flush=True)
+
+    assert raw.getvalue().decode("gbk").strip() == "? 未达门控阈值"
+
+
+def test_run_logger_finalize_handles_promoted_summary_on_gbk_console(
+    tmp_path, monkeypatch,
+):
+    """包含晋升符号的汇总不能让 Windows GBK 控制台终止训练。"""
+    logger = RunLogger(tmp_path, run_name="gbk_summary")
+    logger.record_iteration({"iteration": 1, "promoted": True})
+    raw = io.BytesIO()
+    stream = io.TextIOWrapper(raw, encoding="gbk", errors="strict")
+    monkeypatch.setattr(sys, "stdout", stream)
+
+    try:
+        logger.finalize(best_iteration=1)
+    finally:
+        if not logger._metrics_fp.closed:
+            logger._metrics_fp.close()
+
+    stream.flush()
+    assert logger.summary_path.exists()
+    assert "训练汇总" in raw.getvalue().decode("gbk")
+
+
+def test_random_teams_use_one_shared_team_size(monkeypatch):
+    """双方人数必须由同一次抽样决定，避免阵容人数主导训练标签。"""
+    factory = SimFactory()
+    sprite_skills = _load_sprite_skills()
+    sampled_sizes = iter((1, 3))
+    monkeypatch.setattr(
+        train_module.random,
+        "randint",
+        lambda _low, _high: next(sampled_sizes),
+    )
+
+    team_a, team_b = train_module._random_teams(factory, sprite_skills)
+
+    assert len(team_a) == len(team_b) == 1
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -312,6 +363,30 @@ def test_collect_rl_dual_perspective():
     assert np.all(P[M == 0] == 0.0)
 
 
+def test_collect_rl_uses_deterministic_opponent_inside_search(monkeypatch):
+    """同一树节点不能因随机对手动作映射到多个不同的下一状态。"""
+    seen_opp_greedy: list[bool] = []
+
+    def fake_mcts_search(battle, *_args, **kwargs):
+        seen_opp_greedy.append(kwargs["opp_greedy"])
+        _, mask = train_module.get_valid_actions(battle.player_a, battle)
+        return mask / max(float(mask.sum()), 1.0)
+
+    monkeypatch.setattr(train_module, "mcts_search", fake_mcts_search)
+    factory = SimFactory()
+    sprite_skills = _load_sprite_skills()
+    model = ModularBattleNet(trunk_dim=64, num_blocks=1, with_attention=False)
+
+    collect_rl_samples(
+        model, factory, sprite_skills,
+        num_battles=1, num_simulations=1, device="cpu",
+        max_turns=1, verbose=False,
+    )
+
+    assert seen_opp_greedy
+    assert all(seen_opp_greedy)
+
+
 def test_collect_rl_parallel_smoke():
     """多进程 + 主进程批量推理冒烟（CPU，小参数）。"""
     factory = SimFactory()
@@ -365,6 +440,40 @@ def test_gate_decision_continues_when_result_can_change():
     assert _gate_decision(wins=4.0, completed=6, total=10, gate=0.6) is None
 
 
+def test_paired_eval_tasks_reuse_matchup_when_models_swap_sides(monkeypatch):
+    factory = SimFactory()
+    sprite_skills = _load_sprite_skills()
+    marker = iter((1, 2, 3))
+
+    def fake_random_teams(_factory, _sprite_skills):
+        value = next(marker)
+        return ([{"name": f"A{value}"}], [{"name": f"B{value}"}])
+
+    monkeypatch.setattr(train_module, "_random_teams", fake_random_teams)
+
+    tasks = train_module._paired_eval_tasks(factory, sprite_skills, n_games=5)
+
+    assert [game_index for game_index, _ in tasks] == [0, 1, 2, 3, 4]
+    assert tasks[0][1] == tasks[1][1]
+    assert tasks[2][1] == tasks[3][1]
+    assert tasks[1][1] != tasks[2][1]
+
+
+def test_paired_gate_waits_for_complete_pairs_even_out_of_order():
+    tracker = train_module._PairedGateTracker(total_games=4, gate=0.75)
+
+    assert tracker.add(game_index=0, score=1.0) is None
+    assert tracker.add(game_index=2, score=1.0) is None
+    assert tracker.completed_games == 0
+
+    assert tracker.add(game_index=3, score=1.0) is None
+    assert tracker.completed_games == 2
+
+    assert tracker.add(game_index=1, score=0.0) is True
+    assert tracker.completed_games == 4
+    assert tracker.score == 0.75
+
+
 def test_train_rl_smoke_uses_replay_buffer_batches():
     replay = DictReplayBuffer(capacity=4)
     state = {
@@ -387,6 +496,71 @@ def test_train_rl_smoke_uses_replay_buffer_batches():
 
     assert len(history) == 1
     assert 0.0 <= history[0]["val_acc"] <= 1.0
+
+
+def test_train_rl_policy_loss_weight_controls_policy_head_updates():
+    replay = DictReplayBuffer(capacity=4)
+    state = {
+        key: np.zeros(buffer.shape[1:], dtype=buffer.dtype)
+        for key, buffer in replay.buffers.items()
+    }
+    policy = np.zeros(NUM_ACTIONS, dtype=np.float32)
+    policy[0] = 1.0
+    mask = np.zeros(NUM_ACTIONS, dtype=np.float32)
+    mask[:2] = 1.0
+    for outcome in (1.0, -1.0, 0.5, -0.5):
+        replay.push(state, policy, mask, outcome)
+
+    torch.manual_seed(7)
+    value_only = ModularBattleNet(
+        trunk_dim=64, num_blocks=1, dropout=0.0, with_attention=False,
+    )
+    with_policy = copy.deepcopy(value_only)
+    value_only_before = value_only.skill_head[-1].bias.detach().clone()
+    with_policy_before = with_policy.skill_head[-1].bias.detach().clone()
+
+    train_rl(
+        value_only, replay, epochs=1, batch_size=4, device="cpu",
+        optimizer=torch.optim.SGD(value_only.parameters(), lr=1e-2),
+        val_split=0.25, policy_loss_weight=0.0,
+    )
+    train_rl(
+        with_policy, replay, epochs=1, batch_size=4, device="cpu",
+        optimizer=torch.optim.SGD(with_policy.parameters(), lr=1e-2),
+        val_split=0.25, policy_loss_weight=1.0,
+    )
+
+    assert torch.equal(value_only.skill_head[-1].bias, value_only_before)
+    assert not torch.equal(with_policy.skill_head[-1].bias, with_policy_before)
+
+
+def test_restore_rejected_candidate_clears_rejected_adam_momentum():
+    torch.manual_seed(11)
+    model = torch.nn.Linear(2, 1)
+    best_model = copy.deepcopy(model)
+    optimizer = torch.optim.Adam(model.parameters(), lr=1e-2)
+    optimizer_before = copy.deepcopy(optimizer.state_dict())
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=0.5)
+
+    loss = model(torch.ones(1, 2)).sum()
+    loss.backward()
+    optimizer.step()
+    scheduler.step()
+    scheduled_lr = scheduler.get_last_lr()[0]
+    assert optimizer.state
+
+    train_module._restore_rejected_candidate(
+        model,
+        best_model,
+        optimizer,
+        optimizer_before,
+        scheduled_lr=scheduled_lr,
+    )
+
+    for actual, expected in zip(model.parameters(), best_model.parameters()):
+        assert torch.equal(actual, expected)
+    assert not optimizer.state
+    assert optimizer.param_groups[0]["lr"] == scheduled_lr
 
 
 def test_replay_buffer_push_batch_wraps_vectorized_writes():
@@ -545,6 +719,7 @@ def test_neural_mcts_agent_does_not_create_factory_per_action(monkeypatch):
         assert bt.player_a is original_b
         assert bt.player_b is original_a
         assert factory_arg is None
+        assert kwargs["opp_greedy"] is True
         return np.eye(1, NUM_ACTIONS, 15, dtype=np.float32)[0]
 
     monkeypatch.setattr(service_agent_module, "_load_model", lambda: model)

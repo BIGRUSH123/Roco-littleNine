@@ -185,6 +185,7 @@ class NeuralMCTSAgent(_BaseAgent):
                 battle, None, None, self._opponent,
                 num_simulations=self.NUM_SIMULATIONS,
                 evaluator=self._evaluator,
+                opp_greedy=True,
             )
         finally:
             battle.player_a, battle.player_b = battle.player_b, battle.player_a

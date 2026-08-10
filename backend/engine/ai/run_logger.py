@@ -23,6 +23,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from backend.engine.ai.console import safe_print
+
 
 # ═══════════════════════════════════════════════════════════════════
 # 内部 Logger
@@ -169,8 +171,8 @@ class RunLogger:
             fp.write("\n".join(lines) + "\n")
 
         # 打印汇总到控制台
-        print("\n" + "\n".join(lines))
-        print(
+        safe_print("\n" + "\n".join(lines))
+        safe_print(
             f"\n日志已写入:\n  全量: {self.full_log_path}\n"
             f"  指标: {self.metrics_path}\n  汇总: {self.summary_path}"
         )

@@ -37,6 +37,7 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent
 
 from backend.common.skill_trait_ids import SKILL_ID_TO_NAME
 from backend.engine.ai.battle_log import BattleLogWriter, extract_battle_summary
+from backend.engine.ai.console import safe_print as _console_print
 from backend.engine.ai.core.encoder import encode_battle_state
 from backend.engine.ai.core.evaluator import (
     BatchedInferenceServer,
@@ -76,7 +77,7 @@ DEFAULT_MCTS_LEAF_BATCH_SIZE = 16
 def _timestamp_print(msg: str, **kwargs) -> None:
     """带时间戳的print函数"""
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    print(f"[{timestamp}] {msg}", **kwargs)
+    _console_print(f"[{timestamp}] {msg}", **kwargs)
 
 
 def _load_sprite_skills() -> dict[str, list[str]]:
@@ -102,9 +103,10 @@ def _random_teams(
     random.shuffle(names)
     used: set[str] = set()  # 两队共享排重，避免 AB 重复选同一批精灵
 
-    def build_team(label: str) -> list[dict]:
-        max_possible = min(max_team_size, len(names) // 2)
-        size = random.randint(1, max_possible) if max_possible >= 1 else 1
+    max_possible = min(max_team_size, len(names) // 2)
+    team_size = random.randint(1, max_possible) if max_possible >= 1 else 1
+
+    def build_team(size: int) -> list[dict]:
         specs: list[dict] = []
         for name in names:
             if name in used:
@@ -123,7 +125,44 @@ def _random_teams(
             used.add(name)
         return specs
 
-    return build_team("A"), build_team("B")
+    return build_team(team_size), build_team(team_size)
+
+
+EvalMatchup = tuple[list[dict], list[dict], Item, Item]
+
+
+def _random_eval_matchup(
+    factory: SimFactory,
+    sprite_skills: dict[str, list[str]],
+) -> EvalMatchup:
+    team_a, team_b = _random_teams(factory, sprite_skills)
+    return team_a, team_b, _random_item(), _random_item()
+
+
+def _paired_eval_tasks(
+    factory: SimFactory,
+    sprite_skills: dict[str, list[str]],
+    n_games: int,
+) -> list[tuple[int, EvalMatchup]]:
+    """生成门控任务；相邻两局复用阵容和道具，仅交换候选模型所在侧。"""
+    tasks: list[tuple[int, EvalMatchup]] = []
+    for pair_start in range(0, n_games, 2):
+        matchup = _random_eval_matchup(factory, sprite_skills)
+        tasks.append((pair_start, matchup))
+        if pair_start + 1 < n_games:
+            tasks.append((pair_start + 1, matchup))
+    return tasks
+
+
+def _build_eval_battle(factory: SimFactory, matchup: EvalMatchup):
+    team_a, team_b, item_a, item_b = matchup
+    p1 = factory.build_player(
+        "A", copy.deepcopy(team_a), item=copy.deepcopy(item_a),
+    )
+    p2 = factory.build_player(
+        "B", copy.deepcopy(team_b), item=copy.deepcopy(item_b),
+    )
+    return factory.build_battle(p1, p2)
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -379,6 +418,9 @@ def collect_rl_samples(
             "gamma": gamma,
             "tanh_k": tanh_k,
             "leaf_batch_size": leaf_batch_size,
+            # 树只按己方动作分叉。搜索内对手必须确定性行动，避免同一个
+            # 子节点合并多个不同的下一状态并复用错误的先验/后续树。
+            "opp_greedy": True,
         }
 
         if mcts_parallel:
@@ -491,6 +533,7 @@ def _play_one_rl_battle(
         draw_margin=draw_margin,
         gamma=gamma, tanh_k=tanh_k,
         leaf_batch_size=leaf_batch_size,
+        opp_greedy=True,
     )
     agent_b = MCTSAgent(
         "B", p2, factory, opp_b, num_simulations,
@@ -499,6 +542,7 @@ def _play_one_rl_battle(
         draw_margin=draw_margin,
         gamma=gamma, tanh_k=tanh_k,
         leaf_batch_size=leaf_batch_size,
+        opp_greedy=True,
     )
 
     battle_started = time.monotonic()
@@ -763,6 +807,7 @@ def train_rl(
     scheduler: torch.optim.lr_scheduler.LRScheduler | None = None,
     val_split: float = 0.1,
     draw_margin: float = DEFAULT_DRAW_MARGIN,
+    policy_loss_weight: float = 1.0,
 ) -> list[dict]:
     """训练双头网络：value loss (MSE) + policy loss (cross-entropy)。
 
@@ -835,7 +880,7 @@ def train_rl(
             masked_logits = logits.masked_fill(mb < 0.5, -1e9)
             per_sample = -torch.sum(pb_safe * F.log_softmax(masked_logits, dim=-1), dim=-1)
             policy_loss = per_sample.mean()
-            loss = value_loss + policy_loss
+            loss = value_loss + policy_loss_weight * policy_loss
 
             optimizer.zero_grad()
             loss.backward()
@@ -913,6 +958,21 @@ def train_rl(
     return history
 
 
+def _restore_rejected_candidate(
+    model: torch.nn.Module,
+    best_model: torch.nn.Module,
+    optimizer: torch.optim.Optimizer,
+    optimizer_state: dict,
+    *,
+    scheduled_lr: float,
+) -> None:
+    """回滚失败候选的权重和优化器动量，同时保留全局学习率进度。"""
+    model.load_state_dict(best_model.state_dict())
+    optimizer.load_state_dict(optimizer_state)
+    for param_group in optimizer.param_groups:
+        param_group["lr"] = scheduled_lr
+
+
 # ═══════════════════════════════════════════════════════════════════
 # 评估门控（AlphaZero：新网络须明显强于旧最优才晋升）
 # ═══════════════════════════════════════════════════════════════════
@@ -945,6 +1005,48 @@ def _gate_decision(wins: float, completed: int, total: int, gate: float) -> bool
     return None
 
 
+class _PairedGateTracker:
+    """只用完整配对的结果做门控，支持并行对局乱序返回。"""
+
+    def __init__(self, total_games: int, gate: float | None):
+        self.total_games = total_games
+        self.gate = gate
+        self.wins = 0.0
+        self.completed_games = 0
+        self._pending: dict[int, dict[int, float]] = {}
+
+    @property
+    def score(self) -> float:
+        if self.completed_games <= 0:
+            return 0.0
+        return self.wins / self.completed_games
+
+    def add(self, game_index: int, score: float) -> bool | None:
+        if not 0 <= game_index < self.total_games:
+            raise ValueError(f"game_index 越界: {game_index}/{self.total_games}")
+        pair_start = game_index - (game_index % 2)
+        pair = self._pending.setdefault(pair_start, {})
+        if game_index in pair:
+            raise ValueError(f"重复的门控结果: game_index={game_index}")
+        pair[game_index] = float(score)
+
+        expected = min(2, self.total_games - pair_start)
+        if len(pair) < expected:
+            return None
+
+        self.wins += sum(pair.values())
+        self.completed_games += expected
+        del self._pending[pair_start]
+        if self.gate is None:
+            return None
+        return _gate_decision(
+            self.wins,
+            self.completed_games,
+            self.total_games,
+            self.gate,
+        )
+
+
 def evaluate(
     candidate: ModularBattleNet,
     best: ModularBattleNet,
@@ -968,11 +1070,11 @@ def evaluate(
         return 0.0
 
     wins = 0.0
-    for g in range(n_games):
-        team_a, team_b = _random_teams(factory, sprite_skills)
-        p1 = factory.build_player("A", team_a, item=_random_item())
-        p2 = factory.build_player("B", team_b, item=_random_item())
-        battle = factory.build_battle(p1, p2)
+    gate_tracker = _PairedGateTracker(n_games, early_stop_gate)
+    for g, matchup in _paired_eval_tasks(factory, sprite_skills, n_games):
+        battle = _build_eval_battle(factory, matchup)
+        p1 = battle.player_a
+        p2 = battle.player_b
 
         cand_is_a = (g % 2 == 0)
         model_a = candidate if cand_is_a else best
@@ -1007,23 +1109,24 @@ def evaluate(
         outcome_a, _ = battle_outcome_a(
             battle, max_turns, draw_margin=draw_margin,
         )
-        wins += eval_score_for_candidate(outcome_a, cand_is_a)
+        game_score = eval_score_for_candidate(outcome_a, cand_is_a)
+        wins += game_score
+        decision = gate_tracker.add(g, game_score)
         if early_stop_gate is not None:
-            decision = _gate_decision(wins, g + 1, n_games, early_stop_gate)
             if decision is not None:
                 if verbose:
                     status = "pass" if decision else "fail"
                     _timestamp_print(
                         f"    eval early-stop {status}: {g + 1}/{n_games} games, "
-                        f"score_floor={wins / n_games:.2%}, gate={early_stop_gate:.2%}",
+                        f"paired_score={gate_tracker.score:.2%}, gate={early_stop_gate:.2%}",
                         flush=True,
                     )
-                return early_stop_gate if decision else wins / n_games
+                return gate_tracker.score
 
         if verbose and (g + 1) % 10 == 0:
             _timestamp_print(f"    评估 {g + 1}/{n_games} 局, 当前胜率 {wins / (g + 1):.2%}")
 
-    return wins / n_games
+    return gate_tracker.score
 
 
 def _play_one_eval_game(
@@ -1037,15 +1140,17 @@ def _play_one_eval_game(
     draw_margin: float = DEFAULT_DRAW_MARGIN,
     game_timeout_s: float = 450.0,
     leaf_batch_size: int = DEFAULT_MCTS_LEAF_BATCH_SIZE,
+    matchup: EvalMatchup | None = None,
 ) -> float:
     """单局 candidate vs best，返回 candidate 得分：胜=1，平=0.5，负=0。
 
     game_timeout_s: 单局 wall-time 上限，超时强制退出（避免慢局拖死 worker）。
     """
-    team_a, team_b = _random_teams(factory, sprite_skills)
-    p1 = factory.build_player("A", team_a, item=_random_item())
-    p2 = factory.build_player("B", team_b, item=_random_item())
-    battle = factory.build_battle(p1, p2)
+    if matchup is None:
+        matchup = _random_eval_matchup(factory, sprite_skills)
+    battle = _build_eval_battle(factory, matchup)
+    p1 = battle.player_a
+    p2 = battle.player_b
 
     cand_is_a = (game_index % 2 == 0)
     eval_a = candidate_evaluator if cand_is_a else best_evaluator
@@ -1122,10 +1227,10 @@ def evaluate_parallel(
     ctx = mp.get_context("spawn")
     request_queue = SyncPickleQueue(maxsize=n_workers * 4, ctx=ctx)
     result_queue = ctx.Queue(maxsize=n_workers * 2)
-    # 任务队列：n_games 个 game_index（决定先后手交替）+ 每 worker 一个停止哨兵。
+    # 任务队列：相邻两局复用同一阵容/道具，仅交换候选模型所在侧。
     task_queue = ctx.Queue()
-    for game_index in range(n_games):
-        task_queue.put(game_index)
+    for task in _paired_eval_tasks(factory, sprite_skills, n_games):
+        task_queue.put(task)
     for _ in range(n_workers):
         task_queue.put(None)
 
@@ -1162,6 +1267,7 @@ def evaluate_parallel(
 
     wins = 0.0
     completed_games = 0
+    gate_tracker = _PairedGateTracker(n_games, early_stop_gate)
     finished: set[int] = set()
     done_workers = 0
     last_wait_report = time.monotonic()
@@ -1214,17 +1320,18 @@ def evaluate_parallel(
                 done_workers += 1
                 continue
             # tag == "game"
-            wins += float(raw_result[2])
+            game_score = float(raw_result[2])
+            game_index = int(raw_result[3])
+            wins += game_score
             completed_games += 1
+            gate_decision = gate_tracker.add(game_index, game_score)
             if early_stop_gate is not None:
-                gate_decision = _gate_decision(
-                    wins, completed_games, n_games, early_stop_gate,
-                )
                 if gate_decision is not None and verbose:
                     status = "pass" if gate_decision else "fail"
                     _timestamp_print(
-                        f"  eval early-stop {status}: {completed_games}/{n_games} games, "
-                        f"score_floor={wins / n_games:.2%}, gate={early_stop_gate:.2%}",
+                        f"  eval early-stop {status}: "
+                        f"{gate_tracker.completed_games}/{n_games} paired games, "
+                        f"paired_score={gate_tracker.score:.2%}, gate={early_stop_gate:.2%}",
                         flush=True,
                     )
             if verbose and (completed_games % max(1, progress_every) == 0):
@@ -1255,11 +1362,12 @@ def evaluate_parallel(
         server.stop()
 
     if gate_decision is True:
-        return early_stop_gate if early_stop_gate is not None else wins / n_games
+        return gate_tracker.score
     if gate_decision is False:
-        return wins / n_games
-    denom = completed_games if stalled else n_games
-    return wins / denom if denom > 0 else 0.0
+        return gate_tracker.score
+    if stalled:
+        return gate_tracker.score
+    return wins / n_games
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -1294,6 +1402,8 @@ def main():
                         help="温度衰减率，每轮乘以该值。设 1.0 取消衰减 (default: 0.9)")
     parser.add_argument("--weight-decay", type=float, default=1e-4,
                         help="L2 正则系数 (default: 1e-4)")
+    parser.add_argument("--policy-loss-weight", type=float, default=1.0,
+                        help="策略损失权重 (default: 1.0)")
     parser.add_argument("--buffer", type=int, default=5,
                         help="经验回放缓冲：严格保留最近 N 轮完整自我博弈数据 (default: 5)")
     parser.add_argument("--eval-games", type=int, default=20,
@@ -1365,7 +1475,7 @@ def main():
         """同时输出到控制台和全量日志（带时间戳）。"""
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         timestamped_msg = f"[{timestamp}] {msg}"
-        print(timestamped_msg, flush=True)
+        _console_print(timestamped_msg, flush=True)
         if logger is not None:
             logger.info(msg)  # logger自带时间戳，不重复添加
     if run_name:
@@ -1386,6 +1496,7 @@ def main():
             "workers": args.workers, "eval_workers": eval_workers,
             "leaf_batch_size": args.leaf_batch_size,
             "weight_decay": args.weight_decay,
+            "policy_loss_weight": args.policy_loss_weight,
             "dropout": args.dropout,
             "mirror_frac": args.mirror_frac,
             "run_name": run_name,
@@ -1560,10 +1671,12 @@ def main():
         # ── 训练（候选 = 在 best 基础上继续训练） ──
         _log(f"训练 ({args.epochs} epochs)...")
         t0 = time.time()
+        optimizer_before = copy.deepcopy(optimizer.state_dict())
         history = train_rl(
             model, replay, args.epochs, args.batch_size,
             device, optimizer=optimizer, scheduler=scheduler,
             draw_margin=args.draw_margin,
+            policy_loss_weight=args.policy_loss_weight,
         )
         train_sec = time.time() - t0
         _log(f"  完成: {train_sec:.1f}s")
@@ -1619,7 +1732,13 @@ def main():
                 _log(f"  ✓ 候选晋升为新最优，已保存: {best_ckpt}")
             else:
                 # 回滚：候选退回到当前最优，避免越练越差
-                model.load_state_dict(best_model.state_dict())
+                _restore_rejected_candidate(
+                    model,
+                    best_model,
+                    optimizer,
+                    optimizer_before,
+                    scheduled_lr=scheduler.get_last_lr()[0],
+                )
                 _log("  ✗ 未达门控阈值，回滚到最优模型")
         else:
             # 未启用门控：直接把候选当作最优（用于产生下一轮自我博弈）

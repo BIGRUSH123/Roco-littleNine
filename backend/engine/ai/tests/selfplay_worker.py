@@ -120,8 +120,8 @@ def run_evaluate_worker(
     candidate_reply_q / best_reply_q 分别为两个模型分配独立回复队列，
     避免共享 mp.Queue 导致 Windows pipe 竞态死锁。
 
-    result_queue 消息为 4 元组 (tag, worker_id, score, error)：
-      ("game",  wid, score, None)  单局候选得分
+    result_queue 消息为 4 元组 (tag, worker_id, score, game_index/error)：
+      ("game",  wid, score, game_index)  单局候选得分
       ("done",  wid, None, None)   该 worker 已领完退出
       ("error", wid, None, traceback)  worker 异常
     """
@@ -145,7 +145,8 @@ def run_evaluate_worker(
                 task = task_queue.get()
                 if task is None:
                     break
-                game_index = int(task)
+                game_index, matchup = task
+                game_index = int(game_index)
                 battle_started = time.monotonic()
                 score = _play_one_eval_game(
                     factory, sprite_skills, candidate_eval, best_eval,
@@ -153,8 +154,9 @@ def run_evaluate_worker(
                     draw_margin=draw_margin,
                     game_timeout_s=game_timeout_s,
                     leaf_batch_size=leaf_batch_size,
+                    matchup=matchup,
                 )
-                result_queue.put(("game", worker_id, float(score), None))
+                result_queue.put(("game", worker_id, float(score), game_index))
 
                 done += 1
         finally:
