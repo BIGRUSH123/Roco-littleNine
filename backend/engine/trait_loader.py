@@ -36,11 +36,13 @@ class TraitLoader:
 
     # ── Loading ──
 
-    def load_for_sprite(self, sprite: Sprite):
+    def load_for_sprite(self, sprite: Sprite, *, apply_state: bool = True):
         """Load and register all observers from the sprite's trait.
 
         Safe to call multiple times — existing observers for this sprite
-        are replaced rather than duplicated.
+        are replaced rather than duplicated. ``apply_state=False`` is used
+        while restoring a serialized battle: observers are rebuilt, but the
+        already-restored effect and modifier state is left untouched.
         """
         species = getattr(sprite, 'species', None)
         trait_id = getattr(species, 'ability_id', 0) if species else 0
@@ -56,7 +58,8 @@ class TraitLoader:
 
         # Deduplicate: remove existing observers and direct modifiers before re-registering
         self.registry.unregister_by_owner(sprite_id, "reload")
-        self._remove_direct_mods(sprite)
+        if apply_state:
+            self._remove_direct_mods(sprite)
 
         trait_source = trait_data.get("name", trait_name)
         effects = trait_data.get("effects", [])
@@ -72,18 +75,19 @@ class TraitLoader:
         # Preserve StatBuffEffect — those are created by the battle replayer
         # during combat and must survive trait reload (e.g. permanent stat stages).
         from backend.vm.effect import ModifierEffect, ObserverEffect
-        active = getattr(sprite, 'active_effects', None)
-        if active:
-            sprite.active_effects = [
-                e for e in active
-                if not (isinstance(e, (ObserverEffect, ModifierEffect)) and e.source == trait_source)
-            ]
-        else:
-            sprite.active_effects = []
-        for e in effects:
-            obj = effect_from_dict(e, source=trait_source)
-            if obj is not None:
-                sprite.active_effects.append(obj)
+        if apply_state:
+            active = getattr(sprite, 'active_effects', None)
+            if active:
+                sprite.active_effects = [
+                    e for e in active
+                    if not (isinstance(e, (ObserverEffect, ModifierEffect)) and e.source == trait_source)
+                ]
+            else:
+                sprite.active_effects = []
+            for e in effects:
+                obj = effect_from_dict(e, source=trait_source)
+                if obj is not None:
+                    sprite.active_effects.append(obj)
 
         sources: set[str] = set()
 
@@ -110,13 +114,23 @@ class TraitLoader:
         # Apply non-observer effects as permanent modifiers to matching skills.
         # Also cache the raw effects so they can be re-applied after
         # _PER_TURN_KEYS cleanup each turn.
-        if direct_effects:
-            self._apply_direct_mods(sprite, direct_effects)
-            sprite._trait_direct_effects = direct_effects
-            self._direct_mod_sprite_ids.add(sprite_id)
+        if apply_state:
+            if direct_effects:
+                self._apply_direct_mods(sprite, direct_effects)
+                sprite._trait_direct_effects = direct_effects
+                self._direct_mod_sprite_ids.add(sprite_id)
+            else:
+                sprite._trait_direct_effects = None
+                self._direct_mod_sprite_ids.discard(sprite_id)
         else:
-            sprite._trait_direct_effects = None
-            self._direct_mod_sprite_ids.discard(sprite_id)
+            restored_direct_effects = getattr(sprite, '_trait_direct_effects', None)
+            if restored_direct_effects is None and direct_effects:
+                restored_direct_effects = direct_effects
+                sprite._trait_direct_effects = direct_effects
+            if restored_direct_effects:
+                self._direct_mod_sprite_ids.add(sprite_id)
+            else:
+                self._direct_mod_sprite_ids.discard(sprite_id)
 
         self._sprite_sources[sprite_id] = sources
 
@@ -138,7 +152,10 @@ class TraitLoader:
         # Clear EffectObjects matching this reason
         active = getattr(sprite, 'active_effects', None)
         if active:
-            sprite.active_effects = [e for e in active if not e.should_clear(reason)]
+            remaining = [e for e in active if not e.should_clear(reason)]
+            if len(remaining) != len(active):
+                sprite.active_effects = remaining
+                sprite._invalidate_effects_cache()
 
     def reapply_all_direct_mods(self, sprites: list, mark_mods: dict[int, int] | None = None):
         """Re-apply trait direct modifiers to all sprites (after _PER_TURN_KEYS cleanup)."""

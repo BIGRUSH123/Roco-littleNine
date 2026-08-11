@@ -170,6 +170,186 @@ class TestBattleSerialization:
         assert restored.log[0].turn == battle.log[0].turn
         assert restored.log[0].sprite_a == battle.log[0].sprite_a
 
+    def test_battle_roundtrip_does_not_repeat_entry_traits(self, factory):
+        """恢复中间状态时不能再次触发首发精灵的入场特性。"""
+        import numpy as np
+
+        from backend.engine.ai.core.encoder import encode_battle_state
+        from backend.engine.serializer import battle_from_dict, battle_to_dict
+
+        player_a = factory.build_player("A", [
+            {"name": "雪灵", "skills": ["冰冻光线"]},
+        ])
+        player_b = factory.build_player("B", [
+            {"name": "电企鹅", "skills": ["落雷"]},
+        ])
+        battle = factory.build_battle(player_a, player_b)
+        expected = encode_battle_state(battle)
+
+        restored = battle_from_dict(
+            battle_to_dict(battle),
+            factory.sprite_db,
+            factory._build_skill_list,
+        )
+        actual = encode_battle_state(restored)
+
+        assert all(
+            np.array_equal(expected[key], actual[key])
+            for key in expected
+        )
+
+    def test_battle_roundtrip_preserves_legacy_trait_loading_tolerance(self, factory):
+        """恢复含旧版 special 特性的对局时，应沿用正常开局的容错行为。"""
+        from backend.engine.serializer import battle_from_dict, battle_to_dict
+
+        player_a = factory.build_player("A", [
+            {"name": "圣羽翼王", "skills": ["天光"]},
+        ])
+        player_b = factory.build_player("B", [
+            {"name": "嗜波螺", "skills": ["水光冲击"]},
+        ])
+        battle = factory.build_battle(player_a, player_b)
+
+        restored = battle_from_dict(
+            battle_to_dict(battle),
+            factory.sprite_db,
+            factory._build_skill_list,
+        )
+
+        assert restored.player_a.active.name == "圣羽翼王"
+
+    def test_battle_roundtrip_preserves_transient_sprite_state(self, battle, factory):
+        """回溯恢复必须保留额外行动、打断、蓄力和异常伤害记忆。"""
+        from backend.engine.serializer import battle_from_dict, battle_to_dict
+
+        sprite = battle.player_a.active
+        sprite.skills = factory._build_skill_list(["猛烈撞击"])
+        sprite.extra_skill_use = True
+        sprite.interrupted = True
+        sprite._charging = True
+        sprite._charged_skill_index = 0
+        sprite._charged_skill_ref = sprite.skills[0] if sprite.skills else None
+        sprite._last_abnormal_dmg = {"灼烧": 17}
+        sprite.bloodline_skills = {"水": 12345}
+
+        restored = battle_from_dict(
+            battle_to_dict(battle),
+            factory.sprite_db,
+            factory._build_skill_list,
+        ).player_a.active
+
+        assert restored.extra_skill_use is True
+        assert restored.interrupted is True
+        assert restored._charging is True
+        assert restored._charged_skill_index == 0
+        assert restored._charged_skill_ref is (
+            restored.skills[0] if restored.skills else None
+        )
+        assert restored._last_abnormal_dmg == {"灼烧": 17}
+        assert restored.bloodline_skills == {"水": 12345}
+
+    def test_battle_roundtrip_preserves_persistent_skill_modifier_next_turn(self, factory):
+        """恢复后，persistent 技能修饰必须能跨过下一回合的临时清理。"""
+        from backend.engine.replayer import JournalReplayer
+        from backend.engine.serializer import battle_from_dict, battle_to_dict
+        from backend.sim.action import Action
+        from backend.vm.journal import ModifierInjection
+
+        player_a = factory.build_player("A", [
+            {"name": "雪灵", "skills": ["冰冻光线"]},
+        ])
+        player_b = factory.build_player("B", [
+            {"name": "电企鹅", "skills": ["落雷"]},
+        ])
+        battle = factory.build_battle(player_a, player_b)
+        JournalReplayer(
+            player_a.active,
+            player_b.active,
+            battle.globals,
+            battle._vm_engine.registry,
+            team="A",
+            battle=battle,
+        ).replay([ModifierInjection(
+            target="sprite_self",
+            stat="energy_cost",
+            value=-1,
+            scope="persistent",
+            mode="add",
+            skill_filter="attack",
+            source="序列化测试",
+        )])
+
+        restored = battle_from_dict(
+            battle_to_dict(battle),
+            factory.sprite_db,
+            factory._build_skill_list,
+        )
+
+        class GatherAgent:
+            def choose_action(self, _battle):
+                return Action(kind="gather")
+
+        restored.execute_turn(GatherAgent(), GatherAgent())
+
+        assert restored.player_a.active.skills[0].energy_cost == 6
+
+    def test_battle_roundtrip_preserves_observer_counter_progress(self, factory):
+        """Observer 达到阈值前的累计次数必须跨保存恢复保留。"""
+        from backend.engine.serializer import battle_from_dict, battle_to_dict
+
+        player_a = factory.build_player("A", [
+            {"name": "棋齐垒", "form": "白子", "skills": []},
+        ])
+        player_b = factory.build_player("B", [
+            {"name": "雪灵", "skills": []},
+        ])
+        battle = factory.build_battle(player_a, player_b)
+        observer = next(
+            obs for obs in battle._vm_engine.registry._observers
+            if obs.source == "保卫"
+        )
+        assert observer.hit() is False
+
+        restored = battle_from_dict(
+            battle_to_dict(battle),
+            factory.sprite_db,
+            factory._build_skill_list,
+        )
+        restored_observer = next(
+            obs for obs in restored._vm_engine.registry._observers
+            if obs.source == "保卫"
+        )
+
+        assert restored_observer.hit() is True
+
+    def test_battle_roundtrip_preserves_moe_restoration_path(self, factory):
+        """萌化中的对局恢复后必须能逐层返回原形态和原技能。"""
+        from backend.engine.serializer import battle_from_dict, battle_to_dict
+
+        player_a = factory.build_player("A", [
+            {"name": "水灵", "skills": ["猛烈撞击", "甩水"]},
+        ])
+        player_b = factory.build_player("B", [
+            {"name": "水灵", "skills": ["猛烈撞击"]},
+        ])
+        battle = factory.build_battle(player_a, player_b)
+        sprite = player_a.active
+        sprite.apply_moe(2, battle)
+        assert sprite.name == "水蓝蓝"
+
+        restored_battle = battle_from_dict(
+            battle_to_dict(battle),
+            factory.sprite_db,
+            factory._build_skill_list,
+        )
+        restored = restored_battle.player_a.active
+
+        assert restored.remove_moe(1, restored_battle) == 1
+        assert restored.name == "波波拉"
+        assert restored.remove_moe(1, restored_battle) == 1
+        assert restored.name == "水灵"
+        assert [skill.name for skill in restored.skills] == ["猛烈撞击", "甩水"]
+
     def test_battle_version_field(self, battle):
         """Verify battle_to_dict includes version/type metadata."""
         from backend.engine.serializer import battle_to_dict

@@ -6,6 +6,7 @@ Backtracking and import/export share this layer.
 
 from __future__ import annotations
 
+from copy import deepcopy
 from typing import Any
 
 
@@ -189,6 +190,27 @@ def battle_skill_from_dict(d: dict, skill_loader) -> Any:
 # Sprite serialization
 # ═══════════════════════════════════════════════════════════════
 
+def species_ref_to_dict(species) -> dict | None:
+    """Serialize a species reference without embedding the database object."""
+    if species is None:
+        return None
+    return {
+        "name": species.name,
+        "number": species.number,
+        "form": species.form,
+    }
+
+
+def species_ref_from_dict(d: dict | None, species_db) -> Any:
+    """Resolve a serialized species reference through the supplied database."""
+    if not d:
+        return None
+    species = species_db(d["name"], d.get("form", ""))
+    if species is None:
+        raise ValueError(f"Species not found: {d['name']!r}")
+    return species
+
+
 def sprite_to_dict(sprite) -> dict:
     """Serialize Sprite — species as name/number/form identifier."""
     return {
@@ -196,6 +218,7 @@ def sprite_to_dict(sprite) -> dict:
         "species_number": sprite.species.number,
         "species_form": sprite.species.form,
         "bloodline": sprite.bloodline,
+        "bloodline_skills": dict(sprite.bloodline_skills),
         "initial_stats": dict(sprite.initial_stats),
         "nature": sprite.nature,
         "iv": dict(sprite.iv),
@@ -209,6 +232,26 @@ def sprite_to_dict(sprite) -> dict:
         "first_action_battle": sprite.first_action_battle,
         "pending_return": sprite.pending_return,
         "locked_turns": sprite.locked_turns,
+        "interrupted": sprite.interrupted,
+        "extra_skill_use": sprite.extra_skill_use,
+        "_charging": sprite._charging,
+        "_charged_skill_index": sprite._charged_skill_index,
+        "_charged_skill_ref_index": next(
+            (
+                i for i, skill in enumerate(sprite.skills or [])
+                if skill is sprite._charged_skill_ref
+            ),
+            -1,
+        ),
+        "_last_abnormal_dmg": dict(sprite._last_abnormal_dmg),
+        "_moe_chain": [
+            species_ref_to_dict(species) for species in sprite._moe_chain
+        ],
+        "_moe_position": sprite._moe_position,
+        "_moe_origin": species_ref_to_dict(sprite._moe_origin),
+        "_moe_origin_skills": [
+            battle_skill_to_dict(skill) for skill in sprite._moe_origin_skills
+        ],
         "_modifiers": dict(sprite._modifiers),
         "_mod_scopes": dict(sprite._mod_scopes),
         "_pending_effects": [
@@ -226,6 +269,12 @@ def sprite_to_dict(sprite) -> dict:
             for m in sprite._pending_modifiers
         ],
         "_trait_suppressed": sprite._trait_suppressed,
+        "_trait_direct_effects": deepcopy(
+            getattr(sprite, "_trait_direct_effects", None)
+        ),
+        "_direct_mod_tracked": deepcopy(
+            getattr(sprite, "_direct_mod_tracked", None)
+        ),
         "skills": [battle_skill_to_dict(bs) for bs in (sprite.skills or [])],
     }
 
@@ -242,6 +291,7 @@ def sprite_from_dict(d: dict, species_db, skill_loader) -> Any:
     sprite = Sprite(
         species=species,
         bloodline=d.get("bloodline", ""),
+        bloodline_skills=dict(d.get("bloodline_skills", {})),
         initial_stats=dict(d.get("initial_stats", {})),
         current_hp=d.get("current_hp", 0),
         max_hp=d.get("max_hp", 0),
@@ -255,6 +305,11 @@ def sprite_from_dict(d: dict, species_db, skill_loader) -> Any:
     sprite.first_action_battle = d.get("first_action_battle", True)
     sprite.pending_return = d.get("pending_return", False)
     sprite.locked_turns = d.get("locked_turns", 0)
+    sprite.interrupted = d.get("interrupted", False)
+    sprite.extra_skill_use = d.get("extra_skill_use", False)
+    sprite._charging = d.get("_charging", False)
+    sprite._charged_skill_index = d.get("_charged_skill_index", -1)
+    sprite._last_abnormal_dmg = dict(d.get("_last_abnormal_dmg", {}))
     sprite._modifiers = dict(d.get("_modifiers", {}))
     sprite._mod_scopes = dict(d.get("_mod_scopes", {}))
 
@@ -280,6 +335,8 @@ def sprite_from_dict(d: dict, species_db, skill_loader) -> Any:
     ]
 
     sprite._trait_suppressed = d.get("_trait_suppressed", False)
+    sprite._trait_direct_effects = deepcopy(d.get("_trait_direct_effects"))
+    sprite._direct_mod_tracked = deepcopy(d.get("_direct_mod_tracked"))
 
     if skill_loader is not None:
         sprite.skills = [
@@ -290,6 +347,29 @@ def sprite_from_dict(d: dict, species_db, skill_loader) -> Any:
         ]
     else:
         sprite.skills = []
+
+    charged_ref_index = d.get("_charged_skill_ref_index", -1)
+    sprite._charged_skill_ref = (
+        sprite.skills[charged_ref_index]
+        if 0 <= charged_ref_index < len(sprite.skills)
+        else None
+    )
+    sprite._moe_chain = [
+        species_ref_from_dict(ref, species_db)
+        for ref in d.get("_moe_chain", [])
+    ]
+    sprite._moe_position = d.get("_moe_position", 0)
+    sprite._moe_origin = species_ref_from_dict(d.get("_moe_origin"), species_db)
+    if skill_loader is not None:
+        sprite._moe_origin_skills = [
+            skill for skill in (
+                battle_skill_from_dict(sd, skill_loader)
+                for sd in d.get("_moe_origin_skills", [])
+            )
+            if skill is not None
+        ]
+    else:
+        sprite._moe_origin_skills = []
 
     return sprite
 
@@ -407,6 +487,60 @@ def vm_state_restore(vm_engine, state: dict) -> None:
     }
 
 
+def observer_counters_to_dict(battle) -> list[dict]:
+    """Serialize non-zero Observer counters using stable sprite positions."""
+    records: list[dict] = []
+    registry = battle._vm_engine.registry
+    for team, player in (("A", battle.player_a), ("B", battle.player_b)):
+        for sprite_index, sprite in enumerate(player.team):
+            observers = [
+                obs for obs in registry._observers
+                if obs.owner_sprite_id == id(sprite)
+            ]
+            for observer_index, obs in enumerate(observers):
+                if obs._hit_count <= 0:
+                    continue
+                records.append({
+                    "team": team,
+                    "sprite_index": sprite_index,
+                    "observer_index": observer_index,
+                    "source": obs.source,
+                    "name": obs.name,
+                    "listen": sorted(obs.listen),
+                    "threshold": obs.threshold,
+                    "hit_count": obs._hit_count,
+                })
+    return records
+
+
+def observer_counters_restore(battle, records: list[dict]) -> None:
+    """Restore Observer counters after traits have been re-registered."""
+    registry = battle._vm_engine.registry
+    players = {"A": battle.player_a, "B": battle.player_b}
+    for record in records:
+        player = players.get(record.get("team"))
+        sprite_index = record.get("sprite_index", -1)
+        if player is None or not 0 <= sprite_index < len(player.team):
+            continue
+        sprite = player.team[sprite_index]
+        observers = [
+            obs for obs in registry._observers
+            if obs.owner_sprite_id == id(sprite)
+        ]
+        observer_index = record.get("observer_index", -1)
+        if not 0 <= observer_index < len(observers):
+            continue
+        obs = observers[observer_index]
+        signature_matches = (
+            obs.source == record.get("source", "")
+            and obs.name == record.get("name", "")
+            and sorted(obs.listen) == record.get("listen", [])
+            and obs.threshold == record.get("threshold", 1)
+        )
+        if signature_matches:
+            obs._hit_count = max(0, int(record.get("hit_count", 0)))
+
+
 # ═══════════════════════════════════════════════════════════════
 # RoundRecord serialization
 # ═══════════════════════════════════════════════════════════════
@@ -480,6 +614,7 @@ def battle_to_dict(battle) -> dict:
         "weather": battle.globals.weather,
         "log": [round_record_to_dict(r) for r in battle.log],
         "vm_state": vm_state_to_dict(battle._vm_engine),
+        "observer_counters": observer_counters_to_dict(battle),
         "team_counters": {
             "A": dict(battle.team_counters.get("A", {})),
             "B": dict(battle.team_counters.get("B", {})),
@@ -511,6 +646,7 @@ def battle_from_dict(d: dict, species_db, skill_loader) -> Any:
         player_a=player_a, player_b=player_b,
         weather=d.get("weather", ""),
         verbose=False,
+        initialize_entries=False,
     )
     battle.turn = d.get("turn", 0)
     battle.winner = d.get("winner")
@@ -522,6 +658,7 @@ def battle_from_dict(d: dict, species_db, skill_loader) -> Any:
     battle.log = [round_record_from_dict(r) for r in d.get("log", [])]
 
     vm_state_restore(battle._vm_engine, d.get("vm_state", {}))
+    observer_counters_restore(battle, d.get("observer_counters", []))
 
     battle.team_counters = {
         "A": dict(d.get("team_counters", {}).get("A", {})),

@@ -984,6 +984,8 @@ class JournalReplayer:
                     continue
                 sprite.active_effects.remove(e)
                 removed += 1
+        if removed:
+            sprite._invalidate_effects_cache()
         return removed
 
     @staticmethod
@@ -1000,6 +1002,8 @@ class JournalReplayer:
                 continue
             sprite.active_effects.remove(e)
             removed += 1
+        if removed:
+            sprite._invalidate_effects_cache()
         return removed
 
     @staticmethod
@@ -1017,6 +1021,8 @@ class JournalReplayer:
                 to_remove.append(e)
         for e in to_remove:
             active.remove(e)
+        if to_remove:
+            sprite._invalidate_effects_cache()
 
     @staticmethod
     def _sync_stat_buff_effect(sprite, stat_key: str, steps: int, scope: str,
@@ -1158,6 +1164,8 @@ class JournalReplayer:
             for e in positives:
                 target.active_effects.remove(e)
                 self.self.add_effect(e)
+            if positives:
+                target._invalidate_effects_cache()
             return f"{self.self.name} 偷取 {len(positives)} 增益 from {target.name}"
         elif m.what == "energy":
             amount = m.amount or 0
@@ -1345,6 +1353,8 @@ class JournalReplayer:
             return "交换HP比例"
         elif m.what == "effects":
             self.self.active_effects, self.opp.active_effects = self.opp.active_effects, self.self.active_effects
+            self.self._invalidate_effects_cache()
+            self.opp._invalidate_effects_cache()
             return "交换增益减益"
         elif m.what == "skills":
             self.self.skills, self.opp.skills = self.opp.skills, self.self.skills

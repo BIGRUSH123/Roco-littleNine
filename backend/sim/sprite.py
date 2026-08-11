@@ -340,6 +340,7 @@ class Sprite:
                 changed = True
         if changed:
             self._invalidate_effects_cache()
+            self._invalidate_stat_cache()
 
     # ── 驱散 / 翻倍 ──
 
@@ -583,6 +584,7 @@ class Sprite:
                 e.cooldown -= 1
                 if e.cooldown <= 0:
                     self.active_effects.remove(e)
+                    self._invalidate_effects_cache()
                     return 0
                 return e.cooldown
         return 0

@@ -205,12 +205,11 @@ class SkillResolver:
                         )
                     if name == "灼烧" and cinder_grass_active:
                         growth = ae.stacks // 2
-                        ae.stacks += growth
-                        s.update_stacks(name, ae.stacks)
-                        events.append(f'{s.name} {name}增长至{ae.stacks}层')
+                        new_stacks = ae.stacks + growth
+                        s.update_stacks(name, new_stacks)
+                        events.append(f'{s.name} {name}增长至{new_stacks}层')
                     else:
                         new_stacks = ae.apply_decay()
-                        ae.stacks = new_stacks
                         s.update_stacks(name, new_stacks)
                         events.append(f'{s.name} {name}衰减至{new_stacks}层')
 

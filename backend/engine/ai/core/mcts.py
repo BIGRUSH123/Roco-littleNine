@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 import math
+import random
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -497,6 +498,7 @@ def mcts_search(
         evaluator = TorchEvaluator(model, device)
 
     # 禁用 save_snapshot — MCTS 仿真不需要回溯序列化（省 ~17% 耗时）
+    real_rng_state = random.getstate()
     prev_mcts_sim = getattr(battle, '_mcts_sim', False)
     battle._mcts_sim = True
     try:
@@ -761,6 +763,8 @@ def mcts_search(
                 battle.restore_mutable_state(saved)
 
     finally:
+        # 搜索使用独立的随机轨迹，不能推进真实对局的随机序列。
+        random.setstate(real_rng_state)
         # 恢复 save_snapshot 行为（异常时也保证恢复，避免标志泄漏）
         battle._mcts_sim = prev_mcts_sim
 

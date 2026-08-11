@@ -259,9 +259,19 @@ class Battle(BattleMechanicsMixin):
                 # 效果快照：按位置保存，避免 id() 复用导致的错乱
                 eff_snap = []
                 for e in sprite.active_effects:
-                    snap = (e, e.ttl, getattr(e, 'stacks', 0), getattr(e, 'scope', ''))
-                    if isinstance(e, StatBuffEffect):
-                        snap += (e.steps,)
+                    snap = (
+                        e,
+                        e.ttl,
+                        getattr(e, 'stacks', 0),
+                        getattr(e, 'scope', ''),
+                        getattr(e, 'steps', None),
+                        getattr(e, 'cooldown', 0),
+                        getattr(e, 'display_mult', None),
+                        getattr(e, 'display_value', None),
+                        getattr(e, 'is_inherent', False),
+                        getattr(e, 'value', None),
+                        copy(getattr(e, 'params', None)),
+                    )
                     eff_snap.append(snap)
                 sprites[-1]["effects"] = eff_snap
                 # 技能级可变状态：MCTS 回滚会高频调用，顺序列表比多个索引 dict 更少分配。
@@ -389,7 +399,7 @@ class Battle(BattleMechanicsMixin):
                 if "last_abnormal_dmg" in s:
                     sprite._last_abnormal_dmg = s["last_abnormal_dmg"].copy()
                 # 效果：按位置恢复。先清空再按保存顺序重建，消除 id() 复用风险
-                saved_effects = s["effects"]  # list of (e, ttl, stacks, scope, steps?)
+                saved_effects = s["effects"]
                 saved_refs = {id(e) for e, *_ in saved_effects}
                 # 移除仿真中新增的效果
                 for e in list(sprite.active_effects):
@@ -403,10 +413,17 @@ class Battle(BattleMechanicsMixin):
                         e.stacks = snap[2]
                     if hasattr(e, 'scope'):
                         e.scope = snap[3]
-                    if len(snap) > 4:
-                        # StatBuffEffect: restore steps
-                        if isinstance(e, StatBuffEffect):
-                            e.steps = snap[4]
+                    if isinstance(e, StatBuffEffect):
+                        e.steps = snap[4]
+                        e.display_mult = snap[6]
+                        e.display_value = snap[7]
+                        e.is_inherent = snap[8]
+                    if hasattr(e, 'cooldown'):
+                        e.cooldown = snap[5]
+                    if hasattr(e, 'value'):
+                        e.value = snap[9]
+                    if hasattr(e, 'params'):
+                        e.params = copy(snap[10])
                     if e not in sprite.active_effects:
                         sprite.active_effects.append(e)
                 # 技能状态
@@ -476,6 +493,8 @@ class Battle(BattleMechanicsMixin):
                 # 效果缓存失效：active_effects 已恢复为新列表，缓存必须重建
                 if hasattr(sprite, '_invalidate_effects_cache'):
                     sprite._invalidate_effects_cache()
+                if hasattr(sprite, '_invalidate_stat_cache'):
+                    sprite._invalidate_stat_cache()
         # ── 印记：完整恢复（MCTS 仿真可能新增/移除 MarkEffect 对象） ──
         self.globals.mark_effects = saved["marks"]
         # ── 全局状态 ──
@@ -521,6 +540,7 @@ class Battle(BattleMechanicsMixin):
     def __init__(
         self, player_a: Player, player_b: Player,
         weather: str = '', verbose: bool = True,
+        initialize_entries: bool = True,
     ):
         self.player_a = player_a
         self.player_b = player_b
@@ -565,6 +585,13 @@ class Battle(BattleMechanicsMixin):
             except (IndexError, AttributeError):
                 continue
             if sprite is None:
+                continue
+            if not initialize_entries:
+                with contextlib.suppress(Exception):
+                    self._vm_engine.trait_loader.load_for_sprite(
+                        sprite,
+                        apply_state=False,
+                    )
                 continue
             dispatch_entry(sprite, self, team)
             opp_team = 'B' if team == 'A' else 'A'
