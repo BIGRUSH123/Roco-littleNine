@@ -30,7 +30,11 @@ def battle():
 
 
 def fingerprint(battle) -> tuple:
-    """局面指纹：六维相关字段 + 效果层 + 印记 + 心力（够灵敏，能抓到泄漏）。"""
+    """局面指纹：六维相关字段 + 效果层 + 印记 + 心力 + 计数器/VM 历史。
+
+    计数器与 VM 历史必须在内：它们同样会在仿真回合里被就地改，而「快照被写坏」
+    正是靠它们暴露的（2026-09-21 的事故里，只比六维与印记的旧指纹是绿的）。
+    """
     parts = [battle.turn, battle.player_a.lives, battle.player_b.lives]
     for player in (battle.player_a, battle.player_b):
         parts.append(player.active_index)
@@ -44,7 +48,19 @@ def fingerprint(battle) -> tuple:
     marks = tuple(sorted(
         (team, tuple(sorted((m.name, getattr(m, "stacks", 0)) for m in lst)))
         for team, lst in (battle.globals.mark_effects or {}).items()))
-    return tuple(parts) + (marks,)
+    vm = battle._vm_engine
+    containers = (
+        marks,
+        battle.globals.weather, battle.globals.weather_turns,
+        tuple(sorted((t, tuple(sorted(c.items())))
+                     for t, c in (battle.team_counters or {}).items())),
+        tuple(sorted(vm._counter_values.items())),
+        tuple(sorted((k, len(v)) for k, v in vm._skill_history.items())),
+        tuple(sorted((k, tuple(sorted(v.items()))) for k, v in vm._skill_tags.items())),
+        tuple(sorted((t, len(v)) for t, v in vm._burst_effects.items())),
+        tuple(sorted((t, len(v)) for t, v in vm._burst_names.items())),
+    )
+    return tuple(parts) + containers
 
 
 def _candidates(battle, team: str, limit: int = 4) -> list:
@@ -66,6 +82,31 @@ def test_choose_does_not_leak_battle_state(battle):
                                k_responses=3, rng=random)
     assert picked is not None and info
     assert fingerprint(battle) == before, "rollout 后必须逐字段回到原局面"
+
+
+def test_repeated_restore_returns_to_same_state(battle):
+    """同一个快照反复 restore 都要回到原局面 —— 快照不能被 rollout 写坏。
+
+    与 `test_choose_does_not_leak_battle_state` 的区别：那条只做一次 save/restore
+    循环，且开局没有印记 - 计数器也是空的，于是「快照自己被子回合写坏」这种泄漏
+    它看不见（2026-09-21 实测 40/40 局都在漏，这条测试却是绿的）。
+    """
+    from backend.sim.agent_v2 import RuleAgentV2, SpriteStrategy, TeamStrategy
+
+    battle.globals.apply_mark("B", "星陨印记", "negative", 3, coexist=True)
+    strat = TeamStrategy(default=SpriteStrategy(plan_depth=0, ev_decide=False))
+    ag_a = RuleAgentV2("A", battle.player_a, strategy=strat)
+    ag_b = RuleAgentV2("B", battle.player_b, strategy=strat)
+
+    saved = battle.save_mutable_state()
+    before = fingerprint(battle)
+    for cycle in range(3):
+        battle.execute_turn_headless(
+            agent_a=ag_a, agent_b=ag_b,
+            fixed_action_a=ag_a.choose_action(battle),
+            fixed_action_b=ag_b.choose_action(battle))
+        battle.restore_mutable_state(saved)
+        assert fingerprint(battle) == before, f"第 {cycle + 1} 次回滚没回到原局面"
 
 
 def test_choose_does_not_consume_rng(battle):

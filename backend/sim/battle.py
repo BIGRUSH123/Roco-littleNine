@@ -506,7 +506,12 @@ class Battle(BattleMechanicsMixin):
                 if hasattr(sprite, '_invalidate_stat_cache'):
                     sprite._invalidate_stat_cache()
         # ── 印记：完整恢复（MCTS 仿真可能新增/移除 MarkEffect 对象） ──
-        self.globals.mark_effects = saved["marks"]
+        # 必须**重新拷贝**再装回 live：若把快照里的对象直接装回，仿真期的
+        # `stacks += n` / `remove` 会就地写坏快照本身，同一快照被反复 restore 时
+        # 层数逐次累加（实测星陨印记 140 → 43140 → … → 2.5e9，触发 C 溢出）。
+        self.globals.mark_effects = {
+            team: [copy(me) for me in lst] for team, lst in saved["marks"].items()
+        }
         # ── 全局状态 ──
         self.turn = saved["turn"]
         self.winner = saved["winner"]
@@ -515,12 +520,16 @@ class Battle(BattleMechanicsMixin):
             del self.log[saved["log_len"]:]
         self.globals.weather = saved["weather"]
         self.globals.weather_turns = saved["weather_turns"]
-        self.team_counters = saved["team_counters"]
-        self.pending_effects = saved["pending_effects"]
-        self.scheduled_effects = saved["scheduled_effects"]
+        # 下面这些容器一律「拷回 live」而不是「把快照装回 live」：引擎对它们是就地
+        # 改（计数器 +=、pending/scheduled 增删、VM 的 burst/counter/history 追加）。
+        # 直接装快照对象 = 快照被仿真写坏，第二次 restore 起就回不到原局面。
+        self.team_counters = {t: dict(c) for t, c in saved["team_counters"].items()}
+        self.pending_effects = {team: [copy(e) for e in lst]
+                                for team, lst in saved["pending_effects"].items()}
+        self.scheduled_effects = [copy(s) for s in saved["scheduled_effects"]]
         self.pending_escape = saved["pending_escape"]
-        self._borrowed_restore = saved["borrowed_restore"]
-        self._wish_restore = saved["wish_restore"]
+        self._borrowed_restore = dict(saved["borrowed_restore"])
+        self._wish_restore = dict(saved["wish_restore"])
         self.player_a.active_index = saved["active_a"]
         self.player_b.active_index = saved["active_b"]
         self.player_a.lives = saved["lives_a"]
@@ -528,16 +537,20 @@ class Battle(BattleMechanicsMixin):
         self.player_a.item = copy(saved["item_a"]) if saved["item_a"] is not None else None
         self.player_b.item = copy(saved["item_b"]) if saved["item_b"] is not None else None
         if hasattr(self.player_a, 'devotion'):
-            self.player_a.devotion = saved["devotion_a"]
+            self.player_a.devotion = dict(saved["devotion_a"])
         if hasattr(self.player_b, 'devotion'):
-            self.player_b.devotion = saved["devotion_b"]
+            self.player_b.devotion = dict(saved["devotion_b"])
         # ── VM 引擎状态 ──
         vs = saved["vm"]
-        self._vm_engine._burst_effects = vs["burst_effects"]
-        self._vm_engine._burst_names = vs["burst_names"]
-        self._vm_engine._counter_values = vs["counter_values"]
-        self._vm_engine._skill_history = vs["skill_history"]
-        self._vm_engine._skill_tags = vs["skill_tags"]
+        self._vm_engine._burst_effects = {
+            t: list(v) for t, v in vs["burst_effects"].items()
+        }
+        self._vm_engine._burst_names = {t: set(v) for t, v in vs["burst_names"].items()}
+        self._vm_engine._counter_values = dict(vs["counter_values"])
+        self._vm_engine._skill_history = {
+            k: list(v) for k, v in vs["skill_history"].items()
+        }
+        self._vm_engine._skill_tags = {k: dict(v) for k, v in vs["skill_tags"].items()}
         self._vm_engine.registry.restore_state(vs["registry"])
         self._vm_engine.trait_loader._sprite_sources = {
             k: set(v) for k, v in vs["trait_sprite_sources"].items()

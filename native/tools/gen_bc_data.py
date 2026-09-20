@@ -12,7 +12,18 @@
 输出：npz（状态/动作/掩码/胜负/game_id/队伍标记）+ json sidecar（队伍元信息）。
 用法:
   python native/tools/gen_bc_data.py --games 2500 --meta-frac 0.6 \
-      --out checkpoints/bc_data.npz
+      --out checkpoints/bc_data.npz --workers 0
+
+并行度（2026-09-21 实测，i5-14600KF：6 P 核 + 8 E 核 / 20 线程）:
+  | 模式                  | workers | 吞吐         | 说明                        |
+  |-----------------------|---------|--------------|-----------------------------|
+  | 规划层专家 plan_depth=1| 6~12   | ~3.9 局/s    | 6 P 核跑满即到顶，加核无益  |
+  | 规划层专家 plan_depth=1| 19      | 3.1 局/s     | 多出来的进程落在 E 核上互相挤 |
+  | 纯规则 plan_depth=0    | 19      | 59 局/s      | 单局便宜，核越多越好        |
+  `--workers 0` 会按「是否用规划层」自动选（见 `_auto_workers`）。
+
+父进程侧（采集/堆叠/落盘）实测只占 0.3%（单局结果序列化中位 2.9ms vs 打局 976ms），
+所以别再打这块的主意；要更快只能减规划层的 rollout 数或换机器。
 """
 from __future__ import annotations
 
@@ -62,7 +73,8 @@ def parse_args() -> argparse.Namespace:
     ap.add_argument("--compress", action="store_true",
                     help="写 savez_compressed（体积小 ~30%%，但大样本量下极慢）")
     ap.add_argument("--workers", type=int, default=1,
-                    help="并行 worker 进程数（1 = 单进程；0 = 自动 cpu-1）")
+                    help="并行 worker 进程数（1 = 单进程；0 = 自动：规划层 → 8，"
+                         "纯规则 → cpu-1。实测规划层在 6 P 核上就到顶，见模块 docstring）")
     ap.add_argument("--start-game", type=int, default=0,
                     help="从第 N 局开始打（仍会完整产队，保证与整跑一致；用于复现慢局）")
     ap.add_argument("--hang-dump-sec", type=int, default=0,
@@ -157,6 +169,32 @@ def _build_plans(args, meta_teams, sprite_skills, rng, team_game_counts) -> list
 def _game_rng_seed(base_seed: int, game_index: int) -> int:
     """(实验种子, 局号) → 该局的对局随机种子（稳定、可复现）。"""
     return (int(base_seed) * 1_000_003 + int(game_index) * 7919) & 0x7FFFFFFF
+
+
+def _auto_workers(plans: list[dict]) -> int:
+    """自动并行度（--workers 0）。
+
+    规划层专家每次决策要做「候选 ≤7 × 响应 ≤3」个真实 headless 回合，单局 CPU 是
+    纯规则的 ~20 倍、内存/cache 压力也大：实测 6~12 worker 都是 ~3.9 局/s（6 个 P 核
+    跑满即到顶），19 worker 反而掉到 3.1 局/s（多出的进程落在 E 核上互相挤）。
+    纯规则单局便宜，核越多越好（19 worker 59 局/s）。
+    """
+    cores = os.cpu_count() or 2
+    planner = False
+    for p in plans:
+        for strat in (p.get("strat_a"), p.get("strat_b")):
+            if strat is None:
+                continue
+            candidates = [getattr(strat, "default", None),
+                          *getattr(strat, "sprites", {}).values()]
+            if any(getattr(s, "plan_depth", 0) > 0 for s in candidates if s is not None):
+                planner = True
+                break
+        if planner:
+            break
+    if planner:
+        return max(2, min(8, cores // 2))
+    return max(1, cores - 1)
 
 
 def _init_worker() -> None:
@@ -276,8 +314,7 @@ def _ensure_hash_seed() -> None:
 def main() -> None:
     _ensure_hash_seed()
     args = parse_args()
-    if args.workers == 0:
-        args.workers = max(1, (os.cpu_count() or 2) - 1)
+    auto_workers = args.workers == 0
     random.seed(args.seed)
     rng = random.Random(args.seed)
     sys.stdout.reconfigure(encoding="utf-8")
@@ -326,6 +363,11 @@ def main() -> None:
     # ── 第二阶段：打局（单进程 或 多进程池） ──
     # 结果先按局号收齐再按序写入：imap_unordered 的完成顺序与局号无关，
     # 直接按完成顺序写会让数据集行序随 worker 数变化（内容相同但不可复现）。
+    if auto_workers:
+        args.workers = _auto_workers(plans)
+        _log(f"自动并行度: {args.workers} workers"
+             f"（{'规划层 → 6 P 核到顶' if args.workers <= 8 else '纯规则 → 越多越好'}；"
+             f"可用 --workers N 覆盖）", args)
     play_plans = [p for p in plans if p["g"] >= args.start_game]
     collected: dict[int, tuple] = {}
 

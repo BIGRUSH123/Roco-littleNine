@@ -445,6 +445,40 @@ checkpoint 是否来自同一动作空间。
 - 队伍随机提升泛化，但固定阵容上的进步需要单独评估。
 - CPU 下 MCTS 仍主要受 battle copy/restore 和模型 forward 开销影响。
 
+### 9.5 并行吞吐现状（2026-09-21 实测，i5-14600KF 6P+8E / 20 线程 + RTX 5060 Ti 16G）
+
+**结论：整条管线已经跑在机器的饱和点上，加 worker 不会更快；再想提速只能减 sims/局数或换机器。**
+（想复现这些数字，直接按「测量方法」一列的命令跑。）
+
+| 阶段 | 实测吞吐 | 瓶颈 | 测量方法 |
+|---|---|---|---|
+| 自博弈（sims=100，队列批量推理） | ~34 decisions/s | 6 个 P 核的引擎+MCTS（GPU 推理只占小头：改成每 worker 直连 CUDA 也只 +8%） | `native/tools/bench_selfplay_pool.py` |
+| 门控评估（150 局 ≈ 自博弈 150 局） | 同上 | 同上；占一轮迭代 43% 墙钟 | `phase_percent.eval` |
+| 训练（BC 或自博弈，bs=256） | 1843 样本/s（99% GPU，取数只占 1%） | 模型 attention 前反向 | 见 §7.4 日志的 `train_sec` |
+| BC 生成（规划层专家 `plan_depth=1`） | **3.9 局/s**（6~12 worker 一样） | 6 个 P 核；19 worker 因落到 E 核反而掉到 3.1 局/s | `gen_bc_data --workers N` 的 `局/s` |
+| BC 生成（纯规则 `plan_depth=0`） | 59 局/s（19 worker 最优） | — | 同上 |
+| worker 冷启动（含导入 torch/SimFactory） | 3.0s / 16 worker | — | 每轮两次池开销合计 ≈ 0.5%，不值得做池复用 |
+
+已排除的优化方向（都量过，别重复做）：BC 结果序列化/父进程堆叠占 0.3%；`train_rl` 取数占
+epoch 1%；每轮重建 worker 池 0.5%；把批量推理换成每 worker 直连 CUDA 只 +8%。
+
+### 9.6 两个影响历史数据解读的引擎修复（2026-09-21）
+
+1. **快照回滚泄漏**（`Battle.restore_mutable_state`）：印记/队伍计数器/VM 计数器/burst/
+   skill_history/devotion 等容器被**按对象**装回 live，仿真就地改写的正是快照本身 →
+   同一个快照每 restore 一次就多累加一次。实测 40/40 局都在漏（星陨印记 140 → 43140 →
+   … → 2.5e9，最终在 `build_ctx_cy` 里抛 OverflowError 崩掉多进程 BC 生成）。
+   **影响**：所有用 MCTS/规划层搜过的对局（自博弈数据、规划层专家的决策）都跑在被污染的
+   计数器上——「真实回合」的计数器里混着仿真累加值，靠计数器判定的特性会错触发。
+   纯规则对局（不搜索，如 exp23 的 BC 数据）不受影响。守门测试见
+   `backend/engine/test_mcts_state.py::test_repeated_restore_is_idempotent_for_mutable_containers`。
+2. **Cython 构建产物过期**：`snapshot_cy.cp312-win_amd64.pyd` 是 2026-06-13 编译的，而
+   `.pyx` 源码 2026-09-19 改过 —— 三个月里跑的是旧语义（对拍测试 `test_snapshot_cython`
+   当时是红的：`counters_self` 恒为空；所幸 `fill_extended_registers` 会补齐，运行期被掩盖）。
+   现在 `backend/engine/battle.py` 会比对 `.pyd`/`.pyx` 的 mtime，过期就走 Python 参考实现
+   （`ROCO_ALLOW_STALE_CYTHON=1` 可强制放行）。
+   **改了 `.pyx` 必须重新编译**，否则走不到加速路径。
+
 ---
 
 ## 10. 名词速查

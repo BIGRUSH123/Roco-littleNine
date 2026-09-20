@@ -12,6 +12,9 @@ Can be used standalone or as a drop-in for Battle.execute_skill().
 
 from __future__ import annotations
 
+import logging
+import os
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from backend.vm.ctx import Ctx
@@ -26,13 +29,46 @@ from .replayer import JournalReplayer
 from .snapshot import build_ctx
 from .trait_loader import TraitLoader
 
+logger = logging.getLogger(__name__)
+
 # Cython 优化的 build_ctx（如果可用）
 _USE_CYTHON_BUILD_CTX = True
 _build_ctx_cy = None
+
+
+def _snapshot_cy_is_stale(module) -> bool:
+    """编译产物是否比 `.pyx` 源码旧。
+
+    旧 = 用的是**编辑之前的引擎语义**，而且毫无提示：2026-06-13 构建的 cp312
+    一直用到 2026-09-21（`counters_self` 恒为空、`build_ctx_cy` 里还会抛
+    OverflowError），期间跑在这台机器上的自博弈/BC 数据都带着这份差异。
+    这种情况宁可走慢一点的 Python 参考实现；`ROCO_ALLOW_STALE_CYTHON=1` 可放行。
+    """
+    if os.environ.get("ROCO_ALLOW_STALE_CYTHON"):
+        return False
+    source = Path(__file__).with_name("snapshot_cy.pyx")
+    built = getattr(module, "__file__", None)
+    if not built or not source.is_file():
+        return False
+    try:
+        return Path(built).stat().st_mtime < source.stat().st_mtime
+    except OSError:
+        return False
+
+
 if _USE_CYTHON_BUILD_CTX:
     try:
-        from .snapshot_cy import build_ctx_cy
-        _build_ctx_cy = build_ctx_cy
+        from . import snapshot_cy as _snapshot_cy
+        from .snapshot_cy import build_ctx_cy as _build_ctx_cy_impl
+
+        if _snapshot_cy_is_stale(_snapshot_cy):
+            logger.warning(
+                "snapshot_cy 编译产物（%s）比 snapshot_cy.pyx 旧，已回退 Python "
+                "build_ctx：版本不一致会静默改变引擎语义，请重新编译；"
+                "确要使用旧产物可设 ROCO_ALLOW_STALE_CYTHON=1",
+                getattr(_snapshot_cy, "__file__", "?"))
+        else:
+            _build_ctx_cy = _build_ctx_cy_impl
     except ImportError:
         pass  # 回退到 Python 版本
 

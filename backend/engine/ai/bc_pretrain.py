@@ -124,15 +124,16 @@ def main() -> None:
     print(f"train={len(train_idx)}  val={len(val_idx)}")
 
     # ── replay buffer（复用自博弈的批量取数与训练循环）──
+    # 走 `push_arrays`：数据集本来就是按 key 堆叠好的数组，逐样本建 dict 再 np.stack
+    # 会多做一次全量拷贝（174568 样本 ≈ 1.8GB 瞬时内存 + 1.6s）；扩数据量时这点是内存余量。
     replay = RecentIterationsReplayBuffer(keep_iterations=1)
-    states = [{k: ds[k][i] for k in ds if k not in
-               ("action", "mask", "outcome", "game_id", "team_id", "is_meta")}
-              for i in range(n)]
     policy = np.zeros((n, NUM_ACTIONS), dtype=np.float32)
     policy[np.arange(n), ds["action"]] = 1.0
     check_action_width("BC 数据集 mask", ds["mask"])
-    replay.push_batch(states, policy, ds["mask"].astype(np.float32),
-                      ds["outcome"].astype(np.float32), ds["game_id"])
+    replay.push_arrays(
+        {k: ds[k] for k in ds if k not in
+         ("action", "mask", "outcome", "game_id", "team_id", "is_meta")},
+        policy, ds["mask"], ds["outcome"], ds["game_id"])
 
     model = ModularBattleNet(
         trunk_dim=256, num_blocks=4, dropout=args.dropout,

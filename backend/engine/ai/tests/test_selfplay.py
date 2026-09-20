@@ -680,6 +680,50 @@ def test_recent_replay_keeps_game_groups_distinct_across_iterations():
     assert len(set(replay.game_id_buffer.tolist())) == 4
 
 
+def test_recent_replay_push_arrays_matches_push_batch():
+    """按数组装载（bc_pretrain 走这条路）必须与逐样本 dict 装载产出同一个池子。"""
+    shape_probe = RecentIterationsReplayBuffer(keep_iterations=1)
+    obs_keys = tuple(shape_probe.buffers.keys())
+    n, games = 6, 3
+    rng = np.random.default_rng(3)
+    arrays = {
+        key: rng.standard_normal((n, *shape_probe.buffers[key].shape[1:])).astype(
+            shape_probe.buffers[key].dtype)
+        for key in obs_keys
+    }
+    policies = rng.random((n, NUM_ACTIONS)).astype(np.float32)
+    masks = (rng.random((n, NUM_ACTIONS)) > 0.2).astype(np.float32)
+    outcomes = np.linspace(-1.0, 1.0, n).astype(np.float32)
+    game_ids = np.repeat(np.arange(games, dtype=np.int64), n // games)
+
+    by_arrays = RecentIterationsReplayBuffer(keep_iterations=1)
+    by_arrays.push_arrays(arrays, policies, masks, outcomes, game_ids)
+
+    by_dicts = RecentIterationsReplayBuffer(keep_iterations=1)
+    by_dicts.push_batch([{k: arrays[k][i] for k in obs_keys} for i in range(n)],
+                        policies, masks, outcomes, game_ids)
+
+    assert len(by_arrays) == len(by_dicts) == n
+    for key in obs_keys:
+        np.testing.assert_array_equal(by_arrays.buffers[key], by_dicts.buffers[key])
+    np.testing.assert_array_equal(by_arrays.policy_buffer, by_dicts.policy_buffer)
+    np.testing.assert_array_equal(by_arrays.mask_buffer, by_dicts.mask_buffer)
+    np.testing.assert_array_equal(by_arrays.outcome_buffer, by_dicts.outcome_buffer)
+    np.testing.assert_array_equal(by_arrays.game_id_buffer, by_dicts.game_id_buffer)
+    # 一局内的样本共享同一个归一化局号，跨局不同
+    assert by_arrays.game_id_buffer[0] == by_arrays.game_id_buffer[1]
+    assert len(set(by_arrays.game_id_buffer.tolist())) == games
+
+    try:
+        RecentIterationsReplayBuffer(keep_iterations=1).push_arrays(
+            {k: arrays[k] for k in obs_keys if k != "skill_stats"},
+            policies, masks, outcomes, game_ids)
+    except KeyError:
+        pass
+    else:
+        raise AssertionError("缺观测键时必须报错，而不是静默堆出形状不对的池子")
+
+
 def test_replay_buffer_push_batch_keeps_last_entries_when_batch_exceeds_capacity():
     replay = DictReplayBuffer(capacity=3)
     template = {
