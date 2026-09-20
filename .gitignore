@@ -67,3 +67,4 @@ backend/engine/ai/data/nrc_cache/
 
 # 根目录跑实验时的一次性日志
 /_*.log
+.gstack/

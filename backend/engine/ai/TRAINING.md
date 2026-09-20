@@ -220,6 +220,19 @@ timeout 对局不会进入训练样本，因为截断局面的价值标签不可
 - `--eval-workers 0` 表示自动跟随 `--workers`。
 - 并行评估使用 `BatchedModelInferenceServer`，请求中区分 `candidate` 和 `best`。
 
+**门控的可复现口径**（2026-09 修正，见 `docs/博弈-概率预判口径.md` §4f）：
+
+- **阵容套件固定**：每次门控用 `_eval_roster_rng()`（种子 `_EVAL_ROSTER_SEED`，可用
+  `ROCO_EVAL_ROSTER_SEED` 覆盖）生成**同一批阵容**。此前每轮门控重新随机抽阵容，门控分数
+  在阵容抽样方差里漂移（±数个百分点），曲线不可比。
+- **单局随机数只由局号决定**：`_seed_eval_game(game_index)`（基准 `_EVAL_GAME_SEED`，
+  可用 `ROCO_EVAL_GAME_SEED` 覆盖）。此前 worker 只在启动时 seed 一次，之后按
+  work-stealing 顺序连续消耗随机数 → **同一对模型两次门控分数不同**。
+- **`PYTHONHASHSEED` 在 `main()` 开头自钉**（`backend/engine/ai/determinism.py`）：否则字符串
+  哈希随机化会漏进配装生成，子进程（spawn）各有不同的哈希盐 → 同 seed 也不同局。
+- 结果：给定一对模型，门控分数**逐位可复现**，与 `--eval-workers`、worker 领取顺序无关；
+  与串行 `evaluate` 一致。换一批阵容复测用 `ROCO_EVAL_ROSTER_SEED`（抗过拟合检查）。
+
 ### 6.2 固定种子 checkpoint 评估
 
 `evaluate_checkpoints.py` 用固定 seed 序列横向比较 checkpoint：

@@ -38,6 +38,11 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent
 from backend.common.skill_trait_ids import SKILL_ID_TO_NAME
 from backend.engine.ai.battle_log import BattleLogWriter, extract_battle_summary
 from backend.engine.ai.console import safe_print as _console_print
+from backend.engine.ai.data.build_from_reference import (
+    item_for_team,
+    optimal_build,
+    sample_build,
+)
 from backend.engine.ai.data.meta_teams import item_from_team, load_meta_teams, spec_from_team
 from backend.engine.ai.core.encoder import encode_battle_state
 from backend.engine.ai.core.evaluator import (
@@ -87,8 +92,20 @@ def _load_sprite_skills() -> dict[str, list[str]]:
 
 
 def _random_item() -> Item:
-    """返回随机道具：进化之力 或 愿力（等概率）。"""
+    """随机道具（进化之力 / 愿力 等概率）。
+
+    **训练与评测路径不再用它**：队级道具由 `build_from_reference.item_for_team`
+    按血脉决定（有「首领」→ 进化之力），随机发道具会让首领进化流永不出现。
+    保留此函数只为 `native/tools` 下的诊断脚本仍能导入。
+    """
     return Item.leader() if random.random() < 0.5 else Item.wish()
+
+
+def _reference_by_number() -> dict:
+    """wiki 培养参考的 `by_number` 块（配装生成器用）；缺文件返回空表。"""
+    from backend.engine.ai.data.role_from_reference import load_reference
+
+    return load_reference().get("by_number", {})
 
 
 _SKILL_TYPE_CACHE: dict[str, str] = {}
@@ -126,6 +143,7 @@ def _sprite_roles(factory: SimFactory, sprite_skills: dict[str, list[str]]) -> d
     from backend.engine.ai.data.role_from_reference import classify_roles
 
     info: dict[str, dict] = {}
+    species_of: dict[str, str] = {}
     for name, skills in sprite_skills.items():
         species = factory.sprite_db.get(name)
         if species is None:
@@ -139,6 +157,8 @@ def _sprite_roles(factory: SimFactory, sprite_skills: dict[str, list[str]]) -> d
             "n_attack": n_atk,
             "main_attack": "atk" if fs["atk"] >= fs["sp_atk"] else "sp_atk",
         }
+        # 队内唯一键：图鉴编号（同编号多外观 = 同一只精灵，只是样子不同）
+        species_of[name] = species.number or species.name
 
     wiki = classify_roles(factory.sprite_db, sprite_skills)
     attackers = set(wiki["attackers"])
@@ -179,6 +199,7 @@ def _sprite_roles(factory: SimFactory, sprite_skills: dict[str, list[str]]) -> d
         "tanks": tanks,
         "supports": supports,
         "info": info,
+        "species_of": species_of,
     }
     return _ROLE_CACHE
 
@@ -192,120 +213,122 @@ _TEAM_TEMPLATES: list[dict[str, int]] = [
 _TEMPLATE_WEIGHTS = [0.4, 0.35, 0.25]
 
 
-def _role_skills(role: str, skills: list[str], max_skills: int) -> list[str]:
-    """按角色模板采样技能：输出 3-4 攻击；辅助/坦克 1-2 攻击 + 工具技能。"""
-    attacks = [s for s in skills if _skill_type(s) in ("物攻", "魔攻")]
-    others = [s for s in skills if s not in attacks]
-    if role == "attacker":
-        n_atk = min(len(attacks), max_skills - random.randint(0, 1))
-        n_other = min(max_skills - n_atk, len(others))
-    else:
-        n_atk = min(len(attacks), random.randint(1, 2))
-        n_other = min(max_skills - n_atk, len(others))
-        if n_atk == 0 and not n_other:
-            n_atk = 1
-    chosen = random.sample(attacks, n_atk) if n_atk else []
-    chosen += random.sample(others, n_other) if n_other else []
-    if not chosen:
-        chosen = random.sample(skills, 1)
-    random.shuffle(chosen)
-    return chosen
-
-
-def _role_iv_nature(role: str, info: dict, name: str) -> tuple[dict, str]:
-    """按角色分配 IV（三项 10）与性格（加项匹配角色主属性）。"""
-    from backend.common.constants import STAT_KEYS
-    from backend.common.nature import NATURE_TABLE
-
-    v = info[name]
-    if role == "attacker":
-        fixed = [v["main_attack"], "speed"]
-        plus_want = v["main_attack"]
-    elif role == "tank":
-        fixed = ["hp", "def"]
-        plus_want = ("hp", "def", "sp_def")
-    else:
-        fixed = ["hp", "speed"]
-        plus_want = ("hp", "speed")
-    third = random.choice([k for k in STAT_KEYS if k not in fixed])
-    iv = {k: (10 if k in fixed or k == third else 0) for k in STAT_KEYS}
-    options = [n for n, (up, _down) in NATURE_TABLE.items() if up in plus_want]
-    nature = random.choice(options) if options else random.choice(list(NATURE_TABLE))
-    return iv, nature
-
-
 def _random_teams(
     factory: SimFactory,
     sprite_skills: dict[str, list[str]],
     max_team_size: int = 6,
     max_skills: int = 4,
+    *,
+    optimal_frac: float | None = None,
+    meta_frac: float | None = None,
+    rng: random.Random | None = None,
 ) -> tuple:
     """随机生成两队 spec（实战格式 6v6：先力竭 4 只判负，即 lives=4）。
 
-    分布对齐社区配队教学：按 攻击手/辅助/坦克 角色模板组队
-    （3 种模板加权采样），技能按角色配置（输出 3-4 攻击，
-    辅助/坦克 1-2 攻击+工具），IV 与性格按角色分配。
+    配装（技能/血脉/性格/天赋）由 `build_from_reference` 生成，契约见
+    `docs/培养方案-pvp口径.md`：以 `optimal_frac` 概率整队走**最优培养**
+    （BC 预训练口径），否则整队走**按 wiki 占比抽样**（自博弈口径，抽样自带
+    冲突修复）。旧实现在这里按角色模板瞎配技能/性格，与 wiki 推荐脱节。
 
-    meta 混合分布：若 meta_teams.json 存在，每侧以 _META_FRAC 概率改用
-    meta 原型队 spec（IV/性格/替补位逐局扰动，道具用队伍自带的魔法），其余仍走
-    角色化随机——BC 数据与自博弈微调共享同一分布，避免预训练→微调分布漂移。
+    队级道具由 `item_for_team` 决定：队内有「首领」血脉就带进化之力，否则愿力
+    ——随机发道具（旧实现）会让首领进化流在训练数据里根本不出现。
+
+    队伍构成按 攻击手/辅助/坦克 三种模板加权采样，且
+      - **同一队内物种编号唯一**（池里 30 个编号有多个外观形态，只按名字排重会把
+        「岚鸟（春天的样子）+ 岚鸟（秋天的样子）」放进同一队，而那其实是同一只精灵）；
+      - 两队之间按池条目名排重（避免 AB 重复选同一批精灵；两侧同种不同形态仍可能
+        出现，那是合法的镜像对局）。
+
+    `optimal_frac` / `meta_frac` 为 None 时用模块级 `_OPTIMAL_FRAC` / `_META_FRAC`
+    （调用时读取，方便测试 monkeypatch）。meta 混合：以 `meta_frac` 概率改用
+    meta 原型队 spec（自带配装与血脉，道具走 `item_from_team`）。
+
+    `rng` 为 None 时用**全局 random 模块**（旧行为：调用方先 `random.seed()`）；
+    评测/度量工具应显式传入 `random.Random(seed)`，否则阵容由进程启动时的
+    OS 熵决定，同一命令两次运行的阵容不同（详见 `docs/博弈-概率预判口径.md` §4f）。
 
     返回 (team_a, team_b, item_a, item_b)。
     """
     roles = _sprite_roles(factory, sprite_skills)
-    info = roles["info"]
+    species_of = roles["species_of"]
+    db = factory.sprite_db
+    by_number = _reference_by_number()
+    frac = _OPTIMAL_FRAC if optimal_frac is None else optimal_frac
+    mfrac = _META_FRAC if meta_frac is None else meta_frac
+    rnd = random if rng is None else rng
     used: set[str] = set()  # 两队共享排重，避免 AB 重复选同一批精灵
 
     max_possible = min(max_team_size, len(names := list(sprite_skills)) // 2)
     team_size = min(max_team_size, max_possible)
 
-    def build_team(size: int) -> list[dict]:
-        template = random.choices(_TEAM_TEMPLATES, weights=_TEMPLATE_WEIGHTS)[0]
+    def build_team(size: int, optimal: bool) -> list[dict]:
+        template = rnd.choices(_TEAM_TEMPLATES, weights=_TEMPLATE_WEIGHTS)[0]
         slots = (["attacker"] * template["attacker"]
                  + ["support"] * template["support"]
                  + ["tank"] * template["tank"])
-        random.shuffle(slots)
+        rnd.shuffle(slots)
         specs: list[dict] = []
+        team_species: set[str] = set()  # 队内已占用的编号
         for role in slots:
-            bucket = [n for n in roles[role + "s"] if n not in used]
+            bucket = [n for n in roles[role + "s"]
+                      if n not in used and species_of[n] not in team_species]
             if not bucket:
-                bucket = [n for n in sprite_skills if n not in used]
+                bucket = [n for n in sprite_skills
+                          if n not in used and species_of[n] not in team_species]
             if not bucket:
                 break
-            name = random.choice(bucket)
+            name = rnd.choice(bucket)
             used.add(name)
-            iv, nature = _role_iv_nature(role, info, name)
-            specs.append({
-                "name": name,
-                "skills": _role_skills(role, sprite_skills[name], max_skills),
-                "nature": nature,
-                "iv": iv,
-            })
+            team_species.add(species_of[name])
+            if optimal:
+                build = optimal_build(db, name, sprite_skills, by_number)
+                build["_mode"] = "optimal"
+            else:
+                build = sample_build(db, name, sprite_skills, by_number, rnd, role)
+                build["_mode"] = "sample"
+            if max_skills < len(build["skills"]):
+                build["skills"] = build["skills"][:max_skills]
+            specs.append(build)
             if len(specs) >= size:
                 break
         return specs
 
-    team_a, item_a = _maybe_meta_team(used)
-    team_b, item_b = _maybe_meta_team(used)
+    team_a, item_a = _maybe_meta_team(used, mfrac, rnd)
+    team_b, item_b = _maybe_meta_team(used, mfrac, rnd)
     if team_a is None:
-        team_a = build_team(team_size)
+        team_a = build_team(team_size, optimal=rnd.random() < frac)
     if team_b is None:
-        team_b = build_team(team_size)
-    return team_a, team_b, item_a or _random_item(), item_b or _random_item()
+        team_b = build_team(team_size, optimal=rnd.random() < frac)
+    return (team_a, team_b,
+            item_a or item_for_team(team_a),
+            item_b or item_for_team(team_b))
 
 
 # meta 采样概率：默认 0.6（meta_teams.json 不存在时自动退化为纯随机）。
 # 通过环境变量传给 spawn 子进程（worker 重新 import 时读取）。
 _META_FRAC = float(os.environ.get("ROCO_META_FRAC", "0.6"))
 
+# BC 预训练数据里「最优配装队伍」的占比：自博弈/评测默认 0（全抽样），
+# gen_bc_data 显式传 0.95（95% 最优 + 5% 抽样）。
+_OPTIMAL_FRAC = 0.0
 
-def _maybe_meta_team(used: set[str]) -> tuple[list[dict], Item | None]:
-    """以 _META_FRAC 概率返回 (meta 队 spec, 队伍道具)，否则 (None, None)。
+# ── 门控评估的可复现口径 ──
+# 阵容套件种子（每次门控同一批阵容）+ 单局随机数基准（局号决定种子，与 worker
+# 领取顺序无关）。两者都可用环境变量覆盖，方便做「换一批阵容复测」的抗过拟合检查。
+_EVAL_ROSTER_SEED = int(os.environ.get("ROCO_EVAL_ROSTER_SEED", "20260920"))
+_EVAL_GAME_SEED = int(os.environ.get("ROCO_EVAL_GAME_SEED", "20260921"))
 
-    队伍道具（魔法）由阵容自带：首领血脉队用进化之力，其余用愿力——站点阵容
-    的魔法选择与队伍绑定，随机化会破坏「首领进化流」这一原型。
+
+def _maybe_meta_team(used: set[str], meta_frac: float | None = None,
+                     rng: random.Random | None = None) -> tuple[list[dict], Item | None]:
+    """以 meta_frac 概率返回 (meta 队 spec, 队伍道具)，否则 (None, None)。
+
+    队伍道具（魔法）与队伍绑定：首领血脉队用进化之力，其余用愿力——站点阵容
+    的魔法选择与「首领进化流」原型绑定，随机化会破坏该原型；血脉与道具冲突时
+    `item_from_team` 强制进化之力。
     """
-    if random.random() >= _META_FRAC:
+    rnd = random if rng is None else rng
+    if rnd.random() >= (_META_FRAC if meta_frac is None else meta_frac):
         return None, None
     teams = load_meta_teams()
     if not teams:
@@ -316,10 +339,10 @@ def _maybe_meta_team(used: set[str]) -> tuple[list[dict], Item | None]:
     ]
     if not pool:
         return None, None
-    team = random.choice(pool)
+    team = rnd.choice(pool)
     specs, names = spec_from_team(team)
     used |= names
-    return specs, item_from_team(team)
+    return specs, item_from_team(team, specs)
 
 
 EvalMatchup = tuple[list[dict], list[dict], Item, Item]
@@ -328,8 +351,9 @@ EvalMatchup = tuple[list[dict], list[dict], Item, Item]
 def _random_eval_matchup(
     factory: SimFactory,
     sprite_skills: dict[str, list[str]],
+    rng: random.Random | None = None,
 ) -> EvalMatchup:
-    team_a, team_b, item_a, item_b = _random_teams(factory, sprite_skills)
+    team_a, team_b, item_a, item_b = _random_teams(factory, sprite_skills, rng=rng)
     return team_a, team_b, item_a, item_b
 
 
@@ -337,15 +361,34 @@ def _paired_eval_tasks(
     factory: SimFactory,
     sprite_skills: dict[str, list[str]],
     n_games: int,
+    rng: random.Random | None = None,
 ) -> list[tuple[int, EvalMatchup]]:
     """生成门控任务；相邻两局复用阵容和道具，仅交换候选模型所在侧。"""
     tasks: list[tuple[int, EvalMatchup]] = []
     for pair_start in range(0, n_games, 2):
-        matchup = _random_eval_matchup(factory, sprite_skills)
+        matchup = _random_eval_matchup(factory, sprite_skills, rng=rng)
         tasks.append((pair_start, matchup))
         if pair_start + 1 < n_games:
             tasks.append((pair_start + 1, matchup))
     return tasks
+
+
+def _eval_roster_rng() -> random.Random:
+    """门控阵容套件：由固定基准种子生成 —— **每次评估都是同一批阵容**。
+
+    否则每轮门控抽到的阵容不同，候选模型分数在阵容抽样方差里漂移
+    （实测同一对模型两次门控可差数个百分点），门控门槛就失去意义。
+    """
+    return random.Random(_EVAL_ROSTER_SEED)
+
+
+def _seed_eval_game(game_index: int) -> None:
+    """单局门控随机数种子由局号决定，与 worker 领取顺序无关。
+
+    此前 worker 只在启动时 seed 一次，之后按 work-stealing 顺序连续消耗随机数流，
+    同一模型两次门控的结果因此不同（详见 docs §4f）。
+    """
+    random.seed(_EVAL_GAME_SEED + int(game_index))
 
 
 def _build_eval_battle(factory: SimFactory, matchup: EvalMatchup):
@@ -1339,7 +1382,9 @@ def evaluate(
 
     wins = 0.0
     gate_tracker = _PairedGateTracker(n_games, early_stop_gate)
-    for g, matchup in _paired_eval_tasks(factory, sprite_skills, n_games):
+    for g, matchup in _paired_eval_tasks(factory, sprite_skills, n_games,
+                                        rng=_eval_roster_rng()):
+        _seed_eval_game(g)
         battle = _build_eval_battle(factory, matchup)
         p1 = battle.player_a
         p2 = battle.player_b
@@ -1497,7 +1542,8 @@ def evaluate_parallel(
     result_queue = ctx.Queue(maxsize=n_workers * 2)
     # 任务队列：相邻两局复用同一阵容/道具，仅交换候选模型所在侧。
     task_queue = ctx.Queue()
-    for task in _paired_eval_tasks(factory, sprite_skills, n_games):
+    for task in _paired_eval_tasks(factory, sprite_skills, n_games,
+                                   rng=_eval_roster_rng()):
         task_queue.put(task)
     for _ in range(n_workers):
         task_queue.put(None)
@@ -1643,6 +1689,11 @@ def evaluate_parallel(
 # ═══════════════════════════════════════════════════════════════════
 
 def main():
+    # 训练全程可复现的前提：钉死字符串哈希（见 determinism 模块说明）。
+    # 必须在解析参数之前执行 —— 它会带 PYTHONHASHSEED=0 重执行自己。
+    from backend.engine.ai.determinism import ensure_hash_seed
+    ensure_hash_seed()
+
     parser = argparse.ArgumentParser(description="AlphaZero 风格 RL 训练")
     parser.add_argument("--battles", type=int, default=200,
                         help="每轮迭代自我博弈局数 (default: 200)")

@@ -443,7 +443,7 @@ def test_paired_eval_tasks_reuse_matchup_when_models_swap_sides(monkeypatch):
     sprite_skills = _load_sprite_skills()
     marker = iter((1, 2, 3))
 
-    def fake_random_teams(_factory, _sprite_skills):
+    def fake_random_teams(_factory, _sprite_skills, **_kwargs):
         value = next(marker)
         return ([{"name": f"A{value}"}], [{"name": f"B{value}"}], Item.wish(), Item.wish())
 
@@ -455,6 +455,43 @@ def test_paired_eval_tasks_reuse_matchup_when_models_swap_sides(monkeypatch):
     assert tasks[0][1] == tasks[1][1]
     assert tasks[2][1] == tasks[3][1]
     assert tasks[1][1] != tasks[2][1]
+
+
+def test_eval_roster_suite_is_fixed_across_evaluations(monkeypatch):
+    """门控阵容套件每次评估必须一致，否则分数在阵容抽样方差里漂移。"""
+    seen: list[float] = []
+
+    def fake_matchup(_factory, _sprite_skills, rng=None):
+        seen.append(round(rng.random(), 12))
+        return ([{"name": "A"}], [{"name": "B"}], Item.wish(), Item.wish())
+
+    monkeypatch.setattr(train_module, "_random_eval_matchup", fake_matchup)
+
+    train_module._paired_eval_tasks(None, {}, n_games=6, rng=train_module._eval_roster_rng())
+    first = list(seen)
+    seen.clear()
+    train_module._paired_eval_tasks(None, {}, n_games=6, rng=train_module._eval_roster_rng())
+
+    assert seen == first
+    assert len(first) == 3          # 相邻两局复用同一阵容
+
+
+def test_seed_eval_game_ignores_stream_position():
+    """单局随机数只由局号决定：worker 之前消耗过多少随机数都不影响（work-stealing 顺序无关）。"""
+    import random as _random
+
+    _random.seed(12345)
+    for _ in range(3):
+        _random.random()
+    train_module._seed_eval_game(7)
+    expected = [_random.random() for _ in range(4)]
+
+    _random.seed(999)
+    for _ in range(1000):
+        _random.random()
+    train_module._seed_eval_game(7)
+
+    assert [_random.random() for _ in range(4)] == expected
 
 
 def test_paired_gate_waits_for_complete_pairs_even_out_of_order():

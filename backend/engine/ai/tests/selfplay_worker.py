@@ -126,7 +126,8 @@ def run_evaluate_worker(
       ("error", wid, None, traceback)  worker 异常
     """
     # 延迟导入，避免与 train 顶层循环依赖
-    from backend.engine.ai.train import _load_sprite_skills, _play_one_eval_game
+    from backend.engine.ai.train import (_load_sprite_skills, _play_one_eval_game,
+                                         _seed_eval_game)
     from backend.sim.factory import SimFactory
 
     random.seed(seed)
@@ -147,6 +148,10 @@ def run_evaluate_worker(
                     break
                 game_index, matchup = task
                 game_index = int(game_index)
+                # 单局随机数由局号决定，**不用** worker 自己的随机数流：worker 领取
+                # 任务的顺序（work-stealing）不确定，共用一个流会让同一模型两次门控
+                # 得到不同的分数（详见 docs §4f）。
+                _seed_eval_game(game_index)
                 battle_started = time.monotonic()
                 score = _play_one_eval_game(
                     factory, sprite_skills, candidate_eval, best_eval,

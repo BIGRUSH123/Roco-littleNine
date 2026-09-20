@@ -10,8 +10,13 @@ sys.path.insert(0, str(ROOT))
 
 import random  # noqa: E402
 
+from backend.engine.ai.determinism import ensure_hash_seed  # noqa: E402
 from backend.engine.ai.train import _load_sprite_skills, _random_item, _random_teams  # noqa: E402
 from backend.sim.factory import SimFactory  # noqa: E402
+
+ensure_hash_seed()
+# 阵容默认走全局 random：这里显式播种，保证审计结果可复现。
+random.seed(0)
 
 factory = SimFactory()
 sprite_skills = _load_sprite_skills()
