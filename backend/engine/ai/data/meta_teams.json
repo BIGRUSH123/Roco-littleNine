@@ -2104,26 +2104,7 @@
      "role": "attack",
      "lead": false,
      "preserve": false,
-     "energy_hold": 0,
-     "alts": [
-      {
-       "name": "岚鸟（夏天的样子）",
-       "skills": [
-        "闪击",
-        "水刃",
-        "撕咬",
-        "力量增效"
-       ],
-       "iv_fixed": [
-        "def",
-        "hp",
-        "speed"
-       ],
-       "bloodline": "电",
-       "nature_fixed": "开朗",
-       "role": "attack"
-      }
-     ]
+     "energy_hold": 0
     },
     {
      "name": "岚鸟（春天的样子）",

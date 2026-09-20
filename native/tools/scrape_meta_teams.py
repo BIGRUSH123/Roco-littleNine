@@ -536,7 +536,20 @@ def select_teams(teams: list[dict], notes_by_team: dict[str, int], *, target: in
 
 
 def _attach_flex(chosen: list[dict], all_teams: list[dict], per_team: int) -> int:
-    """给每队最「模板化」的槽位挂同角色替补，降低阵容固定性。"""
+    """给每队最「模板化」的槽位挂同角色替补，降低阵容固定性。
+
+    排重要按**图鉴编号**而不是名字：池里 274 个条目只对应 216 个编号，同编号是
+    同一只精灵的不同外观——按名字排会把「岚鸟（夏天的样子）」挂进已经有
+    「岚鸟（春天的样子）」的队里，抽到就是「同一只精灵带两只」的非法阵容。
+    """
+    from backend.sim.factory import SimFactory
+
+    db = SimFactory().sprite_db
+
+    def species_key(name: str) -> str:
+        species = db.get(name)
+        return (species.number or species.name) if species is not None else name
+
     by_role: dict[str, list[dict]] = defaultdict(list)
     for t in all_teams:
         for sp in t["sprites"]:
@@ -545,10 +558,12 @@ def _attach_flex(chosen: list[dict], all_teams: list[dict], per_team: int) -> in
     alt_usage: Counter[str] = Counter()  # 避免同一替补被反复挂到多队
     added = 0
     for team in chosen:
-        names = {s["name"] for s in team["sprites"]}
+        keys = {species_key(s["name"]) for s in team["sprites"]}
         cand_slots = sorted(team["sprites"], key=lambda s: (s["role"] != "attack", s["name"]))
         for slot in cand_slots[:per_team]:
-            pool = [a for a in by_role.get(slot["role"], []) if a["name"] not in names]
+            own = species_key(slot["name"])
+            pool = [a for a in by_role.get(slot["role"], [])
+                    if species_key(a["name"]) not in keys - {own}]
             if not pool:
                 continue
             # 确定性挑：先看替补被用过几次（越少越好），再看技能数（越全越好）
@@ -557,7 +572,7 @@ def _attach_flex(chosen: list[dict], all_teams: list[dict], per_team: int) -> in
                    if k in ("name", "skills", "iv_fixed", "nature_fixed", "nature_plus",
                             "bloodline", "role")}
             slot.setdefault("alts", []).append(alt)
-            names.add(alt["name"])
+            keys.add(species_key(alt["name"]))
             alt_usage[alt["name"]] += 1
             added += 1
     return added

@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Protocol
 
-from backend.common.constants import ELEMENTAL_BLOODLINES
+from .item_policy import should_evolve, should_use_wish
 
 from .action import Action
 from .battleskill import SkillUse
@@ -88,15 +88,13 @@ class RuleAgent:
                 return _switch_action(replacement)
             return _GATHER_ACTION
 
-        # 道具使用（进化之力仅首领血脉可用，愿力仅元素血脉可用）
+        # 道具·进化之力（**不消耗回合**，首领化无代价 → 能变就变，判据见 item_policy）
         item = p.item
-        if item and item.can_use(battle.turn):
-            if item.name == '进化之力' and battle.turn <= 2 and s.bloodline == '首领':
-                return _ITEM_ACTION
-            if item.name == '愿力':
-                hp_ratio = s.current_hp / s.max_hp if s.max_hp > 0 else 0
-                if hp_ratio < 0.5 and style.aggression > 0.4 and s.bloodline in ELEMENTAL_BLOODLINES:
-                    return _ITEM_ACTION
+        if (item and item.can_use(battle.turn) and item.name == '进化之力'
+                and should_evolve(battle, self.team, s)):
+            return _ITEM_ACTION
+
+        opponent = battle.get_opponent(self.team).active
 
         # 低 HP → 可能换宠
         hp_ratio = s.current_hp / s.max_hp if s.max_hp > 0 else 0
@@ -127,7 +125,11 @@ class RuleAgent:
                     return _switch_action(replacement)
                 return _GATHER_ACTION
 
-        opponent = battle.get_opponent(self.team).active
+        # 道具·愿力：换出的血脉技能比最强攻击更疼/能斩杀 → 先用道具再出招，
+        # 同一回合完成（放在换宠/聚能之后：确定要出手才花这一次次数与冷却）
+        if (item and item.can_use(battle.turn)
+                and should_use_wish(battle, self.team, s, opponent)):
+            return _ITEM_ACTION
 
         # 评分所有技能（威力通过伤害计算器估算，含克制/天气/印记）
         best_idx = -1

@@ -1,15 +1,17 @@
 """backend/tests/test_rule_agent.py — RuleAgent.choose_action branch coverage.
 
-Covers the 7+ branches identified in the engineering review:
+Covers the branches identified in the engineering review:
   1. Fainted sprite → forced switch
   2. Fainted sprite, no replacement → gather
-  3. Item 进化之力 used early (turn <= 2)
-  4. Item 愿力 used at low HP + high aggression
-  5. Low HP → switch below threshold
-  6. Low energy → gather (skip if charging)
-  7. Charging → forced skill release
-  8. Normal skill scoring (attack / defense / status)
-  9. No usable skills → gather fallback
+  3. Low HP → switch below threshold
+  4. Low energy → gather (skip if charging)
+  5. Charging → forced skill release
+  6. Normal skill scoring (attack / defense / status)
+  7. No usable skills → gather fallback
+
+道具（进化之力 / 愿力）的规则已抽到 `backend/sim/item_policy.py`，两个 agent
+共用，覆盖在 `backend/tests/test_item_policy.py`（含"进化之力不再限定回合数"
+"愿力按换出技能的伤害判定"）。
 """
 
 from __future__ import annotations
@@ -73,72 +75,7 @@ def test_choose_action_fainted_no_replacement_gathers():
     assert action.kind == "gather"
 
 
-# ══ Branch 3: Item 进化之力 early turn ══
-
-
-def test_choose_action_evolution_power_early():
-    """Evolution power item used on turn <= 2 (requires 首领 bloodline)."""
-    b = _make_battle(p1_item=Item.leader())
-    b.turn = 2
-    b.player_a.active.bloodline = '首领'
-    agent = RuleAgent("A", b.player_a)
-
-    action = agent.choose_action(b)
-    assert action.kind == "item"
-
-
-def test_choose_action_evolution_power_late_turn_skipped():
-    """Evolution power NOT used after turn 2."""
-    b = _make_battle(p1_item=Item.leader())
-    b.turn = 3
-    agent = RuleAgent("A", b.player_a)
-
-    action = agent.choose_action(b)
-    assert action.kind != "item"
-
-
-# ══ Branch 4: Item 愿力 at low HP ══
-
-
-def test_choose_action_wish_at_low_hp():
-    """Wish item used when HP < 50% and aggression > 0.4."""
-    style = PlayStyle(aggression=0.8)
-    b = _make_battle(p1_item=Item.wish(), p1_style=style)
-    b.turn = 1
-    s = b.player_a.active
-    s.current_hp = int(s.max_hp * 0.3)
-    agent = RuleAgent("A", b.player_a)
-
-    action = agent.choose_action(b)
-    assert action.kind == "item"
-
-
-def test_choose_action_wish_skipped_at_high_hp():
-    """Wish NOT used when HP >= 50%."""
-    style = PlayStyle(aggression=0.8)
-    b = _make_battle(p1_item=Item.wish(), p1_style=style)
-    b.turn = 1
-    b.player_a.active.current_hp = b.player_a.active.max_hp
-    agent = RuleAgent("A", b.player_a)
-
-    action = agent.choose_action(b)
-    assert action.kind != "item"
-
-
-def test_choose_action_wish_skipped_low_aggression():
-    """Wish NOT used when aggression <= 0.4 even at low HP."""
-    style = PlayStyle(aggression=0.2)
-    b = _make_battle(p1_item=Item.wish(), p1_style=style)
-    b.turn = 1
-    s = b.player_a.active
-    s.current_hp = int(s.max_hp * 0.3)
-    agent = RuleAgent("A", b.player_a)
-
-    action = agent.choose_action(b)
-    assert action.kind != "item"
-
-
-# ══ Branch 5: Low HP → switch ══
+# ══ Branch 3: Low HP → switch ══
 
 
 def test_choose_action_low_hp_switches():

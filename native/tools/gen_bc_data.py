@@ -3,7 +3,10 @@
 
 组队策略（与选队解耦）：
   - meta_frac 概率使用 meta_teams.json 中的原型队（双方各抽一队，
-    IV/性格/换宠阈值逐局扰动），其余走 train._random_teams 角色化随机采样；
+    IV/性格/换宠阈值逐局扰动），其余走 train._random_teams 随机阵容；
+  - 随机阵容的配装由 build_from_reference 生成：optimal_frac（默认 0.95）概率
+    整队走**最优培养**（技能/血脉/性格/天赋取 wiki PVP 推荐的合规最优），其余
+    整队按 wiki 占比抽样（带冲突修复）；队级道具按血脉决定（有首领 → 进化之力）；
   - 双方均由 RuleAgentV2（可挂 TeamStrategy）驱动，无 MCTS，单局亚秒级。
 
 输出：npz（状态/动作/掩码/胜负/game_id/队伍标记）+ json sidecar（队伍元信息）。
@@ -50,6 +53,8 @@ def parse_args() -> argparse.Namespace:
     ap.add_argument("--seed", type=int, default=2026)
     ap.add_argument("--mirror-frac", type=float, default=0.15,
                     help="meta 对局中双方同队的镜像比例")
+    ap.add_argument("--optimal-frac", type=float, default=0.95,
+                    help="随机阵容里按「最优培养」整队出装的占比（其余按 wiki 占比抽样）")
     ap.add_argument("--per-game-log", action="store_true",
                     help="逐局打印耗时/队伍（定位慢对局，默认每 100 局汇总）")
     ap.add_argument("--log-file", default="",
@@ -92,7 +97,13 @@ def jittered_default_strategy(rng: random.Random) -> TeamStrategy:
 # ═══════════════════════════════════════════════════════════════════
 
 def _build_plans(args, meta_teams, sprite_skills, rng, team_game_counts) -> list[dict]:
-    """父进程按局号产出全部对局计划（唯一 RNG 流 → 与 worker 数无关的确定性）。"""
+    """父进程按局号产出全部对局计划（唯一 RNG 流 → 与 worker 数无关的确定性）。
+
+    随机阵容这一支的配装由 `_random_teams` 生成：`--optimal-frac` 概率整队走
+    **最优培养**（BC 预训练口径），其余整队按 wiki 占比抽样。meta 抽取由本函数
+    自己决定，故显式传 `meta_frac=0.0` 关掉 `_random_teams` 内部的 meta 混合
+    ——两条路径叠加会把 meta 占比变成 1-(1-m1)(1-m2)，与命令行所见不一致。
+    """
     from backend.sim.factory import SimFactory
 
     factory = SimFactory()
@@ -100,6 +111,7 @@ def _build_plans(args, meta_teams, sprite_skills, rng, team_game_counts) -> list
     for g in range(args.games):
         is_meta = 0
         team_ids = (-1, -1)
+        n_optimal = 0
         if meta_teams and rng.random() < args.meta_frac:
             is_meta = 1
             i_a = rng.randrange(len(meta_teams))
@@ -110,23 +122,29 @@ def _build_plans(args, meta_teams, sprite_skills, rng, team_game_counts) -> list
             team_b, _ = spec_from_team(meta_teams[i_b], rng)
             strat_a = strategy_from_team(meta_teams[i_a], rng)
             strat_b = strategy_from_team(meta_teams[i_b], rng)
-            item_a = item_from_team(meta_teams[i_a])
-            item_b = item_from_team(meta_teams[i_b])
+            item_a = item_from_team(meta_teams[i_a], team_a)
+            item_b = item_from_team(meta_teams[i_b], team_b)
             team_ids = (i_a, i_b)
             for idx in (i_a, i_b):
                 nm = meta_teams[idx]["name"]
                 team_game_counts[nm] = team_game_counts.get(nm, 0) + 1
             tag = f"meta {meta_teams[i_a]['name']} vs {meta_teams[i_b]['name']}"
         else:
-            team_a, team_b, item_a, item_b = _random_teams(factory, sprite_skills)
+            team_a, team_b, item_a, item_b = _random_teams(
+                factory, sprite_skills,
+                optimal_frac=args.optimal_frac, meta_frac=0.0,
+            )
             strat_a = jittered_default_strategy(rng)
             strat_b = jittered_default_strategy(rng)
+            n_optimal = sum(1 for t in (team_a, team_b)
+                            if t and all(s.get("_mode") == "optimal" for s in t))
             tag = "random " + "|".join(s["name"] for s in team_a)
         plans.append({
             "g": g, "team_a": team_a, "team_b": team_b,
             "item_a": item_a, "item_b": item_b,
             "strat_a": strat_a, "strat_b": strat_b,
             "team_ids": team_ids, "is_meta": is_meta, "tag": tag,
+            "n_optimal": n_optimal,
             "max_turns": args.max_turns, "draw_margin": args.draw_margin,
             "hang_dump_sec": args.hang_dump_sec,
             # 每局独立派生的随机种子：引擎掷骰走全局 random，若不显式播种，
@@ -299,6 +317,11 @@ def main() -> None:
 
     # ── 第一阶段：父进程产队（消耗唯一 RNG 流 → 与 --workers 无关的确定性） ──
     plans = _build_plans(args, meta_teams, sprite_skills, rng, team_game_counts)
+    n_rand_plans = sum(1 for p in plans if not p["is_meta"])
+    n_opt_teams = sum(p["n_optimal"] for p in plans)
+    opt_rate = n_opt_teams / max(1, 2 * n_rand_plans)
+    _log(f"随机阵容 {n_rand_plans} 局：最优培养 {n_opt_teams}/{2 * n_rand_plans} 队 = "
+         f"{opt_rate:.1%}（目标 --optimal-frac {args.optimal_frac:.2f}）", args)
 
     # ── 第二阶段：打局（单进程 或 多进程池） ──
     # 结果先按局号收齐再按序写入：imap_unordered 的完成顺序与局号无关，
@@ -393,6 +416,8 @@ def main() -> None:
     sidecar = {
         "games": args.games,
         "meta_frac": args.meta_frac,
+        "optimal_frac": args.optimal_frac,
+        "optimal_team_rate": opt_rate,
         "seed": args.seed,
         "max_turns": args.max_turns,
         "draw_margin": args.draw_margin,

@@ -13,7 +13,6 @@
 from __future__ import annotations
 
 import copy
-import random
 import time
 
 import numpy as np
@@ -28,13 +27,9 @@ from backend.engine.ai.core.mcts import (
     get_valid_actions,
 )
 from backend.engine.ai.core.outcome import battle_outcome_a
+from backend.engine.ai.data.build_from_reference import item_for_team
 from backend.sim.action import Action
 from backend.sim.player import Item
-
-
-def _random_item() -> Item:
-    """随机道具：进化之力 或 愿力（等概率）——与 train._random_item 一致。"""
-    return Item.leader() if random.random() < 0.5 else Item.wish()
 
 
 def _team_index_to_action_idx(player, team_idx: int) -> int | None:
@@ -141,15 +136,18 @@ def run_recorded_battle(
 
     inner_a / inner_b: 规则 agent 实例，或 (tag, player) -> agent 的工厂
     callable（player 由本函数构建后注入）。
-    item_a / item_b: 队伍道具（meta 队自带魔法）；缺省随机——首领血脉队的
-    进化之力必须随队伍传入，否则「首领进化流」在对局里根本不出现。
+    item_a / item_b: 队伍道具（魔法）；缺省按 `item_for_team` 规则推——队内有
+    首领血脉 → 进化之力，否则愿力（首领血脉队的进化之力必须随队伍一起进对局，
+    否则「首领进化流」根本不出现）。
 
     返回 (samples, outcome_a, end_reason, turns)。
     samples: [(state_dict, action_idx, mask, game_id, side), ...]（side 为
     "A"/"B"；胜负标签由调用方按 side 填充——A 取 outcome_a，B 取 -outcome_a）。
     """
-    p1 = factory.build_player("A", copy.deepcopy(specs_a), item=item_a or _random_item())
-    p2 = factory.build_player("B", copy.deepcopy(specs_b), item=item_b or _random_item())
+    p1 = factory.build_player("A", copy.deepcopy(specs_a),
+                              item=item_a or item_for_team(specs_a))
+    p2 = factory.build_player("B", copy.deepcopy(specs_b),
+                              item=item_b or item_for_team(specs_b))
     battle = factory.build_battle(p1, p2)
 
     if callable(inner_a):

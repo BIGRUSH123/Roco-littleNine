@@ -31,7 +31,7 @@ from backend.engine.ai.data.meta_teams import (
     validate_meta_teams,
 )
 from backend.engine.ai.data.sprite_random_pool import SPRITE_RANDOM_POOL
-from backend.engine.ai.train import _random_teams, _role_skills, _sprite_roles
+from backend.engine.ai.train import _random_teams, _sprite_roles
 from backend.sim.agent import _switch_action
 from backend.sim.agent_v2 import RuleAgentV2, SpriteStrategy, TeamStrategy
 from backend.sim.factory import SimFactory
@@ -60,7 +60,7 @@ def pool_buckets():
 def _meta_team(role: str, names: list[str]) -> dict:
     sprites = []
     for name in names:
-        skills = _role_skills(role, SPRITE_RANDOM_POOL[name], 4)
+        skills = [s for s in SPRITE_RANDOM_POOL[name]][:4]
         sprites.append({
             "name": name,
             "role": role,
@@ -113,7 +113,7 @@ def test_meta_team_exact_iv_nature_and_bloodline(pool_buckets):
     assert item_from_team({"name": "x"}) is None
 
 
-def test_leader_form_entries_are_fielded_as_base_form():
+def test_leader_form_entries_are_fielded_as_base_form(factory):
     """首领形态不能直接上场：站点阵容若写变身后的形态，须改写为基础形态 + 首领血脉。"""
     from backend.engine.ai.data.meta_teams import resolve_entry_name, spec_from_entry
 
@@ -124,6 +124,10 @@ def test_leader_form_entries_are_fielded_as_base_form():
         assert rewritten is True
 
     # 未指定的血脉由改写补成「首领」（否则局内无法变身）
+    # 同队其他槽位要避开 罗隐 的编号——同编号是同一只精灵，不能带两只
+    boss_number = factory.sprite_db.get("罗隐").number
+    fillers = [n for n in SPRITE_RANDOM_POOL
+               if factory.sprite_db.get(n).number != boss_number][:5]
     team = {
         "name": "boss_smoke",
         "item": "进化之力",
@@ -134,8 +138,10 @@ def test_leader_form_entries_are_fielded_as_base_form():
         }] + [{
             "name": n, "role": "attack", "skills": SPRITE_RANDOM_POOL[n][:3],
             "iv_fixed": ["atk", "speed"],
-        } for n in list(SPRITE_RANDOM_POOL)[:5]],
+        } for n in fillers],
     }
+    assert all(isinstance(sp, dict) for sp in team["sprites"])
+    spec_from_entry(team["sprites"][0])  # 单独调用也必须可用（不传 variants）
     problems = validate_meta_teams([team], SPRITE_RANDOM_POOL)
     assert problems == [], "\n".join(problems)
     specs, names = spec_from_team(team, random.Random(0))
@@ -147,6 +153,81 @@ def test_leader_form_entries_are_fielded_as_base_form():
     from backend.engine.ai.data.meta_teams import strategy_from_team
     strat = strategy_from_team(team, random.Random(0))
     assert "罗隐" in strat.sprites
+
+
+def test_species_key_groups_same_number_forms(factory):
+    """排重键必须是图鉴编号：同编号多外观归到同一个键（否则同队能带同一只精灵）。
+
+    池里 274 个条目只对应 216 个编号（圣代甜甜 10 个口味、鸭吉吉 6 个……），
+    按条目名排重会把「月亮砣（上弦的样子）＋月亮砣（下弦的样子）」放进同一队。
+    """
+    from collections import defaultdict
+
+    groups: dict[str, list[str]] = defaultdict(list)
+    for name in SPRITE_RANDOM_POOL:
+        groups[factory.sprite_db.get(name).number].append(name)
+    key = _sprite_roles(factory, dict(SPRITE_RANDOM_POOL))["species_of"]
+    for number, names in groups.items():
+        assert len({key[n] for n in names}) == 1, f"编号 {number} 的 {names} 排在多个键"
+    assert len({key[n] for n in SPRITE_RANDOM_POOL}) == len(groups)
+
+
+def test_random_teams_unique_species_and_bloodline_item(factory):
+    """随机队的硬不变量：队内编号唯一 / 道具跟随血脉 / 配装逐条合规。"""
+    from backend.engine.ai.data.build_from_reference import validate_build
+    from backend.engine.ai import train as train_module
+
+    db = factory.sprite_db
+    sprite_skills = dict(SPRITE_RANDOM_POOL)
+    by_number = train_module._reference_by_number()
+    n_team = 0
+    for _ in range(30):
+        team_a, team_b, item_a, item_b = train_module._random_teams(
+            factory, sprite_skills, meta_frac=0.0)
+        for team, item in ((team_a, item_a), (team_b, item_b)):
+            n_team += 1
+            assert len(team) == 6
+            numbers = [db.get(s["name"]).number for s in team]
+            assert len(set(numbers)) == len(numbers), \
+                f"队内出现同一只精灵的两个外观: {[s['name'] for s in team]}"
+            chief = any(s.get("bloodline") == "首领" for s in team)
+            assert (item.name == "进化之力") == chief, \
+                f"道具 {item.name} 与首领血脉 {chief} 不匹配：{[s['name'] for s in team]}"
+            for spec in team:
+                keys = [k for k, v in spec["iv"].items() if v]
+                assert len(keys) == 3 and all(spec["iv"][k] == 10 for k in keys)
+                assert spec["_mode"] in ("optimal", "sample")
+                problems = validate_build(spec, db, sprite_skills, by_number)
+                assert problems == [], problems
+    assert n_team == 60
+
+
+def test_optimal_frac_selects_bc_builds(factory):
+    """BC 口径开关：optimal_frac=1 同精灵配装固定（最优），=0 逐局变化（抽样）。"""
+    from backend.engine.ai import train as train_module
+
+    sprite_skills = dict(SPRITE_RANDOM_POOL)
+
+    def collect(frac: float, n_games: int = 12) -> dict[str, set]:
+        seen: dict[str, set] = {}
+        modes: dict[str, set] = {}
+        for _ in range(n_games):
+            team_a, team_b, _, _ = train_module._random_teams(
+                factory, sprite_skills, optimal_frac=frac, meta_frac=0.0)
+            for spec in team_a + team_b:
+                fingerprint = (tuple(spec["skills"]), spec["nature"],
+                               tuple(sorted(k for k, v in spec["iv"].items() if v)),
+                               spec.get("bloodline", ""))
+                seen.setdefault(spec["name"], set()).add(fingerprint)
+                modes.setdefault(spec["name"], set()).add(spec["_mode"])
+        assert all(len(v) == 1 for v in modes.values()), f"配装模式混用: {modes}"
+        return seen
+
+    optimal = collect(1.0)
+    assert all(len(v) == 1 for v in optimal.values()), "optimal_frac=1 时同精灵配装应固定"
+    sampled = collect(0.0)
+    assert any(len(v) > 1 for v in sampled.values()), \
+        "optimal_frac=0 时同精灵配装应逐局变化（抽样）"
 
 
 def test_shipped_meta_teams_validate():

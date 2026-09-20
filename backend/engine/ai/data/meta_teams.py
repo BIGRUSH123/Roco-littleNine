@@ -76,6 +76,11 @@ def validate_meta_teams(
     技能合法集 = 池内技能 ∪ 该精灵所选血脉的血脉技能（爬取阵容可携带血脉技能）。
     首领形态条目按 `resolve_entry_name` 改写为基础形态后再校验——首领形态不能
     直接上场，只能由基础形态 + 首领血脉 + 进化之力变身得到。
+
+    另外两条硬规则（2026-09-20 定稿）：
+      - **队内不得出现同一只精灵**：图鉴编号相同 = 同一只精灵的不同外观，正式成员
+        之间撞编号是死错误；替补（alts）与别的槽位撞编号则永远抽不出来，属死数据；
+      - **有首领血脉必须带进化之力**：否则变身打不出来。
     """
     from backend.common.constants import BLOODLINES
     from backend.sim.player import Item
@@ -92,6 +97,31 @@ def validate_meta_teams(
             problems.append(f"[{tname}] 道具名无效: {item}")
         elif item:
             Item.leader() if item == "进化之力" else Item.wish()  # 构造性校验
+        if _has_chief(sprites) and item != "进化之力":
+            problems.append(f"[{tname}] 队内有首领血脉却带 {item or '（未声明）'}（必须是进化之力）")
+        # 队内不能出现同一只精灵（图鉴编号）：同编号多外观在引擎里是同一只精灵
+        base_numbers: dict[str, str] = {}
+        for entry in sprites:
+            base_name, base_engine, _rw = resolve_entry_name(entry.get("name", ""))
+            number = _species_number(base_engine)
+            if not number:
+                continue
+            prev = base_numbers.get(number)
+            if prev is not None:
+                problems.append(f"[{tname}] 队内同编号重复：{base_name} 与 {prev} 都是编号 "
+                                f"{number}（同一只精灵不能带两只）")
+            else:
+                base_numbers[number] = base_name
+        for entry in sprites:
+            own_engine = resolve_entry_name(entry.get("name", ""))[1]
+            own_number = _species_number(own_engine)
+            for alt in entry.get("alts") or []:
+                alt_name, alt_engine, _rw = resolve_entry_name(alt.get("name", ""))
+                alt_number = _species_number(alt_engine)
+                if alt_number and alt_number != own_number and alt_number in base_numbers:
+                    problems.append(
+                        f"[{tname}] 替补 {alt_name} 与队内 {base_numbers[alt_number]} 同编号 "
+                        f"{alt_number}（抽取时会被弃用，应清掉这条替补）")
         for entry in sprites:
             for variant in [entry] + list(entry.get("alts") or []):
                 raw_name = variant.get("name", "")
@@ -118,14 +148,32 @@ def validate_meta_teams(
     return problems
 
 
+_DB_CACHE = None
+
+
+def _sprite_db():
+    """进程级共享的 SpriteDB（构造有开销，校验会按「队 × 精灵」反复查库）。"""
+    global _DB_CACHE
+    if _DB_CACHE is None:
+        from backend.sim.factory import SimFactory
+
+        _DB_CACHE = SimFactory().sprite_db
+    return _DB_CACHE
+
+
+def _species_number(name: str) -> str:
+    """`Sprite.name` → 图鉴编号（同编号多外观 = 同一只精灵的不同样子）；查不到返回空串。"""
+    species = _sprite_db().get(name)
+    return (species.number if species is not None else "") or ""
+
+
 def _bloodline_skill_names(name: str, bloodline: str) -> set[str]:
     """该精灵所选血脉对应的血脉技能名（无则空集）。"""
     if not bloodline:
         return set()
     from backend.common.skill_trait_ids import SKILL_ID_TO_NAME
-    from backend.sim.factory import SimFactory
 
-    species = SimFactory().sprite_db.get(name)
+    species = _sprite_db().get(name)
     if species is None:
         return set()
     sid = (species.bloodline_skills or {}).get(bloodline)
@@ -153,10 +201,9 @@ def resolve_entry_name(name: str) -> tuple[str, str, bool]:
     if cached is not None:
         return cached
     from backend.engine.ai.data.sprite_random_pool import SPRITE_RANDOM_POOL
-    from backend.sim.factory import SimFactory
 
     out = (name, name, False)
-    db = SimFactory().sprite_db
+    db = _sprite_db()
     species = db.get(name)
     if species is None:
         _RESOLVE_CACHE[name] = out
@@ -176,8 +223,12 @@ def resolve_entry_name(name: str) -> tuple[str, str, bool]:
     return out
 
 
-def spec_from_entry(entry: dict, rng=random) -> dict:
+def spec_from_entry(entry: dict, rng=random,
+                    variants: list[dict] | None = None) -> dict:
     """单只精灵 entry（含可选 alts）→ build_player spec。
+
+    `variants` 由 `spec_from_team` 传入（已滤掉与队内其他成员撞编号的替补）；
+    单独调用时用 entry + 自己的 alts。
 
     IV 规则：iv_fixed 为 3 项时按精确集合拉满（爬取阵容的 plusStats）；
     为 2 项时第三项随机扰动（自选队伍的多样性来源）；更少则随机补满一项。
@@ -186,8 +237,9 @@ def spec_from_entry(entry: dict, rng=random) -> dict:
     """
     from backend.common.constants import STAT_KEYS
 
-    alts = entry.get("alts") or []
-    variant = rng.choice([entry] + alts) if alts else entry
+    if variants is None:
+        variants = [entry] + list(entry.get("alts") or [])
+    variant = rng.choice(variants) if variants else entry
     spec_name, _engine_name, rewritten = resolve_entry_name(variant["name"])
     iv_fixed = list(variant.get("iv_fixed", ["hp", "speed"]))
     if len(iv_fixed) >= 3:
@@ -215,21 +267,71 @@ def spec_from_entry(entry: dict, rng=random) -> dict:
     return spec
 
 
-def item_from_team(team: dict) -> "Item | None":
-    """meta 队伍声明的道具（魔法）→ Item 实例；未声明返回 None（由调用方随机）。"""
+def _has_chief(sprites: list[dict], include_alts: bool = False) -> bool:
+    """这批精灵里是否有「首领」血脉（`include_alts` 连同槽位替补一起算）。"""
+    for entry in sprites:
+        variants = [entry] + list(entry.get("alts") or []) if include_alts else [entry]
+        if any(v.get("bloodline") == "首领" for v in variants):
+            return True
+    return False
+
+
+def item_from_team(team: dict, specs: list[dict] | None = None) -> "Item | None":
+    """meta 队伍的道具（魔法）→ Item 实例；无法判定时返回 None（由调用方兜底）。
+
+    优先级：
+      1. 传了 `specs`（本局实抽到的配置）→ 其中出现「首领」血脉就必须是进化之力；
+      2. 队伍声明的魔法（站点配置）；
+      3. 未传 specs 时的保守判断：队伍里（含替补）有首领血脉 → 进化之力。
+    与 `build_from_reference.item_for_team` 同一规则——有首领血脉却不带进化之力，
+    变身根本打不出来，整个「首领进化流」在训练数据里变成空转。
+    """
     from backend.sim.player import Item
 
+    if specs is not None and _has_chief(specs):
+        return Item.leader()
     name = team.get("item", "")
     if name == "进化之力":
         return Item.leader()
     if name == "愿力":
         return Item.wish()
+    if specs is None and _has_chief(team.get("sprites") or [], include_alts=True):
+        return Item.leader()
     return None
 
 
+def _legal_variants(entry: dict, taken: set[str]) -> list[dict]:
+    """entry 的可用变体：本体 + 不会和队内其他成员撞编号的替补。
+
+    站点数据的 `alts` 是**同槽位替补**（可能换物种）。抽到与队内其他槽位同编号的
+    替补会造出「同一只精灵带两只」的非法阵容（随仓库交付的 40 队里就有 1 例：
+    尖嘴狐仙的替补「岚鸟（夏天的样子）」撞上另一槽位的「岚鸟（春天的样子）」），
+    这类替补本局直接弃用——它本来也永远不该被抽到。
+    """
+    own = _species_number(resolve_entry_name(entry["name"])[1])
+    out = [entry]
+    for alt in entry.get("alts") or []:
+        number = _species_number(resolve_entry_name(alt["name"])[1])
+        if number and number in taken - {own}:
+            continue
+        out.append(alt)
+    return out
+
+
 def spec_from_team(team: dict, rng=random) -> tuple[list[dict], set[str]]:
-    """整队 → spec 列表 + 精灵名集合（供跨队排重）。"""
-    specs = [spec_from_entry(e, rng) for e in team["sprites"]]
+    """整队 → spec 列表 + 精灵名集合（供跨队排重）。
+
+    逐槽位抽变体，已选定的成员会立即计入占用，因此两个槽位的替补互撞编号也会被挡住。
+    """
+    specs: list[dict] = []
+    taken = {_species_number(resolve_entry_name(e["name"])[1])
+             for e in team["sprites"]}
+    for entry in team["sprites"]:
+        spec = spec_from_entry(entry, rng, _legal_variants(entry, taken))
+        specs.append(spec)
+        spec_number = _species_number(resolve_entry_name(spec["name"])[1])
+        if spec_number:
+            taken.add(spec_number)
     return specs, {s["name"] for s in specs}
 
 
