@@ -111,16 +111,19 @@ _ROLE_CACHE: dict | None = None
 
 
 def _sprite_roles(factory: SimFactory, sprite_skills: dict[str, list[str]]) -> dict:
-    """按种族面板与技能池把精灵分成攻击手/辅助/坦克桶（进程级缓存）。
+    """把精灵分成攻击手/辅助/坦克桶（进程级缓存）。
 
-    对齐社区配队教学（T0 工具人+推队、输出流、快攻体系）：
-    攻击手 = 种族双攻面板前 40%；坦克 = HP+双防前 30%；
-    辅助 = 技能池非攻击（工具/增益/异常）占比 ≥ 60%。允许同精灵跨桶。
+    主来源是**线上 wiki 的培养参考**（`data/role_from_reference.py`，按编号对齐，
+    天赋/性格/技能/血脉的玩家实际配置分布）；旧的数值分位法只用于「无参考数据」
+    的形态兜底，最后再加一层兜底保证**每个池条目至少落一个桶**——旧实现
+    （双攻前 40% / 耐久前 30% / 工具技能 ≥60%，无兜底）会让 114 个池条目
+    （77 个物种）结构性不可采，约 19% 物种在训练数据里零出场。
     """
     global _ROLE_CACHE
     if _ROLE_CACHE is not None:
         return _ROLE_CACHE
     from backend.common.formulas import StatsCalc
+    from backend.engine.ai.data.role_from_reference import classify_roles
 
     info: dict[str, dict] = {}
     for name, skills in sprite_skills.items():
@@ -136,12 +139,45 @@ def _sprite_roles(factory: SimFactory, sprite_skills: dict[str, list[str]]) -> d
             "n_attack": n_atk,
             "main_attack": "atk" if fs["atk"] >= fs["sp_atk"] else "sp_atk",
         }
-    by_off = sorted(info, key=lambda n: -info[n]["offense"])
-    by_bulk = sorted(info, key=lambda n: -info[n]["bulk"])
+
+    wiki = classify_roles(factory.sprite_db, sprite_skills)
+    attackers = set(wiki["attackers"])
+    tanks = set(wiki["tanks"])
+    supports = set(wiki["supports"])
+    covered = attackers | tanks | supports
+
+    # 兜底 1：无参考数据的形态 → 旧数值分位法
+    missing = [n for n in info if n not in covered]
+    if missing:
+        by_off = sorted(missing, key=lambda n: -info[n]["offense"])
+        by_bulk = sorted(missing, key=lambda n: -info[n]["bulk"])
+        attackers |= set(by_off[: int(len(by_off) * 0.4)])
+        tanks |= set(by_bulk[: int(len(by_bulk) * 0.3)])
+        supports |= {n for n in missing if info[n]["util_frac"] >= 0.6}
+        # 兜底 2：仍落空的按 工具占比/耐久 vs 双攻 归桶，保证零遗漏
+        for n in missing:
+            if n in (attackers | tanks | supports):
+                continue
+            if info[n]["util_frac"] >= 0.5:
+                supports.add(n)
+            elif info[n]["bulk"] > info[n]["offense"] * 2:
+                tanks.add(n)
+            else:
+                attackers.add(n)
+
+    src: dict[str, int] = {}
+    for how in wiki["source"].values():
+        src[how] = src.get(how, 0) + 1
+    total = max(1, len(info))
+    print(f"  角色分桶: 攻击手 {len(attackers)} / 辅助 {len(supports)} / 坦克 {len(tanks)}"
+          f"（并集覆盖 {len(attackers | tanks | supports)}/{len(info)} = "
+          f"{len(attackers | tanks | supports) / total:.0%}）；"
+          f"wiki 命中 {len(covered)}（{src}），分位兜底 {len(missing)}")
+
     _ROLE_CACHE = {
-        "attackers": set(by_off[: int(len(info) * 0.4)]),
-        "tanks": set(by_bulk[: int(len(info) * 0.3)]),
-        "supports": {n for n, v in info.items() if v["util_frac"] >= 0.6},
+        "attackers": attackers,
+        "tanks": tanks,
+        "supports": supports,
         "info": info,
     }
     return _ROLE_CACHE

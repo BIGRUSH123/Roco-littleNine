@@ -27,6 +27,19 @@ def _normalize_form_appearance(data: dict) -> tuple[str, str]:
     return form, appearance
 
 
+def _display_key(name: str, form: str = '', appearance: str = '') -> str:
+    """展示/索引键：外观优先 → 形态（首领形态等）→ 纯名字。
+
+    与 `SpeciesStats.display_name()` 同规则，索引与展示必须一致，否则
+    「首领形态（无外观）」条目会在展示上消失（64294b2 的副作用，2026-09-20 还原）。
+    """
+    if appearance:
+        return f'{name}（{appearance}）'
+    if form:
+        return f'{name}（{form}）'
+    return name
+
+
 class SpriteDB:
     """精灵种族值数据库。直接读写 data/sprites/ JSON 文件。"""
 
@@ -56,7 +69,7 @@ class SpriteDB:
                 continue
             _form, appearance = _normalize_form_appearance(data)
             number = str(data.get('number', '')).strip()
-            display = f'{name}（{appearance}）' if appearance else name
+            display = _display_key(name, _form, appearance)
             self._by_display[display] = jf
             self._by_name.setdefault(name, []).append(jf)
             if number:
@@ -75,26 +88,34 @@ class SpriteDB:
                 appearance = m.group(1)
             name = name[:m.start()].strip()
 
-        display = f'{name}（{appearance}）' if appearance else name
+        display = _display_key(name, '', appearance) if appearance else name
         path = self._by_display.get(display)
         if path:
             return self._read_one(path)
 
         candidates = self._by_name.get(name, [])
+        if not candidates:
+            return None
         if len(candidates) == 1:
             return self._read_one(candidates[0])
-        if candidates:
-            # 多个外观：优先精确外观，其次默认外观，最后任意
-            for p in candidates:
-                s = self._read_one(p)
-                if s and s.appearance == appearance:
-                    return s
-            for p in candidates:
-                s = self._read_one(p)
-                if s and not s.appearance:
-                    return s
-            return self._read_one(candidates[0])
-        return None
+
+        # 多形态同名：精确外观 → 「本来的样子」等默认外观 → 无外观 → 首领形态 → 任意。
+        # 不能直接退回「第一个候选」：给首领形态条目补上 form 后，按纯名字查询会命中
+        # 任意一个外观变体（例如把 霜翼领主 解析成 春天的样子），静默改变建队结果。
+        by_app: dict[str, SpeciesStats] = {}
+        for p in candidates:
+            s = self._read_one(p)
+            if s is not None:
+                by_app.setdefault(s.appearance, s)
+        if appearance and appearance in by_app:
+            return by_app[appearance]
+        for default in ('本来的样子', ''):
+            if default in by_app:
+                return by_app[default]
+        for s in by_app.values():
+            if '首领' in (s.form or ''):
+                return s
+        return next(iter(by_app.values()))
 
     def get_by_stage(self, name: str, stage: str = '', appearance: str = '') -> SpeciesStats | None:
         """按 (名字, 阶段, 外观) 查询；stage='首领形态' 查首领阶段。"""
@@ -212,10 +233,13 @@ class SpriteDB:
         display = species.display_name()
         path = self._by_display.get(display)
         if not path:
-            # 新文件
+            # 新文件：文件名带外观（无外观时带形态，如「首领形态」）后缀，
+            # 与 64294b2 之前的老约定一致——否则首领形态文件会被写成纯名字，
+            # 与同编号的外观变体在文件层面无法区分。
+            suffix = species.appearance or species.form
             filename = f'{species.number}_{species.name}'
-            if species.appearance:
-                filename += f'（{species.appearance}）'
+            if suffix:
+                filename += f'（{suffix}）'
             filename += '.json'
             path = self._dir / filename
 

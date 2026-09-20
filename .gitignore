@@ -36,3 +36,5 @@ backend/engine/ai/log/
 !/checkpoints/archive/
 /checkpoints/archive/*
 !/checkpoints/archive/README.md
+# 线上 wiki 模块抓取缓存（可由 import_training_reference.py 重新抓取）
+backend/engine/ai/data/nrc_cache/

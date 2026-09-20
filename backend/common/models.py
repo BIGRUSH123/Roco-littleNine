@@ -9,10 +9,16 @@ from dataclasses import dataclass, field
 
 @dataclass
 class SpeciesStats:
-    """精灵种族值（物种基础属性）。"""
+    """精灵种族值（物种基础属性）。
+
+    form:       形态阶段标记 —— ''（基础）或 '首领形态'（首领阶段）
+    appearance: 外观名 —— ''（默认外观）或「夏天的样子」「蜕皮时的样子」等
+    两者是独立维度：任何阶段都可以有多个外观。
+    """
     name: str
     number: str = ""
     form: str = ""
+    appearance: str = ""
     hp: int = 0
     atk: int = 0
     sp_atk: int = 0
@@ -46,9 +52,21 @@ class SpeciesStats:
         return self._elements
 
     def display_name(self) -> str:
-        if self.form and self.form != '首领形态':
+        """展示名：外观优先 → 形态（首领形态等）→ 纯名字。
+
+        2026-09-20 还原 64294b2「首领 JSON 去后缀」的语义：那次改动后首领形态
+        不再拼接 form，导致同编号下「首领形态（无外观）」在展示层与纯名字条目
+        无法区分；而外观之间种族值可能不同，用户要求以名字区分。此处外观优先
+        （外观比首领形态更细），无外观时才退回 form。
+        """
+        if self.appearance:
+            return f"{self.name}（{self.appearance}）"
+        if self.form:
             return f"{self.name}（{self.form}）"
         return self.name
+
+    def is_leader_stage(self) -> bool:
+        return '首领' in (self.form or '')
 
 
 @dataclass
