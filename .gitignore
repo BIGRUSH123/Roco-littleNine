@@ -2,6 +2,8 @@
 .*
 !.pre-commit-config.yaml
 !.github/
+# native 的 Cargo 忽略规则（/target）本身要入库，否则换个工作区就会漏掉 target/
+!native/.gitignore
 
 raw
 
@@ -15,18 +17,21 @@ __pycache__
 roco.egg-info/
 
 # Excluded from v1.0 (future work)
-wiki/
-roco/
-examples/
-scripts/
-tests/
-CHANGELOG.md
-env/
+# 必须锚定到仓库根：非锚定的 tests/ 会连带吞掉 backend/**/tests/，
+# 导致那边新增的测试永远无法 git add（实测吞掉 3 个 AI 测试文件）
+/wiki/
+/roco/
+/examples/
+/scripts/
+/tests/
+/CHANGELOG.md
+/env/
 # Cython 编译产物
 *.c
 *.pyd
 *.so
 *.html
+!frontend/**/*.html
 build/
 backend/engine/ai/log/
 
@@ -38,3 +43,27 @@ backend/engine/ai/log/
 !/checkpoints/archive/README.md
 # 线上 wiki 模块抓取缓存（可由 import_training_reference.py 重新抓取）
 backend/engine/ai/data/nrc_cache/
+
+# Rust 编译产物（native/.gitignore 里也有，这里兜底）
+/native/target/
+
+# native/tools 下的调试转储（脚本本身入库；这些是被脚本写出的中间数据）
+/native/tools/*.txt
+/native/tools/*.log
+/native/tools/*.err
+/native/tools/*.out
+/native/tools/*.pkl
+/native/tools/_*.json
+/native/tools/_*.html
+/native/tools/_*.js
+/native/tools/dbg_*.json
+
+# Obsidian 附件目录：与 frontend/public/sprites 内容重复（384 个同名同大小，
+# 抽查 MD5 相同），前端那份保留，这里退出索引（本地文件不删）
+/_attachments/
+
+# 项目技能（.agents/skills/**/SKILL.md）按约定不入库（已被上面的 .* 覆盖）
+/.agents/
+
+# 根目录跑实验时的一次性日志
+/_*.log
