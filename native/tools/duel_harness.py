@@ -54,7 +54,9 @@ DEFAULT_MAX_TURNS = 30
 SESSION_VERSION = 3
 # 提示词结构版本：改动给定信息集时递增，并随每回合落盘（记录里能看出哪几回合用了旧版）。
 # v2（2026-09-21）：按选手自报缺口补上 伤害估算 / 物防魔防 / 板凳速度 / 无回能事实 / 终局算法。
-PROMPT_REV = 2
+# v3（2026-09-21）：先手值相同时的抛硬币规则、强化步数与效果剩余回合、队伍表带技能数值、
+#                   换人候补的挨打/输出/进场伤害估算。
+PROMPT_REV = 3
 
 _ACTION_ALIASES = {
     "skill": "skill", "技能": "skill", "招式": "skill", "攻击": "skill",
@@ -148,6 +150,39 @@ def _kind(sk) -> str:
     return "攻击" if sk.is_attack else ("防御" if sk.is_defense else "状态")
 
 
+def _skill_brief(sk) -> str:
+    """队伍表里的技能简写：类别·能耗·威力·应对（板凳精灵也要能据此判断换人价值）。"""
+    parts = [_kind(sk), f"{sk.energy_cost}费"]
+    if sk.is_attack:
+        parts.append(f"{sk.power}威")
+    if sk.priority:
+        parts.append(f"先手{sk.priority:+d}")
+    if sk.counter and sk.counter != "无":
+        parts.append(f"应{sk.counter}")
+    return f"{sk.name}(" + "·".join(parts) + ")"
+
+
+def _effect_brief(e) -> str | None:
+    """效果层简写：强化/削弱要看**步数**，异常/印记看层数，都带剩余回合。"""
+    from backend.vm.effect import AbnormalEffect, MarkEffect, StatBuffEffect
+
+    ttl = int(getattr(e, "ttl", 0) or 0)
+    tail = f"(剩{ttl}回合)" if ttl else ""
+    name = getattr(e, "name", "?")
+    if isinstance(e, StatBuffEffect):
+        steps = int(getattr(e, "steps", 0) or 0)
+        if not steps:
+            return None
+        unit = "点" if e.stat_key == "speed" else "步"
+        return f"{name} {e.stat_key}{steps:+d}{unit}{tail}"
+    stacks = int(getattr(e, "stacks", 0) or 0)
+    if isinstance(e, (AbnormalEffect, MarkEffect)):
+        if not stacks:
+            return None
+        return f"{name}×{stacks}层{tail}"
+    return f"{name}{tail}" if ttl else None
+
+
 def _skill_line(i: int, sk, energy: int) -> str:
     bits = [f"({i}) {sk.name}", _kind(sk), sk.element or "-", f"能耗{sk.energy_cost}"]
     if sk.is_attack:
@@ -187,10 +222,7 @@ def _side_block(battle, player, label: str) -> list[str]:
     mods = {k: round(float(v), 3) for k, v in getattr(act, "_modifiers", {}).items() if v}
     if mods:
         lines.append(f"      强化/修正：{mods}")
-    eff = [f"{getattr(e, 'name', '?')}×{int(getattr(e, 'stacks', 0) or 0)}"
-           f"(剩{int(getattr(e, 'ttl', 0) or 0)}回合)"
-           for e in getattr(act, "active_effects", [])
-           if int(getattr(e, "stacks", 0) or 0) or int(getattr(e, "ttl", 0) or 0)]
+    eff = [b for b in (_effect_brief(e) for e in getattr(act, "active_effects", [])) if b]
     if eff:
         lines.append(f"      状态：{'、'.join(eff)}")
     lines.append("      可用技能：")
@@ -258,7 +290,7 @@ def _team_sheet(player, label: str, name: str) -> str:
         lines.append(f"  ({i}) {sp.name:<12} {'/'.join(sp.species.elements):<6}"
                      f" HP {sp.max_hp:<4} 速度 {sp.effective_stat('speed'):<4}"
                      f" 血脉 {sp.bloodline or '-'}"
-                     f"  技能：{' / '.join(sk.name for sk in sp.skills)}")
+                     f"  技能：{' '.join(_skill_brief(sk) for sk in sp.skills)}")
     return "\n".join(lines)
 
 
@@ -845,7 +877,8 @@ _RULES_SECTION = """\
 ## 引擎口径（你必须知道的固定规则）
 
 - 6v6 团队战：每方 4 点心力，**我方每力竭 1 只精灵 −1 点**，心力先归零的一方判负。
-- 同一回合**双方同时出招**：先手值高的先动，同先手则速度高的先动。
+- 同一回合**双方同时出招**，出手顺序：先手值高的先动；先手值相同则比（印记减速后的）速度；
+  **两者都相同则由引擎抛硬币（50/50，无法预判）**——所以镜像对位别默认自己先手。
 - 技能分 攻击 / 防御 / 状态 三类，存在猜拳环：**防御克攻击、攻击克状态、状态克防御**。
   打出克制的一侧得到应对加成（减伤 / 威力倍率）；**被应对的一侧会被再打一次该技能的基础伤害**。
   技能上标的 `应对:X` 表示它只对 X 类攻击生效。
@@ -910,10 +943,38 @@ def _damage_section(battle, side: str) -> str:
     if not shown:
         lines.append("  · （对手本回合没有可用攻击"
                      + (f"：{'；'.join(reasons[:2])}" if reasons else "") + "）")
-    if best:
+    elif best:
         lines.append(f"  · 对手本回合最高 ≈ {best}"
                      f"（我剩余 {mine.current_hp}，"
                      f"{'扛得住' if best < mine.current_hp else '扛不住一次'}）")
+    # 换人候选的收益/代价（选手反复要"换人后能打多少、会挨多少"）
+    from backend.sim.tactics import switch_in_damage
+
+    bench = [sp for i, sp in enumerate(me.team)
+             if i != me.active_index and not sp.is_fainted]
+    if bench:
+        lines.append(f"- 换人候补（换上后本回合：它打你约 / 你打它约 / 印记进场伤害）：")
+        for sp in bench:
+            take = 0
+            for sk in theirs.skills:
+                if not sk.is_attack or _skill_blocked(sk, theirs.energy):
+                    continue
+                try:
+                    take = max(take, estimate_damage(battle, theirs, sp, sk, other))
+                except Exception:
+                    continue
+            give = 0
+            for sk in sp.skills:
+                if not sk.is_attack or sk.energy_cost > sp.energy:
+                    continue
+                try:
+                    give = max(give, estimate_damage(battle, sp, theirs, sk, side))
+                except Exception:
+                    continue
+            entry = switch_in_damage(battle, side, sp)
+            extra = f"，进场再吃 {entry}" if entry else ""
+            lines.append(f"  · {sp.name}（HP {sp.current_hp}/{sp.max_hp}，能量 {sp.energy}）："
+                         f"挨约 {take} / 打约 {give}{extra}")
     return "\n".join(lines)
 
 

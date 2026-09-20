@@ -33,6 +33,7 @@ import random
 from dataclasses import dataclass, field
 
 from . import ev
+from . import plan
 from .action import Action
 from .agent import _GATHER_ACTION, _ITEM_ACTION, _skill_action, _switch_action
 from .battleskill import SkillUse
@@ -48,6 +49,7 @@ from .tactics import (
 )
 
 _WEAK_ATTACK_RATIO = 0.12  # 最强攻击 < 12% 对手 HP 视为"缺乏有效输出"
+_PLAN_MAX_CANDIDATES = 7   # 规划层的技能候选上限（rollout 成本 ∝ 候选数 × 响应数）
 
 # 交换价值（蒸馏自决策审计 `native/tools/audit_ruleagent_decisions.py`）：
 # 能一击斩杀、但我出手前会被打死时，旧版一律撤人 —— 那等于"拿残的换好的也不敢打"。
@@ -135,6 +137,14 @@ class SpriteStrategy:
     # 0.525 / 0.509 → 合并 0.517 [0.504,0.530]（CI 下界 > 0.5）；平局记 0.5 的分数 Δ +0.066/+0.024。
     # 默认开启；`--ab status` 可随时复测。
     status_counter: bool = True
+    # ── E2 规划层（`backend/sim/plan.py`）──
+    # > 0 时：把"可负担攻击里取最高即时伤害"这条贪心换成**一回合 rollout + 效果感知叶子**
+    # 的决策（候选 = 可用攻击/最佳状态技/2 个换人/gather，对手响应 = 攻击/防御/状态/换人/聚能
+    # 里的前 k 个）。手写的特例（斩杀/防御/撤人/状态反制/道具）在两条路上都保留，
+    # 所以同局配对 A/B 量的就是"贪心 vs 规划"本身。
+    # 成本：每次决策 ≈ 候选数 × 响应数 个 headless 回合。
+    plan_depth: int = 0            # 视野回合数（1 = 只看本回合；建议先用 1）
+    plan_responses: int = 3        # 对手响应集大小
 
 
 @dataclass
@@ -164,6 +174,8 @@ class RuleAgentV2:
         self.belief_params = belief_params
         # 最近一次决策的期望值/信念（审计与测试用；不影响行为）
         self.last_ev: dict | None = None
+        # 最近一次规划层的诊断（候选/响应/各候选价值；不影响行为）
+        self.last_plan: dict | None = None
         # 信念注入点：可调用对象 (battle) -> {列: 概率}，用于剥削者/校准模型覆盖
         # `belief.py` 的手设先验（None = 用先验）。见 native/tools/eval_prediction_mix.py。
         self.belief_provider = None
@@ -213,6 +225,29 @@ class RuleAgentV2:
         if cand.kind == 'switch':
             return _switch_action(cand.index)
         return _GATHER_ACTION
+
+    # ── 规划层（E2）──
+
+    def _plan_candidates(self, battle, s, opp, table, st: SpriteStrategy) -> list:
+        """rollout 决策的候选动作：**全部**可用技能 + 安全替补 + 聚能。
+
+        与 `_ev_candidates` 的区别：这里**不套**"打不动就别打"的能量纪律 —— 那条纪律本身
+        就是被规划取代的贪心启发式的一部分；哪些招值得出交给 rollout 的价值来判。
+        代价是候选变多，所以按"即时伤害 + 效果条数"粗排后截到 `_PLAN_MAX_CANDIDATES` 个。
+        """
+        attack_dmg = {i: dmg for i, dmg, _cost in table}
+        scored: list[tuple[float, Action]] = []
+        for i, skill in enumerate(s.skills):
+            if skill.cooldown > 0 or skill.sealed or skill.energy_cost > s.energy:
+                continue
+            score = float(attack_dmg.get(i, 0)) + 20.0 * len(skill.effects or [])
+            scored.append((score, _skill_action(i)))
+        for idx in self._safe_bench(battle, self.player):
+            scored.append((0.0, _switch_action(idx)))
+        scored.sort(key=lambda x: -x[0])
+        out = [act for _score, act in scored[:_PLAN_MAX_CANDIDATES]]
+        out.append(_GATHER_ACTION)
+        return out
 
     # ── 通用计算 ──
 
@@ -435,6 +470,17 @@ class RuleAgentV2:
                 if cands:
                     best = max(cands, key=lambda sk: (len(sk.effects), -sk.energy_cost))
                     return _skill_action(s.skills.index(best))
+
+        # ── 3″. 规划（E2）：一回合 rollout + 效果感知叶子（`plan_depth > 0` 时启用）──
+        # 取代下面的"最高即时伤害贪心"与"强化只在打不出招时兜底"两条；手写的特例
+        # （斩杀/防御/撤人/状态反制/道具）在两条路上都保留，A/B 量的就是这一处替换。
+        if st.plan_depth > 0:
+            cands = self._plan_candidates(battle, s, opp, table, st)
+            picked, info = plan.choose(battle, self.team, cands, plies=st.plan_depth,
+                                       k_responses=st.plan_responses, rng=random)
+            self.last_plan = info
+            if picked is not None:
+                return picked
 
         # ── 3. 进攻（旧启发式，ev_decide=False 时的路径）：可负担攻击中取最高伤害 ──
         # energy_hold：无斩杀窗口时低于能量预算不泄招，攒大招（能量管理）

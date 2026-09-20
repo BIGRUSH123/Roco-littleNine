@@ -410,6 +410,11 @@ class Battle(BattleMechanicsMixin):
                 # ObserverEffect）的效果对象追加到列表末尾，顺序污染跨 sim 泄漏。
                 saved_effects = s["effects"]
                 sprite.active_effects = [snap[0] for snap in saved_effects]
+                # 派生缓存必须失效：`_cached_stages`（以及 abnormals/positive 等）由
+                # `replayer._sync_stat_buff_effect` 增量维护，**不在快照里**。仿真（MCTS /
+                # 规划层 rollout）里加过/减过属性效果后，缓存会停在仿真后的值；
+                # 不回滚缓存的话，恢复出的真实局面会按仿真中的层数算六维。
+                sprite._effects_dirty = True
                 # 恢复保存的效果状态（TTL/stacks/scope/steps）
                 for snap in saved_effects:
                     e = snap[0]

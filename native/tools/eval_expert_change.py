@@ -50,17 +50,21 @@ from backend.engine.ai.data.sprite_random_pool import SPRITE_RANDOM_POOL  # noqa
 from backend.sim.agent_v2 import RuleAgentV2, SpriteStrategy, TeamStrategy  # noqa: E402
 from backend.sim.factory import SimFactory  # noqa: E402
 
-NEW_VALUES = {"trade": 0.15, "antiloop": True, "defend": 0.30, "status": True}
-OLD_VALUES = {"trade": 1e9, "antiloop": False, "defend": 0.0, "status": False}
+NEW_VALUES = {"trade": 0.15, "antiloop": True, "defend": 0.30, "status": True, "plan": 1}
+OLD_VALUES = {"trade": 1e9, "antiloop": False, "defend": 0.0, "status": False, "plan": 0}
 _AB_FIELDS = {"trade": "trade_margin", "antiloop": "anti_switch_loop",
-              "defend": "defend_threshold", "status": "status_counter"}
+              "defend": "defend_threshold", "status": "status_counter",
+              "plan": "plan_depth"}
 # `both` = 三条蒸馏规则（trade+antiloop+defend，语义固定，便于与历史数字对照）；
 # `all` = 再加状态反制（status_counter）。
 _BUNDLES = {"both": ["trade", "antiloop", "defend"],
             "no_defend": ["trade", "antiloop"],
             "all": ["trade", "antiloop", "defend", "status"],
             # 当前出厂默认（防御层默认关闭 + 状态反制默认开启）
-            "shipped": ["trade", "antiloop", "status"]}
+            "shipped": ["trade", "antiloop", "status"],
+            # E2 规划层：把"最高即时伤害贪心"换成 1 回合 rollout + 效果感知叶子
+            # （`backend/sim/plan.py` + `backend/sim/value.py`）
+            "plan": ["plan"]}
 
 
 def parse_args() -> argparse.Namespace:
@@ -68,7 +72,7 @@ def parse_args() -> argparse.Namespace:
     ap.add_argument("--games", type=int, default=600, help="总对局数（每对两局，交换执 A/B）")
     ap.add_argument("--ab", default="both",
                     choices=("trade", "antiloop", "defend", "status",
-                             "both", "no_defend", "all", "shipped"))
+                             "both", "no_defend", "all", "shipped", "plan"))
     ap.add_argument("--meta-frac", type=float, default=0.6)
     ap.add_argument("--max-turns", type=int, default=40)
     ap.add_argument("--seed", type=int, default=2026)

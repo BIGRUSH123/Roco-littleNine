@@ -86,18 +86,21 @@ def _to_action(player, idx: int):
 
 
 def describe(player, action) -> str:
+    return describe_sprite(getattr(player, "active", None), action)
+
+
+def describe_sprite(sprite, action) -> str:
+    """按**当时**的技能表描述动作（传动会换槽，用回合后的表描述会标错技能名）。"""
     if action is None:
         return "None"
     if action.kind == "skill":
-        skills = player.active.skills if player.active else []
+        skills = getattr(sprite, "skills", []) or []
         if 0 <= action.skill_index < len(skills):
             sk = skills[action.skill_index]
             kind = "攻击" if sk.is_attack else ("防御" if sk.is_defense else "状态")
             return f"技能 {sk.name}（{kind}）"
         return f"技能槽{action.skill_index}"
     if action.kind == "switch":
-        if 0 <= action.switch_index < len(player.team):
-            return f"换人 {player.team[action.switch_index].name}"
         return f"换人槽{action.switch_index}"
     return {"item": "道具", "gather": "聚能"}.get(action.kind, action.kind)
 
@@ -273,10 +276,11 @@ def rollout(battle, side: str, my_action, their_action, plies: int = 1,
 # ══════════════════════════════════════════════════════════════════
 
 def audit_decision(battle, side: str, agent, k_responses: int, records: list[dict],
-                   plies: int, agents: dict | None, chosen_action, chosen_player) -> None:
+                   plies: int, agents: dict | None, chosen_action, chosen_label=None) -> None:
     """从**回合前快照**回滚做 rollout；专家只被调用一次（由调用方在真回合里调用）。
 
-    `chosen_action/chosen_player` 是实录的专家选择 —— 先走真回合拿到它，再回滚局面做评估，
+    `chosen_action/chosen_label` 是实录的专家选择（label 按**当时**的技能表定名——
+    传动会换槽，用回合后的表描述会标错技能名）—— 先走真回合拿到它，再回滚局面做评估，
     这样既不会二次调用专家（它带内部状态，二次调用可能给出不同答案），
     也不会让 rollout 污染对局（结束时恢复到真回合之后的状态）。
     """
@@ -315,6 +319,7 @@ def audit_decision(battle, side: str, agent, k_responses: int, records: list[dic
     best_idx = max(values, key=lambda i: values[i])
     records.append({"side": side, "turn": battle.turn,
                     "chosen": chosen_idx, "chosen_action": chosen_action,
+                    "chosen_label": chosen_label,
                     "values": values, "best": best_idx, "best_value": values[best_idx],
                     "player": player, "opp": opp,
                     "my_name": player.active.name, "opp_name": opp.active.name,
@@ -334,7 +339,8 @@ class _Recorder:
     def choose_action(self, battle):
         act = self.agent.choose_action(battle)
         player = battle.player_a if self.team == "A" else battle.player_b
-        self.log.append((self.team, act, player.active))
+        label = describe_sprite(player.active, act)   # 按当时的技能表定名
+        self.log.append((self.team, act, player.active, label))
         return act
 
     def choose_lead(self, battle) -> int:
@@ -361,6 +367,8 @@ def main() -> None:
                     help="rollout 视野回合数（1 = 只看本回合；2 = 看铺垫的回报）")
     ap.add_argument("--leaf", default="board", choices=("board", "value"),
                     help="叶子口径：board = 官方局面分；value = E1 效果感知估值")
+    ap.add_argument("--agent", default="rule", choices=("rule", "plan"),
+                    help="被审计的选手：rule = 现役专家；plan = 开了规划层（E2）的专家")
     ap.add_argument("--epsilon", type=float, default=0.05,
                     help="regret 判「踩空」的阈值（局面分单位，0.05 ≈ 1/5 点心力）")
     ap.add_argument("--worst", type=int, default=8)
@@ -375,6 +383,14 @@ def main() -> None:
     kinds = Counter()
     unaudited = 0
     games_done = 0
+
+    def make_agent(team: str, player):
+        if args.agent == "plan":
+            from backend.sim.agent_v2 import SpriteStrategy, TeamStrategy
+
+            st = SpriteStrategy(plan_depth=1, plan_responses=3)
+            return RuleAgentV2(team, player, strategy=TeamStrategy(default=st))
+        return RuleAgentV2(team, player)
 
     for g in range(args.games):
         cfg = {"team_a": args.team_a, "team_b": args.team_b, "seed": args.seed + g,
@@ -397,10 +413,10 @@ def main() -> None:
         except Exception as exc:
             print(f"  建局失败（seed {cfg['seed']}）：{exc}", file=sys.stderr)
             continue
-        ag_a, ag_b = RuleAgentV2("A", battle.player_a), RuleAgentV2("B", battle.player_b)
+        ag_a, ag_b = make_agent("A", battle.player_a), make_agent("B", battle.player_b)
         if args.plies > 1:  # 续走用的独立实例，别动真专家
-            sim_agents = {"A": RuleAgentV2("A", battle.player_a),
-                          "B": RuleAgentV2("B", battle.player_b)}
+            sim_agents = {"A": make_agent("A", battle.player_a),
+                          "B": make_agent("B", battle.player_b)}
         else:
             sim_agents = None
         while not battle.is_finished and battle.turn < args.max_turns:
@@ -420,9 +436,9 @@ def main() -> None:
             post_rng = random.getstate()
 
             first: dict[str, tuple] = {}
-            for team, act, sprite in logged:
+            for team, act, sprite, label in logged:
                 kinds[kind_of_sprite(sprite, act)] += 1
-                first.setdefault(team, (act, sprite))
+                first.setdefault(team, (act, sprite, label))
             try:
                 for side, agent in (("A", ag_a), ("B", ag_b)):
                     if side not in first:
@@ -430,7 +446,7 @@ def main() -> None:
                     battle.restore_mutable_state(pre)
                     random.setstate(pre_rng)
                     audit_decision(battle, side, agent, args.k_responses, records,
-                                   args.plies, sim_agents, first[side][0], None)
+                                   args.plies, sim_agents, first[side][0], first[side][2])
                     if records:
                         records[-1].setdefault("game", g + 1)
                     if records and records[-1]["chosen"] not in records[-1]["values"]:
@@ -508,7 +524,7 @@ def report(records, kinds, games_done, unaudited, args) -> None:
         pl = rec["player"]
         print(f"   · G{rec.get('game', '?')} T{rec['turn']:<2} [{rec['side']}] "
               f"{rec['my_name']} vs {rec['opp_name']}"
-              f"  实际 {describe(pl, rec['chosen_action'])}"
+              f"  实际 {rec.get('chosen_label') or describe(pl, rec['chosen_action'])}"
               f"（{rec['values'][rec['chosen']]:+.3f}）"
               f"  →  最优 {describe(pl, _to_action(pl, rec['best']))}"
               f"（{rec['best_value']:+.3f}）  regret {regrets[pos]:.3f}")
