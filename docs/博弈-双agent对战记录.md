@@ -94,22 +94,39 @@ B 的打法更接近复盘里鬼叔的底色（轮转 + 应对 + 强化），但
 
 - **换人频率**：LLM 两边换人 5–6 次/20 回合（25–30%），我们的专家约 13–14%——它们是"主动轮转"，我们是"残血才换"。
 - **防御/状态**：它们 20% / 我们 3%——两边都在用防御读攻击、用状态吃减伤后的窗口。
-- **道具**：两边都**没用**道具（0/1、0/2）。复盘里小辞正是靠"愿力换血脉技能"赢的，
-  但两个 agent 在 20 回合里一次都没想起来用——**这一层"复盘的教案"没有被 agent 内化**。
+- **道具**：A 的「进化之力」**整局不可用**——旧版建局把血脉一起剥掉了（`_neutralize` 连
+  `bloodline` 一起 pop），圣剑-X 的「首领」血脉一丢就没有首领形态候选（探针复核：候选形态 = 0）；
+  B 的「愿力」全程可用（每只上场精灵都有可换出的血脉技能：羽翼庇护/火焰箭/风矢/离子震荡/恶能量/角击），
+  B 一次没用 —— **这条才是 agent 的真实漏洞**。（新 harness 建局只中立天赋/性格、保留血脉，
+  并在提示词里逐回合写明道具是否可用及原因。）
 - **印记**：全程 0 层。复盘把星陨印记当核心，agent 里也没体现（B 的尖嘴狐仙 有 焚烧烙印 但没用）。
 
 ## 4. 复现
 
+本局当时是**手敲 `init`/`show`/`step`** 打的，容易出错（静默降级成聚能、按索引下指令撞上轮换技能槽等）。
+`duel_harness.py` 已改为**固定流程**（v3，见该文件 docstring）：程序负责提示词 / 严格校验 / 结算 / 记录，
+外部 agent 只写 `answer_<侧>.json` 与 `note_<侧>.txt`（自报"缺什么信息"）。
+
 ```powershell
-# 建局（A = meta 库第 31 支，B = 复盘队）
-env\python.exe native\tools\duel_harness.py init --dir _duel --team-a meta:31 `
-    --team-b file:native/tools/duel_teams/pro.json --lead-a 5 --lead-b 0
-# 逐回合（动作按**技能名/精灵名**下达；item 走引擎自己的道具循环）
-env\python.exe native\tools\duel_harness.py step --dir _duel --a "skill 水刃" --b "技能名" ...
-# 看局面（persp=A/B 切换"我方"视角）
-env\python.exe native\tools\duel_harness.py show --dir _duel --persp B
+# ① 建局：写出第 1 回合两份提示词 + 子 agent 指令
+env\python.exe native\tools\duel_harness.py new --dir _duel\r1 --team-a meta:31 `
+    --team-b file:native/tools/duel_teams/pro.json --lead-a 5 --lead-b 0 `
+    --brief-a wiki/对局记录/单局记录/洛神杯B组_鬼叔vs小慈.md `
+    --brief-b wiki/对局记录/单局记录/洛神杯B组_鬼叔vs小慈.md
+# ② 把 _duel/r1/dispatch_A.txt、dispatch_B.txt 原样发给两个子 agent（它们写 answer/note 两个文件）
+# ③ 受理（非法答案当场报错并给出真实可选项，回合不消耗）
+env\python.exe native\tools\duel_harness.py answer --dir _duel\r1 --side A
+env\python.exe native\tools\duel_harness.py answer --dir _duel\r1 --side B
+# ④ 结算 → 自动写下一回合提示词
+env\python.exe native\tools\duel_harness.py apply --dir _duel\r1
+# ⑤ 记录（逐手 + 两侧提示词 sha256 + 选手自报缺口）
+env\python.exe native\tools\duel_harness.py record --dir _duel\r1
+# 辅助：菜单 vs 引擎对拍 / 汇总自报缺口 / 看局面
+env\python.exe native\tools\duel_harness.py selftest --dir _duel\r1
+env\python.exe native\tools\duel_harness.py notes --dir _duel\r1
+env\python.exe native\tools\duel_harness.py show --dir _duel\r1 --persp B
 ```
-动作日志：`_duel/actions.jsonl`（每条含两侧指令 + 换人顺序 + 结果回合；`_duel/` 是运行残留目录，不入库）。
+对局工作目录（config/提示词/答案/记录）默认 `_duel/`，是运行残留、不入库；队伍规格放 `native/tools/duel_teams/`。
 
 ## 5. 顺带发现 → 已修复
 
