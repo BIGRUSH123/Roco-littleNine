@@ -20,6 +20,7 @@ class ActionRecord:
     kind: str           # 'skill' | 'gather' | 'switch' | 'item'
     skill_name: str = ''  # 技能名（kind != skill 时可为空）
     events: list[str] = field(default_factory=list)
+    branch: str = ''      # 「选择」分支名（无分支/未选为空；置尾保持位置参数兼容）
 
 
 @dataclass(slots=True)
@@ -65,7 +66,8 @@ class RoundRecord:
         for ar in (self.action_a, self.action_b):
             if ar is None:
                 continue
-            lines.append(f'>>>ACTION:{ar.team}:{ar.kind}:{ar.actor}:{ar.skill_name}')
+            branch_part = f'@{ar.branch}' if ar.branch else ''
+            lines.append(f'>>>ACTION:{ar.team}:{ar.kind}:{ar.actor}:{ar.skill_name}{branch_part}')
             for e in ar.events:
                 lines.append(f'  {e}')
             lines.append('<<<ACTION')

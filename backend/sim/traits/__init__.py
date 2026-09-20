@@ -84,6 +84,15 @@ def dispatch_entry(sprite: Sprite, battle: Battle, team: str) -> list[str]:
     if sprite.entry_turn == 0:
         sprite.entry_turn = battle.turn
 
+    # 盘根木：首次入场时生命为最大值的 10%
+    try:
+        _h = get_trait(sprite)
+        if _h is not None and _h.name == "盘根木" and sprite.get_counter("盘根木_initialized") == 0:
+            sprite.inc_counter("盘根木_initialized")
+            sprite.current_hp = max(1, round(sprite.max_hp * 0.1))
+    except Exception:
+        pass
+
     # IR_GUIDE trait pipeline: load trait JSON → compile observers → register
     with contextlib.suppress(Exception):
         battle._vm_engine.trait_loader.load_for_sprite(sprite)
@@ -140,4 +149,5 @@ def dispatch_turn_start(sprite: Sprite, battle: Battle, team: str) -> list[str]:
     h = get_trait(sprite)
     return h.on_turn_start(sprite, battle, team) if h else []
 
-
+# 引擎级 hook 回调注册（不死鸟 on_fatal_damage 等）
+from . import _hooks as _hooks_reg  # noqa: F401,E402

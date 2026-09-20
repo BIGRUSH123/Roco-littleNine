@@ -174,6 +174,21 @@ class ModOp:
     priority: int = 0
 
 @dataclass(frozen=True, slots=True)
+class DevotionOp:
+    """devotion — 队伍奉献注册（原 op:"mod" stat="devotion" 专用化）。"""
+    target: str
+    value: IRValue
+    mode: str = "add"
+    scope: str = "battlefield"
+    name: str | None = None
+    then: list | None = None
+    ttl: int = 0
+    source: str | None = None
+    feeds: str = ""
+    needs: str = ""
+    priority: int = 0
+
+@dataclass(frozen=True, slots=True)
 class HitOp:
     power: IRValue
     type: str
@@ -394,6 +409,15 @@ class Schedule:
     needs: str = ""
     priority: int = 0
 
+
+@dataclass(frozen=True, slots=True)
+class ReplayChoiceOp:
+    """replay_branch — 重放当前「选择」技能的另一支/相同一支（有求必应/一意孤行）。"""
+    which: str = "other"                         # "other" | "same"
+    feeds: str = ""
+    needs: str = ""
+    priority: int = 0
+
 @dataclass(frozen=True, slots=True)
 class InheritEffects:
     """Transfer effects from one sprite to another on switch."""
@@ -455,12 +479,106 @@ class BurstGrantOp:
     priority: int = 0
 
 
+@dataclass(frozen=True, slots=True)
+class AuraOp:
+    """RISC: aura — 按命名计数源持续重算的属性修饰。
+
+    stat 每满一个 count 单位 +per_unit 步（1 步 = 10%；speed 为 10 点）。
+    count 指向引擎计数源注册表（backend.engine.auras.COUNT_SOURCES）中的名字，
+    例如 "mark_kinds_both" / "positive_kinds_both" / "lethal_forecast"。
+    可复用于任何「每有 X 便获得 Y」的持续型特性。
+    """
+    target: str = "sprite_self"
+    stat: str = ""
+    per_unit: int = 1
+    count: str = ""
+    count_params: dict | None = field(default=None, hash=False, compare=False)
+    scope: str = "battlefield"
+    affects: str = "self"      # "self" | "both"（both = 场上双方）
+    source: str | None = None
+    feeds: str = ""
+    needs: str = ""
+    priority: int = 0
+
+
+@dataclass(frozen=True, slots=True)
+class ElementConvertOp:
+    """RISC: element_convert — 在场时把命中的技能属性转换为另一属性。"""
+    target: str = "sprite_self"
+    from_element: str = ""
+    to_element: str = ""
+    skill_filter: str | None = None
+    skill_where: dict | None = field(default=None, hash=False, compare=False)
+    scope: str = "battlefield"
+    affects: str = "self"      # "self" | "both"（both = 场上双方）
+    source: str | None = None
+    feeds: str = ""
+    needs: str = ""
+    priority: int = 0
+
+
+@dataclass(frozen=True, slots=True)
+class MorphOp:
+    """RISC: morph — 巧变授予：命中的技能每次使用后变为 category 类别的技能。
+
+    category 指向引擎巧变池注册表（backend.engine.morph.POOL_BUILDERS）。
+    """
+    target: str = "sprite_self"
+    category: str | dict = "same_element"
+    skill_filter: str | None = None
+    skill_where: dict | None = field(default=None, hash=False, compare=False)
+    scope: str = "battlefield"
+    affects: str = "self"      # "self" | "both"（场上双方） | "team"（己方队伍，含场下）
+    source: str | None = None
+    feeds: str = ""
+    needs: str = ""
+    priority: int = 0
+
+
+@dataclass(frozen=True, slots=True)
+class GrantChoiceOp:
+    """RISC: grant_choice — 为命中技能（或聚能行动）附加一个可选分支。
+
+    action="" 作用于技能（按 skill_filter/skill_where 匹配）；
+    action="gather" 作用于聚能行动（记录在精灵上）。
+    """
+    target: str = "sprite_self"
+    action: str = ""
+    name: str = ""
+    choices: tuple = ()
+    skill_filter: str | None = None
+    skill_where: dict | None = field(default=None, hash=False, compare=False)
+    element: str | None = None
+    scope: str = "battlefield"
+    affects: str = "self"      # "self" | "both"（both = 场上双方）
+    source: str | None = None
+    feeds: str = ""
+    needs: str = ""
+    priority: int = 0
+
+
+@dataclass(frozen=True, slots=True)
+class CounterOp:
+    """RISC: counter — 读改精灵级计数器（累积/重置，跨回合持久）。"""
+    target: str = "sprite_self"
+    key: str = ""
+    delta: IRValue | None = None
+    value: IRValue | None = None
+    mode: str = "add"          # "add" | "set"
+    scope: str = "persistent"
+    source: str | None = None
+    feeds: str = ""
+    needs: str = ""
+    priority: int = 0
+
+
 SkillIROp = (
     # RISC register-modifying ops
     StatStageOp | PowerModOp | MultModOp | FlagSetOp |
-    HealOp | EnergizeOp | ReviveOp |
-    # Legacy mega-opcode (backward compat)
-    ModOp |
+    HealOp | EnergizeOp | ReviveOp | CounterOp | AuraOp |
+    ElementConvertOp | MorphOp | GrantChoiceOp |
+    # Team resources
+    DevotionOp |
     # Specialist ops
     HitOp | MarkOp | AbnormalOp | WeatherOp |
     DispelOp | StealOp | TickOp | DoubleOp | EffectDeltaOp | ChargeOp |
@@ -469,9 +587,8 @@ SkillIROp = (
     BorrowOp | CountOp | WhenBlock |
     TeamCounterWrite | LivesChange | Schedule |
     InheritEffects | Transform | TraitInteraction |
-    GainSkills | BurstGrantOp
+    GainSkills | BurstGrantOp | ReplayChoiceOp
 )
-
 
 # ── Compiled skill (frozen output of SkillCompiler) ──
 
@@ -493,3 +610,5 @@ class CompiledSkill:
     use_devotion: bool = False
     usable_while_charging: bool = False
     position_locked: bool = False
+    # 「选择」分支（明/暗 等）：每项 {"name", "cond"(dict|None), "effects"(tuple)}
+    choices: tuple = ()

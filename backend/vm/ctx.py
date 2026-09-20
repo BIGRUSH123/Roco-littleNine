@@ -145,6 +145,8 @@ class Ctx:
     lives_opp: int = 5                   # opponent team lives
     burst_triggered_count_own: int = 0   # distinct burst types triggered by own team
     moe_team_stacks: int = 0             # total 萌化 stacks on own team (excluding self)
+    counters_self: dict[str, int] = field(default_factory=dict)  # sprite counters {key: n}
+    counters_opp: dict[str, int] = field(default_factory=dict)   # opponent sprite counters
 
     # ── 技能（当前发动的技能） ──
     power_self: int = 0                  # skill base power
@@ -179,6 +181,7 @@ class Ctx:
     weather: str = ""                    # current weather
     turn: int = 0
     is_first: bool = False               # this skill is first action this turn
+    is_night: bool = False               # 王国入夜（世界状态，由对局配置写入）
 
     # ── 计次器快照 ──
     counter_values: dict[str, int] = field(default_factory=dict)  # {name: count}
@@ -244,6 +247,8 @@ class Ctx:
         other.devotion_opp = dict(self.devotion_own)
         other.fainted_own, other.fainted_opp = self.fainted_opp, self.fainted_own
         other.lives_own, other.lives_opp = self.lives_opp, self.lives_own
+        other.counters_self = dict(self.counters_opp)
+        other.counters_opp = dict(self.counters_self)
 
         return other
 
@@ -340,6 +345,7 @@ ADDRESS_MAP: dict[tuple[str, str], str] = {
     ("team_own", "elements"):              "team_elements_own",
     ("team_own", "moe_stacks"):          "moe_team_stacks",
     ("sprite_self", "lives"):            "lives_own",
+    ("sprite_self", "counter"):          "counters_self",
 
     # team_opp
     ("team_opp", "mark_count"):            "mark_count_opp",
@@ -350,6 +356,10 @@ ADDRESS_MAP: dict[tuple[str, str], str] = {
     ("team_opp", "lives"):               "lives_opp",
     ("team_opp", "elements"):              "team_elements_opp",
     ("sprite_opp", "lives"):             "lives_opp",
+    ("sprite_opp", "counter"):           "counters_opp",
+
+    # battle (世界状态)
+    ("battle", "is_night"):                "is_night",
 
     # skill_off_0 (current attacking skill)
     ("skill_off_0", "power_base"):         "power_self",

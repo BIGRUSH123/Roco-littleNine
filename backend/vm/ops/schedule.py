@@ -90,12 +90,12 @@ def _freeze_op(op, ctx: Ctx):
     """Freeze IRValues in a SkillIROp dataclass, recursing into nested containers."""
     from ..ir_skill import (
         AbnormalOp,
+        DevotionOp,
         EnergizeOp,
         FlagSetOp,
         HealOp,
         HitOp,
         MarkOp,
-        ModOp,
         MultModOp,
         PowerModOp,
         ReviveOp,
@@ -126,7 +126,7 @@ def _freeze_op(op, ctx: Ctx):
             return dataclasses.replace(op, delta=_freeze_value(d, ctx))
         case ReviveOp(hp_ratio=h) if h is not None:
             return dataclasses.replace(op, hp_ratio=_freeze_value(h, ctx))
-        case ModOp(value=v):
+        case DevotionOp(value=v):
             return dataclasses.replace(op, value=_freeze_value(v, ctx))
         case HitOp(power=p):
             return dataclasses.replace(op, power=_freeze_value(p, ctx))
@@ -150,9 +150,9 @@ def _freeze_nested(op, ctx: Ctx):
         AbnormalOp,
         BurstGrantOp,
         CountOp,
+        DevotionOp,
         EscapeOp,
         MarkOp,
-        ModOp,
         Schedule,
         WhenBlock,
     )
@@ -182,7 +182,7 @@ def _freeze_nested(op, ctx: Ctx):
             return dataclasses.replace(op, then=_freeze_effects(t, ctx))
         case AbnormalOp(then=t) if t:
             return dataclasses.replace(op, then=_freeze_effects(t, ctx))
-        case ModOp(then=t) if t:
+        case DevotionOp(then=t) if t:
             return dataclasses.replace(op, then=_freeze_effects(t, ctx))
 
     return op

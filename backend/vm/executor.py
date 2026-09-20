@@ -15,18 +15,23 @@ from .ctx import Ctx
 # V2: Typed IR ops for match/case dispatch
 from .ir_skill import (
     AbnormalOp,
+    AuraOp,
     BorrowOp,
     BurstGrantOp,
     ChargeOp,
     CountOp,
+    CounterOp,
+    DevotionOp,
     DispelOp,
     DoubleOp,
     EffectDeltaOp,
+    ElementConvertOp,
     EnergizeOp,
     EscapeOp,
     ExchangeOp,
     FlagSetOp,
     GainSkills,
+    GrantChoiceOp,
     HealOp,
     HitOp,
     InheritEffects,
@@ -34,10 +39,11 @@ from .ir_skill import (
     LivesChange,
     LockOp,
     MarkOp,
-    ModOp,
+    MorphOp,
     MultModOp,
     PowerModOp,
     RedirectOp,
+    ReplayChoiceOp,
     ReplayOp,
     ResetOp,
     ReturnOp,
@@ -54,6 +60,14 @@ from .ir_skill import (
 )
 from .journal import Journal, Mutation
 from .ops.abnormal import op_abnormal
+from .ops.abnormal import op_abnormal
+from .ops.aura import (
+    op_aura,
+    op_counter,
+    op_element_convert,
+    op_grant_choice,
+    op_morph,
+)
 from .ops.borrow import op_borrow
 from .ops.burst_grant import op_burst_grant
 from .ops.charge import op_charge
@@ -73,10 +87,10 @@ from .ops.mark import op_mark
 
 # Import all op handlers
 from .ops.mod import (
+    op_devotion,
     op_energize,
     op_flag_set,
     op_heal,
-    op_mod,
     op_mult_mod,
     op_power_mod,
     op_revive,
@@ -84,6 +98,7 @@ from .ops.mod import (
 )
 from .ops.redirect import op_redirect
 from .ops.replay import op_replay
+from .ops.replay_branch import op_replay_branch
 from .ops.reset import op_reset
 from .ops.return_ import op_return
 from .ops.schedule import op_schedule
@@ -164,12 +179,7 @@ def process_effects(ctx: Ctx, effects) -> list[Mutation]:
     for op in effects:
         t = type(op)
         # ── Top-8 hot-path inlined dispatch ──
-        if t is ModOp:
-            if op.on_next:
-                journal.extend(_defer_mod(ctx, op))
-            else:
-                journal.extend(op_mod(ctx, op))
-        elif t is StatStageOp:
+        if t is StatStageOp:
             journal.extend(op_stat_stage(ctx, op))
         elif t is PowerModOp:
             journal.extend(op_power_mod(ctx, op))
@@ -235,8 +245,6 @@ def process_one(ctx: Ctx, op) -> list[Mutation]:
     match op:
         case WhenBlock():
             return _process_whenblock(ctx, op)
-        case ModOp(on_next=True):
-            return _defer_mod(ctx, op)
         # RISC register-modifying ops
         case StatStageOp():
             return op_stat_stage(ctx, op)
@@ -252,9 +260,9 @@ def process_one(ctx: Ctx, op) -> list[Mutation]:
             return op_energize(ctx, op)
         case ReviveOp():
             return op_revive(ctx, op)
-        # Legacy mega-opcode
-        case ModOp():
-            return op_mod(ctx, op)
+        # Team resources
+        case DevotionOp():
+            return op_devotion(ctx, op)
         case HitOp():
             return op_hit(ctx, op)
         case MarkOp():
@@ -291,10 +299,22 @@ def process_one(ctx: Ctx, op) -> list[Mutation]:
             return op_redirect(ctx, op)
         case ReplayOp():
             return op_replay(ctx, op)
+        case ReplayChoiceOp():
+            return op_replay_branch(ctx, op)
         case BorrowOp():
             return op_borrow(ctx, op)
         case CountOp():
             return op_count(ctx, op)
+        case CounterOp():
+            return op_counter(ctx, op)
+        case AuraOp():
+            return op_aura(ctx, op)
+        case ElementConvertOp():
+            return op_element_convert(ctx, op)
+        case MorphOp():
+            return op_morph(ctx, op)
+        case GrantChoiceOp():
+            return op_grant_choice(ctx, op)
         case TeamCounterWrite():
             return op_team_counter_write(ctx, op)
         case LivesChange():
@@ -313,15 +333,6 @@ def process_one(ctx: Ctx, op) -> list[Mutation]:
             return op_burst_grant(ctx, op)
         case _:
             return []
-
-
-def _defer_mod(ctx, op: ModOp) -> list[Mutation]:
-    """Handle ModOp with on_next=True by deferring for next-turn application.
-
-    The engine will apply this on the following turn's skill execution.
-    For now, return empty (deferred effects are engine-side behavior).
-    """
-    return []
 
 
 # Convenience alias for the single-effect entry point

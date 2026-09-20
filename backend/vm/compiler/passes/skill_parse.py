@@ -6,19 +6,24 @@ from backend.vm.ctx import ADDRESS_MAP
 from backend.vm.ir_skill import (
     AbnormalOp,
     AndCond,
+    AuraOp,
     BorrowOp,
     BurstGrantOp,
     ChargeOp,
     CondExpr,
     CountOp,
+    CounterOp,
+    DevotionOp,
     DispelOp,
     DoubleOp,
     EffectDeltaOp,
+    ElementConvertOp,
     EnergizeOp,
     EscapeOp,
     ExchangeOp,
     FlagSetOp,
     GainSkills,
+    GrantChoiceOp,
     HealOp,
     HitOp,
     InheritEffects,
@@ -26,12 +31,13 @@ from backend.vm.ir_skill import (
     LivesChange,
     LockOp,
     MarkOp,
-    ModOp,
+    MorphOp,
     MultModOp,
     NotCond,
     OrCond,
     PowerModOp,
     RedirectOp,
+    ReplayChoiceOp,
     ReplayOp,
     ResetOp,
     ReturnOp,
@@ -121,7 +127,10 @@ class SkillParsePass:
 
     # ── condition parser ──
 
-    def _parse_condition(self, cond_dict: dict) -> SkillCondition:
+    def _parse_condition(self, cond_dict) -> SkillCondition:
+        # 简写：纯字符串条件（"always" / "turn_start" 等），eval_one 直接支持
+        if isinstance(cond_dict, str):
+            return CondExpr(cond=cond_dict, params={})
         cond = cond_dict.get("cond", "")
         if cond in ("and", "or"):
             conditions = tuple(
@@ -274,37 +283,96 @@ class SkillParsePass:
 
     # ── per-op parsers (21) ──
 
-    def _parse_mod(self, e: dict) -> ModOp:
-        # Handle 'value' field — can be absent for steps-only effects
+    def _parse_devotion(self, e: dict) -> DevotionOp:
         value = self._parse_value_optional(e, "value")
-        # Parse 'steps' — can be int or query dict
-        raw_steps = e.get("steps", 0)
-        if isinstance(raw_steps, dict) and "q" in raw_steps:
-            # Query-based steps — store in value and set steps=0
-            # The engine evaluates the query at runtime
-            value = self._parse_value(raw_steps)
-            steps = 0
-        else:
-            steps = int(raw_steps) if not isinstance(raw_steps, dict) else 0
-        return ModOp(
-            target=self._str_or(e, "target", "sprite_self"),
-            stat=self._str_or(e, "stat", ""),
-            value=value,
-            mode=self._str_or(e, "mode", "set"),
+        return DevotionOp(
+            target=self._str_or(e, "target", "team_own"),
+            value=value if value is not None else Literal(1),
+            mode=self._str_or(e, "mode", "add"),
             scope=self._str_or(e, "scope", "battlefield"),
-            steps=steps,
-            on_next=self._bool_or(e, "on_next", False),
-            per_hit=self._bool_or(e, "per_hit", False),
-            skill_filter=e.get("skill_filter"),
-            skill_where=e.get("skill_where"),
-            if_type=e.get("if_type"),
-            element=e.get("element"),
-            per_element=self._int_or(e, "per_element", 0),
             name=e.get("name"),
             then=e.get("then"),
-            delay=self._int_or(e, "delay", 0),
             ttl=self._int_or(e, "ttl", 0),
-            cooldown=self._int_or(e, "cooldown", 0),
+            **self._common_fields(e),
+        )
+
+    def _parse_aura(self, e: dict) -> AuraOp:
+        """RISC: aura → AuraOp（计数源驱动的持续属性修饰）。"""
+        return AuraOp(
+            target=self._str_or(e, "target", "sprite_self"),
+            stat=self._str_or(e, "stat", ""),
+            per_unit=self._int_or(e, "per_unit", 1),
+            count=self._str_or(e, "count", ""),
+            count_params=e.get("count_params"),
+            scope=self._str_or(e, "scope", "battlefield"),
+            affects=self._str_or(e, "affects", "self"),
+            source=e.get("source"),
+            **self._common_fields(e),
+        )
+
+    def _parse_counter(self, e: dict) -> CounterOp:
+        """RISC: counter → CounterOp（精灵级计数器，add/set）。"""
+        return CounterOp(
+            target=self._str_or(e, "target", "sprite_self"),
+            key=self._str_or(e, "key", ""),
+            value=self._parse_value_optional(e, "value"),
+            delta=self._parse_value_optional(e, "delta"),
+            mode=self._str_or(e, "mode", "add"),
+            scope=self._str_or(e, "scope", "persistent"),
+            source=e.get("source"),
+            **self._common_fields(e),
+        )
+
+    def _parse_element_convert(self, e: dict) -> ElementConvertOp:
+        """RISC: element_convert → ElementConvertOp（在场技能属性转换）。"""
+        return ElementConvertOp(
+            target=self._str_or(e, "target", "sprite_self"),
+            from_element=self._str_or(e, "from", self._str_or(e, "from_element", "")),
+            to_element=self._str_or(e, "to", self._str_or(e, "to_element", "")),
+            skill_filter=e.get("skill_filter"),
+            skill_where=e.get("skill_where"),
+            scope=self._str_or(e, "scope", "battlefield"),
+            affects=self._str_or(e, "affects", "self"),
+            source=e.get("source"),
+            **self._common_fields(e),
+        )
+
+    def _parse_morph(self, e: dict) -> MorphOp:
+        """RISC: morph → MorphOp（巧变授予）。category 可为内置池名或 spec dict。"""
+        category = e.get("category", "same_element")
+        if not isinstance(category, (str, dict)):
+            category = str(category)
+        return MorphOp(
+            target=self._str_or(e, "target", "sprite_self"),
+            category=category,
+            skill_filter=e.get("skill_filter"),
+            skill_where=e.get("skill_where"),
+            scope=self._str_or(e, "scope", "battlefield"),
+            affects=self._str_or(e, "affects", "self"),
+            source=e.get("source"),
+            **self._common_fields(e),
+        )
+
+    def _parse_grant_choice(self, e: dict) -> GrantChoiceOp:
+        """RISC: grant_choice → GrantChoiceOp（分支授予）。"""
+        choices = []
+        for c in e.get("choices", []) or ():
+            choices.append({
+                "name": c.get("name", ""),
+                "cond": self._parse_condition(c["cond"]) if c.get("cond") else None,
+                "effects": tuple(self._parse_effect(sub) for sub in c.get("effects", [])),
+            })
+        return GrantChoiceOp(
+            target=self._str_or(e, "target", "sprite_self"),
+            action=self._str_or(e, "action", ""),
+            name=self._str_or(e, "name", ""),
+            choices=tuple(choices),
+            skill_filter=e.get("skill_filter"),
+            skill_where=e.get("skill_where"),
+            element=e.get("element"),
+            scope=self._str_or(e, "scope", "battlefield"),
+            affects=self._str_or(e, "affects", "self"),
+            source=e.get("source"),
             **self._common_fields(e),
         )
 
@@ -485,18 +553,6 @@ class SkillParsePass:
             exclude_carried=self._bool_or(e, "exclude_carried", True),
             source=self._str_or(e, "source", "learnset"),
             target=self._str_or(e, "target", "sprite_self"),
-            **self._common_fields(e),
-        )
-
-    def _parse_count(self, e: dict) -> CountOp:
-        when = None
-        if "when" in e:
-            when = self._parse_condition(e["when"])
-        return CountOp(
-            name=self._str_or(e, "name", ""),
-            when=when,
-            then=self._parse_then(e),
-            scope=self._str_or(e, "scope", "persistent"),
             **self._common_fields(e),
         )
 
@@ -684,7 +740,12 @@ class SkillParsePass:
             **self._common_fields(e),
         )
 
-    _parse_schedule = _parse_defer  # alias: "schedule" op in observer/trait JSON
+    def _parse_replay_branch(self, e: dict) -> ReplayChoiceOp:
+        """RISC: replay_branch → ReplayChoiceOp（重放选择技能分支）。"""
+        return ReplayChoiceOp(
+            which=self._str_or(e, "which", "other"),
+            **self._common_fields(e),
+        )
 
     def _parse_inherit(self, e: dict) -> InheritEffects:
         """RISC: inherit → InheritEffects (pass effects to incoming sprite)."""
@@ -732,15 +793,18 @@ class SkillParsePass:
             **self._common_fields(e),
         )
 
-    _parse_lives_change = _parse_lives
 
-    def _parse_team_counter_write(self, e: dict) -> TeamCounterWrite:
+    def _parse_team_counter(self, e: dict) -> TeamCounterWrite:
+        """RISC: team_counter → TeamCounterWrite（队伍计数器写入）。"""
         return TeamCounterWrite(
             target=self._str_or(e, "target", "own"),
             key=self._str_or(e, "key", ""),
             delta=self._int_or(e, "delta", 1),
             **self._common_fields(e),
         )
+
+    # 兼容别名：实现文件名为 team_counter_write，数据面统一用 team_counter
+    _parse_team_counter_write = _parse_team_counter
 
     def _parse_transform(self, e: dict) -> Transform:
         skills = e.get("skills")

@@ -4,11 +4,16 @@ from __future__ import annotations
 from backend.vm.compiler.context import CompileError, CompilerContext
 from backend.vm.ir_skill import (
     AbnormalOp,
+    AuraOp,
+    CounterOp,
+    ElementConvertOp,
     EnergizeOp,
     FlagSetOp,
+    GrantChoiceOp,
     HealOp,
     HitOp,
-    ModOp,
+    MarkOp,
+    MorphOp,
     MultModOp,
     PowerModOp,
     ResetOp,
@@ -19,14 +24,18 @@ from backend.vm.ir_skill import (
 )
 
 # RISC attr valid values
-VALID_STAGE_STATS = frozenset({"atk", "def", "sp_atk", "sp_def", "speed"})
+VALID_STAGE_STATS = frozenset({"atk", "def", "sp_atk", "sp_def", "speed", "speed_flat"})
 VALID_POWER_ATTRS = frozenset({
     "power", "energy_cost", "combo", "priority",
     "energy_cost_mult", "combo_mult", "energy_cost_delta_mult",
+    "max_energy",        # 突破能量上限（地脉馈赠）
+    "use_count_bonus",   # 技能使用次数加成（噼啪噼啪！）
 })
 VALID_MULT_ATTRS = frozenset({
     "power_mult", "damage_mult", "damage_reduction", "life_drain",
     "atk", "def", "sp_atk", "sp_def", "speed",  # base stat multipliers
+    "speed_flat",  # 速度点数（1 点 = 1 点）
+    "combo_set",  # 连击数固定（无差别过滤）
 })
 
 # ── Whitelists ──
@@ -78,6 +87,18 @@ VALID_STATS = frozenset({
     "extra_action",
     "cooldown",
     "priority",
+    "use_count_bonus",
+})
+
+VALID_SCOPES = frozenset({
+    "persistent", "battlefield", "permanent", "turn",
+})
+
+# 计数源（backend/engine/auras.py:COUNT_SOURCES）与巧变池类别
+# （backend/engine/morph.py:POOL_BUILDERS）。注册表可扩展，这里只做非空校验，
+# 具体名字由引擎在运行时解析（未知名字会被忽略而非编译失败）。
+VALID_MARK_ACTIONS = frozenset({
+    "apply", "dispel", "steal", "convert", "convert_all",
 })
 
 VALID_SCOPES = frozenset({
@@ -100,7 +121,7 @@ class SkillValidatePass:
 
     Checks:
     - target is a valid target
-    - stat is a valid stat (for ModOp, ResetOp)
+    - stat is a valid stat (for ResetOp)
     - scope is a valid scope
     - skill_type / element are valid (for informational warnings)
     """
@@ -128,8 +149,8 @@ class SkillValidatePass:
             self._check(op.from_ in VALID_TARGETS,
                         f"Invalid from_ '{op.from_}'", idx, "from_")
 
-        # Validate stat field for ModOp and ResetOp
-        if isinstance(op, (ModOp, ResetOp)) and op.stat:  # empty stat is allowed for damage marker
+        # Validate stat field for ResetOp
+        if isinstance(op, ResetOp) and op.stat:  # empty stat is allowed for damage marker
             self._check(op.stat in VALID_STATS,
                         f"Invalid stat '{op.stat}'", idx, "stat")
 
@@ -169,6 +190,30 @@ class SkillValidatePass:
         if isinstance(op, FlagSetOp) and op.flag:
             self._check(len(op.flag) > 0,
                         "flag_set flag cannot be empty", idx, "flag")
+
+        # 机制授予类 / 计数器（IR_GUIDE §3A `aura`/`counter`、§3E）
+        if isinstance(op, AuraOp):
+            self._check(bool(op.stat), "aura stat cannot be empty", idx, "stat")
+            self._check(op.stat in VALID_STAGE_STATS or op.stat in VALID_STATS,
+                        f"Invalid aura stat '{op.stat}'", idx, "stat")
+            self._check(bool(op.count), "aura count cannot be empty", idx, "count")
+            self._check(op.per_unit != 0, "aura per_unit cannot be 0", idx, "per_unit")
+        if isinstance(op, CounterOp):
+            self._check(bool(op.key), "counter key cannot be empty", idx, "key")
+            self._check(op.mode in ("add", "set"),
+                        f"Invalid counter mode '{op.mode}'", idx, "mode")
+        if isinstance(op, ElementConvertOp):
+            self._check(bool(op.from_element), "element_convert 'from' cannot be empty", idx, "from")
+            self._check(bool(op.to_element), "element_convert 'to' cannot be empty", idx, "to")
+        if isinstance(op, MorphOp):
+            self._check(bool(op.category), "morph category cannot be empty", idx, "category")
+        if isinstance(op, GrantChoiceOp):
+            self._check(bool(op.choices), "grant_choice choices cannot be empty", idx, "choices")
+            self._check(op.action in ("", "gather"),
+                        f"Invalid grant_choice action '{op.action}'", idx, "action")
+        if isinstance(op, MarkOp) and op.action:
+            self._check(op.action in VALID_MARK_ACTIONS,
+                        f"Invalid mark action '{op.action}'", idx, "action")
 
     def _validate_when_block(self, wb: WhenBlock, idx: int) -> None:
         for _j, child in enumerate(wb.then):

@@ -44,7 +44,7 @@ def run_selfplay_worker(
     因海量 numpy 数据导致的死锁。
 
     result_queue 消息为 8 元组 (tag, worker_id, a, b, c, d, e, f)：
-      ("battle", wid, filepath, end_reason, battle_summary, None, None, None)
+      ("battle", wid, filepath, end_reason, battle_summary, battle_idx, None, None)
           filepath: 临时 pickle 文件路径，内含 (states, P, M, v)
       ("done",   wid, None, None, None, None, None, None)
       ("error",  wid, traceback, None, None, None, None, None)
@@ -89,7 +89,7 @@ def run_selfplay_worker(
                 filepath = os.path.join(temp_dir, f"battle_w{worker_id}_{battle_counter}.pkl")
                 with open(filepath, "wb") as f:
                     pickle.dump((states, P, M, v), f, protocol=pickle.HIGHEST_PROTOCOL)
-                result_queue.put(("battle", worker_id, filepath, end_reason, battle_summary, None, None, None))
+                result_queue.put(("battle", worker_id, filepath, end_reason, battle_summary, battle_idx, None, None))
 
                 battle_counter += 1
                 done += 1

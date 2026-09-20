@@ -65,4 +65,6 @@ class TraitToObserver:
             "listen": listen,
             "threshold": threshold,
             "reset_on_fire": reset_on_fire,
+            "reset": effect.get("reset", ""),
+            "once": bool(effect.get("once", False)),  # 每场战斗仅触发一次（安眠 等）
         }

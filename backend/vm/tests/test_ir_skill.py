@@ -9,13 +9,14 @@ from backend.vm.ir_skill import (
     AbnormalOp,
     AndCond,
     CondExpr,
+    DevotionOp,
     EscapeOp,
     HitOp,
     MarkOp,
-    ModOp,
     NotCond,
     ReturnOp,
     SkillIROp,
+    StatStageOp,
     WeatherOp,
     WhenBlock,
     WhenBranch,
@@ -49,7 +50,7 @@ class TestWhenBlock:
     def test_when_block_basic(self):
         wb = WhenBlock(
             cond=CondExpr(cond="on_ko"),
-            then=(ModOp(target="sprite_self", stat="energy", value=Literal(6)),),
+            then=(DevotionOp(target="team_own", value=Literal(6)),),
         )
         assert isinstance(wb.cond, CondExpr)
         assert len(wb.then) == 1
@@ -57,10 +58,10 @@ class TestWhenBlock:
     def test_when_block_with_elif(self):
         wb = WhenBlock(
             cond=CondExpr(cond="on_ko"),
-            then=(ModOp(target="sprite_self", stat="energy", value=Literal(6)),),
+            then=(DevotionOp(target="team_own", value=Literal(6)),),
             elif_=(WhenBranch(
                 cond=CondExpr(cond="counter_succeeded"),
-                then=(ModOp(target="sprite_self", stat="atk", value=Literal(1)),),
+                then=(StatStageOp(target="sprite_self", stat="atk", steps=1),),
             ),),
         )
         assert len(wb.elif_) == 1
@@ -68,27 +69,27 @@ class TestWhenBlock:
     def test_when_block_hashable(self):
         wb = WhenBlock(
             cond=CondExpr(cond="on_ko"),
-            then=(ModOp(target="sprite_self", stat="energy", value=Literal(6)),),
+            then=(DevotionOp(target="team_own", value=Literal(6)),),
         )
         d = {wb: "test"}
         assert d[wb] == "test"
 
 
-class TestModOp:
-    def test_mod_basic(self):
-        op = ModOp(target="sprite_self", stat="power", value=Literal(20))
-        assert op.stat == "power"
-        assert op.value == Literal(20)
+class TestDevotionOp:
+    def test_devotion_basic(self):
+        op = DevotionOp(target="team_own", value=Literal(1), name="能耗-2")
+        assert op.name == "能耗-2"
+        assert op.value == Literal(1)
 
-    def test_mod_with_query_value(self):
-        op = ModOp(target="sprite_self", stat="power",
-                   value=Query(field="energy_self", scale=10))
+    def test_devotion_with_query_value(self):
+        op = DevotionOp(target="team_own",
+                        value=Query(field="energy_self", scale=10))
         assert isinstance(op.value, Query)
 
-    def test_mod_frozen(self):
-        op = ModOp(target="sprite_self", stat="atk", value=Literal(1))
+    def test_devotion_frozen(self):
+        op = DevotionOp(target="team_own", value=Literal(1))
         with pytest.raises(Exception):
-            op.stat = "def"
+            op.name = "other"
 
 
 class TestIRNodeMemoryLayout:
@@ -97,9 +98,9 @@ class TestIRNodeMemoryLayout:
             CondExpr(cond="always"),
             WhenBlock(
                 cond=CondExpr(cond="always"),
-                then=(ModOp(target="sprite_self", stat="atk", value=Literal(1)),),
+                then=(StatStageOp(target="sprite_self", stat="atk", steps=1),),
             ),
-            ModOp(target="sprite_self", stat="atk", value=Literal(1)),
+            DevotionOp(target="team_own", value=Literal(1)),
             HitOp(power=Literal(90), type="物攻"),
         )
 
@@ -111,11 +112,11 @@ class TestIRNodeMemoryLayout:
 class TestCompileEffectsBatch:
     def test_compile_effects_batch_returns_typed_tuple_equivalent_to_dict_path(self):
         effects = [
-            {"op": "mod", "target": "sprite_self", "stat": "atk", "steps": 1},
+            {"op": "stat_stage", "target": "sprite_self", "stat": "atk", "steps": 1},
             {
                 "when": {"cond": "counter_succeeded"},
                 "then": [
-                    {"op": "mod", "target": "sprite_self", "stat": "energy", "value": 2}
+                    {"op": "energize", "target": "sprite_self", "delta": 2}
                 ],
             },
         ]
@@ -167,7 +168,7 @@ class TestOtherOps:
 class TestIRPickle:
     def test_skill_ir_pickleable(self):
         ops = [
-            ModOp(target="sprite_self", stat="atk", value=Literal(1)),
+            StatStageOp(target="sprite_self", stat="atk", steps=1),
             HitOp(power=Literal(100), type="物攻"),
         ]
         restored = pickle.loads(pickle.dumps(ops))
@@ -177,7 +178,7 @@ class TestIRPickle:
 
 class TestSkillIROpUnion:
     def test_type_check(self):
-        op: SkillIROp = ModOp(target="sprite_self", stat="atk", value=Literal(1))
-        assert isinstance(op, ModOp)
+        op: SkillIROp = DevotionOp(target="team_own", value=Literal(1))
+        assert isinstance(op, DevotionOp)
         op2: SkillIROp = HitOp(power=Literal(100), type="物攻")
         assert isinstance(op2, HitOp)

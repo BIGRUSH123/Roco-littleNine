@@ -8,6 +8,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from backend.vm.effect import AbnormalEffect
+from backend.sim.traits import get_trait
 
 if TYPE_CHECKING:
     from .battleskill import SkillUse
@@ -180,7 +181,10 @@ class SkillResolver:
             # Tick damage from AbnormalEffect in active_effects
             active = getattr(s, 'active_effects', None) or []
 
-            for ae in active:
+            # 快照迭代：decay_on_tick 会把衰减到 0 层的效果从 active_effects
+            # 移除（update_stacks），原列表迭代会因此跳过紧随其后的异常效果
+            # （灼烧→中毒时中毒整轮不 tick）
+            for ae in list(active):
                 if not isinstance(ae, AbnormalEffect):
                     continue
                 if ae.stacks <= 0 or ae.tick_damage_pct <= 0:
@@ -209,9 +213,24 @@ class SkillResolver:
                         s.update_stacks(name, new_stacks)
                         events.append(f'{s.name} {name}增长至{new_stacks}层')
                     else:
+                        old_stacks = ae.stacks
                         new_stacks = ae.apply_decay()
                         s.update_stacks(name, new_stacks)
                         events.append(f'{s.name} {name}衰减至{new_stacks}层')
+                        # 焰色反应：在场时衰减的灼烧变为相同层数的中毒
+                        if name == "灼烧" and new_stacks < old_stacks:
+                            holder = any(
+                                (h := get_trait(sp)) is not None and h.name == "焰色反应"
+                                for sp in all_sprites if not sp.is_fainted
+                            )
+                            if holder:
+                                lost = old_stacks - new_stacks
+                                s.add_effect(AbnormalEffect(
+                                    name="中毒", source="焰色反应",
+                                    scope="persistent", stacks=lost,
+                                    tick_damage_pct=0.03, tick_element="毒",
+                                ))
+                                events.append(f'{s.name} 衰减的灼烧化为{lost}层中毒')
 
             for bs in s.skills:
                 if bs.cooldown > 0:

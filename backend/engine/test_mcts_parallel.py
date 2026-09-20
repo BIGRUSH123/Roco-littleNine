@@ -1,5 +1,7 @@
 import numpy as np
 
+from backend.engine.ai.core.mcts import NUM_ACTIONS
+
 
 class UniformEvaluator:
     def evaluate(self, state, mask):
@@ -64,7 +66,7 @@ def test_worker_mcts_restores_battle_without_create_battle():
         0,
     )
 
-    assert visits.shape == (17,)
+    assert visits.shape == (NUM_ACTIONS,)
     assert visits.sum() > 0
 
 
@@ -88,7 +90,7 @@ def test_parallel_mcts_search_root_with_process_pool():
         leaf_batch_size=1,
     )
 
-    assert probs.shape == (17,)
+    assert probs.shape == (NUM_ACTIONS,)
     assert np.isclose(probs.sum(), 1.0)
 
 
@@ -120,5 +122,5 @@ def test_parallel_agent_records_public_history():
     assert len(agent.history) == 1
     state, probs, mask = agent.history[0]
     assert state
-    assert probs.shape == (17,)
-    assert mask.shape == (17,)
+    assert probs.shape == (NUM_ACTIONS,)
+    assert mask.shape == (NUM_ACTIONS,)

@@ -11,6 +11,17 @@ from __future__ import annotations
 from backend.vm.effect import AbnormalEffect
 
 ABNORMAL_TEMPLATES: dict[str, AbnormalEffect] = {
+    # 引电（nrc 游戏内文本）：获得 2 层时立即受到 25% 生命的电系伤害并失去 2 层；电系精灵免疫
+    "引电": AbnormalEffect(
+        name="引电",
+        source="引电",
+        scope="persistent",
+        threshold_stacks=2,
+        threshold_damage_pct=0.25,
+        threshold_element="电",
+        threshold_consume=2,
+        threshold_immune_element="电",
+    ),
     "中毒": AbnormalEffect(
         name="中毒",
         source="中毒",
@@ -43,6 +54,12 @@ ABNORMAL_TEMPLATES: dict[str, AbnormalEffect] = {
     "萌化": AbnormalEffect(
         name="萌化",
         source="萌化",
+        scope="persistent",
+    ),
+    "眩晕": AbnormalEffect(
+        # 本回合无法行动（本地 wiki 词条"晕眩"）；由行动 Gate 消费，不造成伤害
+        name="眩晕",
+        source="眩晕",
         scope="persistent",
     ),
 }

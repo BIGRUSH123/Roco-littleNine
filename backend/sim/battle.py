@@ -18,13 +18,16 @@ from backend.vm.effect import AbnormalEffect, StateEffect, StatBuffEffect
 from .action import Action
 from .battle_mechanics import BattleMechanicsMixin
 from .battleskill import BattleSkill
-from .globals import GlobalEffects
+from .globals import GlobalEffects, kingdom_is_night
 from .resolver import SkillResolver
 from .round_record import ActionRecord, RoundRecord
 from .round_record import _action_short as _rr_action_short
 from .pipeline import TurnPipeline
 from .traits import dispatch_entry, dispatch_leave
 from .traits.trait_engine import fire_hook_first
+
+# 巧变（morph）——引擎侧通用服务（模块级 import 无环：engine.morph 只依赖 vm/sim 的惰性导入）
+from backend.engine import morph
 
 if TYPE_CHECKING:
     from .agent import Agent
@@ -175,6 +178,9 @@ class Battle(BattleMechanicsMixin):
             cost = round(cost * self.globals.weather_energy_mod(skill.base.element))
 
         cost -= self.globals.mark_energy_mod(team)
+        # 巧变产物：能耗-1（wiki: 使用后会变为指定范围内的随机技能，且能耗-1）
+        if getattr(skill, '_morph_temp', False):
+            cost -= 1
         return max(0, cost)
 
     def can_pay_skill_energy_cost(
@@ -290,6 +296,7 @@ class Battle(BattleMechanicsMixin):
                         sk._element_override,
                         sk._mech_energy_reduction,
                         list(sk._burst_effects),
+                        sk._morph_temp,
                     )
                     for sk in skills
                 ]
@@ -398,13 +405,11 @@ class Battle(BattleMechanicsMixin):
                 sprite.extra_skill_use = s["extra_skill_use"]
                 if "last_abnormal_dmg" in s:
                     sprite._last_abnormal_dmg = s["last_abnormal_dmg"].copy()
-                # 效果：按位置恢复。先清空再按保存顺序重建，消除 id() 复用风险
+                # 效果：先清空再按保存顺序重建。旧实现的「缺失则 append」会把
+                # 仿真中被替换过（如换宠 clear_effects+load_for_sprite 重建
+                # ObserverEffect）的效果对象追加到列表末尾，顺序污染跨 sim 泄漏。
                 saved_effects = s["effects"]
-                saved_refs = {id(e) for e, *_ in saved_effects}
-                # 移除仿真中新增的效果
-                for e in list(sprite.active_effects):
-                    if id(e) not in saved_refs:
-                        sprite.active_effects.remove(e)
+                sprite.active_effects = [snap[0] for snap in saved_effects]
                 # 恢复保存的效果状态（TTL/stacks/scope/steps）
                 for snap in saved_effects:
                     e = snap[0]
@@ -424,8 +429,6 @@ class Battle(BattleMechanicsMixin):
                         e.value = snap[9]
                     if hasattr(e, 'params'):
                         e.params = copy(snap[10])
-                    if e not in sprite.active_effects:
-                        sprite.active_effects.append(e)
                 # 技能状态
                 if "skill_refs" in s:
                     sprite.skills = list(s["skill_refs"])
@@ -443,6 +446,7 @@ class Battle(BattleMechanicsMixin):
                             element_override,
                             mech_energy_reduction,
                             burst_effects,
+                            morph_temp,
                         ) = state
                         sk._modifiers = modifiers.copy()
                         sk.cooldown = cooldown
@@ -455,6 +459,7 @@ class Battle(BattleMechanicsMixin):
                         sk._element_override = element_override
                         sk._mech_energy_reduction = mech_energy_reduction
                         sk._burst_effects = list(burst_effects)
+                        sk._morph_temp = morph_temp
                 else:
                     for si, sk in enumerate(sprite.skills or []):
                         if si in s.get("skill_mods", {}):
@@ -541,12 +546,16 @@ class Battle(BattleMechanicsMixin):
         self, player_a: Player, player_b: Player,
         weather: str = '', verbose: bool = True,
         initialize_entries: bool = True,
+        night: bool = False,
     ):
         self.player_a = player_a
         self.player_b = player_b
         self.globals = GlobalEffects()
         if weather:
             self.globals.set_weather(weather)
+        # 王国入夜（安眠 等）：默认 False（确定性）；在线服务由 API 传入
+        # kingdom_is_night() 按真实时间判定，测试/回放显式传值
+        self.globals.night = bool(night)
         self.turn: int = 0
         self.log: list[RoundRecord] = []
         self.winner: str | None = None
@@ -576,6 +585,9 @@ class Battle(BattleMechanicsMixin):
         # 每个回合 team 级聚合值（fainted 计数、队伍元素、萌化层数）稳定不变，
         # 缓存它们避免 _make_ctx 每次调用都遍历 12 只精灵。
         self._ctx_team_cache: dict[str, dict] = {}
+
+        # ── 本回合双方使用的技能信息（合拍 等：回合末比对系别/类型/能耗）──
+        self._turn_skills: dict[str, dict] = {}
 
         # ── 回合 0: 首发精灵 entry 特性 ──
         from backend.sim.traits import dispatch_entry
@@ -607,17 +619,22 @@ class Battle(BattleMechanicsMixin):
                 team=team, battle=self,
             )
 
-    def lookup_species(self, name: str, form: str = ''):
-        """形态变换时查询目标物种。由 SimFactory 注入数据库后可用。"""
-        if self.species_db is None:
-            return None
-        return self.species_db.get(name, form)
+        # ── 技能自带的「巧变：X」元数据（qiaobian）登记 ──
+        for team in ('A', 'B'):
+            for sprite in self.get_player(team).team:
+                morph.register_skill_morphs(sprite)
 
-    def lookup_species_by_number(self, number: str, form: str = ''):
-        """按精灵编号查找形态（萌化退化用）。"""
+    def lookup_species(self, name: str, appearance: str = ''):
+        """形态变换时查询目标物种（appearance 为外观名，''=默认外观）。"""
         if self.species_db is None:
             return None
-        return self.species_db.lookup_by_number(number, form)
+        return self.species_db.get(name, appearance)
+
+    def lookup_species_by_number(self, number: str, appearance: str = ''):
+        """按精灵编号查找基础阶段形态（萌化退化用）。"""
+        if self.species_db is None:
+            return None
+        return self.species_db.lookup_by_number(number, appearance)
 
     def build_skills(self, skill_names: list[str]) -> list:
         """形态变换时构建技能列表。由 SimFactory 注入后可用。"""
@@ -719,6 +736,16 @@ class Battle(BattleMechanicsMixin):
             devotion_own = dict(getattr(own_player, 'devotion', {}))
             devotion_opp = dict(getattr(opp_player, 'devotion', {}))
 
+        # 全场异常层数（对齐 rust snapshot.rs:299-305：仅合计双方【在场】精灵）
+        abnormal_battle: dict[str, int] = {}
+        from backend.vm.effect import AbnormalEffect as _AE
+        for sp in (self_sprite, opp_player.active):
+            if sp is None:
+                continue
+            for e in sp.active_effects:
+                if isinstance(e, _AE) and e.stacks:
+                    abnormal_battle[e.name] = abnormal_battle.get(e.name, 0) + e.stacks
+
         return {
             "team_counters_own": team_counters_own,
             "team_counters_opp": team_counters_opp,
@@ -731,6 +758,7 @@ class Battle(BattleMechanicsMixin):
             "team_elements_own": cached["team_elements_own"],
             "team_elements_opp": cached["team_elements_opp"],
             "moe_team_stacks": moe_team_stacks,
+            "abnormal_stacks_battle": abnormal_battle,
         }
 
     def _make_ctx(self, self_sprite, opp_sprite, self_skill=None, opp_skill=None,
@@ -908,11 +936,18 @@ class Battle(BattleMechanicsMixin):
 
         MCTS 仿真期间跳过 — 仿真不需要回溯功能，
         且 battle_to_dict 序列化开销占 MCTS 总耗时 ~17%。
+
+        快照不含历史日志（内嵌日志会使每回合序列化退化为 O(T²)）：
+        只记录 log_len，恢复时按其对当前对局日志截断。旧格式快照
+        （含 "log" 键）仍可恢复，保持向后兼容。
         """
         if getattr(self, '_mcts_sim', False):
             return
         from backend.engine.serializer import battle_to_dict
-        self._snapshots[self.turn] = battle_to_dict(self)
+        snap = battle_to_dict(self)
+        snap.pop('log', None)
+        snap['_log_len'] = len(self.log)
+        self._snapshots[self.turn] = snap
 
     def restore_snapshot(self, turn: int) -> None:
         """恢复到指定回合开始前的状态。"""
@@ -926,10 +961,22 @@ class Battle(BattleMechanicsMixin):
         snapshot = self._snapshots[turn]
         # Save snapshots before __dict__ update overwrites them
         old_snapshots = self._snapshots
-        restored = battle_from_dict(
-            snapshot, self.species_db, self.skill_loader,
-        )
-        self.__dict__.update(restored.__dict__)
+        log_len = snapshot.get('_log_len')
+        if log_len is None:
+            # 旧格式：日志内嵌在快照里，直接由 battle_from_dict 重建
+            restored = battle_from_dict(
+                snapshot, self.species_db, self.skill_loader,
+            )
+            self.__dict__.update(restored.__dict__)
+        else:
+            # 新格式：按 log_len 截断当前对局日志（对局内日志只追加，
+            # 快照保存在回合开始前，前 log_len 条即当时的完整历史）
+            preserved_log = self.log[:log_len]
+            restored = battle_from_dict(
+                snapshot, self.species_db, self.skill_loader,
+            )
+            self.__dict__.update(restored.__dict__)
+            self.log = preserved_log
         self._snapshots = {
             t: s for t, s in old_snapshots.items() if t <= turn
         }
@@ -962,6 +1009,11 @@ class Battle(BattleMechanicsMixin):
                         events.append(f'{sprite.name} 延迟效果生效: {eff.name}')
 
         events += TurnPipeline.execute_turn_start(self)
+        # reset:"turn" 观察者命中计数清零（王子的诺言 等每回合限次）
+        self._vm_engine.registry.reset_turn_counters()
+        # 引擎机制：按声明重算 aura（和弦共振/守护之心/先知 等），幂等
+        from backend.engine import mechanisms
+        mechanisms.refresh(self)
         return events
 
     # ═══════════════════════════════════════════════════════════════
@@ -974,7 +1026,7 @@ class Battle(BattleMechanicsMixin):
         for _ in range(8):  # 安全上限：防止道具无限循环卡死
             action = agent.choose_action(self)
             if action.kind == 'item':
-                item_used = self._resolve_item(team)
+                item_used = self._resolve_item(team, action.variant)
                 continue
             return action, item_used
         # 道具使用超限：退回聚能兜底
@@ -1116,6 +1168,9 @@ class Battle(BattleMechanicsMixin):
         # 记录先手方
         record.first_team = first_team
 
+        # 行动顺序确定 → fire pre_resolve（先后手条件效果在此生效，如 展翅 后手受伤+25%）
+        self._fire_pre_resolve(first_team, second_team, skill_a, skill_b)
+
         # Opponent skills for ctx (non-countered path)
         opp_skill_for_first = skill_b if first_team == 'A' else skill_a
         opp_skill_for_second = skill_b if second_team == 'A' else skill_a
@@ -1154,6 +1209,46 @@ class Battle(BattleMechanicsMixin):
                                                opponent_switched=opponent_switched)
         return []
 
+    def _write_turn_match_counters(self) -> None:
+        """回合末结算前写入 turn_match：本回合双方技能在系别/类型/能耗上相同的项数。
+
+        数据面用 `{"q": "team_counter", "name": "turn_match"}` 读取（合拍 等）。
+        """
+        a = self._turn_skills.get('A')
+        b = self._turn_skills.get('B')
+        match = 0
+        if a and b:
+            for key in ("element", "skill_type", "energy_cost"):
+                if a.get(key) is not None and a.get(key) == b.get(key):
+                    match += 1
+        for team in ('A', 'B'):
+            self.team_counters.setdefault(team, {})['turn_match'] = match
+        self._turn_skills = {}
+
+    def _fire_pre_resolve(self, first_team: str, second_team: str,
+                          skill_a, skill_b) -> list[str]:
+        """行动顺序确定后、结算前 fire pre_resolve（先后手条件效果）。
+
+        ctx 以各自视角构建：先手方 is_first=True，后手方 is_first=False。
+        效果以 JSON 声明的 scope 生效（如 scope="turn" 的受伤补正）。
+        """
+        if not self._vm_engine.registry.has_candidates("pre_resolve"):
+            return []
+        events: list[str] = []
+        for team, is_first in ((first_team, True), (second_team, False)):
+            sprite = self.get_player(team).active
+            opp = self.get_player('B' if team == 'A' else 'A').active
+            if sprite is None or sprite.is_fainted:
+                continue
+            skill = skill_a if team == 'A' else skill_b
+            ctx = self._make_ctx(sprite, opp, skill, None, self.globals,
+                                 team=team, turn=self.turn, is_first=is_first)
+            events += self._vm_engine.fire_trigger(
+                "pre_resolve", ctx, sprite, opp, self.globals,
+                team=team, battle=self,
+            )
+        return events
+
     def _execute_single_action(
         self, team: str, action: Action,
         is_countered: bool = False,
@@ -1164,7 +1259,7 @@ class Battle(BattleMechanicsMixin):
         opp_skill: BattleSkill | None = None,
     ) -> list[str]:
         """执行单个玩家的技能/聚能行动。"""
-        return self._execute_skill_vm(
+        events = self._execute_skill_vm(
             team, action,
             is_countered=is_countered,
             countered_skill=countered_skill,
@@ -1173,6 +1268,10 @@ class Battle(BattleMechanicsMixin):
             opponent_switched=opponent_switched,
             opp_skill=opp_skill,
         )
+        # 引擎机制重算（aura 类声明随行动结果变化）
+        from backend.engine import mechanisms
+        mechanisms.refresh(self)
+        return events
 
     # ── VM 技能执行 ──
 
@@ -1223,6 +1322,13 @@ class Battle(BattleMechanicsMixin):
         if user.is_fainted:
             return events
 
+        # ── 眩晕：本回合无法行动，每层抵挡一次行动 ──
+        if user.get_stacks('眩晕') > 0:
+            user.remove_effect('眩晕', 'abnormal')
+            if not mcts_sim:
+                events.append(f'{user.name} 眩晕，无法行动!')
+            return events
+
         # ── 蓄力中禁止聚能 ──
         if getattr(user, '_charging', False):
             if not mcts_sim:
@@ -1231,14 +1337,40 @@ class Battle(BattleMechanicsMixin):
 
         # ── 聚能 ──
         if action.kind == 'gather':
+            opp_team = 'B' if team == 'A' else 'A'
+            self.inc_team_counter(opp_team, 'enemy_gather')
+            self.inc_team_counter(opp_team, 'enemy_action')
+            # 「入场后首次行动」的使用次数加成对聚能行动不生效，直接消费掉
+            user._modifiers.pop('use_count_bonus', None)
+            # 聚能分支：由 grant_choice(action="gather") 声明（长久保存制法）
+            from backend.engine import mechanisms
+            gather_choices = mechanisms.choices_for(self, user, action="gather")
+            if gather_choices:
+                idx = action.branch if action.branch is not None else 0
+                if 1 <= idx <= len(gather_choices):
+                    chosen = gather_choices[idx - 1]
+                    branch_effects = list(chosen.get("effects") or ())
+                    branch_ctx = self._make_ctx(
+                        user, target, None, None, self.globals,
+                        team=team, turn=self.turn,
+                    )
+                    journal = self._vm_engine.execute_effects(branch_ctx, branch_effects)
+                    from backend.engine.replayer import JournalReplayer as _GR
+                    _gr = _GR(user, target, self.globals, self._vm_engine.registry,
+                              team=team, battle=self)
+                    events += _gr.replay(journal)
+                    user.first_action = False
+                    user.first_action_battle = False
+                    user.inc_counter('times_gathered')
+                    if not mcts_sim:
+                        events.append(f'{user.name} 聚能·{chosen.get("name", "")}')
+                    return events
             gained = user.gain_energy(5)
             user.first_action = False
             user.first_action_battle = False
             user.inc_counter('times_gathered')
             if not mcts_sim:
                 events.append(f'{user.name} 聚能+{gained}E(→{user.energy})')
-            opp_team = 'B' if team == 'A' else 'A'
-            self.inc_team_counter(opp_team, 'enemy_gather')
             # Fire post_energy_change for traits like 囤积
             if gained > 0 and self._vm_engine.registry.has_candidates("post_energy_change"):
                 gather_ctx = self._make_ctx(
@@ -1272,12 +1404,62 @@ class Battle(BattleMechanicsMixin):
             return events
 
         # Load skill record once and reuse it across charge/devotion/VM execution.
+        # 巧变（replaced_by）时按**生效技能**加载，使槽位变化真正生效。
+        record_name = bs.replaced_by.name if bs.replaced_by is not None else bs.base.name
         try:
-            record = self._get_skill_record(bs.base.name)
+            record = self._get_skill_record(record_name)
         except FileNotFoundError:
             if not mcts_sim:
-                events.append(f'[错误] 技能JSON未找到: {bs.base.name}')
+                events.append(f'[错误] 技能JSON未找到: {record_name}')
             return events
+
+        # ═══ 「选择」分支解析（技能自带 choices + 数据声明授予的 choices）═══
+        branch_effects = None
+        chosen_branch_name = ''
+        from backend.engine import mechanisms as _mech
+        choices = tuple(getattr(record, 'choices', ()) or ()) + tuple(
+            _mech.choices_for(self, user, action="", bs=bs))
+        if choices:
+            branch_idx = action.branch if action.branch is not None else 0
+            branch_idx = max(0, min(branch_idx, len(choices) - 1))
+            chosen = choices[branch_idx]
+            cond = chosen.get("cond")
+            if cond is not None:
+                probe_ctx = self._make_ctx(user, target, record, None, self.globals,
+                                           team=team, turn=self.turn)
+                from backend.vm.cond import eval_one as _eval_branch
+                try:
+                    cond_ok = _eval_branch(probe_ctx, cond)
+                except Exception:
+                    cond_ok = False
+                if not cond_ok:
+                    # 条件分支不成立 → 回退到第一个无条件分支（或 0 号分支）
+                    fallback = next((i for i, c in enumerate(choices)
+                                     if c.get("cond") is None), 0)
+                    branch_idx = fallback
+                    chosen = choices[branch_idx]
+            chosen_branch_name = chosen.get("name", "")
+            branch_effects = list(chosen.get("effects") or ())
+
+        # 分支内的「本次能耗」修正（skill_off_0 + energy_cost）只作用于本次支付：
+        # 从分支效果中抽出并折进能耗，其余效果照常执行（龙守望「本次能耗-1」/异类「能耗+1」）
+        branch_cost_delta = 0
+        if branch_effects:
+            kept_effects = []
+            for _e in branch_effects:
+                if (getattr(_e, 'attr', '') == "energy_cost"
+                        and getattr(_e, 'target', '') == "skill_off_0"
+                        and getattr(_e, 'mode', 'add') == "add"):
+                    try:
+                        from backend.vm.resolve import resolve as _resolve
+                        _ctx = self._make_ctx(user, target, record, None, self.globals,
+                                              team=team, turn=self.turn)
+                        branch_cost_delta += int(_resolve(_ctx, _e.delta) or 0)
+                    except Exception:
+                        pass
+                else:
+                    kept_effects.append(_e)
+            branch_effects = kept_effects
 
         # ═══ Gate: 蓄力 ═══
         charge_result = self._gate_charge_vm(user, bs, action, record)
@@ -1381,10 +1563,13 @@ class Battle(BattleMechanicsMixin):
                 events.append(f'💥 {user.name} {bs.name} 迸发!')
 
         # ═══ Gate: 能量支付 ═══
-        cost = self.skill_energy_cost(team, user, bs, action.skill_index)
+        cost = self.skill_energy_cost(team, user, bs, action.skill_index) + branch_cost_delta
+        cost = max(0, cost)
         if cost > 0:
             if user.energy >= cost:
                 user.lose_energy(cost)
+                user.inc_counter('energy_spent', cost)
+                self._vm_engine._increment_counter('energy_spent', cost)
             else:
                 # 石头大餐：能量不足时消耗HP代替能量
                 blood_price = user._modifiers.get("blood_price", 0)
@@ -1431,6 +1616,10 @@ class Battle(BattleMechanicsMixin):
 
         user.inc_counter(f'skill_used:{bs.name}')
         user.inc_counter('skills_used')
+        # 使用次数加成（use_count_bonus）：下一次行动消费，喂给「每使用过 N 次」类效果
+        use_bonus = int(user._modifiers.pop('use_count_bonus', 0) or 0)
+        if use_bonus:
+            user.inc_counter(f'skill_used:{bs.name}', use_bonus)
 
         # ═══ 应对效果注入：应对方直接效果在伤害计算前生效 ═══
         if is_countered and countering_skill:
@@ -1460,9 +1649,24 @@ class Battle(BattleMechanicsMixin):
         opp_skill = countered_skill or countering_skill or opp_skill
         ctx_team_kwargs = self._ctx_team_kwargs(team, user)
 
+        if choices:
+            self._last_choice_execution = {
+                "choices": choices,
+                "branch": branch_idx,
+                "skill_name": bs.name,
+            }
+
+        # 生效属性：element_convert 声明（展翅）把携带技能转为另一系别。
+        # 以替换后的 record 参与 ctx 构建（record 缓存按名共享，故仅在生效时复制）。
+        eff_element = _mech.element_for(self, user, bs) or record.element
+        if eff_element != record.element:
+            import dataclasses
+            record = dataclasses.replace(record, element=eff_element)
+
         result = self._vm_engine.execute_skill(
             user, target,
             record, opp_skill, self.globals,
+            effects=branch_effects,
             turn=self.turn, is_first=is_first,
             team=team,
             opp_switched=opponent_switched,
@@ -1476,6 +1680,16 @@ class Battle(BattleMechanicsMixin):
             devotion_triggered=devotion_triggered,
         )
         events.extend(result.events)
+
+        # ═══ 「选择」分支使用计数（猫精灵的礼物：明暗各 1 次为一对） ═══
+        if choices:
+            self.inc_team_counter(team, f'choice_used:{chosen_branch_name}')
+            names = [c.get("name", f"branch{i}") for i, c in enumerate(choices)]
+            if len(names) > 1 and all(
+                    self.get_team_counter(team, f'choice_used:{n}') > 0 for n in names):
+                self.inc_team_counter(team, 'choice_pair')
+                for n in names:
+                    self.team_counters[team][f'choice_used:{n}'] = 0
 
         # ═══ Clean up devotion modifiers after skill ═══
         # Restore pre-devotion modifier values — devotion effects are
@@ -1526,13 +1740,30 @@ class Battle(BattleMechanicsMixin):
         if bs.base.is_defense:
             bs.cooldown = 2
 
-        # Counters
-        if record.element:
-            self.inc_team_counter(team, f'element:{record.element}')
+        # Counters（按**生效属性**计数，element_convert 后即视为新系别）
+        if eff_element:
+            self.inc_team_counter(team, f'element:{eff_element}')
+            # 大火球/大雪球 类：同系不同技能名计数（首次使用某技能名时 +1）
+            seen_key = f'elem_seen:{eff_element}:{record.name}'
+            if user.get_counter(seen_key) == 0:
+                user.inc_counter(seen_key)
+                self.inc_team_counter(team, f'distinct_elem:{eff_element}')
         if record.skill_type == '防御':
             self.inc_team_counter(team, 'defense_skill')
         elif record.skill_type not in ('物攻', '魔攻', '动态攻击'):
             self.inc_team_counter(team, 'status_skill')
+
+        # 本回合技能信息（合拍：回合末比对系别/类型/能耗）
+        self._turn_skills[team] = {
+            "element": eff_element,
+            "skill_type": record.skill_type,
+            "energy_cost": cost,
+        }
+
+        # 巧变：本次为授予技能 → 变随机同类技能（能耗-1）；本次为巧变产物 → 还原原技能
+        morph_event = morph.apply_after_use(self, team, user, action.skill_index or 0, bs)
+        if morph_event and not mcts_sim:
+            events.append(morph_event)
 
         return events
 
@@ -1781,10 +2012,19 @@ class Battle(BattleMechanicsMixin):
         if not self.player_b.active.is_fainted:
             sprites['B'] = self.player_b.active
 
-        events += SkillResolver.turn_end(sprites, self.globals)
+        # 陨落：turn_end_block 标记（任意一方场上精灵携带）→ 本回合末双方效果全部不触发
+        turn_end_blocked = any(
+            sprite._modifiers.get("turn_end_block", 0) > 0
+            for sprite in sprites.values()
+        )
+        if turn_end_blocked:
+            if not mcts_sim:
+                events.append('⏳ 回合末效果被抑制（陨落）')
+        else:
+            events += SkillResolver.turn_end(sprites, self.globals)
 
-        # 双向光速：extra_turn_end flag 让回合末效果额外触发一次
-        extra_turn = any(
+        # 双向光速：extra_turn_end flag 让回合末效果额外触发一次（被抑制时不生效）
+        extra_turn = (not turn_end_blocked) and any(
             sprite._modifiers.get("extra_turn_end", 0) > 0
             for sprite in sprites.values()
         )
@@ -1794,7 +2034,7 @@ class Battle(BattleMechanicsMixin):
             events += SkillResolver.turn_end(sprites, self.globals)
 
         # ── 异常 tick trait 通知（只读，不修改层数/HP）──
-        if self._vm_engine.registry.has_candidates("post_abnormal_tick"):
+        if not turn_end_blocked and self._vm_engine.registry.has_candidates("post_abnormal_tick"):
             for team, sprite in list(sprites.items()):
                 opp_team = 'B' if team == 'A' else 'A'
                 opp = self.get_opponent(team).active
@@ -1811,9 +2051,14 @@ class Battle(BattleMechanicsMixin):
                         events += self._vm_engine.fire_trigger("post_abnormal_tick", ctx_tick_self, sprite, opp, self.globals, team=team, battle=self)
                         events += self._vm_engine.fire_trigger("post_abnormal_tick", ctx_tick_opp, opp, sprite, self.globals, team=opp_team, battle=self)
 
-        # ── Observer: turn_end ──
+        # ── 引擎写入：本回合双方技能比对（合拍 等，须在 turn_end 观察者之前）──
+        self._write_turn_match_counters()
+
+        # ── Observer: turn_end（陨落 抑制时跳过）──
         for team, sprite in sprites.items():
             # Observer: turn_end
+            if turn_end_blocked:
+                break
             if not self._vm_engine.registry.has_candidates("turn_end", id(sprite)):
                 continue
             opp_team = 'B' if team == 'A' else 'A'

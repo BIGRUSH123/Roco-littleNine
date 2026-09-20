@@ -2,7 +2,7 @@
 from backend.vm.compiler.context import CompilerContext
 from backend.vm.compiler.passes.inject_hit import InjectHitPass
 from backend.vm.compiler.passes.skill_parse import SkillParsePass
-from backend.vm.ir_skill import HitOp, ModOp
+from backend.vm.ir_skill import HitOp, MultModOp, StatStageOp
 from backend.vm.ir_values import Literal
 
 
@@ -23,14 +23,14 @@ class TestInjectHitPass:
             "element": "冰",
             "combo": 1,
             "effects": [
-                {"op": "mod", "target": "sprite_opp", "stat": "speed", "steps": -3}
+                {"op": "stat_stage", "target": "sprite_opp", "stat": "speed", "steps": -3}
             ]
         }
         ctx = self._parse_and_inject(data)
         assert len(ctx.errors) == 0
         # HitOp injected at the end, after user effects
         assert len(ctx.ir) == 2
-        assert isinstance(ctx.ir[0], ModOp)
+        assert isinstance(ctx.ir[0], StatStageOp)
         assert isinstance(ctx.ir[1], HitOp)
         assert ctx.ir[1].power == Literal(value=90)
         assert ctx.ir[1].type == "物攻"
@@ -42,7 +42,7 @@ class TestInjectHitPass:
             "skill_type": "物攻",
             "power": 0,
             "effects": [
-                {"op": "mod", "target": "sprite_self", "stat": "atk", "steps": 1}
+                {"op": "stat_stage", "target": "sprite_self", "stat": "atk", "steps": 1}
             ]
         }
         ctx = self._parse_and_inject(data)
@@ -55,12 +55,12 @@ class TestInjectHitPass:
             "skill_type": "状态",
             "power": 50,
             "effects": [
-                {"op": "mod", "target": "sprite_self", "stat": "atk", "steps": 3}
+                {"op": "stat_stage", "target": "sprite_self", "stat": "atk", "steps": 3}
             ]
         }
         ctx = self._parse_and_inject(data)
         assert len(ctx.ir) == 1
-        assert isinstance(ctx.ir[0], ModOp)
+        assert isinstance(ctx.ir[0], StatStageOp)
 
     def test_no_inject_for_defense_skill(self):
         """Defense skill does not get HitOp."""
@@ -68,13 +68,13 @@ class TestInjectHitPass:
             "skill_type": "防御",
             "power": 70,
             "effects": [
-                {"op": "mod", "target": "sprite_self", "stat": "damage_reduction",
+                {"op": "mult_mod", "target": "sprite_self", "attr": "damage_reduction",
                  "value": 0.7}
             ]
         }
         ctx = self._parse_and_inject(data)
         assert len(ctx.ir) == 1
-        assert isinstance(ctx.ir[0], ModOp)
+        assert isinstance(ctx.ir[0], MultModOp)
 
     def test_no_duplicate_hit_injection(self):
         """If HitOp already exists, don't inject another."""

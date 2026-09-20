@@ -65,6 +65,8 @@ def effect_to_dict(effect: Any) -> dict:
         base["switch_damage_pct"] = effect.switch_damage_pct
         base["switch_energy_loss"] = effect.switch_energy_loss
         base["starfall_damage"] = effect.starfall_damage
+        base["leave_random_debuffs"] = effect.leave_random_debuffs
+        base["buff_bonus_layers"] = effect.buff_bonus_layers
         if effect.condition:
             base["condition"] = effect.condition
     elif isinstance(effect, ObserverEffect):
@@ -73,6 +75,7 @@ def effect_to_dict(effect: Any) -> dict:
         base["listen"] = list(effect.listen) if effect.listen else []
         base["threshold"] = effect.threshold
         base["reset_on_fire"] = effect.reset_on_fire
+        base["reset"] = getattr(effect, "reset", "")
     return base
 
 
@@ -129,6 +132,8 @@ def effect_from_dict(d: dict) -> Any:
             switch_damage_pct=d.get("switch_damage_pct", 0.0),
             switch_energy_loss=d.get("switch_energy_loss", 0),
             starfall_damage=d.get("starfall_damage", 0),
+            leave_random_debuffs=d.get("leave_random_debuffs", 0),
+            buff_bonus_layers=d.get("buff_bonus_layers", 0),
             condition=d.get("condition", ""),
         )
     if _type == "ObserverEffect":
@@ -138,6 +143,7 @@ def effect_from_dict(d: dict) -> Any:
             then=d.get("then", []), listen=frozenset(d.get("listen", [])),
             threshold=d.get("threshold", 1),
             reset_on_fire=d.get("reset_on_fire", True),
+            reset=d.get("reset", ""),
         )
     raise ValueError(f"Unknown effect type: {_type}")
 
@@ -158,6 +164,7 @@ def battle_skill_to_dict(bs) -> dict:
         "cooldown": bs.cooldown,
         "next_attack_mult": bs.next_attack_mult,
         "_element_override": bs._element_override,
+        "_morph_temp": bs._morph_temp,
         "_mech_energy_reduction": bs._mech_energy_reduction,
     }
 
@@ -182,6 +189,7 @@ def battle_skill_from_dict(d: dict, skill_loader) -> Any:
     bs.cooldown = d.get("cooldown", 0)
     bs.next_attack_mult = d.get("next_attack_mult", 1.0)
     bs._element_override = d.get("_element_override", "")
+    bs._morph_temp = d.get("_morph_temp", False)
     bs._mech_energy_reduction = d.get("_mech_energy_reduction", 0)
     return bs
 
@@ -198,6 +206,7 @@ def species_ref_to_dict(species) -> dict | None:
         "name": species.name,
         "number": species.number,
         "form": species.form,
+        "appearance": getattr(species, "appearance", ""),
     }
 
 
@@ -205,18 +214,20 @@ def species_ref_from_dict(d: dict | None, species_db) -> Any:
     """Resolve a serialized species reference through the supplied database."""
     if not d:
         return None
-    species = species_db(d["name"], d.get("form", ""))
+    # 新快照带 appearance；旧快照把外观写在 form 里，db.get 内部会规范化
+    species = species_db(d["name"], d.get("appearance") or d.get("form", ""))
     if species is None:
         raise ValueError(f"Species not found: {d['name']!r}")
     return species
 
 
 def sprite_to_dict(sprite) -> dict:
-    """Serialize Sprite — species as name/number/form identifier."""
+    """Serialize Sprite — species as name/number/form/appearance identifier."""
     return {
         "species_name": sprite.species.name,
         "species_number": sprite.species.number,
         "species_form": sprite.species.form,
+        "species_appearance": getattr(sprite.species, "appearance", ""),
         "bloodline": sprite.bloodline,
         "bloodline_skills": dict(sprite.bloodline_skills),
         "initial_stats": dict(sprite.initial_stats),

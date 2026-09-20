@@ -67,6 +67,14 @@ MARK_TEMPLATES: dict[str, MarkEffect] = {
         name="星陨印记", source="印记", category="negative", scope="persistent",
         starfall_damage=30,
     ),
+    "暗涌印记": MarkEffect(
+        name="暗涌印记", source="印记", category="negative", scope="persistent",
+        leave_random_debuffs=5,
+    ),
+    "萌芽印记": MarkEffect(
+        name="萌芽印记", source="印记", category="positive", scope="persistent",
+        buff_bonus_layers=1,
+    ),
 }
 
 # Derived sets for quick category lookup

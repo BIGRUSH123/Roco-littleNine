@@ -15,6 +15,19 @@ if TYPE_CHECKING:
 WEATHER_DURATION = 8  # 天气持续回合
 
 
+def kingdom_is_night(now=None) -> bool:
+    """王国是否入夜：每日 23:00–次日 4:00（nrc wiki 游戏内说明）。
+
+    世界状态，只在建立对局时判定一次；测试/回放请显式传 night=...
+    以保持确定性。
+    """
+    if now is None:
+        import datetime
+        now = datetime.datetime.now()
+    hour = now.hour
+    return hour >= 23 or hour < 4
+
+
 @dataclass
 class GlobalEffects:
     """全局战场效果：天气 + 双方印记 + 场地。"""
@@ -22,6 +35,9 @@ class GlobalEffects:
     # 天气
     weather: str = ''           # "" | "rain" | "sand" | "snow"
     weather_turns: int = 0
+
+    # 世界状态：王国入夜（安眠 等特性以 is_night 条件读取）
+    night: bool = False
 
     # 双方印记（MarkEffect 对象列表）
     mark_effects: dict[str, list] = field(default_factory=dict)
@@ -137,6 +153,14 @@ class GlobalEffects:
         for me in self.mark_effects.get(team, []):
             if isinstance(me, MarkEffect) and me.switch_energy_loss:
                 total += me.switch_energy_loss * me.stacks
+        return total
+
+    def mark_leave_random_debuffs(self, team: str) -> int:
+        """暗涌印记：持有方精灵离场时，换入者应得的随机属性减益总层数。"""
+        total = 0
+        for me in self.mark_effects.get(team, []):
+            if isinstance(me, MarkEffect) and me.leave_random_debuffs:
+                total += me.leave_random_debuffs * me.stacks
         return total
 
     def mark_turn_end_effects(self, sprites: dict[str, Sprite]) -> list[str]:

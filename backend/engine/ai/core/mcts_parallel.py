@@ -12,12 +12,12 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
+from backend.engine.ai.core.mcts import NUM_ACTIONS  # 单一来源，避免与动作空间漂移
+
 if TYPE_CHECKING:
     from backend.engine.ai.core.evaluator import PolicyValueEvaluator
     from backend.sim.battle import Battle
     from backend.sim.factory import SimFactory
-
-NUM_ACTIONS = 17
 
 
 def parallel_mcts_search_root(

@@ -29,7 +29,7 @@ from backend.engine.ai.core.encoder import encode_battle_state
 from backend.engine.ai.core.evaluator import BatchedInferenceServer, QueuePolicyEvaluator, TorchEvaluator
 from backend.engine.ai.core.mcts import NUM_ACTIONS, NetworkPolicyAgent
 from backend.engine.ai.core.model import ModularBattleNet
-from backend.engine.ai.core.replay_buffer import DictReplayBuffer
+from backend.engine.ai.core.replay_buffer import DictReplayBuffer, RecentIterationsReplayBuffer
 from backend.engine.ai.run_logger import RunLogger
 from backend.engine.ai.train import (
     DEFAULT_MCTS_LEAF_BATCH_SIZE,
@@ -44,6 +44,7 @@ from backend.engine.ai.train import (
 from backend.engine.serializer import battle_from_dict, battle_to_dict
 from backend.sim.agent import RuleAgent
 from backend.sim.factory import SimFactory
+from backend.sim.player import Item
 from backend.vm.effect import ObserverEffect
 
 
@@ -106,20 +107,15 @@ def test_run_logger_finalize_handles_promoted_summary_on_gbk_console(
     assert "训练汇总" in raw.getvalue().decode("gbk")
 
 
-def test_random_teams_use_one_shared_team_size(monkeypatch):
-    """双方人数必须由同一次抽样决定，避免阵容人数主导训练标签。"""
+def test_random_teams_use_one_shared_team_size():
+    """实战格式 6v6：两队人数相同且等于 6（先力竭 4 只判负，即 lives=4）。"""
     factory = SimFactory()
     sprite_skills = _load_sprite_skills()
-    sampled_sizes = iter((1, 3))
-    monkeypatch.setattr(
-        train_module.random,
-        "randint",
-        lambda _low, _high: next(sampled_sizes),
-    )
 
-    team_a, team_b = train_module._random_teams(factory, sprite_skills)
+    team_a, team_b, item_a, item_b = train_module._random_teams(factory, sprite_skills)
 
-    assert len(team_a) == len(team_b) == 1
+    assert len(team_a) == len(team_b) == 6
+    assert item_a.name in ("进化之力", "愿力") and item_b.name in ("进化之力", "愿力")
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -340,7 +336,7 @@ def test_collect_rl_dual_perspective():
     sprite_skills = _load_sprite_skills()
     model = ModularBattleNet()
 
-    X, P, M, v, _ = collect_rl_samples(
+    X, P, M, v, game_ids, _ = collect_rl_samples(
         model, factory, sprite_skills,
         num_battles=1, num_simulations=6, device="cpu",
         max_turns=20, verbose=False,
@@ -349,8 +345,9 @@ def test_collect_rl_dual_perspective():
     _assert_state_batch(X)
     assert P.ndim == 2 and P.shape[1] == NUM_ACTIONS
     assert M.ndim == 2 and M.shape[1] == NUM_ACTIONS
-    assert len(X) == len(P) == len(M) == len(v)
+    assert len(X) == len(P) == len(M) == len(v) == len(game_ids)
     assert len(X) > 0, "应至少收集到若干样本（A+B 双方）"
+    assert set(game_ids.tolist()) == {0}, "同一局双方视角必须共享 game_id"
     # 结果标签只能是 -1/0/+1
     assert set(np.unique(v).tolist()).issubset({-1.0, 0.0, 1.0})
     # mask 只能包含 0/1
@@ -393,7 +390,7 @@ def test_collect_rl_parallel_smoke():
     sprite_skills = _load_sprite_skills()
     model = ModularBattleNet()
 
-    X, P, M, v, _ = collect_rl_samples_parallel(
+    X, P, M, v, game_ids, _ = collect_rl_samples_parallel(
         model, factory, sprite_skills,
         num_battles=2, num_workers=2, device="cpu",
         inference_batch_size=16, inference_timeout_ms=2.0,
@@ -403,8 +400,9 @@ def test_collect_rl_parallel_smoke():
 
     _assert_state_batch(X)
     assert M.ndim == 2 and M.shape[1] == NUM_ACTIONS
-    assert len(X) == len(P) == len(M) == len(v)
+    assert len(X) == len(P) == len(M) == len(v) == len(game_ids)
     assert len(X) > 0
+    assert set(game_ids.tolist()) == {0, 1}
 
 
 def test_evaluate_parallel_smoke():
@@ -447,7 +445,7 @@ def test_paired_eval_tasks_reuse_matchup_when_models_swap_sides(monkeypatch):
 
     def fake_random_teams(_factory, _sprite_skills):
         value = next(marker)
-        return ([{"name": f"A{value}"}], [{"name": f"B{value}"}])
+        return ([{"name": f"A{value}"}], [{"name": f"B{value}"}], Item.wish(), Item.wish())
 
     monkeypatch.setattr(train_module, "_random_teams", fake_random_teams)
 
@@ -496,6 +494,25 @@ def test_train_rl_smoke_uses_replay_buffer_batches():
 
     assert len(history) == 1
     assert 0.0 <= history[0]["val_acc"] <= 1.0
+
+
+def test_grouped_train_val_split_keeps_whole_games_out_of_training():
+    """验证集必须抽整局，不能把同局相邻状态同时放入训练集。"""
+    splitter = getattr(train_module, "_grouped_train_val_indices", None)
+    assert splitter is not None, "训练代码尚未提供按 game_id 分组的切分"
+
+    game_ids = np.array([11, 11, 22, 22, 33, 33, 44, 44], dtype=np.int64)
+    train_indices, val_indices = splitter(
+        game_ids,
+        val_split=0.25,
+        rng=np.random.default_rng(123),
+    )
+
+    train_games = set(game_ids[train_indices].tolist())
+    val_games = set(game_ids[val_indices].tolist())
+    assert train_games.isdisjoint(val_games)
+    assert sorted(np.concatenate([train_indices, val_indices]).tolist()) == list(range(8))
+    assert val_games == {11}, "固定随机种子应抽到首局，而不是固定使用尾部样本"
 
 
 def test_train_rl_policy_loss_weight_controls_policy_head_updates():
@@ -589,6 +606,41 @@ def test_replay_buffer_push_batch_wraps_vectorized_writes():
     assert replay.size == 3
     np.testing.assert_allclose(replay.buffers["global_stats"][:, 0], [3.0, 4.0, 2.0])
     np.testing.assert_allclose(replay.outcome_buffer, [3.0, 4.0, 2.0])
+
+
+def test_recent_replay_keeps_game_groups_distinct_across_iterations():
+    """相同的局内 ID 在不同 iteration 中不能被误认为同一局。"""
+    replay = RecentIterationsReplayBuffer(keep_iterations=2)
+    state = {
+        key: np.zeros(buffer.shape[1:], dtype=buffer.dtype)
+        for key, buffer in replay.buffers.items()
+    }
+    policies = np.zeros((3, NUM_ACTIONS), dtype=np.float32)
+    masks = np.ones((3, NUM_ACTIONS), dtype=np.float32)
+
+    try:
+        replay.push_batch(
+            [copy.deepcopy(state) for _ in range(3)],
+            policies,
+            masks,
+            np.zeros(3, dtype=np.float32),
+            game_ids=np.array([4, 4, 7], dtype=np.int64),
+        )
+        replay.push_batch(
+            [copy.deepcopy(state) for _ in range(2)],
+            policies[:2],
+            masks[:2],
+            np.zeros(2, dtype=np.float32),
+            game_ids=np.array([4, 9], dtype=np.int64),
+        )
+    except TypeError as exc:
+        raise AssertionError("回放池必须接收并保存 game_ids") from exc
+
+    first_iteration_game = replay.game_id_buffer[:2]
+    second_iteration_games = replay.game_id_buffer[3:]
+    assert first_iteration_game[0] == first_iteration_game[1]
+    assert first_iteration_game[0] not in set(second_iteration_games.tolist())
+    assert len(set(replay.game_id_buffer.tolist())) == 4
 
 
 def test_replay_buffer_push_batch_keeps_last_entries_when_batch_exceeds_capacity():

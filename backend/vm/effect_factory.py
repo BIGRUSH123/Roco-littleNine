@@ -109,6 +109,8 @@ def from_dict(d: dict, *, source: str = "") -> EffectObject | None:
                 switch_damage_pct=d.get("switch_damage_pct", template.switch_damage_pct),
                 switch_energy_loss=d.get("switch_energy_loss", template.switch_energy_loss),
                 starfall_damage=d.get("starfall_damage", template.starfall_damage),
+                leave_random_debuffs=d.get("leave_random_debuffs", template.leave_random_debuffs),
+                buff_bonus_layers=d.get("buff_bonus_layers", template.buff_bonus_layers),
                 condition=d.get("condition", template.condition),
             )
         return MarkEffect(

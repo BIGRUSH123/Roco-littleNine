@@ -1,18 +1,19 @@
 """Tests for Pass 3: SkillValidatePass."""
 from backend.vm.compiler.context import CompilerContext
 from backend.vm.compiler.passes.skill_validate import SkillValidatePass
-from backend.vm.ir_skill import AbnormalOp, HitOp, ModOp
+from backend.vm.ir_skill import AbnormalOp, HitOp, MultModOp, ResetOp
 from backend.vm.ir_values import Literal
 
 
 class TestSkillValidatePass:
     """Tests for the SkillValidatePass."""
 
-    def test_valid_mod_passes(self):
-        """Valid ModOp passes validation."""
+    def test_valid_mult_mod_passes(self):
+        """Valid MultModOp passes validation."""
         ctx = CompilerContext(raw={})
         ctx.ir = [
-            ModOp(target="sprite_self", stat="atk", value=Literal(value=1))
+            MultModOp(target="sprite_self", attr="damage_reduction",
+                      value=Literal(value=0.7))
         ]
         SkillValidatePass().process(ctx)
         assert len(ctx.errors) == 0
@@ -30,18 +31,18 @@ class TestSkillValidatePass:
         """Invalid target produces error."""
         ctx = CompilerContext(raw={})
         ctx.ir = [
-            ModOp(target="invalid_target", stat="atk", value=Literal(value=1))
+            MultModOp(target="invalid_target", attr="damage_reduction",
+                      value=Literal(value=1))
         ]
         SkillValidatePass().process(ctx)
         assert len(ctx.errors) == 1
         assert "target" in ctx.errors[0].message
 
     def test_invalid_stat(self):
-        """Invalid stat produces error."""
+        """Invalid stat produces error (ResetOp carries stat validation)."""
         ctx = CompilerContext(raw={})
         ctx.ir = [
-            ModOp(target="sprite_self", stat="nonexistent_stat",
-                  value=Literal(value=1))
+            ResetOp(target="skill_off_0", stat="nonexistent_stat")
         ]
         SkillValidatePass().process(ctx)
         assert len(ctx.errors) == 1
@@ -51,8 +52,9 @@ class TestSkillValidatePass:
         """Invalid scope produces error."""
         ctx = CompilerContext(raw={})
         ctx.ir = [
-            ModOp(target="sprite_self", stat="atk", value=Literal(value=1),
-                  scope="invalid_scope")
+            MultModOp(target="sprite_self", attr="damage_reduction",
+                      value=Literal(value=1),
+                      scope="invalid_scope")
         ]
         SkillValidatePass().process(ctx)
         assert len(ctx.errors) == 1
@@ -62,8 +64,9 @@ class TestSkillValidatePass:
         """Valid scope 'persistent' passes."""
         ctx = CompilerContext(raw={})
         ctx.ir = [
-            ModOp(target="sprite_self", stat="atk", value=Literal(value=1),
-                  scope="persistent")
+            MultModOp(target="sprite_self", attr="damage_reduction",
+                      value=Literal(value=1),
+                      scope="persistent")
         ]
         SkillValidatePass().process(ctx)
         assert len(ctx.errors) == 0
@@ -72,8 +75,9 @@ class TestSkillValidatePass:
         """Valid scope 'permanent' passes."""
         ctx = CompilerContext(raw={})
         ctx.ir = [
-            ModOp(target="sprite_self", stat="atk", value=Literal(value=1),
-                  scope="permanent")
+            MultModOp(target="sprite_self", attr="damage_reduction",
+                      value=Literal(value=1),
+                      scope="permanent")
         ]
         SkillValidatePass().process(ctx)
         assert len(ctx.errors) == 0
@@ -82,8 +86,8 @@ class TestSkillValidatePass:
         """team_opp target is valid."""
         ctx = CompilerContext(raw={})
         ctx.ir = [
-            ModOp(target="team_opp", stat="mark_count",
-                  value=Literal(value=1))
+            MultModOp(target="team_opp", attr="damage_reduction",
+                      value=Literal(value=1))
         ]
         SkillValidatePass().process(ctx)
         assert len(ctx.errors) == 0
@@ -92,8 +96,8 @@ class TestSkillValidatePass:
         """skill_off_0 target is valid."""
         ctx = CompilerContext(raw={})
         ctx.ir = [
-            ModOp(target="skill_off_0", stat="power",
-                  value=Literal(value=50))
+            MultModOp(target="skill_off_0", attr="power_mult",
+                      value=Literal(value=50))
         ]
         SkillValidatePass().process(ctx)
         assert len(ctx.errors) == 0

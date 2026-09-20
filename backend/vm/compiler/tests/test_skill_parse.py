@@ -15,9 +15,11 @@ from backend.vm.ir_skill import (
     InterruptOp,
     LockOp,
     MarkOp,
-    ModOp,
+    MultModOp,
     OrCond,
+    PowerModOp,
     ReturnOp,
+    StatStageOp,
     StealOp,
     WeatherOp,
     WhenBlock,
@@ -32,7 +34,7 @@ class TestSkillParsePass:
         """Parse a simple stat modification."""
         data = {
             "effects": [
-                {"target": "sprite_self", "op": "mod", "stat": "atk", "steps": 3}
+                {"op": "stat_stage", "target": "sprite_self", "stat": "atk", "steps": 3}
             ]
         }
         ctx = CompilerContext(raw=data)
@@ -40,7 +42,7 @@ class TestSkillParsePass:
         assert len(ctx.ir) == 1
         assert len(ctx.errors) == 0
         op = ctx.ir[0]
-        assert isinstance(op, ModOp)
+        assert isinstance(op, StatStageOp)
         assert op.target == "sprite_self"
         assert op.stat == "atk"
         assert op.steps == 3
@@ -49,25 +51,22 @@ class TestSkillParsePass:
         """Parse a mod with explicit value."""
         data = {
             "effects": [
-                {"op": "mod", "target": "sprite_self", "stat": "power",
-                 "value": 70, "mode": "add", "on_next": True}
+                {"op": "power_mod", "target": "sprite_self", "attr": "power", "delta": 70, "on_next": True}
             ]
         }
         ctx = CompilerContext(raw=data)
         SkillParsePass().process(ctx)
         assert len(ctx.errors) == 0
         op = ctx.ir[0]
-        assert isinstance(op, ModOp)
-        assert op.value == Literal(value=70)
+        assert isinstance(op, PowerModOp)
+        assert op.delta == Literal(value=70)
         assert op.mode == "add"
-        assert op.on_next is True
 
     def test_parse_value_as_literal(self):
         """Value as plain number becomes Literal."""
         data = {
             "effects": [
-                {"op": "mod", "target": "sprite_self", "stat": "hp",
-                 "value": 0.3}
+                {"op": "heal", "target": "sprite_self", "value": 0.3}
             ]
         }
         ctx = CompilerContext(raw=data)
@@ -80,42 +79,42 @@ class TestSkillParsePass:
         """Value with 'q' key becomes Query resolved via ADDRESS_MAP."""
         data = {
             "effects": [
-                {"op": "mod", "target": "sprite_self", "stat": "power",
-                 "value": {"q": "energy", "of": "sprite_self", "scale": 10}}
+                {"op": "power_mod", "target": "sprite_self", "attr": "power",
+                 "delta": {"q": "energy", "of": "sprite_self", "scale": 10}}
             ]
         }
         ctx = CompilerContext(raw=data)
         SkillParsePass().process(ctx)
         assert len(ctx.errors) == 0
         op = ctx.ir[0]
-        assert isinstance(op.value, Query)
-        assert op.value.field == "energy_self"
-        assert op.value.scale == 10
+        assert isinstance(op.delta, Query)
+        assert op.delta.field == "energy_self"
+        assert op.delta.scale == 10
 
     def test_parse_query_with_name(self):
         """Query with 'name' for dict-type registers."""
         data = {
             "effects": [
-                {"op": "mod", "target": "sprite_self", "stat": "power",
-                 "value": {"q": "abnormal_stacks", "of": "sprite_opp",
+                {"op": "power_mod", "target": "sprite_self", "attr": "power",
+                 "delta": {"q": "abnormal_stacks", "of": "sprite_opp",
                            "name": "中毒", "scale": 0.1, "offset": 0.5}}
             ]
         }
         ctx = CompilerContext(raw=data)
         SkillParsePass().process(ctx)
         op = ctx.ir[0]
-        assert isinstance(op.value, Query)
-        assert op.value.field == "abnormal_stacks_opp"
-        assert op.value.name == "中毒"
-        assert op.value.scale == 0.1
-        assert op.value.offset == 0.5
+        assert isinstance(op.delta, Query)
+        assert op.delta.field == "abnormal_stacks_opp"
+        assert op.delta.name == "中毒"
+        assert op.delta.scale == 0.1
+        assert op.delta.offset == 0.5
 
     def test_parse_query_unknown_address(self):
         """Query with unknown (of, q) raises error."""
         data = {
             "effects": [
-                {"op": "mod", "target": "sprite_self", "stat": "power",
-                 "value": {"q": "nonexistent", "of": "sprite_self"}}
+                {"op": "power_mod", "target": "sprite_self", "attr": "power",
+                 "delta": {"q": "nonexistent", "of": "sprite_self"}}
             ]
         }
         ctx = CompilerContext(raw=data)
@@ -130,12 +129,10 @@ class TestSkillParsePass:
                 {
                     "when": {"cond": "counter_succeeded"},
                     "then": [
-                        {"op": "mod", "target": "sprite_self", "stat": "atk",
-                         "value": 1}
+                        {"op": "mult_mod", "target": "sprite_self", "attr": "atk", "value": 1}
                     ],
                     "else": [
-                        {"op": "mod", "target": "sprite_self", "stat": "def",
-                         "value": 1}
+                        {"op": "mult_mod", "target": "sprite_self", "attr": "def", "value": 1}
                     ]
                 }
             ]
@@ -149,9 +146,9 @@ class TestSkillParsePass:
         assert isinstance(wb.cond, CondExpr)
         assert wb.cond.cond == "counter_succeeded"
         assert len(wb.then) == 1
-        assert isinstance(wb.then[0], ModOp)
+        assert isinstance(wb.then[0], MultModOp)
         assert len(wb.else_) == 1
-        assert isinstance(wb.else_[0], ModOp)
+        assert isinstance(wb.else_[0], MultModOp)
 
     def test_parse_when_block_with_and_cond(self):
         """Parse WhenBlock with AND compound condition."""
@@ -166,8 +163,7 @@ class TestSkillParsePass:
                         ]
                     },
                     "then": [
-                        {"op": "mod", "target": "sprite_self", "stat": "atk",
-                         "value": 1}
+                        {"op": "mult_mod", "target": "sprite_self", "attr": "atk", "value": 1}
                     ]
                 }
             ]
@@ -192,8 +188,7 @@ class TestSkillParsePass:
                         ]
                     },
                     "then": [
-                        {"op": "mod", "target": "skill_off_0", "stat": "combo",
-                         "value": 1, "mode": "add", "feeds": "power"}
+                        {"op": "power_mod", "target": "skill_off_0", "attr": "combo", "delta": 1}
                     ]
                 }
             ]
@@ -386,15 +381,14 @@ class TestSkillParsePass:
         assert op.turns == 8
 
     def test_parse_count(self):
-        """Parse a count op with when condition."""
+        """Parse an observer (compiled to CountOp) with when condition."""
         data = {
             "effects": [
                 {
-                    "op": "count",
-                    "when": {"cond": "sprite_entered"},
+                    "op": "observer",
+                    "cond": {"cond": "sprite_entered"},
                     "then": [
-                        {"op": "mod", "target": "skill_off_0", "stat": "power",
-                         "value": 1, "mode": "add", "scope": "permanent"}
+                        {"op": "power_mod", "target": "skill_off_0", "attr": "power", "delta": 1}
                     ]
                 }
             ]
@@ -412,8 +406,7 @@ class TestSkillParsePass:
         """Parse effect with feeds/needs declarations."""
         data = {
             "effects": [
-                {"op": "mod", "target": "skill_off_0", "stat": "power",
-                 "value": 50, "feeds": "power"}
+                {"op": "power_mod", "target": "skill_off_0", "attr": "power", "delta": 50, "feeds": "power"}
             ]
         }
         ctx = CompilerContext(raw=data)
@@ -468,8 +461,7 @@ class TestSkillParsePass:
                 {
                     "when": {"cond": "hp_below", "ratio": 0.5},
                     "then": [
-                        {"op": "mod", "target": "sprite_self", "stat": "atk",
-                         "value": 1}
+                        {"op": "mult_mod", "target": "sprite_self", "attr": "atk", "value": 1}
                     ]
                 }
             ]

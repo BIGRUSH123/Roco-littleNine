@@ -16,7 +16,8 @@ from backend.vm.ir_skill import (
     ExchangeOp,
     HitOp,
     MarkOp,
-    ModOp,
+    MultModOp,
+    StatStageOp,
     StealOp,
     WhenBlock,
 )
@@ -58,7 +59,7 @@ class TestCompilerE2E:
             "power": 90,
             "energy_cost": 3,
             "effects": [
-                {"target": "sprite_opp", "op": "mod", "stat": "speed", "steps": -3}
+                {"op": "stat_stage", "target": "sprite_opp", "stat": "speed", "steps": -3}
             ],
             "description": "造成物伤"
         }
@@ -66,8 +67,8 @@ class TestCompilerE2E:
         assert compiled.name == "丢冰块"
         assert compiled.skill_type == "物攻"
         assert compiled.power == 90
-        assert len(compiled.effects) == 2  # ModOp + HitOp (HitOp injected at end)
-        assert isinstance(compiled.effects[0], ModOp)
+        assert len(compiled.effects) == 2  # StatStageOp + HitOp (HitOp injected at end)
+        assert isinstance(compiled.effects[0], StatStageOp)
         assert isinstance(compiled.effects[1], HitOp)
         assert compiled.effects[1].power == Literal(value=90)
 
@@ -81,7 +82,7 @@ class TestCompilerE2E:
             "energy_cost": 1,
             "combo": 3,
             "effects": [
-                {"target": "sprite_self", "op": "mod", "stat": "atk", "steps": 3}
+                {"op": "stat_stage", "target": "sprite_self", "stat": "atk", "steps": 3}
             ],
             "description": "自己获得物攻+30%"
         }
@@ -90,7 +91,7 @@ class TestCompilerE2E:
         assert compiled.skill_type == "状态"
         assert compiled.power == 0
         assert len(compiled.effects) == 1
-        assert isinstance(compiled.effects[0], ModOp)
+        assert isinstance(compiled.effects[0], StatStageOp)
 
     def test_compile_defense_skill(self, compiler):
         """不可接触: 防御 skill with query value."""
@@ -106,8 +107,8 @@ class TestCompilerE2E:
                     "value": {"q": "abnormal_stacks", "of": "sprite_opp",
                               "name": "中毒", "scale": 0.1, "offset": 0.5},
                     "target": "sprite_self",
-                    "op": "mod",
-                    "stat": "damage_reduction"
+                    "op": "mult_mod",
+                    "attr": "damage_reduction"
                 }
             ],
             "description": "减伤"
@@ -117,7 +118,7 @@ class TestCompilerE2E:
         assert compiled.counter == "攻击"
         assert len(compiled.effects) == 1
         op = compiled.effects[0]
-        assert isinstance(op, ModOp)
+        assert isinstance(op, MultModOp)
         assert isinstance(op.value, Query)
         assert op.value.field == "abnormal_stacks_opp"
         assert op.value.name == "中毒"
@@ -135,12 +136,10 @@ class TestCompilerE2E:
                 {
                     "when": {"cond": "counter_succeeded"},
                     "then": [
-                        {"op": "mod", "target": "sprite_self", "stat": "power_mult",
-                         "value": 2, "scope": "permanent", "element": "光"}
+                        {"op": "mult_mod", "target": "sprite_self", "attr": "power_mult", "value": 2}
                     ],
                     "else": [
-                        {"op": "mod", "target": "sprite_self", "stat": "power_mult",
-                         "value": 1.5, "scope": "permanent", "element": "光"}
+                        {"op": "mult_mod", "target": "sprite_self", "attr": "power_mult", "value": 1.5}
                     ]
                 }
             ],
@@ -168,8 +167,7 @@ class TestCompilerE2E:
                 {
                     "when": {"cond": "counter_succeeded"},
                     "then": [
-                        {"op": "mod", "target": "sprite_opp", "stat": "energy_cost",
-                         "value": 4, "scope": "persistent", "skill_filter": "attack"}
+                        {"op": "power_mod", "target": "sprite_opp", "attr": "energy_cost", "delta": 4}
                     ]
                 }
             ],
@@ -247,16 +245,14 @@ class TestCompilerE2E:
                         ]
                     },
                     "then": [
-                        {"op": "mod", "target": "skill_off_0", "stat": "combo",
-                         "value": 1, "mode": "add", "feeds": "power"}
+                        {"op": "power_mod", "target": "skill_off_0", "attr": "combo", "delta": 1}
                     ]
                 },
                 {
-                    "op": "count",
-                    "when": {"cond": "sprite_entered"},
+                    "op": "observer",
+                    "cond": {"cond": "sprite_entered"},
                     "then": [
-                        {"op": "mod", "target": "skill_off_0", "stat": "power",
-                         "value": 1, "mode": "add", "scope": "permanent"}
+                        {"op": "power_mod", "target": "skill_off_0", "attr": "power", "delta": 1}
                     ]
                 }
             ],
@@ -433,8 +429,7 @@ class TestCompilerE2E:
             "power": 0,
             "energy_cost": 1,
             "effects": [
-                {"op": "mod", "target": "invalid_target", "stat": "atk",
-                 "value": 1, "scope": "bad_scope"}
+                {"op": "mult_mod", "target": "invalid_target", "attr": "atk", "value": 1}
             ],
             "description": "bad"
         }

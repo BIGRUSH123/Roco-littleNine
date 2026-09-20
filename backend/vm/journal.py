@@ -216,6 +216,12 @@ class Replay:
 
 
 @dataclass(frozen=True, slots=True)
+class ReplayChoice:
+    """Re-execute a branch of the current「选择」skill (replay_branch op)."""
+    which: str = "other"   # "other" | "same"
+
+
+@dataclass(frozen=True, slots=True)
 class Borrow:
     """Borrow properties from the opponent's current skill."""
     from_skill: str   # "skill_opp_current"
@@ -294,6 +300,30 @@ class CounterRegister:
     reset_on_fire: bool = True    # reset counter after firing
 
 
+@dataclass(frozen=True, slots=True)
+class MechanismGrant:
+    """机制声明（aura / element_convert / morph / grant_choice 的统一落点）。
+
+    落点是一个 GrantEffect：引擎侧 `backend/engine/mechanisms.py` 按
+    mechanism 名分派；payload 保存该机制的参数（字段名与 IR op 一致）。
+    """
+    target: str
+    mechanism: str
+    payload: dict = field(default_factory=dict, hash=False, compare=False)
+    affects: str = "self"           # "self" | "both"（both = 场上双方）
+    scope: str = "battlefield"
+    source: str = ""
+
+
+@dataclass(frozen=True, slots=True)
+class CounterWrite:
+    """精灵级计数器写入（counter op）。"""
+    target: str
+    key: str
+    delta: int = 0
+    mode: str = "add"           # "add" | "set"
+
+
 # Union of all mutation types the VM can produce
 Mutation = Union[
     StatChange, ModifierInjection, Damage, Heal, EnergyChange,
@@ -303,6 +333,7 @@ Mutation = Union[
     TeamCounterDelta, LivesDelta, ScheduleEntry,
     InheritEffectsMutation, TransformMutation, TraitInteractionMutation,
     GainSkillsMutation,
+    MechanismGrant, CounterWrite,
 ]
 
 # Journal is an ordered list of mutations

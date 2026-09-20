@@ -44,7 +44,12 @@ def _collect_modifiers_from_entries(entries: list[ModifierInjection], ctx: Ctx) 
     'add' and 'multiply' are applied on top.
     """
     if not entries:
-        return {}  # 快速路径：无修饰符
+        # combo_mult 是 ctx 播种的跨技能持久修正（如「行动时连击数+100%」），
+        # 不依赖本技能的 ModifierInjection——无注入的普攻也必须生效，
+        # 否则这类特性对纯伤害技能静默失效。其余种子值均中性，可安全跳过。
+        if ctx.combo_mult_self <= 0:
+            return {}  # 快速路径：无修饰符且无跨技能连击倍率
+        return {"combo_base": max(1, ctx.combo_self), "combo_mult": ctx.combo_mult_self}
 
     mods: dict[str, float] = {
         # op_hit already applied ctx.power_mult_self to Damage. This value is
@@ -195,10 +200,14 @@ def eval_skill_where(skill_where: dict | None, skill: dict) -> bool:
         return True
 
     # Shorthand: {"name": "虫鸣"} → match all field=value pairs (equality)
+    # 值可以是列表 → 成员包含（{"name": ["音波弹", "音爆", ...]}）
     if "q" not in skill_where and "op" not in skill_where:
         for field, expected in skill_where.items():
             actual = skill.get(field)
-            if actual is None or actual != expected:
+            if isinstance(expected, (list, tuple, set, frozenset)):
+                if actual is None or actual not in expected:
+                    return False
+            elif actual is None or actual != expected:
                 return False
         return True
 

@@ -69,9 +69,14 @@ class SimFactory:
         iv: dict[str, int] | None = None,
         form: str = '',
         bloodline: str | None = None,
+        appearance: str = '',
     ) -> Sprite:
-        """从精灵名 + 技能列表构建 Sprite。"""
-        species = self.sprite_db.get(name, form)
+        """从精灵名 + 技能列表构建 Sprite。
+
+        appearance 指定外观（''=默认外观）；form 参数保留兼容，
+        语义等同 appearance（旧数据把外观写在 form 里）。
+        """
+        species = self.sprite_db.get(name, appearance or form)
         if not species:
             raise ValueError(f'精灵未找到: {name!r}')
 
@@ -119,6 +124,7 @@ class SimFactory:
                     transmission=data.get('transmission', 0),
                     description=data.get('description', ''),
                     usable_while_charging=data.get('usable_while_charging', False),
+                    qiaobian=data.get('qiaobian'),
                 )
                 skills.append(BattleSkill(base=skill))
             else:
@@ -141,7 +147,7 @@ class SimFactory:
                 skills=spec.get('skills', []),
                 nature=spec.get('nature'),
                 iv=spec.get('iv'),
-                form=spec.get('form', ''),
+                appearance=spec.get('appearance', spec.get('form', '')),
                 bloodline=spec.get('bloodline'),
             )
             sprites.append(sprite)
@@ -157,8 +163,10 @@ class SimFactory:
     def build_battle(
         self, player_a: Player, player_b: Player,
         weather: str = '',
+        night: bool = False,
     ) -> Battle:
-        battle = Battle(player_a=player_a, player_b=player_b, weather=weather)
+        battle = Battle(player_a=player_a, player_b=player_b, weather=weather,
+                        night=night)
         battle.species_db = self.sprite_db
         battle.skill_loader = self._build_skill_list
         battle.list_all_skill_names = self._list_all_skill_names

@@ -39,15 +39,23 @@ def _get_element_advantage(atk_element: str, def_elements: list[str]) -> float:
 
 def _compute_speed_self(ss: Sprite, stat_stages: dict[str, int]) -> int:
     """Compute ctx speed_self from sprite, applying _modifiers multiplier."""
-    base = max(0, ss.initial_stats.get("speed", 100) + stat_stages.get("speed", 0) * _SPEED_STEP)
+    base = max(0, ss.initial_stats.get("speed", 100)
+               + stat_stages.get("speed", 0) * _SPEED_STEP
+               + stat_stages.get("speed_flat", 0))
     speed_mod = ss._modifiers.get("speed", 0)
     if speed_mod:
         return max(1, round(base * (1.0 + speed_mod)))
     return base
 
 
-def _compute_speed(stats: dict[str, int], stat_stages: dict[str, int]) -> int:
-    return max(0, stats.get("speed", 100) + stat_stages.get("speed", 0) * _SPEED_STEP)
+def _compute_speed(stats: dict[str, int], stat_stages: dict[str, int], modifiers=None) -> int:
+    base = max(0, stats.get("speed", 100)
+               + stat_stages.get("speed", 0) * _SPEED_STEP
+               + stat_stages.get("speed_flat", 0))
+    speed_mod = (modifiers or {}).get("speed", 0)
+    if speed_mod:
+        return max(1, round(base * (1.0 + speed_mod)))
+    return base
 
 
 def _battle_skill_summary_key(skills) -> tuple | None:
@@ -341,6 +349,8 @@ def build_ctx(
     # Self sprite counters
     times_entered_val = ss_counters.get("times_entered", 0)
     times_left_val = ss_counters.get("times_left", 0)
+    counters_self = ss_counters
+    counters_opp = os.counters
 
     # Opponent sprite 修正值 - 使用 Sprite 缓存
     damage_reduction_mod_opp = os.damage_reduction_modifier
@@ -412,7 +422,7 @@ def build_ctx(
         def_opp=os.def_with_modifiers,
         sp_atk_opp=os.sp_atk_with_modifiers,
         sp_def_opp=os.sp_def_with_modifiers,
-        speed_opp=_compute_speed(os_stats, stat_stages_opp),
+        speed_opp=_compute_speed(os_stats, stat_stages_opp, os_mods),
         damage_reduction_opp=damage_reduction_mod_opp,
         power_mult_opp=power_mult_mod_opp,
         damage_mult_opp=damage_mult_mod_opp,
@@ -480,10 +490,25 @@ def build_ctx(
         weather=weather,
         turn=turn,
         is_first=is_first,
+        is_night=bool(getattr(g, 'night', False)) if g else False,
 
         # Counters
         counter_values=counter_values or {},
+        counters_self=counters_self or {},
+        counters_opp=counters_opp or {},
     )
+
+
+def fill_extended_registers(ctx: Ctx, self_sprite, opp_sprite, globals_) -> Ctx:
+    """填充 Cython build_ctx 未覆盖的扩展寄存器（Python 版已原生填充）。
+
+    新增寄存器（精灵级计数器 / 世界状态）只在 Python build_ctx 中构建；
+    Cython 版由于签名固定，需在构造后补齐，两条路径行为保持一致。
+    """
+    ctx.counters_self = self_sprite.counters if self_sprite is not None else {}
+    ctx.counters_opp = opp_sprite.counters if opp_sprite is not None else {}
+    ctx.is_night = bool(getattr(globals_, 'night', False)) if globals_ is not None else False
+    return ctx
 
 
 # ── Internal helpers ──

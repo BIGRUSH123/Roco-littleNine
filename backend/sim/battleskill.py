@@ -27,6 +27,7 @@ class BattleSkill:
     is_temporary: bool = False      # 临时技能标记（gain_skills 等，战斗结束后清理）
     _transmission: int = 0          # 传动等级：-1=主轴，0=普通，1+=传动
     _element_override: str = ''     # 属性覆写（元素转换特性）
+    _morph_temp: bool = False       # 巧变产物：槽位当前技能为巧变结果（能耗-1，使用后还原）
     _mech_energy_reduction: int = 0 # 机械变式：传动后位置变化技能能耗-1
     _burst_effects: list[dict] = field(default_factory=list)  # 迸发效果列表
 

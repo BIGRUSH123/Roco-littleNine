@@ -362,7 +362,7 @@ def test_trait_机械变式_does_not_apply_to_other_traits():
 
 
 def test_skill_齿轮扭矩_transmission_position_change_adds_power_to_moved_skill():
-    """齿轮扭矩: 已注册后，每次传动位置变化给移动技能对象永久威力+20。"""
+    """齿轮扭矩: 已注册后，每次传动位置变化给移动技能对象永久威力+15。"""
     battle, sprite, _ = _make_position_trait_battle("")
     gear = _make_gear_torque_skill(transmission=1)
     normal = _make_transmission_skill("普通", transmission=0)
@@ -372,12 +372,12 @@ def test_skill_齿轮扭矩_transmission_position_change_adds_power_to_moved_ski
     battle._apply_transmission(sprite, team="A")
 
     assert [bs.name for bs in sprite.skills] == ["普通", "齿轮扭矩"]
-    assert gear._modifiers.get("power") == 20
+    assert gear._modifiers.get("power") == 15
     assert normal._modifiers.get("power", 0) == 0
 
 
 def test_skill_齿轮扭矩_transmission2_counts_each_pass():
-    """齿轮扭矩: 传动2移动两次，累计+40。"""
+    """齿轮扭矩: 传动2移动两次，累计+30。"""
     battle, sprite, _ = _make_position_trait_battle("")
     gear = _make_gear_torque_skill(transmission=2)
     normal = _make_transmission_skill("普通", transmission=0)
@@ -387,7 +387,7 @@ def test_skill_齿轮扭矩_transmission2_counts_each_pass():
     battle._apply_transmission(sprite, team="A")
 
     assert [bs.name for bs in sprite.skills] == ["齿轮扭矩", "普通"]
-    assert gear._modifiers.get("power") == 40
+    assert gear._modifiers.get("power") == 30
 
 
 def test_skill_齿轮扭矩_exchange_adjacent_counts_and_follows_object():
@@ -409,7 +409,7 @@ def test_skill_齿轮扭矩_exchange_adjacent_counts_and_follows_object():
     replayer.replay([Exchange(target="sprite_self", what="adjacent_skills")])
 
     assert [bs.name for bs in sprite.skills] == ["普通", "齿轮扭矩", "其他"]
-    assert gear._modifiers.get("power") == 20
+    assert gear._modifiers.get("power") == 15
     assert sprite.skills[1] is gear
     assert sprite.skills[0]._modifiers.get("power", 0) == 0
 

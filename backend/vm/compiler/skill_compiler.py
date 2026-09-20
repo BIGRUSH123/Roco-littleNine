@@ -53,7 +53,24 @@ class SkillCompiler:
             use_devotion=data.get("use_devotion", False),
             usable_while_charging=data.get("usable_while_charging", False),
             position_locked=data.get("position_locked", False),
+            choices=self._compile_choices(data),
         )
+
+    def _compile_choices(self, data: dict) -> tuple:
+        """Compile「选择」branches: each runs through the full pass pipeline."""
+        out = []
+        for i, ch in enumerate(data.get("choices", ())):
+            if not isinstance(ch, dict):
+                continue
+            sub = CompilerContext(raw={**data, "effects": ch.get("effects", [])})
+            for p_ in self.passes:
+                p_.process(sub)
+            out.append({
+                "name": ch.get("name", f"branch{i}"),
+                "cond": ch.get("cond"),
+                "effects": tuple(sub.ir),
+            })
+        return tuple(out)
 
     def compile_all(self, data_dir: str) -> dict[str, CompiledSkill]:
         """Compile all skill JSON files in a directory.

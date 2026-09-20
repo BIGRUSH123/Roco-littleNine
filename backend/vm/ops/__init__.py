@@ -5,6 +5,13 @@ removed. Individual handler functions remain importable for direct use.
 """
 
 from .abnormal import op_abnormal
+from .aura import (
+    op_aura,
+    op_counter,
+    op_element_convert,
+    op_grant_choice,
+    op_morph,
+)
 from .borrow import op_borrow
 from .burst_grant import op_burst_grant
 from .charge import op_charge
@@ -21,10 +28,10 @@ from .lives_change import op_lives_change
 from .lock import op_lock
 from .mark import op_mark
 from .mod import (
+    op_devotion,
     op_energize,
     op_flag_set,
     op_heal,
-    op_mod,
     op_mult_mod,
     op_power_mod,
     op_revive,
@@ -32,6 +39,7 @@ from .mod import (
 )
 from .redirect import op_redirect
 from .replay import op_replay
+from .replay_branch import op_replay_branch
 from .reset import op_reset
 from .return_ import op_return
 from .schedule import op_schedule

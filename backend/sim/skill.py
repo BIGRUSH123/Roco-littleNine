@@ -38,12 +38,25 @@ class Skill:
     transmission: int = 0      # 传动：-1=主轴（不参与传动），0=普通，1+=传动等级
     description: str = ''      # 人类可读描述（API/前端展示用）
     usable_while_charging: bool = False  # 蓄力期间是否可使用
+    qiaobian: object = None    # 巧变类别（str 池名 或 spec dict；使用后变为该类别的技能）
 
     @classmethod
     def load(cls, data: dict) -> Skill:
-        """从 JSON dict 反序列化。自动迁移 main_axis → transmission=-1。"""
+        """从 JSON dict 反序列化。自动迁移 main_axis → transmission=-1。
+
+        技能 JSON 的 `effects[]` 是 IR（op 形式），由 SkillCompiler 编译后供 VM
+        执行；sim 层 `Skill.effects` 只承载旧版 kind 形式，因此这里跳过无法识别
+        的条目（不报错），使巧变/换装等按名加载技能的路径对全语料安全。
+        """
         effects_raw = data.get('effects', [])
-        effects = [effect_from_dict(e) for e in effects_raw]
+        effects = []
+        for e in effects_raw:
+            if not isinstance(e, dict) or not e.get('kind'):
+                continue
+            try:
+                effects.append(effect_from_dict(e))
+            except ValueError:
+                continue
 
         # transmission: 旧格式 main_axis=true → transmission=-1
         transmission = data.get('transmission', 0)
@@ -65,12 +78,16 @@ class Skill:
             energy_cost=data.get('energy_cost', 0),
             counter=data.get('counter', '无'),
             priority=data.get('priority', 0),
-            combo=data.get('combo', -1),
+            # 缺省 1=单次（与 SimFactory._build_skill_list 一致；-1=不参与
+            # 连击须在 JSON 显式写——此前 -1/1 双加载器不一致，编码器裸值
+            # 消费时暴露，引擎 ctx max(1,·) 归一故无行为差）
+            combo=data.get('combo', 1),
             effects=effects,
             exclusive_to=data.get('exclusive_to', ''),
             transmission=transmission,
             description=data.get('description', ''),
             usable_while_charging=data.get('usable_while_charging', False),
+            qiaobian=data.get('qiaobian'),
         )
 
     @classmethod

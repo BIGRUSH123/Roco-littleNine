@@ -73,6 +73,9 @@ def compare_op(a, op: str, b) -> bool:
 
 # ── Helpers ──
 
+_ATTACK_SKILL_TYPES = frozenset({"物攻", "魔攻", "动态攻击"})
+
+
 class _SpriteView:
     """Lightweight Ctx attribute view — avoids per-call dict allocation on hot path."""
     __slots__ = (
@@ -140,9 +143,21 @@ def _skill_use_matches(ctx: Ctx, cond: dict) -> bool:
         element = resolve(ctx, cond["element"]) if isinstance(cond["element"], dict) else cond["element"]
         if ctx.element_self != element:
             return False
-    # skill_type filter
-    if "skill_type" in cond and ctx.skill_type_self != cond["skill_type"]:
-        return False
+    # skill_type filter — "attack"/"defense"/"status" 是类别别名
+    if "skill_type" in cond:
+        expected = cond["skill_type"]
+        actual = ctx.skill_type_self
+        if expected == "attack":
+            if actual not in _ATTACK_SKILL_TYPES:
+                return False
+        elif expected == "defense":
+            if actual != "防御":
+                return False
+        elif expected == "status":
+            if actual != "状态":
+                return False
+        elif actual != expected:
+            return False
     # tag filter
     if "tag" in cond and ctx.skill_tag_self != cond["tag"]:
         return False
@@ -203,6 +218,8 @@ CONDITION_TRIGGERS: dict[str, frozenset[str]] = {
     "turn_end":                frozenset({"turn_end"}),
     "turn_start":              frozenset({"turn_start"}),
     "always":                  frozenset({"turn_start", "post_entry"}),
+    # World state
+    "is_night":                frozenset({"post_entry", "turn_start", "turn_end"}),
     # Devotion
     "devotion_triggered":      frozenset({"post_skill"}),
     # Have sub-dispatch
@@ -410,6 +427,9 @@ COND_EVAL = {
     "turn_end": lambda ctx, cond: ctx.event.turn_end,
     "turn_start": lambda ctx, cond: True,
     "always": lambda ctx, cond: True,
+
+    # ── 世界状态 ──
+    "is_night": lambda ctx, cond: ctx.is_night,
 
     # ── Generic comparison ──
     "compare": lambda ctx, cond: compare_op(

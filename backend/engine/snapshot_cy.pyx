@@ -213,10 +213,11 @@ cpdef int compute_speed_self_cy(
     """
     cdef int base_speed = initial_stats.get("speed", 100)
     cdef int speed_stage = stat_stages.get("speed", 0)
+    cdef int speed_flat = stat_stages.get("speed_flat", 0)
     cdef double speed_mod = modifiers.get("speed", 0.0)
     cdef int base
 
-    base = base_speed + speed_stage * SPEED_STEP
+    base = base_speed + speed_stage * SPEED_STEP + speed_flat
     if base < 0:
         base = 0
 
@@ -230,7 +231,8 @@ cpdef int compute_speed_self_cy(
 @cython.wraparound(False)
 cpdef int compute_speed_cy(
     dict stats,
-    dict stat_stages
+    dict stat_stages,
+    dict modifiers=None
 ):
     """Cython 版本的 _compute_speed
 
@@ -238,9 +240,16 @@ cpdef int compute_speed_cy(
     """
     cdef int speed = stats.get("speed", 100)
     cdef int stage = stat_stages.get("speed", 0)
-    cdef int result = speed + stage * SPEED_STEP
+    cdef int flat = stat_stages.get("speed_flat", 0)
+    cdef int result = speed + stage * SPEED_STEP + flat
+    cdef double speed_mod = (modifiers or {}).get("speed", 0.0)
 
-    return max(0, result)
+    if result < 0:
+        result = 0
+    if speed_mod != 0.0:
+        return max(1, <int>c_round(result * (1.0 + speed_mod)))
+
+    return result
 
 
 @cython.boundscheck(False)
@@ -465,7 +474,7 @@ cpdef build_ctx_cy(
     cdef int def_opp = opp_sprite.def_with_modifiers
     cdef int sp_atk_opp = opp_sprite.sp_atk_with_modifiers
     cdef int sp_def_opp = opp_sprite.sp_def_with_modifiers
-    cdef int speed_opp = compute_speed_cy(os_stats, stat_stages_opp)
+    cdef int speed_opp = compute_speed_cy(os_stats, stat_stages_opp, os_mods)
 
     # 修正值
     cdef double damage_reduction_mod_opp = opp_sprite.damage_reduction_modifier
@@ -501,6 +510,11 @@ cpdef build_ctx_cy(
             mark_stacks_opp[m.name] = mark_stacks_opp.get(m.name, 0) + m.stacks
             mark_count_opp += m.stacks
         weather = globals_.weather if globals_ else ""
+
+    # 世界状态与精灵级计数器（与 Python build_ctx 对齐）
+    cdef bint is_night = bool(getattr(globals_, 'night', False)) if globals_ else False
+    cdef dict counters_self = ss_counters
+    cdef dict counters_opp = opp_sprite.counters
 
     # ── Skill ──
     sk = self_skill
@@ -692,6 +706,9 @@ cpdef build_ctx_cy(
         weather=weather,
         turn=turn,
         is_first=is_first,
+        is_night=is_night,
         # Counters
         counter_values=counter_values or {},
+        counters_self=counters_self or {},
+        counters_opp=counters_opp or {},
     )

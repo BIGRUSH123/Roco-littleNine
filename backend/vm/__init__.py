@@ -8,7 +8,7 @@ Public API:
     from vm import calc_damage
     from vm import execute, process_effects, process_one
     from vm.journal import Mutation, Journal, StatChange, ModifierInjection, ...
-    from vm.ops import op_mod, ...
+    from vm.ops import op_devotion, op_stat_stage, ...
 """
 
 from .cond import COND_EVAL, HAVE_EVAL, eval_one
@@ -42,6 +42,6 @@ from .journal import (
     Tick,
     WeatherSet,
 )
-from .ops import op_mod
+from .ops import op_devotion
 from .resolve import QueryRef, resolve
 from .sort import sort_effects

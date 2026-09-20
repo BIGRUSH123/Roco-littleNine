@@ -21,6 +21,10 @@ if TYPE_CHECKING:
 
 # Cache of loaded trait JSON (id → data)
 _trait_cache: dict[int, dict] = {}
+# Cache of parsed trait JSON files by filename (id-less traits re-read the
+# file on every entry/switch otherwise) and the _ids.json index.
+_trait_file_cache: dict[str, dict] = {}
+_ids_json_cache: dict[str, dict] = {}
 _compiler = TraitToObserver()
 
 
@@ -106,6 +110,8 @@ class TraitLoader:
                         listen=params["listen"],
                         threshold=params["threshold"],
                         reset_on_fire=params["reset_on_fire"],
+                        reset=params.get("reset", ""),
+                        once=params.get("once", False),
                         owner_sprite_id=sprite_id,
                     )
                     self.registry.register(obs)
@@ -232,12 +238,13 @@ class TraitLoader:
                 delta *= sprite._modifiers.get("energy_cost_delta_mult", 1.0)
             skill_where = effect.get("skill_where")
             skill_filter = effect.get("skill_filter")
+            element_f = effect.get("element")
             for bs in (sprite.skills or []):
                 bs_mods = getattr(bs, '_modifiers', None)
                 if bs_mods is None:
                     continue
                 bs_name = getattr(bs, 'name', '')
-                if skill_where or skill_filter:
+                if skill_where or skill_filter or element_f:
                     skill_info = {
                         "name": bs_name,
                         "energy_cost": max(0, getattr(bs, 'energy_cost', 0) - mark_energy_mod),
@@ -258,6 +265,15 @@ class TraitLoader:
                     elif skill_filter == "status":
                         if st != "状态":
                             continue
+                if element_f:
+                    # "光" 精确匹配；"!幻" 排除该系别
+                    expected = element_f[1:] if element_f.startswith("!") else element_f
+                    actual = skill_info.get("element", "")
+                    if element_f.startswith("!"):
+                        if actual == expected:
+                            continue
+                    elif actual != expected:
+                        continue
                 mode = effect.get("mode", "add")
                 if mode == "set":
                     bs_mods[attr] = delta
@@ -347,15 +363,21 @@ class TraitLoader:
             ids_file = self._data_dir / "_ids.json"
             if ids_file.exists():
                 try:
-                    ids_data = json.loads(ids_file.read_text("utf-8"))
-                    by_id = ids_data.get("by_id", {})
+                    if str(ids_file) not in _ids_json_cache:
+                        _ids_json_cache[str(ids_file)] = json.loads(
+                            ids_file.read_text("utf-8"))
+                    by_id = _ids_json_cache[str(ids_file)].get("by_id", {})
                     entry = by_id.get(str(trait_id))
                     if entry:
                         fname = entry.get("file", entry.get("filename", ""))
                         if fname:
                             fpath = self._data_dir / fname
                             if fpath.exists():
-                                data = json.loads(fpath.read_text("utf-8"))
+                                key = str(fpath)
+                                if key not in _trait_file_cache:
+                                    _trait_file_cache[key] = json.loads(
+                                        fpath.read_text("utf-8"))
+                                data = _trait_file_cache[key]
                                 _trait_cache[trait_id] = data
                                 return data
                 except Exception:
@@ -366,7 +388,11 @@ class TraitLoader:
             fpath = self._data_dir / f"{trait_name}.json"
             if fpath.exists():
                 try:
-                    data = json.loads(fpath.read_text("utf-8"))
+                    key = str(fpath)
+                    if key not in _trait_file_cache:
+                        _trait_file_cache[key] = json.loads(
+                            fpath.read_text("utf-8"))
+                    data = _trait_file_cache[key]
                     if trait_id:
                         _trait_cache[trait_id] = data
                     return data

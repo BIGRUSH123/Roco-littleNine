@@ -76,9 +76,9 @@ def _load_model(path: Path, device: str) -> ModularBattleNet:
 
 def _build_battle(factory: SimFactory, sprite_skills: dict[str, list[str]], seed: int):
     _set_seed(seed)
-    team_a, team_b = _random_teams(factory, sprite_skills)
-    p1 = factory.build_player("A", team_a, item=_random_item())
-    p2 = factory.build_player("B", team_b, item=_random_item())
+    team_a, team_b, item_a, item_b = _random_teams(factory, sprite_skills)
+    p1 = factory.build_player("A", team_a, item=item_a)
+    p2 = factory.build_player("B", team_b, item=item_b)
     return factory.build_battle(p1, p2)
 
 

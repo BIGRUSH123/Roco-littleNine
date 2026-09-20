@@ -363,12 +363,7 @@ def test_counter_succeeded_flag_flow():
             ],
         },
         # Unconditional mod that always applies
-        {
-            "op": "mod",
-            "target": "sprite_self",
-            "stat": "damage_reduction",
-            "value": 0.6,
-        },
+        {"op": "mult_mod", "target": "sprite_self", "attr": "damage_reduction", "value": 0.6},
     ]
 
     # Test 1: counter_succeeded=False → no hit damage, only mod
@@ -612,8 +607,8 @@ def test_e2e_defense_counter():
     # Should have stat changes from counter_succeeded
     atk_stages = sum(getattr(e, 'steps', 0) for e in sprite.active_effects if getattr(e, 'stat_key', '') == "atk")
     sp_atk_stages = sum(getattr(e, 'steps', 0) for e in sprite.active_effects if getattr(e, 'stat_key', '') == "sp_atk")
-    assert atk_stages == 4, f"Expected atk+4 from counter_succeeded, got {atk_stages}"
-    assert sp_atk_stages == 4, f"Expected sp_atk+4 from counter_succeeded, got {sp_atk_stages}"
+    assert atk_stages == 7, f"Expected atk+7 from counter_succeeded, got {atk_stages}"
+    assert sp_atk_stages == 7, f"Expected sp_atk+7 from counter_succeeded, got {sp_atk_stages}"
     print(f"  防反 counter: atk+{atk_stages}, sp_atk+{sp_atk_stages}")
 
 
@@ -655,13 +650,12 @@ def test_counter_register_production():
 
     ctx = Ctx(skill_type_self="物攻", element_self="虫")
     effects = [
-        {"op": "mod", "target": "skill_off_0", "stat": "combo", "value": 1},
+        {"op": "power_mod", "target": "skill_off_0", "attr": "combo", "delta": 1},
         {
-            "op": "count",
-            "when": {"cond": "devotion_triggered"},
+            "op": "observer",
+            "cond": {"cond": "devotion_triggered"},
             "then": [
-                {"op": "mod", "target": "skill_off_0", "stat": "energy_cost",
-                 "value": 1, "mode": "add", "scope": "permanent"}
+                {"op": "power_mod", "target": "skill_off_0", "attr": "energy_cost", "delta": 1}
             ]
         },
     ]
@@ -717,8 +711,7 @@ def test_counter_fires_on_condition():
     engine.register_counter(CounterRegister(
         name="test_counter",
         cond={"cond": "devotion_triggered"},
-        then=[{"op": "mod", "target": "skill_off_0", "stat": "energy_cost",
-               "value": 2, "mode": "add", "scope": "permanent"}],
+        then=[{"op": "power_mod", "target": "skill_off_0", "attr": "energy_cost", "delta": 2}],
         scope="persistent",
     ))
     assert len(registry) == 1
@@ -750,8 +743,7 @@ def test_counter_does_not_fire_without_condition():
     engine.register_counter(CounterRegister(
         name="test_counter",
         cond={"cond": "devotion_triggered"},
-        then=[{"op": "mod", "target": "skill_off_0", "stat": "energy_cost",
-               "value": 2, "mode": "add", "scope": "permanent"}],
+        then=[{"op": "power_mod", "target": "skill_off_0", "attr": "energy_cost", "delta": 2}],
         scope="persistent",
     ))
 
@@ -772,7 +764,7 @@ def test_pre_event_observer_then_is_compiled_on_registration():
     engine = BattleVMEngine()
     observer = Observer(
         cond={"cond": "always"},
-        then=[{"op": "mod", "target": "sprite_self", "stat": "atk", "steps": 1}],
+        then=[{"op": "stat_stage", "target": "sprite_self", "stat": "atk", "steps": 1}],
         listen=frozenset({"pre_calc"}),
         owner_sprite_id=123,
     )
@@ -809,7 +801,7 @@ def test_post_event_observer_then_is_scoped_and_compiled_on_registration():
     opp = _Sprite()
     observer = Observer(
         cond={"cond": "always"},
-        then=[{"op": "mod", "target": "sprite_self", "stat": "atk", "steps": 1}],
+        then=[{"op": "stat_stage", "target": "sprite_self", "stat": "atk", "steps": 1}],
         scope="turn",
         listen=frozenset({"post_skill"}),
     )
@@ -1016,7 +1008,7 @@ def test_named_counter_value_tracking():
     engine.register_counter(CounterRegister(
         name=None,
         cond={"cond": "on_damage_taken"},
-        then=[{"op": "mod", "stat": "atk", "steps": 1}],
+        then=[{"op": "stat_stage", "target": "sprite_self", "stat": "atk", "steps": 1}],
         scope="battlefield",
     ))
     engine._increment_counter(None)  # should not crash
@@ -1128,8 +1120,8 @@ def test_replay_team_burst():
     engine = BattleVMEngine()
     # Register burst effects
     engine._burst_effects["A"] = [
-        ("龙爪", [{"op": "mod", "target": "sprite_self", "stat": "atk", "steps": 1}]),
-        ("火球", [{"op": "mod", "target": "sprite_opp", "stat": "def", "steps": -1}]),
+        ("龙爪", [{"op": "stat_stage", "target": "sprite_self", "stat": "atk", "steps": 1}]),
+        ("火球", [{"op": "stat_stage", "target": "sprite_opp", "stat": "def", "steps": -1}]),
     ]
 
     ctx = Ctx(element_self="电", skill_type_self="魔攻", atk_self=100, def_self=100,
@@ -1159,8 +1151,8 @@ def test_replay_sprite_self_basic():
     engine = BattleVMEngine()
     # Track skill history for a sprite
     engine._skill_history["sprite_A"] = [
-        ("迅捷攻击", [{"op": "mod", "target": "sprite_self", "stat": "atk", "steps": 1}], {"tag": ""}),
-        ("普通防御", [{"op": "mod", "target": "sprite_self", "stat": "def", "steps": 1}], {"tag": ""}),
+        ("迅捷攻击", [{"op": "stat_stage", "target": "sprite_self", "stat": "atk", "steps": 1}], {"tag": ""}),
+        ("普通防御", [{"op": "stat_stage", "target": "sprite_self", "stat": "def", "steps": 1}], {"tag": ""}),
     ]
 
     ctx = Ctx(element_self="翼", skill_type_self="状态", atk_self=100, def_self=100,
@@ -1187,8 +1179,8 @@ def test_replay_sprite_self_with_filter():
 
     engine = BattleVMEngine()
     engine._skill_history["sprite_A"] = [
-        ("迅捷技能A", [{"op": "mod", "target": "skill_off_0", "stat": "power", "value": 10, "mode": "add"}], {"tag": "迅捷"}),
-        ("普通技能", [{"op": "mod", "target": "skill_off_0", "stat": "energy_cost", "value": -1, "mode": "add"}], {"tag": ""}),
+        ("迅捷技能A", [{"op": "power_mod", "target": "skill_off_0", "attr": "power", "delta": 10}], {"tag": "迅捷"}),
+        ("普通技能", [{"op": "power_mod", "target": "skill_off_0", "attr": "energy_cost", "delta": -1}], {"tag": ""}),
     ]
     # Tag each skill in the history lookup
     engine._skill_tags["sprite_A"] = {
@@ -1505,9 +1497,9 @@ def test_priority_sort_within_phase():
     """Effects in the same phase sort by priority descending (higher first)."""
     from backend.vm.sort import sort_effects
     effects = [
-        {"op": "mod", "feeds": "power", "stat": "atk", "steps": 1, "priority": 0},
-        {"op": "mod", "feeds": "power", "stat": "atk", "steps": 2, "priority": 10},
-        {"op": "mod", "feeds": "power", "stat": "atk", "steps": 3, "priority": 5},
+        {"op": "stat_stage", "target": "sprite_self", "stat": "atk", "steps": 1, "priority": 0},
+        {"op": "stat_stage", "target": "sprite_self", "stat": "atk", "steps": 2, "priority": 10},
+        {"op": "stat_stage", "target": "sprite_self", "stat": "atk", "steps": 3, "priority": 5},
     ]
     sorted_ = sort_effects(effects)
     steps = [e["steps"] for e in sorted_]
@@ -1519,10 +1511,10 @@ def test_priority_sort_mixed_phases():
     """Priority only affects ordering within the same phase bucket."""
     from backend.vm.sort import sort_effects
     effects = [
-        {"op": "mod", "feeds": "cost", "stat": "energy_cost", "value": -1, "priority": 0},
-        {"op": "mod", "feeds": "power", "stat": "power", "steps": 3, "priority": 100},
-        {"op": "mod", "feeds": "cost", "stat": "energy_cost", "value": -2, "priority": 10},
-        {"op": "mod", "feeds": "power", "stat": "power", "steps": 1, "priority": 0},
+        {"op": "power_mod", "target": "sprite_self", "attr": "energy_cost", "delta": -1, "feeds": "cost", "priority": 10},
+        {"op": "stat_stage", "target": "sprite_self", "stat": "atk", "steps": 3, "feeds": "power", "priority": 100},
+        {"op": "power_mod", "target": "sprite_self", "attr": "energy_cost", "delta": -2, "feeds": "cost", "priority": 0},
+        {"op": "stat_stage", "target": "sprite_self", "stat": "atk", "steps": 1, "feeds": "power", "priority": 0},
     ]
     sorted_ = sort_effects(effects)
     # cost phase (0) comes before power phase (1), regardless of priority
@@ -2856,8 +2848,8 @@ def test_stat_change_e2e_both_directions():
     globals_ = GlobalEffects()
 
     effects = [
-        {"op": "mod", "target": "sprite_self", "stat": "atk", "steps": 2},
-        {"op": "mod", "target": "sprite_opp", "stat": "def", "steps": -3},
+        {"op": "stat_stage", "target": "sprite_self", "stat": "atk", "steps": 2},
+        {"op": "stat_stage", "target": "sprite_opp", "stat": "def", "steps": -3},
     ]
     ctx = Ctx()
     journal = vm_execute(ctx, effects)

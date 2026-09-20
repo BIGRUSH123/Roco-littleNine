@@ -65,6 +65,7 @@ class ObserverEffect(EffectObject):
     listen: frozenset = field(default_factory=frozenset)
     threshold: int = 1
     reset_on_fire: bool = True
+    reset: str = ""                       # "" | "turn" — 每回合清零命中计数
 
 
 @dataclass(slots=True)
@@ -95,6 +96,12 @@ class AbnormalEffect(EffectObject):
     decay_on_tick: bool = False        # burn: (stacks + 1) // 2 each tick
     max_stacks: int = 0                # cap (freeze: 20); 0 = no cap
     tick_per_stack: bool = True        # True: dmg × stacks; False: flat dmg
+    # 层数阈值即时效果（引电：获得 2 层时立刻受到 25% 生命电系伤害并失去 2 层）
+    threshold_stacks: int = 0          # 0 = 无阈值效果
+    threshold_damage_pct: float = 0.0  # 触发时按最大生命比例造成伤害
+    threshold_element: str = ""        # 伤害系别（走克制倍率）
+    threshold_consume: int = 0         # 触发后消耗层数
+    threshold_immune_element: str = "" # 该系别的精灵免疫此效果
 
     def tick_params(self) -> dict:
         """Engine reads this to compute tick damage."""
@@ -131,6 +138,8 @@ class MarkEffect(EffectObject):
     switch_damage_pct: float = 0.0        # N% maxHP damage per stack on entry
     switch_energy_loss: int = 0           # -N 能量 per stack on entry
     starfall_damage: int = 0              # N 威力幻系魔法伤害 per stack
+    leave_random_debuffs: int = 0         # 离场时换入者获得 N 层随机属性减益 per stack（暗涌）
+    buff_bonus_layers: int = 0            # 携带方获得增益时额外 +N 层 per stack（萌芽）
 
     condition: str = ""                   # "is_attack" | "is_first" | "not_first" | ""
 
@@ -205,6 +214,20 @@ class StateEffect(EffectObject):
 
     state_type: str = ""                  # "charging" | "locked" | "redirect" | "interrupted" | "first_action"
     params: dict = field(default_factory=dict)
+
+
+@dataclass(slots=True)
+class GrantEffect(EffectObject):
+    """机制声明 — `aura` / `element_convert` / `morph` / `grant_choice` 的共同落点。
+
+    声明挂在**授予者**精灵身上，随 scope 生命周期清除（battlefield = 离场即撤销）。
+    引擎侧按 mechanism 名分派（`backend/engine/mechanisms.py`）：
+    aura 由 refresh() 持续重算；element_convert / morph / grant_choice 在使用点按需求值。
+    """
+
+    mechanism: str = ""                   # "aura" | "element_convert" | "morph" | "grant_choice"
+    affects: str = "self"                 # "self" | "both"（both = 场上双方）
+    payload: dict = field(default_factory=dict)
 
 
 # ── Stat display helpers (shared with sprite.py) ──

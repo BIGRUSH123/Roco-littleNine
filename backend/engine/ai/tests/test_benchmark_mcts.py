@@ -9,6 +9,7 @@ import backend.engine.ai.core.mcts as mcts_module
 from backend.engine.ai.benchmark_mcts import _fixed_battle, run_benchmark
 from backend.engine.ai.core.encoder import encode_battle_state
 from backend.engine.ai.core.mcts import (
+    NUM_ACTIONS,
     MCTSNode,
     NetworkPolicyAgent,
     NUM_ACTIONS,
@@ -464,7 +465,7 @@ def test_mcts_non_network_opponent_does_not_require_batch_evaluator():
     )
 
     assert opponent.choose_action_calls > 0
-    assert policy.shape == (17,)
+    assert policy.shape == (NUM_ACTIONS,)
     np.testing.assert_allclose(policy.sum(), 1.0)
 
 
@@ -510,7 +511,7 @@ def test_mcts_leaf_batch_path_uses_batch_evaluator():
     )
 
     assert evaluator.evaluate_batch_calls > 0
-    assert policy.shape == (17,)
+    assert policy.shape == (NUM_ACTIONS,)
     np.testing.assert_allclose(policy.sum(), 1.0)
 
 
@@ -533,7 +534,7 @@ def test_mcts_leaf_batch_default_uses_serial_evaluator():
     )
 
     assert evaluator.evaluate_batch_calls == 0
-    assert policy.shape == (17,)
+    assert policy.shape == (NUM_ACTIONS,)
     np.testing.assert_allclose(policy.sum(), 1.0)
 
 
@@ -560,7 +561,7 @@ def test_network_opponent_policy_uses_opponent_evaluator_on_serial_path():
     assert own_eval.evaluate_batch_calls == 0
     assert opp_eval.evaluate_calls > 0
     assert opp_eval.evaluate_batch_calls == 0
-    assert policy.shape == (17,)
+    assert policy.shape == (NUM_ACTIONS,)
     np.testing.assert_allclose(policy.sum(), 1.0)
 
 
@@ -585,7 +586,7 @@ def test_network_opponent_leaf_batch_uses_both_batch_evaluators():
 
     assert own_eval.evaluate_batch_calls > 0
     assert opp_eval.evaluate_batch_calls > 0
-    assert policy.shape == (17,)
+    assert policy.shape == (NUM_ACTIONS,)
     np.testing.assert_allclose(policy.sum(), 1.0)
 
 

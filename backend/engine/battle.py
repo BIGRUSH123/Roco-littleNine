@@ -51,14 +51,21 @@ _SINGLE_OWNER_TRIGGERS = frozenset({
     "turn_end", "post_abnormal_tick", "turn_start",
     "post_energy_change", "post_counter",
     "post_enemy_leave", "post_charge",
-    "post_heal",
+    "post_heal", "pre_resolve",
 })
 
 
 def _make_ctx(*args, **kwargs):
     """智能选择 build_ctx 实现（Cython 或 Python）"""
     if _build_ctx_cy is not None:
-        return _build_ctx_cy(*args, **kwargs)
+        ctx = _build_ctx_cy(*args, **kwargs)
+        from .snapshot import fill_extended_registers
+        return fill_extended_registers(
+            ctx,
+            kwargs.get("self_sprite", args[0] if args else None),
+            kwargs.get("opp_sprite", args[1] if len(args) > 1 else None),
+            kwargs.get("globals_", args[4] if len(args) > 4 else None),
+        )
     return build_ctx(*args, **kwargs)
 
 
@@ -132,10 +139,10 @@ class BattleVMEngine:
         """Return the number of distinct burst skills triggered by this team."""
         return len(self._burst_names.get(team, set()))
 
-    def _increment_counter(self, name: str | None) -> None:
-        """Increment a named counter value. None = unnamed, no-op."""
+    def _increment_counter(self, name: str | None, delta: int = 1) -> None:
+        """Increment a named counter value by delta. None = unnamed, no-op."""
         if name is not None:
-            self._counter_values[name] = self._counter_values.get(name, 0) + 1
+            self._counter_values[name] = self._counter_values.get(name, 0) + delta
 
     # ── Main execution flow ──
 
@@ -233,6 +240,7 @@ class BattleVMEngine:
 
         # 4.7 Handle Borrow mutations (skill property substitution)
         journal = self._handle_borrow(journal, ctx)
+
 
         # 4.8 Handle Redirect mutations (change damage target)
         journal = self._handle_redirect(journal)
@@ -676,6 +684,7 @@ class BattleVMEngine:
             listen=infer_triggers(mutation.cond),
             threshold=mutation.threshold,
             reset_on_fire=mutation.reset_on_fire,
+            reset=getattr(mutation, "reset", ""),
             owner_sprite_id=owner_id,
             owner_skill_id=owner_skill_id,
         ))
@@ -776,6 +785,51 @@ class BattleVMEngine:
             else:
                 result.append(m)
         return result
+
+    def _handle_replay_choice(self, journal: Journal, team: str, ctx: Ctx,
+                              battle=None) -> Journal:
+        """Handle ReplayChoice mutations — 重放本次「选择」技能的目标分支。
+
+        battle._last_choice_execution 由 _execute_skill_vm 在调用 execute_skill
+        前写入：{"choices", "branch", "skill_name"}。重放产生的新 mutation
+        递归经过 replay/borrow/redirect/modifier 处理。
+        """
+        if not any(type(m).__name__ == "ReplayChoice" for m in journal):
+            return journal
+        info = getattr(battle, "_last_choice_execution", None) if battle else None
+        if not info:
+            return journal
+
+        out: list = []
+        for m in journal:
+            if type(m).__name__ == "ReplayChoice":
+                choices = info.get("choices") or ()
+                if not choices:
+                    continue
+                cur = info.get("branch", 0)
+                if m.which == "same":
+                    idx = cur
+                else:  # "other": 另一支（两支以上时取相邻下一支）
+                    idx = (cur + 1) % len(choices)
+                chosen = choices[idx]
+                cond = chosen.get("cond")
+                if cond is not None:
+                    from backend.vm.cond import eval_one as _eval
+                    try:
+                        if not _eval(ctx, cond):
+                            continue  # 条件不满足 → 不重放
+                    except Exception:
+                        continue
+                branch_effects = list(chosen.get("effects") or ())
+                if branch_effects:
+                    sub_journal = vm_execute(ctx, branch_effects)
+                    sub_journal = self._handle_replay(sub_journal, team, ctx, None)
+                    sub_journal = self._handle_borrow(sub_journal, ctx)
+                    sub_journal = self._handle_replay_choice(sub_journal, team, ctx, battle)
+                    out.extend(sub_journal)
+            else:
+                out.append(m)
+        return out
 
     def _handle_replay(self, journal: Journal, team: str, ctx: Ctx, sprite_id: int | None = None) -> Journal:
         """Handle Replay mutations by executing burst/self skill effects.

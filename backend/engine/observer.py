@@ -1,4 +1,4 @@
-﻿"""Observer system — passive effects that fire when conditions are met.
+"""Observer system — passive effects that fire when conditions are met.
 
 Observers are registered by battle/trait setup and evaluated after each
 relevant event (skill use, damage, KO, switch, etc.). Each observer has
@@ -70,6 +70,7 @@ TRIGGER_POINTS = frozenset({
     "pre_calc",            # before VM execution (Ctx just built)
     "pre_modifier",        # L0→L1: before skill modifier computation
     "pre_defend",          # L1→L2: before damage taken, defender's trait
+    "pre_resolve",         # action order determined, before either side resolves
     # Post-execution
     "post_skill",          # after skill effects applied
     "post_damage",         # after damage taken
@@ -112,9 +113,12 @@ class Observer:
     listen: frozenset = field(default_factory=frozenset)  # Trigger points to evaluate on
     threshold: int = 1        # fire then every N condition hits (1 = every time)
     reset_on_fire: bool = True  # reset internal counter after then executes
+    reset: str = ""           # "" | "turn" — "turn" 时每回合开始清零 _hit_count（每回合各 N 次）
+    once: bool = False        # 每场战斗仅触发一次（整点报时 等）
     owner_sprite_id: int | None = None  # id() of the sprite that owns this observer
     owner_skill_id: int | None = None   # id() of the BattleSkill that owns this observer
     _hit_count: int = field(default=0, repr=False)  # internal counter
+    _fired_once: bool = field(default=False, repr=False)  # for once=True
     # Lazily-compiled condition callable (ctx) -> bool. Memoizes eval_one's
     # dispatch so repeated firings skip the isinstance chain + dict lookup.
     # cond is immutable after registration, so the cache stays valid.
@@ -131,6 +135,16 @@ class Observer:
             from backend.vm.cond import compile_cond
             fn = self._compiled_cond = compile_cond(self.cond)
         return fn(ctx)
+
+    def __getstate__(self) -> dict:
+        """Pickle 安全：剔除编译缓存（lambda 不可序列化）。
+
+        缓存按需重建（cond 注册后不可变），因此跨进程传输时丢弃
+        _compiled_cond 即可，无需在 save_state 里清空进程内缓存。
+        """
+        state = self.__dict__.copy()
+        state['_compiled_cond'] = None
+        return state
 
     def is_active(self) -> bool:
         """Permanent observers never deactivate; others may be cleared."""
@@ -154,9 +168,16 @@ class Observer:
 
     def hit(self) -> bool:
         """Increment hit counter; return True if threshold reached."""
+        if self.once:
+            if self._fired_once:
+                return False
+            self._fired_once = True
+            return True
+        if self.reset == "turn" and self._hit_count >= self.threshold:
+            return False  # 本回合已达次数上限
         self._hit_count += 1
         if self._hit_count >= self.threshold:
-            if self.reset_on_fire:
+            if self.reset_on_fire and self.reset != "turn":
                 self._hit_count = 0
             return True
         return False
@@ -254,12 +275,10 @@ class ObserverRegistry:
         version and observer list only; restore can skip index rebuilding unless
         a simulated branch registered/unregistered observers.
 
-        Clear compiled_cond cache before saving to avoid pickle errors with lambda.
+        不再清空 _compiled_cond：MCTS 回滚全程进程内、不经过 pickle；
+        跨进程 pickle 安全由 Observer.__getstate__ 剔除该字段保证。
+        清空会导致每次 MCTS 仿真后全部条件观察者重新编译，代价极高。
         """
-        # 清除编译缓存（lambda 无法序列化）
-        for obs in self._observers:
-            obs._compiled_cond = None
-
         return {
             "version": self._version,
             "observers": list(self._observers),
@@ -398,6 +417,13 @@ class ObserverRegistry:
             except Exception:
                 continue
         return mutations
+
+    def reset_turn_counters(self) -> None:
+        """回合开始：清零 reset=="turn" 的观察者命中计数（每回合各 N 次）。"""
+        for bucket in (*self._by_trigger.values(), self._fallback):
+            for obs in bucket:
+                if obs.reset == "turn" and obs._hit_count:
+                    obs._hit_count = 0
 
     def fire_and_collect(self, trigger: str, ctx: Ctx) -> list[Observer]:
         result = []
