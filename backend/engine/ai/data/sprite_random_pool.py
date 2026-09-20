@@ -1,4 +1,4 @@
-"""预构建的精灵随机池 —— 最终形态 + 全部外观 + 非首领形态。
+"""预构建的精灵随机池 —— 最终形态 + 全部外观，**不含首领形态**。
 
 首次运行扫描 data/sprites/ 目录，将过滤后的池保存为同级
 sprite_random_pool.json 文件。后续运行时直接加载 JSON 文件，
@@ -6,10 +6,12 @@ sprite_random_pool.json 文件。后续运行时直接加载 JSON 文件，
 
 池条目 = （名字, 外观）：每个外观是独立条目（面板/技能可不同）。
 过滤规则（form 只作阶段标记，外观在 appearance 字段）：
-  1. 首领阶段（form 含『首领』）不入选——PVE 首领不进训练池；
+  1. **首领形态不入选**（form 含『首领』）：首领形态只能由基础形态 +
+     首领血脉 + 「进化之力」变身得到，不能直接上场（2026-09-20 定稿；
+     此前两者都进池，等于绕过了道具与血脉约束）；
   2. 前形态不入选：若某编号 N 是其他非首领条目的 pre_species，
      说明存在更高形态，则编号 N 的基础阶段剔除；
-  3. 同编号第二形态（pre_species == 自身编号）是该编号的最终形态，保留。
+  3. 同编号第二形态（pre_species == 自身编号，非首领）保留。
 """
 
 from __future__ import annotations
@@ -65,8 +67,7 @@ def _build_pool() -> dict[str, list[str]]:
     def is_boss(entry: dict) -> bool:
         return "首领" in entry["form"]
 
-    # 被他人进化走的编号。首领阶段不参与：同编号首领化是"形态切换"而非进化链，
-    # 基础形态与首领形态在战斗中都是合法形态，两者都进池。
+    # 被他人进化走的编号。首领形态不参与演化链计算（同编号首领化是"形态切换"）。
     evolved_from: set[str] = {
         e["pre_species"] for e in raw
         if e["pre_species"] and e["pre_species"] != e["number"] and not is_boss(e)
@@ -74,6 +75,9 @@ def _build_pool() -> dict[str, list[str]]:
 
     result: dict[str, list[str]] = {}
     for e in raw:
+        if is_boss(e):
+            # 首领形态只能由基础形态 + 首领血脉 + 进化之力变身得到，不能直接上场
+            continue
         if not e["skills"]:
             continue
         pre, number = e["pre_species"], e["number"]

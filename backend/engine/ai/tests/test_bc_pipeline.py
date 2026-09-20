@@ -113,6 +113,42 @@ def test_meta_team_exact_iv_nature_and_bloodline(pool_buckets):
     assert item_from_team({"name": "x"}) is None
 
 
+def test_leader_form_entries_are_fielded_as_base_form():
+    """首领形态不能直接上场：站点阵容若写变身后的形态，须改写为基础形态 + 首领血脉。"""
+    from backend.engine.ai.data.meta_teams import resolve_entry_name, spec_from_entry
+
+    for raw, base in (("深渊罗隐", "罗隐"), ("恶魔狼王", "恶魔狼"), ("祭礼巨像", "仪式巨像")):
+        spec_name, engine_name, rewritten = resolve_entry_name(raw)
+        assert spec_name == base, f"{raw} 应改写为 {base}，实际 {spec_name}"
+        assert engine_name == base, "策略表键要用引擎可见名（基础名）"
+        assert rewritten is True
+
+    # 未指定的血脉由改写补成「首领」（否则局内无法变身）
+    team = {
+        "name": "boss_smoke",
+        "item": "进化之力",
+        "sprites": [{
+            "name": "深渊罗隐", "role": "attack",
+            "skills": SPRITE_RANDOM_POOL["罗隐"][:4],
+            "iv_fixed": ["atk", "speed"],
+        }] + [{
+            "name": n, "role": "attack", "skills": SPRITE_RANDOM_POOL[n][:3],
+            "iv_fixed": ["atk", "speed"],
+        } for n in list(SPRITE_RANDOM_POOL)[:5]],
+    }
+    problems = validate_meta_teams([team], SPRITE_RANDOM_POOL)
+    assert problems == [], "\n".join(problems)
+    specs, names = spec_from_team(team, random.Random(0))
+    first = specs[0]
+    assert first["name"] == "罗隐"
+    assert first.get("bloodline") == "首领"
+
+    # 策略表用引擎可见名做键（外观变体曾是静默失配的坑）
+    from backend.engine.ai.data.meta_teams import strategy_from_team
+    strat = strategy_from_team(team, random.Random(0))
+    assert "罗隐" in strat.sprites
+
+
 def test_shipped_meta_teams_validate():
     """随仓库交付的 meta_teams.json 必须能通过池子校验（数据完整性门禁）。"""
     path = meta_teams_path()

@@ -74,6 +74,8 @@ def validate_meta_teams(
     """校验每队精灵/技能/道具均可从池中构建，返回问题列表（空 = 通过）。
 
     技能合法集 = 池内技能 ∪ 该精灵所选血脉的血脉技能（爬取阵容可携带血脉技能）。
+    首领形态条目按 `resolve_entry_name` 改写为基础形态后再校验——首领形态不能
+    直接上场，只能由基础形态 + 首领血脉 + 进化之力变身得到。
     """
     from backend.common.constants import BLOODLINES
     from backend.sim.player import Item
@@ -92,10 +94,14 @@ def validate_meta_teams(
             Item.leader() if item == "进化之力" else Item.wish()  # 构造性校验
         for entry in sprites:
             for variant in [entry] + list(entry.get("alts") or []):
-                name = variant.get("name", "")
+                raw_name = variant.get("name", "")
+                name, _engine_name, rewritten = resolve_entry_name(raw_name)
                 if name not in sprite_skills:
-                    problems.append(f"[{tname}] 精灵不在池中: {name}")
+                    problems.append(f"[{tname}] 精灵不在池中: {raw_name}")
                     continue
+                if rewritten and (variant.get("bloodline") or "首领") != "首领":
+                    problems.append(
+                        f"[{tname}] {raw_name} 由首领形态改写为 {name}，血脉必须是首领")
                 bloodline = variant.get("bloodline", "")
                 if bloodline and bloodline not in BLOODLINES:
                     problems.append(f"[{tname}] {name} 血脉无效: {bloodline}")
@@ -129,17 +135,60 @@ def _bloodline_skill_names(name: str, bloodline: str) -> set[str]:
     return {nm} if nm else set()
 
 
+_RESOLVE_CACHE: dict[str, tuple[str, str, bool]] = {}
+
+
+def resolve_entry_name(name: str) -> tuple[str, str, bool]:
+    """池/站点显示名 → (spec 用的显示名, 引擎可见名 Sprite.name, 是否由首领形态改写)。
+
+    两条规则：
+      1. **首领形态不能直接上场**（2026-09-20 定稿）：站点阵容里写的若是变身后的
+         首领形态（如「深渊罗隐」），改写为同编号的基础形态（「罗隐」），由
+         首领血脉 + 进化之力在局内变身得到；
+      2. 策略表按引擎实际查找的键索引：`Sprite.name` 是**基础名**
+         （`build_sprite("岚鸟（本来的样子）").name == "岚鸟"`），
+         所以外观变体必须用基础名做键，否则 `for_species()` 静默退回 default。
+    """
+    cached = _RESOLVE_CACHE.get(name)
+    if cached is not None:
+        return cached
+    from backend.engine.ai.data.sprite_random_pool import SPRITE_RANDOM_POOL
+    from backend.sim.factory import SimFactory
+
+    out = (name, name, False)
+    db = SimFactory().sprite_db
+    species = db.get(name)
+    if species is None:
+        _RESOLVE_CACHE[name] = out
+        return out
+    if species.is_leader_stage():
+        for candidate in SPRITE_RANDOM_POOL:
+            base = db.get(candidate)
+            if base is None or base.number != species.number:
+                continue
+            if base.is_leader_stage():
+                continue
+            out = (candidate, base.name, True)
+            break
+    else:
+        out = (name, species.name, False)
+    _RESOLVE_CACHE[name] = out
+    return out
+
+
 def spec_from_entry(entry: dict, rng=random) -> dict:
     """单只精灵 entry（含可选 alts）→ build_player spec。
 
     IV 规则：iv_fixed 为 3 项时按精确集合拉满（爬取阵容的 plusStats）；
     为 2 项时第三项随机扰动（自选队伍的多样性来源）；更少则随机补满一项。
     性格：nature_fixed 优先（精确还原站点配置），否则从 nature_plus 加项候选里抽。
+    首领形态条目会被改写为基础形态，并补上「首领」血脉（否则局内无法变身）。
     """
     from backend.common.constants import STAT_KEYS
 
     alts = entry.get("alts") or []
     variant = rng.choice([entry] + alts) if alts else entry
+    spec_name, _engine_name, rewritten = resolve_entry_name(variant["name"])
     iv_fixed = list(variant.get("iv_fixed", ["hp", "speed"]))
     if len(iv_fixed) >= 3:
         iv_keys = iv_fixed[:3]
@@ -155,13 +204,14 @@ def spec_from_entry(entry: dict, rng=random) -> dict:
         nature = rng.choice(options) if options else rng.choice(_all_natures())
 
     spec = {
-        "name": variant["name"],
+        "name": spec_name,
         "skills": list(variant["skills"]),
         "nature": nature,
         "iv": iv,
     }
-    if variant.get("bloodline"):
-        spec["bloodline"] = variant["bloodline"]
+    bloodline = variant.get("bloodline") or ("首领" if rewritten else "")
+    if bloodline:
+        spec["bloodline"] = bloodline
     return spec
 
 
@@ -184,7 +234,11 @@ def spec_from_team(team: dict, rng=random) -> tuple[list[dict], set[str]]:
 
 
 def strategy_from_team(team: dict, jitter_rng: random.Random | None = None) -> "TeamStrategy":
-    """meta 队 dict → RuleAgentV2 的 TeamStrategy；逐局阈值抖动增加对局多样性。"""
+    """meta 队 dict → RuleAgentV2 的 TeamStrategy；逐局阈值抖动增加对局多样性。
+
+    键用**引擎可见名**（`Sprite.name` = 基础名）：RuleAgentV2 是
+    `strategy.for_species(sprite.name)` 查找，用显示名（带外观）做键会静默失配。
+    """
     from backend.sim.agent_v2 import SpriteStrategy, TeamStrategy
 
     jr = jitter_rng
@@ -199,7 +253,7 @@ def strategy_from_team(team: dict, jitter_rng: random.Random | None = None) -> "
             switch_hp=jr.uniform(0.25, 0.45) if jr else 0.35,
         )
         for variant in [entry] + list(entry.get("alts") or []):
-            sprites[variant["name"]] = st
+            sprites[resolve_entry_name(variant["name"])[1]] = st
     return TeamStrategy(name=team.get("name", ""), sprites=sprites)
 
 

@@ -148,3 +148,37 @@ def test_roles_have_enough_supply_for_team_templates():
     assert len(roles["attackers"]) >= 30
     assert len(roles["supports"]) >= 30
     assert len(roles["tanks"]) >= 30
+
+
+# 已知例外（精确集合，新增或消失都会让门禁失败以便复核）：
+#   编号 188「棋棋」自身没有首领形态——它的首领形态挂在**进化后**的 189（棋骑士）/
+#   192（棋绮后）名下，进化链跨编号，而引擎的「同编号首领化」覆盖不到。
+#   P1 的 build 生成器对这类条目必须回退到次优血脉（否则会配出用不了的进化之力）。
+_LEADER_FORM_EXCEPTIONS = {"棋棋（黑子）"}
+
+
+def test_pool_excludes_leader_forms():
+    """首领形态不能直接上场：池里不得有首领阶段条目。"""
+    db = SpriteDB(_PROJ)
+    bad = [n for n in SPRITE_RANDOM_POOL
+           if (sp := db.get(n)) and sp.is_leader_stage()]
+    assert not bad, f"池里混进了首领形态条目（只能由基础形态+首领血脉+进化之力变身得到）: {bad[:10]}"
+    # 每个「wiki 首选首领」的池条目都必须真的能首领化（非首领阶段 + 同编号有候选形态）
+    by_number = load_reference().get("by_number", {})
+    unusable = set()
+    candidates = 0
+    for name in SPRITE_RANDOM_POOL:
+        sp = db.get(name)
+        if sp is None:
+            continue
+        block, _how = pick_entry(by_number, sp.number, sp.name, sp.appearance or sp.form)
+        top = (block or {}).get("blood") or []
+        if not top or top[0][0] != "首领":
+            continue
+        candidates += 1
+        if not db.leader_form_candidates(sp.number, sp.appearance or sp.form):
+            unusable.add(name)
+    assert candidates > 20, f"首选首领的池条目只有 {candidates} 个，参考数据可疑"
+    assert unusable == _LEADER_FORM_EXCEPTIONS, (
+        f"首选首领却无法首领化的池条目变了: {sorted(unusable)}（已知例外 "
+        f"{sorted(_LEADER_FORM_EXCEPTIONS)}）——多了要么是数据缺口，要么是引擎规则要放宽")
