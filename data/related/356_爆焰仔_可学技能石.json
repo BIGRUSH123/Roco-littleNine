@@ -1,0 +1,119 @@
+[
+  {
+    "level": "解锁：[技能石] 闪燃",
+    "element": "火",
+    "name": "闪燃",
+    "energy": "1",
+    "type": "物攻",
+    "power": "40",
+    "description": "✦造成物伤，应对状态：本次技能威力变为4倍。"
+  },
+  {
+    "level": "解锁：[技能石] 隼鳞",
+    "element": "龙",
+    "name": "隼鳞",
+    "energy": "5",
+    "type": "物攻",
+    "power": "140",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "解锁：[技能石] 力量增效",
+    "element": "普通",
+    "name": "力量增效",
+    "energy": "1",
+    "type": "状态",
+    "power": "",
+    "description": "✦自己获得物攻+100%。"
+  },
+  {
+    "level": "解锁：[技能石] 风矢",
+    "element": "翼",
+    "name": "风矢",
+    "energy": "2",
+    "type": "物攻",
+    "power": "80",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "解锁：[技能石] 冲撞",
+    "element": "普通",
+    "name": "冲撞",
+    "energy": "7",
+    "type": "物攻",
+    "power": "135",
+    "description": "✦造成物伤，回合结束时，本技能能耗永久-1。"
+  },
+  {
+    "level": "解锁：[技能石] 偷袭",
+    "element": "普通",
+    "name": "偷袭",
+    "energy": "3",
+    "type": "物攻",
+    "power": "85",
+    "description": "✦造成物伤，应对状态：本次技能威力变为3倍。"
+  },
+  {
+    "level": "解锁：[技能石] 吓退",
+    "element": "普通",
+    "name": "吓退",
+    "energy": "2",
+    "type": "防御",
+    "power": "",
+    "description": "✦减伤60%，应对攻击：敌方脱离。"
+  },
+  {
+    "level": "解锁：[技能石] 有效预防",
+    "element": "普通",
+    "name": "有效预防",
+    "energy": "1",
+    "type": "防御",
+    "power": "",
+    "description": "✦减伤50%，应对攻击：下一次行动获得先手+1。"
+  },
+  {
+    "level": "解锁：[技能石] 复写",
+    "element": "普通",
+    "name": "复写",
+    "energy": "0",
+    "type": "状态",
+    "power": "",
+    "description": "✦每回合随机变成自己未携带的技能，且该技能能耗-2。"
+  },
+  {
+    "level": "解锁：[技能石] 防反",
+    "element": "普通",
+    "name": "防反",
+    "energy": "2",
+    "type": "防御",
+    "power": "",
+    "description": "✦减伤70%，应对攻击：自己获得物攻和魔攻+70%。"
+  },
+  {
+    "level": "解锁：[技能石] 火云车",
+    "element": "火",
+    "name": "火云车",
+    "energy": "5",
+    "type": "物攻",
+    "power": "140",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "解锁：[技能石] 血气",
+    "element": "普通",
+    "name": "血气",
+    "energy": "2",
+    "type": "防御",
+    "power": "",
+    "description": "✦减伤60%，应对攻击：本回合受到致命伤害时，保留1生命值。"
+  },
+  {
+    "level": "解锁：[技能石] 吹炎",
+    "element": "龙",
+    "name": "吹炎",
+    "energy": "3",
+    "type": "物攻",
+    "power": "170",
+    "description": "✦蓄力，造成物伤，应对状态：本次技能威力翻倍。"
+  }
+]

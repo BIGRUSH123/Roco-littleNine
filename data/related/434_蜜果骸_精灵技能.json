@@ -1,0 +1,119 @@
+[
+  {
+    "level": "LV1",
+    "element": "草",
+    "name": "汲取",
+    "energy": "1",
+    "type": "魔攻",
+    "power": "30",
+    "description": "✦造成魔伤，并吸血100%。"
+  },
+  {
+    "level": "LV1",
+    "element": "草",
+    "name": "根吸收",
+    "energy": "2",
+    "type": "状态",
+    "power": "",
+    "description": "✦自己回复15%生命和4能量。"
+  },
+  {
+    "level": "LV1",
+    "element": "幽",
+    "name": "鬼火",
+    "energy": "0",
+    "type": "魔攻",
+    "power": "30",
+    "description": "✦造成魔伤，自己回复1能量。"
+  },
+  {
+    "level": "LV3",
+    "element": "幽",
+    "name": "恐吓",
+    "energy": "2",
+    "type": "魔攻",
+    "power": "80",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "LV9",
+    "element": "幽",
+    "name": "勾魂",
+    "energy": "1",
+    "type": "状态",
+    "power": "",
+    "description": "✦偷取敌方3能量。"
+  },
+  {
+    "level": "LV14",
+    "element": "普通",
+    "name": "防御",
+    "energy": "1",
+    "type": "防御",
+    "power": "",
+    "description": "✦减伤70%，应对攻击。"
+  },
+  {
+    "level": "LV17",
+    "element": "草",
+    "name": "棘突",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "100",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "LV23",
+    "element": "草",
+    "name": "移花接木",
+    "energy": "2",
+    "type": "状态",
+    "power": "",
+    "description": "✦自己回复15%生命，随后脱离。"
+  },
+  {
+    "level": "LV27",
+    "element": "草",
+    "name": "富养化",
+    "energy": "3",
+    "type": "状态",
+    "power": "",
+    "description": "✦为场下每个精灵回复3能量。"
+  },
+  {
+    "level": "LV30",
+    "element": "草",
+    "name": "甜蜜陷阱",
+    "energy": "4",
+    "type": "魔攻",
+    "power": "50",
+    "description": "✦造成魔伤，自己每有1能量，本次技能威力+10。"
+  },
+  {
+    "level": "LV36",
+    "element": "幽",
+    "name": "报复",
+    "energy": "2",
+    "type": "防御",
+    "power": "",
+    "description": "✦减伤70%，应对攻击：敌方失去3能量。"
+  },
+  {
+    "level": "LV41",
+    "element": "幽",
+    "name": "魔镜",
+    "energy": "2",
+    "type": "状态",
+    "power": "",
+    "description": "✦敌方获得魔防-50%，且失去3能量。"
+  },
+  {
+    "level": "LV46",
+    "element": "幽",
+    "name": "恶作剧",
+    "energy": "1",
+    "type": "状态",
+    "power": "",
+    "description": "✦敌方失去3能量，应对防御：改为敌方失去6能量。"
+  }
+]

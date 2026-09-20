@@ -1,0 +1,137 @@
+[
+  {
+    "level": "解锁：[技能石] 光之矛",
+    "element": "光",
+    "name": "光之矛",
+    "energy": "3",
+    "type": "物攻",
+    "power": "30",
+    "description": "✦造成物伤，3连击。"
+  },
+  {
+    "level": "解锁：[技能石] 光刃",
+    "element": "光",
+    "name": "光刃",
+    "energy": "4",
+    "type": "物攻",
+    "power": "120",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "解锁：[技能石] 漫反射",
+    "element": "光",
+    "name": "漫反射",
+    "energy": "1",
+    "type": "状态",
+    "power": "",
+    "description": "✦每种系别中的至多1个技能，威力+35。"
+  },
+  {
+    "level": "解锁：[技能石] 龙之利爪",
+    "element": "龙",
+    "name": "龙之利爪",
+    "energy": "3",
+    "type": "物攻",
+    "power": "130",
+    "description": "✦蓄力，造成物伤并吸血50%。"
+  },
+  {
+    "level": "解锁：[技能石] 龙吟",
+    "element": "龙",
+    "name": "龙吟",
+    "energy": "3",
+    "type": "状态",
+    "power": "",
+    "description": "✦蓄力，自己获得双攻+150%和速度+80。"
+  },
+  {
+    "level": "解锁：[技能石] 崩拳",
+    "element": "武",
+    "name": "崩拳",
+    "energy": "2",
+    "type": "物攻",
+    "power": "65",
+    "description": "✦造成物伤，应对状态：自己获得物攻+100%。"
+  },
+  {
+    "level": "解锁：[技能石] 寸拳",
+    "element": "武",
+    "name": "寸拳",
+    "energy": "0",
+    "type": "物攻",
+    "power": "30",
+    "description": "✦造成物伤，自己回复1能量。"
+  },
+  {
+    "level": "解锁：[技能石] 化劲",
+    "element": "武",
+    "name": "化劲",
+    "energy": "2",
+    "type": "状态",
+    "power": "",
+    "description": "✦自己获得全技能威力+40。"
+  },
+  {
+    "level": "解锁：[技能石] 有效预防",
+    "element": "普通",
+    "name": "有效预防",
+    "energy": "1",
+    "type": "防御",
+    "power": "",
+    "description": "✦减伤50%，应对攻击：下一次行动获得先手+1。"
+  },
+  {
+    "level": "解锁：[技能石] 先发制人",
+    "element": "普通",
+    "name": "先发制人",
+    "energy": "2",
+    "type": "物攻",
+    "power": "55",
+    "description": "✦造成物理伤害，先手+1。"
+  },
+  {
+    "level": "解锁：[技能石] 快速移动",
+    "element": "普通",
+    "name": "快速移动",
+    "energy": "1",
+    "type": "状态",
+    "power": "",
+    "description": "✦自己获得速度+80，应对防御：改为速度+160。"
+  },
+  {
+    "level": "解锁：[技能石] 当头棒喝",
+    "element": "普通",
+    "name": "当头棒喝",
+    "energy": "3",
+    "type": "物攻",
+    "power": "80",
+    "description": "✦造成物伤，若敌方本回合更换精灵，本次技能威力+100。"
+  },
+  {
+    "level": "解锁：[技能石] 借用",
+    "element": "普通",
+    "name": "借用",
+    "energy": "0",
+    "type": "状态",
+    "power": "",
+    "description": "✦每回合随机变成己方队伍中其他精灵的技能。"
+  },
+  {
+    "level": "解锁：[技能石] 龙守望",
+    "element": "龙",
+    "name": "龙守望",
+    "energy": "1",
+    "type": "状态",
+    "power": "",
+    "description": "✦下次技能无需蓄力，本技能可在蓄力状态下使用。选择：本次能耗-1或应对防御时打断，敌方下回合获得眩晕。"
+  },
+  {
+    "level": "解锁：[技能石] 冷凝",
+    "element": "冰",
+    "name": "冷凝",
+    "energy": "4",
+    "type": "物攻",
+    "power": "95",
+    "description": "✦造成物伤，敌方每有1层冻结，自己回复1能量。"
+  }
+]

@@ -1,0 +1,119 @@
+[
+  {
+    "level": "LV1",
+    "element": "电",
+    "name": "球状闪电",
+    "energy": "1",
+    "type": "物攻",
+    "power": "60",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "LV1",
+    "element": "电",
+    "name": "导电撞击",
+    "energy": "0",
+    "type": "物攻",
+    "power": "40",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "LV1",
+    "element": "普通",
+    "name": "力量增效",
+    "energy": "1",
+    "type": "状态",
+    "power": "",
+    "description": "✦自己获得物攻+100%。"
+  },
+  {
+    "level": "LV6",
+    "element": "电",
+    "name": "电弧",
+    "energy": "3",
+    "type": "物攻",
+    "power": "80",
+    "description": "✦造成物伤，迸发：本次技能威力+40。"
+  },
+  {
+    "level": "LV12",
+    "element": "普通",
+    "name": "防御",
+    "energy": "1",
+    "type": "防御",
+    "power": "",
+    "description": "✦减伤70%，应对攻击。"
+  },
+  {
+    "level": "LV20",
+    "element": "电",
+    "name": "过载回路",
+    "energy": "1",
+    "type": "状态",
+    "power": "",
+    "description": "✦回合结束自己返场，下回合所选技能使用次数+1。"
+  },
+  {
+    "level": "LV23",
+    "element": "电",
+    "name": "离子火花",
+    "energy": "2",
+    "type": "物攻",
+    "power": "80",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "LV31",
+    "element": "电",
+    "name": "增程电池",
+    "energy": "2",
+    "type": "状态",
+    "power": "",
+    "description": "✦自己获得1层蓄电印记。"
+  },
+  {
+    "level": "LV35",
+    "element": "电",
+    "name": "交叉闪电",
+    "energy": "3",
+    "type": "物攻",
+    "power": "100",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "LV43",
+    "element": "电",
+    "name": "惊雷",
+    "energy": "5",
+    "type": "状态",
+    "power": "",
+    "description": "✦将天气改为雷鸣，持续8回合。"
+  },
+  {
+    "level": "LV45",
+    "element": "电",
+    "name": "闪击折返",
+    "energy": "5",
+    "type": "物攻",
+    "power": "45",
+    "description": "✦造成物伤，2连击，自己脱离。"
+  },
+  {
+    "level": "LV48",
+    "element": "电",
+    "name": "麻痹",
+    "energy": "2",
+    "type": "状态",
+    "power": "",
+    "description": "✦敌方先手-1，应对防御：额外使敌方获得双攻-70%。"
+  },
+  {
+    "level": "LV50",
+    "element": "电",
+    "name": "通电",
+    "energy": "3",
+    "type": "物攻",
+    "power": "75",
+    "description": "✦造成物伤，敌方获得1层引电。"
+  }
+]

@@ -1,0 +1,137 @@
+[
+  {
+    "level": "LV1",
+    "element": "机械",
+    "name": "械斗",
+    "energy": "1",
+    "type": "物攻",
+    "power": "45",
+    "description": "✦造成物伤，本技能位于1号位时威力+60，传动1。"
+  },
+  {
+    "level": "LV1",
+    "element": "普通",
+    "name": "防御",
+    "energy": "1",
+    "type": "防御",
+    "power": "",
+    "description": "✦减伤70%，应对攻击。"
+  },
+  {
+    "level": "LV1",
+    "element": "机械",
+    "name": "离子震荡",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "90",
+    "description": "✦造成魔伤，本技能位于3号位时威力+40，传动1。"
+  },
+  {
+    "level": "LV6",
+    "element": "机械",
+    "name": "轴承支撑",
+    "energy": "3",
+    "type": "状态",
+    "power": "",
+    "description": "✦主动：本技能被动永久额外-1能耗，被动：两侧技能能耗-1，传动1。"
+  },
+  {
+    "level": "LV7",
+    "element": "机械",
+    "name": "能量守恒",
+    "energy": "2",
+    "type": "防御",
+    "power": "",
+    "description": "✦减伤80%，应对攻击：两侧技能能耗永久-1。"
+  },
+  {
+    "level": "LV11",
+    "element": "机械",
+    "name": "齿轮扭矩",
+    "energy": "3",
+    "type": "物攻",
+    "power": "70",
+    "description": "✦造成物伤，每回合位置发生变化时，本技能威力永久+15。"
+  },
+  {
+    "level": "LV16",
+    "element": "机械",
+    "name": "啮合传递",
+    "energy": "1",
+    "type": "状态",
+    "power": "",
+    "description": "✦自己获得速度+30，本技能位于1号或3号位时额外获得物攻+80%，传动1。"
+  },
+  {
+    "level": "LV23",
+    "element": "机械",
+    "name": "主轴",
+    "energy": "2",
+    "type": "物攻",
+    "power": "75",
+    "description": "✦造成物伤，此技能位置不会改变。"
+  },
+  {
+    "level": "LV24",
+    "element": "普通",
+    "name": "操控",
+    "energy": "1",
+    "type": "状态",
+    "power": "",
+    "description": "✦敌方本回合使用的技能能耗+7，持续3回合。"
+  },
+  {
+    "level": "LV33",
+    "element": "机械",
+    "name": "磁暴",
+    "energy": "2",
+    "type": "魔攻",
+    "power": "70",
+    "description": "✦造成魔伤，本技能位于1号或3号位时威力+30，传动1。"
+  },
+  {
+    "level": "LV34",
+    "element": "普通",
+    "name": "有效预防",
+    "energy": "1",
+    "type": "防御",
+    "power": "",
+    "description": "✦减伤50%，应对攻击：下一次行动获得先手+1。"
+  },
+  {
+    "level": "LV37",
+    "element": "机械",
+    "name": "齿轮切开",
+    "energy": "5",
+    "type": "物攻",
+    "power": "130",
+    "description": "✦造成物伤，本技能位于1号或3号位时能耗-2，传动1。"
+  },
+  {
+    "level": "LV41",
+    "element": "普通",
+    "name": "阻断",
+    "energy": "2",
+    "type": "魔攻",
+    "power": "75",
+    "description": "✦造成魔伤，应对状态：额外打断被应对技能。"
+  },
+  {
+    "level": "LV45",
+    "element": "机械",
+    "name": "微型斥候",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "75",
+    "description": "✦造成魔伤，每受到1次抵抗的技能攻击（不含连击），本技能威力永久+20。"
+  },
+  {
+    "level": "LV50",
+    "element": "机械",
+    "name": "相位移动",
+    "energy": "1",
+    "type": "防御",
+    "power": "",
+    "description": "✦减伤50%，本技能位于1号位或3号位时，额外减伤40%，应对攻击，传动1。"
+  }
+]

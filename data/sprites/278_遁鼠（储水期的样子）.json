@@ -1,7 +1,8 @@
 {
   "number": "278",
   "name": "遁鼠",
-  "form": "储水期的样子",
+  "form": "",
+  "appearance": "储水期的样子",
   "attributes": [
     "地"
   ],

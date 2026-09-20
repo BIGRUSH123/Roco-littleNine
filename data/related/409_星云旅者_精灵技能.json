@@ -1,0 +1,119 @@
+[
+  {
+    "level": "LV1",
+    "element": "普通",
+    "name": "魔法增效",
+    "energy": "0",
+    "type": "状态",
+    "power": "",
+    "description": "✦自己获得魔攻+70%。"
+  },
+  {
+    "level": "LV1",
+    "element": "翼",
+    "name": "鸣叫",
+    "energy": "0",
+    "type": "魔攻",
+    "power": "40",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "LV7",
+    "element": "幻",
+    "name": "大爆炸",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "100",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "LV10",
+    "element": "翼",
+    "name": "羽化加速",
+    "energy": "2",
+    "type": "状态",
+    "power": "",
+    "description": "✦自己获得全技能威力+20，迅捷。"
+  },
+  {
+    "level": "LV13",
+    "element": "翼",
+    "name": "回旋风暴",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "100",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "LV21",
+    "element": "幻",
+    "name": "星链",
+    "energy": "3",
+    "type": "状态",
+    "power": "",
+    "description": "✦2连击，每次连击使敌方获得1层星陨印记。"
+  },
+  {
+    "level": "LV29",
+    "element": "幻",
+    "name": "星痕",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "90",
+    "description": "✦造成魔伤，若对手有印记，本次技能威力+40。"
+  },
+  {
+    "level": "LV34",
+    "element": "翼",
+    "name": "风起",
+    "energy": "4",
+    "type": "状态",
+    "power": "",
+    "description": "✦自己获得1层风起印记。"
+  },
+  {
+    "level": "LV37",
+    "element": "翼",
+    "name": "翼击",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "50",
+    "description": "✦造成魔伤，迅捷。"
+  },
+  {
+    "level": "LV41",
+    "element": "幻",
+    "name": "坍缩",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "85",
+    "description": "✦造成魔伤，若击败敌方，自己获得魔攻+70%。"
+  },
+  {
+    "level": "LV43",
+    "element": "幻",
+    "name": "四维降解",
+    "energy": "7",
+    "type": "魔攻",
+    "power": "100",
+    "description": "✦造成魔伤，敌方每有1层印记，本技能能耗-1。"
+  },
+  {
+    "level": "LV45",
+    "element": "翼",
+    "name": "远行",
+    "energy": "2",
+    "type": "魔攻",
+    "power": "50",
+    "description": "✦造成魔伤，自己每先于敌方行动1次，本技能威力永久+25。"
+  },
+  {
+    "level": "LV50",
+    "element": "幻",
+    "name": "错乱",
+    "energy": "2",
+    "type": "魔攻",
+    "power": "65",
+    "description": "✦造成魔伤，应对状态：敌方获得3层星陨印记。"
+  }
+]

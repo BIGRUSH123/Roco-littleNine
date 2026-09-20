@@ -1,7 +1,8 @@
 {
   "number": "188",
   "name": "棋棋",
-  "form": "黑子",
+  "form": "",
+  "appearance": "黑子",
   "attributes": [
     "武",
     "地"

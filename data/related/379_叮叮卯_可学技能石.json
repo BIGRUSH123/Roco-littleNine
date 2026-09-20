@@ -1,0 +1,137 @@
+[
+  {
+    "level": "解锁：[技能石] 翼击",
+    "element": "翼",
+    "name": "翼击",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "50",
+    "description": "✦造成魔伤，迅捷。"
+  },
+  {
+    "level": "解锁：[技能石] 风隐",
+    "element": "翼",
+    "name": "风隐",
+    "energy": "1",
+    "type": "状态",
+    "power": "",
+    "description": "✦敌方和自己均脱离，先手-1。"
+  },
+  {
+    "level": "解锁：[技能石] 飞羽",
+    "element": "翼",
+    "name": "飞羽",
+    "energy": "1",
+    "type": "状态",
+    "power": "",
+    "description": "✦迅捷，驱散敌方1种增益。"
+  },
+  {
+    "level": "解锁：[技能石] 休息回复",
+    "element": "普通",
+    "name": "休息回复",
+    "energy": "2",
+    "type": "状态",
+    "power": "",
+    "description": "✦自己回复30%生命。"
+  },
+  {
+    "level": "解锁：[技能石] 倾泻",
+    "element": "普通",
+    "name": "倾泻",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "70",
+    "description": "✦造成魔伤，若本次攻击未被防御技能应对，则驱散双方所有印记。"
+  },
+  {
+    "level": "解锁：[技能石] 精神扰乱",
+    "element": "普通",
+    "name": "精神扰乱",
+    "energy": "0",
+    "type": "状态",
+    "power": "",
+    "description": "✦敌方获得全技能能耗+1，应对防御：改为能耗+3。"
+  },
+  {
+    "level": "解锁：[技能石] 咆哮",
+    "element": "普通",
+    "name": "咆哮",
+    "energy": "1",
+    "type": "状态",
+    "power": "",
+    "description": "✦敌方获得物攻-60%和速度-60。"
+  },
+  {
+    "level": "解锁：[技能石] 摇篮曲",
+    "element": "普通",
+    "name": "摇篮曲",
+    "energy": "5",
+    "type": "状态",
+    "power": "",
+    "description": "✦敌方获得全技能能耗+3，应对防御：额外造成打断，且敌方下回合获得眩晕。"
+  },
+  {
+    "level": "解锁：[技能石] 能量守恒",
+    "element": "机械",
+    "name": "能量守恒",
+    "energy": "2",
+    "type": "防御",
+    "power": "",
+    "description": "✦减伤80%，应对攻击：两侧技能能耗永久-1。"
+  },
+  {
+    "level": "解锁：[技能石] 吓退",
+    "element": "普通",
+    "name": "吓退",
+    "energy": "2",
+    "type": "防御",
+    "power": "",
+    "description": "✦减伤60%，应对攻击：敌方脱离。"
+  },
+  {
+    "level": "解锁：[技能石] 无畏之心",
+    "element": "普通",
+    "name": "无畏之心",
+    "energy": "5",
+    "type": "防御",
+    "power": "",
+    "description": "✦减伤100%，应对攻击：减免的伤害变为回复自己生命，且本技能能耗永久+2。"
+  },
+  {
+    "level": "解锁：[技能石] 消毒法",
+    "element": "普通",
+    "name": "消毒法",
+    "energy": "4",
+    "type": "魔攻",
+    "power": "115",
+    "description": "✦造成魔伤，驱散敌方5层增益。"
+  },
+  {
+    "level": "解锁：[技能石] 借用",
+    "element": "普通",
+    "name": "借用",
+    "energy": "0",
+    "type": "状态",
+    "power": "",
+    "description": "✦每回合随机变成己方队伍中其他精灵的技能。"
+  },
+  {
+    "level": "解锁：[技能石] 拟寄生",
+    "element": "虫",
+    "name": "拟寄生",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "80",
+    "description": "✦造成魔伤，偷取敌方1层印记。"
+  },
+  {
+    "level": "解锁：[技能石] 六自由度",
+    "element": "机械",
+    "name": "六自由度",
+    "energy": "4",
+    "type": "魔攻",
+    "power": "30",
+    "description": "✦造成魔伤，威力额外增加两侧技能威力差的四分之一，传动1。"
+  }
+]

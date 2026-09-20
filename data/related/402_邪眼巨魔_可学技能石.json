@@ -1,0 +1,164 @@
+[
+  {
+    "level": "解锁：[技能石] 虫鸣",
+    "element": "虫",
+    "name": "虫鸣",
+    "energy": "2",
+    "type": "魔攻",
+    "power": "15",
+    "description": "✦造成魔伤，队伍中的精灵每携带1个虫鸣，本次技能连击数+1。"
+  },
+  {
+    "level": "解锁：[技能石] 虚假破产",
+    "element": "恶",
+    "name": "虚假破产",
+    "energy": "2",
+    "type": "防御",
+    "power": "",
+    "description": "✦减伤80%，能量不足时，消耗5%生命代替1能量，应对攻击。"
+  },
+  {
+    "level": "解锁：[技能石] 彼岸之手",
+    "element": "恶",
+    "name": "彼岸之手",
+    "energy": "10",
+    "type": "物攻",
+    "power": "150",
+    "description": "✦造成物伤，自己每失去10%生命，本技能能耗-1。"
+  },
+  {
+    "level": "解锁：[技能石] 虫结阵",
+    "element": "虫",
+    "name": "虫结阵",
+    "energy": "2",
+    "type": "防御",
+    "power": "",
+    "description": "✦减伤80%，应对攻击：己方队伍获得1次随机奉献。"
+  },
+  {
+    "level": "解锁：[技能石] 炎打",
+    "element": "火",
+    "name": "炎打",
+    "energy": "2",
+    "type": "魔攻",
+    "power": "95",
+    "description": "✦造成高额魔法伤害，自己获得物防-40%。"
+  },
+  {
+    "level": "解锁：[技能石] 吹火",
+    "element": "火",
+    "name": "吹火",
+    "energy": "1",
+    "type": "物攻",
+    "power": "50",
+    "description": "✦造成物伤，每次使用后，本技能威力永久+20。"
+  },
+  {
+    "level": "解锁：[技能石] 淬火",
+    "element": "火",
+    "name": "淬火",
+    "energy": "2",
+    "type": "防御",
+    "power": "",
+    "description": "✦减伤80%，应对攻击：下次攻击技能威力翻倍。"
+  },
+  {
+    "level": "解锁：[技能石] 魔能爆",
+    "element": "普通",
+    "name": "魔能爆",
+    "energy": "0",
+    "type": "魔攻",
+    "power": "1",
+    "description": "✦造成魔伤，使用时消耗所有能量，消耗越高，伤害越高。"
+  },
+  {
+    "level": "解锁：[技能石] 垂死反击",
+    "element": "普通",
+    "name": "垂死反击",
+    "energy": "4",
+    "type": "物攻",
+    "power": "80",
+    "description": "✦造成物伤，自己每失去5%生命，本次技能威力+5。"
+  },
+  {
+    "level": "解锁：[技能石] 休息回复",
+    "element": "普通",
+    "name": "休息回复",
+    "energy": "2",
+    "type": "状态",
+    "power": "",
+    "description": "✦自己回复30%生命。"
+  },
+  {
+    "level": "解锁：[技能石] 借用",
+    "element": "普通",
+    "name": "借用",
+    "energy": "0",
+    "type": "状态",
+    "power": "",
+    "description": "✦每回合随机变成己方队伍中其他精灵的技能。"
+  },
+  {
+    "level": "解锁：[技能石] 有效预防",
+    "element": "普通",
+    "name": "有效预防",
+    "energy": "1",
+    "type": "防御",
+    "power": "",
+    "description": "✦减伤50%，应对攻击：下一次行动获得先手+1。"
+  },
+  {
+    "level": "解锁：[技能石] 嗜痛",
+    "element": "普通",
+    "name": "嗜痛",
+    "energy": "2",
+    "type": "防御",
+    "power": "",
+    "description": "✦减伤80%，应对攻击：期间自己每受到1次攻击伤害，获得双攻+40%。"
+  },
+  {
+    "level": "解锁：[技能石] 恶意逃离",
+    "element": "恶",
+    "name": "恶意逃离",
+    "energy": "1",
+    "type": "状态",
+    "power": "",
+    "description": "✦脱离，应对防御：额外使敌方攻击技能能耗+4。"
+  },
+  {
+    "level": "解锁：[技能石] 吓退",
+    "element": "普通",
+    "name": "吓退",
+    "energy": "2",
+    "type": "防御",
+    "power": "",
+    "description": "✦减伤60%，应对攻击：敌方脱离。"
+  },
+  {
+    "level": "解锁：[技能石] 防御",
+    "element": "普通",
+    "name": "防御",
+    "energy": "1",
+    "type": "防御",
+    "power": "",
+    "description": "✦减伤70%，应对攻击。"
+  },
+  {
+    "level": "解锁：[技能石] 纺纱",
+    "element": "恶",
+    "name": "纺纱",
+    "energy": "4",
+    "type": "状态",
+    "power": "",
+    "description": "✦敌方获得1层暗涌印记。"
+  },
+  {
+    "level": "解锁：[技能石] 假冒",
+    "element": "恶",
+    "name": "假冒",
+    "energy": "2",
+    "type": "状态",
+    "power": "",
+    "description": "✦自己的生命比例变为与敌方生命比例相同，巧变：恶系攻击技能。"
+  }
+]

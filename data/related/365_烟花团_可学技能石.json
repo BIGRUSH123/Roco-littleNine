@@ -1,0 +1,137 @@
+[
+  {
+    "level": "解锁：[技能石] 充分燃烧",
+    "element": "火",
+    "name": "充分燃烧",
+    "energy": "3",
+    "type": "状态",
+    "power": "",
+    "description": "✦使敌方身上的灼烧翻倍，并触发1次灼烧伤害。"
+  },
+  {
+    "level": "解锁：[技能石] 天火",
+    "element": "火",
+    "name": "天火",
+    "energy": "3",
+    "type": "状态",
+    "power": "",
+    "description": "✦敌方获得10层灼烧，应对防御：改为获得30层。"
+  },
+  {
+    "level": "解锁：[技能石] 剧毒",
+    "element": "毒",
+    "name": "剧毒",
+    "energy": "2",
+    "type": "状态",
+    "power": "",
+    "description": "✦敌方获得3层中毒，应对防御：改为获得8层。"
+  },
+  {
+    "level": "解锁：[技能石] 焚烧烙印",
+    "element": "火",
+    "name": "焚烧烙印",
+    "energy": "3",
+    "type": "状态",
+    "power": "",
+    "description": "✦驱散双方所有印记，每驱散1层，敌方获得5层灼烧。"
+  },
+  {
+    "level": "解锁：[技能石] 贪婪",
+    "element": "恶",
+    "name": "贪婪",
+    "energy": "2",
+    "type": "状态",
+    "power": "",
+    "description": "✦自己获得100%吸血。"
+  },
+  {
+    "level": "解锁：[技能石] 暗箱操作",
+    "element": "恶",
+    "name": "暗箱操作",
+    "energy": "1",
+    "type": "状态",
+    "power": "",
+    "description": "✦自己获得双攻和双防-100%，应对防御：改为敌方获得双攻和双防-100%。"
+  },
+  {
+    "level": "解锁：[技能石] 杂耍",
+    "element": "恶",
+    "name": "杂耍",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "115",
+    "description": "✦造成魔伤，巧变：吸血相关技能。"
+  },
+  {
+    "level": "解锁：[技能石] 石肤术",
+    "element": "地",
+    "name": "石肤术",
+    "energy": "3",
+    "type": "状态",
+    "power": "",
+    "description": "✦自己获得物防+160%和魔防-60%。"
+  },
+  {
+    "level": "解锁：[技能石] 陨石",
+    "element": "地",
+    "name": "陨石",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "100",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "解锁：[技能石] 热身运动",
+    "element": "普通",
+    "name": "热身运动",
+    "energy": "2",
+    "type": "状态",
+    "power": "",
+    "description": "✦自己获得连击数+3。"
+  },
+  {
+    "level": "解锁：[技能石] 借用",
+    "element": "普通",
+    "name": "借用",
+    "energy": "0",
+    "type": "状态",
+    "power": "",
+    "description": "✦每回合随机变成己方队伍中其他精灵的技能。"
+  },
+  {
+    "level": "解锁：[技能石] 操控",
+    "element": "普通",
+    "name": "操控",
+    "energy": "1",
+    "type": "状态",
+    "power": "",
+    "description": "✦敌方本回合使用的技能能耗+7，持续3回合。"
+  },
+  {
+    "level": "解锁：[技能石] 吓退",
+    "element": "普通",
+    "name": "吓退",
+    "energy": "2",
+    "type": "防御",
+    "power": "",
+    "description": "✦减伤60%，应对攻击：敌方脱离。"
+  },
+  {
+    "level": "解锁：[技能石] 急中生智",
+    "element": "普通",
+    "name": "急中生智",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "80",
+    "description": "✦造成魔伤，自己有减益时，本次技能威力+40。"
+  },
+  {
+    "level": "解锁：[技能石] 鸩毒",
+    "element": "毒",
+    "name": "鸩毒",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "75",
+    "description": "✦造成魔伤，敌方每有1层中毒效果，本次技能威力+10，应对状态：改为本次威力+40。"
+  }
+]

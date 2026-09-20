@@ -1,0 +1,128 @@
+[
+  {
+    "level": "解锁：[技能石] 蓄水",
+    "element": "水",
+    "name": "蓄水",
+    "energy": "1",
+    "type": "状态",
+    "power": "",
+    "description": "✦下次使用的技能能耗-6。"
+  },
+  {
+    "level": "解锁：[技能石] 赤子之心",
+    "element": "萌",
+    "name": "赤子之心",
+    "energy": "2",
+    "type": "状态",
+    "power": "",
+    "description": "✦自己获得萌化：全技能能耗永久-3。"
+  },
+  {
+    "level": "解锁：[技能石] 击鼓传花",
+    "element": "萌",
+    "name": "击鼓传花",
+    "energy": "3",
+    "type": "状态",
+    "power": "",
+    "description": "✦自己脱离，下个入场精灵继承自己增益。"
+  },
+  {
+    "level": "解锁：[技能石] 肥皂泡",
+    "element": "水",
+    "name": "肥皂泡",
+    "energy": "1",
+    "type": "魔攻",
+    "power": "60",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "解锁：[技能石] 水花四溅",
+    "element": "水",
+    "name": "水花四溅",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "20",
+    "description": "✦造成魔伤，4连击。"
+  },
+  {
+    "level": "解锁：[技能石] 润泽",
+    "element": "水",
+    "name": "润泽",
+    "energy": "7",
+    "type": "状态",
+    "power": "",
+    "description": "✦自己获得魔攻+190%。"
+  },
+  {
+    "level": "解锁：[技能石] 盐水浴",
+    "element": "水",
+    "name": "盐水浴",
+    "energy": "2",
+    "type": "状态",
+    "power": "",
+    "description": "✦自己获得全技能能耗-2，应对防御：改为技能能耗-3。"
+  },
+  {
+    "level": "解锁：[技能石] 倾泻",
+    "element": "普通",
+    "name": "倾泻",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "70",
+    "description": "✦造成魔伤，若本次攻击未被防御技能应对，则驱散双方所有印记。"
+  },
+  {
+    "level": "解锁：[技能石] 反弹",
+    "element": "萌",
+    "name": "反弹",
+    "energy": "4",
+    "type": "状态",
+    "power": "",
+    "description": "✦将自己的萌化转移给敌方。"
+  },
+  {
+    "level": "解锁：[技能石] 魔法增效",
+    "element": "普通",
+    "name": "魔法增效",
+    "energy": "0",
+    "type": "状态",
+    "power": "",
+    "description": "✦自己获得魔攻+70%。"
+  },
+  {
+    "level": "解锁：[技能石] 退化",
+    "element": "普通",
+    "name": "退化",
+    "energy": "2",
+    "type": "状态",
+    "power": "",
+    "description": "✦敌方获得1层萌化。"
+  },
+  {
+    "level": "解锁：[技能石] 休息回复",
+    "element": "普通",
+    "name": "休息回复",
+    "energy": "2",
+    "type": "状态",
+    "power": "",
+    "description": "✦自己回复30%生命。"
+  },
+  {
+    "level": "解锁：[技能石] 借用",
+    "element": "普通",
+    "name": "借用",
+    "energy": "0",
+    "type": "状态",
+    "power": "",
+    "description": "✦每回合随机变成己方队伍中其他精灵的技能。"
+  },
+  {
+    "level": "解锁：[技能石] 转圈圈",
+    "element": "萌",
+    "name": "转圈圈",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "85",
+    "description": "✦造成魔伤，若敌方本回合更换精灵，本次攻击使敌方获得萌化。"
+  }
+]

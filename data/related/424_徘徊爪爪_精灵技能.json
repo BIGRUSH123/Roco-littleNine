@@ -1,0 +1,119 @@
+[
+  {
+    "level": "LV1",
+    "element": "萌",
+    "name": "鞭打",
+    "energy": "0",
+    "type": "物攻",
+    "power": "40",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "LV1",
+    "element": "毒",
+    "name": "毒针",
+    "energy": "0",
+    "type": "物攻",
+    "power": "20",
+    "description": "✦造成物伤，敌方获得1层中毒。"
+  },
+  {
+    "level": "LV7",
+    "element": "普通",
+    "name": "力量增效",
+    "energy": "1",
+    "type": "状态",
+    "power": "",
+    "description": "✦自己获得物攻+100%。"
+  },
+  {
+    "level": "LV10",
+    "element": "萌",
+    "name": "超级糖果",
+    "energy": "3",
+    "type": "物攻",
+    "power": "100",
+    "description": "✦造成物伤，自己获得萌化：本次技能威力+60。"
+  },
+  {
+    "level": "LV16",
+    "element": "毒",
+    "name": "毒沼",
+    "energy": "2",
+    "type": "物攻",
+    "power": "80",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "LV20",
+    "element": "普通",
+    "name": "防御",
+    "energy": "1",
+    "type": "防御",
+    "power": "",
+    "description": "✦减伤70%，应对攻击。"
+  },
+  {
+    "level": "LV23",
+    "element": "萌",
+    "name": "示弱",
+    "energy": "2",
+    "type": "状态",
+    "power": "",
+    "description": "✦自己获得萌化：速度永久+130。"
+  },
+  {
+    "level": "LV28",
+    "element": "萌",
+    "name": "爆米花爆破",
+    "energy": "5",
+    "type": "物攻",
+    "power": "140",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "LV30",
+    "element": "毒",
+    "name": "重金属粉尘",
+    "energy": "1",
+    "type": "状态",
+    "power": "",
+    "description": "✦携带的攻击技能获得附加中毒3，应对防御：改为获得附加中毒6。"
+  },
+  {
+    "level": "LV33",
+    "element": "毒",
+    "name": "毒誓",
+    "energy": "4",
+    "type": "物攻",
+    "power": "120",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "LV36",
+    "element": "萌",
+    "name": "赤子之心",
+    "energy": "2",
+    "type": "状态",
+    "power": "",
+    "description": "✦自己获得萌化：全技能能耗永久-3。"
+  },
+  {
+    "level": "LV38",
+    "element": "萌",
+    "name": "拆礼物",
+    "energy": "3",
+    "type": "物攻",
+    "power": "50",
+    "description": "✦造成物伤，若敌方有萌化，本次技能威力+100。"
+  },
+  {
+    "level": "LV40",
+    "element": "毒",
+    "name": "毒囊",
+    "energy": "2",
+    "type": "物攻",
+    "power": "25",
+    "description": "✦造成物伤，敌方获得2层中毒，应对状态：改为获得6层。"
+  }
+]

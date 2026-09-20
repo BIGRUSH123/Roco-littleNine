@@ -1,0 +1,137 @@
+[
+  {
+    "level": "LV1",
+    "element": "机械",
+    "name": "传感器",
+    "energy": "1",
+    "type": "物攻",
+    "power": "20",
+    "description": "✦造成物伤，2连击，本技能位于1号或3号位时连击+1，传动1。"
+  },
+  {
+    "level": "LV1",
+    "element": "幻",
+    "name": "针状物",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "30",
+    "description": "✦造成魔伤，3连击。"
+  },
+  {
+    "level": "LV4",
+    "element": "普通",
+    "name": "三连破",
+    "energy": "1",
+    "type": "状态",
+    "power": "",
+    "description": "✦自己获得物攻+30%，3连击。"
+  },
+  {
+    "level": "LV9",
+    "element": "幻",
+    "name": "双星",
+    "energy": "3",
+    "type": "物攻",
+    "power": "100",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "LV11",
+    "element": "普通",
+    "name": "防御",
+    "energy": "1",
+    "type": "防御",
+    "power": "",
+    "description": "✦减伤70%，应对攻击。"
+  },
+  {
+    "level": "LV19",
+    "element": "机械",
+    "name": "轴承支撑",
+    "energy": "3",
+    "type": "状态",
+    "power": "",
+    "description": "✦主动：本技能被动永久额外-1能耗，被动：两侧技能能耗-1，传动1。"
+  },
+  {
+    "level": "LV27",
+    "element": "机械",
+    "name": "离子震荡",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "90",
+    "description": "✦造成魔伤，本技能位于3号位时威力+40，传动1。"
+  },
+  {
+    "level": "LV35",
+    "element": "机械",
+    "name": "相位移动",
+    "energy": "1",
+    "type": "防御",
+    "power": "",
+    "description": "✦减伤50%，本技能位于1号位或3号位时，额外减伤40%，应对攻击，传动1。"
+  },
+  {
+    "level": "LV37",
+    "element": "幻",
+    "name": "超新星馈赠",
+    "energy": "2",
+    "type": "状态",
+    "power": "",
+    "description": "✦敌方获得2层星陨印记，每使用1次，赋予的星陨印记层数永久+1。"
+  },
+  {
+    "level": "LV40",
+    "element": "机械",
+    "name": "绞轮",
+    "energy": "5",
+    "type": "物攻",
+    "power": "115",
+    "description": "✦造成物伤，每受到1次抵抗的技能攻击（不含连击），本技能能耗永久-1。"
+  },
+  {
+    "level": "LV42",
+    "element": "机械",
+    "name": "啮合传递",
+    "energy": "1",
+    "type": "状态",
+    "power": "",
+    "description": "✦自己获得速度+30，本技能位于1号或3号位时额外获得物攻+80%，传动1。"
+  },
+  {
+    "level": "LV44",
+    "element": "幻",
+    "name": "二律背反",
+    "energy": "4",
+    "type": "状态",
+    "power": "",
+    "description": "✦敌方获得3层星陨印记，应对防御：额外使敌方星陨印记层数翻倍。"
+  },
+  {
+    "level": "LV46",
+    "element": "幻",
+    "name": "大爆炸",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "100",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "LV48",
+    "element": "机械",
+    "name": "联动装置",
+    "energy": "0",
+    "type": "状态",
+    "power": "",
+    "description": "✦使用后两侧技能的威力永久+20，应对防御：变为威力永久+30。"
+  },
+  {
+    "level": "LV50",
+    "element": "幻",
+    "name": "许愿池",
+    "energy": "4",
+    "type": "魔攻",
+    "power": "55",
+    "description": "✦造成魔伤，双方已有的印记层数+1。"
+  }
+]

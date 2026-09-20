@@ -1,0 +1,119 @@
+[
+  {
+    "level": "LV1",
+    "element": "光",
+    "name": "光球",
+    "energy": "2",
+    "type": "魔攻",
+    "power": "80",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "LV1",
+    "element": "电",
+    "name": "电流",
+    "energy": "0",
+    "type": "魔攻",
+    "power": "40",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "LV5",
+    "element": "电",
+    "name": "超导",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "95",
+    "description": "✦造成魔伤，迸发：本技能能耗-1。"
+  },
+  {
+    "level": "LV11",
+    "element": "电",
+    "name": "远程访问",
+    "energy": "2",
+    "type": "状态",
+    "power": "",
+    "description": "✦使敌方精灵返场。"
+  },
+  {
+    "level": "LV16",
+    "element": "普通",
+    "name": "防御",
+    "energy": "1",
+    "type": "防御",
+    "power": "",
+    "description": "✦减伤70%，应对攻击。"
+  },
+  {
+    "level": "LV22",
+    "element": "光",
+    "name": "色散",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "80",
+    "description": "✦造成魔伤，对混血精灵造成伤害+50%。"
+  },
+  {
+    "level": "LV24",
+    "element": "电",
+    "name": "电磁偏转",
+    "energy": "3",
+    "type": "防御",
+    "power": "",
+    "description": "✦减伤70%，应对攻击：下回合所选技能使用次数+1。"
+  },
+  {
+    "level": "LV27",
+    "element": "电",
+    "name": "电离爆破",
+    "energy": "1",
+    "type": "状态",
+    "power": "",
+    "description": "✦敌方获得魔攻-20%，速度-20，2连击。"
+  },
+  {
+    "level": "LV32",
+    "element": "电",
+    "name": "双联脉冲",
+    "energy": "4",
+    "type": "魔攻",
+    "power": "50",
+    "description": "✦造成魔伤，迸发：本技能使用次数+1。"
+  },
+  {
+    "level": "LV35",
+    "element": "电",
+    "name": "增程电池",
+    "energy": "2",
+    "type": "状态",
+    "power": "",
+    "description": "✦自己获得1层蓄电印记。"
+  },
+  {
+    "level": "LV39",
+    "element": "电",
+    "name": "落雷",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "35",
+    "description": "✦造成魔伤，每次入场，本技能威力永久+40。"
+  },
+  {
+    "level": "LV40",
+    "element": "电",
+    "name": "踏雷",
+    "energy": "2",
+    "type": "状态",
+    "power": "",
+    "description": "✦自己回合结束时返场，携带的攻击技能下回合获得1个已触发过的迸发效果，应对防御：改为获得所有触发过的迸发效果。"
+  },
+  {
+    "level": "LV48",
+    "element": "光",
+    "name": "放晴",
+    "energy": "1",
+    "type": "状态",
+    "power": "",
+    "description": "✦光系技能威力永久+50%，应对防御：改为永久+100%。"
+  }
+]

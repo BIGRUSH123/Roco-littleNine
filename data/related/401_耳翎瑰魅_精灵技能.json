@@ -1,0 +1,137 @@
+[
+  {
+    "level": "LV1",
+    "element": "普通",
+    "name": "力量增效",
+    "energy": "1",
+    "type": "状态",
+    "power": "",
+    "description": "✦自己获得物攻+100%。"
+  },
+  {
+    "level": "LV1",
+    "element": "虫",
+    "name": "掩护",
+    "energy": "2",
+    "type": "防御",
+    "power": "",
+    "description": "✦减伤70%，紧急脱离，应对攻击：下个入场精灵获得减伤。"
+  },
+  {
+    "level": "LV1",
+    "element": "虫",
+    "name": "虫网",
+    "energy": "0",
+    "type": "魔攻",
+    "power": "30",
+    "description": "✦造成魔伤，自己回复1能量。"
+  },
+  {
+    "level": "LV5",
+    "element": "虫",
+    "name": "啃咬",
+    "energy": "0",
+    "type": "物攻",
+    "power": "40",
+    "description": "✦造成物伤，1连击，本技能会受奉献影响，每被影响1次，能耗永久+1。"
+  },
+  {
+    "level": "LV10",
+    "element": "恶",
+    "name": "伪造账单",
+    "energy": "1",
+    "type": "状态",
+    "power": "",
+    "description": "✦若敌方本回合回复生命，改为失去2倍（含溢出的回复量）。先手+1。"
+  },
+  {
+    "level": "LV14",
+    "element": "恶",
+    "name": "困兽",
+    "energy": "3",
+    "type": "物攻",
+    "power": "90",
+    "description": "✦造成物伤，若自己生命低于50%，本次攻击吸血50%。"
+  },
+  {
+    "level": "LV21",
+    "element": "虫",
+    "name": "虫群智慧",
+    "energy": "3",
+    "type": "状态",
+    "power": "",
+    "description": "✦己方队伍获得2次随机奉献。"
+  },
+  {
+    "level": "LV25",
+    "element": "恶",
+    "name": "等价交换",
+    "energy": "3",
+    "type": "防御",
+    "power": "",
+    "description": "✦减伤90%，应对攻击：自己获得50%吸血。"
+  },
+  {
+    "level": "LV33",
+    "element": "普通",
+    "name": "先发制人",
+    "energy": "2",
+    "type": "物攻",
+    "power": "55",
+    "description": "✦造成物理伤害，先手+1。"
+  },
+  {
+    "level": "LV36",
+    "element": "恶",
+    "name": "欺诈契约",
+    "energy": "3",
+    "type": "状态",
+    "power": "",
+    "description": "✦与敌方交换增益和减益。"
+  },
+  {
+    "level": "LV42",
+    "element": "虫",
+    "name": "虫蛊",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "100",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "LV44",
+    "element": "恶",
+    "name": "骗局",
+    "energy": "4",
+    "type": "魔攻",
+    "power": "110",
+    "description": "✦造成魔伤，能量不足时，消耗5%生命代替1能量。"
+  },
+  {
+    "level": "LV46",
+    "element": "虫",
+    "name": "拟寄生",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "80",
+    "description": "✦造成魔伤，偷取敌方1层印记。"
+  },
+  {
+    "level": "LV48",
+    "element": "恶",
+    "name": "灾厄",
+    "energy": "1",
+    "type": "物攻",
+    "power": "60",
+    "description": "✦对自己造成物伤，应对状态：改为对敌方造成物伤，且本次技能威力+120。"
+  },
+  {
+    "level": "LV50",
+    "element": "虫",
+    "name": "虫击",
+    "energy": "3",
+    "type": "物攻",
+    "power": "90",
+    "description": "✦造成物伤，应对状态：本次技能威力变为2倍，无视敌方系别抵抗。"
+  }
+]

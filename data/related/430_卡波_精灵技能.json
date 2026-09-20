@@ -1,0 +1,119 @@
+[
+  {
+    "level": "LV1",
+    "element": "普通",
+    "name": "力量增效",
+    "energy": "1",
+    "type": "状态",
+    "power": "",
+    "description": "✦自己获得物攻+100%。"
+  },
+  {
+    "level": "LV1",
+    "element": "普通",
+    "name": "防御",
+    "energy": "1",
+    "type": "防御",
+    "power": "",
+    "description": "✦减伤70%，应对攻击。"
+  },
+  {
+    "level": "LV1",
+    "element": "恶",
+    "name": "恶能量",
+    "energy": "1",
+    "type": "物攻",
+    "power": "60",
+    "description": "✦对敌方精灵造成物理伤害。"
+  },
+  {
+    "level": "LV5",
+    "element": "恶",
+    "name": "撕咬",
+    "energy": "3",
+    "type": "物攻",
+    "power": "30",
+    "description": "✦造成物伤，3连击，若自己的生命低于50%，本次技能连击数+2。"
+  },
+  {
+    "level": "LV9",
+    "element": "恶",
+    "name": "伪造账单",
+    "energy": "1",
+    "type": "状态",
+    "power": "",
+    "description": "✦若敌方本回合回复生命，改为失去2倍（含溢出的回复量）。先手+1。"
+  },
+  {
+    "level": "LV13",
+    "element": "恶",
+    "name": "蝙蝠",
+    "energy": "2",
+    "type": "物攻",
+    "power": "65",
+    "description": "✦造成物伤，并吸血100%。"
+  },
+  {
+    "level": "LV19",
+    "element": "恶",
+    "name": "力量吞噬",
+    "energy": "4",
+    "type": "状态",
+    "power": "",
+    "description": "✦敌方获得全技能威力-20，自己获得全技能威力+20。"
+  },
+  {
+    "level": "LV26",
+    "element": "恶",
+    "name": "等价交换",
+    "energy": "3",
+    "type": "防御",
+    "power": "",
+    "description": "✦减伤90%，应对攻击：自己获得50%吸血。"
+  },
+  {
+    "level": "LV30",
+    "element": "恶",
+    "name": "限时特惠",
+    "energy": "6",
+    "type": "魔攻",
+    "power": "140",
+    "description": "✦造成魔伤，敌方每有1只力竭精灵，本次技能能耗-1。"
+  },
+  {
+    "level": "LV37",
+    "element": "恶",
+    "name": "纺纱",
+    "energy": "4",
+    "type": "状态",
+    "power": "",
+    "description": "✦敌方获得1层暗涌印记。"
+  },
+  {
+    "level": "LV40",
+    "element": "恶",
+    "name": "彼岸之手",
+    "energy": "10",
+    "type": "物攻",
+    "power": "150",
+    "description": "✦造成物伤，自己每失去10%生命，本技能能耗-1。"
+  },
+  {
+    "level": "LV45",
+    "element": "恶",
+    "name": "暗箱操作",
+    "energy": "1",
+    "type": "状态",
+    "power": "",
+    "description": "✦自己获得双攻和双防-100%，应对防御：改为敌方获得双攻和双防-100%。"
+  },
+  {
+    "level": "LV48",
+    "element": "恶",
+    "name": "恶意逃离",
+    "energy": "1",
+    "type": "状态",
+    "power": "",
+    "description": "✦脱离，应对防御：额外使敌方攻击技能能耗+4。"
+  }
+]

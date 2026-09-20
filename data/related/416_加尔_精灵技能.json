@@ -1,0 +1,137 @@
+[
+  {
+    "level": "LV1",
+    "element": "普通",
+    "name": "许愿星",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "110",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "LV1",
+    "element": "普通",
+    "name": "能量炮",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "50",
+    "description": "✦造成魔伤，2连击。"
+  },
+  {
+    "level": "LV1",
+    "element": "普通",
+    "name": "休息回复",
+    "energy": "2",
+    "type": "状态",
+    "power": "",
+    "description": "✦自己回复30%生命。"
+  },
+  {
+    "level": "LV9",
+    "element": "普通",
+    "name": "魔法增效",
+    "energy": "0",
+    "type": "状态",
+    "power": "",
+    "description": "✦自己获得魔攻+70%。"
+  },
+  {
+    "level": "LV18",
+    "element": "普通",
+    "name": "防御",
+    "energy": "1",
+    "type": "防御",
+    "power": "",
+    "description": "✦减伤70%，应对攻击。"
+  },
+  {
+    "level": "LV26",
+    "element": "普通",
+    "name": "退化",
+    "energy": "2",
+    "type": "状态",
+    "power": "",
+    "description": "✦敌方获得1层萌化。"
+  },
+  {
+    "level": "LV32",
+    "element": "普通",
+    "name": "音爆",
+    "energy": "4",
+    "type": "魔攻",
+    "power": "130",
+    "description": "✦对敌方精灵造成魔法伤害。"
+  },
+  {
+    "level": "LV40",
+    "element": "普通",
+    "name": "急中生智",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "80",
+    "description": "✦造成魔伤，自己有减益时，本次技能威力+40。"
+  },
+  {
+    "level": "LV42",
+    "element": "萌",
+    "name": "耍赖",
+    "energy": "2",
+    "type": "状态",
+    "power": "",
+    "description": "✦自己获得双攻永久+10%，2连击。自己有减益时，本次技能连击数+1。"
+  },
+  {
+    "level": "LV43",
+    "element": "萌",
+    "name": "撒娇",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "30",
+    "description": "✦造成魔伤，3连击。自己获得萌化：威力永久+10。"
+  },
+  {
+    "level": "LV44",
+    "element": "萌",
+    "name": "示弱",
+    "energy": "2",
+    "type": "状态",
+    "power": "",
+    "description": "✦自己获得萌化：速度永久+130。"
+  },
+  {
+    "level": "LV45",
+    "element": "萌",
+    "name": "击鼓传花",
+    "energy": "3",
+    "type": "状态",
+    "power": "",
+    "description": "✦自己脱离，下个入场精灵继承自己增益。"
+  },
+  {
+    "level": "LV46",
+    "element": "萌",
+    "name": "破罐破摔",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "80",
+    "description": "✦造成魔伤，自己有减益时，本次技能威力+60。"
+  },
+  {
+    "level": "LV48",
+    "element": "萌",
+    "name": "生日蛋糕",
+    "energy": "4",
+    "type": "状态",
+    "power": "",
+    "description": "✦驱散自己的减益，自己的增益翻倍。"
+  },
+  {
+    "level": "LV50",
+    "element": "普通",
+    "name": "吹散",
+    "energy": "3",
+    "type": "魔攻",
+    "power": "65",
+    "description": "✦造成魔伤，选择：驱散敌方所有增益或驱散双方1层印记。"
+  }
+]
