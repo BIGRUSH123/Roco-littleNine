@@ -42,6 +42,9 @@ CACHE = ROOT / "backend" / "engine" / "ai" / "data" / "nrc_cache"
 
 BASE = "https://wiki.biligame.com/nrc"
 UA = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) RocoLittleNine/1.0"}
+# 自校验下限：推荐技能落在该精灵可学集内的比例。对位正确时约 95%，
+# 对位错（3000+序号）时约 24% —— 阈值放在中间偏下，留数据滞后余量。
+MIN_LEGAL_SKILL_RATE = 0.80
 MODULES = {
     "TrainingReference": "模块:Pets/data/TrainingReference",
     "Catalog": "模块:Pets/data/Catalog",
@@ -149,12 +152,18 @@ def top_level_scalars(block: str) -> dict[str, str]:
 
 
 def parse_catalog(catalog: str) -> list[dict]:
-    """Catalog → [{id, number, name}]。
+    """Catalog → [{id, number, name, form, title, stage, learnset_id}]。
 
-    **对齐键用编号（number）而不是名字**：同一编号下最多有 12 个形态条目，
-    外观变体会重名（棋契陛下的白/黑棋分支…）；而编号在 Catalog 与本地
-    data/sprites 是同一套（两边都是 466 个），可 1:1 join。
-    pet_0000NN ↔ TrainingReference 的 id = 3000 + NN（由 Index.avatars 证实）。
+    **对齐键必须是块内的 `game_id`，不是「3000 + 序号」**：Catalog 的
+    `pet_000127` 只是词条序号，其 `game_id=3141` 才是 TrainingReference 的键。
+    实测 613/621（98.7%）条目的 `game_id != 3000 + 序号`——用错键会让推荐整体
+    张冠李戴（花衣蝶曾因此拿到一只翼系精灵的培养参考）。
+
+    另一个坑：块内嵌套表（如 `activities={...name="命定花种"...}`）里也有 `name`，
+    所以名字/编号只能从深度 1 的标量里取（`top_level_scalars`）。
+
+    同一编号下最多有 12 个形态条目，外观变体会重名，因此按**编号**组织、
+    用 (名字, 形态) 做条目内精确匹配；编号与本地 data/sprites 是同一套（两边都 466 个）。
     """
     rows: list[dict] = []
     for m in re.finditer(r"pet_(\d{6})\s*=\s*\{", catalog):
@@ -163,11 +172,18 @@ def parse_catalog(catalog: str) -> list[dict]:
         if not blk:
             continue
         sc = top_level_scalars(blk)
-        rows.append({"id": 3000 + seq,
+        gid = sc.get("game_id", "")
+        if not gid or not gid.isdigit():
+            print(f"   警告：pet_{m.group(1)} 缺 game_id，跳过", flush=True)
+            continue
+        rows.append({"id": int(gid),
+                     "seq": seq,
                      "number": sc.get("number", ""),
                      "name": sc.get("name", ""),
                      "form": sc.get("form", ""),      # 外观名（如「起来鸭」「上弦的样子」）
-                     "title": sc.get("title", "")})   # 完整名（如「鸭吉吉（起来鸭）」）
+                     "title": sc.get("title", ""),    # 完整名（如「鸭吉吉（起来鸭）」）
+                     "stage": sc.get("stage", ""),
+                     "learnset_id": sc.get("learnset_id", "")})
     return rows
 
 
@@ -238,6 +254,15 @@ def main() -> int:
         print(f"  Catalog 精灵 {len(rows)} 条（有编号 {len(have_num)}），"
               f"编号 {len({r['number'] for r in have_num})} 个；"
               f"TrainingReference 记录 {len(pets)} 条")
+        linked = 0
+        miss = 0
+        for r in have_num:
+            if pets.get(r["id"]):
+                linked += 1
+            else:
+                miss += 1
+        print(f"  按 game_id 关联：命中 {linked} / 缺推荐 {miss}"
+              f"（关联率 {linked / max(1, len(have_num)):.1%}）")
 
         # ── 按编号组织（同编号下的形态条目各自保留推荐培养）──
         by_number: dict[str, dict] = {}
@@ -249,7 +274,9 @@ def main() -> int:
             linked += 1
             node = by_number.setdefault(r["number"], {"number": r["number"], "entries": []})
             node["entries"].append({"id": r["id"], "name": r["name"],
-                                    "form": r["form"], "title": r["title"], **entry})
+                                    "form": r["form"], "title": r["title"],
+                                    "stage": r.get("stage", ""),
+                                    "learnset_id": r.get("learnset_id", ""), **entry})
         OUT.write_text(json.dumps({
             "fetched_at": datetime.now().isoformat(timespec="seconds"),
             "source": f"{BASE}/{quote(MODULES['TrainingReference'])}",
@@ -298,6 +325,49 @@ def main() -> int:
         for e in node["entries"][:3]:
             tal = (e.get("pvp") or e.get("default") or {}).get("talent", [])[:4]
             print(f"    pet_id={e['id']} {e['name']}: 天赋排名 {tal}")
+
+    # ── 自校验：推荐技能必须落在该精灵的可学集内 ──
+    # 对位错（用 3000+序号 而非 game_id）时这项会崩到 ~24%，是这条流水线的哨兵。
+    # 合法集来源是 data/sprites 的 skills/stone_skills（已进池）+ bloodline_skills；
+    # data/related 那套派生的名字版导出已于 2026-09-20 删除（过时且冗余）。
+    from backend.common.skill_trait_ids import SKILL_ID_TO_NAME
+    from backend.engine.ai.data.role_from_reference import pick_entry
+
+    def _legal_skills(sp, pool_skills) -> set[str]:
+        out = set(pool_skills)
+        for sid in (sp.bloodline_skills or {}).values():
+            nm = SKILL_ID_TO_NAME.get(int(sid)) if str(sid).isdigit() else None
+            if nm:
+                out.add(nm)
+        return out
+
+    checked = ok_top = hit_cnt = tot_cnt = 0
+    for name, sk_pool in SPRITE_RANDOM_POOL.items():
+        sp = db.get(name)
+        if sp is None:
+            continue
+        blk, _how = pick_entry(by_number, sp.number, sp.name, sp.appearance or sp.form)
+        if not blk:
+            continue
+        top = [s for s, _w in (blk.get("skill") or [])][:8]
+        if not top:
+            continue
+        legal = _legal_skills(sp, sk_pool)
+        h = sum(1 for s in top if s in legal)
+        checked += 1
+        hit_cnt += h
+        tot_cnt += len(top)
+        ok_top += (h == len(top))
+    if checked:
+        rate8 = hit_cnt / max(1, tot_cnt)
+        rate_top = ok_top / checked
+        print(f"\n自校验：{checked} 个池条目有推荐技能；"
+              f"前八技能命中可学集 {rate8:.1%}；前四全命中 {rate_top:.1%}")
+        if rate8 < MIN_LEGAL_SKILL_RATE:
+            raise SystemExit(
+                f"自校验失败：推荐技能命中率 {rate8:.1%} < {MIN_LEGAL_SKILL_RATE:.0%}。"
+                "大概率是 Catalog 对位错（TrainingReference 的键应取块内 game_id）"
+                "或 data/sprites 落后于线上。")
     return 0
 
 
