@@ -187,10 +187,33 @@ def response_actions(battle, opp_player, k: int) -> list[tuple[str, object]]:
 # ══════════════════════════════════════════════════════════════════
 
 def leaf_value(battle, side: str) -> float:
-    """叶子价值 = 官方局面分差（存活 1.0 + 血量比 0.5 + 心力 0.25 + 能量 0.05）。"""
-    me = battle.player_a if side == "A" else battle.player_b
-    opp = battle.player_b if side == "A" else battle.player_a
-    return team_battle_score(me) - team_battle_score(opp)
+    """叶子价值（由 `--leaf` 决定口径）：
+
+    · `board`（默认）= 官方局面分差（存活 1.0 + 血量比 0.5 + 心力 0.25 + 能量 0.05）；
+    · `value` = E1 的效果感知估值（`backend/sim/value.state_value`，基础项同量纲，
+      另计强化等级 / 异常 / 印记 / 换人代价）。
+    """
+    return _LEAF(battle, side)
+
+
+def _make_leaf(mode: str):
+    if mode == "value":
+        from backend.sim.value import state_value
+
+        def leaf(battle, side: str) -> float:
+            return state_value(battle, side)
+
+        return leaf
+
+    def leaf(battle, side: str) -> float:
+        me = battle.player_a if side == "A" else battle.player_b
+        opp = battle.player_b if side == "A" else battle.player_a
+        return team_battle_score(me) - team_battle_score(opp)
+
+    return leaf
+
+
+_LEAF = _make_leaf("board")
 
 
 class _FixedAgent:
@@ -336,12 +359,16 @@ def main() -> None:
     ap.add_argument("--k-responses", type=int, default=4)
     ap.add_argument("--plies", type=int, default=1,
                     help="rollout 视野回合数（1 = 只看本回合；2 = 看铺垫的回报）")
+    ap.add_argument("--leaf", default="board", choices=("board", "value"),
+                    help="叶子口径：board = 官方局面分；value = E1 效果感知估值")
     ap.add_argument("--epsilon", type=float, default=0.05,
                     help="regret 判「踩空」的阈值（局面分单位，0.05 ≈ 1/5 点心力）")
     ap.add_argument("--worst", type=int, default=8)
     ap.add_argument("--verbose", action="store_true")
     args = ap.parse_args()
 
+    global _LEAF
+    _LEAF = _make_leaf(args.leaf)
     from backend.sim.agent_v2 import RuleAgentV2
 
     records: list[dict] = []
@@ -462,7 +489,8 @@ def report(records, kinds, games_done, unaudited, args) -> None:
     p90 = sorted(regrets)[min(n - 1, int(0.9 * n))]
     bad = sum(1 for r in regrets if r > args.epsilon)
     print(f"=== E0 出招 regret 审计（{games_done} 局 / {n} 个决策点）===")
-    print("  叶子口径：官方局面分差（存活×1.0 + 血量比×0.5 + 心力×0.25 + 在场能量×0.05）")
+    print(f"  叶子口径：{args.leaf}"
+          f"（board = 官方局面分差；value = E1 效果感知估值 backend/sim/value.py）")
     print(f"  候选集：引擎合法动作；对手响应集 {args.k_responses} 个（攻击/防御/状态/换人/聚能）")
     print(f"  regret：mean {mean:.3f}  median {med:.3f}  p90 {p90:.3f}"
           f"   >{args.epsilon:g} 的占比 {bad / n:.1%}")
