@@ -1,0 +1,26 @@
+{
+  "id": 20207,
+  "name": "和弦共振",
+  "description": "双方场上每有1种不同的印记，自己获得魔攻+50%。",
+  "effects": [
+    {
+      "op": "observer",
+      "listen": "post_entry",
+      "scope": "battlefield",
+      "cond": {
+        "cond": "sprite_entered",
+        "of": "sprite_self"
+      },
+      "then": [
+        {
+          "op": "aura",
+          "target": "sprite_self",
+          "stat": "sp_atk",
+          "per_unit": 5,
+          "count": "mark_kinds_both",
+          "source": "和弦共振"
+        }
+      ]
+    }
+  ]
+}

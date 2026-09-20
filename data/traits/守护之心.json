@@ -1,0 +1,26 @@
+{
+  "id": 20206,
+  "name": "守护之心",
+  "description": "双方场上每有1种不同的增益，自己获得物防+20%。",
+  "effects": [
+    {
+      "op": "observer",
+      "listen": "post_entry",
+      "scope": "battlefield",
+      "cond": {
+        "cond": "sprite_entered",
+        "of": "sprite_self"
+      },
+      "then": [
+        {
+          "op": "aura",
+          "target": "sprite_self",
+          "stat": "def",
+          "per_unit": 2,
+          "count": "positive_kinds_both",
+          "source": "守护之心"
+        }
+      ]
+    }
+  ]
+}

@@ -1,7 +1,7 @@
 {
   "id": 20009,
   "name": "保守派",
-  "description": "总技能能耗<4时，双防+80%。",
+  "description": "总技能能耗小于4时，自己获得双防+80%。",
   "effects": [
     {
       "op": "observer",

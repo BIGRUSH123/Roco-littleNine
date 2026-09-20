@@ -1,7 +1,7 @@
 {
   "id": 20051,
   "name": "悲悯",
-  "description": "己方队伍每有1只力竭精灵，双攻+30%。",
+  "description": "己方队伍中每有1只力竭的精灵，自己获得双攻+30%。",
   "effects": [
     {
       "op": "observer",

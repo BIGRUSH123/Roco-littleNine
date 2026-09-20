@@ -1,0 +1,49 @@
+{
+  "id": 10969,
+  "name": "友谊满溢",
+  "element": "普通",
+  "skill_type": "魔攻",
+  "power": 70,
+  "energy_cost": 2,
+  "counter": "状态",
+  "description": "✦造成魔伤，选择：每次使用后威力永久+20或应对状态时本次技能威力+100%。",
+  "choices": [
+    {
+      "name": "明",
+      "effects": [
+        {
+          "op": "power_mod",
+          "target": "skill_off_0",
+          "attr": "power",
+          "delta": 20,
+          "scope": "permanent"
+        }
+      ]
+    },
+    {
+      "name": "暗",
+      "cond": {
+        "cond": "and",
+        "conditions": [
+          {
+            "cond": "counter_succeeded"
+          },
+          {
+            "cond": "not",
+            "condition": {
+              "cond": "opp_is_attack"
+            }
+          }
+        ]
+      },
+      "effects": [
+        {
+          "op": "mult_mod",
+          "target": "skill_off_0",
+          "attr": "power_mult",
+          "value": 1.0
+        }
+      ]
+    }
+  ]
+}

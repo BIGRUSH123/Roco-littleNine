@@ -1,0 +1,54 @@
+{
+  "id": 20187,
+  "name": "合拍",
+  "description": "本回合与敌方使用的技能在系别/类型/能耗上每有1项相同，回合结束时获得物攻和物防永久+10%。",
+  "effects": [
+    {
+      "op": "observer",
+      "listen": "turn_end",
+      "scope": "battlefield",
+      "cond": {
+        "cond": "and",
+        "conditions": [
+          {
+            "cond": "turn_end"
+          },
+          {
+            "cond": "compare",
+            "q": "team_counter",
+            "of": "team_own",
+            "name": "turn_match",
+            "op": "gte",
+            "value": 1
+          }
+        ]
+      },
+      "then": [
+        {
+          "op": "stat_stage",
+          "target": "sprite_self",
+          "stat": "atk",
+          "steps": {
+            "q": "team_counter",
+            "of": "team_own",
+            "name": "turn_match"
+          },
+          "scope": "permanent",
+          "source": "合拍"
+        },
+        {
+          "op": "stat_stage",
+          "target": "sprite_self",
+          "stat": "def",
+          "steps": {
+            "q": "team_counter",
+            "of": "team_own",
+            "name": "turn_match"
+          },
+          "scope": "permanent",
+          "source": "合拍"
+        }
+      ]
+    }
+  ]
+}

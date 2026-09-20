@@ -14,19 +14,19 @@
           "op": "stat_stage",
           "target": "sprite_self",
           "stat": "atk",
-          "steps": 10
+          "steps": 15
         },
         {
           "op": "stat_stage",
           "target": "sprite_self",
           "stat": "sp_atk",
-          "steps": 10
+          "steps": 15
         },
         {
           "op": "stat_stage",
           "target": "sprite_self",
           "stat": "speed",
-          "steps": 6
+          "steps": 8
         }
       ],
       "else": [
@@ -36,5 +36,5 @@
       ]
     }
   ],
-  "description": "✦蓄力，自己获得双攻+100%和速度+60。"
+  "description": "✦蓄力，自己获得双攻+150%和速度+80。"
 }

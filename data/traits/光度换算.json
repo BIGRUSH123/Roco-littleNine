@@ -1,0 +1,15 @@
+{
+  "id": 20212,
+  "name": "光度换算",
+  "description": "携带的火系技能获得选择：使用后失去15%生命，光系技能威力永久+30。",
+  "effects": [
+    {
+      "op": "power_mod",
+      "target": "sprite_self",
+      "attr": "power",
+      "delta": 30,
+      "element": "光",
+      "scope": "permanent"
+    }
+  ]
+}

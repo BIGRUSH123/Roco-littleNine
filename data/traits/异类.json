@@ -1,0 +1,46 @@
+{
+  "id": 20199,
+  "name": "异类",
+  "description": "携带的翼系攻击技能获得选择：能耗+1，攻击时吸血50%。",
+  "effects": [
+    {
+      "op": "observer",
+      "listen": "post_entry",
+      "scope": "battlefield",
+      "cond": {
+        "cond": "sprite_entered",
+        "of": "sprite_self"
+      },
+      "then": [
+        {
+          "op": "grant_choice",
+          "target": "sprite_self",
+          "skill_filter": "attack",
+          "element": "翼",
+          "name": "异类",
+          "source": "异类",
+          "choices": [
+            {
+              "name": "异类",
+              "effects": [
+                {
+                  "op": "power_mod",
+                  "target": "skill_off_0",
+                  "attr": "energy_cost",
+                  "delta": 1
+                },
+                {
+                  "op": "mult_mod",
+                  "target": "skill_off_0",
+                  "attr": "life_drain",
+                  "value": 0.5,
+                  "mode": "add"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

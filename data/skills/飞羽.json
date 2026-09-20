@@ -3,7 +3,7 @@
   "name": "飞羽",
   "element": "翼",
   "skill_type": "状态",
-  "energy_cost": 0,
+  "energy_cost": 1,
   "priority": 1,
   "effects": [
     {

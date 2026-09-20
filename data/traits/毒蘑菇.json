@@ -1,7 +1,7 @@
 {
   "id": 20075,
   "name": "毒蘑菇",
-  "description": "回合结束时，偷取敌方场上精灵1能量。",
+  "description": "回合结束时，偷取敌方场上所有精灵1能量。",
   "effects": [
     {
       "op": "observer",

@@ -1,0 +1,17 @@
+{
+  "id": 11002,
+  "name": "焚身",
+  "element": "火",
+  "skill_type": "物攻",
+  "power": 180,
+  "energy_cost": 5,
+  "description": "✦造成高额物理伤害，自己下回合获得眩晕。",
+  "effects": [
+    {
+      "op": "abnormal",
+      "target": "sprite_self",
+      "name": "眩晕",
+      "stacks": 1
+    }
+  ]
+}

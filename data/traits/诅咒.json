@@ -1,0 +1,24 @@
+{
+  "id": 20211,
+  "name": "诅咒",
+  "description": "每受到1次技能攻击（不含连击），敌方获得1层暗涌印记。",
+  "effects": [
+    {
+      "op": "observer",
+      "cond": {
+        "cond": "on_damage_taken",
+        "of": "sprite_self"
+      },
+      "listen": "post_damage",
+      "scope": "battlefield",
+      "then": [
+        {
+          "op": "mark",
+          "target": "team_opp",
+          "name": "暗涌",
+          "stacks": 1
+        }
+      ]
+    }
+  ]
+}

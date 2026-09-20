@@ -1,0 +1,9 @@
+{
+  "id": 10279,
+  "name": "骗局",
+  "element": "恶",
+  "skill_type": "魔攻",
+  "power": 110,
+  "energy_cost": 4,
+  "description": "✦造成魔伤，能量不足时，消耗5%生命代替1能量。"
+}

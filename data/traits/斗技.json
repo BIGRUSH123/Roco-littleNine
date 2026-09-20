@@ -1,7 +1,7 @@
 {
   "id": 20065,
   "name": "斗技",
-  "description": "应对成功后，全技能威力永久+20。",
+  "description": "应对成功后，获得全技能威力永久+30。",
   "effects": [
     {
       "op": "observer",
@@ -13,7 +13,7 @@
           "op": "stat_stage",
           "stat": "power",
           "target": "sprite_self",
-          "steps": 2,
+          "steps": 3,
           "scope": "permanent",
           "source": "斗技"
         }

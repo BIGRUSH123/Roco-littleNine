@@ -2,7 +2,7 @@
   "id": 10629,
   "name": "焚烧烙印",
   "element": "火",
-  "skill_type": "魔攻",
+  "skill_type": "状态",
   "energy_cost": 3,
   "effects": [
     {

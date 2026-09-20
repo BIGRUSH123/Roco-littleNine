@@ -1,0 +1,9 @@
+{
+  "id": 10752,
+  "name": "仙人掌刺击",
+  "element": "草",
+  "skill_type": "物攻",
+  "power": 150,
+  "energy_cost": 6,
+  "description": "✦对敌方精灵造成物理伤害。"
+}

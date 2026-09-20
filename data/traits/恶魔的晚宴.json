@@ -1,7 +1,7 @@
 {
   "id": 20050,
   "name": "恶魔的晚宴",
-  "description": "主动击败敌方时，获得双攻+50%。",
+  "description": "主动击败敌方精灵时，自己永久获得双攻+50%。",
   "effects": [
     {
       "op": "observer",

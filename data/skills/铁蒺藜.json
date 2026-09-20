@@ -1,0 +1,36 @@
+{
+  "id": 11028,
+  "name": "铁蒺藜",
+  "element": "机械",
+  "skill_type": "魔攻",
+  "power": 85,
+  "energy_cost": 3,
+  "counter": "状态",
+  "description": "✦造成魔伤，应对状态：本次伤害翻倍。",
+  "effects": [
+    {
+      "when": {
+        "cond": "and",
+        "conditions": [
+          {
+            "cond": "counter_succeeded"
+          },
+          {
+            "cond": "not",
+            "condition": {
+              "cond": "opp_is_attack"
+            }
+          }
+        ]
+      },
+      "then": [
+        {
+          "op": "mult_mod",
+          "target": "skill_off_0",
+          "attr": "power_mult",
+          "value": 1.0
+        }
+      ]
+    }
+  ]
+}

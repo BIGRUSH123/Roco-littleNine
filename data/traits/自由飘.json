@@ -1,7 +1,7 @@
 {
   "id": 20112,
   "name": "自由飘",
-  "description": "自己每有1层萌化，获得连击数+2。",
+  "description": "自己每有1层萌化，获得连击数+3。",
   "effects": [
     {
       "op": "observer",
@@ -12,7 +12,7 @@
           "source": "自由飘",
           "op": "stat_stage",
           "stat": "combo",
-          "steps": "=@self.effects[name=萌化].stacks * 2"
+          "steps": "=@self.effects[name=萌化].stacks * 3"
         }
       ],
       "scope": "battlefield",

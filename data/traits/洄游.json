@@ -1,7 +1,7 @@
 {
   "id": 20081,
   "name": "洄游",
-  "description": "每次进入蓄力状态，获得全技能能耗永久-1。",
+  "description": "每次进入蓄力状态，获得全技能能耗永久-2。",
   "effects": [
     {
       "op": "observer",
@@ -13,7 +13,7 @@
           "op": "power_mod",
           "target": "sprite_self",
           "attr": "energy_cost",
-          "delta": -1,
+          "delta": -2,
           "skill_filter": "all",
           "scope": "permanent",
           "source": "洄游"

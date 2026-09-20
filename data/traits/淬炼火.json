@@ -1,0 +1,48 @@
+{
+  "id": 20195,
+  "name": "淬炼火",
+  "description": "入场前己方精灵每使用1次火系技能，获得攻防+10%，速度+10。（最多触发10次）",
+  "effects": [
+    {
+      "op": "observer",
+      "cond": {
+        "cond": "sprite_entered",
+        "of": "sprite_self"
+      },
+      "listen": "post_entry",
+      "scope": "battlefield",
+      "then": [
+        {
+          "op": "stat_stage",
+          "target": "sprite_self",
+          "stat": "atk",
+          "steps": {
+            "q": "team_counter",
+            "of": "team_own",
+            "name": "element:火"
+          }
+        },
+        {
+          "op": "stat_stage",
+          "target": "sprite_self",
+          "stat": "def",
+          "steps": {
+            "q": "team_counter",
+            "of": "team_own",
+            "name": "element:火"
+          }
+        },
+        {
+          "op": "stat_stage",
+          "target": "sprite_self",
+          "stat": "speed",
+          "steps": {
+            "q": "team_counter",
+            "of": "team_own",
+            "name": "element:火"
+          }
+        }
+      ]
+    }
+  ]
+}

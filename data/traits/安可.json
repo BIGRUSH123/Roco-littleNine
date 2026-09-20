@@ -1,0 +1,22 @@
+{
+  "id": 20186,
+  "name": "安可",
+  "description": "使用光系技能后，回合结束时自己返场。",
+  "effects": [
+    {
+      "op": "observer",
+      "cond": {
+        "cond": "skill_use",
+        "element": "光"
+      },
+      "listen": "post_skill",
+      "scope": "battlefield",
+      "then": [
+        {
+          "op": "return",
+          "target": "sprite_self"
+        }
+      ]
+    }
+  ]
+}

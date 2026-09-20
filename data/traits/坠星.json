@@ -1,7 +1,7 @@
 {
   "id": 20033,
   "name": "坠星",
-  "description": "敌方每有1层星陨印记，技能威力+15%。",
+  "description": "敌方每有1层星陨印记，自己的技能威力+20%。",
   "effects": [
     {
       "op": "observer",
@@ -21,7 +21,7 @@
             "q": "mark_stacks",
             "of": "team_opp",
             "name": "星陨印记",
-            "scale": 0.15
+            "scale": 0.2
           },
           "mode": "add"
         }

@@ -3,7 +3,7 @@
   "name": "落井下毒",
   "element": "毒",
   "skill_type": "状态",
-  "energy_cost": 6,
+  "energy_cost": 4,
   "effects": [
     {
       "target": "sprite_opp",

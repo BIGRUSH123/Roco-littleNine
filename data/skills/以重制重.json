@@ -1,0 +1,9 @@
+{
+  "id": 10305,
+  "name": "以重制重",
+  "element": "普通",
+  "skill_type": "物攻",
+  "power": 80,
+  "energy_cost": 3,
+  "description": "✦造成物伤，敌方体重越高，本次技能威力越高。"
+}

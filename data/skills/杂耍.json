@@ -1,0 +1,12 @@
+{
+  "id": 10993,
+  "name": "杂耍",
+  "element": "恶",
+  "skill_type": "魔攻",
+  "power": 115,
+  "energy_cost": 3,
+  "description": "✦造成魔伤，巧变：吸血相关技能。",
+  "qiaobian": {
+    "contains": "吸血"
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "id": 20208,
+  "name": "猫精灵的礼物",
+  "description": "己方精灵每完整使用1次「选择」技能（「明」和「暗」各1次），自己入场时获得物攻+40%。",
+  "effects": [
+    {
+      "op": "observer",
+      "cond": {
+        "cond": "sprite_entered",
+        "of": "sprite_self"
+      },
+      "listen": "post_entry",
+      "scope": "battlefield",
+      "then": [
+        {
+          "op": "stat_stage",
+          "target": "sprite_self",
+          "stat": "atk",
+          "steps": {
+            "q": "team_counter",
+            "of": "team_own",
+            "name": "choice_pair",
+            "scale": 4
+          }
+        },
+        {
+          "op": "team_counter",
+          "target": "own",
+          "key": "choice_pair",
+          "delta": -9999
+        }
+      ]
+    }
+  ]
+}

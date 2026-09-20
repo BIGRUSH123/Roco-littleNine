@@ -3,8 +3,8 @@
   "name": "触底强击",
   "element": "普通",
   "skill_type": "魔攻",
-  "power": 65,
-  "energy_cost": 3,
+  "power": 95,
+  "energy_cost": 4,
   "effects": [
     {
       "when": {
@@ -15,10 +15,10 @@
           "op": "power_mod",
           "target": "skill_off_0",
           "attr": "power",
-          "delta": 110
+          "delta": 120
         }
       ]
     }
   ],
-  "description": "✦造成魔伤，使用后若能量耗尽，本次技能威力+110。"
+  "description": "✦造成魔伤，使用后若能量耗尽，本次技能威力+120。"
 }

@@ -1,0 +1,9 @@
+{
+  "id": 10003,
+  "name": "光球",
+  "element": "光",
+  "skill_type": "魔攻",
+  "power": 80,
+  "energy_cost": 2,
+  "description": "✦对敌方精灵造成魔法伤害。"
+}

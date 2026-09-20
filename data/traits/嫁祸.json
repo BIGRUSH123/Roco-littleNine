@@ -1,7 +1,7 @@
 {
   "id": 20150,
   "name": "嫁祸",
-  "description": "每失去25%生命，连击数+2。",
+  "description": "自己每失去25%生命，连击数+2。",
   "effects": [
     {
       "op": "observer",

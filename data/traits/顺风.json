@@ -1,7 +1,7 @@
 {
   "id": 20138,
   "name": "顺风",
-  "description": "先于敌方攻击时，威力+50%。",
+  "description": "若先于敌方攻击，本次技能威力+50%。",
   "effects": [
     {
       "op": "observer",

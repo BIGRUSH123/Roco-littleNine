@@ -1,0 +1,31 @@
+{
+  "id": 11013,
+  "name": "补觉",
+  "element": "草",
+  "skill_type": "状态",
+  "energy_cost": 2,
+  "effects": [],
+  "description": "✦选择：自己回复25%生命或回复8能量。",
+  "choices": [
+    {
+      "name": "明",
+      "effects": [
+        {
+          "op": "heal",
+          "target": "sprite_self",
+          "ratio": 0.25
+        }
+      ]
+    },
+    {
+      "name": "暗",
+      "effects": [
+        {
+          "op": "energize",
+          "target": "sprite_self",
+          "delta": 8
+        }
+      ]
+    }
+  ]
+}

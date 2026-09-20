@@ -3,7 +3,7 @@
   "name": "斩断",
   "element": "武",
   "skill_type": "物攻",
-  "power": 75,
+  "power": 70,
   "energy_cost": 2,
   "counter": "状态",
   "effects": [

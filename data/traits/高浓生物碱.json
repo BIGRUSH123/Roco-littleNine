@@ -1,21 +1,22 @@
 {
   "id": 20140,
   "name": "高浓生物碱",
-  "description": "使用技能时，敌方获得2层中毒。",
+  "description": "使用草系技能时，敌方获得3层中毒。",
   "effects": [
     {
       "op": "observer",
       "listen": "post_skill",
       "scope": "persistent",
       "cond": {
-        "cond": "skill_use"
+        "cond": "skill_use",
+        "element": "草"
       },
       "then": [
         {
           "op": "abnormal",
           "target": "sprite_opp",
           "name": "中毒",
-          "value": 2
+          "value": 3
         }
       ]
     }

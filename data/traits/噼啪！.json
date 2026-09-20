@@ -1,0 +1,26 @@
+{
+  "id": 200162,
+  "name": "噼啪！",
+  "description": "入场后首次行动，所选技能使用次数+1。",
+  "effects": [
+    {
+      "op": "observer",
+      "listen": "post_entry",
+      "scope": "battlefield",
+      "cond": {
+        "cond": "sprite_entered",
+        "of": "sprite_self"
+      },
+      "then": [
+        {
+          "op": "power_mod",
+          "target": "sprite_self",
+          "attr": "use_count_bonus",
+          "delta": 1,
+          "scope": "turn",
+          "source": "噼啪！"
+        }
+      ]
+    }
+  ]
+}

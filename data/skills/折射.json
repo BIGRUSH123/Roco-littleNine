@@ -1,9 +1,9 @@
 {
-  "id": 0,
+  "id": 10005,
   "name": "折射",
   "element": "光",
   "skill_type": "魔攻",
-  "power": 90,
+  "power": 50,
   "energy_cost": 4,
   "effects": [
     {

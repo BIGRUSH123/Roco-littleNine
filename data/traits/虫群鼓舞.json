@@ -1,17 +1,38 @@
 {
   "id": 20120,
   "name": "虫群鼓舞",
-  "description": "队伍中每有1只其他虫系精灵，入场时获得攻防速+10%。",
+  "description": "队伍中每有1只其他的虫系精灵，自己入场时获得攻防速+10%。",
   "effects": [
     {
       "op": "observer",
       "listen": "post_entry",
       "scope": "battlefield",
-      "cond": {"cond": "sprite_entered", "of": "sprite_self"},
+      "cond": {
+        "cond": "sprite_entered",
+        "of": "sprite_self"
+      },
       "then": [
-        {"op": "stat_stage", "target": "sprite_self", "stat": "atk",   "steps": "=@team_counters[element:虫] - 1", "scope": "permanent"},
-        {"op": "stat_stage", "target": "sprite_self", "stat": "def",   "steps": "=@team_counters[element:虫] - 1", "scope": "permanent"},
-        {"op": "stat_stage", "target": "sprite_self", "stat": "speed", "steps": "=@team_counters[element:虫] - 1", "scope": "permanent"}
+        {
+          "op": "stat_stage",
+          "target": "sprite_self",
+          "stat": "atk",
+          "steps": "=@team_counters[element:虫] - 1",
+          "scope": "permanent"
+        },
+        {
+          "op": "stat_stage",
+          "target": "sprite_self",
+          "stat": "def",
+          "steps": "=@team_counters[element:虫] - 1",
+          "scope": "permanent"
+        },
+        {
+          "op": "stat_stage",
+          "target": "sprite_self",
+          "stat": "speed",
+          "steps": "=@team_counters[element:虫] - 1",
+          "scope": "permanent"
+        }
       ]
     }
   ]

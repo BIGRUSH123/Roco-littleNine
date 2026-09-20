@@ -1,0 +1,9 @@
+{
+  "id": 7180450,
+  "name": "掉包",
+  "element": "恶",
+  "skill_type": "状态",
+  "energy_cost": 2,
+  "effects": [],
+  "description": "✦敌方的属性增益变为对应的属性减益。"
+}

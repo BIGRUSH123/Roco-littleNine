@@ -3,8 +3,8 @@
   "name": "翅刃",
   "element": "虫",
   "skill_type": "物攻",
-  "power": 95,
-  "energy_cost": 4,
+  "power": 85,
+  "energy_cost": 3,
   "counter": "状态",
   "effects": [
     {

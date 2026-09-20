@@ -1,0 +1,34 @@
+{
+  "id": 20179,
+  "name": "大雪球",
+  "description": "自己使用2次不同的冰系技能后，敌方获得4层冻结，随后特性重置。",
+  "effects": [
+    {
+      "op": "observer",
+      "cond": {
+        "cond": "compare",
+        "q": "team_counter",
+        "of": "team_own",
+        "name": "distinct_elem:冰",
+        "op": "gte",
+        "value": 2
+      },
+      "listen": "post_skill",
+      "scope": "battlefield",
+      "then": [
+        {
+          "op": "abnormal",
+          "target": "sprite_opp",
+          "name": "冻结",
+          "stacks": 4
+        },
+        {
+          "op": "team_counter",
+          "target": "own",
+          "key": "distinct_elem:冰",
+          "delta": -2
+        }
+      ]
+    }
+  ]
+}

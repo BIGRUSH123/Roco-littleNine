@@ -1,0 +1,36 @@
+{
+  "id": 11015,
+  "name": "试飞",
+  "element": "翼",
+  "skill_type": "物攻",
+  "power": 20,
+  "energy_cost": 2,
+  "combo": 2,
+  "description": "✦造成物伤，2连击。选择：每次使用后本技能威力永久+10或连击数永久+1。",
+  "choices": [
+    {
+      "name": "明",
+      "effects": [
+        {
+          "op": "power_mod",
+          "target": "skill_off_0",
+          "attr": "power",
+          "delta": 10,
+          "scope": "permanent"
+        }
+      ]
+    },
+    {
+      "name": "暗",
+      "effects": [
+        {
+          "op": "power_mod",
+          "target": "skill_off_0",
+          "attr": "combo",
+          "delta": 1,
+          "scope": "permanent"
+        }
+      ]
+    }
+  ]
+}

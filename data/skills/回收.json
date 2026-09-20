@@ -1,0 +1,10 @@
+{
+  "id": 7170340,
+  "name": "回收",
+  "element": "幽",
+  "skill_type": "魔攻",
+  "energy_cost": 3,
+  "power": 80,
+  "effects": [],
+  "description": "✦造成魔伤，若敌方本回合更换精灵，敌方失去4能量。"
+}

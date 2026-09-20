@@ -1,0 +1,9 @@
+{
+  "id": 10702,
+  "name": "俯冲猛击",
+  "element": "翼",
+  "skill_type": "物攻",
+  "power": 140,
+  "energy_cost": 5,
+  "description": "✦对敌方精灵造成物理伤害。"
+}

@@ -1,7 +1,7 @@
 {
   "id": 20124,
   "name": "观星",
-  "description": "敌方每有1层星陨印记，地系技能威力+15%。",
+  "description": "敌方每有1层星陨印记，自己的地系技能威力+20%。",
   "effects": [
     {
       "op": "observer",
@@ -20,7 +20,7 @@
             "q": "mark_stacks",
             "of": "team_opp",
             "name": "星陨印记",
-            "scale": 0.15,
+            "scale": 0.2,
             "offset": 1
           }
         }

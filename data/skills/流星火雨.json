@@ -3,7 +3,7 @@
   "name": "流星火雨",
   "element": "火",
   "skill_type": "物攻",
-  "power": 75,
+  "power": 85,
   "energy_cost": 3,
   "effects": [
     {
@@ -14,7 +14,7 @@
           "target": "skill_off_0",
           "scope": "permanent",
           "attr": "power",
-          "delta": 75
+          "delta": 85
         }
       ],
       "cond": {
@@ -22,5 +22,5 @@
       }
     }
   ],
-  "description": "✦造成物伤，每次击败敌方，本技能威力永久+75。"
+  "description": "✦造成物伤，每次击败敌方，本技能威力永久+85。"
 }

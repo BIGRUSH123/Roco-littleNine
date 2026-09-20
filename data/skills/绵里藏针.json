@@ -3,15 +3,15 @@
   "name": "绵里藏针",
   "element": "龙",
   "skill_type": "魔攻",
-  "power": 50,
+  "power": 60,
   "energy_cost": 2,
   "effects": [
     {
       "when": {
         "cond": "not",
         "condition": {
-          "cond": "prev_damage_taken",
-          "of": "sprite_opp"
+          "cond": "prev_skill_is",
+          "what": "attack"
         }
       },
       "then": [
@@ -20,10 +20,10 @@
           "target": "skill_off_0",
           "scope": "permanent",
           "attr": "power",
-          "delta": 30
+          "delta": 20
         }
       ]
     }
   ],
-  "description": "✦造成魔伤，若敌方上回合没受到技能伤害，本技能威力永久+30。"
+  "description": "✦造成魔伤，若自己上回合未使用攻击技能，本技能威力永久+20。"
 }

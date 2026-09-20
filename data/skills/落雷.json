@@ -3,8 +3,8 @@
   "name": "落雷",
   "element": "电",
   "skill_type": "魔攻",
-  "power": 100,
-  "energy_cost": 4,
+  "power": 35,
+  "energy_cost": 3,
   "effects": [
     {
       "op": "observer",
@@ -14,7 +14,7 @@
           "target": "skill_off_0",
           "scope": "permanent",
           "attr": "power",
-          "delta": 20
+          "delta": 40
         }
       ],
       "cond": {
@@ -22,5 +22,5 @@
       }
     }
   ],
-  "description": "✦造成魔伤，每次入场，本技能威力永久+20。"
+  "description": "✦造成魔伤，每次入场，本技能威力永久+40。"
 }

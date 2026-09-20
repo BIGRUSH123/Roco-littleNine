@@ -1,0 +1,25 @@
+{
+  "id": 11031,
+  "name": "雪原狩猎",
+  "element": "冰",
+  "skill_type": "物攻",
+  "power": 85,
+  "energy_cost": 3,
+  "description": "✦造成物伤，天气为暴风雪时，本次技能威力+50",
+  "effects": [
+    {
+      "when": {
+        "cond": "weather_is",
+        "weather": "暴风雪"
+      },
+      "then": [
+        {
+          "op": "mult_mod",
+          "target": "skill_off_0",
+          "attr": "power_mult",
+          "value": 0.5
+        }
+      ]
+    }
+  ]
+}

@@ -9,9 +9,15 @@
       "target": "sprite_opp",
       "op": "mult_mod",
       "attr": "atk",
-      "value": -1.3,
+      "value": -0.6,
       "mode": "add"
+    },
+    {
+      "target": "sprite_opp",
+      "op": "stat_stage",
+      "stat": "speed",
+      "steps": -6
     }
   ],
-  "description": "✦敌方获得物攻-130%。"
+  "description": "✦敌方获得物攻-60%和速度-60。"
 }

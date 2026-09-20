@@ -1,0 +1,10 @@
+{
+  "id": 7070330,
+  "name": "广播",
+  "element": "机械",
+  "skill_type": "魔攻",
+  "energy_cost": 5,
+  "power": 140,
+  "effects": [],
+  "description": "✦对敌方精灵造成魔法伤害。"
+}

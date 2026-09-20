@@ -1,0 +1,10 @@
+{
+  "id": 7180460,
+  "name": "暴打",
+  "element": "恶",
+  "skill_type": "魔攻",
+  "energy_cost": 3,
+  "power": 100,
+  "effects": [],
+  "description": "✦对敌方精灵造成魔法伤害。"
+}

@@ -1,0 +1,22 @@
+{
+  "id": 10956,
+  "name": "血契",
+  "element": "恶",
+  "skill_type": "物攻",
+  "power": 75,
+  "energy_cost": 4,
+  "description": "✦造成物伤，自己每失去10%生命，本技能威力+15。",
+  "effects": [
+    {
+      "op": "power_mod",
+      "target": "skill_off_0",
+      "attr": "power",
+      "delta": {
+        "q": "hp_missing_ratio",
+        "of": "sprite_self",
+        "per": 0.1,
+        "scale": 15
+      }
+    }
+  ]
+}

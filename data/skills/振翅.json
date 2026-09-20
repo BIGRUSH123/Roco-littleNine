@@ -1,0 +1,8 @@
+{
+  "id": 10987,
+  "name": "振翅",
+  "element": "虫",
+  "skill_type": "状态",
+  "energy_cost": 2,
+  "description": "✦选择：己方队伍获得1次奉献：连击+1或威力+20。"
+}

@@ -1,7 +1,7 @@
 {
   "id": 20117,
   "name": "蓄电池",
-  "description": "每入场1次，永久获得双攻+20%。",
+  "description": "每入场1次，永久获得双攻+30%。",
   "effects": [
     {
       "op": "observer",
@@ -12,7 +12,7 @@
           "source": "蓄电池",
           "op": "stat_stage",
           "stat": "atk",
-          "steps": "=@self.counters[times_entered] * 2"
+          "steps": "=@self.counters[times_entered] * 3"
         },
         {
           "target": "sprite_self",
@@ -20,7 +20,7 @@
           "source": "蓄电池",
           "op": "stat_stage",
           "stat": "sp_atk",
-          "steps": "=@self.counters[times_entered] * 2"
+          "steps": "=@self.counters[times_entered] * 3"
         }
       ],
       "scope": "battlefield",

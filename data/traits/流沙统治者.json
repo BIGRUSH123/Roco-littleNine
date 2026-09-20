@@ -1,0 +1,25 @@
+{
+  "id": 20191,
+  "name": "流沙统治者",
+  "description": "天气为沙暴时，自己获得速度+50。",
+  "effects": [
+    {
+      "op": "observer",
+      "cond": {
+        "cond": "weather_is",
+        "weather": "沙暴"
+      },
+      "listen": "pre_calc",
+      "scope": "battlefield",
+      "then": [
+        {
+          "op": "mult_mod",
+          "target": "sprite_self",
+          "attr": "speed_flat",
+          "value": 50,
+          "mode": "add"
+        }
+      ]
+    }
+  ]
+}

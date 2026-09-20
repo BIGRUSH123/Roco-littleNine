@@ -3,20 +3,20 @@
   "name": "破防",
   "element": "武",
   "skill_type": "状态",
-  "energy_cost": 3,
+  "energy_cost": 2,
   "counter": "防御",
   "effects": [
     {
       "target": "sprite_opp",
       "op": "stat_stage",
       "stat": "def",
-      "steps": -13
+      "steps": -7
     },
     {
       "target": "sprite_opp",
       "op": "stat_stage",
       "stat": "sp_def",
-      "steps": -13
+      "steps": -7
     },
     {
       "when": {
@@ -32,5 +32,5 @@
       ]
     }
   ],
-  "description": "✦敌方获得双防-130%，应对防御：额外使被应对技能冷却2回合。"
+  "description": "✦敌方获得双防-70%，应对防御：额外使被应对技能冷却2回合。"
 }

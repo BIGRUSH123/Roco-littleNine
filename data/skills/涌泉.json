@@ -3,7 +3,7 @@
   "name": "涌泉",
   "element": "水",
   "skill_type": "魔攻",
-  "power": 60,
+  "power": 90,
   "energy_cost": 6,
   "effects": [
     {

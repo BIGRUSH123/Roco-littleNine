@@ -1,0 +1,11 @@
+{
+  "id": 7150400,
+  "name": "月影交错",
+  "element": "翼",
+  "skill_type": "物攻",
+  "energy_cost": 2,
+  "power": 25,
+  "combo": 2,
+  "effects": [],
+  "description": "✦造成物伤，2连击，若上回合双方有精灵使用幻系技能，本技能获得迅捷。"
+}

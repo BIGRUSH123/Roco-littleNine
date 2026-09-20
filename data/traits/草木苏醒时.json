@@ -1,0 +1,120 @@
+{
+  "id": 20218,
+  "name": "草木苏醒时",
+  "description": "每回复1能量，物攻和魔攻永久+20%，攻击后重置。",
+  "effects": [
+    {
+      "op": "observer",
+      "listen": "post_energy_change",
+      "scope": "battlefield",
+      "cond": {
+        "cond": "and",
+        "conditions": [
+          {
+            "cond": "on_energy_changed",
+            "of": "sprite_self"
+          },
+          {
+            "cond": "compare",
+            "q": "energy_delta",
+            "of": "sprite_self",
+            "op": "gt",
+            "value": 0
+          }
+        ]
+      },
+      "then": [
+        {
+          "op": "counter",
+          "target": "sprite_self",
+          "key": "grass_wake",
+          "delta": {
+            "q": "energy_delta",
+            "of": "sprite_self"
+          }
+        },
+        {
+          "op": "stat_stage",
+          "target": "sprite_self",
+          "stat": "atk",
+          "steps": {
+            "q": "energy_delta",
+            "of": "sprite_self",
+            "scale": 2
+          },
+          "scope": "persistent",
+          "source": "草木苏醒时"
+        },
+        {
+          "op": "stat_stage",
+          "target": "sprite_self",
+          "stat": "sp_atk",
+          "steps": {
+            "q": "energy_delta",
+            "of": "sprite_self",
+            "scale": 2
+          },
+          "scope": "persistent",
+          "source": "草木苏醒时"
+        }
+      ]
+    },
+    {
+      "op": "observer",
+      "listen": "post_skill",
+      "scope": "battlefield",
+      "cond": {
+        "cond": "and",
+        "conditions": [
+          {
+            "cond": "skill_use",
+            "skill_type": "attack"
+          },
+          {
+            "cond": "compare",
+            "q": "counter",
+            "of": "sprite_self",
+            "name": "grass_wake",
+            "op": "gte",
+            "value": 1
+          }
+        ]
+      },
+      "then": [
+        {
+          "op": "stat_stage",
+          "target": "sprite_self",
+          "stat": "atk",
+          "steps": {
+            "q": "counter",
+            "of": "sprite_self",
+            "name": "grass_wake",
+            "scale": -2
+          },
+          "scope": "persistent",
+          "source": "草木苏醒时"
+        },
+        {
+          "op": "stat_stage",
+          "target": "sprite_self",
+          "stat": "sp_atk",
+          "steps": {
+            "q": "counter",
+            "of": "sprite_self",
+            "name": "grass_wake",
+            "scale": -2
+          },
+          "scope": "persistent",
+          "source": "草木苏醒时"
+        },
+        {
+          "op": "counter",
+          "target": "sprite_self",
+          "key": "grass_wake",
+          "mode": "set",
+          "value": 0
+        }
+      ]
+    }
+  ]
+}

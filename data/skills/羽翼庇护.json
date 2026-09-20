@@ -3,7 +3,7 @@
   "name": "羽翼庇护",
   "element": "翼",
   "skill_type": "防御",
-  "energy_cost": 3,
+  "energy_cost": 2,
   "counter": "攻击",
   "effects": [
     {
@@ -21,10 +21,10 @@
           "op": "power_mod",
           "target": "sprite_self",
           "attr": "combo",
-          "delta": 3
+          "delta": 2
         }
       ]
     }
   ],
-  "description": "✦减伤70%，应对攻击：自己获得连击数+3。"
+  "description": "✦减伤70%，应对攻击：自己获得连击数+2。"
 }

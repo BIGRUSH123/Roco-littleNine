@@ -12,7 +12,7 @@
     },
     {
       "target": "team_own",
-      "op": "mod",
+      "op": "devotion",
       "name": "10%吸血",
       "then": [
         {
@@ -23,7 +23,6 @@
           "mode": "add"
         }
       ],
-      "stat": "devotion",
       "value": 1,
       "mode": "add"
     }

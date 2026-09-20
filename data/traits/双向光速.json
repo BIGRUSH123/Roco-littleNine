@@ -1,7 +1,7 @@
 {
   "id": 20021,
   "name": "双向光速",
-  "description": "在场时，所有回合结束时触发的效果，触发次数+1。",
+  "description": "在场时，双方回合结束时的效果会额外触发1次。",
   "effects": [
     {
       "op": "observer",

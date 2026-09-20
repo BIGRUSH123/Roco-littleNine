@@ -1,0 +1,12 @@
+{
+  "id": 10970,
+  "name": "叠加态",
+  "element": "幻",
+  "skill_type": "状态",
+  "energy_cost": 1,
+  "description": "✦自己获得随机16层属性增益，巧变：幻系攻击技能。",
+  "qiaobian": {
+    "element": "幻",
+    "skill_type": "attack"
+  }
+}

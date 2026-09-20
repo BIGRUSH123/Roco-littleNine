@@ -1,0 +1,47 @@
+{
+  "id": 10958,
+  "name": "下注",
+  "element": "恶",
+  "skill_type": "物攻",
+  "power": 85,
+  "energy_cost": 3,
+  "description": "✦造成物伤，选择：本次技能威力+40，使用后自己生命-10%或自己生命低于50%时本次技能威力+100。",
+  "choices": [
+    {
+      "name": "明",
+      "effects": [
+        {
+          "op": "power_mod",
+          "target": "skill_off_0",
+          "attr": "power",
+          "delta": 40
+        },
+        {
+          "op": "heal",
+          "target": "sprite_self",
+          "value": {
+            "q": "hp_max",
+            "of": "sprite_self",
+            "scale": -0.1
+          }
+        }
+      ]
+    },
+    {
+      "name": "暗",
+      "cond": {
+        "cond": "hp_below",
+        "ratio": 0.5,
+        "of": "sprite_self"
+      },
+      "effects": [
+        {
+          "op": "power_mod",
+          "target": "skill_off_0",
+          "attr": "power",
+          "delta": 100
+        }
+      ]
+    }
+  ]
+}

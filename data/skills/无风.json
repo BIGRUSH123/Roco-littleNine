@@ -1,0 +1,9 @@
+{
+  "id": 7150420,
+  "name": "无风",
+  "element": "翼",
+  "skill_type": "防御",
+  "energy_cost": 2,
+  "effects": [],
+  "description": "✦减伤50%，应对攻击：敌方和自己均脱离。"
+}

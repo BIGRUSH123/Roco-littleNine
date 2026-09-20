@@ -1,0 +1,15 @@
+{
+  "id": 10982,
+  "name": "惊雷",
+  "element": "电",
+  "skill_type": "状态",
+  "energy_cost": 5,
+  "description": "✦将天气改为雷鸣，持续8回合。",
+  "effects": [
+    {
+      "op": "weather",
+      "weather": "雷鸣",
+      "turns": 8
+    }
+  ]
+}

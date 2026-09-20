@@ -1,0 +1,48 @@
+{
+  "id": 20181,
+  "name": "换碟",
+  "description": "自己携带的音波弹/音爆/金属噪音/午夜噪音威力提升，且获得巧变：同系别技能。",
+  "effects": [
+    {
+      "op": "observer",
+      "listen": "post_entry",
+      "scope": "battlefield",
+      "cond": {
+        "cond": "sprite_entered",
+        "of": "sprite_self"
+      },
+      "then": [
+        {
+          "op": "power_mod",
+          "target": "sprite_self",
+          "attr": "power",
+          "delta": 20,
+          "skill_where": {
+            "name": [
+              "音波弹",
+              "音爆",
+              "金属噪音",
+              "午夜噪音"
+            ]
+          },
+          "scope": "permanent",
+          "source": "换碟"
+        },
+        {
+          "op": "morph",
+          "target": "sprite_self",
+          "category": "same_element",
+          "skill_where": {
+            "name": [
+              "音波弹",
+              "音爆",
+              "金属噪音",
+              "午夜噪音"
+            ]
+          },
+          "source": "换碟"
+        }
+      ]
+    }
+  ]
+}

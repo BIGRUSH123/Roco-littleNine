@@ -15,25 +15,25 @@
           "op": "stat_stage",
           "target": "sprite_opp",
           "stat": "atk",
-          "steps": -10
+          "steps": -12
         },
         {
           "op": "stat_stage",
           "target": "sprite_opp",
           "stat": "sp_atk",
-          "steps": -10
+          "steps": -12
         },
         {
           "op": "stat_stage",
           "target": "sprite_opp",
           "stat": "def",
-          "steps": -10
+          "steps": -12
         },
         {
           "op": "stat_stage",
           "target": "sprite_opp",
           "stat": "sp_def",
-          "steps": -10
+          "steps": -12
         }
       ],
       "else": [
@@ -41,28 +41,28 @@
           "op": "stat_stage",
           "target": "sprite_self",
           "stat": "atk",
-          "steps": -10
+          "steps": -5
         },
         {
           "op": "stat_stage",
           "target": "sprite_self",
           "stat": "sp_atk",
-          "steps": -10
+          "steps": -5
         },
         {
           "op": "stat_stage",
           "target": "sprite_self",
           "stat": "def",
-          "steps": -10
+          "steps": -5
         },
         {
           "op": "stat_stage",
           "target": "sprite_self",
           "stat": "sp_def",
-          "steps": -10
+          "steps": -5
         }
       ]
     }
   ],
-  "description": "✦自己获得双攻和双防-100%，应对防御：改为敌方获得双攻和双防-100%。"
+  "description": "✦自己获得双攻和双防-50%，应对防御：改为敌方获得双攻和双防-120%。"
 }

@@ -1,0 +1,21 @@
+{
+  "id": 10978,
+  "name": "守护咒",
+  "element": "龙",
+  "skill_type": "防御",
+  "energy_cost": 1,
+  "counter": "攻击",
+  "effects": [
+    {
+      "target": "sprite_self",
+      "op": "mult_mod",
+      "attr": "damage_reduction",
+      "value": 0.9
+    }
+  ],
+  "description": "✦减伤90%，应对攻击。巧变：龙系状态技能。",
+  "qiaobian": {
+    "element": "龙",
+    "skill_type": "status"
+  }
+}

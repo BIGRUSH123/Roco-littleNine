@@ -3,14 +3,25 @@
   "name": "焚毁",
   "element": "火",
   "skill_type": "魔攻",
-  "power": 60,
+  "power": 40,
   "energy_cost": 2,
   "effects": [
     {
       "op": "dispel",
       "what": "mark",
       "target": "team_opp"
+    },
+    {
+      "op": "mult_mod",
+      "target": "sprite_self",
+      "attr": "atk",
+      "mode": "add",
+      "value": {
+        "q": "mark_count",
+        "of": "team_opp",
+        "scale": 0.2
+      }
     }
   ],
-  "description": "✦造成魔伤，驱散敌方所有印记。"
+  "description": "✦造成魔伤，驱散敌方所有印记，每驱散1层，获得物攻+20%。"
 }

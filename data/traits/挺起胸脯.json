@@ -1,11 +1,13 @@
 {
   "id": 20061,
   "name": "挺起胸脯",
-  "description": "能耗为1的技能威力+50%。",
+  "description": "携带的能耗为1的技能，威力+50%。",
   "effects": [
     {
       "op": "observer",
-      "cond": {"cond": "always"},
+      "cond": {
+        "cond": "always"
+      },
       "scope": "persistent",
       "then": [
         {
@@ -14,7 +16,9 @@
           "target": "sprite_self",
           "value": 1.5,
           "mode": "set",
-          "skill_where": {"energy_cost": 1}
+          "skill_where": {
+            "energy_cost": 1
+          }
         }
       ]
     }

@@ -1,0 +1,19 @@
+{
+  "id": 10998,
+  "name": "清洗",
+  "element": "水",
+  "skill_type": "状态",
+  "energy_cost": 0,
+  "description": "✦驱散自己的减益，自己每有1层减益，本技能能耗-1，巧变：水系攻击技能。",
+  "effects": [
+    {
+      "op": "dispel",
+      "target": "sprite_self",
+      "what": "negative"
+    }
+  ],
+  "qiaobian": {
+    "element": "水",
+    "skill_type": "attack"
+  }
+}

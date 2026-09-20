@@ -1,0 +1,16 @@
+{
+  "id": 11005,
+  "name": "纺纱",
+  "element": "恶",
+  "skill_type": "状态",
+  "energy_cost": 4,
+  "description": "✦敌方获得1层暗涌印记。",
+  "effects": [
+    {
+      "op": "mark",
+      "target": "team_opp",
+      "name": "暗涌",
+      "stacks": 1
+    }
+  ]
+}

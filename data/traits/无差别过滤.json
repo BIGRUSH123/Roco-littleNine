@@ -5,39 +5,43 @@
   "effects": [
     {
       "op": "observer",
-      "cond": {"cond": "always"},
+      "cond": {
+        "cond": "always"
+      },
       "scope": "battlefield",
       "then": [
         {
-          "op": "mod",
-          "stat": "combo_set",
+          "op": "mult_mod",
           "target": "sprite_self",
           "value": 2,
           "mode": "set",
-          "source": "无差别过滤"
+          "source": "无差别过滤",
+          "attr": "combo_set"
         },
         {
-          "op": "mod",
-          "stat": "combo_set",
+          "op": "mult_mod",
           "target": "sprite_opp",
           "value": 2,
           "mode": "set",
-          "source": "无差别过滤"
+          "source": "无差别过滤",
+          "attr": "combo_set"
         }
       ]
     },
     {
       "op": "observer",
-      "cond": {"cond": "opp_switched"},
+      "cond": {
+        "cond": "opp_switched"
+      },
       "scope": "battlefield",
       "then": [
         {
-          "op": "mod",
-          "stat": "combo_set",
+          "op": "mult_mod",
           "target": "sprite_opp",
           "value": 2,
           "mode": "set",
-          "source": "无差别过滤"
+          "source": "无差别过滤",
+          "attr": "combo_set"
         }
       ]
     }

@@ -1,0 +1,33 @@
+{
+  "id": 20200,
+  "name": "滴眼液",
+  "description": "天气为雨天时，使用水系攻击技能时吸血50%。",
+  "effects": [
+    {
+      "op": "observer",
+      "cond": {
+        "cond": "and",
+        "conditions": [
+          {
+            "cond": "weather_is",
+            "weather": "雨天"
+          },
+          {
+            "cond": "skill_use",
+            "element": "水"
+          }
+        ]
+      },
+      "listen": "pre_calc",
+      "scope": "battlefield",
+      "then": [
+        {
+          "op": "mult_mod",
+          "target": "sprite_self",
+          "attr": "life_drain",
+          "value": 0.5
+        }
+      ]
+    }
+  ]
+}

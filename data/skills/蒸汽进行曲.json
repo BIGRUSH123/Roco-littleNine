@@ -1,0 +1,33 @@
+{
+  "id": 11011,
+  "name": "蒸汽进行曲",
+  "element": "机械",
+  "skill_type": "状态",
+  "energy_cost": 1,
+  "effects": [],
+  "description": "✦选择：自己获得速度+60或物攻+90%。",
+  "choices": [
+    {
+      "name": "明",
+      "effects": [
+        {
+          "op": "stat_stage",
+          "target": "sprite_self",
+          "stat": "speed",
+          "steps": 6
+        }
+      ]
+    },
+    {
+      "name": "暗",
+      "effects": [
+        {
+          "op": "stat_stage",
+          "target": "sprite_self",
+          "stat": "atk",
+          "steps": 9
+        }
+      ]
+    }
+  ]
+}

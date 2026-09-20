@@ -1,7 +1,7 @@
 {
   "id": 20046,
   "name": "御驾亲征",
-  "description": "力竭时扣除4魔力。",
+  "description": "棋契陛下大幅提升种族资质，力竭时扣除4魔力。",
   "effects": [
     {
       "op": "observer",

@@ -1,0 +1,31 @@
+{
+  "id": 10992,
+  "name": "暖气",
+  "element": "火",
+  "skill_type": "防御",
+  "energy_cost": 2,
+  "counter": "攻击",
+  "effects": [
+    {
+      "target": "sprite_self",
+      "op": "mult_mod",
+      "attr": "damage_reduction",
+      "value": 0.7
+    },
+    {
+      "when": {
+        "cond": "counter_succeeded"
+      },
+      "then": [
+        {
+          "op": "power_mod",
+          "target": "skill_off_0",
+          "attr": "power",
+          "delta": 50,
+          "on_next": true
+        }
+      ]
+    }
+  ],
+  "description": "✦减伤70%，应对攻击：下一次攻击时，技能威力+50。"
+}

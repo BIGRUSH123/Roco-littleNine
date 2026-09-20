@@ -1,7 +1,7 @@
 {
   "id": 20094,
   "name": "爆燃",
-  "description": "使用火系技能后，获得双攻+30%。",
+  "description": "使用火系技能后，获得双攻永久+30%。",
   "effects": [
     {
       "op": "observer",

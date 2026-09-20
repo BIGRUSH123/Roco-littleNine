@@ -3,7 +3,7 @@
   "name": "远程访问",
   "element": "电",
   "skill_type": "状态",
-  "energy_cost": 2,
+  "energy_cost": 1,
   "effects": [
     {
       "target": "sprite_opp",

@@ -1,0 +1,38 @@
+{
+  "id": 20182,
+  "name": "拉拉队长",
+  "description": "若自己在萌化状态下再获得萌化会解除萌化。",
+  "effects": [
+    {
+      "op": "observer",
+      "listen": "post_abnormal_apply",
+      "scope": "battlefield",
+      "cond": {
+        "cond": "and",
+        "conditions": [
+          {
+            "cond": "on_abnormal_applied",
+            "of": "sprite_self",
+            "name": "萌化"
+          },
+          {
+            "cond": "compare",
+            "q": "abnormal_stacks",
+            "of": "sprite_self",
+            "name": "萌化",
+            "op": "gte",
+            "value": 2
+          }
+        ]
+      },
+      "then": [
+        {
+          "op": "dispel",
+          "target": "sprite_self",
+          "what": "abnormal",
+          "name": "萌化"
+        }
+      ]
+    }
+  ]
+}

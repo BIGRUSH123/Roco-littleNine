@@ -12,8 +12,8 @@
       "skill_filter": "attack",
       "ttl": 3,
       "attr": "energy_cost",
-      "delta": 3
+      "delta": 2
     }
   ],
-  "description": "✦敌方获得全攻击技能能耗+3，持续3回合。"
+  "description": "✦敌方获得全攻击技能能耗+2，持续3回合。"
 }

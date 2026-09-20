@@ -1,0 +1,50 @@
+{
+  "id": 11018,
+  "name": "蹦跶",
+  "element": "萌",
+  "skill_type": "魔攻",
+  "power": 110,
+  "energy_cost": 3,
+  "description": "✦造成魔伤，自己有减益时本技能能耗-1，选择：自己获得萌化或解除萌化。",
+  "effects": [
+    {
+      "when": {
+        "cond": "have",
+        "what": "any_stat_negative",
+        "of": "sprite_self"
+      },
+      "then": [
+        {
+          "op": "power_mod",
+          "target": "skill_off_0",
+          "attr": "energy_cost",
+          "delta": -1
+        }
+      ]
+    }
+  ],
+  "choices": [
+    {
+      "name": "明",
+      "effects": [
+        {
+          "op": "abnormal",
+          "target": "sprite_self",
+          "name": "萌化",
+          "stacks": 1
+        }
+      ]
+    },
+    {
+      "name": "暗",
+      "effects": [
+        {
+          "op": "dispel",
+          "target": "sprite_self",
+          "what": "abnormal",
+          "name": "萌化"
+        }
+      ]
+    }
+  ]
+}

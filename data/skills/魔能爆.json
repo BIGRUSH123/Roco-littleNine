@@ -1,0 +1,9 @@
+{
+  "id": 10377,
+  "name": "魔能爆",
+  "element": "普通",
+  "skill_type": "魔攻",
+  "power": 1,
+  "energy_cost": 0,
+  "description": "✦造成魔伤，使用时消耗所有能量，消耗越高，伤害越高。"
+}

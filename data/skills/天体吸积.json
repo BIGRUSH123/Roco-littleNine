@@ -1,0 +1,21 @@
+{
+  "id": 10976,
+  "name": "天体吸积",
+  "element": "幻",
+  "skill_type": "物攻",
+  "power": 20,
+  "energy_cost": 4,
+  "description": "✦造成物伤，敌方每有1层印记，本次攻击威力+20。",
+  "effects": [
+    {
+      "op": "power_mod",
+      "target": "skill_off_0",
+      "attr": "power",
+      "delta": {
+        "q": "mark_count",
+        "of": "team_opp",
+        "scale": 20
+      }
+    }
+  ]
+}

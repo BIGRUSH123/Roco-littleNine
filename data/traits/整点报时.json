@@ -1,0 +1,39 @@
+{
+  "id": 20203,
+  "name": "整点报时",
+  "description": "每场战斗1次，回合结束时，若自己累计消耗的能量恰好为12，则回满能量和生命。",
+  "effects": [
+    {
+      "op": "observer",
+      "once": true,
+      "cond": {
+        "cond": "and",
+        "conditions": [
+          {
+            "cond": "turn_end"
+          },
+          {
+            "cond": "trait_path",
+            "path": "self.counters[energy_spent]",
+            "op": "eq",
+            "value": 12
+          }
+        ]
+      },
+      "listen": "turn_end",
+      "scope": "battlefield",
+      "then": [
+        {
+          "op": "energize",
+          "target": "sprite_self",
+          "delta": 10
+        },
+        {
+          "op": "heal",
+          "target": "sprite_self",
+          "ratio": 1.0
+        }
+      ]
+    }
+  ]
+}

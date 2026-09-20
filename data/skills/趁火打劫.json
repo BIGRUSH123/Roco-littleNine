@@ -3,7 +3,7 @@
   "name": "趁火打劫",
   "element": "恶",
   "skill_type": "物攻",
-  "power": 35,
+  "power": 40,
   "energy_cost": 3,
   "combo": 2,
   "effects": [

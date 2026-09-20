@@ -1,0 +1,9 @@
+{
+  "id": 11023,
+  "name": "远行",
+  "element": "翼",
+  "skill_type": "魔攻",
+  "power": 50,
+  "energy_cost": 2,
+  "description": "✦造成魔伤，自己每先于敌方行动1次，本技能威力永久+25。"
+}

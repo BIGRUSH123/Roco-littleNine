@@ -1,0 +1,9 @@
+{
+  "id": 10451,
+  "name": "一拳",
+  "element": "武",
+  "skill_type": "物攻",
+  "power": 140,
+  "energy_cost": 5,
+  "description": "✦对敌方精灵造成物理伤害。"
+}

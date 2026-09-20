@@ -17,10 +17,10 @@
           "target": "skill_off_0",
           "scope": "permanent",
           "attr": "energy_cost",
-          "delta": -4
+          "delta": -3
         }
       ]
     }
   ],
-  "description": "✦造成物伤，应对状态：本技能能耗永久-4。"
+  "description": "✦造成物伤，应对状态：本技能能耗永久-3。"
 }

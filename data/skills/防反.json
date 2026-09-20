@@ -10,7 +10,7 @@
       "target": "sprite_self",
       "op": "mult_mod",
       "attr": "damage_reduction",
-      "value": 0.6
+      "value": 0.7
     },
     {
       "when": {
@@ -21,16 +21,16 @@
           "op": "stat_stage",
           "target": "sprite_self",
           "stat": "atk",
-          "steps": 4
+          "steps": 7
         },
         {
           "op": "stat_stage",
           "target": "sprite_self",
           "stat": "sp_atk",
-          "steps": 4
+          "steps": 7
         }
       ]
     }
   ],
-  "description": "✦减伤60%，应对攻击：自己获得物攻和魔攻+40%。"
+  "description": "✦减伤70%，应对攻击：自己获得物攻和魔攻+70%。"
 }

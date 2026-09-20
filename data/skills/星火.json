@@ -1,0 +1,9 @@
+{
+  "id": 7040700,
+  "name": "星火",
+  "element": "火",
+  "skill_type": "状态",
+  "energy_cost": 3,
+  "effects": [],
+  "description": "✦敌方获得8层灼烧，若上回合双方有精灵使用光系技能，敌方额外获得12层灼烧。"
+}

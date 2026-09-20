@@ -1,0 +1,9 @@
+{
+  "id": 10062,
+  "name": "冰锥",
+  "element": "冰",
+  "skill_type": "物攻",
+  "power": 40,
+  "energy_cost": 0,
+  "description": "✦对敌方精灵造成物理伤害。"
+}

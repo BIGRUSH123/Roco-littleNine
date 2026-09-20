@@ -1,0 +1,23 @@
+{
+  "id": 20214,
+  "name": "守望者",
+  "description": "自己防御应对成功时，敌方获得萌化。",
+  "effects": [
+    {
+      "op": "observer",
+      "cond": {
+        "cond": "counter_succeeded"
+      },
+      "listen": "post_counter",
+      "scope": "battlefield",
+      "then": [
+        {
+          "op": "abnormal",
+          "target": "sprite_opp",
+          "name": "萌化",
+          "stacks": 1
+        }
+      ]
+    }
+  ]
+}

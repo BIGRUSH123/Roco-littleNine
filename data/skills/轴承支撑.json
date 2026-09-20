@@ -3,7 +3,7 @@
   "name": "轴承支撑",
   "element": "机械",
   "skill_type": "状态",
-  "energy_cost": 3,
+  "energy_cost": 6,
   "transmission": 1,
   "effects": [
     {
@@ -28,7 +28,7 @@
       }
     }
   ],
-  "description": "✦主动：本技能被动额外-1能耗，被动：两侧技能能耗-1，传动1。",
+  "description": "✦主动：本技能被动永久额外-1能耗，被动：两侧技能能耗-1，传动1。",
   "passive": [
     {
       "op": "power_mod",

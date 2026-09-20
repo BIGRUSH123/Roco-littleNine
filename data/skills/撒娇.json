@@ -14,13 +14,14 @@
       "then": [
         {
           "op": "power_mod",
-          "target": "skill_off_0",
+          "target": "sprite_self",
           "scope": "permanent",
+          "skill_filter": "all",
           "attr": "power",
-          "delta": 20
+          "delta": 10
         }
       ]
     }
   ],
-  "description": "✦造成魔伤，3连击。自己获得萌化：威力永久+20。"
+  "description": "✦造成魔伤，3连击。自己获得萌化：全技能威力永久+10。"
 }

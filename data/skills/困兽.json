@@ -1,0 +1,26 @@
+{
+  "id": 10955,
+  "name": "困兽",
+  "element": "恶",
+  "skill_type": "物攻",
+  "power": 90,
+  "energy_cost": 3,
+  "description": "✦造成物伤，若自己生命低于50%，本次攻击吸血50%。",
+  "effects": [
+    {
+      "when": {
+        "cond": "hp_below",
+        "ratio": 0.5,
+        "of": "sprite_self"
+      },
+      "then": [
+        {
+          "op": "mult_mod",
+          "target": "sprite_self",
+          "attr": "life_drain",
+          "value": 0.5
+        }
+      ]
+    }
+  ]
+}

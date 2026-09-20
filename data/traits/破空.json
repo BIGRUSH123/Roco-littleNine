@@ -1,7 +1,7 @@
 {
   "id": 20103,
   "name": "破空",
-  "description": "先于敌方攻击时，威力+75%。",
+  "description": "若先于敌方攻击，本次技能威力+75%。",
   "effects": [
     {
       "op": "observer",

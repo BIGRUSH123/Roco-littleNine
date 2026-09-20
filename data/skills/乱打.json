@@ -1,0 +1,10 @@
+{
+  "id": 10304,
+  "name": "乱打",
+  "element": "普通",
+  "skill_type": "魔攻",
+  "power": 25,
+  "energy_cost": 4,
+  "combo": 5,
+  "description": "✦造成魔伤，5连击。"
+}

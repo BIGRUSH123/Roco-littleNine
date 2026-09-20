@@ -1,0 +1,21 @@
+{
+  "id": 11030,
+  "name": "限时特惠",
+  "element": "恶",
+  "skill_type": "魔攻",
+  "power": 140,
+  "energy_cost": 6,
+  "description": "✦造成魔伤，敌方每有1只力竭精灵，本次技能能耗-1。",
+  "effects": [
+    {
+      "op": "power_mod",
+      "target": "skill_off_0",
+      "attr": "energy_cost",
+      "delta": {
+        "q": "fainted",
+        "of": "team_opp",
+        "scale": -1
+      }
+    }
+  ]
+}

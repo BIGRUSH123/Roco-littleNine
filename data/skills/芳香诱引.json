@@ -3,14 +3,14 @@
   "name": "芳香诱引",
   "element": "草",
   "skill_type": "状态",
-  "energy_cost": 1,
+  "energy_cost": 2,
   "counter": "防御",
   "effects": [
     {
       "target": "sprite_self",
       "op": "power_mod",
       "attr": "combo",
-      "delta": 3
+      "delta": 2
     },
     {
       "when": {
@@ -31,5 +31,5 @@
       ]
     }
   ],
-  "description": "✦自己获得连击数+3，应对防御：额外造成打断，且敌方下回合获得眩晕。"
+  "description": "✦自己获得连击数+2，应对防御：额外造成打断，且敌方下回合获得眩晕。"
 }

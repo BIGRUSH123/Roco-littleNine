@@ -1,7 +1,7 @@
 {
   "id": 20004,
   "name": "专注力",
-  "description": "仅入场首回合，物攻+100%。",
+  "description": "入场首回合，获得物攻+100%。",
   "effects": [
     {
       "op": "observer",

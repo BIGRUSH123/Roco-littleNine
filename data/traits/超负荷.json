@@ -1,7 +1,7 @@
 {
   "id": 20131,
   "name": "超负荷",
-  "description": "攻击技能获得迸发：敌方全技能能耗+1。",
+  "description": "攻击技能获得迸发：敌方获得全技能能耗+1。",
   "effects": [
     {
       "op": "burst_grant",

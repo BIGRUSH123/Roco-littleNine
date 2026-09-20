@@ -3,7 +3,7 @@
   "name": "地刺",
   "element": "地",
   "skill_type": "物攻",
-  "power": 95,
+  "power": 90,
   "energy_cost": 3,
   "counter": "状态",
   "effects": [

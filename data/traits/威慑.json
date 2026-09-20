@@ -1,7 +1,7 @@
 {
   "id": 20040,
   "name": "威慑",
-  "description": "打断敌方时，被打断技能进入2回合冷却。",
+  "description": "打断敌方时，自己获得双攻+30%，被打断的技能进入2回合冷却。",
   "effects": [
     {
       "op": "observer",
@@ -9,6 +9,20 @@
         "cond": "counter_succeeded"
       },
       "then": [
+        {
+          "op": "mult_mod",
+          "target": "sprite_self",
+          "attr": "atk",
+          "value": 0.3,
+          "mode": "add"
+        },
+        {
+          "op": "mult_mod",
+          "target": "sprite_self",
+          "attr": "sp_atk",
+          "value": 0.3,
+          "mode": "add"
+        },
         {
           "op": "flag_set",
           "target": "skill_opp_current",

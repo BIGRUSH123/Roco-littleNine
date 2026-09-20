@@ -1,0 +1,26 @@
+{
+  "id": 20185,
+  "name": "魔术帽",
+  "description": "在场时，场上双方携带的技能获得巧变：同系别技能。",
+  "effects": [
+    {
+      "op": "observer",
+      "listen": "post_entry",
+      "scope": "battlefield",
+      "cond": {
+        "cond": "sprite_entered",
+        "of": "sprite_self"
+      },
+      "then": [
+        {
+          "op": "morph",
+          "target": "sprite_self",
+          "category": "same_element",
+          "skill_filter": "all",
+          "affects": "both",
+          "source": "魔术帽"
+        }
+      ]
+    }
+  ]
+}

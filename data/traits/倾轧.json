@@ -1,7 +1,7 @@
 {
   "id": 20144,
   "name": "倾轧",
-  "description": "携带的技能受能耗变化效果影响翻倍。",
+  "description": "携带的技能受能耗变化效果的影响翻倍。",
   "effects": [
     {
       "op": "observer",

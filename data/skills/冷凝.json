@@ -1,0 +1,20 @@
+{
+  "id": 10966,
+  "name": "冷凝",
+  "element": "冰",
+  "skill_type": "物攻",
+  "power": 95,
+  "energy_cost": 4,
+  "effects": [
+    {
+      "op": "energize",
+      "target": "sprite_self",
+      "delta": {
+        "q": "abnormal_stacks",
+        "of": "sprite_opp",
+        "name": "冻结"
+      }
+    }
+  ],
+  "description": "✦造成物伤，敌方每有1层冻结，自己回复1能量。"
+}

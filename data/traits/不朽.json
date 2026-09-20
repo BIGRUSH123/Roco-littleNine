@@ -1,7 +1,7 @@
 {
   "id": 20142,
   "name": "不朽",
-  "description": "力竭3回合后复活。",
+  "description": "力竭4回合后复活。",
   "effects": [
     {
       "op": "observer",
@@ -12,7 +12,7 @@
         {
           "op": "revive",
           "hp_ratio": 1,
-          "delay_turns": 3
+          "delay_turns": 4
         }
       ]
     }

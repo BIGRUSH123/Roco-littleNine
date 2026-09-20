@@ -1,0 +1,28 @@
+{
+  "id": 20192,
+  "name": "盘根木",
+  "description": "初始生命为10%，入场前己方精灵每使用1次草系技能，回复30%生命。",
+  "effects": [
+    {
+      "op": "observer",
+      "cond": {
+        "cond": "sprite_entered",
+        "of": "sprite_self"
+      },
+      "listen": "post_entry",
+      "scope": "battlefield",
+      "then": [
+        {
+          "op": "heal",
+          "target": "sprite_self",
+          "value": {
+            "q": "team_counter",
+            "of": "team_own",
+            "name": "element:草",
+            "scale": 0.3
+          }
+        }
+      ]
+    }
+  ]
+}

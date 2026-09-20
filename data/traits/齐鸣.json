@@ -1,0 +1,44 @@
+{
+  "id": 280034,
+  "name": "齐鸣",
+  "description": "自己携带的「虫鸣」技能威力+20，己方精灵携带的虫系技能获得巧变：虫鸣。",
+  "effects": [
+    {
+      "op": "observer",
+      "listen": "post_entry",
+      "scope": "battlefield",
+      "cond": {
+        "cond": "sprite_entered",
+        "of": "sprite_self"
+      },
+      "then": [
+        {
+          "op": "power_mod",
+          "target": "sprite_self",
+          "attr": "power",
+          "delta": 20,
+          "skill_where": {
+            "name": [
+              "虫鸣"
+            ]
+          },
+          "scope": "permanent",
+          "source": "齐鸣"
+        },
+        {
+          "op": "morph",
+          "target": "sprite_self",
+          "category": {
+            "name": "虫鸣"
+          },
+          "skill_where": {
+            "element": "虫"
+          },
+          "affects": "team",
+          "scope": "persistent",
+          "source": "齐鸣"
+        }
+      ]
+    }
+  ]
+}

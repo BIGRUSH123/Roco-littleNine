@@ -17,10 +17,10 @@
           "scope": "permanent",
           "skill_filter": "all",
           "attr": "energy_cost",
-          "delta": -3
+          "delta": -2
         }
       ]
     }
   ],
-  "description": "✦自己获得萌化：全技能能耗永久-3。"
+  "description": "✦自己获得萌化：全技能能耗永久-2。"
 }

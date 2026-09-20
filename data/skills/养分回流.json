@@ -1,0 +1,16 @@
+{
+  "id": 10964,
+  "name": "养分回流",
+  "element": "草",
+  "skill_type": "魔攻",
+  "power": 75,
+  "energy_cost": 3,
+  "effects": [
+    {
+      "op": "energize",
+      "target": "team_own_benched",
+      "delta": 1
+    }
+  ],
+  "description": "✦造成魔伤，为场下所有精灵回复1能量。"
+}

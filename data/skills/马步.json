@@ -1,0 +1,49 @@
+{
+  "id": 11033,
+  "name": "马步",
+  "element": "武",
+  "skill_type": "状态",
+  "energy_cost": 3,
+  "effects": [
+    {
+      "target": "sprite_self",
+      "op": "heal",
+      "ratio": 0.6
+    }
+  ],
+  "description": "✦本技能先手-1，选择：若自己生命低于20%，回复60%生命或若自己生命高于80%，获得物攻+150%。",
+  "choices": [
+    {
+      "name": "明",
+      "cond": {
+        "cond": "hp_below",
+        "ratio": 0.2,
+        "of": "sprite_self"
+      },
+      "effects": [
+        {
+          "op": "heal",
+          "target": "sprite_self",
+          "ratio": 0.6
+        }
+      ]
+    },
+    {
+      "name": "暗",
+      "cond": {
+        "cond": "hp_below",
+        "ratio": 0.8,
+        "of": "sprite_self",
+        "op": "gt"
+      },
+      "effects": [
+        {
+          "op": "stat_stage",
+          "target": "sprite_self",
+          "stat": "atk",
+          "steps": 15
+        }
+      ]
+    }
+  ]
+}

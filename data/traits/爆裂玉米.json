@@ -1,0 +1,41 @@
+{
+  "id": 20209,
+  "name": "爆裂玉米",
+  "description": "草系技能使敌方获得4层灼烧，火系技能使敌方获得1层寄生。",
+  "effects": [
+    {
+      "op": "observer",
+      "cond": {
+        "cond": "skill_use",
+        "element": "草"
+      },
+      "listen": "post_skill",
+      "scope": "battlefield",
+      "then": [
+        {
+          "op": "abnormal",
+          "target": "sprite_opp",
+          "name": "灼烧",
+          "stacks": 4
+        }
+      ]
+    },
+    {
+      "op": "observer",
+      "cond": {
+        "cond": "skill_use",
+        "element": "火"
+      },
+      "listen": "post_skill",
+      "scope": "battlefield",
+      "then": [
+        {
+          "op": "abnormal",
+          "target": "sprite_opp",
+          "name": "寄生",
+          "stacks": 1
+        }
+      ]
+    }
+  ]
+}

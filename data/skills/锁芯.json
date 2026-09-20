@@ -1,0 +1,10 @@
+{
+  "id": 11029,
+  "name": "锁芯",
+  "element": "机械",
+  "skill_type": "魔攻",
+  "power": 75,
+  "energy_cost": 2,
+  "description": "✦造成魔伤，此技能位置不会改变。",
+  "position_locked": true
+}

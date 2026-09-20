@@ -1,18 +1,26 @@
 {
   "id": 20024,
   "name": "向心力",
-  "description": "1号位和2号位技能获得传动1和威力+30。",
+  "description": "1号和2号位技能获得传动1和威力+30。",
   "effects": [
     {
       "op": "observer",
       "cond": {
         "cond": "or",
         "conditions": [
-          {"cond": "sprite_entered", "of": "sprite_self"},
-          {"cond": "always"}
+          {
+            "cond": "sprite_entered",
+            "of": "sprite_self"
+          },
+          {
+            "cond": "always"
+          }
         ]
       },
-      "listen": ["post_entry", "turn_start"],
+      "listen": [
+        "post_entry",
+        "turn_start"
+      ],
       "scope": "battlefield",
       "then": [
         {

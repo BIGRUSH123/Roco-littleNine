@@ -1,0 +1,9 @@
+{
+  "id": 10990,
+  "name": "撞鬼",
+  "element": "幽",
+  "skill_type": "物攻",
+  "power": 120,
+  "energy_cost": 4,
+  "description": "✦对敌方精灵造成物理伤害。"
+}

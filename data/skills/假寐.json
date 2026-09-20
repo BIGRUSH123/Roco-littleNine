@@ -12,7 +12,7 @@
     },
     {
       "target": "team_own",
-      "op": "mod",
+      "op": "devotion",
       "name": "能耗-2",
       "then": [
         {
@@ -23,7 +23,6 @@
           "delta": -2
         }
       ],
-      "stat": "devotion",
       "value": 1,
       "mode": "add"
     }

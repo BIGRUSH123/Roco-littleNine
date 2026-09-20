@@ -1,0 +1,18 @@
+{
+  "id": 10983,
+  "name": "打喷嚏",
+  "element": "冰",
+  "skill_type": "状态",
+  "energy_cost": 1,
+  "combo": 3,
+  "description": "✦3连击，每次连击敌方获得1层冻结。",
+  "effects": [
+    {
+      "op": "abnormal",
+      "target": "sprite_opp",
+      "name": "冻结",
+      "stacks": 1,
+      "per_hit": true
+    }
+  ]
+}

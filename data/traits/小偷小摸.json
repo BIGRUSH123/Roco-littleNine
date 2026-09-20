@@ -1,7 +1,7 @@
 {
   "id": 20044,
   "name": "小偷小摸",
-  "description": "入场时偷取所有敌方精灵2能量。",
+  "description": "入场时偷取敌方场上所有精灵2能量。",
   "effects": [
     {
       "op": "observer",

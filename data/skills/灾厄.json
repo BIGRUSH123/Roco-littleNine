@@ -3,7 +3,7 @@
   "name": "灾厄",
   "element": "恶",
   "skill_type": "物攻",
-  "power": 150,
+  "power": 60,
   "energy_cost": 1,
   "counter": "状态",
   "effects": [
@@ -11,7 +11,14 @@
       "when": {
         "cond": "counter_succeeded"
       },
-      "then": [],
+      "then": [
+        {
+          "op": "power_mod",
+          "target": "skill_off_0",
+          "attr": "power",
+          "delta": 120
+        }
+      ],
       "else": [
         {
           "op": "redirect",
@@ -20,5 +27,5 @@
       ]
     }
   ],
-  "description": "✦对自己造成物伤，应对状态：改为对敌方造成物伤。"
+  "description": "✦对自己造成物伤，应对状态：改为对敌方造成物伤，且本次技能威力+120。"
 }

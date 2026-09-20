@@ -1,0 +1,44 @@
+{
+  "id": 10997,
+  "name": "沙石阵",
+  "element": "地",
+  "skill_type": "状态",
+  "energy_cost": 2,
+  "description": "✦自己获得速度-20，选择：且额外获得物防+90%或魔防+90%。",
+  "choices": [
+    {
+      "name": "明",
+      "effects": [
+        {
+          "op": "stat_stage",
+          "target": "sprite_self",
+          "stat": "speed",
+          "steps": -2
+        },
+        {
+          "op": "stat_stage",
+          "target": "sprite_self",
+          "stat": "def",
+          "steps": 9
+        }
+      ]
+    },
+    {
+      "name": "暗",
+      "effects": [
+        {
+          "op": "stat_stage",
+          "target": "sprite_self",
+          "stat": "speed",
+          "steps": -2
+        },
+        {
+          "op": "stat_stage",
+          "target": "sprite_self",
+          "stat": "sp_def",
+          "steps": 9
+        }
+      ]
+    }
+  ]
+}

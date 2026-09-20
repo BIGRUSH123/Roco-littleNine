@@ -8,7 +8,7 @@
   "effects": [
     {
       "target": "team_own",
-      "op": "mod",
+      "op": "devotion",
       "name": "威力+20",
       "then": [
         {
@@ -18,7 +18,6 @@
           "delta": 20
         }
       ],
-      "stat": "devotion",
       "value": 1,
       "mode": "add"
     }

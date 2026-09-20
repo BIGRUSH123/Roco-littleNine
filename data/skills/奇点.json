@@ -1,0 +1,10 @@
+{
+  "id": 7190510,
+  "name": "奇点",
+  "element": "幻",
+  "skill_type": "魔攻",
+  "energy_cost": 4,
+  "power": 60,
+  "effects": [],
+  "description": "✦造成魔伤，若上回合双方有精灵使用水系技能，敌方获得4层星陨印记。"
+}

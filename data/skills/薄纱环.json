@@ -1,0 +1,8 @@
+{
+  "id": 11012,
+  "name": "薄纱环",
+  "element": "幻",
+  "skill_type": "状态",
+  "energy_cost": 3,
+  "description": "✦选择：敌方随机获得1种负面印记或自己随机获得1种正面印记。"
+}

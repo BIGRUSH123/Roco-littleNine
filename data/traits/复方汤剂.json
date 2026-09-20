@@ -1,7 +1,7 @@
 {
   "id": 20035,
   "name": "复方汤剂",
-  "description": "回合结束时，中毒效果触发次数+1。",
+  "description": "在场时，双方回合结束时的中毒效果会额外触发1次。",
   "effects": [
     {
       "op": "observer",

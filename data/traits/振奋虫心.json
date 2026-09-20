@@ -1,14 +1,13 @@
 {
   "id": 20060,
   "name": "振奋虫心",
-  "description": "主动击败敌方后，己方队伍获得5次奉献。",
+  "description": "主动击败敌方后，己方队伍获得5次随机奉献。",
   "effects": [
     {
       "op": "observer",
       "then": [
         {
-          "op": "mod",
-          "stat": "devotion",
+          "op": "devotion",
           "target": "team_own",
           "value": 5,
           "mode": "add"

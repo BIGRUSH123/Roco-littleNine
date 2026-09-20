@@ -3,7 +3,7 @@
   "name": "放晴",
   "element": "光",
   "skill_type": "状态",
-  "energy_cost": 0,
+  "energy_cost": 1,
   "counter": "防御",
   "effects": [
     {

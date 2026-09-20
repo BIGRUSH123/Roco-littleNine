@@ -3,7 +3,7 @@
   "name": "重击",
   "element": "普通",
   "skill_type": "物攻",
-  "power": 110,
+  "power": 140,
   "energy_cost": 2,
   "effects": [
     {

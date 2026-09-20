@@ -1,0 +1,38 @@
+{
+  "id": 20213,
+  "name": "长久保存制法",
+  "description": "自己的聚能获得选择：偷取敌方3能量。",
+  "effects": [
+    {
+      "op": "observer",
+      "listen": "post_entry",
+      "scope": "battlefield",
+      "cond": {
+        "cond": "sprite_entered",
+        "of": "sprite_self"
+      },
+      "then": [
+        {
+          "op": "grant_choice",
+          "target": "sprite_self",
+          "action": "gather",
+          "name": "长久保存制法",
+          "source": "长久保存制法",
+          "choices": [
+            {
+              "name": "偷取",
+              "effects": [
+                {
+                  "op": "steal",
+                  "target": "sprite_opp",
+                  "what": "energy",
+                  "amount": 3
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

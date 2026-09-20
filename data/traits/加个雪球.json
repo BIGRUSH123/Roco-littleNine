@@ -1,7 +1,7 @@
 {
   "id": 20018,
   "name": "加个雪球",
-  "description": "使敌方获得冻结时，额外+2层冻结。",
+  "description": "使敌方获得冻结时，也会使其获得2层冻结。",
   "effects": [
     {
       "op": "observer",

@@ -18,10 +18,9 @@
       },
       "then": [
         {
-          "op": "mod",
+          "op": "devotion",
           "target": "team_own",
           "name": "random",
-          "stat": "devotion",
           "value": 1,
           "mode": "add"
         }

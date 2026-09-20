@@ -1,0 +1,24 @@
+{
+  "id": 200324,
+  "name": "乌龟塔理论",
+  "description": "每受到1次攻击伤害，敌方获得3层星陨印记。",
+  "effects": [
+    {
+      "op": "observer",
+      "cond": {
+        "cond": "on_damage_taken",
+        "of": "sprite_self"
+      },
+      "listen": "post_damage",
+      "scope": "battlefield",
+      "then": [
+        {
+          "op": "mark",
+          "target": "team_opp",
+          "name": "星陨印记",
+          "stacks": 3
+        }
+      ]
+    }
+  ]
+}

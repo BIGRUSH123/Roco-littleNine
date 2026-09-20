@@ -1,0 +1,9 @@
+{
+  "id": 10975,
+  "name": "吹散",
+  "element": "普通",
+  "skill_type": "魔攻",
+  "power": 65,
+  "energy_cost": 3,
+  "description": "✦造成魔伤，选择：驱散敌方所有增益或驱散双方1层印记。"
+}

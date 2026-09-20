@@ -1,0 +1,23 @@
+{
+  "id": 20183,
+  "name": "戏耍",
+  "description": "自己无法回复生命，而是将回复生命变为敌方扣除等量生命。",
+  "effects": [
+    {
+      "op": "observer",
+      "cond": {
+        "cond": "always"
+      },
+      "listen": "post_entry",
+      "scope": "permanent",
+      "then": [
+        {
+          "op": "flag_set",
+          "target": "sprite_self",
+          "flag": "heal_reverse",
+          "value": true
+        }
+      ]
+    }
+  ]
+}

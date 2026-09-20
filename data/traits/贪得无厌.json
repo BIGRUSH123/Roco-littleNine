@@ -1,0 +1,25 @@
+{
+  "id": 20175,
+  "name": "贪得无厌",
+  "description": "入场时获得50%吸血，每过量回复5%生命转化为10%物攻。",
+  "effects": [
+    {
+      "op": "observer",
+      "cond": {
+        "cond": "sprite_entered",
+        "of": "sprite_self"
+      },
+      "listen": "post_entry",
+      "scope": "battlefield",
+      "then": [
+        {
+          "op": "mult_mod",
+          "target": "sprite_self",
+          "attr": "life_drain",
+          "value": 0.5,
+          "scope": "permanent"
+        }
+      ]
+    }
+  ]
+}

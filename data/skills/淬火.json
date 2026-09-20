@@ -3,7 +3,7 @@
   "name": "淬火",
   "element": "火",
   "skill_type": "防御",
-  "energy_cost": 4,
+  "energy_cost": 2,
   "counter": "攻击",
   "effects": [
     {

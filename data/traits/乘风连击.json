@@ -1,7 +1,7 @@
 {
   "id": 20005,
   "name": "乘风连击",
-  "description": "使用翼系技能后，连击数+1。",
+  "description": "使用翼系技能后，获得连击数+1。",
   "effects": [
     {
       "op": "observer",

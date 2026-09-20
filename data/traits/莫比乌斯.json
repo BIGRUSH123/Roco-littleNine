@@ -1,0 +1,24 @@
+{
+  "id": 20197,
+  "name": "莫比乌斯",
+  "description": "回合结束时，若自己的能量为0，则回复10能量。",
+  "effects": [
+    {
+      "op": "observer",
+      "cond": {
+        "cond": "energy_eq",
+        "value": 0,
+        "of": "sprite_self"
+      },
+      "listen": "turn_end",
+      "scope": "battlefield",
+      "then": [
+        {
+          "op": "energize",
+          "target": "sprite_self",
+          "delta": 10
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "id": 10991,
+  "name": "星痕",
+  "element": "幻",
+  "skill_type": "魔攻",
+  "power": 90,
+  "energy_cost": 3,
+  "description": "✦造成魔伤，若敌方有印记，本次技能威力+40。",
+  "effects": [
+    {
+      "when": {
+        "cond": "compare",
+        "q": "mark_count",
+        "of": "team_opp",
+        "op": "gt",
+        "value": 0
+      },
+      "then": [
+        {
+          "op": "power_mod",
+          "target": "skill_off_0",
+          "attr": "power",
+          "delta": 40
+        }
+      ]
+    }
+  ]
+}

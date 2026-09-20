@@ -9,12 +9,7 @@
     {
       "target": "sprite_self",
       "op": "heal",
-      "ratio": 0.05
-    },
-    {
-      "target": "sprite_self",
-      "op": "energize",
-      "delta": 1
+      "ratio": 0.08
     },
     {
       "target": "skill_off_0",
@@ -24,5 +19,5 @@
       "delta": 1
     }
   ],
-  "description": "✦2连击，每次连击自己回复5%生命和1能量，使用后本技能连击数永久+1。"
+  "description": "✦2连击，每次连击自己回复8%生命，使用后本技能连击数永久+1。"
 }

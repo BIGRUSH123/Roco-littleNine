@@ -3,7 +3,7 @@
   "name": "蓄能轰击",
   "element": "普通",
   "skill_type": "魔攻",
-  "power": 130,
+  "power": 120,
   "energy_cost": 6,
   "effects": [
     {
@@ -23,5 +23,5 @@
       }
     }
   ],
-  "description": "✦造成魔伤，每使用1次普通系技能，本技能能耗永久-2。"
+  "description": "✦造成魔伤，每使用1次其他普通系技能，本技能能耗永久-2。"
 }

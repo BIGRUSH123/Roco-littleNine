@@ -1,0 +1,9 @@
+{
+  "id": 7170330,
+  "name": "小型打劫",
+  "element": "幽",
+  "skill_type": "状态",
+  "energy_cost": 2,
+  "effects": [],
+  "description": "✦敌方队伍中所有精灵失去1能量。"
+}

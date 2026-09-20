@@ -1,0 +1,10 @@
+{
+  "id": 10963,
+  "name": "六自由度",
+  "element": "机械",
+  "skill_type": "魔攻",
+  "power": 30,
+  "energy_cost": 4,
+  "tag": "传动",
+  "description": "✦造成魔伤，威力额外增加两侧技能威力差的四分之一，传动1。"
+}

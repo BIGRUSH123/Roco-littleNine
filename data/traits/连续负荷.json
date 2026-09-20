@@ -1,7 +1,7 @@
 {
   "id": 20133,
   "name": "连续负荷",
-  "description": "技能的迸发效果延长1回合。",
+  "description": "自己技能的迸发效果延长1回合。",
   "triggers": [
     {
       "op": "observer",

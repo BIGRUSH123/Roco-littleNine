@@ -1,0 +1,40 @@
+{
+  "id": 20166,
+  "name": "盛宴",
+  "description": "能量不足时，消耗5%最大生命，代替1能量。生命低于50%时，获得吸血100%。",
+  "effects": [
+    {
+      "op": "observer",
+      "cond": {
+        "cond": "always"
+      },
+      "listen": "post_entry",
+      "scope": "permanent",
+      "then": [
+        {
+          "op": "flag_set",
+          "flag": "blood_price",
+          "value": 0.05
+        }
+      ]
+    },
+    {
+      "op": "observer",
+      "cond": {
+        "cond": "hp_below",
+        "ratio": 0.5,
+        "of": "sprite_self"
+      },
+      "listen": "pre_calc",
+      "scope": "battlefield",
+      "then": [
+        {
+          "op": "mult_mod",
+          "target": "sprite_self",
+          "attr": "life_drain",
+          "value": 1.0
+        }
+      ]
+    }
+  ]
+}

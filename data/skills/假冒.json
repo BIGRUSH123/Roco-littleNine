@@ -1,0 +1,18 @@
+{
+  "id": 10954,
+  "name": "假冒",
+  "element": "恶",
+  "skill_type": "状态",
+  "energy_cost": 2,
+  "description": "✦自己的生命比例变为与敌方生命比例相同，巧变：恶系攻击技能。",
+  "effects": [
+    {
+      "op": "exchange",
+      "what": "hp_ratio"
+    }
+  ],
+  "qiaobian": {
+    "element": "恶",
+    "skill_type": "attack"
+  }
+}

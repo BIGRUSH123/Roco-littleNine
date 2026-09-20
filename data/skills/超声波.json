@@ -1,0 +1,58 @@
+{
+  "id": 11016,
+  "name": "超声波",
+  "element": "翼",
+  "skill_type": "状态",
+  "energy_cost": 2,
+  "counter": "防御",
+  "description": "✦自己获得全技能威力+20，选择：本次能耗-1或应对防御时改为全技能威力永久+20。",
+  "effects": [
+    {
+      "op": "power_mod",
+      "target": "skill_off_0",
+      "attr": "power",
+      "delta": 20,
+      "skill_filter": "all"
+    }
+  ],
+  "choices": [
+    {
+      "name": "明",
+      "effects": [
+        {
+          "op": "power_mod",
+          "target": "skill_off_0",
+          "attr": "energy_cost",
+          "delta": -1
+        }
+      ]
+    },
+    {
+      "name": "暗",
+      "cond": {
+        "cond": "and",
+        "conditions": [
+          {
+            "cond": "counter_succeeded"
+          },
+          {
+            "cond": "compare",
+            "q": "skill_type_opp",
+            "op": "eq",
+            "value": "防御"
+          }
+        ]
+      },
+      "effects": [
+        {
+          "op": "power_mod",
+          "target": "sprite_self",
+          "attr": "power",
+          "delta": 20,
+          "skill_filter": "all",
+          "scope": "permanent"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "id": 10999,
+  "name": "溶解",
+  "element": "毒",
+  "skill_type": "防御",
+  "energy_cost": 2,
+  "counter": "攻击",
+  "effects": [
+    {
+      "target": "sprite_self",
+      "op": "mult_mod",
+      "attr": "damage_reduction",
+      "value": 0.9
+    },
+    {
+      "when": {
+        "cond": "counter_succeeded"
+      },
+      "then": [
+        {
+          "op": "dispel",
+          "target": "sprite_opp",
+          "what": "positive",
+          "type_limit": 1
+        }
+      ]
+    }
+  ],
+  "description": "✦减伤90%，应对攻击：驱散敌方1种增益。"
+}

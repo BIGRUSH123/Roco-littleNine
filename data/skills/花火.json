@@ -1,0 +1,17 @@
+{
+  "id": 11010,
+  "name": "花火",
+  "element": "火",
+  "skill_type": "物攻",
+  "power": 70,
+  "energy_cost": 3,
+  "description": "✦造成物伤，敌方获得4层灼烧。",
+  "effects": [
+    {
+      "op": "abnormal",
+      "target": "sprite_opp",
+      "name": "灼烧",
+      "stacks": 4
+    }
+  ]
+}

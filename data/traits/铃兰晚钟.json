@@ -1,7 +1,7 @@
 {
   "id": 20135,
   "name": "铃兰晚钟",
-  "description": "首次入场时失去一半当前生命。",
+  "description": "首次入场时，失去自己一半的当前生命。",
   "effects": [
     {
       "op": "observer",

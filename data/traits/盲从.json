@@ -1,0 +1,15 @@
+{
+  "id": 20188,
+  "name": "盲从",
+  "description": "可以携带多个复写/借用/取念技能，非幻系技能能耗-2。",
+  "effects": [
+    {
+      "op": "power_mod",
+      "target": "sprite_self",
+      "attr": "energy_cost",
+      "delta": -2,
+      "element": "!幻",
+      "scope": "permanent"
+    }
+  ]
+}

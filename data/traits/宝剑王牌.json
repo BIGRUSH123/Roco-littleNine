@@ -1,18 +1,26 @@
 {
   "id": 20153,
   "name": "宝剑王牌",
-  "description": "自己仅可使用1号和3号位技能。",
+  "description": "仅可使用1号和3号位技能。",
   "effects": [
     {
       "op": "observer",
       "cond": {
         "cond": "or",
         "conditions": [
-          {"cond": "sprite_entered", "of": "sprite_self"},
-          {"cond": "always"}
+          {
+            "cond": "sprite_entered",
+            "of": "sprite_self"
+          },
+          {
+            "cond": "always"
+          }
         ]
       },
-      "listen": ["post_entry", "turn_start"],
+      "listen": [
+        "post_entry",
+        "turn_start"
+      ],
       "scope": "battlefield",
       "then": [
         {

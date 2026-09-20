@@ -1,0 +1,51 @@
+{
+  "id": 11035,
+  "name": "龙守望",
+  "element": "龙",
+  "skill_type": "状态",
+  "energy_cost": 1,
+  "counter": "防御",
+  "description": "✦下次技能无需蓄力，本技能可在蓄力状态下使用。选择：本次能耗-1或应对防御时打断，敌方下回合获得眩晕。",
+  "choices": [
+    {
+      "name": "明",
+      "effects": [
+        {
+          "op": "power_mod",
+          "target": "skill_off_0",
+          "attr": "energy_cost",
+          "delta": -1
+        }
+      ]
+    },
+    {
+      "name": "暗",
+      "cond": {
+        "cond": "and",
+        "conditions": [
+          {
+            "cond": "counter_succeeded"
+          },
+          {
+            "cond": "compare",
+            "q": "skill_type_opp",
+            "op": "eq",
+            "value": "防御"
+          }
+        ]
+      },
+      "effects": [
+        {
+          "op": "interrupt"
+        },
+        {
+          "op": "abnormal",
+          "target": "sprite_opp",
+          "name": "眩晕",
+          "stacks": 1
+        }
+      ]
+    }
+  ],
+  "usable_while_charging": true
+}

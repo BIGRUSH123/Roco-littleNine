@@ -1,7 +1,7 @@
 {
   "id": 20146,
   "name": "吟游之弦",
-  "description": "本精灵赋予的印记不替换其他印记，同时生效。",
+  "description": "赋予的印记不会替换其他印记，而是同时生效。",
   "effects": [
     {
       "op": "observer",
@@ -12,7 +12,10 @@
         "op": "gte",
         "value": 0
       },
-      "listen": ["pre_calc", "post_entry"],
+      "listen": [
+        "pre_calc",
+        "post_entry"
+      ],
       "scope": "battlefield",
       "then": [
         {

@@ -1,0 +1,8 @@
+{
+  "id": 10962,
+  "name": "入梦",
+  "element": "幽",
+  "skill_type": "状态",
+  "energy_cost": 1,
+  "description": "✦敌方下回合回复的能量-5，冷却2回合。"
+}

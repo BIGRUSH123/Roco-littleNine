@@ -1,7 +1,7 @@
 {
   "id": 20073,
   "name": "毒牙",
-  "description": "使敌方获得中毒时，也会使其获得魔攻和魔防-40%。",
+  "description": "使敌方获得中毒时，也会使其获得物攻-40%和速度-40。",
   "effects": [
     {
       "op": "observer",
@@ -14,16 +14,15 @@
         {
           "op": "mult_mod",
           "target": "sprite_opp",
-          "attr": "sp_atk",
+          "attr": "atk",
           "value": -0.4,
           "mode": "add"
         },
         {
-          "op": "mult_mod",
+          "op": "stat_stage",
           "target": "sprite_opp",
-          "attr": "sp_def",
-          "value": -0.4,
-          "mode": "add"
+          "stat": "speed",
+          "steps": -4
         }
       ],
       "scope": "battlefield"

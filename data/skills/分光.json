@@ -1,0 +1,9 @@
+{
+  "id": 7060280,
+  "name": "分光",
+  "element": "光",
+  "skill_type": "状态",
+  "energy_cost": 1,
+  "effects": [],
+  "description": "✦自己获得魔攻+20%，己方队伍中精灵每有1个不同的系别，额外获得魔攻+10%。"
+}

@@ -1,7 +1,7 @@
 {
   "id": 20156,
   "name": "惊吓",
-  "description": "能量为0的精灵无法对自己造成伤害。",
+  "description": "能量等于0的精灵，无法对自己造成伤害。",
   "effects": [
     {
       "op": "observer",

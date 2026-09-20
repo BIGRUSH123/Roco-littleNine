@@ -1,0 +1,12 @@
+{
+  "id": 10974,
+  "name": "同频",
+  "element": "普通",
+  "skill_type": "魔攻",
+  "power": 125,
+  "energy_cost": 3,
+  "description": "✦造成魔法伤害，巧变：魔攻技能。",
+  "qiaobian": {
+    "skill_type": "魔攻"
+  }
+}

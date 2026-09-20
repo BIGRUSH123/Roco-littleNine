@@ -1,0 +1,26 @@
+{
+  "id": 20210,
+  "name": "王子的诺言",
+  "description": "每回合各1次，获得增益时，同时获得全技能能耗-1，获得减益时，同时获得全技能能耗+1。",
+  "effects": [
+    {
+      "op": "observer",
+      "reset": "turn",
+      "cond": {
+        "cond": "on_positive_changed",
+        "of": "sprite_self"
+      },
+      "listen": "post_positive_change",
+      "scope": "battlefield",
+      "then": [
+        {
+          "op": "power_mod",
+          "target": "sprite_self",
+          "attr": "energy_cost",
+          "delta": -1,
+          "skill_filter": "all"
+        }
+      ]
+    }
+  ]
+}

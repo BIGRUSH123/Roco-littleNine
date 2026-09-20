@@ -1,0 +1,9 @@
+{
+  "id": 11026,
+  "name": "重金属粉尘",
+  "element": "毒",
+  "skill_type": "状态",
+  "energy_cost": 1,
+  "counter": "防御",
+  "description": "✦携带的攻击技能获得附加中毒3，应对防御：改为获得附加中毒6。"
+}

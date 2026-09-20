@@ -1,0 +1,22 @@
+{
+  "id": 20196,
+  "name": "友谊之果",
+  "description": "回合结束时，双方队伍中的所有精灵回复1能量。",
+  "effects": [
+    {
+      "op": "observer",
+      "cond": {
+        "cond": "turn_end"
+      },
+      "listen": "turn_end",
+      "scope": "battlefield",
+      "then": [
+        {
+          "op": "energize",
+          "target": "team_both",
+          "delta": 1
+        }
+      ]
+    }
+  ]
+}

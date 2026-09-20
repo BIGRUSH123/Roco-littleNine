@@ -3,7 +3,7 @@
   "name": "感染病",
   "element": "毒",
   "skill_type": "魔攻",
-  "power": 85,
+  "power": 110,
   "energy_cost": 4,
   "effects": [
     {

@@ -1,7 +1,7 @@
 {
   "id": 20026,
   "name": "咔咔冲刺",
-  "description": "先于敌方行动时，行动后连击数+1。",
+  "description": "若先于敌方行动，行动后获得连击数+1。",
   "effects": [
     {
       "op": "observer",

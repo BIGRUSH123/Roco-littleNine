@@ -1,7 +1,7 @@
 {
   "id": 20022,
   "name": "变形活画",
-  "description": "攻击时，敌方每有1层增益，本次技能威力+10%。",
+  "description": "行动时，敌方每有1层增益，本次行动技能威力+10%，速度+5。",
   "effects": [
     {
       "op": "observer",
@@ -24,7 +24,17 @@
             "of": "sprite_opp",
             "scale": 0.1,
             "offset": 1
-          }
+          },
+          "mode": "set"
+        },
+        {
+          "op": "mult_mod",
+          "target": "sprite_self",
+          "attr": "speed_flat",
+          "value": 5,
+          "mode": "add",
+          "scope": "turn",
+          "source": "变形活画"
         }
       ]
     }

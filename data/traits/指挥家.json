@@ -1,7 +1,7 @@
 {
   "id": 20059,
   "name": "指挥家",
-  "description": "应对成功后，永久获得双攻+20%。",
+  "description": "应对成功后，永久获得双攻+30%。",
   "effects": [
     {
       "op": "observer",
@@ -12,7 +12,7 @@
           "source": "指挥家",
           "op": "stat_stage",
           "stat": "atk",
-          "steps": 2
+          "steps": 3
         },
         {
           "target": "sprite_self",
@@ -20,7 +20,7 @@
           "source": "指挥家",
           "op": "stat_stage",
           "stat": "sp_atk",
-          "steps": 2
+          "steps": 3
         }
       ],
       "scope": "persistent",

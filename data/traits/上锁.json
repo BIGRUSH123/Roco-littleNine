@@ -1,0 +1,26 @@
+{
+  "id": 20190,
+  "name": "上锁",
+  "description": "敌方本回合使用的技能，冷却1回合。",
+  "effects": [
+    {
+      "op": "observer",
+      "cond": {
+        "cond": "sprite_acted",
+        "of": "sprite_opp"
+      },
+      "listen": "post_skill",
+      "scope": "battlefield",
+      "then": [
+        {
+          "op": "flag_set",
+          "target": "skill_opp_current",
+          "flag": "cooldown",
+          "value": true,
+          "scope": "persistent",
+          "ttl": 1
+        }
+      ]
+    }
+  ]
+}

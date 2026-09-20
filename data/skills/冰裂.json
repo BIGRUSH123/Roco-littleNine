@@ -1,0 +1,33 @@
+{
+  "id": 10965,
+  "name": "冰裂",
+  "element": "冰",
+  "skill_type": "物攻",
+  "power": 70,
+  "energy_cost": 3,
+  "description": "✦造成物伤，选择：敌方获得物防-30%或敌方获得速度-20。",
+  "choices": [
+    {
+      "name": "明",
+      "effects": [
+        {
+          "op": "stat_stage",
+          "target": "sprite_opp",
+          "stat": "def",
+          "steps": -3
+        }
+      ]
+    },
+    {
+      "name": "暗",
+      "effects": [
+        {
+          "op": "stat_stage",
+          "target": "sprite_opp",
+          "stat": "speed",
+          "steps": -2
+        }
+      ]
+    }
+  ]
+}

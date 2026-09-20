@@ -1,0 +1,12 @@
+{
+  "id": 11001,
+  "name": "焚尽",
+  "element": "火",
+  "skill_type": "状态",
+  "energy_cost": 1,
+  "description": "✦驱散自己所有印记，每驱散1层，获得物攻+50%。巧变：火系攻击技能。",
+  "qiaobian": {
+    "element": "火",
+    "skill_type": "attack"
+  }
+}

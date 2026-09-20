@@ -1,0 +1,24 @@
+{
+  "id": 20174,
+  "name": "强制过滤",
+  "description": "在场时，所有精灵连击数固定为1。",
+  "effects": [
+    {
+      "op": "observer",
+      "cond": {
+        "cond": "always"
+      },
+      "listen": "pre_calc",
+      "scope": "battlefield",
+      "then": [
+        {
+          "op": "power_mod",
+          "target": "skill_off_0",
+          "attr": "combo",
+          "mode": "set",
+          "value": 1
+        }
+      ]
+    }
+  ]
+}

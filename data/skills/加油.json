@@ -1,0 +1,16 @@
+{
+  "id": 10968,
+  "name": "加油",
+  "element": "萌",
+  "skill_type": "状态",
+  "energy_cost": 4,
+  "description": "✦自己获得1层萌芽印记。",
+  "effects": [
+    {
+      "op": "mark",
+      "target": "team_own",
+      "name": "萌芽",
+      "stacks": 1
+    }
+  ]
+}

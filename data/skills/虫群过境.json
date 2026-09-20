@@ -3,13 +3,13 @@
   "name": "虫群过境",
   "element": "虫",
   "skill_type": "物攻",
-  "power": 45,
-  "energy_cost": 5,
+  "power": 30,
+  "energy_cost": 3,
   "combo": 2,
   "effects": [
     {
       "target": "team_own",
-      "op": "mod",
+      "op": "devotion",
       "name": "连击数+1",
       "then": [
         {
@@ -19,7 +19,6 @@
           "delta": 1
         }
       ],
-      "stat": "devotion",
       "value": 1,
       "mode": "add"
     }

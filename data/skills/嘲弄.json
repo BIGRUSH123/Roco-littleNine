@@ -20,7 +20,7 @@
         {
           "op": "mult_mod",
           "target": "sprite_self",
-          "attr": "speed",
+          "attr": "speed_flat",
           "value": 70,
           "mode": "add"
         }

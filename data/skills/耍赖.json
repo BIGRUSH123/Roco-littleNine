@@ -1,0 +1,40 @@
+{
+  "id": 11008,
+  "name": "耍赖",
+  "element": "萌",
+  "skill_type": "状态",
+  "energy_cost": 2,
+  "combo": 2,
+  "description": "✦自己获得双攻永久+10%，2连击。自己有减益时，本次技能连击数+1。",
+  "effects": [
+    {
+      "op": "stat_stage",
+      "target": "sprite_self",
+      "stat": "atk",
+      "steps": 1,
+      "scope": "permanent"
+    },
+    {
+      "op": "stat_stage",
+      "target": "sprite_self",
+      "stat": "sp_atk",
+      "steps": 1,
+      "scope": "permanent"
+    },
+    {
+      "when": {
+        "cond": "have",
+        "what": "any_stat_negative",
+        "of": "sprite_self"
+      },
+      "then": [
+        {
+          "op": "power_mod",
+          "target": "skill_off_0",
+          "attr": "combo",
+          "delta": 1
+        }
+      ]
+    }
+  ]
+}

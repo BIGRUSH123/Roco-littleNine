@@ -1,7 +1,7 @@
 {
   "id": 20003,
   "name": "不移",
-  "description": "携带的无额外效果攻击技能威力+30%。",
+  "description": "携带的无额外效果的攻击技能，威力+30%。",
   "effects": [
     {
       "op": "mult_mod",

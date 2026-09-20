@@ -3,7 +3,7 @@
   "name": "草虫冲击",
   "element": "虫",
   "skill_type": "物攻",
-  "power": 80,
+  "power": 75,
   "energy_cost": 3,
   "effects": [
     {
@@ -15,7 +15,7 @@
           "op": "power_mod",
           "target": "skill_off_0",
           "attr": "power",
-          "delta": 50
+          "delta": 90
         },
         {
           "op": "flag_set",
@@ -26,5 +26,5 @@
       ]
     }
   ],
-  "description": "✦造成物伤，若敌方本回合更换精灵，本次威力+50且无视敌方系别抵抗。"
+  "description": "✦造成物伤，若敌方本回合更换精灵，本次威力+90且无视敌方系别抵抗。"
 }

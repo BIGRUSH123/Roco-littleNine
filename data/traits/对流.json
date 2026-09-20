@@ -1,11 +1,13 @@
 {
   "id": 20154,
   "name": "对流",
-  "description": "自己的能耗增加变为降低；降低变为增加。",
+  "description": "自己的能耗增加变为能耗降低；能耗降低变为能耗增加。",
   "effects": [
     {
       "op": "observer",
-      "listen": ["post_entry"],
+      "listen": [
+        "post_entry"
+      ],
       "cond": {
         "cond": "sprite_entered",
         "of": "sprite_self"

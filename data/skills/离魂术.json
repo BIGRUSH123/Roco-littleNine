@@ -1,0 +1,9 @@
+{
+  "id": 7170360,
+  "name": "离魂术",
+  "element": "幽",
+  "skill_type": "状态",
+  "energy_cost": 3,
+  "effects": [],
+  "description": "✦偷取敌方2能量，脱离。"
+}

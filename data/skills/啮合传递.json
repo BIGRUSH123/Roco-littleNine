@@ -8,8 +8,8 @@
     {
       "target": "sprite_self",
       "op": "mult_mod",
-      "attr": "speed",
-      "value": 80,
+      "attr": "speed_flat",
+      "value": 30,
       "mode": "add"
     },
     {
@@ -31,12 +31,12 @@
           "op": "mult_mod",
           "target": "sprite_self",
           "attr": "atk",
-          "value": 0.6,
+          "value": 0.8,
           "mode": "add"
         }
       ]
     }
   ],
-  "description": "✦自己获得速度+80，本技能位于1号或3号位时额外获得物攻+60%，传动1。",
+  "description": "✦自己获得速度+30，本技能位于1号或3号位时额外获得物攻+80%，传动1。",
   "tag": "传动"
 }

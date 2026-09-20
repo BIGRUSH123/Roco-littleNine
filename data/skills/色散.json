@@ -1,0 +1,9 @@
+{
+  "id": 11009,
+  "name": "色散",
+  "element": "光",
+  "skill_type": "魔攻",
+  "power": 80,
+  "energy_cost": 3,
+  "description": "✦造成魔伤，对混血精灵造成伤害+50%。"
+}

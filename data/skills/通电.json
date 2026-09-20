@@ -1,0 +1,17 @@
+{
+  "id": 11025,
+  "name": "通电",
+  "element": "电",
+  "skill_type": "物攻",
+  "power": 75,
+  "energy_cost": 3,
+  "description": "✦造成物伤，敌方获得1层引电。",
+  "effects": [
+    {
+      "op": "abnormal",
+      "target": "sprite_opp",
+      "name": "引电",
+      "stacks": 1
+    }
+  ]
+}

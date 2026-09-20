@@ -1,0 +1,21 @@
+{
+  "id": 20204,
+  "name": "有求必应",
+  "description": "使用「选择」技能后，会额外使用1次另一种「选择」效果。使用任意技能后，该技能冷却1回合。",
+  "effects": [
+    {
+      "op": "observer",
+      "cond": {
+        "cond": "skill_use"
+      },
+      "listen": "post_skill",
+      "scope": "battlefield",
+      "then": [
+        {
+          "op": "replay_branch",
+          "which": "other"
+        }
+      ]
+    }
+  ]
+}

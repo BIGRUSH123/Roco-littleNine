@@ -9,8 +9,8 @@
       "target": "sprite_opp",
       "op": "abnormal",
       "name": "寄生",
-      "stacks": 1
+      "stacks": 3
     }
   ],
-  "description": "✦敌方获得1层寄生。"
+  "description": "✦敌方获得3层寄生。"
 }

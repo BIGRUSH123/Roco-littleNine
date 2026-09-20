@@ -1,0 +1,9 @@
+{
+  "id": 7150410,
+  "name": "惊鸿一瞥",
+  "element": "翼",
+  "skill_type": "状态",
+  "energy_cost": 2,
+  "effects": [],
+  "description": "✦自己获得连击数+1，迅捷。"
+}

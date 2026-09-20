@@ -1,0 +1,13 @@
+{
+  "id": 10979,
+  "name": "寒潮",
+  "element": "冰",
+  "skill_type": "魔攻",
+  "power": 95,
+  "energy_cost": 3,
+  "counter": "状态",
+  "description": "✦造成魔伤，敌方获得1层冻结，应对状态：额外获得4层冻结，巧变：冻结相关技能。",
+  "qiaobian": {
+    "contains": "冻结"
+  }
+}

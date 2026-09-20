@@ -1,0 +1,9 @@
+{
+  "id": 11014,
+  "name": "许愿池",
+  "element": "幻",
+  "skill_type": "魔攻",
+  "power": 55,
+  "energy_cost": 4,
+  "description": "✦造成魔伤，双方已有的印记层数+1。"
+}

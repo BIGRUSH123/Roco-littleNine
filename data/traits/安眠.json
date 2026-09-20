@@ -1,0 +1,64 @@
+{
+  "id": 20216,
+  "name": "安眠",
+  "description": "王国入夜后，进入战斗时获得全技能能耗+2，回合结束时自己回复5%生命和1能量。",
+  "effects": [
+    {
+      "op": "observer",
+      "listen": "post_entry",
+      "scope": "battlefield",
+      "cond": {
+        "cond": "and",
+        "conditions": [
+          {
+            "cond": "sprite_entered",
+            "of": "sprite_self"
+          },
+          {
+            "cond": "is_night"
+          }
+        ]
+      },
+      "then": [
+        {
+          "op": "power_mod",
+          "target": "sprite_self",
+          "attr": "energy_cost",
+          "delta": 2,
+          "skill_filter": "all",
+          "scope": "persistent",
+          "source": "安眠"
+        }
+      ],
+      "once": true
+    },
+    {
+      "op": "observer",
+      "listen": "turn_end",
+      "scope": "battlefield",
+      "cond": {
+        "cond": "and",
+        "conditions": [
+          {
+            "cond": "turn_end"
+          },
+          {
+            "cond": "is_night"
+          }
+        ]
+      },
+      "then": [
+        {
+          "op": "heal",
+          "target": "sprite_self",
+          "ratio": 0.05
+        },
+        {
+          "op": "energize",
+          "target": "sprite_self",
+          "delta": 1
+        }
+      ]
+    }
+  ]
+}

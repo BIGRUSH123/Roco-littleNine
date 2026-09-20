@@ -1,0 +1,25 @@
+{
+  "id": 10984,
+  "name": "扬尘",
+  "element": "地",
+  "skill_type": "魔攻",
+  "power": 80,
+  "energy_cost": 3,
+  "description": "✦造成魔伤，天气为沙暴时，先手+1。",
+  "effects": [
+    {
+      "when": {
+        "cond": "weather_is",
+        "weather": "沙暴"
+      },
+      "then": [
+        {
+          "op": "power_mod",
+          "target": "skill_off_0",
+          "attr": "priority",
+          "delta": 1
+        }
+      ]
+    }
+  ]
+}

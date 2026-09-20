@@ -1,0 +1,21 @@
+{
+  "id": 10994,
+  "name": "毒肽",
+  "element": "毒",
+  "skill_type": "防御",
+  "energy_cost": 2,
+  "counter": "攻击",
+  "effects": [
+    {
+      "target": "sprite_self",
+      "op": "mult_mod",
+      "attr": "damage_reduction",
+      "value": 0.7
+    }
+  ],
+  "description": "✦减伤70%，巧变：毒系状态技能，应对攻击。",
+  "qiaobian": {
+    "element": "毒",
+    "skill_type": "status"
+  }
+}

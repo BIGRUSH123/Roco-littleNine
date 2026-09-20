@@ -1,7 +1,7 @@
 {
   "id": 20085,
   "name": "深层氧循环",
-  "description": "使用草系技能后回复15%生命。",
+  "description": "使用草系技能后，回复15%生命。",
   "effects": [
     {
       "op": "observer",

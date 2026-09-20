@@ -1,7 +1,7 @@
 {
   "id": 20076,
   "name": "氧循环",
-  "description": "使用草系技能后回复10%生命。",
+  "description": "使用草系技能后，回复10%生命。",
   "effects": [
     {
       "op": "observer",

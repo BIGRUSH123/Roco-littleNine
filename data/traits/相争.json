@@ -1,0 +1,24 @@
+{
+  "id": 20173,
+  "name": "相争",
+  "description": "本场战斗首次使用的技能获得迅捷。拥有迅捷效果的技能先手+1。",
+  "effects": [
+    {
+      "op": "observer",
+      "cond": {
+        "cond": "first_action"
+      },
+      "listen": "post_skill",
+      "scope": "battlefield",
+      "then": [
+        {
+          "op": "flag_set",
+          "target": "skill_off_0",
+          "flag": "swift",
+          "value": true,
+          "scope": "permanent"
+        }
+      ]
+    }
+  ]
+}

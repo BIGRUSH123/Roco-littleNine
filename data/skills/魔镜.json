@@ -1,0 +1,8 @@
+{
+  "id": 10957,
+  "name": "魔镜",
+  "element": "幽",
+  "skill_type": "状态",
+  "energy_cost": 2,
+  "description": "✦敌方获得魔防-50%，且失去3能量。"
+}

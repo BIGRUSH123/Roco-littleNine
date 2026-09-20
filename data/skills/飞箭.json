@@ -1,0 +1,14 @@
+{
+  "id": 11032,
+  "name": "飞箭",
+  "element": "翼",
+  "skill_type": "魔攻",
+  "power": 40,
+  "energy_cost": 3,
+  "combo": 3,
+  "description": "✦造成魔伤，3连击。巧变：翼系防御技能。",
+  "qiaobian": {
+    "element": "翼",
+    "skill_type": "defense"
+  }
+}

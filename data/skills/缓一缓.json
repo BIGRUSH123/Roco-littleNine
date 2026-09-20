@@ -1,0 +1,38 @@
+{
+  "id": 11007,
+  "name": "缓一缓",
+  "element": "普通",
+  "skill_type": "状态",
+  "energy_cost": 2,
+  "effects": [
+    {
+      "op": "energize",
+      "target": "sprite_self",
+      "delta": 1
+    },
+    {
+      "op": "heal",
+      "target": "sprite_self",
+      "ratio": 0.1
+    },
+    {
+      "op": "stat_stage",
+      "target": "sprite_self",
+      "stat": "sp_atk",
+      "steps": 1
+    },
+    {
+      "op": "stat_stage",
+      "target": "sprite_self",
+      "stat": "sp_def",
+      "steps": 1
+    },
+    {
+      "op": "stat_stage",
+      "target": "sprite_self",
+      "stat": "speed",
+      "steps": 1
+    }
+  ],
+  "description": "✦自己回复1能量和10%生命，并获得魔攻魔防+10%，速度+10。"
+}

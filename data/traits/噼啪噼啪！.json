@@ -1,0 +1,41 @@
+{
+  "id": 20172,
+  "name": "噼啪噼啪！",
+  "description": "入场后首次行动，所选技能使用次数+1，且该回合每次行动后回复2能量。",
+  "effects": [
+    {
+      "op": "observer",
+      "listen": "post_entry",
+      "scope": "battlefield",
+      "cond": {
+        "cond": "sprite_entered",
+        "of": "sprite_self"
+      },
+      "then": [
+        {
+          "op": "power_mod",
+          "target": "sprite_self",
+          "attr": "use_count_bonus",
+          "delta": 1,
+          "scope": "turn",
+          "source": "噼啪噼啪！"
+        }
+      ]
+    },
+    {
+      "op": "observer",
+      "listen": "post_skill",
+      "scope": "battlefield",
+      "cond": {
+        "cond": "first_action"
+      },
+      "then": [
+        {
+          "op": "energize",
+          "target": "sprite_self",
+          "delta": 2
+        }
+      ]
+    }
+  ]
+}

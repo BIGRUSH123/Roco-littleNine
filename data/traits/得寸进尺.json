@@ -1,7 +1,7 @@
 {
   "id": 20045,
   "name": "得寸进尺",
-  "description": "天气为雨天时，双攻+100%。",
+  "description": "天气为雨天，或处于其他水系环境中时，获得双攻+100%。",
   "effects": [
     {
       "op": "observer",

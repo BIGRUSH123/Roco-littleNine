@@ -1,0 +1,24 @@
+{
+  "id": 11019,
+  "name": "转圈圈",
+  "element": "萌",
+  "skill_type": "魔攻",
+  "power": 85,
+  "energy_cost": 3,
+  "description": "✦造成魔伤，若敌方本回合更换精灵，本次攻击使敌方获得萌化。",
+  "effects": [
+    {
+      "when": {
+        "cond": "opp_switched"
+      },
+      "then": [
+        {
+          "op": "abnormal",
+          "target": "sprite_opp",
+          "name": "萌化",
+          "stacks": 1
+        }
+      ]
+    }
+  ]
+}

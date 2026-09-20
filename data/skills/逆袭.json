@@ -3,8 +3,8 @@
   "name": "逆袭",
   "element": "普通",
   "skill_type": "物攻",
-  "power": 100,
-  "energy_cost": 3,
+  "power": 55,
+  "energy_cost": 1,
   "effects": [
     {
       "target": "skill_off_0",

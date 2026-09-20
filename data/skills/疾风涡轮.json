@@ -1,0 +1,9 @@
+{
+  "id": 10722,
+  "name": "疾风涡轮",
+  "element": "翼",
+  "skill_type": "物攻",
+  "power": 100,
+  "energy_cost": 0,
+  "description": "✦造成物伤，无法主动使用，在使用3次翼系技能后会自动使用此技能。"
+}

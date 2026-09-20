@@ -3,7 +3,7 @@
   "name": "撕咬",
   "element": "恶",
   "skill_type": "物攻",
-  "power": 30,
+  "power": 20,
   "energy_cost": 3,
   "combo": 3,
   "effects": [

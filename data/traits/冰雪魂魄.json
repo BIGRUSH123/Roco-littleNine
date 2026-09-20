@@ -1,0 +1,25 @@
+{
+  "id": 20194,
+  "name": "冰雪魂魄",
+  "description": "天气为暴风雪时，冰系技能威力+100%。",
+  "effects": [
+    {
+      "op": "observer",
+      "cond": {
+        "cond": "weather_is",
+        "weather": "暴风雪"
+      },
+      "listen": "pre_calc",
+      "scope": "battlefield",
+      "then": [
+        {
+          "op": "mult_mod",
+          "target": "sprite_self",
+          "attr": "power_mult",
+          "value": 1.0,
+          "element": "冰"
+        }
+      ]
+    }
+  ]
+}

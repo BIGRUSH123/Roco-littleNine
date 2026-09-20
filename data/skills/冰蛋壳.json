@@ -10,7 +10,7 @@
       "target": "sprite_self",
       "op": "mult_mod",
       "attr": "damage_reduction",
-      "value": 0.6
+      "value": 0.7
     },
     {
       "when": {
@@ -26,5 +26,5 @@
       ]
     }
   ],
-  "description": "✦减伤60%，应对攻击：敌方获得2层减速印记。"
+  "description": "✦减伤70%，应对攻击：敌方获得2层减速印记。"
 }

@@ -1,0 +1,32 @@
+{
+  "id": 11027,
+  "name": "野火",
+  "element": "火",
+  "skill_type": "状态",
+  "energy_cost": 1,
+  "description": "✦选择：敌方获得7层灼烧或物防-90%。",
+  "choices": [
+    {
+      "name": "明",
+      "effects": [
+        {
+          "op": "abnormal",
+          "target": "sprite_opp",
+          "name": "灼烧",
+          "stacks": 7
+        }
+      ]
+    },
+    {
+      "name": "暗",
+      "effects": [
+        {
+          "op": "stat_stage",
+          "target": "sprite_opp",
+          "stat": "def",
+          "steps": -9
+        }
+      ]
+    }
+  ]
+}

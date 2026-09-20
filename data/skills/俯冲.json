@@ -1,0 +1,17 @@
+{
+  "id": 10960,
+  "name": "俯冲",
+  "element": "翼",
+  "skill_type": "物攻",
+  "power": 105,
+  "energy_cost": 7,
+  "description": "✦造成物伤，先手+1。",
+  "effects": [
+    {
+      "op": "power_mod",
+      "target": "skill_off_0",
+      "attr": "priority",
+      "delta": 1
+    }
+  ]
+}

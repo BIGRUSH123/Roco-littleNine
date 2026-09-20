@@ -1,7 +1,7 @@
 {
   "id": 20056,
   "name": "扫拖一体",
-  "description": "回合结束时驱散敌方1层印记，己方队伍获得1次随机奉献。",
+  "description": "回合结束时驱散敌方1层印记，且驱散后己方队伍获得1次随机奉献。",
   "effects": [
     {
       "op": "observer",
@@ -17,8 +17,7 @@
           "what": "mark"
         },
         {
-          "op": "mod",
-          "stat": "devotion",
+          "op": "devotion",
           "target": "team_own",
           "value": 1,
           "mode": "add"

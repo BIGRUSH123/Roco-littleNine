@@ -1,7 +1,7 @@
 {
   "id": 20102,
   "name": "石天平",
-  "description": "若使用技能能耗高于敌方，回合末敌方失去能耗之差的能量。",
+  "description": "若使用技能能耗高于敌方，回合结束敌方失去能耗之差的能量。",
   "effects": [
     {
       "op": "observer",
@@ -24,7 +24,7 @@
       "scope": "persistent",
       "then": [
         {
-          "op": "schedule",
+          "op": "defer",
           "turns": 0,
           "at": "turn_end",
           "then": [

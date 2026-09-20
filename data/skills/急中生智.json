@@ -1,0 +1,26 @@
+{
+  "id": 10981,
+  "name": "急中生智",
+  "element": "普通",
+  "skill_type": "魔攻",
+  "power": 80,
+  "energy_cost": 3,
+  "description": "✦造成魔伤，自己有减益时，本次技能威力+40。",
+  "effects": [
+    {
+      "when": {
+        "cond": "have",
+        "what": "any_stat_negative",
+        "of": "sprite_self"
+      },
+      "then": [
+        {
+          "op": "power_mod",
+          "target": "skill_off_0",
+          "attr": "power",
+          "delta": 40
+        }
+      ]
+    }
+  ]
+}

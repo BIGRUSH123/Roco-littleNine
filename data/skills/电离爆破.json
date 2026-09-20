@@ -3,16 +3,23 @@
   "name": "电离爆破",
   "element": "电",
   "skill_type": "状态",
-  "energy_cost": 3,
-  "combo": 3,
+  "energy_cost": 1,
+  "combo": 2,
   "effects": [
     {
       "target": "sprite_opp",
       "op": "stat_stage",
       "per_hit": true,
+      "stat": "sp_atk",
+      "steps": -2
+    },
+    {
+      "target": "sprite_opp",
+      "op": "stat_stage",
+      "per_hit": true,
       "stat": "speed",
-      "steps": -4
+      "steps": -2
     }
   ],
-  "description": "✦敌方获得速度-40，3连击。"
+  "description": "✦敌方获得魔攻-20%，速度-20，2连击。"
 }

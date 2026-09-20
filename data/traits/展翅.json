@@ -1,0 +1,45 @@
+{
+  "id": 20178,
+  "name": "展翅",
+  "description": "在场时，自己携带的普通系技能变为翼系技能，若后于敌方行动，自己受到的伤害+25%。",
+  "effects": [
+    {
+      "op": "observer",
+      "listen": "post_entry",
+      "scope": "battlefield",
+      "cond": {
+        "cond": "sprite_entered",
+        "of": "sprite_self"
+      },
+      "then": [
+        {
+          "op": "element_convert",
+          "target": "sprite_self",
+          "from": "普通",
+          "to": "翼",
+          "skill_filter": "all",
+          "source": "展翅"
+        }
+      ]
+    },
+    {
+      "op": "observer",
+      "listen": "pre_resolve",
+      "scope": "battlefield",
+      "cond": {
+        "cond": "is_second"
+      },
+      "then": [
+        {
+          "op": "mult_mod",
+          "target": "sprite_self",
+          "attr": "damage_reduction",
+          "value": -0.25,
+          "mode": "add",
+          "scope": "turn",
+          "source": "展翅"
+        }
+      ]
+    }
+  ]
+}

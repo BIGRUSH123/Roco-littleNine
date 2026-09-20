@@ -1,0 +1,35 @@
+{
+  "id": 20180,
+  "name": "大火球",
+  "description": "自己使用2次不同的火系技能后，下次技能无需蓄力，随后特性重置。",
+  "effects": [
+    {
+      "op": "observer",
+      "cond": {
+        "cond": "compare",
+        "q": "team_counter",
+        "of": "team_own",
+        "name": "distinct_elem:火",
+        "op": "gte",
+        "value": 2
+      },
+      "listen": "post_skill",
+      "scope": "battlefield",
+      "then": [
+        {
+          "op": "flag_set",
+          "target": "sprite_self",
+          "flag": "pre_charged",
+          "value": true,
+          "scope": "persistent"
+        },
+        {
+          "op": "team_counter",
+          "target": "own",
+          "key": "distinct_elem:火",
+          "delta": -2
+        }
+      ]
+    }
+  ]
+}

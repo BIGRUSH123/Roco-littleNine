@@ -1,15 +1,19 @@
 {
   "id": 20101,
   "name": "目空",
-  "description": "非光系技能威力+25%。",
+  "description": "携带的非光系技能，威力+25%。",
   "effects": [
     {
-      "op": "power_mod",
+      "op": "mult_mod",
       "target": "sprite_self",
       "attr": "power_mult",
-      "delta": 0.25,
+      "value": 0.25,
       "mode": "add",
-      "skill_where": {"q": "element", "op": "neq", "value": "光"},
+      "skill_where": {
+        "q": "element",
+        "op": "neq",
+        "value": "光"
+      },
       "scope": "permanent",
       "source": "目空"
     }

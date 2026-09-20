@@ -1,0 +1,30 @@
+{
+  "id": 10977,
+  "name": "委屈",
+  "element": "萌",
+  "skill_type": "防御",
+  "energy_cost": 4,
+  "counter": "攻击",
+  "effects": [
+    {
+      "target": "sprite_self",
+      "op": "mult_mod",
+      "attr": "damage_reduction",
+      "value": 0.7
+    },
+    {
+      "when": {
+        "cond": "counter_succeeded"
+      },
+      "then": [
+        {
+          "op": "mark",
+          "target": "team_own",
+          "name": "萌芽",
+          "stacks": 1
+        }
+      ]
+    }
+  ],
+  "description": "✦减伤70%，应对攻击：自己获得1层萌芽印记。"
+}

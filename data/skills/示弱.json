@@ -3,7 +3,7 @@
   "name": "示弱",
   "element": "萌",
   "skill_type": "状态",
-  "energy_cost": 1,
+  "energy_cost": 2,
   "effects": [
     {
       "target": "sprite_self",
@@ -16,10 +16,10 @@
           "target": "sprite_self",
           "scope": "permanent",
           "stat": "speed",
-          "steps": 15
+          "steps": 13
         }
       ]
     }
   ],
-  "description": "✦自己获得萌化：速度永久+150。"
+  "description": "✦自己获得萌化：速度永久+130。"
 }

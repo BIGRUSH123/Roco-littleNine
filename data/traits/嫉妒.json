@@ -1,7 +1,7 @@
 {
   "id": 20151,
   "name": "嫉妒",
-  "description": "蓄力状态下可使用任一携带技能。",
+  "description": "蓄力状态下，可以使用任一携带技能。",
   "effects": [
     {
       "op": "observer",

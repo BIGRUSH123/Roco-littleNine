@@ -1,7 +1,7 @@
 {
   "id": 20072,
   "name": "构装契约者",
-  "description": "入场时若敌方魔力值为1，获得双防+50%。",
+  "description": "入场时，若敌方魔力值为1，自己获得双防+100%。",
   "effects": [
     {
       "op": "observer",
@@ -26,14 +26,14 @@
           "op": "mult_mod",
           "target": "sprite_self",
           "attr": "def",
-          "value": 0.5,
+          "value": 1.0,
           "mode": "add"
         },
         {
           "op": "mult_mod",
           "target": "sprite_self",
           "attr": "sp_def",
-          "value": 0.5,
+          "value": 1.0,
           "mode": "add"
         }
       ],

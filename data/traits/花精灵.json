@@ -12,8 +12,7 @@
       "scope": "persistent",
       "then": [
         {
-          "op": "mod",
-          "stat": "devotion",
+          "op": "devotion",
           "target": "team_own",
           "value": 1,
           "mode": "add"

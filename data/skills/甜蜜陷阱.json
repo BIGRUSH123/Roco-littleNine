@@ -1,0 +1,21 @@
+{
+  "id": 11003,
+  "name": "甜蜜陷阱",
+  "element": "草",
+  "skill_type": "魔攻",
+  "power": 50,
+  "energy_cost": 4,
+  "description": "✦造成魔伤，自己每有1能量，本次技能威力+10。",
+  "effects": [
+    {
+      "op": "power_mod",
+      "target": "skill_off_0",
+      "attr": "power",
+      "delta": {
+        "q": "energy",
+        "of": "sprite_self",
+        "scale": 10
+      }
+    }
+  ]
+}

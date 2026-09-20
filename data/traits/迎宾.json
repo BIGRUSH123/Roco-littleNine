@@ -1,0 +1,23 @@
+{
+  "id": 20202,
+  "name": "迎宾",
+  "description": "自己或其他精灵离场时，更换入场的精灵获得萌化。",
+  "effects": [
+    {
+      "op": "observer",
+      "cond": {
+        "cond": "opp_switched"
+      },
+      "listen": "post_enemy_leave",
+      "scope": "battlefield",
+      "then": [
+        {
+          "op": "abnormal",
+          "target": "sprite_opp",
+          "name": "萌化",
+          "stacks": 1
+        }
+      ]
+    }
+  ]
+}

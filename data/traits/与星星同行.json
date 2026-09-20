@@ -1,0 +1,28 @@
+{
+  "id": 20201,
+  "name": "与星星同行",
+  "description": "攻击时，将敌方所有印记变为相同层数的星陨印记。",
+  "effects": [
+    {
+      "op": "observer",
+      "listen": "post_skill",
+      "scope": "battlefield",
+      "cond": {
+        "cond": "skill_use",
+        "skill_type": "attack"
+      },
+      "then": [
+        {
+          "op": "mark",
+          "target": "team_opp",
+          "action": "convert_all",
+          "name": "星陨印记",
+          "value": {
+            "q": "mark_count",
+            "of": "team_opp"
+          }
+        }
+      ]
+    }
+  ]
+}

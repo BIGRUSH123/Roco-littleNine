@@ -1,7 +1,7 @@
 {
   "id": 20034,
   "name": "壮胆",
-  "description": "队伍存在虫系精灵，自己获得双攻+50%",
+  "description": "队伍存在虫系精灵，自己获得双攻+50%。",
   "effects": [
     {
       "op": "observer",

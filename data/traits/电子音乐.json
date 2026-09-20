@@ -1,0 +1,33 @@
+{
+  "id": 20193,
+  "name": "电子音乐",
+  "description": "天气为雷鸣时，使用电系技能后敌方获得引电。",
+  "effects": [
+    {
+      "op": "observer",
+      "cond": {
+        "cond": "and",
+        "conditions": [
+          {
+            "cond": "weather_is",
+            "weather": "雷鸣"
+          },
+          {
+            "cond": "skill_use",
+            "element": "电"
+          }
+        ]
+      },
+      "listen": "post_skill",
+      "scope": "battlefield",
+      "then": [
+        {
+          "op": "abnormal",
+          "target": "sprite_opp",
+          "name": "引电",
+          "stacks": 1
+        }
+      ]
+    }
+  ]
+}

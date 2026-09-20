@@ -1,0 +1,24 @@
+{
+  "id": 11004,
+  "name": "相位移动",
+  "element": "机械",
+  "skill_type": "防御",
+  "energy_cost": 1,
+  "counter": "攻击",
+  "tag": "传动",
+  "effects": [
+    {
+      "target": "sprite_self",
+      "op": "mult_mod",
+      "attr": "damage_reduction",
+      "value": 0.5
+    },
+    {
+      "target": "sprite_self",
+      "op": "mult_mod",
+      "attr": "damage_reduction",
+      "value": 0.4
+    }
+  ],
+  "description": "✦减伤50%，本技能位于1号位或3号位时，额外减伤40%，应对攻击，传动1。"
+}

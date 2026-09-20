@@ -1,0 +1,55 @@
+{
+  "id": 10989,
+  "name": "撒花",
+  "element": "草",
+  "skill_type": "魔攻",
+  "power": 95,
+  "energy_cost": 4,
+  "counter": "状态",
+  "effects": [],
+  "description": "✦造成魔伤，选择：自己生命大于80%时威力+50或应对状态时自己回复35%生命。",
+  "choices": [
+    {
+      "name": "明",
+      "cond": {
+        "cond": "compare",
+        "q": "hp_ratio",
+        "of": "sprite_self",
+        "op": "gt",
+        "value": 0.8
+      },
+      "effects": [
+        {
+          "op": "power_mod",
+          "target": "skill_off_0",
+          "attr": "power",
+          "delta": 50
+        }
+      ]
+    },
+    {
+      "name": "暗",
+      "cond": {
+        "cond": "and",
+        "conditions": [
+          {
+            "cond": "counter_succeeded"
+          },
+          {
+            "cond": "not",
+            "condition": {
+              "cond": "opp_is_attack"
+            }
+          }
+        ]
+      },
+      "effects": [
+        {
+          "op": "heal",
+          "target": "sprite_self",
+          "ratio": 0.35
+        }
+      ]
+    }
+  ]
+}
