@@ -20,7 +20,7 @@ _PRIORITY_STEP = 1   # 先手：1步=1
 _ENERGY_STEP = 1     # 能耗：1步=1
 
 # 非百分比型 stat_key（直接累加步数×单位，不做乘法）
-_NON_PCT_KEYS: frozenset[str] = frozenset({'power', 'priority', 'energy_cost', 'combo', 'life_drain', 'combo_mult'})
+_NON_PCT_KEYS: frozenset[str] = frozenset({'power', 'priority', 'energy_cost', 'combo', 'life_drain', 'combo_mult', 'speed_flat'})
 
 
 @dataclass
@@ -54,6 +54,7 @@ class Sprite:
     _cached_charging: bool = False
     _cached_charged: bool = False
     _cached_positive: int = 0
+    _has_grant: bool = field(default=False, repr=False)  # 是否携带 GrantEffect（机制声明）
 
     # ── 属性缓存（减少重复计算，避免 build_ctx 时重复计算 base * (1+mod)） ──
     _stat_cache_dirty: bool = field(default=True, repr=False)
@@ -171,7 +172,16 @@ class Sprite:
                 return total_steps
         base = self.initial_stats.get(stat_key, 0)
         if stat_key == 'speed':
-            return max(0, base + total_steps * _SPEED_STEP)
+            # 速度三段：基础 + 步数（1步=10点）+ 点数零头（speed_flat，1点=1点），
+            # 最后乘 _modifiers["speed"] 的百分比修正（「攻防速+20%」类）。
+            flat = self._cached_stages.get('speed_flat', 0) if \
+                not (ignore_negative or ignore_positive) else self._sum_steps(
+                    'speed_flat', ignore_negative, ignore_positive)
+            total = base + total_steps * _SPEED_STEP + flat
+            ratio = self._modifiers.get('speed', 0.0)
+            if ratio:
+                total = total * (1.0 + ratio)
+            return max(0, round(total))
         return max(0, round(base * (1.0 + total_steps / _STEP_PCT)))
 
     @property
@@ -332,6 +342,15 @@ class Sprite:
         changed = len(new_effects) != len(old_effects)
         if changed:
             self.active_effects = new_effects
+            # 机制声明被清除（离场/驱散）→ 同步归零 aura 追踪计数：
+            # 由该声明施加的属性步数已随 scope 一起清除，追踪值必须同步，
+            # 否则换人回来后重算会认为「已应用」而不再补步数。
+            from backend.vm.effect import GrantEffect
+            for e in old_effects:
+                if isinstance(e, GrantEffect) and e.mechanism == "aura":
+                    key = f"aura:{e.source}:{e.payload.get('stat', '')}"
+                    if self.counters.get(key):
+                        self.counters[key] = 0
         # 清除不可见 modifier（_mod_scopes 中记录的 key）
         for mod_key, mod_scope in list(self._mod_scopes.items()):
             if mod_scope == scope or (scope in ('battlefield', 'turn') and mod_scope == 'aura'):
@@ -406,13 +425,14 @@ class Sprite:
 
     def _rebuild_effects_cache(self) -> None:
         """O(N) 全量重建效果统计缓存（仅在 dirty 且被读取时触发）。"""
-        from backend.vm.effect import AbnormalEffect, StatBuffEffect, StateEffect
+        from backend.vm.effect import AbnormalEffect, GrantEffect, StatBuffEffect, StateEffect
 
         self._cached_stages.clear()
         self._cached_abnormals.clear()
         self._cached_charging = False
         self._cached_charged = False
         self._cached_positive = 0
+        self._has_grant = False
 
         for e in self.active_effects:
             if isinstance(e, StatBuffEffect):
@@ -426,7 +446,17 @@ class Sprite:
                     self._cached_charging = True
                 elif e.state_type == "charged" or e.name == "charged":
                     self._cached_charged = True
+            elif isinstance(e, GrantEffect):
+                self._has_grant = True
         self._effects_dirty = False
+
+    @property
+    def has_grants(self) -> bool:
+        """是否携带机制声明（aura / element_convert / morph / grant_choice）。"""
+        if self._effects_dirty:
+            self._rebuild_effects_cache()
+        return self._has_grant
+
 
     def get_effects_snapshot(self) -> dict:
         """返回效果统计快照 {stages, abnormals, charging, charged, positive}，O(1) 读取。
@@ -793,13 +823,27 @@ class Sprite:
         return removed
 
     def _build_moe_chain(self, battle) -> None:
-        """从当前物种沿 pre_species 向下走到最低形态。"""
+        """从当前物种沿 pre_species 向下走到最低形态。
+
+        首领形态的 pre_species 指向自身编号（语义：先退回同编号基础形态），
+        因此每一跳都要带上当前外观去查，并按「编号+名字+外观」去重——否则链
+        会在同编号的首领/基础形态之间打转。注意身份键必须含**名字**：204 的
+        伊兰龙(首领)/伊兰亚龙(基础) 编号与外观都相同，只用编号+外观会把合法的
+        一跳退化误判成环而短路。无去重保护时该循环既不收敛、又每次迭代读一个
+        JSON（sprite_db._read_one 无缓存），实测单回合 >1000 秒。
+        参见 native/tools/check_pre_species_cycles.py 的数据侧体检。
+        """
         chain = [self.species]
+        seen = {(self.species.number, self.species.name, self.species.appearance)}
         current = self.species
         while current.pre_species:
-            pre = battle.lookup_species_by_number(current.pre_species)
+            pre = battle.lookup_species_by_number(current.pre_species, current.appearance)
             if pre is None:
                 break
+            key = (pre.number, pre.name, pre.appearance)
+            if key in seen:
+                break
+            seen.add(key)
             chain.append(pre)
             current = pre
         self._moe_chain = chain

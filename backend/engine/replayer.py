@@ -16,6 +16,7 @@ from backend.vm.journal import (
     BurstGrant,
     Charge,
     CounterRegister,
+    CounterWrite,
     Damage,
     Dispel,
     Double,
@@ -31,10 +32,12 @@ from backend.vm.journal import (
     LivesDelta,
     Lock,
     MarkChange,
+    MechanismGrant,
     ModifierInjection,
     Mutation,
     Redirect,
     Replay,
+    ReplayChoice,
     Reset,
     Return,
     ScheduleEntry,
@@ -83,13 +86,14 @@ _SPEED_STEP = 10       # 速度：1步=10点
 # Value → steps: non-speed: steps = int(value * 10); speed: steps = int(value / 10).
 _STAGE_STATS: frozenset[str] = frozenset({
     "atk", "def", "sp_atk", "sp_def", "speed",
+    "speed_flat",  # 速度点数（1 step = 1 点，零头通道）
 })
 
 # Chinese labels for stat keys (modifiers + stage stats)
 _STAT_LABELS: dict[str, str] = {
-    # Stage stats (1步=10%, speed=10点)
+    # Stage stats (1步=10%, speed=10点, speed_flat=1点)
     "atk": "物攻", "sp_atk": "魔攻", "def": "物防", "sp_def": "魔防",
-    "speed": "速度",
+    "speed": "速度", "speed_flat": "速度",
     # Modifier stats
     "energy_cost": "能耗",
     "power": "威力",
@@ -112,7 +116,7 @@ _STAT_LABELS: dict[str, str] = {
 
 # Step unit for display conversion: steps → display value
 _STEP_UNIT: dict[str, int] = {
-    "power": 10, "speed": 10, "life_drain": 10,
+    "power": 10, "speed": 10, "speed_flat": 1, "life_drain": 10,
     "priority": 1, "energy_cost": 1, "combo": 1,
 }
 
@@ -204,6 +208,15 @@ def _apply_to_matching_skills(sprite, m, mark_energy_mod: int = 0, replayer=None
         st = skill_info.get("skill_type", "")
         if m.skill_filter and not _matches_skill_type(m.skill_filter, st):
             continue
+        # Element filter: "光" matches exactly; "!幻" excludes the element
+        if m.element:
+            expected = m.element[1:] if m.element.startswith("!") else m.element
+            actual = skill_info.get("element", "")
+            if m.element.startswith("!"):
+                if actual == expected:
+                    continue
+            elif actual != expected:
+                continue
         cur = bs_mods.get(m.stat, 0.0)
         if m.mode == "add":
             bs_mods[m.stat] = cur + delta
@@ -222,10 +235,13 @@ def _apply_to_matching_skills(sprite, m, mark_energy_mod: int = 0, replayer=None
             "mode": m.mode,
             "skill_where": m.skill_where,
             "skill_filter": m.skill_filter,
+            "element": m.element,
             "source": m.source,
         }
         if not m.skill_filter:
             del effect_dict["skill_filter"]
+        if not m.element:
+            del effect_dict["element"]
         if not m.source:
             del effect_dict["source"]
         if m.ttl > 0:
@@ -413,8 +429,17 @@ class JournalReplayer:
         if m.steps < 0 and m.stat in _STAGE_STATS:
             if self._check_immune(sprite, "immune_stat_down", m.stat):
                 return "" if self.is_headless else f"{sprite.name} 免疫{_STAT_LABELS.get(m.stat, m.stat)}降低"
+        steps = m.steps
+        # 萌芽印记：携带方获得增益时，额外获得 buff_bonus_layers×层数 层
+        if (steps > 0 and m.stat in _STAGE_STATS and self._battle is not None):
+            team = self.team
+            if m.target in ("sprite_opp", "opp", "team_opp"):
+                team = "B" if self.team == "A" else "A"
+            sprout = self._battle.globals.get_mark_by_name(team, "萌芽印记")
+            if sprout is not None and sprout.buff_bonus_layers:
+                steps = steps + sprout.buff_bonus_layers * sprout.stacks
         # 同步战斗逻辑所需数据到 active_effects（影响编码器输入）
-        self._sync_stat_buff_effect(sprite, m.stat, m.steps, m.scope,
+        self._sync_stat_buff_effect(sprite, m.stat, steps, m.scope,
                                     m.source or "skill",
                                     is_inherent=self._trait_sourcing)
         # ── 以下为纯 UI 显示逻辑，MCTS 仿真模式跳过 ──
@@ -423,17 +448,21 @@ class JournalReplayer:
         label = _STAT_LABELS.get(m.stat, m.stat)
         unit = _STEP_UNIT.get(m.stat, 10)
         if m.stat in ('priority', 'energy_cost', 'combo'):
-            display = f'{label}{m.steps * unit:+d}' if m.steps != 0 else f'{label}{m.steps:+d}'
-        elif m.stat in ('speed', 'power'):
-            display = f'{label}{m.steps * unit:+d}'
+            display = f'{label}{steps * unit:+d}' if steps != 0 else f'{label}{steps:+d}'
+        elif m.stat in ('speed', 'speed_flat', 'power'):
+            display = f'{label}{steps * unit:+d}'
         else:
-            display = f'{label}{m.steps * unit:+d}%'
+            display = f'{label}{steps * unit:+d}%'
         # Stage stats from traits: create display-only effect for trait tooltip
         if m.stat in _STAGE_STATS:
             source = m.source or ""
             if m.stat == "speed":
                 self._sync_mult_display_effect(sprite, m.stat, 0.0, m.scope, source,
                                                 display_value=float(m.steps * _SPEED_STEP),
+                                                additive=True)
+            elif m.stat == "speed_flat":
+                self._sync_mult_display_effect(sprite, m.stat, 0.0, m.scope, source,
+                                                display_value=float(m.steps),
                                                 additive=True)
             else:
                 mult_value = m.steps * (_STEP_PCT / 100)
@@ -501,6 +530,17 @@ class JournalReplayer:
             return f"{sprite.name} 获得待机效果: {label}{m.value:+}"
 
         skill_scoped = m.target.startswith("skill_") if m.target else False
+
+        # ── speed_flat：速度点数通道（1 点 = 1 点）──
+        # 写入阶段效果（StatBuffEffect），战斗逻辑（effective_stat）与快照
+        # （speed_self/speed_opp）都读它；与 attr:"speed" 的百分比通道并存。
+        if m.stat == "speed_flat" and not skill_scoped:
+            steps = int(m.value)
+            self._sync_stat_buff_effect(sprite, "speed_flat", steps, m.scope,
+                                        m.source or "skill", mode=m.mode)
+            if self.is_headless:
+                return ""
+            return f"{sprite.name} 速度{steps:+d}"
 
         # ── skill_filter "all" on sprite target: distribute to every BattleSkill ──
         if not skill_scoped and m.skill_filter == "all" and m.stat in _SKILL_DISTRIBUTE_STATS:
@@ -704,8 +744,41 @@ class JournalReplayer:
                 return f"{skill_name} 获得{label}"
         return f"{sprite.name} {label}{final:+.0f}"
 
+    def _apply_replay_choice(self, m) -> str:
+        """replay_branch: 重放本次「选择」技能的目标分支（有求必应/一意孤行）。"""
+        battle = self._battle
+        info = getattr(battle, "_last_choice_execution", None) if battle else None
+        if not info:
+            return ""
+        choices = info.get("choices") or ()
+        if not choices:
+            return ""
+        cur = info.get("branch", 0)
+        idx = cur if m.which == "same" else (cur + 1) % len(choices)
+        chosen = choices[idx]
+        if chosen.get("cond") is not None:
+            return ""  # 条件分支不自动重放
+        effects = list(chosen.get("effects") or ())
+        if not effects:
+            return ""
+        try:
+            record = battle._get_skill_record(info.get("skill_name", ""))
+        except Exception:
+            record = None
+        ctx = battle._make_ctx(self.self, self.opp, record, None, self.globals,
+                               team=self.team, turn=battle.turn)
+        sub_journal = vm_execute(ctx, effects)
+        ev = self.replay(sub_journal)
+        return " ".join(ev) if ev else ""
+
     def _apply_damage(self, m: Damage) -> str:
         sprite = self._target_sprite(m.target)
+        # on_fatal_damage hook: 致命伤落地前拦截（如 不死鸟 锁血），返回 True 表示已处理
+        if m.amount >= sprite.current_hp and self._battle is not None:
+            from backend.sim.traits.trait_engine import fire_hook_first
+            handled = fire_hook_first('on_fatal_damage', sprite, m.amount, self._battle, self.team)
+            if handled:
+                return f"{sprite.name} 保留1HP!"
         actual = sprite.take_damage(m.amount)
 
         # Life drain: attacker heals by a percentage of damage dealt.
@@ -732,6 +805,25 @@ class JournalReplayer:
         return f"{sprite.name} +{actual}HP"
 
     def _apply_energy_change(self, m: EnergyChange) -> str:
+        # ── Team-level targets: apply to every (non-fainted) sprite of the team ──
+        if m.target in ("team_own", "team_own_benched", "team_both") and self._battle is not None:
+            player = self._battle.get_player(self.team)
+            if m.target == "team_own_benched":
+                targets = [s for i, s in enumerate(player.team) if i != player.active_index]
+            else:
+                targets = list(player.team)
+            if m.target == "team_both":
+                targets += list(self._battle.get_opponent(self.team).team)
+            parts: list[str] = []
+            total = 0
+            for sp in targets:
+                if sp.is_fainted:
+                    continue
+                actual = sp.gain_energy(m.delta) if m.delta > 0 else sp.lose_energy(-m.delta)
+                total += actual
+                parts.append(f"{sp.name} {'+' if m.delta > 0 else '-'}{actual}E")
+            self._energy_deltas[id(m)] = total if m.delta > 0 else -total
+            return " ".join(parts) if parts else ""
         sprite = self._target_sprite(m.target)
         if m.delta > 0:
             actual = sprite.gain_energy(m.delta)
@@ -741,6 +833,44 @@ class JournalReplayer:
             actual = sprite.lose_energy(-m.delta)
             self._energy_deltas[id(m)] = -actual
             return f"{sprite.name} -{actual}E"
+
+    def _apply_mechanism_grant(self, m: MechanismGrant) -> str:
+        """挂载机制声明（aura / element_convert / morph / grant_choice）。
+
+        声明是挂在该精灵身上的 GrantEffect，随 scope 生命周期清除；
+        消费端（mechanisms.element_for / morph_category / choices_for、
+        mechanisms.refresh）在需求值，因此这里只需维护声明本身。
+        """
+        from backend.vm.effect import GrantEffect
+
+        sprite = self._target_sprite(m.target)
+        if sprite is None:
+            return ""
+        for e in sprite.active_effects:
+            if isinstance(e, GrantEffect) and e.mechanism == m.mechanism \
+                    and e.source == m.source and e.payload == m.payload:
+                e.scope = m.scope or e.scope
+                e.ttl = 0
+                return ""
+        sprite.active_effects.append(GrantEffect(
+            name=f"{m.mechanism}:{m.source}", source=m.source, scope=m.scope,
+            mechanism=m.mechanism, affects=m.affects, payload=dict(m.payload),
+        ))
+        sprite._invalidate_effects_cache()
+        return ""
+
+    def _apply_counter_write(self, m: CounterWrite) -> str:
+        """精灵级计数器写入（add / set）。"""
+        sprite = self._target_sprite(m.target)
+        if sprite is None:
+            return ""
+        if m.mode == "set":
+            sprite.counters[m.key] = m.delta
+        else:
+            sprite.counters[m.key] = sprite.counters.get(m.key, 0) + m.delta
+        if self.is_headless:
+            return ""
+        return f"{sprite.name} 计数 {m.key}={sprite.counters.get(m.key, 0)}"
 
     def _apply_mark_change(self, m: MarkChange) -> str:
         """Apply, dispel, steal, or convert marks."""
@@ -764,6 +894,24 @@ class JournalReplayer:
                         self.globals.mark_effects.get(team, []).remove(mark)
                     return f"{self.self.name} 驱散{team}方{m.name}×{removed}"
             return ""
+
+        if m.action == "convert_all":
+            # 合并目标队伍全部印记为一枚同层数印记（与星星同行）
+            from backend.vm.effect import MarkEffect
+
+            team = self.team if m.target_team == "own" else ("B" if self.team == "A" else "A")
+            marks = self.globals.mark_effects.get(team, [])
+            total = sum(getattr(mk, 'stacks', 0) for mk in marks
+                        if isinstance(mk, MarkEffect))
+            target_total = int(m.delta) if m.delta else total
+            if total <= 0 and target_total <= 0:
+                return ""
+            self.globals.mark_effects[team] = []
+            if target_total > 0:
+                category = self.globals.classify_mark(m.name)
+                coexist = bool(self.self._modifiers.get("mark_coexist", False))
+                self.globals.apply_mark(team, m.name, category, target_total, coexist=coexist)
+            return f"{team}队 印记合并 → {m.name}×{target_total}"
 
         if m.action == "steal":
             opp_team = "B" if self.team == "A" else "A"
@@ -850,7 +998,38 @@ class JournalReplayer:
         self._sync_abnormal_effect(sprite, m.name, m.delta, m.scope)
         if m.name == '萌化':
             self._invalidate_battle_ctx_cache()
-        return f"{sprite.name} {m.name} +{m.delta}层"
+        events = [f"{sprite.name} {m.name} +{m.delta}层"]
+        # 层数阈值即时效果（引电：2 层 → 25% 生命电系伤害并失去 2 层）
+        if m.delta > 0:
+            ev = self._apply_abnormal_threshold(sprite, m.name)
+            if ev:
+                events.append(ev)
+        return " ".join(events)
+
+    def _apply_abnormal_threshold(self, sprite, name: str) -> str:
+        """异常的层数阈值效果（模板字段 threshold_* 驱动，通用规则）。"""
+        from backend.engine.abnormal_config import ABNORMAL_TEMPLATES
+
+        template = ABNORMAL_TEMPLATES.get(name)
+        if template is None or not getattr(template, 'threshold_stacks', 0):
+            return ""
+        stacks = sprite.get_stacks(name)
+        if stacks < template.threshold_stacks:
+            return ""
+        # 免疫系别（引电：电系精灵免疫）
+        immune = getattr(template, 'threshold_immune_element', '')
+        if immune and immune in (getattr(sprite.species, 'elements', ()) or ()):
+            return ""
+        events: list[str] = []
+        if template.threshold_damage_pct:
+            base = max(1, round(sprite.max_hp * template.threshold_damage_pct))
+            mult = self._tick_element_mult(sprite, template.threshold_element)
+            dmg = sprite.take_damage(max(1, round(base * mult)))
+            events.append(f"{sprite.name} {name}触发-{dmg}HP")
+        if template.threshold_consume:
+            sprite.update_stacks(name, max(0, stacks - template.threshold_consume))
+            events.append(f"失去{template.threshold_consume}层{sprite.name}的{name}")
+        return " ".join(events)
 
     @staticmethod
     def _sync_abnormal_effect(sprite, name: str, delta: int, scope: str) -> None:
@@ -909,8 +1088,8 @@ class JournalReplayer:
         Creates a minimal battle adapter so apply_moe() can look up species.
         """
         class _MoeBattle:
-            def lookup_species_by_number(_self, number):
-                return self._species_lookup(number)
+            def lookup_species_by_number(_self, number, appearance=''):
+                return self._species_lookup(number, appearance)
         events = sprite.apply_moe(m.delta, _MoeBattle())
         self._invalidate_battle_ctx_cache()
         return ' | '.join(events) if events else f"{sprite.name} {m.name} +{m.delta}层"
@@ -930,8 +1109,8 @@ class JournalReplayer:
         elif m.what == "abnormal":
             if m.name == '萌化' and self._species_lookup is not None and sprite._moe_position > 0:
                 class _MoeBattle:
-                    def lookup_species_by_number(_self, number):
-                        return self._species_lookup(number)
+                    def lookup_species_by_number(_self, number, appearance=''):
+                        return self._species_lookup(number, appearance)
                 old_name = sprite.name
                 removed = sprite.remove_moe(sprite._moe_position, _MoeBattle())
                 self._invalidate_battle_ctx_cache()
@@ -1107,7 +1286,10 @@ class JournalReplayer:
         )
         if existing is not None:
             if additive:
-                existing.display_mult += mult_value
+                # None 保护：合并谓词 steps==0 可能命中 _sync_stat_buff_effect
+                # 刚创建的真实 StatBuff（display_mult=None），此前此处 TypeError
+                # 会炸断整个观察者 then-block（后续效果静默丢失）
+                existing.display_mult = (existing.display_mult or 0.0) + mult_value
                 if display_value is not None:
                     existing.display_value = (existing.display_value or 0) + display_value
             else:
@@ -1240,7 +1422,8 @@ class JournalReplayer:
         attrs = getattr(sprite.species, 'attributes', '')
         mult = 1.0
         for attr in (attrs.split(',') if attrs else []):
-            mult *= _TYPE_CHART.get(element, {}).get(attr, 1.0)
+            # strip：attributes 形如 "冰, 地"（带空格），未 strip 时查表 miss
+            mult *= _TYPE_CHART.get(element, {}).get(attr.strip(), 1.0)
         return mult
 
     def _apply_double(self, m: Double) -> str:
@@ -1672,6 +1855,7 @@ JournalReplayer._DISPATCH = {
     BurstGrant: JournalReplayer._apply_burst_grant,
     Charge: JournalReplayer._apply_charge,
     CounterRegister: JournalReplayer._apply_counter_register,
+    CounterWrite: JournalReplayer._apply_counter_write,
     Damage: JournalReplayer._apply_damage,
     Dispel: JournalReplayer._apply_dispel,
     Double: JournalReplayer._apply_double,
@@ -1686,9 +1870,11 @@ JournalReplayer._DISPATCH = {
     LivesDelta: JournalReplayer._apply_lives_delta,
     Lock: JournalReplayer._apply_lock,
     MarkChange: JournalReplayer._apply_mark_change,
+    MechanismGrant: JournalReplayer._apply_mechanism_grant,
     ModifierInjection: JournalReplayer._apply_modifier,
     Redirect: JournalReplayer._apply_redirect,
     Replay: JournalReplayer._apply_replay,
+    ReplayChoice: JournalReplayer._apply_replay_choice,
     Reset: JournalReplayer._apply_reset,
     Return: JournalReplayer._apply_return,
     ScheduleEntry: JournalReplayer._apply_schedule_entry,

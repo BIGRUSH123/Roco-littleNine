@@ -19,6 +19,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from backend.common.constants import ITEM_VARIANT_SLOTS
 from backend.engine.ai.core.mcts import NUM_ACTIONS as MCTS_NUM_ACTIONS
 from backend.engine.ai.core.vocab import VOCAB_SIZE
 
@@ -242,9 +243,19 @@ class EntityBottleneckNet(nn.Module):
         if self.with_attention:
             self.cross_attn = MutualCrossAttention(64, num_heads=4, dropout=dropout)
 
+        # ── 首领形态候选块（动作 17-21 的输入侧） ──
+        # 每个候选槽：双元素嵌入(2×16) + 可用性(1) → 16 维，5 槽展平 80 维
+        self.form_candidate_enc = nn.Sequential(
+            nn.Linear(2 * 16 + 1, 16),
+            nn.LayerNorm(16),
+            nn.GELU(),
+        )
+        form_flat_dim = ITEM_VARIANT_SLOTS * 16  # 80
+
         # ── 延迟融合 ──
-        # sp_own_flat(6*64=384) + sp_opp_flat(384) + sk_flat(10*32=320) + g_pool(32) + ast(128) = 1248
-        fusion_in = 384 + 384 + 320 + 32 + self.ast_dim  # 1248
+        # sp_own_flat(6*64=384) + sp_opp_flat(384) + sk_flat(10*32=320) + g_pool(32)
+        # + ast(128) + form(80) = 1328
+        fusion_in = 384 + 384 + 320 + 32 + self.ast_dim + form_flat_dim
         self.fusion = nn.Sequential(
             nn.Linear(fusion_in, trunk_dim),
             nn.LayerNorm(trunk_dim),
@@ -292,12 +303,13 @@ class EntityBottleneckNet(nn.Module):
             nn.Dropout(dropout),
             nn.Linear(policy_hidden, 1),
         )
+        # 道具头：16 = 愿力 + 17-21 = 进化之力的首领形态槽位
         self.item_head = nn.Sequential(
             nn.Linear(trunk_dim, policy_hidden),
             nn.LayerNorm(policy_hidden),
             nn.GELU(),
             nn.Dropout(dropout),
-            nn.Linear(policy_hidden, 1),
+            nn.Linear(policy_hidden, 1 + ITEM_VARIANT_SLOTS),
         )
 
         self._init_weights()
@@ -407,8 +419,18 @@ class EntityBottleneckNet(nn.Module):
                 mask_expanded = non_pad_mask.unsqueeze(-1).float()
                 ast_global = (ast_out * mask_expanded).sum(dim=1) / mask_expanded.sum(dim=1).clamp(min=1e-8)  # (B, 128)
 
+        # ── 首领形态候选编码 ──
+        # 与动作索引 17-21 同序：槽 k 的属性直接喂给策略头，避免靠槽位记忆。
+        # 主/副属性各占 16 维（不求和），双属性形态的差别不被压缩掉。
+        f_elems = state["form_elements"].long()        # (B, 5, 2)
+        f_avail = state["form_avail"].float()          # (B, 5)
+        f_e = self.element_emb(f_elems).reshape(B, ITEM_VARIANT_SLOTS, -1)  # (B, 5, 32)
+        f_cat = torch.cat([f_e, f_avail.unsqueeze(-1)], dim=-1)  # (B, 5, 33)
+        f_enc = self.form_candidate_enc(f_cat)         # (B, 5, 16)
+        f_flat = f_enc.reshape(B, -1)                  # (B, 80)
+
         # ── 延迟融合 ──
-        fused = torch.cat([sp_own_flat, sp_opp_flat, sk_flat, g_pool, ast_global], dim=-1)
+        fused = torch.cat([sp_own_flat, sp_opp_flat, sk_flat, g_pool, ast_global, f_flat], dim=-1)
         h = self.fusion(fused)
 
         # ── 残差塔 ──
@@ -421,8 +443,8 @@ class EntityBottleneckNet(nn.Module):
             self.skill_head(h),    # (B, 10)
             self.switch_head(h),   # (B, 5)
             self.gather_head(h),   # (B, 1)
-            self.item_head(h),     # (B, 1)
-        ], dim=-1)                 # → (B, 17)
+            self.item_head(h),     # (B, 6)  → 16 愿力 + 17-21 首领形态槽
+        ], dim=-1)                 # → (B, 22)
         return value, logits
 
     def forward_with_mask(
@@ -455,6 +477,11 @@ class EntityBottleneckNet(nn.Module):
     @classmethod
     def load(cls, path: str, device: str = "cpu") -> "EntityBottleneckNet":
         data = torch.load(path, map_location=device, weights_only=False)
+        # 兼容裸 state_dict：bc_pretrain 早期直接 torch.save(model.state_dict())，
+        # 而评估/部署/selfplay 一律走本方法读盘，不兼容就是 KeyError: 'state_dict'
+        # （实测 2026-09-20：bc_init.pt 在 evaluate_checkpoints 直接崩）。
+        if isinstance(data, dict) and "state_dict" not in data:
+            data = {"state_dict": data}
         model = cls(
             trunk_dim=data.get("trunk_dim", 256),
             num_blocks=data.get("num_blocks", 4),

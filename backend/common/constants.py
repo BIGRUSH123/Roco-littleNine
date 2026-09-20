@@ -79,3 +79,14 @@ BLOODLINES: list[str] = ELEMENTAL_BLOODLINES + SPECIAL_BLOODLINES
 
 # 不可变更的血脉
 LOCKED_BLOODLINES: frozenset[str] = frozenset(['污染', '奇异'])
+
+
+# ═══════════════════════════════════════════════
+# AI 动作空间布局（NUM_ACTIONS = 22）
+#   0-9  技能    10-14 换宠    15 聚能
+#   16   愿力
+#   17-21 进化之力的首领形态槽位（玩家选择目标形态，如圣光/圣水/圣火/圣草迪莫）
+# ═══════════════════════════════════════════════
+
+ITEM_VARIANT_SLOTS: int = 5
+ITEM_VARIANT_ACTION_BASE: int = 17

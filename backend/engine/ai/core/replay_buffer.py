@@ -13,6 +13,7 @@ from collections import deque
 import numpy as np
 import torch
 
+from backend.common.constants import ITEM_VARIANT_SLOTS
 from backend.engine.ai.core.encoder import MAX_SEQ_LEN, SPRITE_STATES_DIM
 from backend.engine.ai.core.mcts import NUM_ACTIONS
 
@@ -26,11 +27,27 @@ _OBS_SPEC: dict[str, tuple[tuple[int, ...], np.dtype]] = {
     "skill_states":    ((10, 9), np.float32),
     "global_stats":    ((15,), np.float32),
     "global_elements": ((1,), np.int32),
+    "form_elements":   ((ITEM_VARIANT_SLOTS, 2), np.int32),
+    "form_avail":      ((ITEM_VARIANT_SLOTS,), np.float32),
     "ast_tokens":      ((MAX_SEQ_LEN,), np.int32),
     "ast_values":      ((MAX_SEQ_LEN,), np.float32),
 }
 
 _OBS_KEYS = tuple(_OBS_SPEC.keys())
+
+
+def check_action_width(name: str, arr: np.ndarray) -> None:
+    """动作维度门禁：拒绝动作空间扩展（17→22）之前生成的数据。
+
+    旧数据掩码只有 17 维，静默接受会让策略头在非法槽位上学习；
+    这里直接报错并提示重新生成数据。
+    """
+    width = int(arr.shape[-1])
+    if width != NUM_ACTIONS:
+        raise ValueError(
+            f"{name} 动作维度 {width} != 当前 NUM_ACTIONS={NUM_ACTIONS}；"
+            "动作空间已扩展（首领形态槽位 17-21），请重新生成自博弈/BC 数据。"
+        )
 
 
 class DictReplayBuffer:
@@ -72,6 +89,7 @@ class DictReplayBuffer:
         outcome: float,
     ) -> None:
         """写入单条经验。"""
+        check_action_width("policy", np.asarray(policy))
         idx = self.ptr
         for key in _OBS_KEYS:
             self.buffers[key][idx] = state[key]
@@ -85,11 +103,13 @@ class DictReplayBuffer:
     def push_batch(
         self,
         states: list[dict[str, np.ndarray]],
-        policies: np.ndarray,   # (N, 17)
-        masks: np.ndarray,       # (N, 17)
+        policies: np.ndarray,   # (N, NUM_ACTIONS)
+        masks: np.ndarray,       # (N, NUM_ACTIONS)
         outcomes: np.ndarray,    # (N,)
     ) -> int:
         """批量写入（比逐条 push 更快，避免多次取模）。返回实际写入条数。"""
+        check_action_width("policies", np.asarray(policies))
+        check_action_width("masks", np.asarray(masks))
         n = min(len(states), len(policies), len(masks), len(outcomes))
         if n == 0:
             return 0
@@ -212,6 +232,8 @@ class RecentIterationsReplayBuffer:
         self.policy_buffer = np.zeros((0, NUM_ACTIONS), dtype=np.float32)
         self.mask_buffer = np.zeros((0, NUM_ACTIONS), dtype=np.float32)
         self.outcome_buffer = np.zeros((0,), dtype=np.float32)
+        self.game_id_buffer = np.zeros((0,), dtype=np.int64)
+        self._next_game_id = 0
         self.size = 0
         self._reset_obs_buffers()
 
@@ -233,6 +255,7 @@ class RecentIterationsReplayBuffer:
             self.policy_buffer = np.zeros((0, NUM_ACTIONS), dtype=np.float32)
             self.mask_buffer = np.zeros((0, NUM_ACTIONS), dtype=np.float32)
             self.outcome_buffer = np.zeros((0,), dtype=np.float32)
+            self.game_id_buffer = np.zeros((0,), dtype=np.int64)
             self.size = 0
             return
 
@@ -251,6 +274,9 @@ class RecentIterationsReplayBuffer:
         self.outcome_buffer = np.concatenate(
             [chunk["outcome"] for chunk in self._iterations], axis=0,
         )
+        self.game_id_buffer = np.concatenate(
+            [chunk["game_ids"] for chunk in self._iterations], axis=0,
+        )
         self.size = int(self.outcome_buffer.shape[0])
 
     def push_batch(
@@ -259,17 +285,35 @@ class RecentIterationsReplayBuffer:
         policies: np.ndarray,
         masks: np.ndarray,
         outcomes: np.ndarray,
+        game_ids: np.ndarray | None = None,
     ) -> int:
         """将一整轮样本作为一个 chunk 追加到 replay。"""
         n = min(len(states), len(policies), len(masks), len(outcomes))
         if n == 0:
             return 0
 
+        if game_ids is None:
+            normalized_game_ids = np.arange(
+                self._next_game_id, self._next_game_id + n, dtype=np.int64,
+            )
+            self._next_game_id += n
+        else:
+            raw_game_ids = np.asarray(game_ids[:n], dtype=np.int64)
+            normalized_game_ids = np.empty(n, dtype=np.int64)
+            mapping: dict[int, int] = {}
+            for index, raw_id in enumerate(raw_game_ids):
+                key = int(raw_id)
+                if key not in mapping:
+                    mapping[key] = self._next_game_id
+                    self._next_game_id += 1
+                normalized_game_ids[index] = mapping[key]
+
         chunk = {
             "buffers": self._stack_states(states, n),
             "policy": np.asarray(policies[:n], dtype=np.float32).copy(),
             "mask": np.asarray(masks[:n], dtype=np.float32).copy(),
             "outcome": np.asarray(outcomes[:n], dtype=np.float32).copy(),
+            "game_ids": normalized_game_ids,
         }
         self._iterations.append(chunk)
         self._rebuild_view()
@@ -308,6 +352,7 @@ class RecentIterationsReplayBuffer:
 
     def clear(self) -> None:
         self._iterations.clear()
+        self._next_game_id = 0
         self._rebuild_view()
 
 

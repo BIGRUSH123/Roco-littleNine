@@ -38,6 +38,7 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent
 from backend.common.skill_trait_ids import SKILL_ID_TO_NAME
 from backend.engine.ai.battle_log import BattleLogWriter, extract_battle_summary
 from backend.engine.ai.console import safe_print as _console_print
+from backend.engine.ai.data.meta_teams import item_from_team, load_meta_teams, spec_from_team
 from backend.engine.ai.core.encoder import encode_battle_state
 from backend.engine.ai.core.evaluator import (
     BatchedInferenceServer,
@@ -90,42 +91,199 @@ def _random_item() -> Item:
     return Item.leader() if random.random() < 0.5 else Item.wish()
 
 
-def _random_teams(
-    factory: SimFactory,
-    sprite_skills: dict[str, list[str]],
-    max_team_size: int = 3,
-    max_skills: int = 4,
-) -> tuple:
+_SKILL_TYPE_CACHE: dict[str, str] = {}
+
+
+def _skill_type(name: str) -> str:
+    """技能类型（物攻/魔攻/状态/防御…），带进程级缓存。"""
+    if name not in _SKILL_TYPE_CACHE:
+        import json as _json
+
+        p = Path("data/skills") / f"{name}.json"
+        _SKILL_TYPE_CACHE[name] = (
+            _json.loads(p.read_text(encoding="utf-8")).get("skill_type", "")
+            if p.exists() else ""
+        )
+    return _SKILL_TYPE_CACHE[name]
+
+
+_ROLE_CACHE: dict | None = None
+
+
+def _sprite_roles(factory: SimFactory, sprite_skills: dict[str, list[str]]) -> dict:
+    """按种族面板与技能池把精灵分成攻击手/辅助/坦克桶（进程级缓存）。
+
+    对齐社区配队教学（T0 工具人+推队、输出流、快攻体系）：
+    攻击手 = 种族双攻面板前 40%；坦克 = HP+双防前 30%；
+    辅助 = 技能池非攻击（工具/增益/异常）占比 ≥ 60%。允许同精灵跨桶。
+    """
+    global _ROLE_CACHE
+    if _ROLE_CACHE is not None:
+        return _ROLE_CACHE
+    from backend.common.formulas import StatsCalc
+
+    info: dict[str, dict] = {}
+    for name, skills in sprite_skills.items():
+        species = factory.sprite_db.get(name)
+        if species is None:
+            continue
+        fs = StatsCalc().compute(species).final_stats
+        n_atk = sum(1 for s in skills if _skill_type(s) in ("物攻", "魔攻"))
+        info[name] = {
+            "offense": max(fs["atk"], fs["sp_atk"]),
+            "bulk": fs["hp"] + fs["def"] + fs["sp_def"],
+            "util_frac": 1.0 - n_atk / max(1, len(skills)),
+            "n_attack": n_atk,
+            "main_attack": "atk" if fs["atk"] >= fs["sp_atk"] else "sp_atk",
+        }
+    by_off = sorted(info, key=lambda n: -info[n]["offense"])
+    by_bulk = sorted(info, key=lambda n: -info[n]["bulk"])
+    _ROLE_CACHE = {
+        "attackers": set(by_off[: int(len(info) * 0.4)]),
+        "tanks": set(by_bulk[: int(len(info) * 0.3)]),
+        "supports": {n for n, v in info.items() if v["util_frac"] >= 0.6},
+        "info": info,
+    }
+    return _ROLE_CACHE
+
+
+# 配队模板（来源：洛克王国世界社区配队教学——T0 工具人+推队 / 输出流 / 平衡队）
+_TEAM_TEMPLATES: list[dict[str, int]] = [
+    {"attacker": 3, "support": 2, "tank": 1},
+    {"attacker": 2, "support": 3, "tank": 1},
+    {"attacker": 2, "support": 2, "tank": 2},
+]
+_TEMPLATE_WEIGHTS = [0.4, 0.35, 0.25]
+
+
+def _role_skills(role: str, skills: list[str], max_skills: int) -> list[str]:
+    """按角色模板采样技能：输出 3-4 攻击；辅助/坦克 1-2 攻击 + 工具技能。"""
+    attacks = [s for s in skills if _skill_type(s) in ("物攻", "魔攻")]
+    others = [s for s in skills if s not in attacks]
+    if role == "attacker":
+        n_atk = min(len(attacks), max_skills - random.randint(0, 1))
+        n_other = min(max_skills - n_atk, len(others))
+    else:
+        n_atk = min(len(attacks), random.randint(1, 2))
+        n_other = min(max_skills - n_atk, len(others))
+        if n_atk == 0 and not n_other:
+            n_atk = 1
+    chosen = random.sample(attacks, n_atk) if n_atk else []
+    chosen += random.sample(others, n_other) if n_other else []
+    if not chosen:
+        chosen = random.sample(skills, 1)
+    random.shuffle(chosen)
+    return chosen
+
+
+def _role_iv_nature(role: str, info: dict, name: str) -> tuple[dict, str]:
+    """按角色分配 IV（三项 10）与性格（加项匹配角色主属性）。"""
     from backend.common.constants import STAT_KEYS
     from backend.common.nature import NATURE_TABLE
 
-    names = list(sprite_skills.keys())
-    random.shuffle(names)
+    v = info[name]
+    if role == "attacker":
+        fixed = [v["main_attack"], "speed"]
+        plus_want = v["main_attack"]
+    elif role == "tank":
+        fixed = ["hp", "def"]
+        plus_want = ("hp", "def", "sp_def")
+    else:
+        fixed = ["hp", "speed"]
+        plus_want = ("hp", "speed")
+    third = random.choice([k for k in STAT_KEYS if k not in fixed])
+    iv = {k: (10 if k in fixed or k == third else 0) for k in STAT_KEYS}
+    options = [n for n, (up, _down) in NATURE_TABLE.items() if up in plus_want]
+    nature = random.choice(options) if options else random.choice(list(NATURE_TABLE))
+    return iv, nature
+
+
+def _random_teams(
+    factory: SimFactory,
+    sprite_skills: dict[str, list[str]],
+    max_team_size: int = 6,
+    max_skills: int = 4,
+) -> tuple:
+    """随机生成两队 spec（实战格式 6v6：先力竭 4 只判负，即 lives=4）。
+
+    分布对齐社区配队教学：按 攻击手/辅助/坦克 角色模板组队
+    （3 种模板加权采样），技能按角色配置（输出 3-4 攻击，
+    辅助/坦克 1-2 攻击+工具），IV 与性格按角色分配。
+
+    meta 混合分布：若 meta_teams.json 存在，每侧以 _META_FRAC 概率改用
+    meta 原型队 spec（IV/性格/替补位逐局扰动，道具用队伍自带的魔法），其余仍走
+    角色化随机——BC 数据与自博弈微调共享同一分布，避免预训练→微调分布漂移。
+
+    返回 (team_a, team_b, item_a, item_b)。
+    """
+    roles = _sprite_roles(factory, sprite_skills)
+    info = roles["info"]
     used: set[str] = set()  # 两队共享排重，避免 AB 重复选同一批精灵
 
-    max_possible = min(max_team_size, len(names) // 2)
-    team_size = random.randint(1, max_possible) if max_possible >= 1 else 1
+    max_possible = min(max_team_size, len(names := list(sprite_skills)) // 2)
+    team_size = min(max_team_size, max_possible)
 
     def build_team(size: int) -> list[dict]:
+        template = random.choices(_TEAM_TEMPLATES, weights=_TEMPLATE_WEIGHTS)[0]
+        slots = (["attacker"] * template["attacker"]
+                 + ["support"] * template["support"]
+                 + ["tank"] * template["tank"])
+        random.shuffle(slots)
         specs: list[dict] = []
-        for name in names:
-            if name in used:
-                continue
+        for role in slots:
+            bucket = [n for n in roles[role + "s"] if n not in used]
+            if not bucket:
+                bucket = [n for n in sprite_skills if n not in used]
+            if not bucket:
+                break
+            name = random.choice(bucket)
+            used.add(name)
+            iv, nature = _role_iv_nature(role, info, name)
+            specs.append({
+                "name": name,
+                "skills": _role_skills(role, sprite_skills[name], max_skills),
+                "nature": nature,
+                "iv": iv,
+            })
             if len(specs) >= size:
                 break
-            available = sprite_skills[name]
-            n_skills = min(max_skills, len(available))
-            chosen = random.sample(available, max(1, n_skills))
-            # 随机性格
-            nature = random.choice(list(NATURE_TABLE.keys()))
-            # 随机选3项六维，IV 固定 10
-            iv_keys = random.sample(list(STAT_KEYS), 3)
-            iv = {k: 10 if k in iv_keys else 0 for k in STAT_KEYS}
-            specs.append({"name": name, "skills": chosen, "nature": nature, "iv": iv})
-            used.add(name)
         return specs
 
-    return build_team(team_size), build_team(team_size)
+    team_a, item_a = _maybe_meta_team(used)
+    team_b, item_b = _maybe_meta_team(used)
+    if team_a is None:
+        team_a = build_team(team_size)
+    if team_b is None:
+        team_b = build_team(team_size)
+    return team_a, team_b, item_a or _random_item(), item_b or _random_item()
+
+
+# meta 采样概率：默认 0.6（meta_teams.json 不存在时自动退化为纯随机）。
+# 通过环境变量传给 spawn 子进程（worker 重新 import 时读取）。
+_META_FRAC = float(os.environ.get("ROCO_META_FRAC", "0.6"))
+
+
+def _maybe_meta_team(used: set[str]) -> tuple[list[dict], Item | None]:
+    """以 _META_FRAC 概率返回 (meta 队 spec, 队伍道具)，否则 (None, None)。
+
+    队伍道具（魔法）由阵容自带：首领血脉队用进化之力，其余用愿力——站点阵容
+    的魔法选择与队伍绑定，随机化会破坏「首领进化流」这一原型。
+    """
+    if random.random() >= _META_FRAC:
+        return None, None
+    teams = load_meta_teams()
+    if not teams:
+        return None, None
+    pool = [
+        t for t in teams
+        if not ({sp["name"] for sp in t["sprites"]} & used)
+    ]
+    if not pool:
+        return None, None
+    team = random.choice(pool)
+    specs, names = spec_from_team(team)
+    used |= names
+    return specs, item_from_team(team)
 
 
 EvalMatchup = tuple[list[dict], list[dict], Item, Item]
@@ -135,8 +293,8 @@ def _random_eval_matchup(
     factory: SimFactory,
     sprite_skills: dict[str, list[str]],
 ) -> EvalMatchup:
-    team_a, team_b = _random_teams(factory, sprite_skills)
-    return team_a, team_b, _random_item(), _random_item()
+    team_a, team_b, item_a, item_b = _random_teams(factory, sprite_skills)
+    return team_a, team_b, item_a, item_b
 
 
 def _paired_eval_tasks(
@@ -367,7 +525,7 @@ def collect_rl_samples(
     mcts_parallel: bool = False,  # 新增：启用 MCTS 根并行
     mcts_workers: int = 4,  # 新增：MCTS 并行 worker 数
     mcts_pool = None,  # 新增：复用的进程池
-) -> tuple[list[dict[str, np.ndarray]], np.ndarray, np.ndarray, np.ndarray, dict[str, int]]:
+) -> tuple[list[dict[str, np.ndarray]], np.ndarray, np.ndarray, np.ndarray, np.ndarray, dict[str, int]]:
     """MCTS 自我博弈收集 (state_dict, target_probs, mask, outcome) 四元组。
 
     与 AlphaZero 的差异（已修正）：
@@ -387,16 +545,17 @@ def collect_rl_samples(
     all_probs: list[np.ndarray] = []
     all_masks: list[np.ndarray] = []
     all_outcomes: list[float] = []
+    all_game_ids: list[int] = []
     reason_counts: dict[str, int] = {}
     evaluator = TorchEvaluator(model, device)
     pe = max(1, progress_every)
 
     for i in range(num_battles):
-        team_a, team_b = _random_teams(factory, sprite_skills)
+        team_a, team_b, item_a, item_b = _random_teams(factory, sprite_skills)
         if mirror:
             team_b = copy.deepcopy(team_a)
-        p1 = factory.build_player("A", team_a, item=_random_item())
-        p2 = factory.build_player("B", team_b, item=_random_item())
+        p1 = factory.build_player("A", team_a, item=item_a)
+        p2 = factory.build_player("B", team_b, item=item_b)
         battle = factory.build_battle(p1, p2)
 
         # 搜索内的对手 = 当前网络策略头（贪心，不含温度噪声，确保对手强度）
@@ -469,11 +628,13 @@ def collect_rl_samples(
             all_probs.append(probs)
             all_masks.append(m)
             all_outcomes.append(outcome_a)
+            all_game_ids.append(i)
         for state, probs, m in agent_b.history:
             all_states.append(state)
             all_probs.append(probs)
             all_masks.append(m)
             all_outcomes.append(-outcome_a)
+            all_game_ids.append(i)
 
         pe = max(1, progress_every)
         if verbose and (i + 1) % pe == 0:
@@ -485,13 +646,15 @@ def collect_rl_samples(
             np.zeros((0, NUM_ACTIONS), dtype=np.float32),
             np.zeros((0, NUM_ACTIONS), dtype=np.float32),
             np.zeros((0,), dtype=np.float32),
+            np.zeros((0,), dtype=np.int64),
             {},
         )
 
     P = np.stack(all_probs).astype(np.float32)
     M = np.stack(all_masks).astype(np.float32)
     v = np.array(all_outcomes, dtype=np.float32)
-    return all_states, P, M, v, reason_counts
+    game_ids = np.array(all_game_ids, dtype=np.int64)
+    return all_states, P, M, v, game_ids, reason_counts
 
 
 def _play_one_rl_battle(
@@ -517,15 +680,18 @@ def _play_one_rl_battle(
     tanh_k: tanh 软裁决缩放系数（0 = 硬阈值）。
     mirror: 双方使用相同阵容（镜像对局）。
     """
-    team_a, team_b = _random_teams(factory, sprite_skills)
+    team_a, team_b, item_a, item_b = _random_teams(factory, sprite_skills)
     if mirror:
         team_b = copy.deepcopy(team_a)
-    p1 = factory.build_player("A", team_a, item=_random_item())
-    p2 = factory.build_player("B", team_b, item=_random_item())
+    p1 = factory.build_player("A", team_a, item=item_a)
+    p2 = factory.build_player("B", team_b, item=item_b)
     battle = factory.build_battle(p1, p2)
 
     opp_a = NetworkPolicyAgent(evaluator=evaluator, greedy=True)
     opp_b = NetworkPolicyAgent(evaluator=evaluator, greedy=True)
+    # opp_greedy=True：自博弈对手取策略 argmax。实测采样对手（False）使
+    # 搜索树评估变噪、decisive 率 25%→10%；贪心对手保留（AlphaZero 式
+    # "对手按当前策略最优应对"）。换人拖招随价值头精度提升自然衰减。
     agent_a = MCTSAgent(
         "A", p1, factory, opp_a, num_simulations,
         temperature, root_noise=root_noise, record=True,
@@ -603,7 +769,7 @@ def collect_rl_samples_parallel(
     tanh_k: float = 0.0,
     leaf_batch_size: int = DEFAULT_MCTS_LEAF_BATCH_SIZE,
     mirror: bool = False,
-) -> tuple[list[dict[str, np.ndarray]], np.ndarray, np.ndarray, np.ndarray, dict[str, int]]:
+) -> tuple[list[dict[str, np.ndarray]], np.ndarray, np.ndarray, np.ndarray, np.ndarray, dict[str, int]]:
     """多进程局级 self-play + 主进程 CUDA 批量推理。
 
     work-stealing：worker 干完一局再领下一局，慢局只拖自己。
@@ -668,6 +834,7 @@ def collect_rl_samples_parallel(
     ps: list[np.ndarray] = []
     ms: list[np.ndarray] = []
     vs: list[np.ndarray] = []
+    game_id_batches: list[np.ndarray] = []
     all_reason_counts: dict[str, int] = {}
     finished: set[int] = set()
     done_workers = 0
@@ -722,6 +889,7 @@ def collect_rl_samples_parallel(
                 continue
             # tag == "battle"
             filepath, end_reason, battle_summary = raw_result[2], raw_result[3], raw_result[4]
+            battle_idx = int(raw_result[5])
             corrupt = False
             try:
                 with open(filepath, "rb") as f:
@@ -745,6 +913,7 @@ def collect_rl_samples_parallel(
                     ps.append(P)
                     ms.append(M)
                     vs.append(v)
+                    game_id_batches.append(np.full(len(X), battle_idx, dtype=np.int64))
             all_reason_counts[end_reason] = all_reason_counts.get(end_reason, 0) + 1
             battles_done += 1
             # 写入对局技能日志
@@ -787,14 +956,53 @@ def collect_rl_samples_parallel(
             np.zeros((0, NUM_ACTIONS), dtype=np.float32),
             np.zeros((0, NUM_ACTIONS), dtype=np.float32),
             np.zeros((0,), dtype=np.float32),
+            np.zeros((0,), dtype=np.int64),
             all_reason_counts,
         )
-    return xs, np.concatenate(ps), np.concatenate(ms), np.concatenate(vs), all_reason_counts
+    return (
+        xs,
+        np.concatenate(ps),
+        np.concatenate(ms),
+        np.concatenate(vs),
+        np.concatenate(game_id_batches),
+        all_reason_counts,
+    )
 
 
 
 def _value_classes(values: torch.Tensor, draw_margin: float) -> torch.Tensor:
     return (values > draw_margin).float() - (values < -draw_margin).float()
+
+
+def _grouped_train_val_indices(
+    game_ids: np.ndarray,
+    val_split: float,
+    rng=None,
+) -> tuple[np.ndarray, np.ndarray]:
+    """按完整对局随机切分训练/验证索引，避免同局状态跨集合泄漏。"""
+    ids = np.asarray(game_ids, dtype=np.int64)
+    if ids.ndim != 1 or len(ids) < 2:
+        raise ValueError("按 game_id 切分至少需要两个样本")
+
+    unique_games = np.unique(ids)
+    if len(unique_games) < 2:
+        raise ValueError("按 game_id 切分至少需要两局")
+
+    random_source = np.random if rng is None else rng
+    shuffled_games = random_source.permutation(unique_games)
+    target_val_samples = max(1, int(len(ids) * val_split))
+    val_games: list[int] = []
+    val_samples = 0
+    for game_id in shuffled_games[:-1]:
+        val_games.append(int(game_id))
+        val_samples += int(np.count_nonzero(ids == game_id))
+        if val_samples >= target_val_samples:
+            break
+
+    val_mask = np.isin(ids, np.asarray(val_games, dtype=np.int64))
+    train_indices = np.flatnonzero(~val_mask).astype(np.int64, copy=False)
+    val_indices = np.flatnonzero(val_mask).astype(np.int64, copy=False)
+    return train_indices, val_indices
 
 
 def train_rl(
@@ -808,6 +1016,8 @@ def train_rl(
     val_split: float = 0.1,
     draw_margin: float = DEFAULT_DRAW_MARGIN,
     policy_loss_weight: float = 1.0,
+    val_indices: np.ndarray | None = None,
+    on_epoch=None,
 ) -> list[dict]:
     """训练双头网络：value loss (MSE) + policy loss (cross-entropy)。
 
@@ -816,17 +1026,34 @@ def train_rl(
 
     optimizer / scheduler: 由调用方在外部管理（全局学习率衰减），
     scheduler 在每 epoch 结束后 step()。若为 None 则跳过。
+
+    val_indices: 外部指定的验证样本索引（BC 整队留出切分用）；None 时按
+    game_id 分组随机切分。on_epoch(epoch_stats, model)：每 epoch 结束回调
+    （BC 用它快照最优权重）。
     """
     batch_size = max(1, int(batch_size))
     n = len(replay)
     if n < 2:
         print("  [train_rl] 样本不足，跳过训练")
         return []
-    n_val = max(1, int(n * val_split))
-    n_train = n - n_val
-    if n_train == 0:
-        print("  [train_rl] 训练样本不足(全被划入验证集)，跳过训练")
-        return []
+    if val_indices is None:
+        game_ids = getattr(replay, "game_id_buffer", np.arange(n, dtype=np.int64))
+        try:
+            train_indices, val_indices = _grouped_train_val_indices(game_ids, val_split)
+        except ValueError as exc:
+            print(f"  [train_rl] {exc}，跳过训练")
+            return []
+    else:
+        val_indices = np.asarray(val_indices, dtype=np.int64)
+        if val_indices.size == 0 or val_indices.size >= n:
+            print("  [train_rl] 外部验证集为空或占满全部样本，跳过训练")
+            return []
+        train_indices = np.setdiff1d(np.arange(n, dtype=np.int64), val_indices)
+        if len(train_indices) == 0:
+            print("  [train_rl] 训练样本不足(全被划入验证集)，跳过训练")
+            return []
+    n_train = len(train_indices)
+    n_val = len(val_indices)
 
     use_pin = device.startswith("cuda")
     obs_keys = tuple(replay.buffers.keys())
@@ -858,17 +1085,19 @@ def train_rl(
         vb = batch["outcome"].unsqueeze(1).to(device, non_blocking=use_pin)
         return xb, pb, mb, vb
 
-    val_indices = np.arange(n_train, n, dtype=np.int64)
-
     history: list[dict] = []
+
+    # 模型必须跟着 device 走：move_batch 只搬输入与标签，漏掉这一步时
+    # --device cuda 会在第一个 Linear 抛「found at least two devices」。
+    model.to(device)
 
     for epoch in range(epochs):
         model.train()
         total_value_loss = 0.0
         total_policy_loss = 0.0
 
-        train_indices = np.random.permutation(n_train).astype(np.int64, copy=False)
-        for batch in iter_batches(train_indices):
+        shuffled_train_indices = np.random.permutation(train_indices).astype(np.int64, copy=False)
+        for batch in iter_batches(shuffled_train_indices):
             xb, pb, mb, vb = move_batch(batch)
 
             value, logits = model(xb)
@@ -946,6 +1175,9 @@ def train_rl(
             "val_policy_top3": val_policy_top3,
             "val_policy_entropy": val_policy_entropy,
         })
+
+        if on_epoch is not None:
+            on_epoch(history[-1], model)
 
         if (epoch + 1) % 5 == 0 or epoch == 0:
             current_lr = scheduler.get_last_lr()[0] if scheduler is not None else optimizer.param_groups[0]["lr"]
@@ -1449,6 +1681,10 @@ def main():
                              "k=0 为硬阈值 (default: 0)")
     parser.add_argument("--mirror-frac", type=float, default=0.0,
                         help="镜像迭代比例：前 N%% 的迭代中全部对局使用相同阵容 (default: 0)")
+    parser.add_argument("--meta-frac", type=float, default=0.6,
+                        help="meta 原型队采样概率（meta_teams.json 存在时生效；default: 0.6）")
+    parser.add_argument("--bc-init", type=str, default="",
+                        help="BC 预训练权重路径：自博弈微调前加载（default: 关闭）")
     parser.add_argument("--log-dir", type=str, default="backend/engine/ai/log",
                         help="训练日志目录，自动写全量日志+结构化指标+汇总 (default: backend/engine/ai/log)")
     parser.add_argument("--no-log", action="store_true",
@@ -1458,6 +1694,11 @@ def main():
     args = parser.parse_args()
 
     device = args.device or ("cuda" if torch.cuda.is_available() else "cpu")
+
+    # meta 采样概率传给 spawn 子进程（worker 重新 import 本模块时读取环境变量）
+    global _META_FRAC
+    os.environ["ROCO_META_FRAC"] = str(args.meta_frac)
+    _META_FRAC = args.meta_frac
 
     # eval_workers=0 时自动跟随 self-play workers（评估不再串行拖死）
     eval_workers = args.eval_workers if args.eval_workers > 0 else args.workers
@@ -1535,6 +1776,12 @@ def main():
             vocab_size=VOCAB_SIZE,
             with_attention=True,
         )
+    if args.bc_init and not args.resume:
+        _log(f"加载 BC 预训练权重: {args.bc_init}")
+        state = torch.load(args.bc_init, map_location=device, weights_only=False)
+        if isinstance(state, dict) and "state_dict" in state:
+            state = state["state_dict"]  # 标准 save() 格式
+        model.load_state_dict(state)
     model.to(device)
     _log(f"模型类型: ModularBattleNet (模块化+残差+注意力)")
     _log(f"模型参数量: {model.num_params:,}")
@@ -1602,7 +1849,7 @@ def main():
         _log(f"自我博弈 ({args.battles} 局, {effective_sims} sims, T={temp:.2f}, {mode})...")
         t0 = time.time()
         if use_parallel:
-            X, P, M, v, reason_counts = collect_rl_samples_parallel(
+            X, P, M, v, game_ids, reason_counts = collect_rl_samples_parallel(
                 best_model, factory, sprite_skills,
                 num_battles=args.battles,
                 num_workers=args.workers,
@@ -1623,7 +1870,7 @@ def main():
                 mirror=all_mirror,
             )
         else:
-            X, P, M, v, reason_counts = collect_rl_samples(
+            X, P, M, v, game_ids, reason_counts = collect_rl_samples(
                 best_model, factory, sprite_skills,
                 num_battles=args.battles,
                 num_simulations=effective_sims,
@@ -1665,7 +1912,7 @@ def main():
         draw_ratio = (zero / len(v)) if len(v) else 0.0
 
         # ── 合并回放缓冲 ──
-        pushed = replay.push_batch(X, P, M, v)
+        pushed = replay.push_batch(X, P, M, v, game_ids=game_ids)
         _log(f"  回放缓冲: {len(replay)} 样本 (本轮 +{pushed})")
 
         # ── 训练（候选 = 在 best 基础上继续训练） ──

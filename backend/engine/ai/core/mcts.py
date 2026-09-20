@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
+from backend.common.constants import ITEM_VARIANT_ACTION_BASE, ITEM_VARIANT_SLOTS
 from backend.engine.ai.core.encoder import encode_battle_state
 from backend.engine.ai.core.evaluator import PolicyValueEvaluator, TorchEvaluator
 from backend.engine.ai.core.outcome import DEFAULT_DRAW_MARGIN, battle_outcome_a
@@ -28,13 +29,16 @@ if TYPE_CHECKING:
 # 动作空间
 # ═══════════════════════════════════════════════════════════════════
 
-NUM_ACTIONS = 17  # 技能0-9 + 换宠10-14 + 聚能15 + 道具16
+NUM_ACTIONS = 22  # 技能0-9 + 换宠10-14 + 聚能15 + 愿力16 + 首领形态17-21
+ITEM_ACTION_IDX = 16
 _EMPTY_PRIOR = np.zeros(NUM_ACTIONS, dtype=np.float32)
 _EMPTY_PRIOR.setflags(write=False)
 _SKILL_ACTIONS = tuple(Action(kind='skill', skill_index=i) for i in range(10))
 _SWITCH_ACTIONS = tuple(Action(kind='switch', switch_index=i) for i in range(6))
 _GATHER_ACTION = Action(kind='gather')
 _ITEM_ACTION = Action(kind='item')
+_ITEM_VARIANT_ACTIONS = tuple(
+    Action(kind='item', variant=i) for i in range(ITEM_VARIANT_SLOTS))
 
 
 def _valid_from_mask(mask: np.ndarray) -> list[int]:
@@ -168,18 +172,27 @@ def get_valid_actions(player: Player, battle=None) -> tuple[list[int], np.ndarra
     # 聚能 (15): 蓄力中不可聚能（引擎侧会阻止，标记为非法避免无效分支）
     mask[15] = 1.0 if not charging else 0.0
 
-    # 道具 (16)
+    # 道具：16 = 愿力；17-21 = 进化之力的首领形态候选（玩家选目标形态）
+    # 进化之力需首领血脉 + 基础阶段 + 同编号有首领形态；愿力需元素血脉。
     item = player.item
     if item is not None and not item.is_exhausted:
-        mask[16] = 1.0
+        team_label = "A" if battle.player_a is player else "B"
+        if item.name == '进化之力' and battle is not None and hasattr(battle, "item_variants"):
+            for k in range(min(len(battle.item_variants(team_label)), ITEM_VARIANT_SLOTS)):
+                mask[ITEM_VARIANT_ACTION_BASE + k] = 1.0
+        elif battle is None or not hasattr(battle, "item_usable"):
+            mask[ITEM_ACTION_IDX] = 1.0  # 无 battle 的 dry-run：保守放行
+        elif battle.item_usable(team_label):
+            mask[ITEM_ACTION_IDX] = 1.0
 
     valid = _valid_from_mask(mask)
     return valid, mask
 
 
 def action_index_to_action(player: Player, action_idx: int) -> Action | None:
-    """将 0-16 动作索引转为 Action 对象。
+    """将 0-21 动作索引转为 Action 对象。
 
+    16 = 道具（愿力）；17-21 = 进化之力的首领形态槽位（variant 0-4）。
     换宠映射失败时返回 None 供上层兜底。自身不会 fallback 到
     gather，避免调用方无法区分"有效换宠"和"被迫聚能"导致
     MCTS 树边与实际动作不匹配。
@@ -194,8 +207,10 @@ def action_index_to_action(player: Player, action_idx: int) -> Action | None:
         return None
     elif action_idx == 15:
         return _GATHER_ACTION
-    elif action_idx == 16:
+    elif action_idx == ITEM_ACTION_IDX:
         return _ITEM_ACTION
+    elif action_idx < ITEM_VARIANT_ACTION_BASE + ITEM_VARIANT_SLOTS:
+        return _ITEM_VARIANT_ACTIONS[action_idx - ITEM_VARIANT_ACTION_BASE]
     return None
 
 
@@ -500,6 +515,11 @@ def mcts_search(
     # 禁用 save_snapshot — MCTS 仿真不需要回溯序列化（省 ~17% 耗时）
     real_rng_state = random.getstate()
     prev_mcts_sim = getattr(battle, '_mcts_sim', False)
+    # 仿真经由 execute_turn_headless → _execute_turn_core 会把仿真代理 agent
+    # 写入 battle._agent_a/_agent_b；真实对局随后的力竭换宠（_get_agent）
+    # 会误用这些代理（B 侧搜索时其 player 绑定还是交换期的对方队对象），
+    # 导致“替补已死”误判。此处保存并在搜索结束后还原。
+    prev_agents = (getattr(battle, '_agent_a', None), getattr(battle, '_agent_b', None))
     battle._mcts_sim = True
     try:
 
@@ -767,6 +787,8 @@ def mcts_search(
         random.setstate(real_rng_state)
         # 恢复 save_snapshot 行为（异常时也保证恢复，避免标志泄漏）
         battle._mcts_sim = prev_mcts_sim
+        # 还原真实对局的 agent 引用（防止仿真代理泄漏到力竭换宠等真实结算）
+        battle._agent_a, battle._agent_b = prev_agents
 
     # ── 输出动作概率 ──
     counts = np.zeros(NUM_ACTIONS, dtype=np.float32)

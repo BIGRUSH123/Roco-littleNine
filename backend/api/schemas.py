@@ -34,6 +34,7 @@ class ActionRequest(BaseModel):
     action_type: str  # "skill" | "switch" | "gather" | "item"
     skill_name: str | None = None
     switch_index: int | None = None
+    variant: int | None = None  # item: 进化之力的首领形态槽位（0-4）
 
 
 class ResolveEscapeRequest(BaseModel):
@@ -108,6 +109,7 @@ class ItemState(BaseModel):
     cooldown_turns: int
     last_use_turn: int
     is_exhausted: bool
+    variants: list[str] = []  # 进化之力：可首领化的形态候选（按动作槽位排序）
 
 
 class PlayerState(BaseModel):

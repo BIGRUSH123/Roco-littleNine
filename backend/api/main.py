@@ -21,6 +21,7 @@ from backend.sim.action import Action
 from backend.sim.battle import Battle
 from backend.sim.battleskill import BattleSkill
 from backend.sim.factory import SimFactory
+from backend.sim.globals import kingdom_is_night
 from backend.sim.player import Player, PlayStyle
 from backend.sim.resolver import _TYPE_CHART
 from backend.sim.skill import Skill
@@ -213,10 +214,15 @@ def load_sprite_skills() -> list[schemas.SpriteEntry]:
         if not name:
             continue
 
-        # Deduplicate by name (one JSON per sprite — form variants in same file)
-        if name in seen:
+        # 每个（名字, 外观）是独立条目；兼容旧数据（外观写在 form 里）
+        appearance = str(data.get("appearance", "") or "").strip()
+        form = str(data.get("form", "") or "").strip()
+        if not appearance and form and "首领" not in form:
+            appearance, form = form, ""
+        display = f"{name}（{appearance}）" if appearance else name
+        if display in seen:
             continue
-        seen.add(name)
+        seen.add(display)
 
         number = data.get("number", 0)
         number = int(number) if number else 0
@@ -236,7 +242,7 @@ def load_sprite_skills() -> list[schemas.SpriteEntry]:
                 skills.append(skill_name)
 
         entries.append(schemas.SpriteEntry(
-            name=name,
+            name=display,
             element=element,
             number=number,
             skills=skills,
@@ -553,6 +559,10 @@ def serialize_battle_state(battle: Battle, session_id: str) -> schemas.BattleSta
     def _serialize_player(p, team='A') -> schemas.PlayerState:
         item_info = None
         if p.item:
+            try:  # 进化之力的首领形态候选（前端供玩家选择目标形态）
+                variants = [s.display_name() for s in battle.item_variants(team)]
+            except Exception:  # noqa: BLE001 — 序列化不应因道具判定失败而中断
+                variants = []
             item_info = schemas.ItemState(
                 name=p.item.name,
                 max_uses=p.item.max_uses,
@@ -560,6 +570,7 @@ def serialize_battle_state(battle: Battle, session_id: str) -> schemas.BattleSta
                 cooldown_turns=p.item.cooldown_turns,
                 last_use_turn=p.item.last_use_turn,
                 is_exhausted=p.item.is_exhausted,
+                variants=variants,
             )
         return schemas.PlayerState(
             name=p.name,
@@ -725,6 +736,10 @@ def check_evolution(name: str):
     species = db.get(name, '')
     if species is None:
         raise HTTPException(status_code=404, detail=f"Sprite {name!r} not found in the Pokedex. Check the name spelling or consult /api/sprites for available sprites.")
+    if species.is_leader_stage():
+        # 首领形态不能再进化
+        return {"sprite": name, "number": species.number, "can_evolve": False,
+                "reason": "首领形态无法再次进化"}
     for p in db._by_number.get(species.number, []):
         s = db._read_one(p)
         if s and '首领' in (s.form or ''):
@@ -848,7 +863,7 @@ def _init_battle_impl(req: schemas.InitRequest):
     if 0 <= li < len(player_a.team):
         player_a.active_index = li
 
-    battle = FACTORY.build_battle(player_a, player_b)
+    battle = FACTORY.build_battle(player_a, player_b, night=kingdom_is_night())
 
     # Load AI agent from registry (default: RuleAgent)
     agent_b = _load_ai_agent(req.ai_agent or "RuleAgent", player_b, model=req.model)
@@ -879,7 +894,7 @@ def battle_action(req: schemas.ActionRequest):
 
     # 道具：只应用效果不执行回合，前端重新选择动作
     if req.action_type == "item":
-        item_result = battle._resolve_item('A')
+        item_result = battle._resolve_item('A', req.variant)
         # 延迟到下一回合日志中显示，避免出现在错误回合上下文
         session['pending_item_log'] = item_result or ''
         return {
@@ -989,7 +1004,7 @@ def batch_battle(req: schemas.BatchRequest):
         try:
             pa = FACTORY.build_player("玩家", team_specs)
             pb = FACTORY.build_player("AI", team_specs, style=PlayStyle(aggression=0.7))
-            battle = FACTORY.build_battle(pa, pb)
+            battle = FACTORY.build_battle(pa, pb, night=kingdom_is_night())
             agent_b = _load_ai_agent(ai_name, pb)
             pb.active_index = agent_b.choose_lead(battle)
 
@@ -1099,7 +1114,7 @@ def debug_init():
     player_a = Player(name='我方(调试)', team=[sprite_a], style=PlayStyle())
     player_b = Player(name='对方(调试)', team=[sprite_b], style=PlayStyle())
 
-    battle = FACTORY.build_battle(player_a, player_b)
+    battle = FACTORY.build_battle(player_a, player_b, night=kingdom_is_night())
 
     session_id = str(uuid.uuid4())
     debug_sessions[session_id] = {'battle': battle}
@@ -1124,12 +1139,12 @@ def debug_action(req: schemas.DebugActionRequest):
     # 道具：先应用效果，然后用聚能替代执行回合
     item_log = []
     if req.action_a.get('type') == 'item':
-        result = battle._resolve_item('A')
+        result = battle._resolve_item('A', req.action_a.get('variant'))
         if result:
             item_log.append(f'[A] {result}')
         req.action_a = dict(req.action_a, type='gather')
     if req.action_b.get('type') == 'item':
-        result = battle._resolve_item('B')
+        result = battle._resolve_item('B', req.action_b.get('variant'))
         if result:
             item_log.append(f'[B] {result}')
         req.action_b = dict(req.action_b, type='gather')

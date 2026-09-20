@@ -1,4 +1,4 @@
-﻿"""backend/sim/battle_mechanics.py — 场地变动 Mixin
+"""backend/sim/battle_mechanics.py — 场地变动 Mixin
 
 换宠、返场、脱离、借用、力竭中断 —— 精灵进出场的全部逻辑，
 从 Battle 中提取为 Mixin，保持 Battle 的回合调度和动作执行精简。
@@ -7,7 +7,7 @@
 import random
 from typing import TYPE_CHECKING
 
-from backend.common.constants import ELEMENTAL_BLOODLINES
+from backend.common.constants import ELEMENTAL_BLOODLINES, ITEM_VARIANT_SLOTS
 
 from .action import Action
 from .traits import dispatch_entry, dispatch_leave
@@ -62,6 +62,30 @@ class BattleMechanicsMixin:
             events += self._reapply_position_modifiers("post_entry", team, sprite, opp)
         return events
 
+    def _apply_surge_leave_debuffs(self, team: str, new: 'Sprite', events: list[str], mcts_sim: bool) -> None:
+        """暗涌印记：持有方精灵离场后，更换入场的精灵获得随机5层属性减益/层。
+
+        "随机"以确定性轮转近似（按回合数偏移在五维间轮转），保证回放可复现。
+        """
+        total = self.globals.mark_leave_random_debuffs(team)
+        if not total or new.is_fainted:
+            return
+        from backend.vm.effect import StatBuffEffect
+        rotation = ('atk', 'def', 'sp_atk', 'sp_def', 'speed')
+        for i in range(total):
+            stat = rotation[(self.turn + i) % 5]
+            new.add_effect(StatBuffEffect(
+                name=f'暗涌·{stat}↓', source='暗涌印记',
+                stat_key=stat, steps=-1, scope='battlefield',
+            ))
+        if not mcts_sim:
+            events.append(f'{new.name} 暗涌-{total}层随机减益')
+
+    def _refresh_mechanisms(self) -> None:
+        """重算引擎机制声明（aura 等）——换人/入场/离场后调用（幂等，内部有快路径）。"""
+        from backend.engine import mechanisms
+        mechanisms.refresh(self)
+
     def _resolve_switch(self, team: str, action: Action,
                          faint_events: list[str] | None = None) -> list[str]:
         mcts_sim = getattr(self, '_mcts_sim', False)
@@ -86,6 +110,21 @@ class BattleMechanicsMixin:
         self._invalidate_ctx_team_cache()
         new = player.active
 
+        # 瞳中倒影：离场者持有该特性时，与换入者交换血量百分比
+        try:
+            from .traits import get_trait as _get_trait_swap
+            _old_trait = _get_trait_swap(old)
+            if _old_trait is not None and _old_trait.name == "瞳中倒影" \
+                    and not old.is_fainted and not new.is_fainted:
+                _r1 = old.current_hp / max(1, old.max_hp)
+                _r2 = new.current_hp / max(1, new.max_hp)
+                old.current_hp = max(1, round(old.max_hp * _r2))
+                new.current_hp = max(1, round(new.max_hp * _r1))
+                if not mcts_sim:
+                    events.append(f'{old.name} 与 {new.name} 交换了血量比例')
+        except Exception:
+            pass
+
         opp_team = 'B' if team == 'A' else 'A'
         dmg = self.globals.mark_switch_damage(opp_team, new)
         if dmg:
@@ -103,6 +142,8 @@ class BattleMechanicsMixin:
         new.entry_turn = self.turn
         new.first_action = True
         new.inc_counter('times_entered')
+        # 暗涌印记：本队精灵离场，换入者承受随机属性减益
+        self._apply_surge_leave_debuffs(team, new, events, mcts_sim)
         if not mcts_sim:
             events.append(f'{old.name}↓ {new.name}↑')
 
@@ -113,6 +154,7 @@ class BattleMechanicsMixin:
         # team counter: enemy switch (搜刮 等 pre-entry accumulator)
         opp_active = self.get_opponent(team).active
         self.inc_team_counter(opp_team, 'enemy_switch')
+        self.inc_team_counter(opp_team, 'enemy_action')
         # Observer: post_leave + post_entry + post_enemy_leave
         # (dispatch_leave delayed until after fire_trigger so inherit ops
         #  can read effects from the departing sprite before they are cleared)
@@ -142,6 +184,7 @@ class BattleMechanicsMixin:
             self._check_faint_interrupt(team, faint_events)
         else:
             self._check_faint_interrupt(team, events)
+        self._refresh_mechanisms()
         return events
 
     def _resolve_return(self, team: str) -> list[str]:
@@ -172,6 +215,7 @@ class BattleMechanicsMixin:
         if not mcts_sim:
             events += transmission_events
 
+        self._refresh_mechanisms()
         return events
 
     def _check_faint_interrupt(self, team: str, events: list[str]) -> None:
@@ -221,6 +265,7 @@ class BattleMechanicsMixin:
 
         # ── 印记入场效果（棘刺/降灵）—— 与自愿换人 _resolve_switch 对齐 ──
         opp_team = 'B' if team == 'A' else 'A'
+        self.inc_team_counter(opp_team, 'enemy_action')
         dmg = self.globals.mark_switch_damage(opp_team, new)
         if dmg:
             new.take_damage(dmg)
@@ -231,6 +276,9 @@ class BattleMechanicsMixin:
             new.lose_energy(lost)
             if not mcts_sim:
                 events.append(f'{new.name} 降灵-{lost}E')
+
+        # 暗涌印记：力竭离场同样触发（与自愿换人对齐）
+        self._apply_surge_leave_debuffs(team, new, events, mcts_sim)
 
         # ── trait hooks ──
         entry_events = dispatch_entry(new, self, team)
@@ -270,9 +318,49 @@ class BattleMechanicsMixin:
         leave_events = dispatch_leave(old, self, team, is_faint=True)
         if not mcts_sim:
             events += leave_events
+        self._refresh_mechanisms()
 
-    def _resolve_item(self, team: str) -> str:
-        """使用道具，立即应用效果。返回道具名（用于记录）。"""
+    def item_variants(self, team: str) -> list:
+        """道具可选的「首领形态」候选列表（空 = 无可选项或道具不可用）。
+
+        动作空间约定：愿力用动作 16；进化之力用动作 17-21 —— 每个候选形态
+        一个槽位（玩家选择首领化的目标形态，如圣光/圣水/圣火/圣草迪莫）。
+        列表顺序由 SpriteDB.leader_form_candidates 固定（同外观 → 默认外观 →
+        其余按名），保证动作索引在整局内稳定。
+        """
+        player = self.get_player(team)
+        item = player.item
+        if not item or not item.can_use(self.turn) or item.name != '进化之力':
+            return []
+        sprite = player.active
+        if sprite is None or self.species_db is None:
+            return []
+        if sprite.bloodline != '首领' or sprite.species.is_leader_stage():
+            return []
+        return self.species_db.leader_form_candidates(
+            sprite.species.number, sprite.species.appearance)[:ITEM_VARIANT_SLOTS]
+
+    def item_usable(self, team: str) -> bool:
+        """当前场上精灵能否使用队伍道具（供动作掩码与结算共用同一判定）。"""
+        player = self.get_player(team)
+        item = player.item
+        if not item or not item.can_use(self.turn):
+            return False
+        sprite = player.active
+        if sprite is None:
+            return False
+        if item.name == '进化之力':
+            return bool(self.item_variants(team))
+        if item.name == '愿力':
+            return sprite.bloodline in ELEMENTAL_BLOODLINES
+        return True
+
+    def _resolve_item(self, team: str, variant: int | None = None) -> str:
+        """使用道具，立即应用效果。返回道具名（用于记录）。
+
+        variant: 进化之力的首领形态槽位（动作 17-21 → 0-4）。缺省或越界时取
+        候选列表首位（兼容 API/旧调用点，行为与加入候选列表之前一致）。
+        """
         player = self.get_player(team)
         item = player.item
         if not item or not item.can_use(self.turn):
@@ -280,19 +368,16 @@ class BattleMechanicsMixin:
 
         sprite = player.active
 
-        # 血脉限制
-        if item.name == '进化之力' and sprite.bloodline != '首领':
-            return ''
-        if item.name == '愿力' and sprite.bloodline not in ELEMENTAL_BLOODLINES:
+        if not self.item_usable(team):
             return ''
 
         if item.name == '进化之力':
-            # 进化之力：同编号有首领形态的精灵可进化为首领形态
-            if self.species_db is None:
+            # 进化之力：同编号有首领形态的精灵可进化为首领形态（形态由玩家选）
+            candidates = self.item_variants(team)
+            if not candidates:
                 return ''
-            boss_species = self._find_leader_form(sprite.species.number)
-            if boss_species is None:
-                return ''
+            idx = variant if variant is not None and 0 <= variant < len(candidates) else 0
+            boss_species = candidates[idx]
             item.use(self.turn)
             # 用首领形态的种族值 + 原IV/性格重新计算六维
             from backend.common.formulas import StatsCalc
@@ -346,15 +431,16 @@ class BattleMechanicsMixin:
 
         return item.name
 
-    def _find_leader_form(self, number: str):
-        """查找同编号的首领形态。"""
+    def _find_leader_form(self, number: str, appearance: str = ''):
+        """查找同编号的首个首领形态（优先同外观，回退默认外观）。
+
+        首领阶段 = form 含『首领』；外观由 appearance 字段独立标记。
+        多候选场景请用 SpriteDB.leader_form_candidates / item_variants。
+        """
         if self.species_db is None or not number:
             return None
-        for p in self.species_db._by_number.get(number, []):
-            s = self.species_db._read_one(p)
-            if s and '首领' in s.form:
-                return s
-        return None
+        candidates = self.species_db.leader_form_candidates(number, appearance)
+        return candidates[0] if candidates else None
 
     def _get_skill_name_by_id(self, skill_id: int) -> str | None:
         """按技能ID反查名称。"""

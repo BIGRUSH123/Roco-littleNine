@@ -13,12 +13,16 @@
   - "skill_states":    (10, 9) float32  [sealed, cooldown, 类型OneHot(5), combo, transmission] raw
   - "global_stats":    (15,)    float32  回合/印记/魔力/道具
   - "global_elements": (1,)     int32    天气 ID
+  - "form_elements":   (5, 2)   int32    首领形态候选的双元素 ID (0=PAD)
+  - "form_avail":      (5,)     float32  该候选槽是否可用（与动作 17-21 同源）
   - "ast_tokens":      (384,)   int32    token ID 序列 (PAD=0)
   - "ast_values":      (384,)   float32  对应值序列
 
 约定:
   - 空槽位 / 已力竭 → 照常编码（让网络学习推断"场上已死必须换宠"）
   - 对方板凳不可见 → mask_opp_bench 闭锁对方 bench 实体为 0
+  - 首领形态候选块描述「当前场上精灵 + 队伍道具」的可选项，动作索引 17-21
+    与之同序（同外观 → 默认外观 → 其余按名），故策略头不必靠槽位记忆
 """
 
 from __future__ import annotations
@@ -29,7 +33,7 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
-from backend.common.constants import STAT_KEYS
+from backend.common.constants import ITEM_VARIANT_SLOTS, STAT_KEYS
 from backend.vm.effect import ObserverEffect, StateEffect
 
 if TYPE_CHECKING:
@@ -193,6 +197,23 @@ def encode_battle_state(
     global_elements = np.zeros(1, dtype=np.int32)
     _fill_global_entity(battle, own_team, own, opp, global_stats, global_elements)
 
+    # ====== 3b. 首领形态候选块 (动作 17-21 的输入侧) ======
+    # 双元素 ID + 可用性；avail 与掩码同源（item_variants），保证策略头看到
+    # 「哪个槽位可用」与「哪个槽位是哪个属性」一一对应，而不是靠记忆猜槽位。
+    form_elements = np.zeros((ITEM_VARIANT_SLOTS, 2), dtype=np.int32)
+    form_avail = np.zeros((ITEM_VARIANT_SLOTS,), dtype=np.float32)
+    try:
+        candidates = battle.item_variants(own_team)
+    except AttributeError:
+        candidates = []
+    for k, species in enumerate(candidates[:ITEM_VARIANT_SLOTS]):
+        form_avail[k] = 1.0
+        elems = tuple(species.elements or ())
+        if elems:
+            form_elements[k, 0] = _get_cat_id(elems[0], ELEMENT_ORDER)
+            if len(elems) > 1:
+                form_elements[k, 1] = _get_cat_id(elems[1], ELEMENT_ORDER)
+
     # ====== 4. AST 序列 ======
     all_tokens: list[int] = []
     all_values: list[float] = []
@@ -218,6 +239,8 @@ def encode_battle_state(
         "skill_states": skill_states,
         "global_stats": global_stats,
         "global_elements": global_elements,
+        "form_elements": form_elements,
+        "form_avail": form_avail,
         "ast_tokens": ast_tokens,
         "ast_values": ast_values,
     }
@@ -607,7 +630,8 @@ def _get_observer_effect_token_ids(eff: ObserverEffect) -> tuple[tuple[int, ...]
     if eff.then:
         observer_dict["then"] = list(eff.then)
     if eff.listen:
-        observer_dict["listen"] = list(eff.listen)
+        # frozenset 哈希序 → 字典序（与 _collect_ast_tokens 同步修复）
+        observer_dict["listen"] = sorted(eff.listen)
     if eff.scope:
         observer_dict["scope"] = eff.scope
 
@@ -676,7 +700,9 @@ def _collect_ast_tokens(
         if eff.then:
             observer_dict["then"] = list(eff.then)
         if eff.listen:
-            observer_dict["listen"] = list(eff.listen)
+            # frozenset 的 list() 是哈希序，跨进程不稳定（训练复现性隐患）
+            # ——统一按字典序输出
+            observer_dict["listen"] = sorted(eff.listen)
         if eff.scope:
             observer_dict["scope"] = eff.scope
         all_tokens.append("<SEP>")

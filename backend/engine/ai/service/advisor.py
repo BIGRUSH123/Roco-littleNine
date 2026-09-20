@@ -35,6 +35,7 @@ from typing import TYPE_CHECKING
 import numpy as np
 import torch
 
+from backend.common.constants import ITEM_VARIANT_ACTION_BASE, ITEM_VARIANT_SLOTS
 from backend.engine.ai.core.encoder import encode_battle_state
 from backend.engine.ai.core.mcts import (
     NUM_ACTIONS,
@@ -83,7 +84,7 @@ class Advice:
 # ═══════════════════════════════════════════════════════════════════
 
 def describe_action(player: "Player", idx: int) -> str:
-    """把动作索引转成人类可读描述（己方视角，17 动作空间）。"""
+    """把动作索引转成人类可读描述（己方视角，22 动作空间）。"""
     active = player.active if player.active_index < len(player.team) else None
     if idx < 10:
         skills = (active.skills if active else None) or []
@@ -99,9 +100,15 @@ def describe_action(player: "Player", idx: int) -> str:
         return f"换宠槽{bench_slot}（空）"
     if idx == 15:
         return "聚能"
-    if idx == 16:
+    if idx == ITEM_ACTION_IDX:
         item = getattr(player, "item", None)
         return f"使用道具: {item.name}" if item is not None else "使用道具（无）"
+    if ITEM_VARIANT_ACTION_BASE <= idx < ITEM_VARIANT_ACTION_BASE + ITEM_VARIANT_SLOTS:
+        item = getattr(player, "item", None)
+        name = getattr(item, "name", "") if item is not None else ""
+        slot = idx - ITEM_VARIANT_ACTION_BASE
+        return (f"使用道具: {name}（首领形态槽{slot}）" if name
+                else f"使用道具（首领形态槽{slot}）")
     return f"动作{idx}"
 
 

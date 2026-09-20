@@ -9,6 +9,7 @@
 from __future__ import annotations
 
 import logging
+import os
 import queue
 import threading
 import time
@@ -26,6 +27,24 @@ if TYPE_CHECKING:
 
 # 请求队列结束哨兵
 INFERENCE_STOP = object()
+
+
+def _build_direct_evaluator():
+    """ROCO_SELFPLAY_EVAL=direct 时构建进程内 TorchEvaluator（worker 侧直连）。"""
+    from backend.engine.ai.core.model import ModularBattleNet
+
+    model_path = os.environ.get("ROCO_SELFPLAY_MODEL", "")
+    if not model_path:
+        raise RuntimeError(
+            "ROCO_SELFPLAY_EVAL=direct 需要 ROCO_SELFPLAY_MODEL 指向 checkpoint"
+        )
+    device = os.environ.get("ROCO_SELFPLAY_DEVICE", "cuda")
+    threads = os.environ.get("ROCO_SELFPLAY_TORCH_THREADS", "")
+    if threads:
+        torch.set_num_threads(max(1, int(threads)))
+    model = ModularBattleNet.load(model_path, device="cpu").to(device)
+    model.eval()
+    return TorchEvaluator(model, device)
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -103,6 +122,7 @@ _STATE_KEYS = frozenset({
     "sprite_stats", "sprite_elements", "sprite_states",
     "skill_stats", "skill_elements", "skill_states",
     "global_stats", "global_elements",
+    "form_elements", "form_avail",
     "ast_tokens", "ast_values",
 })
 
@@ -167,7 +187,16 @@ class TorchEvaluator:
 
 
 class QueuePolicyEvaluator:
-    """子进程 worker：将推理请求发往共享 request_queue，在 reply_queue 收结果。"""
+    """子进程 worker：将推理请求发往共享 request_queue，在 reply_queue 收结果。
+
+    env 门控直连模式（ROCO_SELFPLAY_EVAL=direct）：不再经过队列，worker 进程内
+    自行加载模型直接前推（消除 16 worker 挤一个推理服务器导致的排队延迟——
+    实测该延迟占自博墙钟 ~92%）。需要：
+      ROCO_SELFPLAY_MODEL=<checkpoint 路径>
+      ROCO_SELFPLAY_DEVICE=cuda|cpu（默认 cuda）
+      ROCO_SELFPLAY_TORCH_THREADS=<每 worker torch CPU 线程数>（建议 1-2）
+    与 train.py / selfplay_worker.py 零改动兼容（构造签名不变）。
+    """
 
     def __init__(
         self,
@@ -180,8 +209,14 @@ class QueuePolicyEvaluator:
         self._request_queue = request_queue
         self._reply_queue = reply_queue
         self._reply_timeout_s = reply_timeout_s
+        self._direct = None
+        if os.environ.get("ROCO_SELFPLAY_EVAL", "") == "direct":
+            self._direct = _build_direct_evaluator()
 
     def evaluate(self, state: dict[str, np.ndarray], mask: np.ndarray) -> tuple[float, np.ndarray]:
+        if self._direct is not None:
+            value, probs = self._direct.evaluate(state, mask)
+            return float(value), np.asarray(probs, dtype=np.float32)
         self._request_queue.put((
             self._worker_id,
             _filter_state(state),
@@ -206,6 +241,9 @@ class QueuePolicyEvaluator:
         states: list[dict[str, np.ndarray]],
         masks: list[np.ndarray] | np.ndarray,
     ) -> tuple[np.ndarray, np.ndarray]:
+        if self._direct is not None:
+            values, probs = self._direct.evaluate_batch(states, masks)
+            return np.asarray(values, dtype=np.float32), np.asarray(probs, dtype=np.float32)
         n = len(states)
         self._request_queue.put((
             self._worker_id,
@@ -589,3 +627,8 @@ class BatchedModelInferenceServer:
                             reply_q.put(None, timeout=1.0)
                         except Exception:
                             pass
+
+# worker 进程内 rust 引擎自博弈挂钩（env 门控，详见 rust_selfplay_hook.py）
+from backend.engine.ai.rust_selfplay_hook import install_if_enabled as _install_selfplay_hook
+
+_install_selfplay_hook()

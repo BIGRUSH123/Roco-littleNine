@@ -1,0 +1,6095 @@
+{
+ "source": "https://rocopvp.tzrain.wiki/api/popular/teams",
+ "fetched_at": "2026-09-19T17:31:14+00:00",
+ "generated_at": "2026-09-19T17:32:07+00:00",
+ "raw_count": 87,
+ "usable_count": 87,
+ "selected_count": 40,
+ "selection_notes": [
+  "首领血脉队 8/8",
+  "精灵上限 4 下仅 35 支，放宽到 5",
+  "flex 替补位 40 个"
+ ],
+ "teams": [
+  {
+   "name": "铁头海豹平衡队",
+   "tags": [
+    "平衡队",
+    "排位"
+   ],
+   "archetype": "排位",
+   "source_id": "popular_f3ce2dfe-d3bf-4869-8990-19e25ed03e58",
+   "like_count": 2,
+   "sprites": [
+    {
+     "name": "荆棘电环",
+     "skills": [
+      "加大功率",
+      "阻断",
+      "倾泻",
+      "晒太阳"
+     ],
+     "iv_fixed": [
+      "sp_atk"
+     ],
+     "bloodline": "电",
+     "nature_fixed": "热情",
+     "role": "attack",
+     "lead": true,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "冰钻布鲁斯",
+     "skills": [
+      "有效预防",
+      "冰晶坠",
+      "冰雹",
+      "速冻"
+     ],
+     "iv_fixed": [
+      "hp",
+      "atk"
+     ],
+     "bloodline": "冰",
+     "nature_fixed": "温顺",
+     "role": "attack",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0,
+     "alts": [
+      {
+       "name": "伊兰亚龙",
+       "skills": [
+        "绵里藏针",
+        "氧输送",
+        "超导",
+        "守护咒"
+       ],
+       "iv_fixed": [
+        "hp",
+        "sp_atk",
+        "speed"
+       ],
+       "bloodline": "火",
+       "nature_fixed": "聪明",
+       "role": "attack"
+      }
+     ]
+    },
+    {
+     "name": "圣剑-X",
+     "skills": [
+      "休息回复",
+      "啮合传递",
+      "齿轮扭矩",
+      "械斗"
+     ],
+     "iv_fixed": [
+      "hp"
+     ],
+     "bloodline": "首领",
+     "nature_fixed": "天真",
+     "source_name": "圣剑侍从",
+     "role": "attack",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "泥吼牙",
+     "skills": [
+      "地刺",
+      "鸣沙陷阱",
+      "羽刃",
+      "晒太阳"
+     ],
+     "iv_fixed": [
+      "def"
+     ],
+     "bloodline": "地",
+     "nature_fixed": "热情",
+     "role": "tank",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "圆号鱼",
+     "skills": [
+      "打湿",
+      "泡沫幻影",
+      "水炮",
+      "灵媒"
+     ],
+     "iv_fixed": [
+      "hp"
+     ],
+     "bloodline": "水",
+     "nature_fixed": "天真",
+     "role": "attack",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "海豹船长",
+     "skills": [
+      "听桥",
+      "斩断",
+      "一拳",
+      "水刃"
+     ],
+     "iv_fixed": [
+      "speed"
+     ],
+     "bloodline": "武",
+     "nature_fixed": "忧郁",
+     "role": "attack",
+     "lead": false,
+     "preserve": true,
+     "energy_hold": 0
+    }
+   ],
+   "item": "进化之力",
+   "item_source": "code"
+  },
+  {
+   "name": "小障雪天",
+   "tags": [
+    "体系队",
+    "排位"
+   ],
+   "archetype": "排位",
+   "source_id": "popular_004260b5-20a4-435a-bbb3-673adaa4acbc",
+   "like_count": 1,
+   "sprites": [
+    {
+     "name": "卡瓦重（雪山附近的样子）",
+     "skills": [
+      "冬至",
+      "筛管奔流",
+      "冰雹",
+      "跺地"
+     ],
+     "iv_fixed": [
+      "atk",
+      "def",
+      "speed"
+     ],
+     "bloodline": "地",
+     "nature_fixed": "开朗",
+     "role": "attack",
+     "lead": true,
+     "preserve": false,
+     "energy_hold": 0,
+     "alts": [
+      {
+       "name": "兽花蕾",
+       "skills": [
+        "移花接木",
+        "飞羽",
+        "顶端优势",
+        "过曝"
+       ],
+       "iv_fixed": [
+        "hp",
+        "def",
+        "sp_def"
+       ],
+       "bloodline": "地",
+       "nature_fixed": "踏实",
+       "role": "attack"
+      }
+     ]
+    },
+    {
+     "name": "雪影娃娃",
+     "skills": [
+      "冬至",
+      "冰墙",
+      "超级糖果",
+      "暴风雪"
+     ],
+     "iv_fixed": [
+      "atk",
+      "def",
+      "hp"
+     ],
+     "bloodline": "首领",
+     "nature_fixed": "害羞",
+     "role": "tank",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "月牙雪熊",
+     "skills": [
+      "冰点",
+      "先发制人",
+      "冰墙",
+      "鸣沙陷阱"
+     ],
+     "iv_fixed": [
+      "atk",
+      "hp",
+      "speed"
+     ],
+     "bloodline": "幻",
+     "nature_fixed": "固执",
+     "role": "tank",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "尖嘴狐仙",
+     "skills": [
+      "炎枪",
+      "焚烧烙印",
+      "冰墙",
+      "冬至"
+     ],
+     "iv_fixed": [
+      "hp",
+      "sp_atk",
+      "speed"
+     ],
+     "bloodline": "",
+     "nature_fixed": "聪明",
+     "role": "support",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "雪巨人",
+     "skills": [
+      "报复",
+      "冰雹",
+      "惊吓盒子",
+      "一拳"
+     ],
+     "iv_fixed": [
+      "atk",
+      "def",
+      "hp"
+     ],
+     "bloodline": "冰",
+     "nature_fixed": "固执",
+     "role": "attack",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "寂灭骨龙",
+     "skills": [
+      "幻象",
+      "隼鳞",
+      "雪替身",
+      "电弧"
+     ],
+     "iv_fixed": [
+      "atk",
+      "def",
+      "hp"
+     ],
+     "bloodline": "冰",
+     "nature_fixed": "平和",
+     "role": "attack",
+     "lead": false,
+     "preserve": true,
+     "energy_hold": 0
+    }
+   ],
+   "item": "进化之力",
+   "item_source": "code"
+  },
+  {
+   "name": "恶魔狼队",
+   "tags": [
+    "排位",
+    "平衡队",
+    "体系队"
+   ],
+   "archetype": "排位",
+   "source_id": "popular_36523169-0f02-4705-9ce2-6d12be20245a",
+   "like_count": 1,
+   "sprites": [
+    {
+     "name": "音速犬",
+     "skills": [
+      "流星火雨",
+      "当头棒喝",
+      "吞噬",
+      "过载回路"
+     ],
+     "iv_fixed": [
+      "speed",
+      "hp",
+      "atk"
+     ],
+     "bloodline": "首领",
+     "nature_fixed": "开朗",
+     "role": "attack",
+     "lead": true,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "恶魔狼王",
+     "skills": [
+      "蝙蝠",
+      "先发制人",
+      "吞噬",
+      "火焰切割"
+     ],
+     "iv_fixed": [
+      "speed",
+      "hp",
+      "atk"
+     ],
+     "bloodline": "首领",
+     "nature_fixed": "开朗",
+     "role": "attack",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "岚鸟（本来的样子）",
+     "skills": [
+      "球状闪电",
+      "快速移动",
+      "闪击",
+      "水刃"
+     ],
+     "iv_fixed": [
+      "speed",
+      "hp",
+      "atk"
+     ],
+     "bloodline": "电",
+     "nature_fixed": "开朗",
+     "role": "attack",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0,
+     "alts": [
+      {
+       "name": "冰钻布鲁斯",
+       "skills": [
+        "冰雹",
+        "倾泻",
+        "跺地",
+        "先发制人"
+       ],
+       "iv_fixed": [
+        "atk",
+        "hp",
+        "speed"
+       ],
+       "bloodline": "地",
+       "nature_fixed": "固执",
+       "role": "attack"
+      }
+     ]
+    },
+    {
+     "name": "秩序鱿墨",
+     "skills": [
+      "能量刃",
+      "惊吓盒子",
+      "风墙",
+      "双星"
+     ],
+     "iv_fixed": [
+      "speed",
+      "hp",
+      "atk"
+     ],
+     "bloodline": "翼",
+     "nature_fixed": "开朗",
+     "role": "attack",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "海豹船长",
+     "skills": [
+      "听桥",
+      "一拳",
+      "斩断",
+      "水刃"
+     ],
+     "iv_fixed": [
+      "atk",
+      "hp",
+      "speed"
+     ],
+     "bloodline": "武",
+     "nature_fixed": "固执",
+     "role": "attack",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "尖嘴狐仙",
+     "skills": [
+      "焚烧烙印",
+      "暴风雪",
+      "冰点",
+      "速冻"
+     ],
+     "iv_fixed": [
+      "hp",
+      "speed",
+      "atk"
+     ],
+     "bloodline": "火",
+     "nature_fixed": "固执",
+     "role": "support",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    }
+   ],
+   "item": "进化之力",
+   "item_source": "inferred"
+  },
+  {
+   "name": "罗隐轮转",
+   "tags": [
+    "娱乐",
+    "排位",
+    "科研"
+   ],
+   "archetype": "排位",
+   "source_id": "popular_0bbaccd8-c0d5-4746-aa0b-4883f0a5cdb3",
+   "like_count": 1,
+   "sprites": [
+    {
+     "name": "深渊罗隐",
+     "skills": [
+      "地刺",
+      "彼岸之手",
+      "火焰切割",
+      "岩土暴击"
+     ],
+     "iv_fixed": [
+      "atk",
+      "hp",
+      "sp_def"
+     ],
+     "bloodline": "首领",
+     "nature_fixed": "固执",
+     "role": "attack",
+     "lead": true,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "朔夜伊芙",
+     "skills": [
+      "黑手",
+      "叠势",
+      "等价交换",
+      "伪造账单"
+     ],
+     "iv_fixed": [
+      "def",
+      "sp_atk",
+      "hp"
+     ],
+     "bloodline": "恶",
+     "nature_fixed": "聪明",
+     "role": "attack",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "翠顶夫人",
+     "skills": [
+      "力量增效",
+      "水刃",
+      "虚化",
+      "风隐"
+     ],
+     "iv_fixed": [
+      "def",
+      "hp",
+      "atk"
+     ],
+     "bloodline": "幽",
+     "nature_fixed": "平和",
+     "role": "support",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "椰浆布丁",
+     "skills": [
+      "泡沫幻影",
+      "阻断",
+      "寒风吹",
+      "天洪"
+     ],
+     "iv_fixed": [
+      "sp_atk",
+      "speed",
+      "hp"
+     ],
+     "bloodline": "水",
+     "nature_fixed": "聪明",
+     "role": "tank",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "加油蟹",
+     "skills": [
+      "示弱",
+      "击鼓传花",
+      "超级糖果",
+      "水幕冲击"
+     ],
+     "iv_fixed": [
+      "hp",
+      "atk",
+      "def"
+     ],
+     "bloodline": "水",
+     "nature_fixed": "固执",
+     "source_name": "加油螃（单只海葵的样子）",
+     "role": "tank",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "兽花蕾",
+     "skills": [
+      "移花接木",
+      "飞羽",
+      "顶端优势",
+      "过曝"
+     ],
+     "iv_fixed": [
+      "hp",
+      "def",
+      "sp_def"
+     ],
+     "bloodline": "地",
+     "nature_fixed": "踏实",
+     "role": "attack",
+     "lead": false,
+     "preserve": true,
+     "energy_hold": 0,
+     "alts": [
+      {
+       "name": "利灯鱼",
+       "skills": [
+        "灵媒",
+        "魔法增效",
+        "落雷",
+        "水光冲击"
+       ],
+       "iv_fixed": [
+        "hp",
+        "sp_atk",
+        "speed"
+       ],
+       "bloodline": "幽",
+       "nature_fixed": "聪明",
+       "role": "attack"
+      }
+     ]
+    }
+   ],
+   "item": "进化之力",
+   "item_source": "inferred"
+  },
+  {
+   "name": "首领毒",
+   "tags": [
+    "排位"
+   ],
+   "archetype": "排位",
+   "source_id": "popular_5c84cfa2-c855-41b8-8e4f-90251c854f0d",
+   "like_count": 1,
+   "sprites": [
+    {
+     "name": "千棘盔（本来的样子）",
+     "skills": [
+      "甩水",
+      "泡沫幻影",
+      "毒液渗透",
+      "疫病吐息"
+     ],
+     "iv_fixed": [
+      "def",
+      "hp",
+      "sp_def"
+     ],
+     "bloodline": "首领",
+     "nature_fixed": "沉默",
+     "role": "attack",
+     "lead": true,
+     "preserve": false,
+     "energy_hold": 0,
+     "alts": [
+      {
+       "name": "卡瓦重（沙地附近的样子）",
+       "skills": [
+        "筛管奔流",
+        "地刺",
+        "盛开",
+        "震击"
+       ],
+       "iv_fixed": [
+        "hp",
+        "atk",
+        "speed"
+       ],
+       "bloodline": "草",
+       "nature_fixed": "固执",
+       "role": "attack"
+      }
+     ]
+    },
+    {
+     "name": "琉璃水母",
+     "skills": [
+      "甩水",
+      "泡沫幻影",
+      "天洪",
+      "疫病吐息"
+     ],
+     "iv_fixed": [
+      "hp",
+      "sp_atk",
+      "speed"
+     ],
+     "bloodline": "地",
+     "nature_fixed": "沉默",
+     "role": "tank",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "裘卡",
+     "skills": [
+      "毒孢子",
+      "毒囊",
+      "阻断",
+      "防御"
+     ],
+     "iv_fixed": [
+      "hp",
+      "def",
+      "sp_def"
+     ],
+     "bloodline": "地",
+     "nature_fixed": "平和",
+     "role": "attack",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "绒光优优",
+     "skills": [
+      "硬化",
+      "热砂",
+      "天光",
+      "毒孢子"
+     ],
+     "iv_fixed": [
+      "speed",
+      "hp",
+      "sp_atk"
+     ],
+     "bloodline": "毒",
+     "nature_fixed": "胆小",
+     "role": "tank",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "瞌睡王",
+     "skills": [
+      "斩断",
+      "能量刃",
+      "有效预防",
+      "应激反应"
+     ],
+     "iv_fixed": [
+      "hp",
+      "atk",
+      "sp_def"
+     ],
+     "bloodline": "普通",
+     "nature_fixed": "平和",
+     "role": "attack",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "彩蝶鲨",
+     "skills": [
+      "天洪",
+      "贮藏",
+      "回旋风暴",
+      "极寒领域"
+     ],
+     "iv_fixed": [
+      "speed",
+      "hp",
+      "sp_atk"
+     ],
+     "bloodline": "首领",
+     "nature_fixed": "胆小",
+     "role": "attack",
+     "lead": false,
+     "preserve": true,
+     "energy_hold": 0
+    }
+   ],
+   "item": "进化之力",
+   "item_source": "inferred"
+  },
+  {
+   "name": "异色炫彩队",
+   "tags": [
+    "排位",
+    "娱乐"
+   ],
+   "archetype": "排位",
+   "source_id": "popular_86c01874-b5cc-4e46-8da8-fabd68174daa",
+   "like_count": 0,
+   "sprites": [
+    {
+     "name": "咕德帽帽",
+     "skills": [
+      "报复",
+      "勾魂",
+      "惊吓盒子",
+      "欺诈契约"
+     ],
+     "iv_fixed": [
+      "def",
+      "hp",
+      "sp_def"
+     ],
+     "bloodline": "幽",
+     "nature_fixed": "踏实",
+     "role": "support",
+     "lead": true,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "獠牙猪",
+     "skills": [
+      "地刺",
+      "丢冰块",
+      "冰墙",
+      "力量增效"
+     ],
+     "iv_fixed": [
+      "atk",
+      "hp",
+      "speed"
+     ],
+     "bloodline": "冰",
+     "nature_fixed": "固执",
+     "role": "attack",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0,
+     "alts": [
+      {
+       "name": "千棘盔（本来的样子）",
+       "skills": [
+        "毒液渗透",
+        "疫病吐息",
+        "蓄水",
+        "涌泉"
+       ],
+       "iv_fixed": [
+        "hp",
+        "def",
+        "sp_atk"
+       ],
+       "bloodline": "首领",
+       "nature_fixed": "沉默",
+       "role": "attack"
+      }
+     ]
+    },
+    {
+     "name": "雪影娃娃",
+     "skills": [
+      "赤子之心",
+      "冰墙",
+      "击鼓传花",
+      "暴风雪"
+     ],
+     "iv_fixed": [
+      "atk",
+      "hp",
+      "sp_def"
+     ],
+     "bloodline": "首领",
+     "nature_fixed": "踏实",
+     "role": "support",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "贝古斯",
+     "skills": [
+      "能量守恒",
+      "燃尽",
+      "磁暴",
+      "焚烧烙印"
+     ],
+     "iv_fixed": [
+      "hp",
+      "sp_atk",
+      "sp_def"
+     ],
+     "bloodline": "机械",
+     "nature_fixed": "沉默",
+     "role": "attack",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "加油蟹",
+     "skills": [
+      "示弱",
+      "水幕冲击",
+      "超级糖果",
+      "击鼓传花"
+     ],
+     "iv_fixed": [
+      "atk",
+      "hp",
+      "def"
+     ],
+     "bloodline": "水",
+     "nature_fixed": "固执",
+     "source_name": "加油螃（单只海葵的样子）",
+     "role": "tank",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "霹雳迪迪",
+     "skills": [
+      "镜像反射",
+      "落雷",
+      "色散",
+      "灵媒"
+     ],
+     "iv_fixed": [
+      "speed",
+      "hp",
+      "sp_atk"
+     ],
+     "bloodline": "幽",
+     "nature_fixed": "胆小",
+     "role": "attack",
+     "lead": true,
+     "preserve": true,
+     "energy_hold": 0
+    }
+   ],
+   "item": "进化之力",
+   "item_source": "code"
+  },
+  {
+   "name": "星陨队",
+   "tags": [
+    "体系队"
+   ],
+   "archetype": "体系队",
+   "source_id": "popular_966954f6-34b4-4533-b7cd-971559824902",
+   "like_count": 1,
+   "sprites": [
+    {
+     "name": "怖哭菇",
+     "skills": [
+      "错乱",
+      "吓退",
+      "报复",
+      "休息回复"
+     ],
+     "iv_fixed": [
+      "hp",
+      "def",
+      "sp_def"
+     ],
+     "bloodline": "幻",
+     "nature_fixed": "平和",
+     "role": "support",
+     "lead": true,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "暮星辰",
+     "skills": [
+      "翼击",
+      "风隐",
+      "倾泻",
+      "四维降解"
+     ],
+     "iv_fixed": [
+      "speed",
+      "hp",
+      "sp_atk"
+     ],
+     "bloodline": "幻",
+     "nature_fixed": "胆小",
+     "role": "attack",
+     "lead": true,
+     "preserve": false,
+     "energy_hold": 0,
+     "alts": [
+      {
+       "name": "卡瓦重（雪山附近的样子）",
+       "skills": [
+        "晒太阳",
+        "速冻",
+        "冰雹",
+        "筛管奔流"
+       ],
+       "iv_fixed": [
+        "speed",
+        "hp",
+        "atk"
+       ],
+       "bloodline": "草",
+       "nature_fixed": "开朗",
+       "role": "attack"
+      }
+     ]
+    },
+    {
+     "name": "小皮球",
+     "skills": [
+      "落雷",
+      "心灵洞悉",
+      "加大功率",
+      "晒太阳"
+     ],
+     "iv_fixed": [
+      "hp",
+      "def",
+      "sp_def"
+     ],
+     "bloodline": "幻",
+     "nature_fixed": "踏实",
+     "role": "support",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "仪式巨像",
+     "skills": [
+      "硬化",
+      "四维降解",
+      "陨石",
+      "心灵洞悉"
+     ],
+     "iv_fixed": [
+      "hp",
+      "def",
+      "sp_def"
+     ],
+     "bloodline": "首领",
+     "nature_fixed": "沉默",
+     "role": "tank",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "龙息帕尔",
+     "skills": [
+      "蝙蝠",
+      "力量增效",
+      "火云车",
+      "先发制人"
+     ],
+     "iv_fixed": [
+      "atk",
+      "hp",
+      "def"
+     ],
+     "bloodline": "恶",
+     "nature_fixed": "固执",
+     "role": "attack",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "锤头鹳",
+     "skills": [
+      "水弹枪",
+      "取念",
+      "恶意逃离",
+      "洗礼"
+     ],
+     "iv_fixed": [
+      "sp_atk",
+      "hp",
+      "def"
+     ],
+     "bloodline": "水",
+     "nature_plus": [
+      "sp_atk"
+     ],
+     "role": "support",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    }
+   ],
+   "item": "进化之力",
+   "item_source": "inferred"
+  },
+  {
+   "name": "火队",
+   "tags": [
+    "体系队"
+   ],
+   "archetype": "体系队",
+   "source_id": "popular_07b5a2b4-5479-4886-a42b-4c9f56b2c53c",
+   "like_count": 1,
+   "sprites": [
+    {
+     "name": "烈火守护",
+     "skills": [
+      "有效预防",
+      "先发制人",
+      "反击拳",
+      "撕咬"
+     ],
+     "iv_fixed": [
+      "hp",
+      "atk",
+      "def"
+     ],
+     "bloodline": "火",
+     "nature_fixed": "平和",
+     "role": "attack",
+     "lead": true,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "火神",
+     "skills": [
+      "吹火",
+      "山火",
+      "暗突袭",
+      "火云车"
+     ],
+     "iv_fixed": [
+      "speed",
+      "hp",
+      "atk"
+     ],
+     "bloodline": "首领",
+     "nature_fixed": "开朗",
+     "role": "attack",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "火焰猿",
+     "skills": [
+      "吹火",
+      "焚烧烙印",
+      "钧势",
+      "爆米花爆破"
+     ],
+     "iv_fixed": [
+      "hp",
+      "atk",
+      "def"
+     ],
+     "bloodline": "火",
+     "nature_fixed": "平和",
+     "role": "attack",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0,
+     "alts": [
+      {
+       "name": "厉毒修萝",
+       "skills": [
+        "三连破",
+        "趁火打劫",
+        "连续毒针",
+        "缠丝劲"
+       ],
+       "iv_fixed": [
+        "speed",
+        "hp",
+        "atk"
+       ],
+       "bloodline": "武",
+       "nature_fixed": "开朗",
+       "role": "attack"
+      }
+     ]
+    },
+    {
+     "name": "魔力猫",
+     "skills": [
+      "移花接木",
+      "光合作用",
+      "藤绞",
+      "光能聚集"
+     ],
+     "iv_fixed": [
+      "hp",
+      "atk",
+      "def"
+     ],
+     "bloodline": "草",
+     "nature_fixed": "踏实",
+     "role": "tank",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "翠顶夫人",
+     "skills": [
+      "飞羽",
+      "力量增效",
+      "冰爪",
+      "水刃"
+     ],
+     "iv_fixed": [
+      "atk",
+      "def",
+      "hp"
+     ],
+     "bloodline": "冰",
+     "nature_fixed": "平和",
+     "role": "tank",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "燃薪虫",
+     "skills": [
+      "高温回火",
+      "引燃",
+      "火焰护盾",
+      "倾泻"
+     ],
+     "iv_fixed": [
+      "hp",
+      "def",
+      "sp_def"
+     ],
+     "bloodline": "火",
+     "nature_fixed": "平和",
+     "role": "attack",
+     "lead": false,
+     "preserve": true,
+     "energy_hold": 0
+    }
+   ],
+   "item": "进化之力",
+   "item_source": "inferred"
+  },
+  {
+   "name": "【搬运】黑影平衡毒",
+   "tags": [
+    "平衡队",
+    "排位"
+   ],
+   "archetype": "排位",
+   "source_id": "popular_7a2036a7-2208-411b-bf6e-21424b297756",
+   "like_count": 1,
+   "sprites": [
+    {
+     "name": "绒光优优",
+     "skills": [
+      "热砂",
+      "硬化",
+      "天光",
+      "毒孢子"
+     ],
+     "iv_fixed": [
+      "speed",
+      "hp",
+      "sp_atk"
+     ],
+     "bloodline": "毒",
+     "nature_fixed": "胆小",
+     "role": "tank",
+     "lead": true,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "裘卡",
+     "skills": [
+      "毒孢子",
+      "毒囊",
+      "防御",
+      "阻断"
+     ],
+     "iv_fixed": [
+      "hp",
+      "def",
+      "sp_def"
+     ],
+     "bloodline": "地",
+     "nature_plus": [
+      "hp"
+     ],
+     "role": "attack",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "琉璃水母",
+     "skills": [
+      "洗礼",
+      "泡沫幻影",
+      "疫病吐息",
+      "天洪"
+     ],
+     "iv_fixed": [
+      "hp",
+      "def",
+      "sp_def"
+     ],
+     "bloodline": "地",
+     "nature_fixed": "沉默",
+     "role": "support",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "影狸",
+     "skills": [
+      "感染病",
+      "嘲弄",
+      "幽灵爆发",
+      "毒液渗透"
+     ],
+     "iv_fixed": [
+      "speed",
+      "hp",
+      "sp_atk"
+     ],
+     "bloodline": "地",
+     "nature_fixed": "胆小",
+     "role": "attack",
+     "lead": true,
+     "preserve": false,
+     "energy_hold": 0,
+     "alts": [
+      {
+       "name": "古卷执政官",
+       "skills": [
+        "叠加态",
+        "能量刃",
+        "斩断",
+        "防御反击"
+       ],
+       "iv_fixed": [
+        "sp_def",
+        "atk",
+        "hp"
+       ],
+       "bloodline": "普通",
+       "nature_fixed": "平和",
+       "role": "attack"
+      }
+     ]
+    },
+    {
+     "name": "黑羽夫人",
+     "skills": [
+      "飞羽",
+      "水刃",
+      "泡沫幻影",
+      "撕咬"
+     ],
+     "iv_fixed": [
+      "speed",
+      "hp",
+      "atk"
+     ],
+     "bloodline": "武",
+     "nature_fixed": "开朗",
+     "role": "tank",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "圣羽翼王",
+     "skills": [
+      "力量增效",
+      "水刃",
+      "后发制人",
+      "光之矛"
+     ],
+     "iv_fixed": [
+      "atk",
+      "hp",
+      "speed"
+     ],
+     "bloodline": "地",
+     "nature_fixed": "固执",
+     "role": "tank",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    }
+   ],
+   "item": "愿力",
+   "item_source": "default"
+  },
+  {
+   "name": "六元混搭队",
+   "tags": [
+    "比赛",
+    "排位",
+    "科研"
+   ],
+   "archetype": "比赛",
+   "source_id": "popular_595c193f-cdcb-4df3-8cce-63607b9d5290",
+   "like_count": 1,
+   "sprites": [
+    {
+     "name": "火神",
+     "skills": [
+      "山火",
+      "闪燃",
+      "热身",
+      "火云车"
+     ],
+     "iv_fixed": [
+      "atk",
+      "hp",
+      "speed"
+     ],
+     "bloodline": "水",
+     "nature_fixed": "固执",
+     "role": "attack",
+     "lead": true,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "岚鸟（本来的样子）",
+     "skills": [
+      "龙卷风",
+      "水刃",
+      "力量增效",
+      "闪击"
+     ],
+     "iv_fixed": [
+      "atk",
+      "hp",
+      "speed"
+     ],
+     "bloodline": "地",
+     "nature_fixed": "胆小",
+     "role": "attack",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0,
+     "alts": [
+      {
+       "name": "圆号鱼",
+       "skills": [
+        "打湿",
+        "泡沫幻影",
+        "水炮",
+        "灵媒"
+       ],
+       "iv_fixed": [
+        "hp"
+       ],
+       "bloodline": "水",
+       "nature_fixed": "天真",
+       "role": "attack"
+      }
+     ]
+    },
+    {
+     "name": "秩序鱿墨",
+     "skills": [
+      "能量刃",
+      "风墙",
+      "超级糖果",
+      "惊吓盒子"
+     ],
+     "iv_fixed": [
+      "atk",
+      "hp",
+      "speed"
+     ],
+     "bloodline": "翼",
+     "nature_fixed": "平和",
+     "role": "attack",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "雪灵",
+     "skills": [
+      "嘲弄",
+      "冰锋横扫",
+      "雪替身",
+      "雾气环绕"
+     ],
+     "iv_fixed": [
+      "hp",
+      "sp_atk",
+      "speed"
+     ],
+     "bloodline": "电",
+     "nature_fixed": "理性",
+     "role": "support",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "梦悠悠（穿旧睡衣的样子）",
+     "skills": [
+      "借用",
+      "午夜噪音",
+      "热身运动",
+      "恐吓"
+     ],
+     "iv_fixed": [
+      "hp",
+      "sp_atk",
+      "speed"
+     ],
+     "bloodline": "幻",
+     "nature_fixed": "胆小",
+     "role": "attack",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "海枝枝（碧蓝珊瑚）",
+     "skills": [
+      "打湿",
+      "天洪",
+      "嘲弄",
+      "恐吓"
+     ],
+     "iv_fixed": [
+      "def",
+      "sp_atk",
+      "speed"
+     ],
+     "bloodline": "冰",
+     "nature_fixed": "害羞",
+     "role": "attack",
+     "lead": false,
+     "preserve": true,
+     "energy_hold": 0
+    }
+   ],
+   "item": "愿力",
+   "item_source": "default"
+  },
+  {
+   "name": "星陨强攻队 副本",
+   "tags": [
+    "排位",
+    "平衡队",
+    "体系队"
+   ],
+   "archetype": "排位",
+   "source_id": "popular_6e2f3190-ec0a-41d4-98fe-1b8d4f3e9deb",
+   "like_count": 1,
+   "sprites": [
+    {
+     "name": "龙息帕尔",
+     "skills": [
+      "蝙蝠",
+      "力量增效",
+      "火云车",
+      "先发制人"
+     ],
+     "iv_fixed": [
+      "atk",
+      "hp",
+      "def"
+     ],
+     "bloodline": "冰",
+     "nature_fixed": "固执",
+     "role": "attack",
+     "lead": true,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "怖哭菇",
+     "skills": [
+      "星链",
+      "错乱",
+      "冥想",
+      "吓退"
+     ],
+     "iv_fixed": [
+      "hp",
+      "def",
+      "sp_def"
+     ],
+     "bloodline": "地",
+     "nature_fixed": "沉默",
+     "role": "support",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "化蝶（平常的样子）",
+     "skills": [
+      "掩护",
+      "晒太阳",
+      "超维投射",
+      "破罐破摔"
+     ],
+     "iv_fixed": [
+      "def",
+      "sp_def",
+      "sp_atk"
+     ],
+     "bloodline": "幻",
+     "nature_fixed": "冷静",
+     "role": "support",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "暮星辰",
+     "skills": [
+      "翼击",
+      "风隐",
+      "倾泻",
+      "恐吓"
+     ],
+     "iv_fixed": [
+      "speed",
+      "hp",
+      "sp_atk"
+     ],
+     "bloodline": "武",
+     "nature_fixed": "胆小",
+     "role": "attack",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0,
+     "alts": [
+      {
+       "name": "圣剑-X",
+       "skills": [
+        "轴承支撑",
+        "鸣沙陷阱",
+        "齿轮扭矩",
+        "主轴"
+       ],
+       "iv_fixed": [
+        "def",
+        "atk",
+        "hp"
+       ],
+       "bloodline": "武",
+       "nature_fixed": "平和",
+       "role": "attack"
+      }
+     ]
+    },
+    {
+     "name": "巨噬针鼹",
+     "skills": [
+      "先发制人",
+      "地刺",
+      "虫击",
+      "复写"
+     ],
+     "iv_fixed": [
+      "sp_def",
+      "def",
+      "atk"
+     ],
+     "bloodline": "武",
+     "nature_fixed": "固执",
+     "role": "tank",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "音速犬",
+     "skills": [
+      "力量增效",
+      "灼伤",
+      "跌落",
+      "闪燃"
+     ],
+     "iv_fixed": [
+      "atk",
+      "hp",
+      "speed"
+     ],
+     "bloodline": "草",
+     "nature_fixed": "固执",
+     "role": "attack",
+     "lead": false,
+     "preserve": true,
+     "energy_hold": 0
+    }
+   ],
+   "item": "愿力",
+   "item_source": "default"
+  },
+  {
+   "name": "电羊轮转队",
+   "tags": [
+    "平衡队",
+    "排位"
+   ],
+   "archetype": "排位",
+   "source_id": "popular_cfe35c78-e8d1-4861-a89c-6d4e1d28bc25",
+   "like_count": 1,
+   "sprites": [
+    {
+     "name": "龙鱼",
+     "skills": [
+      "龙吟",
+      "天洪",
+      "角击",
+      "追打"
+     ],
+     "iv_fixed": [
+      "speed",
+      "hp",
+      "sp_atk"
+     ],
+     "bloodline": "水",
+     "nature_fixed": "胆小",
+     "role": "attack",
+     "lead": true,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "巨鼓象",
+     "skills": [
+      "休息回复",
+      "轴承支撑",
+      "齿轮扭矩",
+      "晒太阳"
+     ],
+     "iv_fixed": [
+      "hp",
+      "def",
+      "sp_def"
+     ],
+     "bloodline": "普通",
+     "nature_fixed": "平和",
+     "role": "support",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "泥吼牙",
+     "skills": [
+      "泥浆铠甲",
+      "落石",
+      "倾泻",
+      "羽化加速"
+     ],
+     "iv_fixed": [
+      "speed",
+      "hp",
+      "atk"
+     ],
+     "bloodline": "翼",
+     "nature_fixed": "开朗",
+     "role": "tank",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "音速犬",
+     "skills": [
+      "高温回火",
+      "焚烧烙印",
+      "灼伤",
+      "跌落"
+     ],
+     "iv_fixed": [
+      "speed",
+      "hp",
+      "atk"
+     ],
+     "bloodline": "火",
+     "nature_fixed": "开朗",
+     "role": "attack",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "电球咩咩",
+     "skills": [
+      "落雷",
+      "闪击折返",
+      "吓退",
+      "加大功率"
+     ],
+     "iv_fixed": [
+      "speed",
+      "sp_atk",
+      "hp"
+     ],
+     "bloodline": "电",
+     "nature_fixed": "胆小",
+     "role": "attack",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0,
+     "alts": [
+      {
+       "name": "寂灭骨龙",
+       "skills": [
+        "力量增效",
+        "隼鳞",
+        "幻象",
+        "报复"
+       ],
+       "iv_fixed": [
+        "atk",
+        "def",
+        "hp"
+       ],
+       "bloodline": "武",
+       "nature_fixed": "平和",
+       "role": "attack"
+      }
+     ]
+    },
+    {
+     "name": "魔力猫",
+     "skills": [
+      "酶浓度调整",
+      "光合作用",
+      "光能聚集",
+      "移花接木"
+     ],
+     "iv_fixed": [
+      "hp",
+      "def",
+      "sp_def"
+     ],
+     "bloodline": "草",
+     "nature_fixed": "踏实",
+     "role": "support",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    }
+   ],
+   "item": "愿力",
+   "item_source": "default"
+  },
+  {
+   "name": "虫",
+   "tags": [
+    "平衡队",
+    "排位",
+    "体系队"
+   ],
+   "archetype": "排位",
+   "source_id": "popular_34f75125-b597-428f-8e9f-8a5a1eae3973",
+   "like_count": 1,
+   "sprites": [
+    {
+     "name": "恶魔红钻",
+     "skills": [
+      "极限撕裂",
+      "虫击",
+      "力量增效",
+      "斩断"
+     ],
+     "iv_fixed": [
+      "atk",
+      "hp",
+      "speed"
+     ],
+     "bloodline": "恶",
+     "nature_fixed": "固执",
+     "role": "attack",
+     "lead": true,
+     "preserve": false,
+     "energy_hold": 0,
+     "alts": [
+      {
+       "name": "小丑公爵",
+       "skills": [
+        "贪婪",
+        "骗局",
+        "蝙蝠",
+        "等价交换"
+       ],
+       "iv_fixed": [
+        "hp",
+        "atk",
+        "speed"
+       ],
+       "bloodline": "恶",
+       "nature_fixed": "开朗",
+       "role": "attack"
+      }
+     ]
+    },
+    {
+     "name": "锤头鹳",
+     "skills": [
+      "水弹枪",
+      "虚假破产",
+      "晒太阳",
+      "洗礼"
+     ],
+     "iv_fixed": [
+      "sp_atk",
+      "hp",
+      "speed"
+     ],
+     "bloodline": "水",
+     "nature_fixed": "聪明",
+     "role": "support",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "帅帅魔偶",
+     "skills": [
+      "借用",
+      "过载回路",
+      "二律背反"
+     ],
+     "iv_fixed": [
+      "hp",
+      "sp_def",
+      "def"
+     ],
+     "bloodline": "光",
+     "nature_fixed": "平和",
+     "role": "support",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "花衣蝶",
+     "skills": [
+      "虫结阵",
+      "飞断",
+      "晒太阳",
+      "虫群"
+     ],
+     "iv_fixed": [
+      "hp",
+      "def",
+      "speed"
+     ],
+     "bloodline": "地",
+     "nature_fixed": "平和",
+     "role": "tank",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "铠甲虫",
+     "skills": [
+      "虫结阵",
+      "虫群过境",
+      "风隐",
+      "倾泻"
+     ],
+     "iv_fixed": [
+      "hp",
+      "def",
+      "sp_def"
+     ],
+     "bloodline": "电",
+     "nature_fixed": "平和",
+     "role": "tank",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "陨星虫",
+     "skills": [
+      "假寐",
+      "虫群",
+      "吓退",
+      "羽翼庇护"
+     ],
+     "iv_fixed": [
+      "hp",
+      "atk",
+      "speed"
+     ],
+     "bloodline": "翼",
+     "nature_fixed": "开朗",
+     "role": "support",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    }
+   ],
+   "item": "愿力",
+   "item_source": "default"
+  },
+  {
+   "name": "迪迪平衡",
+   "tags": [
+    "平衡队",
+    "排位",
+    "科研"
+   ],
+   "archetype": "排位",
+   "source_id": "popular_dd9871b3-b999-4ad0-8d62-21ac9b23016f",
+   "like_count": 1,
+   "sprites": [
+    {
+     "name": "星光狮（月光能量的样子）",
+     "skills": [
+      "光之矛",
+      "伺机而动",
+      "影袭",
+      "加大功率"
+     ],
+     "iv_fixed": [
+      "atk",
+      "hp",
+      "speed"
+     ],
+     "bloodline": "冰",
+     "nature_fixed": "开朗",
+     "role": "attack",
+     "lead": true,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "霹雳迪迪",
+     "skills": [
+      "色散",
+      "落雷",
+      "加大功率",
+      "放晴"
+     ],
+     "iv_fixed": [
+      "speed",
+      "sp_atk",
+      "hp"
+     ],
+     "bloodline": "冰",
+     "nature_fixed": "胆小",
+     "role": "attack",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "魔力猫",
+     "skills": [
+      "藤绞",
+      "纤维化",
+      "泥浆铠甲",
+      "光合作用"
+     ],
+     "iv_fixed": [
+      "hp",
+      "def",
+      "sp_def"
+     ],
+     "bloodline": "地",
+     "nature_fixed": "踏实",
+     "role": "support",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "食尘短绒",
+     "skills": [
+      "地刺",
+      "倾泻",
+      "遁地",
+      "风墙"
+     ],
+     "iv_fixed": [
+      "hp",
+      "def",
+      "sp_def"
+     ],
+     "bloodline": "翼",
+     "nature_fixed": "平和",
+     "role": "attack",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "尖嘴狐仙",
+     "skills": [
+      "火焰切割",
+      "焚烧烙印",
+      "高温回火",
+      "火焰护盾"
+     ],
+     "iv_fixed": [
+      "hp",
+      "def",
+      "sp_def"
+     ],
+     "bloodline": "地",
+     "nature_fixed": "踏实",
+     "role": "attack",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0,
+     "alts": [
+      {
+       "name": "岚鸟（夏天的样子）",
+       "skills": [
+        "闪击",
+        "水刃",
+        "撕咬",
+        "力量增效"
+       ],
+       "iv_fixed": [
+        "def",
+        "hp",
+        "speed"
+       ],
+       "bloodline": "电",
+       "nature_fixed": "开朗",
+       "role": "attack"
+      }
+     ]
+    },
+    {
+     "name": "岚鸟（春天的样子）",
+     "skills": [
+      "快速移动",
+      "闪击",
+      "筛管奔流",
+      "水刃"
+     ],
+     "iv_fixed": [
+      "speed",
+      "hp",
+      "atk"
+     ],
+     "bloodline": "地",
+     "nature_fixed": "开朗",
+     "role": "attack",
+     "lead": false,
+     "preserve": true,
+     "energy_hold": 0
+    }
+   ],
+   "item": "愿力",
+   "item_source": "default"
+  },
+  {
+   "name": "队伍5",
+   "tags": [
+    "平衡队",
+    "排位"
+   ],
+   "archetype": "排位",
+   "source_id": "popular_222f75f1-8295-4215-a8f8-a789b4fbdf40",
+   "like_count": 1,
+   "sprites": [
+    {
+     "name": "绅士鸡",
+     "skills": [
+      "防御",
+      "闪燃",
+      "先发制人",
+      "截拳"
+     ],
+     "iv_fixed": [
+      "def",
+      "hp",
+      "sp_def"
+     ],
+     "bloodline": "冰",
+     "nature_fixed": "沉默",
+     "role": "attack",
+     "lead": true,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "化蝶（平常的样子）",
+     "skills": [
+      "掩护",
+      "食腐",
+      "晒太阳",
+      "毒孢子"
+     ],
+     "iv_fixed": [
+      "hp",
+      "sp_atk",
+      "sp_def"
+     ],
+     "bloodline": "毒",
+     "nature_fixed": "专注",
+     "role": "support",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "电球咩咩",
+     "skills": [
+      "加大功率",
+      "风墙",
+      "落雷",
+      "闪击折返"
+     ],
+     "iv_fixed": [
+      "hp",
+      "sp_def",
+      "speed"
+     ],
+     "bloodline": "翼",
+     "nature_fixed": "胆小",
+     "role": "attack",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "海枝枝（碧蓝珊瑚）",
+     "skills": [
+      "午夜噪音",
+      "天洪",
+      "打鼾",
+      "嘲弄"
+     ],
+     "iv_fixed": [
+      "hp",
+      "sp_atk",
+      "speed"
+     ],
+     "bloodline": "机械",
+     "nature_fixed": "聪明",
+     "role": "attack",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "春花兔",
+     "skills": [
+      "抽枝",
+      "移花接木",
+      "倾泻",
+      "休息回复"
+     ],
+     "iv_fixed": [
+      "atk",
+      "def",
+      "sp_def"
+     ],
+     "bloodline": "水",
+     "nature_fixed": "害羞",
+     "role": "attack",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "帕帕斯卡",
+     "skills": [
+      "钢铁洪流",
+      "齿轮扭矩",
+      "俯冲猛击",
+      "倾泻"
+     ],
+     "iv_fixed": [
+      "atk",
+      "hp",
+      "speed"
+     ],
+     "bloodline": "电",
+     "nature_fixed": "固执",
+     "role": "attack",
+     "lead": false,
+     "preserve": true,
+     "energy_hold": 0,
+     "alts": [
+      {
+       "name": "尖嘴狐仙",
+       "skills": [
+        "炎枪",
+        "焚烧烙印",
+        "火焰护盾",
+        "高温回火"
+       ],
+       "iv_fixed": [
+        "def",
+        "sp_def"
+       ],
+       "bloodline": "地",
+       "nature_fixed": "踏实",
+       "role": "attack"
+      }
+     ]
+    }
+   ],
+   "item": "愿力",
+   "item_source": "code"
+  },
+  {
+   "name": "雷暴平衡",
+   "tags": [
+    "排位"
+   ],
+   "archetype": "排位",
+   "source_id": "popular_2a4859c0-e1a7-4a77-ad5e-7fe75d4ef537",
+   "like_count": 1,
+   "sprites": [
+    {
+     "name": "闪电鳗鱼",
+     "skills": [
+      "双联脉冲",
+      "雷暴",
+      "水光冲击",
+      "集中"
+     ],
+     "iv_fixed": [
+      "hp",
+      "sp_atk",
+      "speed"
+     ],
+     "bloodline": "地",
+     "nature_fixed": "聪明",
+     "role": "attack",
+     "lead": true,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "星光狮（星光能量的样子）",
+     "skills": [
+      "雷暴",
+      "炎打",
+      "黑手",
+      "过载回路"
+     ],
+     "iv_fixed": [
+      "hp",
+      "sp_atk",
+      "speed"
+     ],
+     "bloodline": "冰",
+     "nature_fixed": "胆小",
+     "role": "attack",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0,
+     "alts": [
+      {
+       "name": "岚鸟（春天的样子）",
+       "skills": [
+        "快速移动",
+        "闪击",
+        "筛管奔流",
+        "水刃"
+       ],
+       "iv_fixed": [
+        "speed",
+        "hp",
+        "atk"
+       ],
+       "bloodline": "地",
+       "nature_fixed": "开朗",
+       "role": "attack"
+      }
+     ]
+    },
+    {
+     "name": "兽花蕾",
+     "skills": [
+      "飞羽",
+      "退化",
+      "顶端优势",
+      "移花接木"
+     ],
+     "iv_fixed": [
+      "def",
+      "hp",
+      "sp_def"
+     ],
+     "bloodline": "萌",
+     "nature_fixed": "踏实",
+     "role": "support",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "翼龙",
+     "skills": [
+      "龙爪",
+      "羽刃",
+      "爆冲",
+      "取念"
+     ],
+     "iv_fixed": [
+      "atk",
+      "hp",
+      "speed"
+     ],
+     "bloodline": "地",
+     "nature_fixed": "固执",
+     "role": "attack",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "贝古斯",
+     "skills": [
+      "能量守恒",
+      "霜降",
+      "燃尽",
+      "倾泻"
+     ],
+     "iv_fixed": [
+      "def",
+      "hp",
+      "sp_atk"
+     ],
+     "bloodline": "冰",
+     "nature_fixed": "沉默",
+     "role": "attack",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "巨鼓象",
+     "skills": [
+      "轴承支撑",
+      "齿轮扭矩",
+      "相位移动",
+      "休息回复"
+     ],
+     "iv_fixed": [
+      "atk",
+      "def",
+      "hp"
+     ],
+     "bloodline": "普通",
+     "nature_fixed": "平和",
+     "role": "support",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    }
+   ],
+   "item": "愿力",
+   "item_source": "code"
+  },
+  {
+   "name": "龙印记",
+   "tags": [
+    "排位",
+    "体系队"
+   ],
+   "archetype": "排位",
+   "source_id": "popular_e5789715-1d5a-45b2-a881-bd2e8382e1e2",
+   "like_count": 1,
+   "sprites": [
+    {
+     "name": "翼龙",
+     "skills": [
+      "爆冲",
+      "龙威",
+      "龙炮",
+      "鹰爪"
+     ],
+     "iv_fixed": [
+      "hp",
+      "sp_def",
+      "def"
+     ],
+     "bloodline": "翼",
+     "nature_fixed": "平和",
+     "role": "attack",
+     "lead": true,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "龙鱼",
+     "skills": [
+      "升龙咆哮",
+      "水炮",
+      "超导",
+      "翼击"
+     ],
+     "iv_fixed": [
+      "hp",
+      "speed",
+      "sp_atk"
+     ],
+     "bloodline": "火",
+     "nature_fixed": "胆小",
+     "role": "attack",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "加油蟹",
+     "skills": [
+      "示弱",
+      "有效预防",
+      "超级糖果",
+      "水幕冲击"
+     ],
+     "iv_fixed": [
+      "atk",
+      "def",
+      "hp"
+     ],
+     "bloodline": "地",
+     "nature_fixed": "固执",
+     "role": "tank",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "翠顶夫人",
+     "skills": [
+      "翼击",
+      "气泡",
+      "等价交换",
+      "风隐"
+     ],
+     "iv_fixed": [
+      "hp",
+      "sp_atk",
+      "sp_def"
+     ],
+     "bloodline": "恶",
+     "nature_fixed": "沉默",
+     "role": "tank",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "迪莫",
+     "skills": [
+      "棘突",
+      "过曝",
+      "热砂",
+      "寒风吹"
+     ],
+     "iv_fixed": [
+      "speed",
+      "hp",
+      "sp_atk"
+     ],
+     "bloodline": "武",
+     "nature_fixed": "胆小",
+     "role": "tank",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "冰钻布鲁斯",
+     "skills": [
+      "丢冰块",
+      "撕咬",
+      "跺地",
+      "先发制人"
+     ],
+     "iv_fixed": [
+      "hp",
+      "atk",
+      "def"
+     ],
+     "bloodline": "地",
+     "nature_fixed": "固执",
+     "role": "attack",
+     "lead": false,
+     "preserve": true,
+     "energy_hold": 0,
+     "alts": [
+      {
+       "name": "岚鸟（本来的样子）",
+       "skills": [
+        "龙卷风",
+        "水刃",
+        "先发制人",
+        "闪击"
+       ],
+       "iv_fixed": [
+        "atk",
+        "hp",
+        "speed"
+       ],
+       "bloodline": "地",
+       "nature_fixed": "胆小",
+       "role": "attack"
+      }
+     ]
+    }
+   ],
+   "item": "愿力",
+   "item_source": "default"
+  },
+  {
+   "name": "多元轮转队",
+   "tags": [
+    "排位",
+    "平衡队"
+   ],
+   "archetype": "排位",
+   "source_id": "popular_7e1ef941-3296-442c-a695-3ac86f0b6ace",
+   "like_count": 0,
+   "sprites": [
+    {
+     "name": "针叶巡林",
+     "skills": [
+      "地刺",
+      "根吸收",
+      "能量刃",
+      "散手"
+     ],
+     "iv_fixed": [
+      "atk",
+      "hp",
+      "speed"
+     ],
+     "bloodline": "武",
+     "nature_fixed": "固执",
+     "role": "attack",
+     "lead": true,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "岚鸟（本来的样子）",
+     "skills": [
+      "龙卷风",
+      "水刃",
+      "先发制人",
+      "闪击"
+     ],
+     "iv_fixed": [
+      "atk",
+      "hp",
+      "speed"
+     ],
+     "bloodline": "地",
+     "nature_fixed": "胆小",
+     "role": "attack",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0,
+     "alts": [
+      {
+       "name": "岚鸟（秋天的样子）",
+       "skills": [
+        "乘风",
+        "泥浆铠甲",
+        "跺地",
+        "水刃"
+       ],
+       "iv_fixed": [
+        "atk",
+        "hp",
+        "speed"
+       ],
+       "bloodline": "地",
+       "nature_plus": [
+        "atk"
+       ],
+       "role": "attack"
+      }
+     ]
+    },
+    {
+     "name": "秩序鱿墨",
+     "skills": [
+      "能量刃",
+      "风墙",
+      "超级糖果",
+      "惊吓盒子"
+     ],
+     "iv_fixed": [
+      "atk",
+      "hp",
+      "speed"
+     ],
+     "bloodline": "翼",
+     "nature_fixed": "莽撞",
+     "role": "attack",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "雪灵",
+     "skills": [
+      "嘲弄",
+      "冰锋横扫",
+      "雪替身",
+      "速冻"
+     ],
+     "iv_fixed": [
+      "hp",
+      "sp_atk",
+      "speed"
+     ],
+     "bloodline": "幽",
+     "nature_fixed": "理性",
+     "role": "support",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "梦悠悠（穿旧睡衣的样子）",
+     "skills": [
+      "羽化加速",
+      "午夜噪音",
+      "操控",
+      "恐吓"
+     ],
+     "iv_fixed": [
+      "hp",
+      "sp_atk",
+      "speed"
+     ],
+     "bloodline": "翼",
+     "nature_fixed": "胆小",
+     "role": "attack",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "海枝枝（碧蓝珊瑚）",
+     "skills": [
+      "天洪",
+      "嘲弄",
+      "恐吓",
+      "有效预防"
+     ],
+     "iv_fixed": [
+      "hp",
+      "sp_atk",
+      "speed"
+     ],
+     "bloodline": "冰",
+     "nature_fixed": "害羞",
+     "role": "attack",
+     "lead": false,
+     "preserve": true,
+     "energy_hold": 0
+    }
+   ],
+   "item": "愿力",
+   "item_source": "code"
+  },
+  {
+   "name": "纯受向毒0517",
+   "tags": [
+    "排位",
+    "科研"
+   ],
+   "archetype": "排位",
+   "source_id": "popular_468436a7-2859-474b-8183-76b001c52c25",
+   "like_count": 0,
+   "sprites": [
+    {
+     "name": "化蝶（平常的样子）",
+     "skills": [
+      "晒太阳",
+      "食腐",
+      "毒孢子",
+      "掩护"
+     ],
+     "iv_fixed": [
+      "hp",
+      "sp_def",
+      "def"
+     ],
+     "bloodline": "毒",
+     "nature_fixed": "踏实",
+     "role": "support",
+     "lead": true,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "月亮砣（上弦的样子）",
+     "skills": [
+      "毒雾",
+      "毒针",
+      "疫病吐息",
+      "不可接触"
+     ],
+     "iv_fixed": [
+      "hp",
+      "sp_def",
+      "def"
+     ],
+     "bloodline": "武",
+     "nature_fixed": "踏实",
+     "role": "support",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "寂灭骨龙",
+     "skills": [
+      "先发制人",
+      "隼鳞",
+      "偷袭",
+      "吓退"
+     ],
+     "iv_fixed": [
+      "atk",
+      "def",
+      "hp"
+     ],
+     "bloodline": "幽",
+     "nature_fixed": "固执",
+     "source_name": "极物攻生命物防",
+     "role": "attack",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0,
+     "alts": [
+      {
+       "name": "布克棱岩",
+       "skills": [
+        "惊吓盒子",
+        "地刺",
+        "极限撕裂",
+        "遁地"
+       ],
+       "iv_fixed": [
+        "hp",
+        "def",
+        "sp_def"
+       ],
+       "bloodline": "恶",
+       "nature_fixed": "平和",
+       "role": "attack"
+      }
+     ]
+    },
+    {
+     "name": "裘卡",
+     "skills": [
+      "毒囊",
+      "毒孢子",
+      "阻断",
+      "防御"
+     ],
+     "iv_fixed": [
+      "hp",
+      "def",
+      "sp_def"
+     ],
+     "bloodline": "毒",
+     "nature_fixed": "沉默",
+     "role": "attack",
+     "lead": true,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "千棘盔（本来的样子）",
+     "skills": [
+      "打湿",
+      "疫病吐息",
+      "腐蚀酸液",
+      "泡沫幻影"
+     ],
+     "iv_fixed": [
+      "def",
+      "hp",
+      "sp_def"
+     ],
+     "bloodline": "幻",
+     "nature_fixed": "踏实",
+     "role": "support",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "椰浆布丁",
+     "skills": [
+      "寒风吹",
+      "掩护",
+      "洗礼",
+      "泡沫幻影"
+     ],
+     "iv_fixed": [
+      "def",
+      "sp_def",
+      "hp"
+     ],
+     "bloodline": "虫",
+     "nature_fixed": "沉默",
+     "role": "support",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    }
+   ],
+   "item": "愿力",
+   "item_source": "code"
+  },
+  {
+   "name": "轮转捕杀",
+   "tags": [
+    "平衡队",
+    "排位"
+   ],
+   "archetype": "排位",
+   "source_id": "popular_6c885178-f0fe-46d1-9139-0aa5c90d8319",
+   "like_count": 0,
+   "sprites": [
+    {
+     "name": "魔力猫",
+     "skills": [
+      "藤绞",
+      "光能聚集",
+      "引燃",
+      "移花接木"
+     ],
+     "iv_fixed": [
+      "def",
+      "hp",
+      "sp_def"
+     ],
+     "bloodline": "火",
+     "nature_fixed": "踏实",
+     "role": "tank",
+     "lead": true,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "加油蟹",
+     "skills": [
+      "超级糖果",
+      "水幕冲击",
+      "打湿",
+      "有效预防"
+     ],
+     "iv_fixed": [
+      "atk",
+      "def",
+      "hp"
+     ],
+     "bloodline": "火",
+     "nature_fixed": "固执",
+     "role": "tank",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "龙鱼",
+     "skills": [
+      "龙吟",
+      "力量增效",
+      "水刃",
+      "隼鳞"
+     ],
+     "iv_fixed": [
+      "atk",
+      "hp",
+      "speed"
+     ],
+     "bloodline": "电",
+     "nature_fixed": "开朗",
+     "role": "attack",
+     "lead": true,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "音速犬",
+     "skills": [
+      "火云车",
+      "热身",
+      "焚烧烙印",
+      "跌落"
+     ],
+     "iv_fixed": [
+      "atk",
+      "hp",
+      "speed"
+     ],
+     "bloodline": "电",
+     "nature_fixed": "开朗",
+     "role": "attack",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0,
+     "alts": [
+      {
+       "name": "帕帕斯卡",
+       "skills": [
+        "钢铁洪流",
+        "齿轮扭矩",
+        "俯冲猛击",
+        "倾泻"
+       ],
+       "iv_fixed": [
+        "atk",
+        "hp",
+        "speed"
+       ],
+       "bloodline": "电",
+       "nature_fixed": "固执",
+       "role": "attack"
+      }
+     ]
+    },
+    {
+     "name": "绒光优优",
+     "skills": [
+      "流沙",
+      "天光",
+      "放晴",
+      "热砂"
+     ],
+     "iv_fixed": [
+      "hp",
+      "sp_atk",
+      "speed"
+     ],
+     "bloodline": "火",
+     "nature_fixed": "胆小",
+     "role": "tank",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "巨鼓象",
+     "skills": [
+      "休息回复",
+      "轴承支撑",
+      "齿轮扭矩",
+      "相位移动"
+     ],
+     "iv_fixed": [
+      "atk",
+      "def",
+      "hp"
+     ],
+     "bloodline": "普通",
+     "nature_fixed": "固执",
+     "role": "support",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    }
+   ],
+   "item": "愿力",
+   "item_source": "code"
+  },
+  {
+   "name": "迅捷鸟",
+   "tags": [
+    "体系队"
+   ],
+   "archetype": "体系队",
+   "source_id": "popular_16398839-fff5-4f7d-bc93-616e58d61972",
+   "like_count": 1,
+   "sprites": [
+    {
+     "name": "岚鸟（本来的样子）",
+     "skills": [
+      "羽化加速",
+      "先发制人",
+      "水刃",
+      "撕咬"
+     ],
+     "iv_fixed": [
+      "atk",
+      "hp",
+      "speed"
+     ],
+     "bloodline": "首领",
+     "nature_fixed": "固执",
+     "role": "attack",
+     "lead": true,
+     "preserve": false,
+     "energy_hold": 0,
+     "alts": [
+      {
+       "name": "彩蝶鲨",
+       "skills": [
+        "贮藏",
+        "天洪",
+        "回旋风暴",
+        "血气"
+       ],
+       "iv_fixed": [
+        "speed",
+        "hp",
+        "sp_atk"
+       ],
+       "bloodline": "机械",
+       "nature_fixed": "胆小",
+       "role": "attack"
+      }
+     ]
+    },
+    {
+     "name": "翠顶夫人",
+     "skills": [
+      "水刃",
+      "力量增效",
+      "飞羽",
+      "水环"
+     ],
+     "iv_fixed": [
+      "def",
+      "hp",
+      "sp_def"
+     ],
+     "bloodline": "电",
+     "nature_fixed": "平和",
+     "role": "support",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "皇家狮鹫（崖间地的样子）",
+     "skills": [
+      "羽化加速",
+      "啄击",
+      "缠丝劲",
+      "光之矛"
+     ],
+     "iv_fixed": [
+      "atk",
+      "hp",
+      "speed"
+     ],
+     "bloodline": "水",
+     "nature_fixed": "开朗",
+     "role": "attack",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "獠牙猪",
+     "skills": [
+      "地刺",
+      "丢冰块",
+      "冰墙",
+      "石锁"
+     ],
+     "iv_fixed": [
+      "atk",
+      "def",
+      "hp"
+     ],
+     "bloodline": "地",
+     "nature_fixed": "固执",
+     "role": "attack",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "贝古斯",
+     "skills": [
+      "磁暴",
+      "天火",
+      "倾泻",
+      "燃尽"
+     ],
+     "iv_fixed": [
+      "hp",
+      "sp_atk",
+      "sp_def"
+     ],
+     "bloodline": "电",
+     "nature_fixed": "沉默",
+     "role": "attack",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "幻影灵菇",
+     "skills": [
+      "风墙",
+      "抽枝",
+      "惊吓盒子",
+      "取念"
+     ],
+     "iv_fixed": [
+      "atk",
+      "hp",
+      "speed"
+     ],
+     "bloodline": "翼",
+     "nature_fixed": "固执",
+     "role": "tank",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    }
+   ],
+   "item": "进化之力",
+   "item_source": "code"
+  },
+  {
+   "name": "沙包五",
+   "tags": [
+    "体系队"
+   ],
+   "archetype": "体系队",
+   "source_id": "popular_9dc67e11-7385-4523-bdf9-8b07518b3841",
+   "like_count": 0,
+   "sprites": [
+    {
+     "name": "棋绮后（白子）",
+     "skills": [
+      "先发制人",
+      "听桥",
+      "影袭",
+      "鸣沙陷阱"
+     ],
+     "iv_fixed": [
+      "speed",
+      "hp",
+      "atk"
+     ],
+     "bloodline": "首领",
+     "nature_fixed": "开朗",
+     "role": "attack",
+     "lead": true,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "海豹船长",
+     "skills": [
+      "听桥",
+      "斩断",
+      "水刃",
+      "力量增效"
+     ],
+     "iv_fixed": [
+      "atk",
+      "hp",
+      "speed"
+     ],
+     "bloodline": "武",
+     "nature_fixed": "固执",
+     "role": "attack",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "食尘短绒",
+     "skills": [
+      "地刺",
+      "遁地",
+      "沙涌",
+      "石锁"
+     ],
+     "iv_fixed": [
+      "hp",
+      "speed",
+      "atk"
+     ],
+     "bloodline": "虫",
+     "nature_fixed": "平和",
+     "role": "attack",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "巨噬针鼹",
+     "skills": [
+      "先发制人",
+      "偷袭",
+      "地刺",
+      "有效预防"
+     ],
+     "iv_fixed": [
+      "atk",
+      "hp",
+      "speed"
+     ],
+     "bloodline": "普通",
+     "nature_fixed": "固执",
+     "role": "tank",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "布克棱岩",
+     "skills": [
+      "地震",
+      "地刺",
+      "遁地",
+      "降灵"
+     ],
+     "iv_fixed": [
+      "atk",
+      "hp",
+      "speed"
+     ],
+     "bloodline": "首领",
+     "nature_fixed": "固执",
+     "role": "attack",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0,
+     "alts": [
+      {
+       "name": "影狸",
+       "skills": [
+        "幽灵爆发",
+        "毒液渗透",
+        "防御",
+        "嘲弄"
+       ],
+       "iv_fixed": [
+        "hp",
+        "sp_atk",
+        "speed"
+       ],
+       "bloodline": "电",
+       "nature_fixed": "胆小",
+       "role": "attack"
+      }
+     ]
+    },
+    {
+     "name": "小皮球",
+     "skills": [
+      "落雷",
+      "加大功率",
+      "吓退",
+      "晒太阳"
+     ],
+     "iv_fixed": [
+      "speed",
+      "hp",
+      "sp_atk"
+     ],
+     "bloodline": "电",
+     "nature_fixed": "胆小",
+     "role": "support",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    }
+   ],
+   "item": "进化之力",
+   "item_source": "inferred"
+  },
+  {
+   "name": "电羊松鼠平衡队",
+   "tags": [
+    "平衡队"
+   ],
+   "archetype": "平衡队",
+   "source_id": "popular_6a758a4d-6093-48e8-ba8d-5f29d810538f",
+   "like_count": 0,
+   "sprites": [
+    {
+     "name": "龙鱼",
+     "skills": [
+      "角击",
+      "润泽",
+      "水炮",
+      "升龙咆哮"
+     ],
+     "iv_fixed": [
+      "speed",
+      "hp",
+      "sp_atk"
+     ],
+     "bloodline": "冰",
+     "nature_fixed": "胆小",
+     "role": "attack",
+     "lead": true,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "兽花蕾",
+     "skills": [
+      "顶端优势",
+      "退化",
+      "移花接木",
+      "飞羽"
+     ],
+     "iv_fixed": [
+      "hp",
+      "def",
+      "sp_def"
+     ],
+     "bloodline": "地",
+     "nature_fixed": "平和",
+     "role": "support",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "电球咩咩",
+     "skills": [
+      "落雷",
+      "闪击折返",
+      "加大功率",
+      "风墙"
+     ],
+     "iv_fixed": [
+      "speed",
+      "hp",
+      "sp_atk"
+     ],
+     "bloodline": "翼",
+     "nature_fixed": "胆小",
+     "role": "attack",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "蹦床松鼠",
+     "skills": [
+      "休息回复",
+      "热身运动",
+      "落石",
+      "遁地"
+     ],
+     "iv_fixed": [
+      "def",
+      "sp_def"
+     ],
+     "bloodline": "冰",
+     "nature_fixed": "踏实",
+     "role": "support",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "绒光优优",
+     "skills": [
+      "热砂",
+      "硬化",
+      "流沙",
+      "天光"
+     ],
+     "iv_fixed": [
+      "speed",
+      "hp",
+      "sp_atk"
+     ],
+     "bloodline": "冰",
+     "nature_fixed": "胆小",
+     "role": "tank",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "尖嘴狐仙",
+     "skills": [
+      "炎枪",
+      "焚烧烙印",
+      "火焰护盾",
+      "高温回火"
+     ],
+     "iv_fixed": [
+      "def",
+      "sp_def"
+     ],
+     "bloodline": "地",
+     "nature_fixed": "踏实",
+     "role": "attack",
+     "lead": false,
+     "preserve": true,
+     "energy_hold": 0,
+     "alts": [
+      {
+       "name": "怖哭菇",
+       "skills": [
+        "错乱",
+        "吓退",
+        "纤维化",
+        "先发制人"
+       ],
+       "iv_fixed": [
+        "hp",
+        "def",
+        "sp_def"
+       ],
+       "bloodline": "地",
+       "nature_fixed": "平和",
+       "role": "attack"
+      }
+     ]
+    }
+   ],
+   "item": "愿力",
+   "item_source": "default"
+  },
+  {
+   "name": "虫",
+   "tags": [],
+   "archetype": "首领进化流",
+   "source_id": "popular_7837ca5f-abd3-443b-80dd-f4de5b838351",
+   "like_count": 1,
+   "sprites": [
+    {
+     "name": "花衣蝶",
+     "skills": [
+      "虫结阵",
+      "虫群智慧",
+      "虫群",
+      "引燃"
+     ],
+     "iv_fixed": [
+      "hp",
+      "def",
+      "sp_def"
+     ],
+     "bloodline": "火",
+     "nature_fixed": "平和",
+     "role": "support",
+     "lead": true,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "化蝶（平常的样子）",
+     "skills": [
+      "掩护",
+      "毒孢子",
+      "摇篮曲",
+      "晒太阳"
+     ],
+     "iv_fixed": [
+      "speed",
+      "hp",
+      "sp_def"
+     ],
+     "bloodline": "毒",
+     "nature_fixed": "胆小",
+     "role": "support",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "铠甲虫",
+     "skills": [
+      "风墙",
+      "虫结阵",
+      "飞断",
+      "风隐"
+     ],
+     "iv_fixed": [
+      "hp",
+      "def",
+      "sp_def"
+     ],
+     "bloodline": "翼",
+     "nature_fixed": "平和",
+     "role": "support",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "食尘短绒",
+     "skills": [
+      "地刺",
+      "虫群过境",
+      "风墙",
+      "遁地"
+     ],
+     "iv_fixed": [
+      "hp",
+      "def",
+      "speed"
+     ],
+     "bloodline": "翼",
+     "nature_fixed": "平和",
+     "role": "attack",
+     "lead": true,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "陨星虫",
+     "skills": [
+      "假寐",
+      "虫群",
+      "羽翼庇护",
+      "吓退"
+     ],
+     "iv_fixed": [
+      "speed",
+      "hp",
+      "atk"
+     ],
+     "bloodline": "翼",
+     "nature_fixed": "开朗",
+     "role": "support",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "花魁蜂后",
+     "skills": [
+      "虫群",
+      "有效预防",
+      "热身运动",
+      "撕咬"
+     ],
+     "iv_fixed": [
+      "speed",
+      "hp",
+      "atk"
+     ],
+     "bloodline": "首领",
+     "nature_fixed": "开朗",
+     "role": "attack",
+     "lead": false,
+     "preserve": true,
+     "energy_hold": 0,
+     "alts": [
+      {
+       "name": "恶魔狼",
+       "skills": [
+        "先发制人",
+        "蝙蝠",
+        "借用",
+        "吞噬"
+       ],
+       "iv_fixed": [
+        "atk",
+        "hp",
+        "speed"
+       ],
+       "bloodline": "首领",
+       "nature_fixed": "开朗",
+       "role": "attack"
+      }
+     ]
+    }
+   ],
+   "item": "进化之力",
+   "item_source": "inferred"
+  },
+  {
+   "name": "S2 - 双水平衡队",
+   "tags": [],
+   "archetype": "未标注",
+   "source_id": "popular_a53b082a-e377-4510-84c5-2304c981e336",
+   "like_count": 0,
+   "sprites": [
+    {
+     "name": "彩蝶鲨",
+     "skills": [
+      "天洪",
+      "极寒领域",
+      "贮藏",
+      "离子震荡"
+     ],
+     "iv_fixed": [
+      "speed",
+      "hp",
+      "sp_atk"
+     ],
+     "bloodline": "机械",
+     "nature_fixed": "胆小",
+     "role": "attack",
+     "lead": true,
+     "preserve": false,
+     "energy_hold": 0,
+     "alts": [
+      {
+       "name": "恶魔狼王",
+       "skills": [
+        "蝙蝠",
+        "借用",
+        "吞噬",
+        "先发制人"
+       ],
+       "iv_fixed": [
+        "speed",
+        "hp",
+        "atk"
+       ],
+       "bloodline": "首领",
+       "nature_fixed": "开朗",
+       "role": "attack"
+      }
+     ]
+    },
+    {
+     "name": "贝古斯",
+     "skills": [
+      "磁暴",
+      "燃尽",
+      "能量守恒",
+      "倾泻"
+     ],
+     "iv_fixed": [
+      "hp",
+      "def",
+      "sp_atk"
+     ],
+     "bloodline": "电",
+     "nature_fixed": "沉默",
+     "role": "attack",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "海枝枝（翠绿纶布）",
+     "skills": [
+      "嘲弄",
+      "天洪",
+      "速冻",
+      "灵媒"
+     ],
+     "iv_fixed": [
+      "hp",
+      "sp_atk",
+      "speed"
+     ],
+     "bloodline": "幽",
+     "nature_fixed": "胆小",
+     "role": "attack",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "兽花蕾",
+     "skills": [
+      "移花接木",
+      "叶绿光束",
+      "退化",
+      "飞羽"
+     ],
+     "iv_fixed": [
+      "hp",
+      "def",
+      "sp_def"
+     ],
+     "bloodline": "萌",
+     "nature_fixed": "踏实",
+     "role": "support",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "獠牙猪",
+     "skills": [
+      "力量增效",
+      "冰墙",
+      "丢冰块",
+      "地刺"
+     ],
+     "iv_fixed": [
+      "hp",
+      "atk",
+      "def"
+     ],
+     "bloodline": "水",
+     "nature_fixed": "固执",
+     "role": "attack",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "水灵",
+     "skills": [
+      "水泡盾",
+      "气泡",
+      "速冻",
+      "洗礼"
+     ],
+     "iv_fixed": [
+      "def",
+      "hp",
+      "sp_atk"
+     ],
+     "bloodline": "冰",
+     "nature_fixed": "聪明",
+     "role": "support",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    }
+   ],
+   "item": "愿力",
+   "item_source": "default"
+  },
+  {
+   "name": "光合土鸟地武",
+   "tags": [],
+   "archetype": "首领进化流",
+   "source_id": "popular_f921e36a-1279-4727-93c8-96e90f21c29d",
+   "like_count": 0,
+   "sprites": [
+    {
+     "name": "岚鸟（秋天的样子）",
+     "skills": [
+      "乘风",
+      "泥浆铠甲",
+      "跺地",
+      "水刃"
+     ],
+     "iv_fixed": [
+      "atk",
+      "hp",
+      "speed"
+     ],
+     "bloodline": "地",
+     "nature_plus": [
+      "atk"
+     ],
+     "role": "attack",
+     "lead": true,
+     "preserve": false,
+     "energy_hold": 0,
+     "alts": [
+      {
+       "name": "恶魔红钻",
+       "skills": [
+        "极限撕裂",
+        "虫击",
+        "斩断",
+        "力量增效"
+       ],
+       "iv_fixed": [
+        "atk",
+        "hp",
+        "speed"
+       ],
+       "bloodline": "电",
+       "nature_fixed": "固执",
+       "role": "attack"
+      }
+     ]
+    },
+    {
+     "name": "巨噬针鼹",
+     "skills": [
+      "先发制人",
+      "虫击",
+      "力量增效",
+      "地刺"
+     ],
+     "iv_fixed": [
+      "atk",
+      "def",
+      "hp"
+     ],
+     "bloodline": "普通",
+     "nature_fixed": "固执",
+     "role": "tank",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "食尘短绒",
+     "skills": [
+      "石锁",
+      "地刺",
+      "遁地",
+      "棘刺"
+     ],
+     "iv_fixed": [
+      "def",
+      "hp",
+      "sp_def"
+     ],
+     "bloodline": "地",
+     "nature_fixed": "平和",
+     "role": "attack",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "针叶巡林",
+     "skills": [
+      "防御",
+      "光合作用",
+      "截拳",
+      "顶端优势"
+     ],
+     "iv_fixed": [
+      "atk",
+      "hp",
+      "speed"
+     ],
+     "bloodline": "草",
+     "nature_fixed": "固执",
+     "role": "attack",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "棋绮后（白子）",
+     "skills": [
+      "听桥",
+      "影袭",
+      "跺地",
+      "力量增效"
+     ],
+     "iv_fixed": [
+      "hp",
+      "sp_atk",
+      "speed"
+     ],
+     "bloodline": "首领",
+     "nature_fixed": "胆小",
+     "role": "attack",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "霹雳迪迪",
+     "skills": [
+      "镜像反射",
+      "落雷",
+      "色散",
+      "晒太阳"
+     ],
+     "iv_fixed": [
+      "speed",
+      "hp",
+      "sp_atk"
+     ],
+     "bloodline": "光",
+     "nature_fixed": "胆小",
+     "role": "attack",
+     "lead": false,
+     "preserve": true,
+     "energy_hold": 0
+    }
+   ],
+   "item": "进化之力",
+   "item_source": "code"
+  },
+  {
+   "name": "双光马头松鼠",
+   "tags": [],
+   "archetype": "首领进化流",
+   "source_id": "popular_702b19df-4478-4130-b495-2eba6d44acc0",
+   "like_count": 0,
+   "sprites": [
+    {
+     "name": "白金独角兽",
+     "skills": [
+      "折射",
+      "追打",
+      "虹光冲击",
+      "气泡"
+     ],
+     "iv_fixed": [
+      "speed",
+      "hp",
+      "sp_atk"
+     ],
+     "bloodline": "首领",
+     "nature_fixed": "胆小",
+     "source_name": "白金独角兽 双光",
+     "role": "attack",
+     "lead": true,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "寂灭骨龙",
+     "skills": [
+      "隼鳞",
+      "偷袭",
+      "降灵",
+      "吓退"
+     ],
+     "iv_fixed": [
+      "hp",
+      "def",
+      "atk"
+     ],
+     "bloodline": "电",
+     "nature_fixed": "平和",
+     "role": "attack",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "利灯鱼",
+     "skills": [
+      "加大功率",
+      "落雷",
+      "灵媒",
+      "水光冲击"
+     ],
+     "iv_fixed": [
+      "sp_atk",
+      "hp",
+      "speed"
+     ],
+     "bloodline": "幽",
+     "nature_fixed": "聪明",
+     "role": "attack",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0,
+     "alts": [
+      {
+       "name": "星光狮（星光能量的样子）",
+       "skills": [
+        "雷暴",
+        "炎打",
+        "黑手",
+        "过载回路"
+       ],
+       "iv_fixed": [
+        "hp",
+        "sp_atk",
+        "speed"
+       ],
+       "bloodline": "冰",
+       "nature_fixed": "胆小",
+       "role": "attack"
+      }
+     ]
+    },
+    {
+     "name": "黑猫巫师",
+     "skills": [
+      "羽化加速",
+      "嗜痛",
+      "乱打",
+      "午夜噪音"
+     ],
+     "iv_fixed": [
+      "speed",
+      "hp",
+      "sp_atk"
+     ],
+     "bloodline": "首领",
+     "nature_fixed": "胆小",
+     "role": "attack",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "圣剑-X",
+     "skills": [
+      "械斗",
+      "鸣沙陷阱",
+      "啮合传递",
+      "齿轮扭矩"
+     ],
+     "iv_fixed": [
+      "hp",
+      "atk",
+      "def"
+     ],
+     "bloodline": "机械",
+     "nature_fixed": "平和",
+     "source_name": "圣剑-X 生命",
+     "role": "attack",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "蹦床松鼠",
+     "skills": [
+      "雪替身",
+      "热身运动",
+      "休息回复",
+      "追打"
+     ],
+     "iv_fixed": [
+      "hp",
+      "def",
+      "sp_def"
+     ],
+     "bloodline": "冰",
+     "nature_fixed": "沉默",
+     "role": "support",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    }
+   ],
+   "item": "进化之力",
+   "item_source": "inferred"
+  },
+  {
+   "name": "新愿力火",
+   "tags": [],
+   "archetype": "未标注",
+   "source_id": "popular_9c4228f9-469f-4f0c-bff7-4953801c8c22",
+   "like_count": 0,
+   "sprites": [
+    {
+     "name": "爆焰喷喷",
+     "skills": [
+      "焚尽",
+      "淬火",
+      "闪燃",
+      "龙吟"
+     ],
+     "iv_fixed": [
+      "hp",
+      "atk",
+      "def"
+     ],
+     "bloodline": "冰",
+     "nature_fixed": "平和",
+     "role": "support",
+     "lead": true,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "流浪鼠",
+     "skills": [
+      "陨石",
+      "倾泻",
+      "加大功率",
+      "火焰护盾"
+     ],
+     "iv_fixed": [
+      "hp",
+      "sp_atk",
+      "speed"
+     ],
+     "bloodline": "火",
+     "nature_plus": [
+      "speed"
+     ],
+     "role": "attack",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0,
+     "alts": [
+      {
+       "name": "星光狮（月光能量的样子）",
+       "skills": [
+        "光之矛",
+        "伺机而动",
+        "影袭",
+        "加大功率"
+       ],
+       "iv_fixed": [
+        "atk",
+        "hp",
+        "speed"
+       ],
+       "bloodline": "冰",
+       "nature_fixed": "开朗",
+       "role": "attack"
+      }
+     ]
+    },
+    {
+     "name": "燃薪虫",
+     "skills": [
+      "高温回火",
+      "火焰护盾",
+      "引燃",
+      "山火"
+     ],
+     "iv_fixed": [
+      "hp",
+      "def",
+      "sp_def"
+     ],
+     "bloodline": "火",
+     "nature_fixed": "平和",
+     "role": "attack",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "烈火守护",
+     "skills": [
+      "力量增效",
+      "反击拳",
+      "撕咬",
+      "先发制人"
+     ],
+     "iv_fixed": [
+      "hp",
+      "atk",
+      "def"
+     ],
+     "bloodline": "冰",
+     "nature_fixed": "平和",
+     "role": "attack",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "火焰猿",
+     "skills": [
+      "吹火",
+      "火云车",
+      "闪燃",
+      "爆米花爆破"
+     ],
+     "iv_fixed": [
+      "hp",
+      "atk",
+      "def"
+     ],
+     "bloodline": "草",
+     "nature_fixed": "平和",
+     "role": "attack",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "荆棘电环",
+     "skills": [
+      "操控",
+      "加大功率",
+      "落雷",
+      "倾泻"
+     ],
+     "iv_fixed": [
+      "speed",
+      "sp_atk",
+      "hp"
+     ],
+     "bloodline": "电",
+     "nature_fixed": "胆小",
+     "role": "attack",
+     "lead": true,
+     "preserve": true,
+     "energy_hold": 0
+    }
+   ],
+   "item": "愿力",
+   "item_source": "default"
+  },
+  {
+   "name": "纯轮椅",
+   "tags": [
+    "平衡队",
+    "排位",
+    "科研"
+   ],
+   "archetype": "排位",
+   "source_id": "popular_c5814c85-5b0d-4ff7-821a-f10a03b7e272",
+   "like_count": 0,
+   "sprites": [
+    {
+     "name": "卡瓦重（雪山附近的样子）",
+     "skills": [
+      "筛管奔流",
+      "丰饶",
+      "暴风雪"
+     ],
+     "iv_fixed": [
+      "speed",
+      "atk",
+      "hp"
+     ],
+     "bloodline": "草",
+     "nature_fixed": "开朗",
+     "role": "attack",
+     "lead": true,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "海枝枝（翠绿纶布）",
+     "skills": [
+      "天洪",
+      "嘲弄",
+      "恐吓",
+      "打湿"
+     ],
+     "iv_fixed": [
+      "hp",
+      "sp_atk",
+      "speed"
+     ],
+     "bloodline": "冰",
+     "nature_fixed": "胆小",
+     "role": "attack",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "千棘盔（本来的样子）",
+     "skills": [
+      "毒液渗透",
+      "疫病吐息",
+      "蓄水",
+      "涌泉"
+     ],
+     "iv_fixed": [
+      "hp",
+      "def",
+      "sp_atk"
+     ],
+     "bloodline": "首领",
+     "nature_fixed": "沉默",
+     "role": "attack",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0,
+     "alts": [
+      {
+       "name": "春花兔",
+       "skills": [
+        "筛管奔流",
+        "酶浓度调整",
+        "抽枝",
+        "移花接木"
+       ],
+       "iv_fixed": [
+        "speed",
+        "hp",
+        "atk"
+       ],
+       "bloodline": "草",
+       "nature_fixed": "开朗",
+       "role": "attack"
+      }
+     ]
+    },
+    {
+     "name": "巨鼓象",
+     "skills": [
+      "羽化加速",
+      "减压阀",
+      "光之矛",
+      "轴承支撑"
+     ],
+     "iv_fixed": [
+      "atk",
+      "hp",
+      "sp_def"
+     ],
+     "bloodline": "翼",
+     "nature_fixed": "固执",
+     "role": "support",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "爵士鹿",
+     "skills": [
+      "先发制人",
+      "裂石",
+      "撕咬",
+      "闪击折返"
+     ],
+     "iv_fixed": [
+      "speed",
+      "hp",
+      "atk"
+     ],
+     "bloodline": "首领",
+     "nature_fixed": "开朗",
+     "role": "attack",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "化蝶（奇丽花的样子）",
+     "skills": [
+      "引燃",
+      "破罐破摔",
+      "退化",
+      "嗜痛"
+     ],
+     "iv_fixed": [
+      "sp_atk",
+      "speed",
+      "hp"
+     ],
+     "bloodline": "火",
+     "nature_fixed": "聪明",
+     "role": "support",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    }
+   ],
+   "item": "进化之力",
+   "item_source": "inferred"
+  },
+  {
+   "name": "魔偶雨天队",
+   "tags": [
+    "体系队",
+    "排位"
+   ],
+   "archetype": "排位",
+   "source_id": "popular_e121d3f3-b924-417e-b1a3-b9204991e5c0",
+   "like_count": 0,
+   "sprites": [
+    {
+     "name": "帅帅魔偶",
+     "skills": [
+      "借用",
+      "取念",
+      "二律背反"
+     ],
+     "iv_fixed": [
+      "speed",
+      "hp",
+      "sp_atk"
+     ],
+     "bloodline": "幻",
+     "nature_fixed": "胆小",
+     "role": "support",
+     "lead": true,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "水灵",
+     "skills": [
+      "天洪",
+      "洗礼",
+      "落雨",
+      "水泡盾"
+     ],
+     "iv_fixed": [
+      "sp_atk",
+      "def",
+      "hp"
+     ],
+     "bloodline": "首领",
+     "nature_fixed": "沉默",
+     "role": "support",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "彩蝶鲨",
+     "skills": [
+      "贮藏",
+      "天洪",
+      "回旋风暴",
+      "追打"
+     ],
+     "iv_fixed": [
+      "speed",
+      "hp",
+      "sp_atk"
+     ],
+     "bloodline": "水",
+     "nature_fixed": "胆小",
+     "role": "attack",
+     "lead": true,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "爆焰喷喷",
+     "skills": [
+      "焚尽",
+      "淬火",
+      "龙吟",
+      "龙炮"
+     ],
+     "iv_fixed": [
+      "atk",
+      "hp",
+      "def"
+     ],
+     "bloodline": "火",
+     "nature_fixed": "固执",
+     "role": "support",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "冰钻布鲁斯",
+     "skills": [
+      "先发制人",
+      "冰雹",
+      "跺地",
+      "力量增效"
+     ],
+     "iv_fixed": [
+      "atk",
+      "hp",
+      "speed"
+     ],
+     "bloodline": "地",
+     "nature_fixed": "固执",
+     "role": "attack",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0,
+     "alts": [
+      {
+       "name": "暮星辰",
+       "skills": [
+        "翼击",
+        "风隐",
+        "超维投射",
+        "追打"
+       ],
+       "iv_fixed": [
+        "speed",
+        "hp",
+        "sp_atk"
+       ],
+       "bloodline": "幻",
+       "nature_fixed": "胆小",
+       "role": "attack"
+      }
+     ]
+    },
+    {
+     "name": "荆棘电环",
+     "skills": [
+      "阻断",
+      "落雷",
+      "惊吓盒子",
+      "速冻"
+     ],
+     "iv_fixed": [
+      "sp_atk",
+      "atk",
+      "hp"
+     ],
+     "bloodline": "电",
+     "nature_fixed": "踏实",
+     "role": "attack",
+     "lead": false,
+     "preserve": true,
+     "energy_hold": 0
+    }
+   ],
+   "item": "进化之力",
+   "item_source": "inferred"
+  },
+  {
+   "name": "巨像星陨",
+   "tags": [
+    "体系队"
+   ],
+   "archetype": "体系队",
+   "source_id": "popular_aa12c8b6-49c4-4a36-ae4e-20a89622ade0",
+   "like_count": 0,
+   "sprites": [
+    {
+     "name": "怖哭菇",
+     "skills": [
+      "心灵洞悉",
+      "冥想",
+      "吓退",
+      "星链"
+     ],
+     "iv_fixed": [
+      "hp",
+      "def",
+      "sp_def"
+     ],
+     "bloodline": "幻",
+     "nature_fixed": "沉默",
+     "role": "support",
+     "lead": true,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "龙息帕尔",
+     "skills": [
+      "力量增效",
+      "火云车",
+      "先发制人",
+      "极限撕裂"
+     ],
+     "iv_fixed": [
+      "atk",
+      "hp",
+      "def"
+     ],
+     "bloodline": "恶",
+     "nature_fixed": "固执",
+     "role": "attack",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "仪式巨像",
+     "skills": [
+      "硬化",
+      "四维降解",
+      "多维击打",
+      "天体吸积"
+     ],
+     "iv_fixed": [
+      "speed",
+      "hp",
+      "sp_atk"
+     ],
+     "bloodline": "首领",
+     "nature_fixed": "胆小",
+     "role": "tank",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "锤头鹳",
+     "skills": [
+      "潮涌",
+      "取念",
+      "撕咬"
+     ],
+     "iv_fixed": [
+      "atk",
+      "hp",
+      "speed"
+     ],
+     "bloodline": "水",
+     "nature_fixed": "固执",
+     "role": "attack",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "化蝶（幽冥眼的样子）",
+     "skills": [
+      "超维投射",
+      "晒太阳",
+      "咆哮",
+      "掩护"
+     ],
+     "iv_fixed": [
+      "def",
+      "speed",
+      "hp"
+     ],
+     "bloodline": "幻",
+     "nature_fixed": "胆小",
+     "role": "support",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "暮星辰",
+     "skills": [
+      "翼击",
+      "风隐",
+      "超维投射",
+      "追打"
+     ],
+     "iv_fixed": [
+      "speed",
+      "hp",
+      "sp_atk"
+     ],
+     "bloodline": "幻",
+     "nature_fixed": "胆小",
+     "role": "attack",
+     "lead": true,
+     "preserve": true,
+     "energy_hold": 0,
+     "alts": [
+      {
+       "name": "朔夜伊芙",
+       "skills": [
+        "黑手",
+        "叠势",
+        "等价交换",
+        "伪造账单"
+       ],
+       "iv_fixed": [
+        "def",
+        "sp_atk",
+        "hp"
+       ],
+       "bloodline": "恶",
+       "nature_fixed": "聪明",
+       "role": "attack"
+      }
+     ]
+    }
+   ],
+   "item": "进化之力",
+   "item_source": "inferred"
+  },
+  {
+   "name": "羽刃翼王铁头队",
+   "tags": [
+    "平衡队"
+   ],
+   "archetype": "平衡队",
+   "source_id": "popular_a116c3fd-2218-46c9-859d-d157e14e79f3",
+   "like_count": 2,
+   "sprites": [
+    {
+     "name": "圣剑-X",
+     "skills": [
+      "休息回复",
+      "啮合传递",
+      "齿轮扭矩",
+      "械斗"
+     ],
+     "iv_fixed": [
+      "hp"
+     ],
+     "bloodline": "首领",
+     "nature_fixed": "天真",
+     "source_name": "圣剑侍从",
+     "role": "attack",
+     "lead": true,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "圣羽翼王",
+     "skills": [
+      "水刃",
+      "羽刃",
+      "闪击"
+     ],
+     "iv_fixed": [
+      "atk",
+      "hp",
+      "speed"
+     ],
+     "bloodline": "翼",
+     "nature_fixed": "固执",
+     "role": "tank",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "泥吼牙",
+     "skills": [
+      "地刺",
+      "鸣沙陷阱",
+      "羽刃",
+      "晒太阳"
+     ],
+     "iv_fixed": [
+      "def"
+     ],
+     "bloodline": "地",
+     "nature_fixed": "热情",
+     "role": "tank",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "圆号鱼",
+     "skills": [
+      "打湿",
+      "泡沫幻影",
+      "水炮",
+      "灵媒"
+     ],
+     "iv_fixed": [
+      "hp"
+     ],
+     "bloodline": "水",
+     "nature_fixed": "天真",
+     "role": "attack",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0,
+     "alts": [
+      {
+       "name": "梦悠悠（穿旧睡衣的样子）",
+       "skills": [
+        "羽化加速",
+        "午夜噪音",
+        "操控",
+        "恐吓"
+       ],
+       "iv_fixed": [
+        "hp",
+        "sp_atk",
+        "speed"
+       ],
+       "bloodline": "翼",
+       "nature_fixed": "胆小",
+       "role": "attack"
+      }
+     ]
+    },
+    {
+     "name": "海豹船长",
+     "skills": [
+      "听桥",
+      "斩断",
+      "一拳",
+      "水刃"
+     ],
+     "iv_fixed": [
+      "speed"
+     ],
+     "bloodline": "武",
+     "nature_fixed": "忧郁",
+     "role": "attack",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "荆棘电环",
+     "skills": [
+      "加大功率",
+      "阻断",
+      "倾泻",
+      "晒太阳"
+     ],
+     "iv_fixed": [
+      "sp_atk"
+     ],
+     "bloodline": "电",
+     "nature_fixed": "热情",
+     "role": "attack",
+     "lead": false,
+     "preserve": true,
+     "energy_hold": 0
+    }
+   ],
+   "item": "进化之力",
+   "item_source": "code"
+  },
+  {
+   "name": "轮切毒",
+   "tags": [],
+   "archetype": "未标注",
+   "source_id": "popular_ba3164a8-16dc-42db-9652-04aaa1269db9",
+   "like_count": 1,
+   "sprites": [
+    {
+     "name": "嘟嘟锅",
+     "skills": [
+      "防御",
+      "毒孢子",
+      "吓退",
+      "焚烧烙印"
+     ],
+     "iv_fixed": [
+      "hp",
+      "def",
+      "sp_def"
+     ],
+     "bloodline": "毒",
+     "nature_fixed": "沉默",
+     "role": "support",
+     "lead": true,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "黑羽夫人",
+     "skills": [
+      "飞羽",
+      "撕咬",
+      "水刃",
+      "锐利眼神"
+     ],
+     "iv_fixed": [
+      "speed",
+      "hp",
+      "atk"
+     ],
+     "bloodline": "地",
+     "nature_fixed": "开朗",
+     "role": "tank",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "影狸",
+     "skills": [
+      "幽灵爆发",
+      "毒液渗透",
+      "防御",
+      "取念"
+     ],
+     "iv_fixed": [
+      "speed",
+      "hp",
+      "sp_atk"
+     ],
+     "bloodline": "武",
+     "nature_fixed": "胆小",
+     "role": "attack",
+     "lead": true,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "圣羽翼王",
+     "skills": [
+      "水刃",
+      "闪击",
+      "力量增效"
+     ],
+     "iv_fixed": [
+      "speed",
+      "hp",
+      "atk"
+     ],
+     "bloodline": "冰",
+     "nature_fixed": "开朗",
+     "role": "tank",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "圣剑-X",
+     "skills": [
+      "齿轮切开",
+      "先发制人",
+      "啮合传递",
+      "鸣沙陷阱"
+     ],
+     "iv_fixed": [
+      "atk",
+      "hp",
+      "def"
+     ],
+     "bloodline": "火",
+     "nature_fixed": "固执",
+     "role": "attack",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0,
+     "alts": [
+      {
+       "name": "梦想三三",
+       "skills": [
+        "撒娇",
+        "破罐破摔",
+        "应激反应",
+        "超导"
+       ],
+       "iv_fixed": [
+        "hp",
+        "sp_atk",
+        "def"
+       ],
+       "bloodline": "首领",
+       "nature_fixed": "沉默",
+       "role": "attack"
+      }
+     ]
+    },
+    {
+     "name": "奇丽花",
+     "skills": [
+      "仙人掌刺击",
+      "啮合传递",
+      "光刃",
+      "纤维化"
+     ],
+     "iv_fixed": [
+      "speed",
+      "hp",
+      "atk"
+     ],
+     "bloodline": "机械",
+     "nature_fixed": "开朗",
+     "role": "tank",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    }
+   ],
+   "item": "愿力",
+   "item_source": "default"
+  },
+  {
+   "name": "巨像星陨",
+   "tags": [],
+   "archetype": "首领进化流",
+   "source_id": "popular_ccf6bb3f-6ef9-47d6-9019-5a93746665f4",
+   "like_count": 0,
+   "sprites": [
+    {
+     "name": "祭礼巨像",
+     "skills": [
+      "硬化",
+      "多维击打",
+      "四维降解",
+      "天体吸积"
+     ],
+     "iv_fixed": [
+      "speed",
+      "hp",
+      "sp_atk"
+     ],
+     "bloodline": "首领",
+     "nature_fixed": "胆小",
+     "role": "tank",
+     "lead": true,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "怖哭菇",
+     "skills": [
+      "心灵洞悉",
+      "冥想",
+      "吓退",
+      "星链"
+     ],
+     "iv_fixed": [
+      "hp",
+      "def",
+      "sp_def"
+     ],
+     "bloodline": "幻",
+     "nature_fixed": "沉默",
+     "role": "support",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "暮星辰",
+     "skills": [
+      "翼击",
+      "风隐",
+      "超维投射",
+      "追打"
+     ],
+     "iv_fixed": [
+      "speed",
+      "hp",
+      "sp_atk"
+     ],
+     "bloodline": "幻",
+     "nature_fixed": "胆小",
+     "role": "attack",
+     "lead": true,
+     "preserve": false,
+     "energy_hold": 0,
+     "alts": [
+      {
+       "name": "棋绮后（白子）",
+       "skills": [
+        "听桥",
+        "影袭",
+        "跺地",
+        "力量增效"
+       ],
+       "iv_fixed": [
+        "hp",
+        "sp_atk",
+        "speed"
+       ],
+       "bloodline": "首领",
+       "nature_fixed": "胆小",
+       "role": "attack"
+      }
+     ]
+    },
+    {
+     "name": "龙息帕尔",
+     "skills": [
+      "力量增效",
+      "火云车",
+      "先发制人",
+      "极限撕裂"
+     ],
+     "iv_fixed": [
+      "atk",
+      "hp",
+      "def"
+     ],
+     "bloodline": "恶",
+     "nature_fixed": "固执",
+     "role": "attack",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "化蝶（幽冥眼的样子）",
+     "skills": [
+      "超维投射",
+      "晒太阳",
+      "咆哮",
+      "掩护"
+     ],
+     "iv_fixed": [
+      "def",
+      "speed",
+      "hp"
+     ],
+     "bloodline": "幻",
+     "nature_fixed": "胆小",
+     "role": "support",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "锤头鹳",
+     "skills": [
+      "潮涌",
+      "取念",
+      "撕咬"
+     ],
+     "iv_fixed": [
+      "atk",
+      "hp",
+      "speed"
+     ],
+     "bloodline": "水",
+     "nature_fixed": "固执",
+     "role": "attack",
+     "lead": false,
+     "preserve": true,
+     "energy_hold": 0
+    }
+   ],
+   "item": "进化之力",
+   "item_source": "inferred"
+  },
+  {
+   "name": "新地武",
+   "tags": [],
+   "archetype": "首领进化流",
+   "source_id": "popular_9203c308-2c72-478b-9008-352fba1a606a",
+   "like_count": 0,
+   "sprites": [
+    {
+     "name": "卷胡巨獭",
+     "skills": [
+      "阻断",
+      "洗礼",
+      "水弹"
+     ],
+     "iv_fixed": [
+      "sp_atk",
+      "hp",
+      "def"
+     ],
+     "bloodline": "普通",
+     "nature_fixed": "沉默",
+     "role": "tank",
+     "lead": true,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "游蛇魔使",
+     "skills": [
+      "打湿",
+      "破防",
+      "叠势",
+      "听桥"
+     ],
+     "iv_fixed": [
+      "atk",
+      "def",
+      "hp"
+     ],
+     "bloodline": "水",
+     "nature_fixed": "固执",
+     "role": "support",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "卡瓦重（沙地附近的样子）",
+     "skills": [
+      "筛管奔流",
+      "地刺",
+      "盛开",
+      "震击"
+     ],
+     "iv_fixed": [
+      "hp",
+      "atk",
+      "speed"
+     ],
+     "bloodline": "草",
+     "nature_fixed": "固执",
+     "role": "attack",
+     "lead": true,
+     "preserve": false,
+     "energy_hold": 0,
+     "alts": [
+      {
+       "name": "棋齐垒（白子）",
+       "skills": [
+        "斩断",
+        "硬门",
+        "鸣沙陷阱",
+        "风墙"
+       ],
+       "iv_fixed": [
+        "hp",
+        "def",
+        "sp_def"
+       ],
+       "bloodline": "翼",
+       "nature_fixed": "平和",
+       "role": "attack"
+      }
+     ]
+    },
+    {
+     "name": "波多西",
+     "skills": [
+      "齿轮扭矩",
+      "轴承支撑",
+      "地刺",
+      "能量守恒"
+     ],
+     "iv_fixed": [
+      "hp",
+      "atk",
+      "def"
+     ],
+     "bloodline": "地",
+     "nature_fixed": "平和",
+     "role": "attack",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "流浪鼠",
+     "skills": [
+      "加大功率",
+      "硬化",
+      "热砂",
+      "倾泻"
+     ],
+     "iv_fixed": [
+      "hp",
+      "sp_atk",
+      "def"
+     ],
+     "bloodline": "地",
+     "nature_fixed": "沉默",
+     "role": "attack",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "棋绮后（白子）",
+     "skills": [
+      "漫反射",
+      "陨石",
+      "有效预防",
+      "叠势"
+     ],
+     "iv_fixed": [
+      "speed",
+      "sp_atk",
+      "hp"
+     ],
+     "bloodline": "首领",
+     "nature_fixed": "沉默",
+     "role": "attack",
+     "lead": false,
+     "preserve": true,
+     "energy_hold": 0
+    }
+   ],
+   "item": "进化之力",
+   "item_source": "inferred"
+  },
+  {
+   "name": "新版本龙火队",
+   "tags": [
+    "体系队",
+    "平衡队"
+   ],
+   "archetype": "体系队",
+   "source_id": "popular_9c6abee3-2426-49a5-ad12-ae6f224d3da3",
+   "like_count": 1,
+   "sprites": [
+    {
+     "name": "伊兰亚龙",
+     "skills": [
+      "绵里藏针",
+      "氧输送",
+      "超导",
+      "守护咒"
+     ],
+     "iv_fixed": [
+      "hp",
+      "sp_atk",
+      "speed"
+     ],
+     "bloodline": "火",
+     "nature_fixed": "聪明",
+     "role": "attack",
+     "lead": true,
+     "preserve": false,
+     "energy_hold": 0,
+     "alts": [
+      {
+       "name": "波多西",
+       "skills": [
+        "齿轮扭矩",
+        "轴承支撑",
+        "地刺",
+        "能量守恒"
+       ],
+       "iv_fixed": [
+        "hp",
+        "atk",
+        "def"
+       ],
+       "bloodline": "地",
+       "nature_fixed": "平和",
+       "role": "attack"
+      }
+     ]
+    },
+    {
+     "name": "绒光优优",
+     "skills": [
+      "天光",
+      "引燃",
+      "热砂",
+      "硬化"
+     ],
+     "iv_fixed": [
+      "hp",
+      "sp_atk",
+      "speed"
+     ],
+     "bloodline": "火",
+     "nature_fixed": "胆小",
+     "role": "tank",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "燃薪虫",
+     "skills": [
+      "高温回火",
+      "火焰护盾",
+      "倾泻",
+      "山火"
+     ],
+     "iv_fixed": [
+      "atk",
+      "def",
+      "hp"
+     ],
+     "bloodline": "火",
+     "nature_fixed": "平和",
+     "role": "attack",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "爆焰喷喷",
+     "skills": [
+      "淬火",
+      "闪燃",
+      "龙之利爪",
+      "焚尽"
+     ],
+     "iv_fixed": [
+      "atk",
+      "def",
+      "hp"
+     ],
+     "bloodline": "冰",
+     "nature_fixed": "平和",
+     "role": "attack",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "烈火守护",
+     "skills": [
+      "先发制人",
+      "双响炮",
+      "反击拳",
+      "撕咬"
+     ],
+     "iv_fixed": [
+      "atk",
+      "def",
+      "hp"
+     ],
+     "bloodline": "电",
+     "nature_fixed": "固执",
+     "role": "attack",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "加油蟹",
+     "skills": [
+      "超级糖果",
+      "赤子之心",
+      "击鼓传花",
+      "水幕冲击"
+     ],
+     "iv_fixed": [
+      "atk",
+      "def",
+      "hp"
+     ],
+     "bloodline": "电",
+     "nature_fixed": "固执",
+     "role": "tank",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    }
+   ],
+   "item": "愿力",
+   "item_source": "code"
+  },
+  {
+   "name": "雨天平衡队",
+   "tags": [
+    "体系队"
+   ],
+   "archetype": "体系队",
+   "source_id": "popular_faab2353-c0e4-47fa-a178-318a089b3fb8",
+   "like_count": 0,
+   "sprites": [
+    {
+     "name": "水灵",
+     "skills": [
+      "水泡盾",
+      "水波术",
+      "落雨",
+      "洗礼"
+     ],
+     "iv_fixed": [
+      "hp",
+      "sp_atk",
+      "sp_def"
+     ],
+     "bloodline": "首领",
+     "nature_fixed": "沉默",
+     "role": "support",
+     "lead": true,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "荆棘电环",
+     "skills": [
+      "防御",
+      "晒太阳",
+      "倾泻",
+      "速冻"
+     ],
+     "iv_fixed": [
+      "hp",
+      "def",
+      "sp_def"
+     ],
+     "bloodline": "电",
+     "nature_fixed": "踏实",
+     "role": "support",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "彩蝶鲨",
+     "skills": [
+      "贮藏",
+      "天洪",
+      "回旋风暴",
+      "血气"
+     ],
+     "iv_fixed": [
+      "speed",
+      "hp",
+      "sp_atk"
+     ],
+     "bloodline": "机械",
+     "nature_fixed": "胆小",
+     "role": "attack",
+     "lead": true,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "翠顶夫人",
+     "skills": [
+      "飞羽",
+      "力量增效",
+      "风矢",
+      "水刃"
+     ],
+     "iv_fixed": [
+      "atk",
+      "hp",
+      "def"
+     ],
+     "bloodline": "翼",
+     "nature_plus": [
+      "hp"
+     ],
+     "role": "tank",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "冰钻布鲁斯",
+     "skills": [
+      "力量增效",
+      "丢冰块",
+      "跺地",
+      "先发制人"
+     ],
+     "iv_fixed": [
+      "speed",
+      "hp",
+      "atk"
+     ],
+     "bloodline": "地",
+     "nature_fixed": "开朗",
+     "role": "attack",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0,
+     "alts": [
+      {
+       "name": "流浪鼠",
+       "skills": [
+        "陨石",
+        "倾泻",
+        "加大功率",
+        "火焰护盾"
+       ],
+       "iv_fixed": [
+        "hp",
+        "sp_atk",
+        "speed"
+       ],
+       "bloodline": "火",
+       "nature_plus": [
+        "speed"
+       ],
+       "role": "attack"
+      }
+     ]
+    },
+    {
+     "name": "音速犬",
+     "skills": [
+      "灼伤",
+      "闪光冲击",
+      "焚烧烙印",
+      "跌落"
+     ],
+     "iv_fixed": [
+      "speed",
+      "hp",
+      "atk"
+     ],
+     "bloodline": "首领",
+     "nature_fixed": "开朗",
+     "role": "attack",
+     "lead": false,
+     "preserve": true,
+     "energy_hold": 0
+    }
+   ],
+   "item": "进化之力",
+   "item_source": "inferred"
+  },
+  {
+   "name": "风起高速队",
+   "tags": [
+    "娱乐"
+   ],
+   "archetype": "娱乐",
+   "source_id": "popular_5f6b95f2-6c24-4a70-93c9-46f9462ea631",
+   "like_count": 0,
+   "sprites": [
+    {
+     "name": "锤头鹳",
+     "skills": [
+      "水弹枪",
+      "恶意逃离",
+      "洗礼",
+      "风起"
+     ],
+     "iv_fixed": [
+      "hp",
+      "sp_atk",
+      "def"
+     ],
+     "bloodline": "水",
+     "nature_fixed": "踏实",
+     "role": "support",
+     "lead": true,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "星光狮（星光能量的样子）",
+     "skills": [
+      "流星火雨",
+      "撕咬",
+      "光刃",
+      "交叉闪电"
+     ],
+     "iv_fixed": [
+      "hp",
+      "atk",
+      "speed"
+     ],
+     "bloodline": "冰",
+     "nature_plus": [
+      "speed"
+     ],
+     "role": "attack",
+     "lead": true,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "落陨星兔",
+     "skills": [
+      "坍缩",
+      "降灵",
+      "灵媒",
+      "魔法增效"
+     ],
+     "iv_fixed": [
+      "hp",
+      "sp_atk",
+      "speed"
+     ],
+     "bloodline": "幽",
+     "nature_fixed": "胆小",
+     "role": "attack",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "龙鱼",
+     "skills": [
+      "龙吟",
+      "天洪",
+      "隼鳞",
+      "升龙咆哮"
+     ],
+     "iv_fixed": [
+      "hp",
+      "sp_atk",
+      "speed"
+     ],
+     "bloodline": "火",
+     "nature_fixed": "莽撞",
+     "role": "attack",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "巨鼓象",
+     "skills": [
+      "休息回复",
+      "轴承支撑",
+      "齿轮扭矩",
+      "相位移动"
+     ],
+     "iv_fixed": [
+      "hp",
+      "atk",
+      "def"
+     ],
+     "bloodline": "普通",
+     "nature_fixed": "平和",
+     "role": "support",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "尖嘴狐仙",
+     "skills": [
+      "焚烧烙印",
+      "冰墙",
+      "高温回火",
+      "炎枪"
+     ],
+     "iv_fixed": [
+      "hp",
+      "def",
+      "sp_def"
+     ],
+     "bloodline": "地",
+     "nature_fixed": "踏实",
+     "role": "attack",
+     "lead": false,
+     "preserve": true,
+     "energy_hold": 0,
+     "alts": [
+      {
+       "name": "海枝枝（碧蓝珊瑚）",
+       "skills": [
+        "嘲弄",
+        "离子震荡",
+        "午夜噪音",
+        "天洪"
+       ],
+       "iv_fixed": [
+        "hp",
+        "sp_atk",
+        "speed"
+       ],
+       "bloodline": "机械",
+       "nature_fixed": "聪明",
+       "role": "attack"
+      }
+     ]
+    }
+   ],
+   "item": "愿力",
+   "item_source": "default"
+  },
+  {
+   "name": "星陨慕星辰",
+   "tags": [],
+   "archetype": "未标注",
+   "source_id": "popular_cecdc510-de6a-4da6-8f00-30931bd3b0ef",
+   "like_count": 0,
+   "sprites": [
+    {
+     "name": "怖哭菇",
+     "skills": [
+      "错乱",
+      "吓退",
+      "纤维化",
+      "先发制人"
+     ],
+     "iv_fixed": [
+      "hp",
+      "def",
+      "sp_def"
+     ],
+     "bloodline": "地",
+     "nature_fixed": "平和",
+     "role": "attack",
+     "lead": true,
+     "preserve": false,
+     "energy_hold": 0,
+     "alts": [
+      {
+       "name": "海枝枝（翠绿纶布）",
+       "skills": [
+        "天洪",
+        "嘲弄",
+        "恐吓",
+        "打湿"
+       ],
+       "iv_fixed": [
+        "hp",
+        "sp_atk",
+        "speed"
+       ],
+       "bloodline": "冰",
+       "nature_fixed": "胆小",
+       "role": "attack"
+      }
+     ]
+    },
+    {
+     "name": "暮星辰",
+     "skills": [
+      "翼击",
+      "倾泻",
+      "大爆炸",
+      "回旋风暴"
+     ],
+     "iv_fixed": [
+      "speed",
+      "hp",
+      "sp_atk"
+     ],
+     "bloodline": "地",
+     "nature_fixed": "胆小",
+     "source_name": "暮星辰 倾斜翼击必带，其他随意",
+     "role": "attack",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "龙息帕尔",
+     "skills": [
+      "力量增效",
+      "蝙蝠",
+      "先发制人",
+      "火云车"
+     ],
+     "iv_fixed": [
+      "atk",
+      "hp",
+      "speed"
+     ],
+     "bloodline": "武",
+     "nature_fixed": "固执",
+     "source_name": "固执帕尔",
+     "role": "attack",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "化蝶（平常的样子）",
+     "skills": [
+      "掩护",
+      "超维投射",
+      "摇篮曲",
+      "晒太阳"
+     ],
+     "iv_fixed": [
+      "sp_atk",
+      "def",
+      "hp"
+     ],
+     "bloodline": "幻",
+     "nature_fixed": "冷静",
+     "role": "support",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "权杖-Ⅴ",
+     "skills": [
+      "无畏之心",
+      "钢铁洪流",
+      "冰晶坠",
+      "超维投射"
+     ],
+     "iv_fixed": [
+      "atk",
+      "hp",
+      "def"
+     ],
+     "bloodline": "幻",
+     "nature_fixed": "固执",
+     "source_name": "权杖-Ⅴ加生命或者物攻",
+     "role": "tank",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "落陨星兔",
+     "skills": [
+      "流火",
+      "化劲",
+      "灵光",
+      "多维击打"
+     ],
+     "iv_fixed": [
+      "speed",
+      "hp",
+      "sp_atk"
+     ],
+     "bloodline": "武",
+     "nature_fixed": "胆小",
+     "role": "attack",
+     "lead": false,
+     "preserve": true,
+     "energy_hold": 0
+    }
+   ],
+   "item": "愿力",
+   "item_source": "default"
+  },
+  {
+   "name": "萌芽印记",
+   "tags": [],
+   "archetype": "未标注",
+   "source_id": "popular_4ceea0b0-5a00-457c-9aba-f8cf774a8f8d",
+   "like_count": 0,
+   "sprites": [
+    {
+     "name": "古卷执政官",
+     "skills": [
+      "叠加态",
+      "能量刃",
+      "斩断",
+      "防御反击"
+     ],
+     "iv_fixed": [
+      "sp_def",
+      "atk",
+      "hp"
+     ],
+     "bloodline": "普通",
+     "nature_fixed": "平和",
+     "role": "attack",
+     "lead": true,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "兽花蕾",
+     "skills": [
+      "光之矛",
+      "疾风刺",
+      "羽化加速",
+      "徒长"
+     ],
+     "iv_fixed": [
+      "speed",
+      "atk",
+      "hp"
+     ],
+     "bloodline": "翼",
+     "nature_fixed": "固执",
+     "role": "attack",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0,
+     "alts": [
+      {
+       "name": "海豹船长",
+       "skills": [
+        "水刃",
+        "斩断",
+        "听桥",
+        "硬门"
+       ],
+       "iv_fixed": [
+        "hp",
+        "atk",
+        "speed"
+       ],
+       "bloodline": "武",
+       "nature_fixed": "固执",
+       "role": "attack"
+      }
+     ]
+    },
+    {
+     "name": "泥吼牙",
+     "skills": [
+      "落石",
+      "羽化加速",
+      "泥浆铠甲",
+      "倾泻"
+     ],
+     "iv_fixed": [
+      "hp",
+      "def",
+      "atk"
+     ],
+     "bloodline": "地",
+     "nature_fixed": "固执",
+     "role": "tank",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "电球咩咩",
+     "skills": [
+      "加油",
+      "风墙",
+      "富养化",
+      "闪击折返"
+     ],
+     "iv_fixed": [
+      "speed",
+      "atk",
+      "hp"
+     ],
+     "bloodline": "翼",
+     "nature_fixed": "平和",
+     "role": "support",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "梦悠悠（穿旧睡衣的样子）",
+     "skills": [
+      "午夜噪音",
+      "羽化加速",
+      "虚假破产",
+      "黑手"
+     ],
+     "iv_fixed": [
+      "speed",
+      "sp_atk",
+      "hp"
+     ],
+     "bloodline": "翼",
+     "nature_plus": [
+      "sp_atk"
+     ],
+     "role": "attack",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    },
+    {
+     "name": "椰浆布丁",
+     "skills": [
+      "泡沫幻影",
+      "水炮",
+      "寒风吹",
+      "冰蛋壳"
+     ],
+     "iv_fixed": [
+      "hp",
+      "def",
+      "sp_atk"
+     ],
+     "bloodline": "水",
+     "nature_fixed": "沉默",
+     "role": "tank",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0
+    }
+   ],
+   "item": "愿力",
+   "item_source": "default"
+  }
+ ]
+}
