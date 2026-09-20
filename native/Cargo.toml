@@ -1,0 +1,17 @@
+[workspace]
+resolver = "2"
+members = ["roco-core", "roco-py"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+
+[workspace.dependencies]
+serde = { version = "1", features = ["derive"] }
+# preserve_order：py dict 按插入序迭代，AST tokenizer 的 token 序列依赖
+# JSON 对象键序——必须与 py json.loads 的插入序一致
+serde_json = { version = "1", features = ["preserve_order"] }
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
