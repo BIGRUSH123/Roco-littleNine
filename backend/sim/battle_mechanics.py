@@ -285,9 +285,13 @@ class BattleMechanicsMixin:
         if not mcts_sim:
             events += entry_events
         # Observer: post_ko（先触发，让诈死/御驾亲征等修改 lives）→ 再扣默认1魔力
+        # 这个 ctx 的 self 是**刚力竭的那只**，语义应是 `self_koed`；`target_fainted` 留
+        # False（它的 target 是对面在场精灵，并没有力竭）。凶手视角的观察者由
+        # `Ctx.swapped_view()` 负责对调标志——这里若置 target_fainted=True，
+        # `on_ko`（=target_fainted）与 `on_self_ko` 会同时成立，一次力竭多扣两份魔力。
         opp_active = self.get_opponent(team).active
-        ctx_ko_leave = self._make_ctx(old, opp_active, None, None, self.globals, team=team, turn=self.turn, target_fainted=True, self_switched=True)
-        post_ko_events = self._vm_engine.fire_trigger("post_ko", ctx_ko_leave, old, opp_active, self.globals, team=team, battle=self)
+        ctx_ko_leave = self._make_ctx(old, opp_active, None, None, self.globals, team=team, turn=self.turn, self_switched=True)
+        post_ko_events = self._vm_engine.fire_trigger("post_ko", ctx_ko_leave, old, opp_active, self.globals, team=team, battle=self, ko_side="self")
         if not mcts_sim:
             events += post_ko_events
         player.lives -= 1

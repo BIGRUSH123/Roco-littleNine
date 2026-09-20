@@ -98,30 +98,30 @@ def test_defend_when_threatened():
 
     依据（`docs/博弈-概率预判口径.md` §4e）：三份洛神杯复盘里防御/应对是胜负基础，
     而我们专家原来的防御出招占比是 0%——"被威胁就防御"的粗糙对手对出厂专家 **0.571**。
-    但注意 §4f-④ 的复测：这条规则在**同局对照**里并不涨分（0.489 [0.477,0.500]，
-    单独看略负），保留为可开关；它的价值只体现在对付"会惩罚的固定对手"（0.459 → 0.469）。
+    ⚠️ 但 §4f-④ 的同局对照实测：**对手也会用状态反制**时，举盾方 0.457 [0.445,0.469]
+    （-4.3 点，平局记 0.5 的分数 -0.12）→ 这条规则**默认关闭**（`_DEFEND_THRESHOLD = 0.0`）。
+    本测试只验证"开关打开后的行为"，不代表它是当前默认口径。
     """
     b = _battle()
     me, opp = b.player_a.active, b.player_b.active
     _make_opponent_lethal(b)
     shield_idx = next(i for i, sk in enumerate(me.skills) if sk.is_defense)
     me.current_hp = int(me.max_hp * 0.5)
-    action = RuleAgentV2("A", b.player_a).choose_action(b)
+    on = RuleAgentV2("A", b.player_a, strategy=TeamStrategy(
+        default=SpriteStrategy(defend_threshold=0.30)))
+    action = on.choose_action(b)
     assert action.kind == "skill" and action.skill_index == shield_idx
 
-    # 阈值设 0 = 关闭这条规则
-    saved = agent_v2._DEFEND_THRESHOLD
-    try:
-        agent_v2._DEFEND_THRESHOLD = 0.0
-        b2 = _battle()
-        me2 = b2.player_a.active
-        _make_opponent_lethal(b2)
-        me2.current_hp = int(me2.max_hp * 0.5)
-        action2 = RuleAgentV2("A", b2.player_a).choose_action(b2)
-        assert not (action2.kind == "skill"
-                    and b2.player_a.active.skills[action2.skill_index].is_defense)
-    finally:
-        agent_v2._DEFEND_THRESHOLD = saved
+    # 阈值设 0 = 关闭这条规则（当前默认值）
+    b2 = _battle()
+    me2 = b2.player_a.active
+    _make_opponent_lethal(b2)
+    me2.current_hp = int(me2.max_hp * 0.5)
+    off = RuleAgentV2("A", b2.player_a, strategy=TeamStrategy(
+        default=SpriteStrategy(defend_threshold=0.0)))
+    action2 = off.choose_action(b2)
+    assert not (action2.kind == "skill"
+                and b2.player_a.active.skills[action2.skill_index].is_defense)
 
 
 def test_rule_switches_are_per_strategy_instance(monkeypatch):
@@ -140,6 +140,50 @@ def test_rule_switches_are_per_strategy_instance(monkeypatch):
     base = SpriteStrategy()
     assert dataclasses.replace(base, defend_threshold=0.1).defend_threshold == 0.1
     assert base.defend_threshold == 0.55          # 原对象不变（frozen dataclass）
+
+
+def test_status_counter_uses_counter_skill_when_opponent_will_shield():
+    """应对三角第三条腿：预判它举盾 → 用"状态克防御"的技能（剧毒 3 层 → 应对时 8 层）。
+
+    审计实测：它举盾的 2829 个决策点里我们"有可用状态技却没用"1491 次、真正用状态反制 1 次。
+    """
+    from backend.sim.item_policy import best_attack_damage
+
+    p1 = [{"name": "水灵", "skills": ["猛烈撞击", "剧毒"]}]
+    p2 = [{"name": "雪怪", "skills": ["龙卷风", "风墙"]}]        # 风墙 = 防御技（能举盾）
+    b = factory.build_battle(factory.build_player("A", p1),
+                             factory.build_player("B", p2))
+    me, opp = b.player_a.active, b.player_b.active
+    dmg = best_attack_damage(b, me, opp, "A")
+    assert dmg > 0
+    opp.current_hp = max(2, int(dmg * 2))       # 我这一击 ≈ 它半血：威胁到阈值，但打不死
+    poison_idx = next(i for i, sk in enumerate(me.skills) if sk.name == "剧毒")
+
+    on = RuleAgentV2("A", b.player_a,
+                     strategy=TeamStrategy(default=SpriteStrategy(status_counter=True)))
+    action = on.choose_action(b)
+    assert action.kind == "skill" and action.skill_index == poison_idx, \
+        "预判它举盾时应该用状态技反制，而不是硬撞它的减伤"
+
+    off = RuleAgentV2("A", b.player_a, strategy=TeamStrategy(
+        default=SpriteStrategy(status_counter=False)))
+    action2 = off.choose_action(b)
+    assert action2.kind == "skill" and me.skills[action2.skill_index].is_attack, \
+        "关掉这条规则时仍是普通攻击（保证 A/B 的两臂只差这一条）"
+
+
+def test_status_counter_skips_when_no_kill_threat():
+    """我不构成威胁（打它不痛）→ 它不会举盾，这条腿不该触发。"""
+    p1 = [{"name": "水灵", "skills": ["猛烈撞击", "剧毒"]}]
+    p2 = [{"name": "雪怪", "skills": ["龙卷风", "风墙"]}]
+    b = factory.build_battle(factory.build_player("A", p1),
+                             factory.build_player("B", p2))
+    me = b.player_a.active
+    b.player_b.active.current_hp = b.player_b.active.max_hp    # 满血 → 我这一击远不到 30%
+    agent = RuleAgentV2("A", b.player_a,
+                        strategy=TeamStrategy(default=SpriteStrategy(status_counter=True)))
+    action = agent.choose_action(b)
+    assert action.kind != "skill" or not me.skills[action.skill_index].name == "剧毒"
 
 
 def test_no_defend_when_kill_available():

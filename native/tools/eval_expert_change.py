@@ -50,17 +50,25 @@ from backend.engine.ai.data.sprite_random_pool import SPRITE_RANDOM_POOL  # noqa
 from backend.sim.agent_v2 import RuleAgentV2, SpriteStrategy, TeamStrategy  # noqa: E402
 from backend.sim.factory import SimFactory  # noqa: E402
 
-NEW_VALUES = {"trade": 0.15, "antiloop": True, "defend": 0.30}
-OLD_VALUES = {"trade": 1e9, "antiloop": False, "defend": 0.0}
+NEW_VALUES = {"trade": 0.15, "antiloop": True, "defend": 0.30, "status": True}
+OLD_VALUES = {"trade": 1e9, "antiloop": False, "defend": 0.0, "status": False}
 _AB_FIELDS = {"trade": "trade_margin", "antiloop": "anti_switch_loop",
-              "defend": "defend_threshold"}
+              "defend": "defend_threshold", "status": "status_counter"}
+# `both` = 三条蒸馏规则（trade+antiloop+defend，语义固定，便于与历史数字对照）；
+# `all` = 再加状态反制（status_counter）。
+_BUNDLES = {"both": ["trade", "antiloop", "defend"],
+            "no_defend": ["trade", "antiloop"],
+            "all": ["trade", "antiloop", "defend", "status"],
+            # 当前出厂默认（防御层默认关闭 + 状态反制默认开启）
+            "shipped": ["trade", "antiloop", "status"]}
 
 
 def parse_args() -> argparse.Namespace:
     ap = argparse.ArgumentParser()
     ap.add_argument("--games", type=int, default=600, help="总对局数（每对两局，交换执 A/B）")
     ap.add_argument("--ab", default="both",
-                    choices=("trade", "antiloop", "defend", "both", "no_defend"))
+                    choices=("trade", "antiloop", "defend", "status",
+                             "both", "no_defend", "all", "shipped"))
     ap.add_argument("--meta-frac", type=float, default=0.6)
     ap.add_argument("--max-turns", type=int, default=40)
     ap.add_argument("--seed", type=int, default=2026)
@@ -71,15 +79,10 @@ def parse_args() -> argparse.Namespace:
 def _ab_strategy(base: TeamStrategy, new: bool, mode: str) -> TeamStrategy:
     """把 base 的策略逐只复制，只改本次 A/B 的那几个字段（其余角色/血线设置保持不变）。
 
-    `both` = 三条一起（当前默认口径）；`no_defend` = 去掉防御层（用于判断防御该不该留）。
+    `both` = 三条蒸馏规则；`no_defend` = 去掉防御层；`all` = 再加状态反制。
     """
     vals = NEW_VALUES if new else OLD_VALUES
-    if mode == "both":
-        keys = list(_AB_FIELDS)
-    elif mode == "no_defend":
-        keys = ["trade", "antiloop"]
-    else:
-        keys = [mode]
+    keys = _BUNDLES.get(mode) or [mode]
     overrides = {_AB_FIELDS[k]: vals[k] for k in keys}
     return TeamStrategy(
         name=base.name,

@@ -1355,3 +1355,71 @@ def test_trait_衡量_no_copy_when_self_gains():
     assert after == before, (
         f"self gaining buff should not trigger mirror; before={before}, after={after}"
     )
+
+
+# ═══════════════════════════════════════════════════════════════════
+# 「付给恶魔的赎价」的触发时机（on_ko / on_self_ko 的方向语义）
+# ═══════════════════════════════════════════════════════════════════
+
+class _AttackAgent:
+    """总是用技能槽 0 打对面；力竭时按队伍顺序换人。"""
+
+    def __init__(self, team: str, player: Player):
+        self.team, self.player = team, player
+
+    def choose_action(self, battle):
+        return Action(kind="skill", skill_index=0)
+
+    def choose_lead(self, battle) -> int:
+        return 0
+
+    def choose_replacement(self, battle) -> int:
+        return next(i for i, s in enumerate(self.player.team) if not s.is_fainted)
+
+    def on_game_end(self, winner):
+        pass
+
+
+def _battle_with_blood_price(holder_active: bool):
+    """B 队带「付给恶魔的赎价」（龙息帕尔，特性 id 20007）；holder_active → 它在场上。"""
+    a = [{"name": "水灵", "skills": ["猛烈撞击"], "nature": None, "iv": None},
+         {"name": "花衣蝶", "skills": ["猛烈撞击"], "nature": None, "iv": None},
+         {"name": "雪怪", "skills": ["猛烈撞击"], "nature": None, "iv": None}]
+    b = [{"name": "花衣蝶", "skills": ["猛烈撞击"], "nature": None, "iv": None},
+         {"name": "龙息帕尔", "skills": ["猛烈撞击"], "nature": None, "iv": None},
+         {"name": "火神", "skills": ["猛烈撞击"], "nature": None, "iv": None}]
+    if holder_active:
+        b[0], b[1] = b[1], b[0]
+    p1 = factory.build_player("A", a, item=None)
+    p2 = factory.build_player("B", b, item=None)
+    return factory.build_battle(p1, p2), p1, p2
+
+
+def test_blood_price_silent_when_holder_on_bench():
+    """持有者在板凳上 → 队友力竭不触发（特性只在该精灵在场时生效）。
+
+    回归：修复前 on_ko/on_self_ko 在换视角时不对调标志，一次力竭会落 3 条 lives 变更，
+    双方各多扣 1 点魔力。
+    """
+    battle, p1, p2 = _battle_with_blood_price(holder_active=False)
+    assert p2.active.name == "花衣蝶"
+    p2.active.current_hp = 1
+    battle.execute_turn(_AttackAgent("A", p1), _AttackAgent("B", p2))
+    assert (p1.lives, p2.lives) == (4, 3), "队友力竭只扣 1 点心力，且不该波及对手"
+
+
+def test_blood_price_charges_enemy_player_when_holder_scores_ko():
+    """持有者在场、它击败敌人 → 只有**敌方**额外 -1（on_ko 方向）。"""
+    battle, p1, p2 = _battle_with_blood_price(holder_active=True)
+    assert p2.active.name == "龙息帕尔"
+    p1.active.current_hp = 1
+    battle.execute_turn(_AttackAgent("A", p1), _AttackAgent("B", p2))
+    assert (p1.lives, p2.lives) == (2, 4), "敌方应多扣 1（力竭 1 + 特性 1），己方不受影响"
+
+
+def test_blood_price_charges_own_player_when_holder_koed():
+    """持有者在场、它被击败 → 只有**自己**额外 -1（on_self_ko 方向）。"""
+    battle, p1, p2 = _battle_with_blood_price(holder_active=True)
+    battle.player_b.active.current_hp = 1
+    battle.execute_turn(_AttackAgent("A", p1), _AttackAgent("B", p2))
+    assert (p1.lives, p2.lives) == (4, 2), "己方应多扣 1，敌方不受影响"

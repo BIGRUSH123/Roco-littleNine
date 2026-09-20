@@ -189,6 +189,20 @@ def main() -> None:
                         st["有应对机会"] += 1
                         if my_sk is not None and SkillResolver.resolve_counter(their_sk, my_sk):
                             st["有应对机会:抓住了"] += 1
+                            # 抓住了的是哪条腿（防御克攻击 / 攻击克状态 / 状态克防御）
+                            st[f"抓住组合:{_kind(my_sk)}克{_kind(their_sk)}"] += 1
+                    # 状态腿专属：它举盾（防御）时，我该用**状态技**反制
+                    if their_sk.is_defense:
+                        st["它用防御技"] += 1
+                        status_ok = [sk for sk in info["skills"]
+                                     if sk.cooldown <= 0 and not sk.sealed
+                                     and sk.energy_cost <= s.energy and sk.is_status]
+                        if my_sk is not None and SkillResolver.resolve_counter(their_sk, my_sk):
+                            st["它用防御技:我用状态反制"] += 1
+                        elif status_ok:
+                            st["它用防御技:有状态可用但没用"] += 1
+                        else:
+                            st["它用防御技:没有可用状态技"] += 1
                 # ② 心力：1 心时的必死交换 / 残局运营
                 died = s.is_fainted or (info["opp_best"] >= info["hp0"] > 0
                                         and info["act"].kind == "skill")

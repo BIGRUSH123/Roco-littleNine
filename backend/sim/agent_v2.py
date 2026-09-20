@@ -61,7 +61,13 @@ _ANTI_SWITCH_LOOP = True   # 刚换上来的那只不参与"残血换位"，避�
 # （配装里却有 17% 防御技、减伤 0.7~1.0）。实测激励：一个粗糙的"被威胁就防御"对手
 # 对我们出厂专家胜率 **0.571 [0.511,0.631]**（300 局配对）→ 这一层被我们整个漏掉了。
 # 规则：对手这一击够疼（≥ 阈值×我最大生命）、我打不死它、也没更适合的换人 → 举盾。
-_DEFEND_THRESHOLD = 0.30   # 0 = 关闭（A/B 对照用）
+_DEFEND_THRESHOLD = 0.0    # 被重击就举盾（0 = 关闭）。**默认关闭**：同局对照 A/B 实测
+#                            对手也会用状态反制时，举盾方 0.457 [0.445,0.469]（-4.3 点），
+#                            平局记 0.5 的分数 -0.12/-0.14 —— 举盾白送对面节奏。
+#                            它作为可开关保留（`SpriteStrategy.defend_threshold`）。
+# 「预判对面要举盾」的阈值（状态反制的触发前提）—— 与"我自己防不防"解耦：
+# 这是对**对手**行为的模型。0.30 = 我们原先自己的防御规则阈值，也是社区常见的"被重击"直觉。
+_SHIELD_READ_THRESHOLD = 0.30
 
 
 def _leader_form_action(battle, team: str, sprite: Sprite, opp) -> Action:
@@ -121,6 +127,14 @@ class SpriteStrategy:
     trade_margin: float = field(default_factory=lambda: _TRADE_MARGIN)
     anti_switch_loop: bool = field(default_factory=lambda: _ANTI_SWITCH_LOOP)
     defend_threshold: float = field(default_factory=lambda: _DEFEND_THRESHOLD)
+    # 「预判对面要举盾」的阈值（状态反制的触发前提）；与 defend_threshold 解耦，
+    # 因为它建模的是对手行为，不是我们自己的防守策略。
+    shield_read_threshold: float = field(default_factory=lambda: _SHIELD_READ_THRESHOLD)
+    # 应对三角的另一条腿：预判它举盾 → 用 `counter == '防御'` 的状态技（吃 counter_succeeded
+    # 强分支，如 剧毒 3 层→8 层）。同局对照 A/B（3999 局 × 2 组 seed，2026-09）：
+    # 0.525 / 0.509 → 合并 0.517 [0.504,0.530]（CI 下界 > 0.5）；平局记 0.5 的分数 Δ +0.066/+0.024。
+    # 默认开启；`--ab status` 可随时复测。
+    status_counter: bool = True
 
 
 @dataclass
@@ -401,6 +415,27 @@ class RuleAgentV2:
                                 "belief": dist}
                 return self._candidate_action(picked)
 
+        # ── 3°. 状态（应对防御）：预判它要举盾 → 用"状态克防御"的技能吃 counter 强分支 ──
+        # 这是应对三角的第三条腿（防御克攻击、攻击克状态、状态克防御）。审计实测：它举盾的
+        # 2829 个决策点里，我们"有可用状态技却没用"1491 次（8.7%），真正用状态反制 **1 次**
+        # ——整条腿是空的。收益是实的：29 个 `counter == '防御'` 的技能里 25 个带
+        # `counter_succeeded` 强分支（剧毒：常态 3 层中毒 → 应对防御 8 层）。
+        # 预判依据与自己的防御规则同构：我这一击 ≥ 它血量的 defend_threshold 时它会举盾，
+        # 且它现在确实带得出防御技（冷却/封印/能量都够）。
+        if st.status_counter and not kills and table:
+            threatened = best_dmg >= max(1, opp.current_hp) * st.shield_read_threshold
+            their_shield = [sk for sk in opp.skills
+                            if sk.is_defense and sk.cooldown <= 0 and not sk.sealed
+                            and sk.energy_cost <= opp.energy]
+            if threatened and their_shield:
+                # `counter == '防御'` 就是 `resolve_counter(它的防御技, 我的技能)` 成立的条件
+                cands = [sk for sk in s.skills
+                         if sk.counter == '防御' and sk.cooldown <= 0 and not sk.sealed
+                         and sk.energy_cost <= s.energy]
+                if cands:
+                    best = max(cands, key=lambda sk: (len(sk.effects), -sk.energy_cost))
+                    return _skill_action(s.skills.index(best))
+
         # ── 3. 进攻（旧启发式，ev_decide=False 时的路径）：可负担攻击中取最高伤害 ──
         # energy_hold：无斩杀窗口时低于能量预算不泄招，攒大招（能量管理）
         if table:
@@ -410,22 +445,6 @@ class RuleAgentV2:
                 cost <= s.energy - 4 and s.energy >= st.energy_hold
             ):
                 return _skill_action(i)
-
-        # ── 3''. 防御（应对攻击）：被重击且打不死它时举盾 ──
-        # 依据：三份洛神杯复盘里"防御/状态/应对"是胜负基础，而我们专家防御出招占比 0%
-        # （配装却有 17% 防御技、减伤 0.7~1.0）。实测"被威胁就防御"的对手对出厂专家
-        # 0.571 [0.511,0.631]（300 局）→ 必须把这一层补上。
-        if st.defend_threshold > 0 and not kills and table is not None:
-            threaten = opp_best >= s.max_hp * st.defend_threshold
-            if threaten:
-                defs = [sk for sk in s.skills
-                        if sk.is_defense and sk.cooldown <= 0 and not sk.sealed
-                        and sk.energy_cost <= s.energy]
-                if defs:
-                    from .ev import defense_reduction as _dr
-
-                    best = max(defs, key=lambda sk: _dr(sk))
-                    return _skill_action(s.skills.index(best))
 
         # ── 4. 强化推队：缺乏有效输出且能量富余 → 用增益（状态）技能 ──
         if s.energy >= 3:

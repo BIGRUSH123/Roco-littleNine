@@ -336,7 +336,8 @@ class BattleVMEngine:
                 continue
         return mutations
 
-    def _fire_post_event(self, trigger: str, ctx: Ctx, replayer: JournalReplayer) -> list[str]:
+    def _fire_post_event(self, trigger: str, ctx: Ctx, replayer: JournalReplayer,
+                         *, ko_side: str | None = None) -> list[str]:
         """Fire post-event observers and replay their mutations.
 
         Observers are filtered by listen set. For per-sprite triggers
@@ -365,7 +366,14 @@ class BattleVMEngine:
             if trigger == "post_ko":
                 opp_id = id(replayer.opp) if replayer.opp else None
                 if obs.owner_sprite_id is not None:
-                    if obs.owner_sprite_id != owner_id and obs.owner_sprite_id != opp_id:
+                    if ko_side == "self":
+                        # 每条 post_ko 路径只服务"该路径的当事方"：力竭路径的 ctx.self 是
+                        # 死者（服务持有者的 on_self_ko 系），伤害日志路径的 ctx.self 是凶手
+                        # （服务 on_ko 系）。另一侧由另一条路径负责——两边都判会按各自视角
+                        # 各应用一次，同一分支就落两刀（实测：一次力竭双方各掉 1 魔力）。
+                        if obs.owner_sprite_id != owner_id:
+                            continue
+                    elif obs.owner_sprite_id != owner_id and obs.owner_sprite_id != opp_id:
                         continue
             elif trigger in _SINGLE_OWNER_TRIGGERS:
                 if obs.owner_sprite_id is not None and owner_id is not None:
@@ -376,7 +384,8 @@ class BattleVMEngine:
             # so conds like on_damage_taken / on_ko resolve from owner's perspective
             # and stat reads (atk_self, def_opp) use correct values.
             saved_perspective = None
-            if trigger in ("post_damage", "post_ko") and obs.owner_sprite_id is not None:
+            if (trigger in ("post_damage", "post_ko") and obs.owner_sprite_id is not None
+                    and not (trigger == "post_ko" and ko_side == "self")):
                 opp_id = id(replayer.opp) if replayer.opp else None
                 if obs.owner_sprite_id == opp_id:
                     saved_perspective = (
@@ -507,7 +516,7 @@ class BattleVMEngine:
                     if "post_ko" not in fired:
                         fired.add("post_ko")
                         ctx.event.target_fainted = True
-                        ev = self._fire_post_event("post_ko", ctx, replayer)
+                        ev = self._fire_post_event("post_ko", ctx, replayer, ko_side="self")
                         events.extend(ev)
                     break
 
@@ -526,12 +535,16 @@ class BattleVMEngine:
         self_skill = None,
         battle = None,
         leaving_sprite: Sprite | None = None,
+        ko_side: str | None = None,
     ) -> list[str]:
         """Public hook: fire a trigger point and replay results as events.
 
         Callable from sim/battle.py at dispatch points (entry, leave,
         turn_end, counter_success, etc.) where the engine's internal
         execute_skill() pipeline is not active.
+
+        `ko_side="self"` 用于 post_ko：只服务 ctx.self 一侧的持有者（力竭路径的 ctx.self
+        是死者，因此服务"自己力竭"系特性）；另一侧由伤害日志路径负责。
         """
         if not self.registry.has_candidates(trigger):
             return []
@@ -542,7 +555,7 @@ class BattleVMEngine:
             battle=battle,
             leaving_sprite=leaving_sprite,
         )
-        return self._fire_post_event(trigger, ctx, replayer)
+        return self._fire_post_event(trigger, ctx, replayer, ko_side=ko_side)
 
     def fire_skill_position_changed(
         self,

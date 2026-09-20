@@ -229,6 +229,14 @@ class Ctx:
         other.skill_element_count_self, other.skill_element_count_opp = (
             self.skill_element_count_opp, self.skill_element_count_self)
 
+        # --- event 标志也要跟着换视角 ---
+        # `on_ko` / `on_self_ko` 分别是 `event.target_fainted` / `event.self_koed`
+        # （cond.py），它们是**方向敏感**的：换到对方视角后，"我打赢了它"与
+        # "我被它打赢"必须互换，否则两个条件会同时为真（实测「付给恶魔的赎价」
+        # 一次力竭触发 3 条 lives 变更、双方各挨一刀）。
+        other.event.target_fainted, other.event.self_koed = (
+            self.event.self_koed, self.event.target_fainted)
+
         # --- skill fields ---
         other.power_self, other.power_opp = self.power_opp, self.power_self
         other.skill_type_self, other.skill_type_opp = self.skill_type_opp, self.skill_type_self
