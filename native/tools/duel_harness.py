@@ -362,7 +362,9 @@ def _item_menu(battle, side: str, post_skills_fn=None) -> list[str]:
     if post:
         lines.append(f"  · 用后技能表变化：槽 0 由「{player.active.skills[0].name}」"
                      f"换成「{post[0].name}」（本回合有效）"
-                     f" —— then 里的技能名要按**用后**的表写")
+                     f" —— then 里的技能名要按**用后**的表写；用后技能表：")
+        for i, sk in enumerate(post):
+            lines.append("      " + _skill_line(i, sk, player.active.energy))
     return lines
 
 
@@ -802,7 +804,10 @@ _CONTRACT_TEMPLATE = """\
     {"action": "skill",  "name": "<技能名>"}                        出招
     {"action": "switch", "name": "<板凳里的精灵名>"}                 换人（换人先于技能结算）
     {"action": "gather"}                                            聚能（本回合不出招，回能量）
-    {"action": "item",   "variant": <形态号>, "then": {后续动作}}      用道具（不消耗行动，必须跟 then）
+    {"action": "item",   "then": {后续动作}}                          用道具（不消耗行动，必须跟 then）
+
+道具只有「进化之力」需要额外给 `"variant"`（形态号见上面「合法动作」里的道具那一行）；
+其他道具**不要**写 variant。
 
 可选字段：
     "reason": "一句话理由"         会写进对战记录，便于复盘
