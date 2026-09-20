@@ -52,6 +52,13 @@ def test_trade_kill_when_my_sprite_is_the_damaged_one():
     from backend.sim import tactics
 
     assert tactics.moves_first(b, me, "A", opp, "B") is False
+    # 早先这里漏了两步前提（它致命 + 我致命），于是 `kills` 为空、`dies_before_acting` 为假，
+    # 实际走的是兜底攻击/撤人分支 —— 根本没测到本规则。规则真正触发需要：
+    # 它先手且能杀我（`_make_opponent_lethal`）+ 我一击能杀它（`_make_me_lethal`）
+    # + 它比我健康（上面的血量比例）。
+    _make_opponent_lethal(b)
+    _make_me_lethal(b)
+    assert tactics.moves_first(b, me, "A", opp, "B") is False
     action = RuleAgentV2("A", b.player_a).choose_action(b)
     assert action.kind == "skill", "一换一划算时应该打，而不是撤"
 
@@ -60,6 +67,12 @@ def _make_opponent_lethal(battle, times: int = 6) -> None:
     """把对手的攻击面板拉高，让"它先手且这一击能杀我"成立（触发交换价值判定）。"""
     for key in ("atk", "sp_atk"):
         battle.player_b.active.initial_stats[key] *= times
+
+
+def _make_me_lethal(battle, times: int = 20) -> None:
+    """把我的攻击面板拉高，让"我一击能杀它"成立（否则 `kills` 为空，测不到交换价值）。"""
+    for key in ("atk", "sp_atk"):
+        battle.player_a.active.initial_stats[key] *= times
 
 
 def test_keep_healthy_sprite_by_switching_instead_of_trading():
@@ -159,46 +172,63 @@ def test_status_counter_uses_counter_skill_when_opponent_will_shield():
     opp.current_hp = max(2, int(dmg * 2))       # 我这一击 ≈ 它半血：威胁到阈值，但打不死
     poison_idx = next(i for i, sk in enumerate(me.skills) if sk.name == "剧毒")
 
-    on = RuleAgentV2("A", b.player_a,
-                     strategy=TeamStrategy(default=SpriteStrategy(status_counter=True)))
+    on = RuleAgentV2("A", b.player_a, strategy=TeamStrategy(
+        default=SpriteStrategy(status_counter=True, plan_depth=0)))
     action = on.choose_action(b)
     assert action.kind == "skill" and action.skill_index == poison_idx, \
         "预判它举盾时应该用状态技反制，而不是硬撞它的减伤"
 
+    # 两臂都钉住 `plan_depth=0`：本用例测的是**手写规则**。规划层开着时它自己也会算出
+    # 这张状态反制牌（好事，但会让"关掉规则"这臂不再等于"不使用状态反制"）。
     off = RuleAgentV2("A", b.player_a, strategy=TeamStrategy(
-        default=SpriteStrategy(status_counter=False)))
+        default=SpriteStrategy(status_counter=False, plan_depth=0)))
     action2 = off.choose_action(b)
     assert action2.kind == "skill" and me.skills[action2.skill_index].is_attack, \
         "关掉这条规则时仍是普通攻击（保证 A/B 的两臂只差这一条）"
 
 
 def test_status_counter_skips_when_no_kill_threat():
-    """我不构成威胁（打它不痛）→ 它不会举盾，这条腿不该触发。"""
+    """我不构成威胁（打它不痛）→ 它不会举盾，这条腿不该触发。
+
+    钉住 `plan_depth=0`：测的是**手写规则**的边界。规划层开着时它可能仍然出「剧毒」——
+    那是它按中毒层数的价值自己算出来的（不是这条规则触发的），不冲突但会混淆断言。
+    """
     p1 = [{"name": "水灵", "skills": ["猛烈撞击", "剧毒"]}]
     p2 = [{"name": "雪怪", "skills": ["龙卷风", "风墙"]}]
     b = factory.build_battle(factory.build_player("A", p1),
                              factory.build_player("B", p2))
     me = b.player_a.active
     b.player_b.active.current_hp = b.player_b.active.max_hp    # 满血 → 我这一击远不到 30%
-    agent = RuleAgentV2("A", b.player_a,
-                        strategy=TeamStrategy(default=SpriteStrategy(status_counter=True)))
+    agent = RuleAgentV2("A", b.player_a, strategy=TeamStrategy(
+        default=SpriteStrategy(status_counter=True, plan_depth=0)))
     action = agent.choose_action(b)
     assert action.kind != "skill" or not me.skills[action.skill_index].name == "剧毒"
 
 
 def test_no_defend_when_kill_available():
-    """能一击斩杀时不防御（先杀）。"""
+    """能一击斩杀时不防御（先杀）。
+
+    钉住 `plan_depth=0`：这条边界属于手写梯子。规划层开着时会自己算——
+    本用例里"它先手且这一击能杀我"，规划层更愿意举盾活下来（旧梯子在交换价值不成立时
+    会照打，等于送掉这一只），属于**被取代**而非被破坏。
+    """
     b = _battle()
     me, opp = b.player_a.active, b.player_b.active
     _make_opponent_lethal(b)
     opp.current_hp = 1                              # 随便打一下就能杀
-    action = RuleAgentV2("A", b.player_a).choose_action(b)
+    action = RuleAgentV2(
+        "A", b.player_a,
+        strategy=TeamStrategy(default=SpriteStrategy(plan_depth=0))).choose_action(b)
     assert action.kind == "skill"
     assert me.skills[action.skill_index].is_attack
 
 
 def test_no_switch_out_right_after_switching_in():
-    """刚换上来的那只不参与"残血换位"，避免"换出去又换回来"的空转（审计占换人决策 11%）。"""
+    """刚换上来的那只不参与"残血换位"，避免"换出去又换回来"的空转（审计占换人决策 11%）。
+
+    钉住 `plan_depth=0`：规划层的换人候选不套这条规则，但它会把进场代价
+    （印记进场伤害/掉能量）与当回合节奏一起模拟，判断是划算才换。
+    """
     assert agent_v2._ANTI_SWITCH_LOOP is True
     b = _battle()
     me = b.player_a.active
@@ -206,10 +236,11 @@ def test_no_switch_out_right_after_switching_in():
     me.entry_turn = 9                              # 本回合刚换上来
     me.current_hp = int(me.max_hp * 0.30)          # 残血（旧规则会想换）
     b.player_b.active.current_hp = int(b.player_b.active.max_hp * 0.95)
-    action = RuleAgentV2("A", b.player_a).choose_action(b)
+    legacy = TeamStrategy(default=SpriteStrategy(plan_depth=0))
+    action = RuleAgentV2("A", b.player_a, strategy=legacy).choose_action(b)
     assert action.kind != "switch", "刚上场就再换 = 空转"
 
     b.turn = 12                                    # 站了几回合之后 → 允许残血换位
     me.entry_turn = 9
-    action2 = RuleAgentV2("A", b.player_a).choose_action(b)
+    action2 = RuleAgentV2("A", b.player_a, strategy=legacy).choose_action(b)
     assert action2.kind in ("switch", "skill", "gather")   # 不再被这条规则挡住

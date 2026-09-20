@@ -74,7 +74,7 @@ def response_actions(battle, opp_player, k: int = 3) -> list[tuple[str, object]]
     return picks[: max(1, k)]
 
 
-class _FixedAgent:
+class FixedAgent:
     """把预定动作喂给引擎（仿真用）。"""
 
     def __init__(self, team: str, player, action, replacement):
@@ -162,8 +162,8 @@ def choose(battle, team: str, candidates: list, *, plies: int = 1,
 def _rollout(battle, team: str, me, opp, my_action, their_action,
              plies: int, continuation) -> None:
     """在 battle 上走 plies 个回合（第 1 回合按给定动作，后续用 continuation）。"""
-    ag_me = _FixedAgent(team, me, my_action, first_alive_bench)
-    ag_op = _FixedAgent("B" if team == "A" else "A", opp, their_action, first_alive_bench)
+    ag_me = FixedAgent(team, me, my_action, first_alive_bench)
+    ag_op = FixedAgent("B" if team == "A" else "A", opp, their_action, first_alive_bench)
     a, b = (ag_me, ag_op) if team == "A" else (ag_op, ag_me)
     battle.execute_turn_headless(agent_a=a, agent_b=b,
                                  fixed_action_a=a.action, fixed_action_b=b.action)
@@ -173,6 +173,6 @@ def _rollout(battle, team: str, me, opp, my_action, their_action,
         act_a = continuation["A"].choose_action(battle)
         act_b = continuation["B"].choose_action(battle)
         battle.execute_turn_headless(
-            agent_a=_FixedAgent("A", battle.player_a, act_a, first_alive_bench),
-            agent_b=_FixedAgent("B", battle.player_b, act_b, first_alive_bench),
+            agent_a=FixedAgent("A", battle.player_a, act_a, first_alive_bench),
+            agent_b=FixedAgent("B", battle.player_b, act_b, first_alive_bench),
             fixed_action_a=act_a, fixed_action_b=act_b)

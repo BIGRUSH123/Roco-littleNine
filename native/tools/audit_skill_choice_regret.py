@@ -47,6 +47,13 @@ from backend.engine.ai.core.mcts import (  # noqa: E402
 )
 from backend.engine.ai.core.outcome import team_battle_score  # noqa: E402
 from backend.sim.agent import _GATHER_ACTION  # noqa: E402
+# 对手响应集与固定动作代理都复用规划层那一份（`backend/sim/plan.py`）：
+# 审计口径与决策口径必须同源 —— 早先这里有一份副本，参数一改两边就对不上。
+from backend.sim.plan import (  # noqa: E402
+    FixedAgent as _FixedAgent,
+    first_alive_bench as _first_alive_bench,
+    response_actions,
+)
 
 try:  # 与其它量测工具同口径的确定性
     from backend.engine.ai.determinism import ensure_hash_seed
@@ -85,22 +92,29 @@ def _to_action(player, idx: int):
     return action_index_to_action(player, idx) or _GATHER_ACTION
 
 
-def describe(player, action) -> str:
-    return describe_sprite(getattr(player, "active", None), action)
+def skill_labels(player) -> list[str]:
+    """**当时**的技能名+类别（传动会换槽：用回合后的表描述会标错技能名）。"""
+    if player.active is None:
+        return []
+    out = []
+    for sk in player.active.skills:
+        kind = "攻击" if sk.is_attack else ("防御" if sk.is_defense else "状态")
+        out.append(f"{sk.name}（{kind}）")
+    return out
 
 
-def describe_sprite(sprite, action) -> str:
-    """按**当时**的技能表描述动作（传动会换槽，用回合后的表描述会标错技能名）。"""
+def describe(player, action, labels: list[str] | None = None) -> str:
+    """动作 → 文字；`labels` 是提交那一刻抓的技能标签表（见 `skill_labels`）。"""
     if action is None:
         return "None"
     if action.kind == "skill":
-        skills = getattr(sprite, "skills", []) or []
-        if 0 <= action.skill_index < len(skills):
-            sk = skills[action.skill_index]
-            kind = "攻击" if sk.is_attack else ("防御" if sk.is_defense else "状态")
-            return f"技能 {sk.name}（{kind}）"
+        labels = labels if labels is not None else skill_labels(player)
+        if 0 <= action.skill_index < len(labels):
+            return f"技能 {labels[action.skill_index]}"
         return f"技能槽{action.skill_index}"
     if action.kind == "switch":
+        if 0 <= action.switch_index < len(player.team):
+            return f"换人 {player.team[action.switch_index].name}"
         return f"换人槽{action.switch_index}"
     return {"item": "道具", "gather": "聚能"}.get(action.kind, action.kind)
 
@@ -122,71 +136,8 @@ def kind_of(player, action) -> str:
     return "other"
 
 
-def _affordable(active, sk) -> bool:
-    return not sk.sealed and sk.cooldown <= 0 and sk.energy_cost <= active.energy
-
-
 # ══════════════════════════════════════════════════════════════════
-# 对手响应集
-# ══════════════════════════════════════════════════════════════════
-
-def response_actions(battle, opp_player, k: int) -> list[tuple[str, object]]:
-    """对手响应集：最高伤害攻击 / 最佳防御 / 最佳状态 / 换人 / 聚能（去重取前 k）。"""
-    from backend.sim.item_policy import estimate_damage
-    from backend.sim.ev import defense_reduction
-    from backend.sim.action import Action
-
-    other = battle.player_a if opp_player is battle.player_b else battle.player_b
-    team = "A" if opp_player is battle.player_a else "B"
-    active = opp_player.active
-    if active is None:
-        return [("聚能", _GATHER_ACTION)]
-    picks: list[tuple[str, object]] = []
-    best_atk, best_atk_dmg = None, -1
-    best_def, best_def_val = None, -1.0
-    best_st, best_st_n = None, -1
-    for i, sk in enumerate(active.skills):
-        if not _affordable(active, sk):
-            continue
-        if sk.is_attack:
-            try:
-                dmg = estimate_damage(battle, active, other.active, sk, team)
-            except Exception:
-                continue
-            if dmg > best_atk_dmg:
-                best_atk, best_atk_dmg = i, dmg
-        elif sk.is_defense:
-            val = defense_reduction(sk)
-            if val > best_def_val:
-                best_def, best_def_val = i, val
-        elif len(sk.effects) > best_st_n:
-            best_st, best_st_n = i, len(sk.effects)
-    if best_atk is not None:
-        picks.append(("攻击", Action(kind="skill", skill_index=best_atk)))
-    if best_def is not None:
-        picks.append(("防御", Action(kind="skill", skill_index=best_def)))
-    if best_st is not None:
-        picks.append(("状态", Action(kind="skill", skill_index=best_st)))
-    bench = [i for i, s in enumerate(opp_player.team)
-             if i != opp_player.active_index and not s.is_fainted]
-    if bench:
-        picks.append(("换人", Action(kind="switch", switch_index=bench[0])))
-    picks.append(("聚能", _GATHER_ACTION))
-    # 去重（按索引空间）并按 k 截断
-    seen, out = set(), []
-    for label, act in picks:
-        idx = action_to_index(opp_player, act)
-        if idx is None or idx in seen:
-            continue
-        seen.add(idx)
-        out.append((label, act))
-        if len(out) >= max(1, k):
-            break
-    return out
-
-
-# ══════════════════════════════════════════════════════════════════
-# rollout
+# 叶子价值（口径由 --leaf 决定）
 # ══════════════════════════════════════════════════════════════════
 
 def leaf_value(battle, side: str) -> float:
@@ -219,29 +170,6 @@ def _make_leaf(mode: str):
 _LEAF = _make_leaf("board")
 
 
-class _FixedAgent:
-    def __init__(self, team: str, player, action, replacement):
-        self.team, self.player = team, player
-        self.action, self._replacement = action, replacement
-
-    def choose_action(self, battle):
-        return self.action
-
-    def choose_lead(self, battle) -> int:
-        return self.player.active_index
-
-    def choose_replacement(self, battle) -> int:
-        return self._replacement(self.player)
-
-    def on_game_end(self, winner):
-        pass
-
-
-def _first_alive_bench(player) -> int:
-    for i, s in enumerate(player.team):
-        if i != player.active_index and not s.is_fainted:
-            return i
-    return player.active_index
 
 
 def rollout(battle, side: str, my_action, their_action, plies: int = 1,
@@ -320,6 +248,7 @@ def audit_decision(battle, side: str, agent, k_responses: int, records: list[dic
     records.append({"side": side, "turn": battle.turn,
                     "chosen": chosen_idx, "chosen_action": chosen_action,
                     "chosen_label": chosen_label,
+                    "skill_labels": skill_labels(player),
                     "values": values, "best": best_idx, "best_value": values[best_idx],
                     "player": player, "opp": opp,
                     "my_name": player.active.name, "opp_name": opp.active.name,
@@ -339,7 +268,7 @@ class _Recorder:
     def choose_action(self, battle):
         act = self.agent.choose_action(battle)
         player = battle.player_a if self.team == "A" else battle.player_b
-        label = describe_sprite(player.active, act)   # 按当时的技能表定名
+        label = describe(player, act, skill_labels(player))   # 按当时的技能表定名
         self.log.append((self.team, act, player.active, label))
         return act
 
@@ -526,7 +455,7 @@ def report(records, kinds, games_done, unaudited, args) -> None:
               f"{rec['my_name']} vs {rec['opp_name']}"
               f"  实际 {rec.get('chosen_label') or describe(pl, rec['chosen_action'])}"
               f"（{rec['values'][rec['chosen']]:+.3f}）"
-              f"  →  最优 {describe(pl, _to_action(pl, rec['best']))}"
+              f"  →  最优 {describe(pl, _to_action(pl, rec['best']), rec.get('skill_labels'))}"
               f"（{rec['best_value']:+.3f}）  regret {regrets[pos]:.3f}")
 
 

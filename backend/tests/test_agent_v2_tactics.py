@@ -188,7 +188,8 @@ def test_panic_switch_respects_opponent_priority():
     注意：`ev_decide=False` 才走这条旧启发式；开了期望值（默认）时，即使我更快，
     "留在场上会被下回合打死"也会让 EV 层自己选择撤人（见下一条断言）。
     """
-    legacy = TeamStrategy(default=SpriteStrategy(ev_decide=False))
+    # 钉住 plan_depth=0：本用例测的是**旧启发式**；规划层开着时会按价值自己撤人（见文末断言）
+    legacy = TeamStrategy(default=SpriteStrategy(ev_decide=False, plan_depth=0))
     specs_me = [{"name": "水灵", "skills": ["猛烈撞击"]},
                 {"name": "花衣蝶", "skills": ["猛烈撞击"]}]
     with_priority = _battle(specs_me, [{"name": "雪怪", "skills": ["猛烈撞击", "龙卷风"]}])
