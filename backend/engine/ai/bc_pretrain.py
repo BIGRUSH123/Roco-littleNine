@@ -51,6 +51,9 @@ def parse_args() -> argparse.Namespace:
     ap.add_argument("--random-val-frac", type=float, default=0.1)
     ap.add_argument("--device", default="")
     ap.add_argument("--seed", type=int, default=7)
+    ap.add_argument("--trunk-dim", type=int, default=256,
+                    help="trunk 宽度（容量对照实验；需被注意力头数整除）")
+    ap.add_argument("--num-blocks", type=int, default=4)
     return ap.parse_args()
 
 
@@ -136,9 +139,11 @@ def main() -> None:
         policy, ds["mask"], ds["outcome"], ds["game_id"])
 
     model = ModularBattleNet(
-        trunk_dim=256, num_blocks=4, dropout=args.dropout,
+        trunk_dim=args.trunk_dim, num_blocks=args.num_blocks, dropout=args.dropout,
         vocab_size=VOCAB_SIZE, with_attention=True,
     )
+    print(f"模型: trunk_dim={args.trunk_dim} num_blocks={args.num_blocks} "
+          f"dropout={args.dropout} 参数量={model.num_params:,}")
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr,
                                  weight_decay=args.weight_decay)
 
@@ -177,6 +182,19 @@ def main() -> None:
         "final_history": {k: float(last[k]) for k in last},
         "holdout_teams": holdout,
         "samples": int(n),
+        # 容量对照实验要能看出这盘权重是怎么训出来的
+        "config": {
+            "data": str(args.data),
+            "epochs": args.epochs,
+            "batch_size": args.batch_size,
+            "lr": args.lr,
+            "weight_decay": args.weight_decay,
+            "dropout": args.dropout,
+            "trunk_dim": args.trunk_dim,
+            "num_blocks": args.num_blocks,
+            "seed": args.seed,
+            "params": int(model.num_params),
+        },
     }
     Path(args.out).with_suffix(".json").write_text(
         json.dumps(sidecar, ensure_ascii=False, indent=1), encoding="utf-8")
