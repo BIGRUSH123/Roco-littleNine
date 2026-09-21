@@ -31,6 +31,8 @@ def run_selfplay_worker(
     tanh_k: float,
     leaf_batch_size: int,
     mirror: bool,
+    leaf_value_weight: float,
+    leaf_value_scale: float,
     task_queue,
     request_queue,
     reply_queue,
@@ -79,6 +81,8 @@ def run_selfplay_worker(
                     gamma=gamma, tanh_k=tanh_k,
                     leaf_batch_size=leaf_batch_size,
                     mirror=mirror,
+                    leaf_value_weight=leaf_value_weight,
+                    leaf_value_scale=leaf_value_scale,
                 )
                 # states 现在是 list[dict[str, np.ndarray]]，无需 stack
                 P = np.stack(probs).astype(np.float32) if probs else np.zeros((0, NUM_ACTIONS), dtype=np.float32)
@@ -108,6 +112,8 @@ def run_evaluate_worker(
     progress_every: int,
     game_timeout_s: float,
     leaf_batch_size: int,
+    candidate_leaf_weight: float,
+    best_leaf_weight: float,
     task_queue,
     request_queue,
     candidate_reply_q,
@@ -160,6 +166,8 @@ def run_evaluate_worker(
                     game_timeout_s=game_timeout_s,
                     leaf_batch_size=leaf_batch_size,
                     matchup=matchup,
+                    candidate_leaf_weight=candidate_leaf_weight,
+                    best_leaf_weight=best_leaf_weight,
                 )
                 result_queue.put(("game", worker_id, float(score), game_index))
 

@@ -95,6 +95,7 @@ def _play_model_vs_model(
     draw_margin: float,
     device: str,
     game_timeout_s: float,
+    leaf_value_weight: float = 0.0,
 ) -> dict[str, Any]:
     battle = _build_battle(factory, sprite_skills, seed)
     cand_is_a = game_index % 2 == 0
@@ -108,11 +109,13 @@ def _play_model_vs_model(
         "A", battle.player_a, factory, opp_a, sims,
         temperature=0.0, root_noise=0.0, record=False,
         evaluator=eval_a, opp_greedy=True, max_turns=max_turns,
+        leaf_value_weight=leaf_value_weight,
     )
     agent_b = MCTSAgent(
         "B", battle.player_b, factory, opp_b, sims,
         temperature=0.0, root_noise=0.0, record=False,
         evaluator=eval_b, opp_greedy=True, max_turns=max_turns,
+        leaf_value_weight=leaf_value_weight,
     )
     return _finish_game(
         battle=battle,
@@ -138,6 +141,7 @@ def _play_model_vs_rule(
     draw_margin: float,
     device: str,
     game_timeout_s: float,
+    leaf_value_weight: float = 0.0,
 ) -> dict[str, Any]:
     battle = _build_battle(factory, sprite_skills, seed)
     cand_is_a = game_index % 2 == 0
@@ -149,6 +153,7 @@ def _play_model_vs_rule(
             "A", battle.player_a, factory, rule_b, sims,
             temperature=0.0, root_noise=0.0, record=False,
             evaluator=evaluator, opp_greedy=True, max_turns=max_turns,
+            leaf_value_weight=leaf_value_weight,
         )
         agent_b = rule_b
     else:
@@ -157,6 +162,7 @@ def _play_model_vs_rule(
             "B", battle.player_b, factory, rule_a, sims,
             temperature=0.0, root_noise=0.0, record=False,
             evaluator=evaluator, opp_greedy=True, max_turns=max_turns,
+            leaf_value_weight=leaf_value_weight,
         )
     return _finish_game(
         battle=battle,
@@ -220,6 +226,7 @@ def evaluate_checkpoint(
     draw_margin: float,
     device: str,
     game_timeout_s: float,
+    leaf_value_weight: float = 0.0,
 ) -> dict[str, Any]:
     factory = SimFactory()
     sprite_skills = _load_sprite_skills()
@@ -240,6 +247,7 @@ def evaluate_checkpoint(
                 draw_margin=draw_margin,
                 device=device,
                 game_timeout_s=game_timeout_s,
+                leaf_value_weight=leaf_value_weight,
             )
         else:
             if reference_model is None:
@@ -256,6 +264,7 @@ def evaluate_checkpoint(
                 draw_margin=draw_margin,
                 device=device,
                 game_timeout_s=game_timeout_s,
+                leaf_value_weight=leaf_value_weight,
             )
         games.append(result)
 
@@ -317,6 +326,9 @@ def main() -> None:
     parser.add_argument("--draw-margin", type=float, default=DEFAULT_DRAW_MARGIN)
     parser.add_argument("--device", default="cpu")
     parser.add_argument("--game-timeout-s", type=float, default=120.0)
+    parser.add_argument("--leaf-value-weight", type=float, default=1.0,
+                        help="搜索叶节点混入效果感知局面分的权重（0 = 纯网络价值头，"
+                             "可复现 2026-09 之前的历史基准） (default: 1.0)")
     parser.add_argument("--output", type=Path, default=None)
     args = parser.parse_args()
 
@@ -346,6 +358,7 @@ def main() -> None:
             draw_margin=args.draw_margin,
             device=args.device,
             game_timeout_s=args.game_timeout_s,
+            leaf_value_weight=args.leaf_value_weight,
         )
         results.append(result)
 
@@ -359,6 +372,7 @@ def main() -> None:
             "max_turns": args.max_turns,
             "draw_margin": args.draw_margin,
             "device": args.device,
+            "leaf_value_weight": args.leaf_value_weight,
         },
         "elapsed_sec": round(time.time() - started, 3),
         "results": results,

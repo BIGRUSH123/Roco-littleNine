@@ -318,6 +318,19 @@ _OPTIMAL_FRAC = 0.0
 _EVAL_ROSTER_SEED = int(os.environ.get("ROCO_EVAL_ROSTER_SEED", "20260920"))
 _EVAL_GAME_SEED = int(os.environ.get("ROCO_EVAL_GAME_SEED", "20260921"))
 
+# ── 叶节点附加估值（效果感知局面分）──
+# 价值头在局内几乎没有区分度（实测：100 次模拟的搜索只把先验挪动 0.036 TV，
+# 9/9 次连 top-1 都没改；而 25% 根噪声挪动 0.14）→ 自博弈的策略目标退化成
+# 「自己的先验 + 噪声」，训练自然不涨棋。把 `backend.sim.value.state_value`
+# 按权重混进叶节点价值后，搜索重新拥有真实的 Q 差（实测 top-1 改变率 11% → 22%）。
+DEFAULT_LEAF_VALUE_SCALE = 0.5
+
+
+def plan_leaf_value(battle) -> float:
+    """A 视角效果感知局面分（`backend.sim.value.state_value`），供 MCTS 叶节点使用。"""
+    from backend.sim.value import state_value
+    return state_value(battle, "A")
+
 
 def _maybe_meta_team(used: set[str], meta_frac: float | None = None,
                      rng: random.Random | None = None) -> tuple[list[dict], Item | None]:
@@ -433,6 +446,9 @@ class MCTSAgent:
         gamma: float = 1.0,
         tanh_k: float = 0.0,
         leaf_batch_size: int = DEFAULT_MCTS_LEAF_BATCH_SIZE,
+        leaf_value_weight: float = 0.0,
+        leaf_value_scale: float = DEFAULT_LEAF_VALUE_SCALE,
+        leaf_value_fn=None,
     ):
         self.team = team
         self.player = player
@@ -448,6 +464,13 @@ class MCTSAgent:
         self._gamma = gamma
         self._tanh_k = tanh_k
         self._leaf_batch_size = leaf_batch_size
+        # 叶节点附加估值（0 = 纯网络价值头，与旧行为一致）
+        self._leaf_value_weight = float(leaf_value_weight)
+        self._leaf_value_scale = float(leaf_value_scale)
+        self._leaf_value_fn = (
+            leaf_value_fn if leaf_value_fn is not None
+            else (plan_leaf_value if self._leaf_value_weight > 0 else None)
+        )
         if evaluator is None:
             if model is None:
                 raise ValueError("MCTSAgent 需要 model 或 evaluator")
@@ -483,6 +506,9 @@ class MCTSAgent:
                 gamma=self._gamma,
                 tanh_k=self._tanh_k,
                 leaf_batch_size=self._leaf_batch_size,
+                leaf_value_fn=self._leaf_value_fn,
+                leaf_value_weight=self._leaf_value_weight,
+                leaf_value_scale=self._leaf_value_scale,
             )
             # 防御 save/restore 状态微小差异：MCTS 中合法的动作
             # 在恢复后可能被判为非法。将 mask=0 位置的 probs 清零
@@ -604,6 +630,8 @@ def collect_rl_samples(
     mcts_parallel: bool = False,  # 新增：启用 MCTS 根并行
     mcts_workers: int = 4,  # 新增：MCTS 并行 worker 数
     mcts_pool = None,  # 新增：复用的进程池
+    leaf_value_weight: float = 0.0,
+    leaf_value_scale: float = DEFAULT_LEAF_VALUE_SCALE,
 ) -> tuple[list[dict[str, np.ndarray]], np.ndarray, np.ndarray, np.ndarray, np.ndarray, dict[str, int]]:
     """MCTS 自我博弈收集 (state_dict, target_probs, mask, outcome) 四元组。
 
@@ -656,6 +684,8 @@ def collect_rl_samples(
             "gamma": gamma,
             "tanh_k": tanh_k,
             "leaf_batch_size": leaf_batch_size,
+            "leaf_value_weight": leaf_value_weight,
+            "leaf_value_scale": leaf_value_scale,
             # 树只按己方动作分叉。搜索内对手必须确定性行动，避免同一个
             # 子节点合并多个不同的下一状态并复用错误的先验/后续树。
             "opp_greedy": True,
@@ -750,6 +780,8 @@ def _play_one_rl_battle(
     tanh_k: float = 0.0,
     leaf_batch_size: int = DEFAULT_MCTS_LEAF_BATCH_SIZE,
     mirror: bool = False,
+    leaf_value_weight: float = 0.0,
+    leaf_value_scale: float = DEFAULT_LEAF_VALUE_SCALE,
 ) -> tuple[list[dict[str, np.ndarray]], list[np.ndarray], list[np.ndarray], list[float], str, dict]:
     """单局自我博弈，返回 (states, probs, masks, outcomes, end_reason, battle_summary)。
 
@@ -778,6 +810,8 @@ def _play_one_rl_battle(
         draw_margin=draw_margin,
         gamma=gamma, tanh_k=tanh_k,
         leaf_batch_size=leaf_batch_size,
+        leaf_value_weight=leaf_value_weight,
+        leaf_value_scale=leaf_value_scale,
         opp_greedy=True,
     )
     agent_b = MCTSAgent(
@@ -787,6 +821,8 @@ def _play_one_rl_battle(
         draw_margin=draw_margin,
         gamma=gamma, tanh_k=tanh_k,
         leaf_batch_size=leaf_batch_size,
+        leaf_value_weight=leaf_value_weight,
+        leaf_value_scale=leaf_value_scale,
         opp_greedy=True,
     )
 
@@ -848,6 +884,8 @@ def collect_rl_samples_parallel(
     tanh_k: float = 0.0,
     leaf_batch_size: int = DEFAULT_MCTS_LEAF_BATCH_SIZE,
     mirror: bool = False,
+    leaf_value_weight: float = 0.0,
+    leaf_value_scale: float = DEFAULT_LEAF_VALUE_SCALE,
 ) -> tuple[list[dict[str, np.ndarray]], np.ndarray, np.ndarray, np.ndarray, np.ndarray, dict[str, int]]:
     """多进程局级 self-play + 主进程 CUDA 批量推理。
 
@@ -895,6 +933,7 @@ def collect_rl_samples_parallel(
                 wid, seed,
                 num_simulations, max_turns, draw_margin, temperature, root_noise,
                 progress_every, game_timeout_s, gamma, tanh_k, leaf_batch_size, mirror,
+                leaf_value_weight, leaf_value_scale,
                 task_queue, request_queue, reply_q, result_queue,
                 temp_dir,
             ),
@@ -1371,11 +1410,14 @@ def evaluate(
     verbose: bool = True,
     leaf_batch_size: int = DEFAULT_MCTS_LEAF_BATCH_SIZE,
     early_stop_gate: float | None = None,
+    candidate_leaf_weight: float = 0.0,
+    best_leaf_weight: float = 0.0,
 ) -> float:
     """candidate vs best 对打，返回 candidate 胜率（平局计 0.5）。
 
     每局双方各用自己的网络做 MCTS（贪心、无探索噪声）；偶数局 candidate
-    执先手 A、奇数局执后手 B，以消除先后手偏置。
+    执先手 A、奇数局执后手 B，以消除先后手偏置。两侧叶节点权重可分别指定，
+    同一个模型 + 不同权重 = 「只换搜索」的 A/B。
     """
     if n_games <= 0:
         return 0.0
@@ -1405,6 +1447,7 @@ def evaluate(
             evaluator=eval_a, opp_greedy=True, max_turns=max_turns,
             draw_margin=draw_margin,
             leaf_batch_size=leaf_batch_size,
+            leaf_value_weight=candidate_leaf_weight if cand_is_a else best_leaf_weight,
         )
         agent_b = MCTSAgent(
             "B", p2, factory, opp_b, num_simulations,
@@ -1412,6 +1455,7 @@ def evaluate(
             evaluator=eval_b, opp_greedy=True, max_turns=max_turns,
             draw_margin=draw_margin,
             leaf_batch_size=leaf_batch_size,
+            leaf_value_weight=best_leaf_weight if cand_is_a else candidate_leaf_weight,
         )
 
         turn = 0
@@ -1454,10 +1498,17 @@ def _play_one_eval_game(
     game_timeout_s: float = 450.0,
     leaf_batch_size: int = DEFAULT_MCTS_LEAF_BATCH_SIZE,
     matchup: EvalMatchup | None = None,
+    candidate_leaf_weight: float = 0.0,
+    best_leaf_weight: float = 0.0,
+    leaf_value_scale: float = DEFAULT_LEAF_VALUE_SCALE,
 ) -> float:
     """单局 candidate vs best，返回 candidate 得分：胜=1，平=0.5，负=0。
 
     game_timeout_s: 单局 wall-time 上限，超时强制退出（避免慢局拖死 worker）。
+
+    candidate_leaf_weight / best_leaf_weight: 两侧各自的叶节点附加估值权重。
+    两侧用**同一个网络**、只让叶子权重不同时，这就是「同一网络、只换搜索」
+    的干净 A/B —— 判定某个搜索改动是不是真把棋下强了（而不是只看它把目标挪了多少）。
     """
     if matchup is None:
         matchup = _random_eval_matchup(factory, sprite_skills)
@@ -1468,6 +1519,8 @@ def _play_one_eval_game(
     cand_is_a = (game_index % 2 == 0)
     eval_a = candidate_evaluator if cand_is_a else best_evaluator
     eval_b = best_evaluator if cand_is_a else candidate_evaluator
+    leaf_a = candidate_leaf_weight if cand_is_a else best_leaf_weight
+    leaf_b = best_leaf_weight if cand_is_a else candidate_leaf_weight
 
     # opp_a 是 A 方 MCTS 搜索中的"对手"（即 B），应使用 B 的网络
     opp_a = NetworkPolicyAgent(evaluator=eval_b, greedy=True)
@@ -1478,6 +1531,7 @@ def _play_one_eval_game(
         evaluator=eval_a, opp_greedy=True, max_turns=max_turns,
         draw_margin=draw_margin,
         leaf_batch_size=leaf_batch_size,
+        leaf_value_weight=leaf_a, leaf_value_scale=leaf_value_scale,
     )
     agent_b = MCTSAgent(
         "B", p2, factory, opp_b, num_simulations,
@@ -1485,6 +1539,7 @@ def _play_one_eval_game(
         evaluator=eval_b, opp_greedy=True, max_turns=max_turns,
         draw_margin=draw_margin,
         leaf_batch_size=leaf_batch_size,
+        leaf_value_weight=leaf_b, leaf_value_scale=leaf_value_scale,
     )
 
     battle_started = time.monotonic()
@@ -1519,11 +1574,16 @@ def evaluate_parallel(
     stall_timeout_s: float = 600.0,
     leaf_batch_size: int = DEFAULT_MCTS_LEAF_BATCH_SIZE,
     early_stop_gate: float | None = None,
+    candidate_leaf_weight: float = 0.0,
+    best_leaf_weight: float = 0.0,
 ) -> float:
     """多进程局级门控评估 + 主进程双模型批量推理。
 
     work-stealing + 卡死保护（见 collect_rl_samples_parallel）。若发生卡死，
     胜率按已完成的对局数计算，避免单局死循环冻结整轮门控。
+
+    candidate_leaf_weight / best_leaf_weight 允许两侧用不同的叶节点估值——
+    两侧传同一个模型、只改这两个权重时，就是「同一网络只换搜索」的 A/B 测。
     """
     if n_games <= 0:
         return 0.0
@@ -1565,6 +1625,7 @@ def evaluate_parallel(
                 wid, seed,
                 num_simulations, max_turns, draw_margin, progress_every,
                 game_timeout_s, leaf_batch_size,
+                candidate_leaf_weight, best_leaf_weight,
                 task_queue, request_queue, candidate_q, best_q, result_queue,
             ),
         )
@@ -1733,8 +1794,32 @@ def main():
                         help="门控评估并行 worker 数 (default: 0=自动跟随 --workers)")
     parser.add_argument("--gate", type=float, default=0.55,
                         help="晋升阈值：候选胜率≥该值才替换最优模型 (default: 0.55)")
-    parser.add_argument("--root-noise", type=float, default=0.25,
-                        help="自我博弈根节点 Dirichlet 噪声强度 (default: 0.25)")
+    parser.add_argument("--selfplay-model", choices=("best", "latest"), default="latest",
+                        help="用哪个模型产生自博弈数据。latest = 每轮都用刚训练完的模型"
+                             "（AlphaZero 语义，训练才能逐轮累积）；best = 旧行为，"
+                             "永远用门控基准，一旦候选被拒就退回去（实测 10 轮里 9 轮白跑）"
+                             " (default: latest)")
+    parser.add_argument("--rollback", action="store_true",
+                        help="门控失败时把候选权重和优化器动量回滚到 best（旧行为）。"
+                             "默认关闭：回滚会丢弃整轮自博弈+训练的全部成果，而 150 局"
+                             "门控的分辨率（±8 点）远粗于单轮效应（<3 点），于是永远不升")
+    parser.add_argument("--eval-candidate-leaf-weight", type=float, default=-1.0,
+                        help="门控里候选侧搜索的叶节点权重；-1 = 跟随 --leaf-value-weight")
+    parser.add_argument("--eval-best-leaf-weight", type=float, default=-1.0,
+                        help="门控里 best 侧搜索的叶节点权重；-1 = 跟随 --leaf-value-weight。"
+                             "两侧传同一个模型 + 不同权重即可做「只换搜索」的 A/B")
+    parser.add_argument("--root-noise", type=float, default=0.05,
+                        help="自我博弈根节点 Dirichlet 噪声强度。AlphaZero 的 0.25 是按 ~800 "
+                             "次模拟标定的；本项目 100 次模拟下 0.25 会让训练目标里噪声的扰动"
+                             "(TV 0.14) 比搜索本身 (TV 0.04) 还大 3 倍，实测见 "
+                             "native/tools/audit_selfplay_signal.py (default: 0.05)")
+    parser.add_argument("--leaf-value-weight", type=float, default=1.0,
+                        help="自博弈搜索叶节点混入效果感知局面分 backend.sim.value.state_value "
+                             "的权重 w（0 = 纯网络价值头，即旧行为）。价值头在局内几乎没有"
+                             "区分度时搜索会退化成「先验 + 噪声」；接上效果感知估值后搜索才"
+                             "真正改变策略目标 (default: 1.0)")
+    parser.add_argument("--leaf-value-scale", type=float, default=DEFAULT_LEAF_VALUE_SCALE,
+                        help=f"附加估值 → (-1,1) 的 tanh 缩放系数 (default: {DEFAULT_LEAF_VALUE_SCALE})")
     parser.add_argument("--workers", type=int, default=1,
                         help="自我博弈并行 worker 数 (default: 1=串行)")
     parser.add_argument("--batched-inference", action="store_true",
@@ -1890,6 +1975,12 @@ def main():
         _log(f"🚀 MCTS 并行化已启用: {args.mcts_workers} workers")
         _log(f"   预期加速: ~2x, 推荐模拟次数: 800+")
 
+    # 门控两侧的叶节点权重：-1 = 跟随自博弈的口径（保证门控和生成用同一个搜索）
+    eval_cand_leaf = (args.leaf_value_weight if args.eval_candidate_leaf_weight < 0
+                      else args.eval_candidate_leaf_weight)
+    eval_best_leaf = (args.leaf_value_weight if args.eval_best_leaf_weight < 0
+                      else args.eval_best_leaf_weight)
+
     # ── 全局学习率衰减 + 预热 ──
     # optimizer 和 scheduler 在训练循环外部管理，跨所有 iteration 持续衰减。
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
@@ -1927,17 +2018,23 @@ def main():
                     f"  当前 LR 拉升至 {warmup_lr:.2e}\n"
                 )
 
-        # ── 自我博弈收集数据（用当前最优模型产生对局，质量更稳） ──
+        # ── 自我博弈收集数据 ──
+        # latest：用刚训练完的模型（含上一轮被「门控拒绝」但没回滚的候选）产生数据。
+        # 这是训练能逐轮累积的前提 —— best 作生成器时，一旦候选被拒就退回起点，
+        # 每轮都在同一起点重新抽一批等价样本，10 轮下来等于原地不动。
+        gen_model = model if args.selfplay_model == "latest" else best_model
         temp = args.temperature * (args.temp_decay ** (iteration - 1))  # 温度递减
         # 镜像迭代：降低 sims 加速回合推进，减少 timeout（相同阵容不确定性低）
         effective_sims = max(args.sims, 50) if all_mirror else args.sims
         use_parallel = args.batched_inference and args.workers > 1
         mode = f"{args.workers} workers + 批量推理" if use_parallel else "串行"
-        _log(f"自我博弈 ({args.battles} 局, {effective_sims} sims, T={temp:.2f}, {mode})...")
+        _log(f"自我博弈 ({args.battles} 局, {effective_sims} sims, T={temp:.2f}, {mode}, "
+             f"生成器={args.selfplay_model}, 叶值={args.leaf_value_weight:g}, "
+             f"根噪声={args.root_noise:g})...")
         t0 = time.time()
         if use_parallel:
             X, P, M, v, game_ids, reason_counts = collect_rl_samples_parallel(
-                best_model, factory, sprite_skills,
+                gen_model, factory, sprite_skills,
                 num_battles=args.battles,
                 num_workers=args.workers,
                 device=device,
@@ -1955,10 +2052,12 @@ def main():
                 tanh_k=args.tanh_k,
                 leaf_batch_size=args.leaf_batch_size,
                 mirror=all_mirror,
+                leaf_value_weight=args.leaf_value_weight,
+                leaf_value_scale=args.leaf_value_scale,
             )
         else:
             X, P, M, v, game_ids, reason_counts = collect_rl_samples(
-                best_model, factory, sprite_skills,
+                gen_model, factory, sprite_skills,
                 num_battles=args.battles,
                 num_simulations=effective_sims,
                 device=device,
@@ -1975,6 +2074,8 @@ def main():
                 mcts_parallel=args.mcts_parallel,  # 新增
                 mcts_workers=args.mcts_workers,    # 新增
                 mcts_pool=mcts_pool,              # 新增
+                leaf_value_weight=args.leaf_value_weight,
+                leaf_value_scale=args.leaf_value_scale,
             )
         selfplay_sec = time.time() - t0
         rate = len(X) / selfplay_sec if selfplay_sec > 0 else 0.0
@@ -2044,6 +2145,8 @@ def main():
                     stall_timeout_s=args.worker_stall_timeout,
                     leaf_batch_size=args.leaf_batch_size,
                     early_stop_gate=args.gate,
+                    candidate_leaf_weight=eval_cand_leaf,
+                    best_leaf_weight=eval_best_leaf,
                 )
             else:
                 win_rate = evaluate(
@@ -2053,6 +2156,8 @@ def main():
                     draw_margin=args.draw_margin,
                     leaf_batch_size=args.leaf_batch_size,
                     early_stop_gate=args.gate,
+                    candidate_leaf_weight=eval_cand_leaf,
+                    best_leaf_weight=eval_best_leaf,
                 )
             eval_sec = time.time() - t0
             _log(f"  候选胜率: {win_rate:.2%}  ({eval_sec:.1f}s)")
@@ -2064,8 +2169,8 @@ def main():
                 promoted = True
                 best_iteration = iteration
                 _log(f"  ✓ 候选晋升为新最优，已保存: {best_ckpt}")
-            else:
-                # 回滚：候选退回到当前最优，避免越练越差
+            elif args.rollback:
+                # 旧行为：候选退回到当前最优
                 _restore_rejected_candidate(
                     model,
                     best_model,
@@ -2074,6 +2179,11 @@ def main():
                     scheduled_lr=scheduler.get_last_lr()[0],
                 )
                 _log("  ✗ 未达门控阈值，回滚到最优模型")
+            else:
+                # 默认不回滚：候选继续作为下一轮 self-play 的生成器，训练逐轮累积。
+                # 150 局门控分辨率 ±8 点、单轮效应 <3 点，用「拒绝即丢弃」当选择器
+                # 等于把每轮的成果都扔掉（实测 exp23 iter7-10 与 iter6 逐位相同）。
+                _log("  · 未达门控阈值：保留候选继续训练（门控仅记录 best，不回滚）")
         else:
             # 未启用门控：直接把候选当作最优（用于产生下一轮自我博弈）
             best_model.load_state_dict(model.state_dict())

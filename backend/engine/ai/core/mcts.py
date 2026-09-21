@@ -467,6 +467,23 @@ class MCTSNode:
         return bool(self.valid_actions)
 
 
+def _blend_leaf_value(
+    net_value: float,
+    extra_value: float | None,
+    weight: float,
+    scale: float,
+) -> float:
+    """把「效果感知附加估值」混进网络价值（weight=0 时与旧行为逐位一致）。
+
+    两者的量纲不同：网络价值 ∈ (-1,1)（终局符号），附加估值是官方局面分
+    （约 ±1 = 一只精灵）。统一用 tanh 映射，只保证单调，不引入新标定。
+    """
+    if extra_value is None or weight <= 0.0:
+        return float(net_value)
+    extra = math.tanh(scale * float(extra_value))
+    return (1.0 - weight) * float(net_value) + weight * extra
+
+
 def mcts_search(
     battle: Battle,
     model: ModularBattleNet | None,
@@ -485,6 +502,9 @@ def mcts_search(
     gamma: float = 1.0,
     tanh_k: float = 0.0,
     leaf_batch_size: int = 1,
+    leaf_value_fn=None,
+    leaf_value_weight: float = 0.0,
+    leaf_value_scale: float = 0.5,
 ) -> np.ndarray:
     """从当前对战状态执行 MCTS，返回动作概率分布 (17,)。
 
@@ -503,6 +523,13 @@ def mcts_search(
         draw_margin: 终端节点平局判定阈值（与训练标签一致）。
         gamma: 回合衰减因子，叶节点 value *= gamma**turn（1.0 = 不衰减）。
         tanh_k: tanh 软裁决缩放系数（0 = 硬阈值）。
+        leaf_value_fn: 可选叶节点附加估值 `fn(battle) -> float`（A 视角、官方局面分量纲）。
+            价值头在局内几乎没有区分度时（实测 TV(先验,搜索)=0.036、top-1 从不改变），
+            搜索会退化成"先验 + 根噪声"；接上 `backend.sim.value.state_value` 这类
+            效果感知估值，叶节点之间才有真实 Q 差。
+        leaf_value_weight: 附加估值混合权重 w（0 = 纯网络）。
+            `V_leaf = (1-w)*V_net + w*tanh(leaf_value_scale * V_附加)`
+        leaf_value_scale: 附加估值 → (-1,1) 的 tanh 缩放系数。
 
     Returns:
         (17,) float32 动作概率（∝ 访问次数）。
@@ -571,6 +598,7 @@ def mcts_search(
         agent_a_proxy = _PlayerSwappedAgent(opponent_agent, battle.player_a)
         fixed_b_proxy = _OppFixedAgent(_GATHER_ACTION, battle.player_b, opponent_agent) if use_network_opponent else None
 
+        use_extra_leaf_value = leaf_value_fn is not None and leaf_value_weight > 0.0
         batch_leaf_eval = leaf_batch_size > 1 and callable(batch_eval)
         if batch_leaf_eval:
             batch_size = max(1, int(leaf_batch_size))
@@ -579,6 +607,9 @@ def mcts_search(
             pending_masks: list[np.ndarray] = []
             pending_opp_states: list[dict[str, np.ndarray]] = []
             pending_opp_masks: list[np.ndarray] = []
+            # 附加估值必须在这里算：批处理阶段 battle 已经回滚，拿不到每个叶节点的局面，
+            # 只有 phase-1（battle 正停在该叶节点）能算。
+            pending_plan: list[float] = []
             pending_meta: list[tuple[MCTSNode, list[tuple[MCTSNode, int]], list[int], int, int | None]] = []
 
             while simulations_left > 0:
@@ -586,6 +617,7 @@ def mcts_search(
                 pending_masks.clear()
                 pending_opp_states.clear()
                 pending_opp_masks.clear()
+                pending_plan.clear()
                 pending_meta.clear()
 
                 while simulations_left > 0 and len(pending_meta) < batch_size:
@@ -635,6 +667,8 @@ def mcts_search(
                             leaf_idx = len(pending_states)
                             pending_states.append(leaf_state)
                             pending_masks.append(sim_mask)
+                            if use_extra_leaf_value:
+                                pending_plan.append(float(leaf_value_fn(battle)))
 
                             opp_idx: int | None = None
                             if use_network_opponent:
@@ -671,7 +705,12 @@ def mcts_search(
                         if use_network_opponent and pending_opp_states else None
                     )
                     for node, path, sim_valid, leaf_idx, opp_idx in pending_meta:
-                        leaf_value = float(values[leaf_idx])
+                        leaf_value = _blend_leaf_value(
+                            float(values[leaf_idx]),
+                            pending_plan[leaf_idx] if use_extra_leaf_value else None,
+                            leaf_value_weight,
+                            leaf_value_scale,
+                        )
                         node.valid_actions = sim_valid
                         node.prior = priors[leaf_idx]
                         if opp_idx is not None and opp_priors is not None:
@@ -748,6 +787,12 @@ def mcts_search(
                         node.opp_policy = opponent_agent.evaluate_policy(opp_state, opp_mask)
                     else:
                         leaf_value, sim_prior = evaluator.evaluate(leaf_state, sim_mask)
+                    leaf_value = _blend_leaf_value(
+                        leaf_value,
+                        leaf_value_fn(battle) if use_extra_leaf_value else None,
+                        leaf_value_weight,
+                        leaf_value_scale,
+                    )
                     # 将当前节点的合法动作和先验更新为真实评估结果
                     # （之前是空壳，现在是本状态的真实先验）
                     node.valid_actions = sim_valid
