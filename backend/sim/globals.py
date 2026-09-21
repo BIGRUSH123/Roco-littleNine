@@ -46,34 +46,44 @@ class GlobalEffects:
     # ── 天气查询 ──
 
     def weather_damage_mult(self, element: str) -> float:
-        """天气对技能伤害的倍率。"""
-        if self.weather == 'rain' and '水' in element:
-            return 1.5
-        return 1.0
+        """天气对技能伤害的倍率（雨天水系 ×1.75，见 游戏描述 3008）。"""
+        from backend.common.constants import weather_damage_mult as _wdm
+        return _wdm(self.weather, element)
 
     def weather_energy_mod(self, element: str) -> float:
-        """天气对技能耗能的倍率（沙暴地系 0.5）。"""
-        if self.weather == 'sand' and '地' in element:
-            return 0.5
-        return 1.0
+        """天气对技能耗能的倍率（沙暴地系 ×0.5，见 游戏描述 3006）。"""
+        from backend.common.constants import weather_energy_mod as _wem
+        return _wem(self.weather, element)
 
     def weather_turn_effects(self, sprites: list[Sprite]) -> list[str]:
-        """回合末天气效果。"""
-        events: list[str] = []
-        if self.weather == 'snow':
-            from copy import copy
+        """回合末天气效果（双方对称、按系别免疫过滤）。
 
-            from backend.engine.abnormal_config import ABNORMAL_TEMPLATES
-            for s in sprites:
-                if not s.is_fainted:
-                    template = ABNORMAL_TEMPLATES.get('冻结')
-                    if template is not None:
-                        ae = copy(template)
-                        ae.stacks = 2
-                        ae.source = '暴风雪'
-                        s.add_effect(ae)
-                        total = s.get_stacks('冻结')
-                        events.append(f'{s.name} 暴风雪+2冻结(共{total}层)')
+        - 暴风雪：双方每回合结束获得 2 层冻结（冰系免疫，游戏描述 3007）
+        - 雷鸣：双方每回合结束获得 1 层引电（电系免疫，游戏描述 3021）
+        """
+        from copy import copy
+
+        from backend.common.constants import normalize_weather
+        from backend.engine.abnormal_config import ABNORMAL_TEMPLATES, is_element_immune
+
+        events: list[str] = []
+        weather = normalize_weather(self.weather)
+        stacks = {'snow': ('冻结', 2), 'thunder': ('引电', 1)}.get(weather)
+        if stacks is None:
+            return events
+        name, n = stacks
+        template = ABNORMAL_TEMPLATES.get(name)
+        if template is None:
+            return events
+        for s in sprites:
+            if s.is_fainted or is_element_immune(s, name):
+                continue
+            ae = copy(template)
+            ae.stacks = n
+            ae.source = '暴风雪' if weather == 'snow' else '雷鸣'
+            s.add_effect(ae)
+            total = s.get_stacks(name)
+            events.append(f'{s.name} {ae.source}+{n}{name}(共{total}层)')
         return events
 
     def tick_weather(self) -> None:
@@ -189,36 +199,27 @@ class GlobalEffects:
         若 coexist=True → 共存（同名叠加，异名新增）。
         否则 → 替换（同类别清空后新增）。
         返回事件列表。"""
-        from backend.engine.mark_config import MARK_TEMPLATES
+        from dataclasses import replace as _dc_replace
+
+        from backend.engine.mark_config import canonical_mark_name, mark_template
         from backend.vm.effect import MarkEffect
 
         self.mark_effects.setdefault(team, [])
         me_list = self.mark_effects[team]
 
+        # 别名归一（数据面用词条全名，模板键用短名）
+        name = canonical_mark_name(name)
         existing = next((e for e in me_list if e.name == name), None)
         if existing is not None:
             existing.stacks += stacks
             return []
 
-        template = MARK_TEMPLATES.get(name)
+        template = mark_template(name)
         if template is not None:
-            new_me = MarkEffect(
-                name=template.name,
-                source=template.source or name,
-                scope=template.scope,
-                ttl=template.ttl,
-                stacks=stacks,
-                category=template.category,
-                power_bonus=template.power_bonus,
-                damage_mult=template.damage_mult,
-                speed_penalty=template.speed_penalty,
-                energy_mod=template.energy_mod,
-                turn_end_energy=template.turn_end_energy,
-                turn_end_damage_pct=template.turn_end_damage_pct,
-                switch_damage_pct=template.switch_damage_pct,
-                switch_energy_loss=template.switch_energy_loss,
-                starfall_damage=template.starfall_damage,
-                condition=template.condition,
+            # 通用克隆：新增模板字段无需再改这里（此前逐个枚举导致
+            # leave_random_debuffs / buff_bonus_layers 被漏拷，暗涌/萌芽整条失效）
+            new_me = _dc_replace(
+                template, stacks=stacks, source=template.source or name,
             )
         else:
             new_me = MarkEffect(
@@ -333,15 +334,25 @@ class GlobalEffects:
         return mult
 
     def set_weather(self, weather: str, turns: int = WEATHER_DURATION) -> None:
-        self.weather = weather
+        from backend.common.constants import normalize_weather
+        self.weather = normalize_weather(weather)
         self.weather_turns = turns
 
     @staticmethod
     def classify_mark(name: str) -> str:
-        """根据名称判断印记正负。"""
-        from backend.engine.mark_config import NEGATIVE_MARK_NAMES, POSITIVE_MARK_NAMES
-        if name in POSITIVE_MARK_NAMES:
+        """根据名称判断印记正负（含别名；模板优先，未知名字按 negative 兜底）。"""
+        from backend.engine.mark_config import (
+            NEGATIVE_MARK_NAMES,
+            POSITIVE_MARK_NAMES,
+            canonical_mark_name,
+            mark_template,
+        )
+        key = canonical_mark_name(name)
+        template = mark_template(key)
+        if template is not None:
+            return template.category
+        if key in POSITIVE_MARK_NAMES:
             return 'positive'
-        if name in NEGATIVE_MARK_NAMES:
+        if key in NEGATIVE_MARK_NAMES:
             return 'negative'
         return 'negative'  # 安全默认

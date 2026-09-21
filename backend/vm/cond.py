@@ -22,6 +22,13 @@ from .ir_skill import (
 from .ir_trait import FnCond
 from .resolve import resolve
 
+
+def _norm_weather(value) -> str:
+    """天气名归一（中文别名 ⇄ 内部英文键），用于 weather_is 比较。"""
+    from backend.common.constants import normalize_weather
+    return normalize_weather(value)
+
+
 # ── Function condition registry ──
 
 _FN_COND_REGISTRY: dict[str, callable] = {}
@@ -374,10 +381,12 @@ COND_EVAL = {
     ),
 
     # ── Weather ──
+    # 天气名两侧都归一：内部键是英文（rain/sand/snow/thunder），数据面可能写中文
+    # （沙暴/暴风雪/雷鸣/雨天），不做归一会永远匹配不上。
     "weather_is": lambda ctx, cond: (
-        ctx.weather == resolve(ctx, cond["weather"])
+        _norm_weather(ctx.weather) == _norm_weather(resolve(ctx, cond["weather"]))
         if isinstance(cond["weather"], dict)
-        else ctx.weather == cond["weather"]
+        else _norm_weather(ctx.weather) == _norm_weather(cond["weather"])
     ),
 
     # ── Skill position ──

@@ -2,7 +2,10 @@
 
 用法（在项目根，项目解释器，PYTHONHASHSEED=0）：
     $env:PYTHONHASHSEED='0'
-    env\\python.exe -m backend.engine.differential.generate_fixtures --seeds 1-16
+    env\\python.exe -m backend.engine.differential.generate_fixtures --seeds 1-24
+
+夹具目录当前有 24 个（battle_0001–0024）；行为有意变更后必须全量重录，
+否则 test_differential_fixtures 会拿旧金标准判失败。
 """
 
 from __future__ import annotations

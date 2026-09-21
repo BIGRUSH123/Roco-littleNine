@@ -988,14 +988,18 @@ class JournalReplayer:
         return False
 
     def _apply_abnormal_change(self, m: AbnormalChange) -> str:
+        from backend.engine.abnormal_config import is_element_immune
         sprite = self._target_sprite(m.target)
         # 萌化: trigger form devolution via apply_moe (needs species lookup)
         if m.name == '萌化' and self._species_lookup is not None and m.delta > 0:
             return self._apply_moe_via_replayer(sprite, m)
         # Immunity gate: only block application (delta > 0), never block removal
-        if m.delta > 0 and self._check_immune(sprite, "immune_abnormal", m.name):
+        if m.delta > 0 and (
+            self._check_immune(sprite, "immune_abnormal", m.name)
+            or is_element_immune(sprite, m.name)
+        ):
             return f"{sprite.name} 免疫{m.name}"
-        self._sync_abnormal_effect(sprite, m.name, m.delta, m.scope)
+        self._sync_abnormal_effect(sprite, m.name, m.delta, m.scope, self.team)
         if m.name == '萌化':
             self._invalidate_battle_ctx_cache()
         events = [f"{sprite.name} {m.name} +{m.delta}层"]
@@ -1032,10 +1036,12 @@ class JournalReplayer:
         return " ".join(events)
 
     @staticmethod
-    def _sync_abnormal_effect(sprite, name: str, delta: int, scope: str) -> None:
+    def _sync_abnormal_effect(sprite, name: str, delta: int, scope: str,
+                              origin_team: str = "") -> None:
         """Create or update AbnormalEffect on sprite.active_effects (dual-write).
 
         Incrementally updates sprite._cached_abnormals to avoid O(N) rebuild.
+        `origin_team` = 施加方队伍（寄生「从来源吸收」回补用）。
         """
         from backend.engine.abnormal_config import ABNORMAL_TEMPLATES
         from backend.vm.effect import AbnormalEffect
@@ -1072,10 +1078,21 @@ class JournalReplayer:
                 tick_element=template.tick_element,
                 decay_on_tick=template.decay_on_tick,
                 max_stacks=template.max_stacks,
+                # 模板字段必须逐个带上：漏传会让模板声明静默失效
+                # （tick_per_stack 曾因此恒为默认值，寄生/引电口径全跑偏）
+                tick_per_stack=template.tick_per_stack,
+                threshold_stacks=template.threshold_stacks,
+                threshold_damage_pct=template.threshold_damage_pct,
+                threshold_element=template.threshold_element,
+                threshold_consume=template.threshold_consume,
+                threshold_immune_element=template.threshold_immune_element,
+                absorb_to_source=template.absorb_to_source,
+                origin_team=origin_team,
             )
         else:
             new_effect = AbnormalEffect(
                 name=name, source="skill", scope=scope, stacks=delta,
+                origin_team=origin_team,
             )
         active.append(new_effect)
         # 增量更新缓存
@@ -1518,6 +1535,9 @@ class JournalReplayer:
 
     def _apply_lock(self, m: Lock) -> str:
         sprite = self._target_sprite(m.target)
+        # 游戏内文本（禁足）：「无法离场，且无法获得新的禁足状态」
+        if getattr(sprite, 'locked_turns', 0) > 0:
+            return f"{sprite.name} 已有禁足（{sprite.locked_turns}t），不再刷新"
         sprite.locked_turns = m.turns
         self._sync_state_effect(sprite, "locked", {"turns": m.turns})
         return f"{sprite.name} 锁定 {m.turns}t"

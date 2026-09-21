@@ -102,6 +102,9 @@ class AbnormalEffect(EffectObject):
     threshold_element: str = ""        # 伤害系别（走克制倍率）
     threshold_consume: int = 0         # 触发后消耗层数
     threshold_immune_element: str = "" # 该系别的精灵免疫此效果
+    # 寄生：回合末伤害回补给施加方（游戏内文本「从寄生来源吸收2%生命」）
+    absorb_to_source: bool = False
+    origin_team: str = ""              # 施加方队伍（'A'/'B'，落盘时由 replayer 写入）
 
     def tick_params(self) -> dict:
         """Engine reads this to compute tick damage."""

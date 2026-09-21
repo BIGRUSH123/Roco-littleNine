@@ -38,12 +38,15 @@ ABNORMAL_TEMPLATES: dict[str, AbnormalEffect] = {
         decay_on_tick=True,
     ),
     "寄生": AbnormalEffect(
+        # 游戏内文本：回合结束时，从寄生来源吸收 2% 生命（草系免疫）→ 每层 2%，
+        # 伤害回补给施加方（absorb_to_source）
         name="寄生",
         source="寄生",
         scope="persistent",
-        tick_damage_pct=0.06,
+        tick_damage_pct=0.02,
         tick_element="草",
-        tick_per_stack=False,
+        tick_per_stack=True,
+        absorb_to_source=True,
     ),
     "冻结": AbnormalEffect(
         name="冻结",
@@ -63,3 +66,23 @@ ABNORMAL_TEMPLATES: dict[str, AbnormalEffect] = {
         scope="persistent",
     ),
 }
+
+#: 同系免疫表：这些异常/状态对(含)该系别的精灵无效。
+#: 依据游戏内文本——中毒「毒系精灵免疫此效果」、灼烧「火系」、冻结「冰系」、
+#: 寄生「草系」、引电「电系」（暴风雪/雷鸣的天气施加同样受此约束）。
+IMMUNE_ELEMENT: dict[str, str] = {
+    "中毒": "毒",
+    "灼烧": "火",
+    "冻结": "冰",
+    "寄生": "草",
+    "引电": "电",
+}
+
+
+def is_element_immune(sprite, name: str) -> bool:
+    """该精灵是否因自身系别免疫此异常/状态。"""
+    element = IMMUNE_ELEMENT.get(name)
+    if not element or sprite is None:
+        return False
+    elements = getattr(getattr(sprite, "species", None), "elements", ()) or ()
+    return element in elements

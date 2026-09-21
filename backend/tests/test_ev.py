@@ -144,8 +144,13 @@ def test_payoff_terms_match_engine(my_skill, their_skill):
         f"{my_skill} vs {their_skill}: taken 预估 {terms['taken']} 实际 {taken}"
 
 
-def test_being_countered_costs_double():
-    """被应对的代价：它用「应对状态」的攻击技抓我的状态技 → 它的伤害×倍率 + 反击一次。"""
+def test_being_countered_costs_multiplier_once():
+    """被应对的代价：它用「应对状态」的攻击技抓我的状态技 → 它先手，伤害×倍率，**只打一次**。
+
+    原文（游戏描述 1015 应对状态）只写「应对成功 → 本次行动必定先手 + 触发应对效果」，
+    没有「被应对方再多吃一次基础伤害」。旧引擎在结算被应对方时重放了应对方技能的无条件
+    效果（含编译期注入的隐式 HitOp），实测会打出两份伤害；该注入已移除。
+    """
     b = _battle(my_skills=["快速移动", "猛烈撞击"],
                 opp_skills=["龙卷风", "猛烈撞击"])          # 龙卷风：物攻·counter=状态·威力×1.5
     me, opp_player, ctx = _ctx(b)
@@ -159,7 +164,8 @@ def test_being_countered_costs_double():
     from backend.sim import tactics
 
     base = ev._damage(b, opp_player.active, me, ctx["attack"][1], tactics.opponent_team("A"), True)
-    assert terms["taken"] > 1.8 * base, "被应对时应是「倍率一击 + 反击一击」"
+    assert terms["taken"] == pytest.approx(1.5 * base, rel=0.05), \
+        "被应对时应是「倍率一击」，不应再追加一次基础伤害"
 
 
 def test_counter_bonus_and_penalty_show_up_in_terms():

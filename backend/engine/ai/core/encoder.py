@@ -55,7 +55,7 @@ ABNORMAL_ORDER: tuple[str, ...] = (
     '灼烧', '冻结', '中毒', '寄生', '萌化', '晕眩', '眩晕',
 )
 
-WEATHER_ORDER: tuple[str, ...] = ('none', 'rain', 'sand', 'snow')
+WEATHER_ORDER: tuple[str, ...] = ('none', 'rain', 'sand', 'snow', 'thunder')
 
 MARKS_POS: tuple[str, ...] = (
     '攻击印记', '蓄电印记', '润泽印记', '湿润印记',

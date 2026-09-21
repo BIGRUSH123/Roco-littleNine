@@ -14,6 +14,32 @@ def _stage_mult(steps: int) -> float:
     return steps * 0.1
 
 
+def _type_mult(element: str, defender_elements) -> float:
+    """属性克制倍率（对齐 SkillResolver._get_type_mult）。"""
+    if not element or not defender_elements:
+        return 1.0
+    from backend.sim.resolver import _TYPE_CHART
+    chart = _TYPE_CHART.get(element, {})
+    mult = 1.0
+    for attr in defender_elements:
+        attr = str(attr).strip()
+        if attr:
+            mult *= chart.get(attr, 1.0)
+    return mult
+
+
+def _stab_mult(element: str, attacker_elements) -> float:
+    """本系加成：技能系别在自身系别内 ×1.5。"""
+    if not element or not attacker_elements:
+        return 1.0
+    return 1.5 if element in tuple(attacker_elements) else 1.0
+
+
+def _weather_mult(weather: str, element: str) -> float:
+    from backend.common.constants import weather_damage_mult
+    return weather_damage_mult(weather, element)
+
+
 def op_hit(ctx: Ctx, effect) -> list[Mutation]:
     """Deal independent damage using specified power/type/element.
 
@@ -50,10 +76,15 @@ def op_hit(ctx: Ctx, effect) -> list[Mutation]:
         atk_stage = _stage_mult(ctx.stat_stages_self.get("sp_atk", 0))
         def_stage = _stage_mult(ctx.stat_stages_opp.get("sp_def", 0))
 
+    # 属性克制 / 本系加成 / 天气 也走实战路径（此前只有评估器口径算了这三项，
+    # 引擎实际结算漏掉，等于实战没有克制关系）
     amount = calc_damage(
         power, atk_base, def_base,
         atk_stage=atk_stage,
         def_stage=def_stage,
+        stab_mult=_stab_mult(element, ctx.elements_self),
+        type_mult=_type_mult(element, ctx.elements_opp),
+        weather_mult=_weather_mult(ctx.weather, element),
         damage_reduction=ctx.damage_reduction_opp,
         power_mult=ctx.power_mult_self,
         damage_mult=ctx.damage_mult_self,

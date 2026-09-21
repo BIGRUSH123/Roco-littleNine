@@ -241,9 +241,10 @@ def payoff_terms(battle, me, my_player, opp_player, my_cand: Candidate, scenario
     counter_path = i_counter or they_counter
     first = acts_first(battle, me, my_team, my_skill, opp, opp_team, their_skill,
                        my_switch=(my_cand.kind == 'switch'))
-    # 引擎：应对成立时双方都按 is_first=True 执行（battle.py:1103-1119）
-    my_first_flag = True if counter_path else first
-    their_first_flag = True if counter_path else (not first)
+    # 引擎：应对成立时**应对成功方先手**，另一侧按后手结算（battle.py
+    # `_resolve_both_skills` 的应对分支；双方同时应对成功才退回先手度/速度）
+    my_first_flag = True if i_counter else (False if they_counter else first)
+    their_first_flag = True if they_counter else (False if i_counter else (not first))
 
     # ── 我造成的损失 ──
     dealt = 0
@@ -252,10 +253,9 @@ def payoff_terms(battle, me, my_player, opp_player, my_cand: Candidate, scenario
         dealt += tactics.starfall_bonus(battle, me, target, my_skill,
                                         tactics.opponent_team(my_team))
         if i_counter:
-            # 我应对成功：自己这一手吃 `counter_succeeded` 威力倍率，**另外**被应对方
-            # 那一手会被反击成我的技能伤害（引擎实测：偷袭 vs 剧毒 = 基础×3 + 基础）
-            base = _damage(battle, me, target, my_skill, my_team, my_first_flag)
-            dealt = int(base * counter_power_mult(my_skill)) + base
+            # 我应对成功：自己这一手吃 `counter_succeeded` 威力倍率（只打一次；
+            # 旧模型的「+ 基础」对应的是已修掉的重复伤害注入）
+            dealt = int(dealt * counter_power_mult(my_skill))
         if they_counter:
             # 它应对成功（用防御技）：我的伤害被它的减伤削弱
             dealt = int(dealt * (1.0 - defense_reduction(their_skill)))
@@ -272,9 +272,8 @@ def payoff_terms(battle, me, my_player, opp_player, my_cand: Candidate, scenario
             # 我用防御技应对了它的攻击 → 减伤（风墙 50% 等）
             taken = int(taken * (1.0 - defense_reduction(my_skill)))
         if they_counter:
-            # 它应对成功：它这一手吃 `counter_succeeded` 倍率，我这边那一手再被反击一次
-            base = _damage(battle, opp, incoming_sprite, their_skill, opp_team, their_first_flag)
-            taken = int(base * counter_power_mult(their_skill)) + base
+            # 它应对成功：它这一手吃 `counter_succeeded` 倍率（只打一次）
+            taken = int(taken * counter_power_mult(their_skill))
         if first and dealt >= max(1, target.current_hp):
             taken = 0                      # 它先倒，这一手打不出来
 

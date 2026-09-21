@@ -426,9 +426,12 @@ class BattleVMEngine:
                 if obs.owner_sprite_id == opp_id:
                     saved_perspective = (
                         replayer.self, replayer.opp,
-                        ctx,
+                        ctx, replayer.team,
                     )
                     replayer.self, replayer.opp = saved_perspective[1], saved_perspective[0]
+                    # team 也是视角的一部分：不换它，target: team_opp/team_own
+                    # 会按行动方解读（扎手「敌方获得棘刺印记」会落到持有者自己头上）
+                    replayer.team = "B" if replayer.team == "A" else "A"
                     ctx = ctx.swapped_view()
                     # flip damage_taken_of on the swapped ctx too
                     if ctx.event.damage_taken_of == "sprite_opp":
@@ -453,6 +456,7 @@ class BattleVMEngine:
                 if saved_perspective is not None:
                     replayer.self, replayer.opp = saved_perspective[0], saved_perspective[1]
                     ctx = saved_perspective[2]
+                    replayer.team = saved_perspective[3]
         return events
 
     def _fire_mutation_events(self, journal: Journal, ctx: Ctx, replayer: JournalReplayer) -> list[str]:

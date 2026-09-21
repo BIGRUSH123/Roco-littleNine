@@ -93,6 +93,12 @@ class BattleMechanicsMixin:
         player = self.get_player(team)
         old = player.active
 
+        # 禁足：无法离场（游戏内文本 3023）。主动换人被拒时该行动作废。
+        if getattr(old, 'locked_turns', 0) > 0:
+            if not mcts_sim:
+                events.append(f'{old.name} 被禁足，无法离场')
+            return events
+
         if action.switch_index is None or action.switch_index >= len(player.team):
             return events
 
@@ -126,13 +132,15 @@ class BattleMechanicsMixin:
             pass
 
         opp_team = 'B' if team == 'A' else 'A'
-        dmg = self.globals.mark_switch_damage(opp_team, new)
+        # 印记归属：mark_effects[X] 上的「离场」系印记，作用于 X 方自己的换入者
+        # （棘刺/降灵/暗涌同族；此前棘刺/降灵读 opp_team → 反噬施放者）
+        dmg = self.globals.mark_switch_damage(team, new)
         if dmg:
             new.take_damage(dmg)
             if not mcts_sim:
                 events.append(f'{new.name} 棘刺-{dmg}HP')
 
-        lost = self.globals.mark_switch_energy_loss(opp_team)
+        lost = self.globals.mark_switch_energy_loss(team)
         if lost:
             new.lose_energy(lost)
             if not mcts_sim:
@@ -263,22 +271,12 @@ class BattleMechanicsMixin:
         if not mcts_sim:
             events.append(f'{old.name} 力竭↓ {new.name}↑')
 
-        # ── 印记入场效果（棘刺/降灵）—— 与自愿换人 _resolve_switch 对齐 ──
+        # ── 印记入场效果 ──
+        # 游戏描述 3009 把「离场」限定为「主动更换精灵或触发脱离效果」，明确排除
+        # 力竭下场，因此棘刺/降灵/暗涌这三条「离场」系印记在力竭换人时不触发。
+        # （此前与主动换人对齐，等于凭空多打一次）
         opp_team = 'B' if team == 'A' else 'A'
         self.inc_team_counter(opp_team, 'enemy_action')
-        dmg = self.globals.mark_switch_damage(opp_team, new)
-        if dmg:
-            new.take_damage(dmg)
-            if not mcts_sim:
-                events.append(f'{new.name} 棘刺-{dmg}HP')
-        lost = self.globals.mark_switch_energy_loss(opp_team)
-        if lost:
-            new.lose_energy(lost)
-            if not mcts_sim:
-                events.append(f'{new.name} 降灵-{lost}E')
-
-        # 暗涌印记：力竭离场同样触发（与自愿换人对齐）
-        self._apply_surge_leave_debuffs(team, new, events, mcts_sim)
 
         # ── trait hooks ──
         entry_events = dispatch_entry(new, self, team)
@@ -461,6 +459,10 @@ class BattleMechanicsMixin:
         urgent=False: 普通脱离，由 agent 选择替补（玩家可自选）。
         """
         player = self.get_player(team)
+        # 禁足：无法离场——脱离类效果同样被拦（原文 3023「精灵无法离场」）
+        if getattr(player.active, 'locked_turns', 0) > 0:
+            events.append(f'{player.active.name} 被禁足，无法脱离')
+            return
         if urgent:
             # 紧急脱离：随机选择场下存活精灵
             bench = [i for i in player.alive_sprites if i != player.active_index]
@@ -498,6 +500,10 @@ class BattleMechanicsMixin:
         urgent=False: 普通脱离，由 agent 选择替补。
         """
         player = self.get_player(team)
+        # 禁足：无法离场（与 _handle_escape 一致）
+        if getattr(player.active, 'locked_turns', 0) > 0:
+            events.append(f'{player.active.name} 被禁足，无法脱离')
+            return
         if urgent:
             bench = [i for i in player.alive_sprites if i != player.active_index]
             replacement = random.choice(bench) if bench else -1

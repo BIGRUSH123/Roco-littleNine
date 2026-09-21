@@ -48,6 +48,51 @@ def is_team_mark_effect(effect: str) -> bool:
 
 
 # ═══════════════════════════════════════════════
+# 天气（内部键用英文；数据/条件里写中文别名时归一）
+# ═══════════════════════════════════════════════
+
+WEATHER_ALIASES: dict[str, str] = {
+    'rain': 'rain', '雨天': 'rain',
+    'sand': 'sand', '沙暴': 'sand',
+    'snow': 'snow', '暴风雪': 'snow',
+    'thunder': 'thunder', '雷鸣': 'thunder',
+}
+
+#: 天气 → (系别, 伤害倍率)。游戏描述 3008：雨天双方水系技能威力 +75%
+WEATHER_DAMAGE_MULT: dict[str, tuple[str, float]] = {
+    'rain': ('水', 1.75),
+}
+
+#: 天气 → (系别, 能耗倍率)。游戏描述 3006：沙暴时双方地系技能能耗减半
+WEATHER_ENERGY_MOD: dict[str, tuple[str, float]] = {
+    'sand': ('地', 0.5),
+}
+
+
+def normalize_weather(name: str | None) -> str:
+    """天气名归一：中文别名与英文键都映射到内部键；未知名字原样返回。"""
+    if not name:
+        return ''
+    return WEATHER_ALIASES.get(str(name).strip(), str(name).strip())
+
+
+def weather_damage_mult(weather: str | None, element: str | None) -> float:
+    """当前天气下该系别技能的伤害倍率。"""
+    spec = WEATHER_DAMAGE_MULT.get(normalize_weather(weather))
+    if spec is None or not element:
+        return 1.0
+    return spec[1] if spec[0] in element else 1.0
+
+
+def weather_energy_mod(weather: str | None, element: str | None) -> float:
+    """当前天气下该系别技能的能耗倍率。"""
+    spec = WEATHER_ENERGY_MOD.get(normalize_weather(weather))
+    if spec is None or not element:
+        return 1.0
+    return spec[1] if spec[0] in element else 1.0
+
+
+# ═══════════════════════════════════════════════
 # 异常状态
 # ═══════════════════════════════════════════════
 

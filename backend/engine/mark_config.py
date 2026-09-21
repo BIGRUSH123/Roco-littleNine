@@ -84,3 +84,25 @@ POSITIVE_MARK_NAMES = frozenset(
 NEGATIVE_MARK_NAMES = frozenset(
     name for name, m in MARK_TEMPLATES.items() if m.is_negative
 )
+
+# 数据面（nrc 技能/特性）用词条全名（"棘刺印记"），模板键用短名（"棘刺"）。
+# 两套写法都要能用：apply_mark 先归一，再查模板；查不到才走零效果兜底。
+MARK_ALIASES: dict[str, str] = {
+    "棘刺印记": "棘刺",
+    "风起印记": "风起",
+    "减速印记": "减速",
+    "萌芽": "萌芽印记",
+    "暗涌": "暗涌印记",
+    "润泽": "润泽印记",
+}
+
+
+def canonical_mark_name(name: str) -> str:
+    """把数据面的印记别名归一到模板键（未知名字原样返回）。"""
+    return MARK_ALIASES.get(name, name)
+
+
+def mark_template(name: str) -> MarkEffect | None:
+    """按名称（含别名）取印记模板。"""
+    return MARK_TEMPLATES.get(canonical_mark_name(name))
+

@@ -1119,24 +1119,51 @@ class Battle(BattleMechanicsMixin):
         countering_skill_b = skill_a if counter_a else None
 
         if countered:
-            # 应对成功 → A 先执行，力竭中断 B
-            ar_a.events = self._execute_single_action(
-                'A', action_a, is_countered=counter_b,
-                countered_skill=countered_skill_a,
-                countering_skill=countering_skill_a, is_first=True,
+            # 应对成功 → **应对方先手**（原文：本次行动必定先手）。
+            # 双方同时应对成功时原文未规定，退回先手度/速度比较。
+            if counter_a and not counter_b:
+                first_team = 'A'
+            elif counter_b and not counter_a:
+                first_team = 'B'
+            else:
+                first_team = self._decide_first_team(action_a, action_b, skill_a, skill_b, s_a, s_b)
+            second_team = 'B' if first_team == 'A' else 'A'
+            record.first_team = first_team
+            # 行动顺序确定 → fire pre_resolve（先后手条件效果按各自视角生效）
+            self._fire_pre_resolve(first_team, second_team, skill_a, skill_b)
+
+            first_ar = ar_a if first_team == 'A' else ar_b
+            second_ar = ar_a if second_team == 'A' else ar_b
+            first_is_countered = counter_b if first_team == 'A' else counter_a
+            second_is_countered = counter_a if first_team == 'A' else counter_b
+            first_countered_skill = countered_skill_a if first_team == 'A' else countered_skill_b
+            second_countered_skill = countered_skill_b if first_team == 'A' else countered_skill_a
+            first_countering_skill = countering_skill_a if first_team == 'A' else countering_skill_b
+            second_countering_skill = countering_skill_b if first_team == 'A' else countering_skill_a
+
+            # 先手（= 应对成功方）执行。应对方的应对效果由它自己的这一手落地
+            # （counter_succeeded 分支 + 无条件效果），因此不再有「注入应对方效果」
+            # 那一步——那一步会把编译期注入的隐式 HitOp 也执行一次，导致
+            # 一次应对打出两份伤害。
+            first_ar.events = self._execute_single_action(
+                first_team, action_a if first_team == 'A' else action_b,
+                is_countered=first_is_countered,
+                countered_skill=first_countered_skill,
+                countering_skill=first_countering_skill, is_first=True,
             )
-            self._check_faint_interrupt('A', ar_a.events)
-            self._check_faint_interrupt('B', ar_a.events)
+            self._check_faint_interrupt(first_team, first_ar.events)
+            self._check_faint_interrupt(second_team, first_ar.events)
             if not self.is_finished:
-                b_sprite_now = self.get_player('B').active
-                if not b_sprite_now.is_fainted and b_sprite_now is s_b:
-                    ar_b.events = self._execute_single_action(
-                        'B', action_b, is_countered=counter_a,
-                        countered_skill=countered_skill_b,
-                        countering_skill=countering_skill_b, is_first=True,
+                second_sprite_now = self.get_player(second_team).active
+                second_sprite_before = s_b if second_team == 'B' else s_a
+                if not second_sprite_now.is_fainted and second_sprite_now is second_sprite_before:
+                    second_ar.events = self._execute_single_action(
+                        second_team, action_b if second_team == 'B' else action_a,
+                        is_countered=second_is_countered,
+                        countered_skill=second_countered_skill,
+                        countering_skill=second_countering_skill, is_first=False,
                     )
-                    self._check_faint_interrupt('A', ar_b.events)
-                    self._check_faint_interrupt('B', ar_b.events)
+                    self._check_faint_interrupt(second_team, second_ar.events)
             # trait: counter success hooks → 附加到对应 action
             if counter_a:
                 self.inc_team_counter('A', 'counter_success')
@@ -1152,36 +1179,11 @@ class Battle(BattleMechanicsMixin):
 
         # 无应对 → 按优先级先后执行。skill_a/skill_b 已在上方解析过，
         # 避免为 priority 再次通过 action 查 active skill。
-        priority_a = 0 if action_a.kind == 'gather' else (
-            (skill_a.priority if skill_a else 0) + s_a.priority_mod
-        )
-        priority_b = 0 if action_b.kind == 'gather' else (
-            (skill_b.priority if skill_b else 0) + s_b.priority_mod
-        )
-
-        if priority_a > priority_b:
-            first_team, first_action = 'A', action_a
-            second_team, second_action = 'B', action_b
-        elif priority_b > priority_a:
-            first_team, first_action = 'B', action_b
-            second_team, second_action = 'A', action_a
+        first_team = self._decide_first_team(action_a, action_b, skill_a, skill_b, s_a, s_b)
+        if first_team == 'A':
+            first_action, second_team, second_action = action_a, 'B', action_b
         else:
-            # 优先级相等 → 比速度
-            speed_a = s_a.effective_stat('speed') - self.globals.mark_speed_penalty('A')
-            speed_b = s_b.effective_stat('speed') - self.globals.mark_speed_penalty('B')
-            if speed_a > speed_b:
-                first_team, first_action = 'A', action_a
-                second_team, second_action = 'B', action_b
-            elif speed_b > speed_a:
-                first_team, first_action = 'B', action_b
-                second_team, second_action = 'A', action_a
-            else:
-                if random.random() < 0.5:
-                    first_team, first_action = 'A', action_a
-                    second_team, second_action = 'B', action_b
-                else:
-                    first_team, first_action = 'B', action_b
-                    second_team, second_action = 'A', action_a
+            first_action, second_team, second_action = action_b, 'A', action_a
 
         # 记录先手方
         record.first_team = first_team
@@ -1217,6 +1219,27 @@ class Battle(BattleMechanicsMixin):
         return []
 
     # ── 单方行动执行 ──
+
+    def _decide_first_team(self, action_a: Action, action_b: Action,
+                           skill_a, skill_b, s_a, s_b) -> str:
+        """先手判定：先手度（priority + priority_mod）→ 速度（含减速印记）→ 随机。"""
+        priority_a = 0 if action_a.kind == 'gather' else (
+            (skill_a.priority if skill_a else 0) + s_a.priority_mod
+        )
+        priority_b = 0 if action_b.kind == 'gather' else (
+            (skill_b.priority if skill_b else 0) + s_b.priority_mod
+        )
+        if priority_a > priority_b:
+            return 'A'
+        if priority_b > priority_a:
+            return 'B'
+        speed_a = s_a.effective_stat('speed') - self.globals.mark_speed_penalty('A')
+        speed_b = s_b.effective_stat('speed') - self.globals.mark_speed_penalty('B')
+        if speed_a > speed_b:
+            return 'A'
+        if speed_b > speed_a:
+            return 'B'
+        return 'A' if random.random() < 0.5 else 'B'
 
     def _resolve_single_action(self, team: str, action: Action,
                                opponent_switched: bool = False) -> list[str]:
@@ -1639,27 +1662,10 @@ class Battle(BattleMechanicsMixin):
         if use_bonus:
             user.inc_counter(f'skill_used:{bs.name}', use_bonus)
 
-        # ═══ 应对效果注入：应对方直接效果在伤害计算前生效 ═══
-        if is_countered and countering_skill:
-            opp_team = 'B' if team == 'A' else 'A'
-            try:
-                counter_record = self._get_skill_record(countering_skill.base.name)
-                counter_effects = self._vm_engine._get_effects(counter_record)
-                direct_effects = [e for e in counter_effects
-                                  if not (hasattr(e, 'when') and e.when) and 'when' not in (e if isinstance(e, dict) else {})]
-                if direct_effects:
-                    opp_ctx_kwargs = self._ctx_team_kwargs(opp_team, target)
-                    opp_ctx = self._build_ctx(
-                        target, user, counter_record, None, self.globals,
-                        team=opp_team, turn=self.turn,
-                        **opp_ctx_kwargs,
-                    )
-                    counter_journal = self._vm_engine.execute_effects(opp_ctx, direct_effects)
-                    from backend.engine.replayer import JournalReplayer as _CR
-                    _cr = _CR(target, user, self.globals, self._vm_engine.registry, team=opp_team, battle=self)
-                    events += _cr.replay(counter_journal)
-            except Exception:
-                pass
+        # 应对成功方的效果不再在此时注入：它已经先手执行过自己那一手（见
+        # `_resolve_both_skills` 的应对分支），效果（含减伤）已在其行动中落地。
+        # 旧实现在这里重放应对方技能的无条件效果，会把编译期注入的隐式 HitOp
+        # 一起执行，导致「一次应对打两份伤害」（被应对方多吃一次基础伤害）。
 
         # ═══ Load CompiledSkill + execute VM ═══
         # (record already loaded above for devotion check)

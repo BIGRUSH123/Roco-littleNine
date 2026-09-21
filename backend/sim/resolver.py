@@ -200,6 +200,14 @@ class SkillResolver:
                 s._last_abnormal_dmg[name] = actual
                 events.append(f'{s.name} {name}-{actual}HP')
 
+                # 寄生等「吸取」类：伤害回补给施加方（游戏内文本「从寄生来源吸收」）
+                if ae.absorb_to_source and actual > 0 and ae.origin_team:
+                    source = sprites.get(ae.origin_team)
+                    if source is not None and not source.is_fainted and source is not s:
+                        healed = source.heal(actual)
+                        if healed:
+                            events.append(f'{source.name} 吸收+{healed}HP')
+
                 if ae.decay_on_tick:
                     # 煤渣草：在场时灼烧衰减变为增长
                     if name == "灼烧" and cinder_grass_active is None:
@@ -235,6 +243,14 @@ class SkillResolver:
             for bs in s.skills:
                 if bs.cooldown > 0:
                     bs.cooldown -= 1
+
+            # 禁足回合数递减（游戏内文本：「处于禁足状态时，精灵无法离场」——
+            # 此前 locked_turns 只写不递减，导致一次禁足永久有效）
+            if getattr(s, 'locked_turns', 0) > 0:
+                s.locked_turns -= 1
+                if s.locked_turns <= 0:
+                    s.locked_turns = 0
+                    events.append(f'{s.name} 禁足解除')
 
         events += globals_.weather_turn_effects(all_sprites)
         globals_.tick_weather()
