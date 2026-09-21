@@ -23,7 +23,9 @@ def op_abnormal(ctx: Ctx, effect) -> list[Mutation]:
     elif isinstance(effect, AbnormalOp):
         target = effect.target
         name = effect.name
-        delta = effect.stacks
+        # value（查询式动态层数）优先于固定 stacks：typed 路径此前只读 stacks，
+        # 于是 dict 被编译成 AbnormalOp 后动态层数被丢弃（扩散侵蚀「×2」、蚀刻扣中毒）
+        delta = resolve(ctx, effect.value) if effect.value is not None else effect.stacks
         scope = effect.scope
         per_hit = getattr(effect, "per_hit", False)
     else:

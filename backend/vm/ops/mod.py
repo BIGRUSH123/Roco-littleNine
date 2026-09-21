@@ -89,8 +89,10 @@ def op_power_mod(ctx: Ctx, op) -> list[Mutation]:
         value = resolve(ctx, value_raw)
     else:
         value = resolve(ctx, delta_raw) if delta_raw is not None else 0
+    # mode:"set" 的连击数走 combo_set（绝对语义）；写进 "combo" 会被当成 +N
+    stat = "combo_set" if (attr == "combo" and mode == "set") else attr
     result = [ModifierInjection(
-        target=target, stat=attr, value=float(value), mode=mode,
+        target=target, stat=stat, value=float(value), mode=mode,
         scope=scope,
         skill_filter=skill_filter,
         skill_where=skill_where,
@@ -98,6 +100,8 @@ def op_power_mod(ctx: Ctx, op) -> list[Mutation]:
         source=source,
         name=name,
         ttl=ttl,
+        on_next=(op.get("on_next", False) if type(op) is dict
+                 else getattr(op, "on_next", False)),
     )]
     if per_hit and ctx.combo_self > 1:
         result = result * ctx.combo_self
@@ -173,12 +177,18 @@ def op_flag_set(ctx: Ctx, op) -> list[Mutation]:
         source = op.source
         ttl = getattr(op, "ttl", 0)
     value = resolve(ctx, value_raw) if value_raw is not None else True
+    skill_filter = (op.get("skill_filter") if type(op) is dict
+                    else getattr(op, "skill_filter", None))
+    skill_where = (op.get("skill_where") if type(op) is dict
+                   else getattr(op, "skill_where", None))
     return [ModifierInjection(
         target=target, stat=flag, value=value,
         mode="set", scope=scope,
         name=name,
         source=source,
         ttl=ttl,
+        skill_filter=skill_filter,
+        skill_where=skill_where,
     )]
 
 

@@ -474,6 +474,57 @@ class JournalReplayer:
                                            display_value=float(m.steps * unit))
         return f"{sprite.name} {display}"
 
+    def _apply_skill_cooldown(self, sprite, m: ModifierInjection) -> str:
+        """`flag:"cooldown"`：把选中技能放上/减少冷却（写 BattleSkill.cooldown）。
+
+        口径见 data/IR_GUIDE.md：
+          value=true → 设为 ttl（缺省 1）；value=false → 清 0；
+          value=正数 → 设为该值（冷却 N 回合）；
+          value=负数 → 在当前值上加（下限 0），用于「防御技能冷却 -1」。
+        目标技能：target="skill_opp_current" 取对手本回合用过的技能；
+        否则按 skill_filter / skill_where 在目标精灵的技能里筛。
+        """
+        from backend.engine.replayer import _matches_skill_type
+
+        targets: list = []
+        if m.target == "skill_opp_current" and self._battle is not None:
+            opp_team = "B" if self.team == "A" else "A"
+            used = (self._battle._turn_skills.get(opp_team) or {}).get("name", "")
+            if used:
+                targets = [bs for bs in sprite.skills if getattr(bs, "name", "") == used]
+        if not targets and (m.skill_filter or m.skill_where):
+            for bs in sprite.skills:
+                info = {
+                    "name": getattr(bs, "name", ""),
+                    "energy_cost": getattr(bs, "energy_cost", 0),
+                    "element": getattr(getattr(bs, "base", None), "element", ""),
+                    "skill_type": getattr(bs, "skill_type", ""),
+                }
+                if m.skill_where is not None:
+                    from backend.engine.modifiers import eval_skill_where
+                    if not eval_skill_where(m.skill_where, info):
+                        continue
+                if m.skill_filter and not _matches_skill_type(m.skill_filter, info["skill_type"]):
+                    continue
+                targets.append(bs)
+        if not targets:
+            return ""
+
+        value = m.value
+        parts: list[str] = []
+        for bs in targets:
+            before = bs.cooldown
+            if value is True:
+                bs.cooldown = int(m.ttl or 1)
+            elif value is False:
+                bs.cooldown = 0
+            else:
+                delta = int(value or 0)
+                bs.cooldown = max(0, before + delta) if delta < 0 else delta
+            if bs.cooldown != before:
+                parts.append(f"{bs.name} 冷却 {before}→{bs.cooldown}")
+        return "；".join(parts)
+
     def _apply_modifier(self, m: ModifierInjection) -> str:
         """Store modifier on target sprite for later snapshot consumption.
 
@@ -517,6 +568,10 @@ class JournalReplayer:
             return f"{t}队 奉献{devotion_name} {delta:+d}层"
 
         sprite = self._target_sprite(m.target)
+
+        # flag:"cooldown" 写的是技能冷却，不是精灵 _modifiers（见 data/IR_GUIDE.md）
+        if m.stat == "cooldown":
+            return self._apply_skill_cooldown(sprite, m)
 
         if m.on_next:
             sprite._pending_modifiers.append(m)
@@ -572,8 +627,11 @@ class JournalReplayer:
                     if 0 <= pos < len(sprite.skills):
                         target_mods = sprite.skills[pos]._modifiers
                         # drive flag → _transmission on the target skill
+                        # 「传动X」可叠加（1033）：在技能自带传动等级上累加，
+                        # 而不是覆盖（覆盖会把 钢铁洪流 的传动2 降成 翼轴 给的 1）
                         if m.stat == "drive":
-                            sprite.skills[pos]._transmission = int(m.value) if m.value else 0
+                            bs_t = sprite.skills[pos]
+                            bs_t._transmission = (bs_t.base.transmission or 0) + int(m.value or 0)
                         elif m.stat == "sealed":
                             sprite.skills[pos].sealed = bool(m.value)
                     else:
@@ -1116,6 +1174,17 @@ class JournalReplayer:
         return f"天气 → {m.weather} ({m.turns}t)"
 
     def _apply_dispel(self, m: Dispel) -> str:
+        # 印记是队伍级资源，target 可能是 team_both（倾泻「驱散双方所有印记」），
+        # 不能先按精灵解析目标，所以这一支放在最前面。
+        if m.what == "mark":
+            if m.target == "team_both":
+                teams = ['A', 'B']
+            elif m.target in ("team_own", "own_team", "sprite_self", "own"):
+                teams = [self.team]
+            else:
+                teams = ["B" if self.team == "A" else "A"]
+            return "；".join(p for p in (self._dispel_marks(t, m) for t in teams) if p)
+
         sprite = self._target_sprite(m.target)
         if m.what == "positive":
             n = self._dispel_by_source(sprite, m.source, positive_only=True) if m.source else sprite.dispel_positive(m.limit if m.limit else -1)
@@ -1142,30 +1211,40 @@ class JournalReplayer:
                 self._invalidate_battle_ctx_cache()
             return f"{sprite.name} 驱散异常 {m.name}"
         elif m.what == "mark":
-            team = self.team if m.target == "team_own" else ("B" if self.team == "A" else "A")
-            pos, neg = self.globals.get_marks(team)
-            all_marks = pos + neg
-            count = m.limit or 1
-            if m.name:
-                for mark in all_marks:
-                    if mark.name == m.name and mark.stacks > 0:
-                        removed = min(mark.stacks, count)
-                        mark.stacks -= removed
-                        if mark.stacks <= 0:
-                            self.globals.mark_effects.get(team, []).remove(mark)
-                        return f"{team}队 驱散印记 {m.name}×{removed}"
-                return f"驱散印记失败：{team}队无{m.name}"
-            import random
-            available = [mk for mk in all_marks if mk.stacks > 0]
-            if not available:
-                return "驱散印记失败：无印记"
-            mark = random.choice(available)
-            removed = min(mark.stacks, count)
-            mark.stacks -= removed
-            if mark.stacks <= 0:
-                self.globals.mark_effects.get(team, []).remove(mark)
-            return f"{team}队 驱散印记 {mark.name}×{removed}"
+            return self._dispel_marks(self.team if m.target in ("team_own", "own_team", "own") else ("B" if self.team == "A" else "A"), m)
         return ""
+
+    def _dispel_marks(self, team: str, m: Dispel) -> str:
+        """驱散队伍印记。
+
+        数据面写 `target:"team_both"`（无 `limit`/`name`）= 驱散**全部**印记的全部层数；
+        给了 `m.name` 则只驱散该印记；给了 `m.limit` 则最多驱散该层数（随机分配），
+        与 IR_GUIDE 的 dispel 口径一致。
+        """
+        marks = [mk for mk in self.globals.mark_effects.get(team, [])
+                 if getattr(mk, 'stacks', 0) > 0
+                 and (not m.name or getattr(mk, 'name', '') == m.name)]
+        if not marks:
+            return f"{team}队 无{m.name or '印记'}可驱散" if m.name else ""
+        if m.limit:
+            import random
+            remaining = int(m.limit)
+            removed_total = 0
+            while remaining > 0 and marks:
+                mk = random.choice(marks)
+                removed = min(mk.stacks, remaining)
+                mk.stacks -= removed
+                remaining -= removed
+                removed_total += removed
+                if mk.stacks <= 0:
+                    self.globals.mark_effects[team].remove(mk)
+                    marks.remove(mk)
+            return f"{team}队 驱散印记×{removed_total}"
+        total = sum(mk.stacks for mk in marks)
+        names = "、".join(dict.fromkeys(getattr(mk, 'name', '') for mk in marks))
+        for mk in marks:
+            self.globals.mark_effects[team].remove(mk)
+        return f"{team}队 驱散全部印记（{names}×{total}）"
 
     @staticmethod
     def _dispel_by_source(sprite, source: str, positive_only: bool = True) -> int:

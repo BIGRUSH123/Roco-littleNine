@@ -368,8 +368,11 @@
 |------|------|------|
 | `target` | `target` | 目标 |
 | `flag` | `str` | 标记名（见下表） |
-| `value` | `bool` | 开关 |
+| `value` | `bool` \| `int` | 开关；`flag:"cooldown"` 时按下方口径解释 |
 | `name` | `str` | 配合 `immune` 标记，指定免疫的异常名 |
+| `skill_filter` | `str` | 批量技能筛选（同 `power_mod`）：`"attack"` / `"defense"` / `"status"` / `"all"`；`flag:"cooldown"` 时用于选定要改冷却的技能 |
+| `skill_where` | `dict` | 技能筛选条件（`tag` / `skill_type` / `element`），语义同 `power_mod` |
+| `ttl` | `int` | 存活回合数；`flag:"cooldown"` 且 `value: true` 时作为冷却回合数 |
 
 **flag 合法值**（以 `backend/vm/ops/mod.py` + 消费方实现为准）：
 
@@ -390,6 +393,13 @@
 | `usable_while_charging` | 蓄力中可用（技能 body 字段） |
 
 - **与 `stat_stage` / `mult_mod` 的区别**: `flag_set` 是布尔开关，不涉及数值，改变的是游戏规则行为
+- **`flag:"cooldown"` 口径**（`backend/engine/replayer.py` 消费，写的是技能的 `BattleSkill.cooldown` 而不是
+  `_modifiers`）：
+  - `value: true` → 把选中技能的冷却**设为** `ttl`（缺省 1）；`value: false` → 清 0；
+  - `value: <正数>` → 把冷却**设为**该值（「被应对技能冷却 2 回合」）；
+  - `value: <负数>` → 在当前冷却上**加**该值并下限 0（「防御技能冷却 -1」）。
+  - 选中技能：`target: "skill_opp_current"` = 对手本回合使用的那只技能；配
+    `skill_filter` / `skill_where` 时 = 目标精灵身上命中的技能。
 - **`turn_end_block` 抑制范围**（`backend/sim/battle.py:_phase_turn_end`）：
   `SkillResolver.turn_end()`（印记/异常/天气等回合末结算）与其 `extra_turn_end` 额外触发、
   `turn_end` 观察者触发、`post_abnormal_tick` 通知一并跳过；

@@ -288,7 +288,10 @@ class BattleMechanicsMixin:
         # `Ctx.swapped_view()` 负责对调标志——这里若置 target_fainted=True，
         # `on_ko`（=target_fainted）与 `on_self_ko` 会同时成立，一次力竭多扣两份魔力。
         opp_active = self.get_opponent(team).active
-        ctx_ko_leave = self._make_ctx(old, opp_active, None, None, self.globals, team=team, turn=self.turn, self_switched=True)
+        # self_switched=False：游戏描述 3009 把「离场」限定为「主动更换精灵或触发脱离
+        # 效果」，力竭下场不算；自己力竭走 post_ko（on_self_ko），凶手视角由伤害日志
+        # 那条 post_ko 路径服务。
+        ctx_ko_leave = self._make_ctx(old, opp_active, None, None, self.globals, team=team, turn=self.turn, self_switched=False)
         post_ko_events = self._vm_engine.fire_trigger("post_ko", ctx_ko_leave, old, opp_active, self.globals, team=team, battle=self, ko_side="self")
         if not mcts_sim:
             events += post_ko_events
@@ -301,10 +304,8 @@ class BattleMechanicsMixin:
                 events.append(f'{player.name} 魔力耗尽 → {self.get_opponent(team).name} 胜')
             return
         ctx_ko_entry = self._make_ctx(new, opp_active, None, None, self.globals, team=team, turn=self.turn)
-        post_leave_events = self._vm_engine.fire_trigger("post_leave", ctx_ko_leave, old, opp_active, self.globals, team=team, battle=self)
-        if not mcts_sim:
-            events += post_leave_events
-        # 洁癖等 post_leave observer 可能写入新的 pending_effects
+        # 力竭不发 post_leave / post_enemy_leave（3009）；但 pending_effects 里可能已有
+        # 别的路径写入的效果，仍按入场流程应用。
         self._apply_pending_entry_effects(team, new)
         post_entry_events = self._vm_engine.fire_trigger("post_entry", ctx_ko_entry, new, opp_active, self.globals, team=team, battle=self)
         if not mcts_sim:
@@ -312,11 +313,6 @@ class BattleMechanicsMixin:
         transmission_events = self._apply_entry_transmission(team, new, opp_active)
         if not mcts_sim:
             events += transmission_events
-        if not opp_active.is_fainted:
-            ctx_ko_enemy = self._make_ctx(opp_active, new, None, None, self.globals, team=opp_team, turn=self.turn, opp_switched=True)
-            post_enemy_leave_events = self._vm_engine.fire_trigger("post_enemy_leave", ctx_ko_enemy, opp_active, new, self.globals, team=opp_team, battle=self, leaving_sprite=old)
-            if not mcts_sim:
-                events += post_enemy_leave_events
         leave_events = dispatch_leave(old, self, team, is_faint=True)
         if not mcts_sim:
             events += leave_events

@@ -607,6 +607,7 @@ class SkillParsePass:
             ttl=self._int_or(e, "ttl", 0),
             source=e.get("source") or e.get("name"),
             name=e.get("name"),
+            on_next=self._bool_or(e, "on_next", False),
             **self._common_fields(e),
         )
 
@@ -648,6 +649,9 @@ class SkillParsePass:
             scope=self._str_or(e, "scope", "battlefield"),
             name=e.get("name"),
             source=e.get("source"),
+            skill_filter=e.get("skill_filter"),
+            skill_where=e.get("skill_where"),
+            ttl=self._int_or(e, "ttl", 0),
             **self._common_fields(e),
         )
 

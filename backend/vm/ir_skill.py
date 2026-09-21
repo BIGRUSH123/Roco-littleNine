@@ -81,6 +81,7 @@ class PowerModOp:
     ttl: int = 0
     source: str | None = None
     name: str | None = None
+    on_next: bool = False   # 下一次行动才生效（如「下一次行动先手+1」）
     feeds: str = ""
     needs: str = ""
     priority: int = 0
@@ -114,6 +115,9 @@ class FlagSetOp:
     name: str | None = None        # e.g. abnormal name for immune
     scope: str = "battlefield"
     source: str | None = None
+    skill_filter: str | None = None   # flag:"cooldown" 时选定技能（attack/defense/status/all）
+    skill_where: dict | None = None   # flag:"cooldown" 时的技能筛选条件
+    ttl: int = 0                      # flag:"cooldown" + value:true 时的冷却回合数
     feeds: str = ""
     needs: str = ""
     priority: int = 0

@@ -291,11 +291,12 @@ class Sprite:
         return round(self.max_hp * 0.05 * stacks) if stacks > 0 else 0
 
     def check_freeze_death(self) -> bool:
-        """冻结斩杀：当前HP ≤ 冻结生命值 → 死亡。返回是否触发了斩杀。"""
+        """冻结斩杀：当前HP **低于** 冻结生命值 → 力竭（游戏描述 1004：若当前生命低于
+        冻结比例，则力竭；相等不判死）。返回是否触发了斩杀。"""
         if self.is_fainted:
             return False
         fhp = self.frozen_hp
-        if fhp > 0 and self.current_hp <= fhp:
+        if fhp > 0 and self.current_hp < fhp:
             self.current_hp = 0
             return True
         return False

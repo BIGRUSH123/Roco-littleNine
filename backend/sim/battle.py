@@ -1059,7 +1059,7 @@ class Battle(BattleMechanicsMixin):
         a_kind = action_a.kind
         b_kind = action_b.kind
 
-        # 双方换宠 → 随机先后
+        # 双方换宠 → 随机先后；两边的迅捷都要触发（1005）
         if a_kind == 'switch' and b_kind == 'switch':
             if random.random() < 0.5:
                 record.action_a.events = self._resolve_switch('A', action_a)
@@ -1069,6 +1069,8 @@ class Battle(BattleMechanicsMixin):
                 record.action_b.events = self._resolve_switch('B', action_b)
                 if not self.is_finished:
                     record.action_a.events = self._resolve_switch('A', action_a)
+            if not self.is_finished:
+                self._resolve_swift_both(record)
             return []
 
         # 单方换宠 + 单方技能/聚能 → 先换宠，后技能（含迅捷自动出招）
@@ -1100,6 +1102,11 @@ class Battle(BattleMechanicsMixin):
 
         skill_a = self._get_skill('A', action_a)
         skill_b = self._get_skill('B', action_b)
+
+        # 登记双方本回合要用的技能名：技能执行前就要能回答「对手当前技能是谁」
+        # （flag_set flag:"cooldown" target:"skill_opp_current" 在对手行动前触发）
+        self._turn_skills.setdefault('A', {})['name'] = skill_a.name if skill_a else ''
+        self._turn_skills.setdefault('B', {})['name'] = skill_b.name if skill_b else ''
 
         # 应对判定（双向检查，冷却中的技能视为未使用，不能应对）
         counter_a = False
@@ -1309,6 +1316,26 @@ class Battle(BattleMechanicsMixin):
             opponent_switched=opponent_switched,
             opp_skill=opp_skill,
         )
+
+        # 使用次数+1（双联脉冲「迸发：本技能使用次数+1」/ 过载回路「下回合所选技能
+        # 使用次数+1」/ 返场）：同一技能再执行一次，能量照付。
+        if action.kind == 'skill' and not is_countered:
+            user = self.get_player(team).active
+            extra = int(user._modifiers.pop('extra_action', 0) or 0)
+            if getattr(user, 'extra_skill_use', False):
+                extra += 1
+                user.extra_skill_use = False
+            for _ in range(extra):
+                if self.is_finished or user.is_fainted:
+                    break
+                bs = self._get_skill(team, action)
+                if bs is None or bs.sealed or bs.cooldown > 0:
+                    break
+                events.append(f'{user.name} {bs.name} 额外使用1次')
+                events += self._execute_skill_vm(
+                    team, action, is_first=False, opp_skill=opp_skill,
+                )
+
         # 引擎机制重算（aura 类声明随行动结果变化）
         from backend.engine import mechanisms
         mechanisms.refresh(self)
@@ -1777,8 +1804,10 @@ class Battle(BattleMechanicsMixin):
         elif record.skill_type not in ('物攻', '魔攻', '动态攻击'):
             self.inc_team_counter(team, 'status_skill')
 
-        # 本回合技能信息（合拍：回合末比对系别/类型/能耗）
+        # 本回合技能信息（合拍：回合末比对系别/类型/能耗；name 供
+        # flag_set flag:"cooldown" target:"skill_opp_current" 定位被打断的技能）
         self._turn_skills[team] = {
+            "name": bs.name,
             "element": eff_element,
             "skill_type": record.skill_type,
             "energy_cost": cost,
@@ -1866,16 +1895,72 @@ class Battle(BattleMechanicsMixin):
         return None
 
     def _find_first_swift_skill(self, sprite) -> tuple[int, BattleSkill | None]:
-        """Find the first usable swift-tagged skill on a sprite.
+        """入场迅捷：第一个「能量满足要求且带迅捷」的技能（游戏描述 1005）。
+
+        - 带迅捷：特性授予的 `_modifiers["swift"]`，或技能自带的 `tag:"迅捷"`
+          （此前只认特性授予，技能自带的 4 条数据整类失效）；
+        - 能量满足要求：费用超过当前能量的跳过、继续看下一个（此前直接挑第一个迅捷技能，
+          能量不够时整次迅捷空转）。
 
         Returns (skill_index, BattleSkill) or (0, None) if none found.
         """
         for i, bs in enumerate(sprite.skills):
-            if (bs._modifiers.get("swift")
-                and not bs.sealed
-                and bs.cooldown <= 0):
-                return i, bs
+            if bs.sealed or bs.cooldown > 0:
+                continue
+            has_swift = bool(bs._modifiers.get("swift")) or \
+                getattr(getattr(bs, "base", None), "tag", "") == "迅捷"
+            if not has_swift:
+                continue
+            if bs.energy_cost > getattr(sprite, "energy", 0):
+                continue
+            return i, bs
         return 0, None
+
+    def _resolve_swift_both(self, record: RoundRecord) -> None:
+        """双方同时主动换人：两边的迅捷都要触发。
+
+        原文（1005）只规定「主动更换精灵入场时触发」，没说两边同时换人时谁先，
+        这里按速度决定先后（与先手判定的平手口径一致）。
+        """
+        a_sprite, b_sprite = self.player_a.active, self.player_b.active
+        ia, bs_a = self._find_first_swift_skill(a_sprite)
+        ib, bs_b = self._find_first_swift_skill(b_sprite)
+        order: list[tuple[str, int, BattleSkill]] = []
+        if bs_a is not None:
+            order.append(('A', ia, bs_a))
+        if bs_b is not None:
+            order.append(('B', ib, bs_b))
+        if not order:
+            return
+        if len(order) == 2:
+            speed_a = a_sprite.effective_stat('speed') - self.globals.mark_speed_penalty('A')
+            speed_b = b_sprite.effective_stat('speed') - self.globals.mark_speed_penalty('B')
+            if speed_b > speed_a:
+                order.reverse()
+        record.first_team = order[0][0]
+        ar = {'A': record.action_a, 'B': record.action_b}
+        first_bs: BattleSkill | None = None
+        first_team: str | None = None
+        for team, idx, bs in order:
+            sprite = self.get_player(team).active
+            other_team = 'B' if team == 'A' else 'A'
+            if self.is_finished or sprite.is_fainted:
+                break
+            countered = (SkillResolver.resolve_counter(first_bs, bs)
+                         if first_bs is not None and first_team != team else False)
+            ar[team].events.append(f'{sprite.name} 迅捷：{bs.name}')
+            ar[team].events += self._execute_skill_vm(
+                team, Action(kind='skill', skill_index=idx),
+                is_countered=countered,
+                countering_skill=first_bs if countered else None,
+                countered_skill=bs if (first_bs is not None and first_team != team
+                                       and SkillResolver.resolve_counter(bs, first_bs)) else None,
+                is_first=(first_team == team) or first_team is None,
+            )
+            self._check_faint_interrupt(team, ar[team].events)
+            self._check_faint_interrupt(other_team, ar[team].events)
+            if first_bs is None:
+                first_bs, first_team = bs, team
 
     def _resolve_after_switch(self, switch_team: str, opp_team: str,
                               opp_action: Action, record: RoundRecord) -> None:

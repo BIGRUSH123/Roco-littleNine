@@ -61,7 +61,8 @@ MARK_TEMPLATES: dict[str, MarkEffect] = {
     ),
     "中毒印记": MarkEffect(
         name="中毒印记", source="印记", category="negative", scope="persistent",
-        turn_end_damage_pct=0.03,
+        # 「回合结束造成3%生命的毒系伤害」→ 与中毒异常同口径走系别克制
+        turn_end_damage_pct=0.03, turn_end_damage_element="毒",
     ),
     "星陨印记": MarkEffect(
         name="星陨印记", source="印记", category="negative", scope="persistent",

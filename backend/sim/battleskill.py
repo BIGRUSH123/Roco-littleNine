@@ -94,11 +94,18 @@ class BattleSkill:
         if self.nullified:
             return 0
         skill = self.replaced_by or self.base
-        return skill.priority
+        # 技能级先手修正（power_mod attr:"priority"）：此前写进 _modifiers 但没人读，
+        # 先发制人/扬尘/俯冲三条数据因此完全无效
+        return skill.priority + int(self._modifiers.get("priority", 0))
 
     @property
     def combo(self) -> int:
         base_combo = -1 if self.nullified else (self.replaced_by or self.base).combo
+        # mode:"set"（强制过滤「连击数固定为1」）走 combo_set 绝对语义，
+        # 不能再当成 +N（会把 2 连击的引雷抬到 3 段）
+        combo_set = int(self._modifiers.get("combo_set", 0))
+        if combo_set > 0:
+            return combo_set
         return base_combo + int(self._modifiers.get("combo", 0))
 
     @property

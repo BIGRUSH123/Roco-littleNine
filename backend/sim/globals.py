@@ -187,6 +187,12 @@ class GlobalEffects:
                         events.append(f'{sprite.name} {me.name}+{gained}E')
                 if me.turn_end_damage_pct:
                     dmg = max(1, round(sprite.max_hp * me.turn_end_damage_pct * me.stacks))
+                    element = getattr(me, 'turn_end_damage_element', '') or ''
+                    if element:
+                        # 与异常 tick 同口径：印记伤害也走系别克制
+                        from backend.sim.resolver import SkillResolver
+                        dmg = max(1, round(dmg * SkillResolver._tick_multiplier(
+                            sprite, me.name, element)))
                     sprite.take_damage(dmg)
                     events.append(f'{sprite.name} {me.name}-{dmg}HP')
         return events

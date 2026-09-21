@@ -838,8 +838,10 @@ def test_trait_孤傲_self_switch_does_not_trigger():
     assert len(_active_effects_of(new_our_active, "atk")) == 0
 
 
-def test_trait_孤傲_faint_replace_also_inherits():
-    """孤傲: when enemy faints and is replaced, effects are also inherited."""
+def test_trait_孤傲_faint_replace_does_not_inherit():
+    """孤傲：游戏描述 3009 把「离场」限定为「主动更换精灵或触发脱离效果」，
+    明确排除力竭下场 —— 所以敌方**力竭**换人时不继承增益/减益。
+    （自愿换人的继承路径见上一个用例。）"""
     battle = _make_battle_with_trait("孤傲")
 
     enemy_old = battle.player_b.active
@@ -862,8 +864,7 @@ def test_trait_孤傲_faint_replace_also_inherits():
     assert new_active is enemy_new
 
     atk_effects = _active_effects_of(new_active, "atk")
-    assert len(atk_effects) == 1
-    assert atk_effects[0].steps == 3
+    assert len(atk_effects) == 0, "力竭不算离场，孤傲不应继承"
 
 
 def test_trait_孤傲_does_not_inherit_trait_sourced_stat_effects():

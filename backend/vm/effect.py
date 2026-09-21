@@ -138,6 +138,7 @@ class MarkEffect(EffectObject):
     energy_mod: int = 0                   # -N 能耗 per stack
     turn_end_energy: int = 0              # +N 能量 per stack at turn end
     turn_end_damage_pct: float = 0.0      # N% maxHP damage per stack at turn end
+    turn_end_damage_element: str = ""     # 回合末伤害的系别（走克制；中毒印记=毒）
     switch_damage_pct: float = 0.0        # N% maxHP damage per stack on entry
     switch_energy_loss: int = 0           # -N 能量 per stack on entry
     starfall_damage: int = 0              # N 威力幻系魔法伤害 per stack
