@@ -11,12 +11,6 @@
       "target": "skill_off_0",
       "op": "power_mod",
       "attr": "combo",
-      "delta": 1
-    },
-    {
-      "target": "skill_off_0",
-      "op": "power_mod",
-      "attr": "combo",
       "delta": {
         "q": "mark_count",
         "of": "team_opp",

@@ -2,6 +2,7 @@
 
 stat_stage → StatChange；power_mod/mult_mod/flag_set → ModifierInjection；
 heal → Heal/Damage；energize → EnergyChange；revive/devotion → engine-side 注入。
+stat_random / stat_convert 是同族的两条专用指令（随机分配 / 正负翻转）。
 """
 
 from ..ctx import Ctx
@@ -12,6 +13,8 @@ from ..journal import (
     ModifierInjection,
     Mutation,
     StatChange,
+    StatConvert,
+    StatRandom,
 )
 from ..resolve import resolve
 
@@ -19,6 +22,63 @@ _HP_MAX_MAP = {
     "sprite_self": "hp_self_max",
     "sprite_opp": "hp_opp_max",
 }
+
+#: stat_random 的默认分配维度（五维，与 3014/3018 的属性范围一致）
+_RANDOM_STATS: tuple[str, ...] = ("atk", "def", "sp_atk", "sp_def", "speed")
+
+
+def op_stat_random(ctx: Ctx, op) -> list[Mutation]:
+    """RISC: stat_random → StatRandom（分配在 replayer 落地，需随机源）。"""
+    if type(op) is dict:
+        target = op.get("target", "sprite_self")
+        layers = op.get("layers", op.get("steps", 0))
+        direction = op.get("direction", "positive")
+        stats = op.get("stats") or ()
+        scope = op.get("scope", "battlefield")
+        source = op.get("source")
+    else:
+        target = op.target
+        # value（Query/RefExpr）优先于静态 layers（动态层数，如 计数器×3）
+        layers = op.value if op.value is not None else op.layers
+        direction = op.direction
+        stats = op.stats or ()
+        scope = op.scope
+        source = op.source
+    layers = int(resolve(ctx, layers))
+    if direction not in ("positive", "negative"):
+        direction = "positive"
+    # 负值层数 = 反方向（数据面写 layers:-16 也能落到减益）
+    if layers < 0:
+        layers = -layers
+        direction = "negative" if direction == "positive" else "positive"
+    return [StatRandom(
+        target=target, layers=layers, direction=direction,
+        stats=tuple(stats) or _RANDOM_STATS,
+        scope=scope, source=source or "",
+    )]
+
+
+def op_stat_convert(ctx: Ctx, op) -> list[Mutation]:
+    """RISC: stat_convert → StatConvert（正负翻转，层数不变）。"""
+    if type(op) is dict:
+        target = op.get("target", "sprite_opp")
+        from_ = op.get("from", "positive")
+        to = op.get("to", "")
+        name = op.get("name") or ""
+        source = op.get("source")
+    else:
+        target = op.target
+        from_ = op.from_
+        to = op.to
+        name = op.name or ""
+        source = op.source
+    if from_ not in ("positive", "negative"):
+        from_ = "positive"
+    if to not in ("positive", "negative"):
+        to = "negative" if from_ == "positive" else "positive"
+    return [StatConvert(
+        target=target, from_=from_, to=to, name=name, source=source or "",
+    )]
 
 
 
@@ -198,10 +258,12 @@ def op_heal(ctx: Ctx, op) -> list[Mutation]:
         target = op.get("target", "sprite_self")
         ratio = op.get("ratio")
         value_raw = op.get("value")
+        per_hit = op.get("per_hit", False)
     else:
         target = op.target
         ratio = op.ratio
         value_raw = op.value
+        per_hit = getattr(op, "per_hit", False)
     if ratio is not None:
         hp_max_field = _HP_MAX_MAP.get(target, "hp_self_max")
         hp_max = getattr(ctx, hp_max_field, 100)
@@ -216,13 +278,16 @@ def op_heal(ctx: Ctx, op) -> list[Mutation]:
             amount = int(raw)
     else:
         amount = 0
+    # per_hit：每次连击各结算一次（聚盐「每次连击自己回复8%生命」），
+    # 与 stat_stage/power_mod/abnormal/mark 的 per_hit 同口径
+    combo = max(1, ctx.combo_self) if per_hit else 1
     if amount > 0:
-        return [Heal(target=target, amount=amount)]
+        return [Heal(target=target, amount=amount)] * combo
     elif amount < 0:
         return [Damage(
             target=target, amount=abs(amount),
             element=ctx.element_self, type=ctx.skill_type_self,
-        )]
+        )] * combo
     return []
 
 

@@ -7,6 +7,7 @@ and observer-triggering events.
 
 from __future__ import annotations
 
+import random
 from copy import copy
 from typing import TYPE_CHECKING
 
@@ -38,10 +39,13 @@ from backend.vm.journal import (
     Redirect,
     Replay,
     ReplayChoice,
+    ReplaceSkill,
     Reset,
     Return,
     ScheduleEntry,
     StatChange,
+    StatConvert,
+    StatRandom,
     Steal,
     TeamCounterDelta,
     Tick,
@@ -125,6 +129,11 @@ _STEP_UNIT: dict[str, int] = {
 # on a sprite-scoped target (e.g. power_mod {target: "sprite_self", skill_filter: "all"})
 _SKILL_DISTRIBUTE_STATS = frozenset({"energy_cost", "power", "combo", "priority"})
 
+#: 不进 `_PER_TURN_KEYS` 清理、也不需要「跨回合重放」的携带型技能属性。
+#: `attach_abnormal`（附加中毒，3013）写在 BattleSkill._modifiers 里天然跨回合保留，
+#: 若再登记进 _trait_direct_effects，每回合 _apply_direct_mods 会再加一次 → 叠加错误。
+_NO_DIRECT_MOD_PERSIST = frozenset({"attach_abnormal"})
+
 
 _ATTACK_TYPES: frozenset[str] = frozenset({"物攻", "魔攻", "动态攻击"})
 
@@ -140,6 +149,21 @@ def _matches_skill_type(skill_filter: str | None, skill_type: str) -> bool:
     if skill_filter == "status":
         return skill_type == "状态"
     return True  # unknown filters pass through
+
+
+def _matches_direction(stat_key: str, steps: int, what: str) -> bool:
+    """该 StatBuffEffect 是否属于 `what`（"positive"/"negative"）方向。
+
+    口径与 `JournalReplayer._match_stat_effect` 一致：`energy_cost` 的正负含义
+    与其余维度相反（能耗 -N 才是增益）。
+    """
+    if stat_key == 'energy_cost':
+        if what == "negative":
+            return steps > 0
+        return steps < 0
+    if what == "positive":
+        return steps > 0
+    return steps < 0
 
 
 def _apply_to_all_skills(sprite, m, replayer=None) -> str:
@@ -227,7 +251,9 @@ def _apply_to_matching_skills(sprite, m, mark_energy_mod: int = 0, replayer=None
         applied = True
 
     # Register for turn-to-turn persistence (survives _PER_TURN_KEYS cleanup)
-    if applied and m.scope != "turn" and m.mode in ("add", "set"):
+    # attach_abnormal 不在 _PER_TURN_KEYS 里、本来就不被清，且重放会跨回合叠加 → 不登记
+    if (applied and m.scope != "turn" and m.mode in ("add", "set")
+            and m.stat not in _NO_DIRECT_MOD_PERSIST):
         effect_dict = {
             "op": "power_mod",
             "attr": m.stat,
@@ -380,6 +406,8 @@ class JournalReplayer:
         self._trait_sourcing: bool = False  # True during trait observer then-effect replay
         self._cleared_position_stats: set[str] = set()  # per-replay batch cleanup tracking
         self._energy_deltas: dict[int, int] = {}  # id(m) -> actual delta (capped by max_energy/floor 0)
+        # 附加中毒（3013）：本次 replay 批内已追加过中毒的受损精灵 id（每次行动只追加一次）
+        self._attached_abnormal_done: set[int] = set()
         # MCTS 仿真模式下跳过所有 UI 显示逻辑（字符串格式化、_sync_mult_display_effect）
         self.is_headless: bool = getattr(battle, '_mcts_sim', False) if battle else False
 
@@ -393,6 +421,7 @@ class JournalReplayer:
         """Replay all mutations. Returns event strings for logging."""
         self._cleared_position_stats.clear()
         self._energy_deltas.clear()
+        self._attached_abnormal_done.clear()
         if self.is_headless:
             dispatch = self._DISPATCH
             for mutation in journal:
@@ -848,6 +877,30 @@ class JournalReplayer:
             if drain_pct > 0:
                 healed = self.self.heal(round(actual * drain_pct))
 
+        extra: list[str] = []
+        # 加分项：信息遮蔽状态（木桶/月陨星）「被敌方攻击时解除」——只对**受击方**生效，
+        # 自我伤害（m.target == "sprite_self"）不解（见 abnormal_config.INTEL_STATES）
+        if m.target != "sprite_self":
+            from backend.engine.abnormal_config import release_intel_states
+            released = release_intel_states(sprite, on="damage")
+            if released and not self.is_headless:
+                extra.append(f"{sprite.name} {('/'.join(released))}解除")
+
+        if actual > 0 and m.target != "sprite_self":
+            # 附加中毒（3013）：携带的攻击技能命中后追加 N 层中毒。
+            # 口径与 life_drain 一致：精灵级与技能级取 max；每次行动只追加一次。
+            attach = self.self._modifiers.get("attach_abnormal", 0.0)
+            if self._self_skill is not None:
+                attach = max(attach, self._self_skill._modifiers.get("attach_abnormal", 0.0))
+            attach = int(attach)
+            if attach > 0 and id(sprite) not in self._attached_abnormal_done:
+                self._attached_abnormal_done.add(id(sprite))
+                ev = self._apply_abnormal_change(AbnormalChange(
+                    target=m.target, name="中毒", delta=attach, scope="battlefield",
+                ))
+                if ev and not self.is_headless:
+                    extra.append(ev)
+
         if self.is_headless:
             return ""
         result = f"{sprite.name} -{actual}HP"
@@ -855,6 +908,8 @@ class JournalReplayer:
             result += " (fainted)"
         if healed:
             result += f" [吸血+{healed}HP]"
+        if extra:
+            result = " ".join([result, *extra])
         return result
 
     def _apply_heal(self, m: Heal) -> str:
@@ -1169,9 +1224,137 @@ class JournalReplayer:
         self._invalidate_battle_ctx_cache()
         return ' | '.join(events) if events else f"{sprite.name} {m.name} +{m.delta}层"
 
+    def _apply_stat_random(self, m: StatRandom) -> str:
+        """随机 N 层属性增益/减益（stat_random op）。
+
+        逐层在 `m.stats`（缺省五维）里随机挑一维，走 `_apply_stat_change` 的
+        同一条落地路径（`StatBuffEffect` + 属性缓存失效）。
+        随机源是全局 `random`（对局由 `random.seed(seed)` 播种，与 morph.pick 同约定）。
+        """
+        sprite = self._target_sprite(m.target)
+        if m.layers <= 0:
+            return ""
+        stats = tuple(m.stats) or ("atk", "def", "sp_atk", "sp_def", "speed")
+        sign = 1 if m.direction == "positive" else -1
+        tally: dict[str, int] = {}
+        for _ in range(int(m.layers)):
+            stat = random.choice(stats)
+            tally[stat] = tally.get(stat, 0) + sign
+        for stat, steps in tally.items():
+            self._apply_stat_change(StatChange(
+                target=m.target, stat=stat, steps=steps,
+                scope=m.scope, source=m.source or "skill",
+            ))
+        label = "属性增益" if sign > 0 else "属性减益"
+        detail = " ".join(f"{_STAT_LABELS.get(s, s)}{v:+d}" for s, v in tally.items())
+        if self.is_headless:
+            return ""
+        return f"{sprite.name} 随机{m.layers}层{label}({detail})"
+
+    def _apply_stat_convert(self, m: StatConvert) -> str:
+        """属性增益 ⇄ 属性减益转换（stat_convert op，掉包）。
+
+        就地翻转命中 `StatBuffEffect` 的 `steps` 符号（层数不变），
+        并同步这些维度在 `_modifiers` 里的镜像（power/combo/priority 等）。
+        `from_` 决定命中的方向语义（与 `_match_stat_effect` 同口径：
+        `energy_cost` 的正负含义与其余维度相反），`to` 缺省为反面。
+        """
+        from backend.vm.effect import StatBuffEffect
+
+        sprite = self._target_sprite(m.target)
+        to_sign = 1 if m.to == "positive" else -1
+        if m.to not in ("positive", "negative"):
+            to_sign = -1 if m.from_ == "positive" else 1
+
+        touched: set[str] = set()
+        for e in list(getattr(sprite, 'active_effects', ())):
+            if not isinstance(e, StatBuffEffect):
+                continue
+            if m.name and e.stat_key != m.name:
+                continue
+            if not e.steps:
+                continue
+            if not _matches_direction(e.stat_key, e.steps, m.from_):
+                continue
+            # 翻转符号即在两个方向间切换（energy_cost 的反向语义已被 _matches_direction 吸收）
+            e.steps = -e.steps
+            touched.add(e.stat_key)
+        if not touched:
+            return ""
+
+        if to_sign > 0:
+            self._bump_modifier_nonpositive(sprite, touched)
+        else:
+            self._bump_modifier_positive(sprite, touched)
+        sprite._invalidate_effects_cache()
+        sprite._invalidate_stat_cache()
+        if self.is_headless:
+            return ""
+        label = "增益→减益" if to_sign < 0 else "减益→增益"
+        return f"{sprite.name} 属性{label} ({', '.join(sorted(touched))})"
+
+    @staticmethod
+    def _bump_modifier_positive(sprite, keys) -> None:
+        """把刚刚翻成减益的维度在 _modifiers 里同步为负值。"""
+        for key in keys:
+            val = sprite._modifiers.get(key)
+            if isinstance(val, (int, float)) and val > 0:
+                sprite._modifiers[key] = -val
+
+    @staticmethod
+    def _bump_modifier_nonpositive(sprite, keys) -> None:
+        """把刚刚翻成增益的维度在 _modifiers 里同步为正值。"""
+        for key in keys:
+            val = sprite._modifiers.get(key)
+            if isinstance(val, (int, float)) and val < 0:
+                sprite._modifiers[key] = -val
+
+    def _apply_replace_skill(self, m: ReplaceSkill) -> str:
+        """把对手本回合正在使用的技能替换为指定技能（replace_skill op）。
+
+        定位方式与 `flag_set flag:"cooldown" target:"skill_opp_current"` 一致：
+        对手队伍 `battle._turn_skills[opp_team]["name"]`。回合末由
+        `Battle._phase_turn_end()` 依 `battle._replaced_restore` 还原。
+        """
+        if self._battle is None:
+            return ""
+        from backend.engine import morph
+
+        opp_team = "B" if self.team == "A" else "A"
+        used = (self._battle._turn_skills.get(opp_team) or {}).get("name", "")
+        sprite = self.opp
+        if sprite is None or not used:
+            return ""
+        target_bs = None
+        idx = -1
+        for i, bs in enumerate(sprite.skills or ()):
+            if getattr(bs, "name", "") == used:
+                target_bs, idx = bs, i
+                break
+        if target_bs is None:
+            return ""
+
+        # 与巧变同一条加载路径（按名加载 + 缓存），保证替换技能的字段构造一致
+        replaced = morph.load_skill(m.skill)
+        if replaced is None:
+            return ""
+        old_name = target_bs.name
+        # 不写 _morph_temp：巧变状态由 morph 独占，本 op 只借 replaced_by 字段
+        target_bs.replaced_by = replaced
+        self._battle._replaced_restore[(opp_team, idx)] = True
+        if self.is_headless:
+            return ""
+        return f"{sprite.name} 的{old_name} 变为{m.skill}"
+
     def _apply_weather_set(self, m: WeatherSet) -> str:
-        self.globals.set_weather(m.weather, m.turns)
-        return f"天气 → {m.weather} ({m.turns}t)"
+        if not m.extend:
+            self.globals.set_weather(m.weather, m.turns)
+            return f"天气 → {m.weather} ({m.turns}t)"
+        # extend：同天气累加回合数；无天气则起天气；其它天气不生效（IR_GUIDE §3B weather）
+        result = self.globals.extend_weather(m.weather, m.turns)
+        if not result:
+            return ""
+        return f"天气 {result} ({self.globals.weather_turns}t)"
 
     def _apply_dispel(self, m: Dispel) -> str:
         # 印记是队伍级资源，target 可能是 team_both（倾泻「驱散双方所有印记」），
@@ -1535,7 +1718,31 @@ class JournalReplayer:
             if stacks > 0:
                 sprite.update_stacks(m.name or "", stacks * 2)
                 return f"{sprite.name} {m.name} ×2"
+        elif m.what == "mark":
+            # 印记是**队伍级**：target 定位队伍（二律背反「使敌方星陨印记层数翻倍」）
+            return self._double_marks(m)
         return ""
+
+    def _double_marks(self, m: Double) -> str:
+        """`what:"mark"`：把队伍印记层数 ×2（IR_GUIDE §3B double）。"""
+        opp_team = "B" if self.team == "A" else "A"
+        if m.target in ("team_own", "own_team"):
+            team = self.team
+        else:
+            # team_opp / opp_team / 其它 → 对手队（印记是队伍级，与精灵级 target 区分）
+            team = opp_team
+        doubled: list[str] = []
+        for me in self.globals.mark_effects.get(team, []):
+            if m.name and getattr(me, "name", "") != m.name:
+                continue
+            stacks = getattr(me, "stacks", 0)
+            if stacks <= 0:
+                continue
+            me.stacks = stacks * 2
+            doubled.append(f"{me.name} {stacks}→{me.stacks}")
+        if not doubled:
+            return ""
+        return f"{team}队 印记翻倍({', '.join(doubled)})"
 
     def _apply_effect_delta(self, m: EffectDelta) -> str:
         from backend.vm.effect import AbnormalEffect, StatBuffEffect
@@ -1751,6 +1958,9 @@ class JournalReplayer:
     def _apply_inherit_effects_mutation(self, m: InheritEffectsMutation) -> str:
         """Transfer effects between sprites. Requires battle reference.
 
+        When `m.effects` is non-empty: those declared effects are used verbatim
+        (離場後換入者以 X 狀態登場：木桶戏法 / 观测者效应) instead of copying from
+        the source sprite — so the leaver does not need to hold them itself.
         When inherit_stat_effects=True: copy all StatBuffEffect objects
         (六维/连击/威力/吸血等) regardless of scope.
         Otherwise: filter by scope (legacy behavior).
@@ -1758,31 +1968,46 @@ class JournalReplayer:
         if self._battle is None:
             return ""
         source_sprite = self._resolve_source(m.source_key)
-        if source_sprite is None:
-            return ""
         from copy import copy
 
         from backend.vm.effect import StatBuffEffect
-        if m.inherit_stat_effects:
-            inherited = [copy(e) for e in getattr(source_sprite, 'active_effects', [])
-                         if isinstance(e, StatBuffEffect)
-                         and not getattr(e, 'is_inherent', False)]
+
+        declared: list = []
+        if m.effects:
+            from backend.vm.effect_factory import from_dict as _effect_from_dict
+            for eff in m.effects:
+                src = eff.get("source", "") if isinstance(eff, dict) else getattr(eff, "source", "") or ""
+                obj = _effect_from_dict(eff, source=src)
+                if obj is not None:
+                    declared.append(obj)
+
+        if declared:
+            inherited = declared
+            source_name = source_sprite.name if source_sprite is not None else self.team
         else:
-            inherited = [copy(e) for e in getattr(source_sprite, 'active_effects', [])
-                         if getattr(e, 'scope', '') == m.scope]
+            if source_sprite is None:
+                return ""
+            source_name = source_sprite.name
+            if m.inherit_stat_effects:
+                inherited = [copy(e) for e in getattr(source_sprite, 'active_effects', [])
+                             if isinstance(e, StatBuffEffect)
+                             and not getattr(e, 'is_inherent', False)]
+            else:
+                inherited = [copy(e) for e in getattr(source_sprite, 'active_effects', [])
+                             if getattr(e, 'scope', '') == m.scope]
         if not inherited:
             return ""
         if m.via_pending:
             self._battle.pending_effects.setdefault(self.team, [])
             self._battle.pending_effects[self.team].extend(inherited)
-            return f"{source_sprite.name}→next({self.team}) 继承{len(inherited)}个效果"
+            return f"{source_name}→next({self.team}) 继承{len(inherited)}个效果"
         else:
             target_sprite = self.opp if m.target_key == "enemy_new" else self.self
             if target_sprite is None:
                 return ""
             for e in inherited:
                 target_sprite.add_effect(e)
-            return f"{source_sprite.name}→{target_sprite.name} 继承{len(inherited)}个效果"
+            return f"{source_name}→{target_sprite.name} 继承{len(inherited)}个效果"
 
     def _apply_transform_mutation(self, m: TransformMutation) -> str:
         """Transform a sprite's species. Requires battle reference for species lookup."""
@@ -1974,10 +2199,13 @@ JournalReplayer._DISPATCH = {
     Redirect: JournalReplayer._apply_redirect,
     Replay: JournalReplayer._apply_replay,
     ReplayChoice: JournalReplayer._apply_replay_choice,
+    ReplaceSkill: JournalReplayer._apply_replace_skill,
     Reset: JournalReplayer._apply_reset,
     Return: JournalReplayer._apply_return,
     ScheduleEntry: JournalReplayer._apply_schedule_entry,
     StatChange: JournalReplayer._apply_stat_change,
+    StatConvert: JournalReplayer._apply_stat_convert,
+    StatRandom: JournalReplayer._apply_stat_random,
     Steal: JournalReplayer._apply_steal,
     TeamCounterDelta: JournalReplayer._apply_team_counter_delta,
     Tick: JournalReplayer._apply_tick,

@@ -5,5 +5,28 @@
   "skill_type": "魔攻",
   "power": 65,
   "energy_cost": 3,
+  "choices": [
+    {
+      "name": "明",
+      "effects": [
+        {
+          "op": "dispel",
+          "target": "sprite_opp",
+          "what": "positive"
+        }
+      ]
+    },
+    {
+      "name": "暗",
+      "effects": [
+        {
+          "op": "dispel",
+          "target": "team_both",
+          "what": "mark",
+          "limit": 1
+        }
+      ]
+    }
+  ],
   "description": "✦造成魔伤，选择：驱散敌方所有增益或驱散双方1层印记。"
 }

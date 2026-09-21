@@ -5,6 +5,26 @@
   "skill_type": "物攻",
   "energy_cost": 3,
   "power": 75,
-  "effects": [],
+  "effects": [
+    {
+      "when": {
+        "cond": "not",
+        "condition": {
+          "cond": "have",
+          "what": "mark",
+          "of": "team_opp",
+          "name": "星陨印记"
+        }
+      },
+      "then": [
+        {
+          "op": "mark",
+          "target": "team_opp",
+          "name": "星陨印记",
+          "stacks": 3
+        }
+      ]
+    }
+  ],
   "description": "✦造成物伤，若敌方没有星陨印记，则敌方获得3层星陨印记。"
 }

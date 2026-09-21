@@ -6,5 +6,52 @@
   "power": 115,
   "energy_cost": 4,
   "counter": "状态",
-  "description": "✦造成物伤，选择：敌方携带光系技能时威力+50或应对状态时被应对的技能变为透射。"
+  "choices": [
+    {
+      "name": "明",
+      "effects": [
+        {
+          "when": {
+            "cond": "have_skill_of",
+            "of": "sprite_opp",
+            "element": "光"
+          },
+          "then": [
+            {
+              "op": "power_mod",
+              "target": "skill_off_0",
+              "attr": "power",
+              "delta": 50
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "暗",
+      "cond": {
+        "cond": "and",
+        "conditions": [
+          {
+            "cond": "counter_succeeded"
+          },
+          {
+            "cond": "not",
+            "condition": {
+              "cond": "opp_is_attack"
+            }
+          }
+        ]
+      },
+      "effects": [
+        {
+          "op": "replace_skill",
+          "target": "skill_opp_current",
+          "skill": "透射",
+          "scope": "turn"
+        }
+      ]
+    }
+  ],
+  "description": "✦造成物伤，选择：敌方携带光系技能时威力+50或应对状态时被应对的技能变为透射。// 透射（3026）：光系 1 能耗 60 威力物攻，数据取自 data/skills/透射.json；替换本回合有效，回合末还原。"
 }

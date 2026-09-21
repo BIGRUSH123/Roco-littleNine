@@ -4,6 +4,14 @@
   "element": "虫",
   "skill_type": "状态",
   "energy_cost": 4,
-  "effects": [],
+  "effects": [
+    {
+      "op": "devotion",
+      "target": "team_own",
+      "name": "random",
+      "value": 1,
+      "mode": "add"
+    }
+  ],
   "description": "✦己方队伍获得1次随机奉献，若上回合双方有精灵使用地系技能，额外获得3次随机奉献。"
 }

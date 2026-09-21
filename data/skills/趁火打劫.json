@@ -8,7 +8,8 @@
   "combo": 2,
   "effects": [
     {
-      "when": {
+      "op": "observer",
+      "cond": {
         "cond": "on_ko"
       },
       "then": [

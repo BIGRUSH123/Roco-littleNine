@@ -49,12 +49,15 @@ from .ir_skill import (
     ReturnOp,
     ReviveOp,
     Schedule,
+    StatConvertOp,
+    StatRandomOp,
     StatStageOp,
     StealOp,
     TeamCounterWrite,
     TickOp,
     TraitInteraction,
     Transform,
+    ReplaceSkillOp,
     WeatherOp,
     WhenBlock,
 )
@@ -94,11 +97,14 @@ from .ops.mod import (
     op_mult_mod,
     op_power_mod,
     op_revive,
+    op_stat_convert,
+    op_stat_random,
     op_stat_stage,
 )
 from .ops.redirect import op_redirect
 from .ops.replay import op_replay
 from .ops.replay_branch import op_replay_branch
+from .ops.replace_skill import op_replace_skill
 from .ops.reset import op_reset
 from .ops.return_ import op_return
 from .ops.schedule import op_schedule
@@ -248,6 +254,10 @@ def process_one(ctx: Ctx, op) -> list[Mutation]:
         # RISC register-modifying ops
         case StatStageOp():
             return op_stat_stage(ctx, op)
+        case StatRandomOp():
+            return op_stat_random(ctx, op)
+        case StatConvertOp():
+            return op_stat_convert(ctx, op)
         case PowerModOp():
             return op_power_mod(ctx, op)
         case MultModOp():
@@ -271,6 +281,8 @@ def process_one(ctx: Ctx, op) -> list[Mutation]:
             return op_abnormal(ctx, op)
         case WeatherOp():
             return op_weather(ctx, op)
+        case ReplaceSkillOp():
+            return op_replace_skill(ctx, op)
         case DispelOp():
             return op_dispel(ctx, op)
         case StealOp():

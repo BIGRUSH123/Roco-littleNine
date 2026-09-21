@@ -17,7 +17,7 @@
           "target": "skill_off_0",
           "feeds": "power",
           "attr": "combo",
-          "delta": 3
+          "delta": 1
         }
       ]
     }

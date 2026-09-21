@@ -5,5 +5,14 @@
   "skill_type": "魔攻",
   "power": 80,
   "energy_cost": 3,
+  "effects": [
+    {
+      "op": "mark",
+      "action": "steal",
+      "target": "team_opp",
+      "target_team": "own",
+      "stacks": 1
+    }
+  ],
   "description": "✦造成魔伤，偷取敌方1层印记。"
 }

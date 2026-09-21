@@ -2,5 +2,33 @@
   "id": 200323,
   "name": "宇宙之眼",
   "description": "敌方每有1层星陨印记，自己获得物防+10%。",
-  "effects": []
+  "effects": [
+    {
+      "op": "observer",
+      "cond": {
+        "cond": "compare",
+        "q": "energy",
+        "of": "sprite_self",
+        "op": "gte",
+        "value": 0
+      },
+      "then": [
+        {
+          "op": "mult_mod",
+          "target": "sprite_self",
+          "attr": "def",
+          "value": {
+            "q": "mark_stacks",
+            "of": "team_opp",
+            "name": "星陨印记",
+            "scale": 0.1
+          },
+          "mode": "set",
+          "scope": "turn"
+        }
+      ],
+      "listen": "pre_calc",
+      "scope": "battlefield"
+    }
+  ]
 }

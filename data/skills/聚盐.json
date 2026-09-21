@@ -9,14 +9,23 @@
     {
       "target": "sprite_self",
       "op": "heal",
-      "ratio": 0.08
+      "ratio": 0.08,
+      "per_hit": true
     },
     {
-      "target": "skill_off_0",
-      "op": "power_mod",
-      "scope": "permanent",
-      "attr": "combo",
-      "delta": 1
+      "op": "observer",
+      "then": [
+        {
+          "op": "power_mod",
+          "target": "skill_off_0",
+          "scope": "permanent",
+          "attr": "combo",
+          "delta": 1
+        }
+      ],
+      "cond": {
+        "cond": "skill_use"
+      }
     }
   ],
   "description": "✦2连击，每次连击自己回复8%生命，使用后本技能连击数永久+1。"

@@ -477,17 +477,20 @@ class BattleMechanicsMixin:
             events.append(f'{user.name} 脱离→{new_sprite.name}')
 
             # ── trait hooks ──
-            events += dispatch_leave(user, self, team)
+            # dispatch_leave 延后到 post_leave/post_entry 之后（与 _resolve_switch 同序）：
+            # 否则离场精灵的 post_leave 观察者已被卸载，木桶戏法/洁癖 这类
+            # 「离场时写入 pending_effects」的特性在脱离路径整条失效
             events += dispatch_entry(new_sprite, self, team)
             # Observer: post_leave + post_entry
             opp_esc = self.get_opponent(team).active
             ctx_esc_leave = self._make_ctx(user, opp_esc, None, None, self.globals, team=team, turn=self.turn, self_switched=True)
             ctx_esc_entry = self._make_ctx(new_sprite, opp_esc, None, None, self.globals, team=team, turn=self.turn)
             events += self._vm_engine.fire_trigger("post_leave", ctx_esc_leave, user, opp_esc, self.globals, team=team, battle=self)
-            # 洁癖等 post_leave observer 可能写入新的 pending_effects
+            # 洁癖/木桶戏法等 post_leave observer 可能写入新的 pending_effects
             self._apply_pending_entry_effects(team, new_sprite)
             events += self._vm_engine.fire_trigger("post_entry", ctx_esc_entry, new_sprite, opp_esc, self.globals, team=team, battle=self)
             events += self._apply_entry_transmission(team, new_sprite, opp_esc)
+            events += dispatch_leave(user, self, team)
 
     def _handle_escape_inherit(self, team: str, user: 'Sprite', events: list[str], urgent: bool = False) -> None:
         """脱离 + 下个入场精灵继承增益。
@@ -521,18 +524,18 @@ class BattleMechanicsMixin:
                 new_sprite.add_effect(e)
             events.append(f'{user.name} 脱离→{new_sprite.name}(继承{len(inherited)}增益)')
 
-            # ── trait hooks ──
-            events += dispatch_leave(old, self, team)
+            # ── trait hooks ──（dispatch_leave 延后，理由同 _handle_escape）
             events += dispatch_entry(new_sprite, self, team)
             # Observer: post_leave + post_entry
             opp_inh = self.get_opponent(team).active
             ctx_inh_leave = self._make_ctx(old, opp_inh, None, None, self.globals, team=team, turn=self.turn, self_switched=True)
             ctx_inh_entry = self._make_ctx(new_sprite, opp_inh, None, None, self.globals, team=team, turn=self.turn)
             events += self._vm_engine.fire_trigger("post_leave", ctx_inh_leave, old, opp_inh, self.globals, team=team, battle=self)
-            # 洁癖等 post_leave observer 可能写入新的 pending_effects
+            # 洁癖/木桶戏法等 post_leave observer 可能写入新的 pending_effects
             self._apply_pending_entry_effects(team, new_sprite)
             events += self._vm_engine.fire_trigger("post_entry", ctx_inh_entry, new_sprite, opp_inh, self.globals, team=team, battle=self)
             events += self._apply_entry_transmission(team, new_sprite, opp_inh)
+            events += dispatch_leave(old, self, team)
 
     def _resolve_pending_escape_if_urgent(self, events: list[str]) -> bool:
         """If pending escape is urgent, resolve immediately (random choice).
@@ -595,8 +598,7 @@ class BattleMechanicsMixin:
         else:
             events.append(f'{user.name} 脱离→{new_sprite.name}')
 
-        # ── trait hooks ──
-        events += dispatch_leave(user, self, team)
+        # ── trait hooks ──（dispatch_leave 延后，理由同 _handle_escape）
         events += dispatch_entry(new_sprite, self, team)
         # Observer: post_leave + post_entry
         opp = self.get_opponent(team).active
@@ -610,6 +612,7 @@ class BattleMechanicsMixin:
         events += self._vm_engine.fire_trigger("post_entry", ctx_entry, new_sprite, opp,
                                                self.globals, team=team, battle=self)
         events += self._apply_entry_transmission(team, new_sprite, opp)
+        events += dispatch_leave(user, self, team)
 
         return events
 

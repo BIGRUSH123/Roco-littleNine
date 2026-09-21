@@ -4,7 +4,17 @@
   "element": "幻",
   "skill_type": "状态",
   "energy_cost": 1,
-  "description": "✦自己获得随机16层属性增益，巧变：幻系攻击技能。",
+  "effects": [
+    {
+      "op": "stat_random",
+      "target": "sprite_self",
+      "direction": "positive",
+      "layers": 16,
+      "scope": "battlefield",
+      "source": "叠加态"
+    }
+  ],
+  "description": "✦自己获得随机16层属性增益，巧变：幻系攻击技能。// 16 层逐层随机分配到五维（每层 1 步 = 10%）。",
   "qiaobian": {
     "element": "幻",
     "skill_type": "attack"

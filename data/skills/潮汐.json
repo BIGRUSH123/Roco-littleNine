@@ -7,26 +7,22 @@
   "counter": "攻击",
   "effects": [
     {
+      "target": "sprite_self",
+      "op": "mult_mod",
+      "feeds": "mult",
+      "attr": "damage_reduction",
+      "value": 0.6
+    },
+    {
       "when": {
-        "cond": "have",
-        "what": "abnormal",
-        "of": "sprite_opp",
-        "name": "害怕"
+        "cond": "counter_succeeded"
       },
       "then": [
         {
-          "op": "dispel",
-          "target": "sprite_opp",
-          "what": "abnormal"
-        },
-        {
-          "op": "energize",
-          "target": "sprite_opp",
-          "delta": {
-            "q": "energy",
-            "of": "sprite_opp",
-            "scale": -1
-          }
+          "op": "mark",
+          "target": "team_own",
+          "name": "湿润印记",
+          "stacks": 1
         }
       ]
     }

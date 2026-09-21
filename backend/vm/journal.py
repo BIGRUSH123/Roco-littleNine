@@ -98,6 +98,40 @@ class WeatherSet:
     """Weather change."""
     weather: str
     turns: int
+    # True = 延长语义（同天气则累加回合数，无天气则起天气，其它天气不生效）
+    extend: bool = False
+
+
+@dataclass(frozen=True, slots=True)
+class StatRandom:
+    """随机 N 层属性增益/减益（stat_random op）。
+
+    逐层在五维（或声明的 stats）里随机挑一维 +1 步；方向由 direction 决定。
+    """
+    target: str
+    layers: int
+    direction: str = "positive"     # "positive" | "negative"
+    stats: tuple[str, ...] = ()
+    scope: str = "battlefield"
+    source: str = ""
+
+
+@dataclass(frozen=True, slots=True)
+class StatConvert:
+    """属性增益 ⇄ 属性减益转换（stat_convert op，层数不变、只翻符号）。"""
+    target: str = "sprite_opp"
+    from_: str = "positive"
+    to: str = ""
+    name: str = ""
+    source: str = ""
+
+
+@dataclass(frozen=True, slots=True)
+class ReplaceSkill:
+    """把对手当前技能替换为指定技能（replace_skill op，回合末还原）。"""
+    target: str = "skill_opp_current"
+    skill: str = ""
+    scope: str = "turn"
 
 
 @dataclass(frozen=True, slots=True)
@@ -334,6 +368,7 @@ Mutation = Union[
     InheritEffectsMutation, TransformMutation, TraitInteractionMutation,
     GainSkillsMutation,
     MechanismGrant, CounterWrite,
+    StatRandom, StatConvert, ReplaceSkill,
 ]
 
 # Journal is an ordered list of mutations

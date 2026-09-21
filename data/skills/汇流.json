@@ -4,6 +4,29 @@
   "element": "水",
   "skill_type": "状态",
   "energy_cost": 1,
-  "effects": [],
-  "description": "✦雨天的回合数延长4回合，应对防御：改为延长8回合。"
+  "counter": "防御",
+  "effects": [
+    {
+      "when": {
+        "cond": "counter_succeeded"
+      },
+      "then": [
+        {
+          "op": "weather",
+          "weather": "rain",
+          "turns": 8,
+          "extend": true
+        }
+      ],
+      "else": [
+        {
+          "op": "weather",
+          "weather": "rain",
+          "turns": 4,
+          "extend": true
+        }
+      ]
+    }
+  ],
+  "description": "✦雨天的回合数延长4回合，应对防御：改为延长8回合。// weather extend:true = 同天气累加回合数（无天气则起天气，其它天气不生效）。"
 }

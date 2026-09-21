@@ -5,6 +5,24 @@
   "skill_type": "状态",
   "energy_cost": 1,
   "description": "✦驱散自己所有印记，每驱散1层，获得物攻+50%。巧变：火系攻击技能。",
+  "effects": [
+    {
+      "op": "dispel",
+      "target": "team_own",
+      "what": "mark"
+    },
+    {
+      "op": "stat_stage",
+      "target": "sprite_self",
+      "stat": "atk",
+      "steps": {
+        "q": "mark_count",
+        "of": "team_own",
+        "scale": 5
+      },
+      "scope": "battlefield"
+    }
+  ],
   "qiaobian": {
     "element": "火",
     "skill_type": "attack"

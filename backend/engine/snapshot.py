@@ -11,6 +11,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
+from backend.engine.bloodline import is_mixed_blood
 from backend.sim.battleskill import BattleSkill
 from backend.sim.resolver import _TYPE_CHART
 from backend.vm.effect import MarkEffect
@@ -295,7 +296,9 @@ def build_ctx(
     skill_mods = getattr(bs, '_modifiers', {}) if bs is not None else getattr(sk, '_modifiers', {}) if sk else {}
     if bs is not None:
         power_self = bs.power
-        combo_base = bs.base.combo if hasattr(bs, 'base') else getattr(sk, 'combo', 1)
+        # bs.combo 已含技能级 _modifiers（「每次使用后本技能连击数永久+N」、combo_set）；
+        # 用 bs.base.combo 会让这类效果永远不生效（Cython 侧 snapshot_cy.pyx 已同步）
+        combo_base = bs.combo if hasattr(bs, 'base') else getattr(sk, 'combo', 1)
         energy_cost_self = bs.energy_cost
     else:
         power_self = sk.power if hasattr(sk, 'power') else 0
@@ -363,6 +366,9 @@ def build_ctx(
         # Bloodline / Elements
         bloodline_self=ss.bloodline,
         bloodline_opp=os.bloodline if os else '',
+        # 混血（3015）：与 bloodline 同处预计算，cond 侧只读寄存器
+        is_mixed_blood_self=is_mixed_blood(ss),
+        is_mixed_blood_opp=is_mixed_blood(os),
         elements_self=elements_self,
         elements_opp=elements_opp,
         # Self sprite
@@ -502,12 +508,15 @@ def build_ctx(
 def fill_extended_registers(ctx: Ctx, self_sprite, opp_sprite, globals_) -> Ctx:
     """填充 Cython build_ctx 未覆盖的扩展寄存器（Python 版已原生填充）。
 
-    新增寄存器（精灵级计数器 / 世界状态）只在 Python build_ctx 中构建；
+    新增寄存器（精灵级计数器 / 世界状态 / 血脉派生判定）只在 Python build_ctx 中构建；
     Cython 版由于签名固定，需在构造后补齐，两条路径行为保持一致。
     """
     ctx.counters_self = self_sprite.counters if self_sprite is not None else {}
     ctx.counters_opp = opp_sprite.counters if opp_sprite is not None else {}
     ctx.is_night = bool(getattr(globals_, 'night', False)) if globals_ is not None else False
+    # 混血（3015）：Cython build_ctx 不认识这两个字段，在此补齐（cond 只读寄存器）
+    ctx.is_mixed_blood_self = is_mixed_blood(self_sprite)
+    ctx.is_mixed_blood_opp = is_mixed_blood(opp_sprite)
     return ctx
 
 

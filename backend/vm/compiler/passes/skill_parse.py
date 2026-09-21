@@ -42,9 +42,12 @@ from backend.vm.ir_skill import (
     ResetOp,
     ReturnOp,
     ReviveOp,
+    ReplaceSkillOp,
     Schedule,
     SkillCondition,
     SkillIROp,
+    StatConvertOp,
+    StatRandomOp,
     StatStageOp,
     StealOp,
     TeamCounterWrite,
@@ -432,6 +435,15 @@ class SkillParsePass:
         return WeatherOp(
             weather=self._str_or(e, "weather", ""),
             turns=self._int_or(e, "turns", 8),
+            extend=self._bool_or(e, "extend", False),
+            **self._common_fields(e),
+        )
+
+    def _parse_replace_skill(self, e: dict) -> ReplaceSkillOp:
+        return ReplaceSkillOp(
+            target=self._str_or(e, "target", "skill_opp_current"),
+            skill=self._str_or(e, "skill", ""),
+            scope=self._str_or(e, "scope", "turn"),
             **self._common_fields(e),
         )
 
@@ -557,6 +569,39 @@ class SkillParsePass:
         )
 
     # ── RISC IR opcode parsers (compatibility shim: RISC JSON → internal IR) ──
+
+    def _parse_stat_random(self, e: dict) -> StatRandomOp:
+        """RISC: stat_random → StatRandomOp（随机 N 层属性增益/减益）。"""
+        raw_layers = e.get("layers", e.get("steps", 0))
+        value = None
+        layers = 0
+        if isinstance(raw_layers, dict) and "q" in raw_layers or (
+                isinstance(raw_layers, str) and raw_layers.startswith("=")):
+            value = self._parse_value(raw_layers)
+        else:
+            layers = self._int_or(e, "layers", self._int_or(e, "steps", 0))
+        stats = e.get("stats") or ()
+        return StatRandomOp(
+            target=self._str_or(e, "target", "sprite_self"),
+            layers=layers,
+            value=value,
+            direction=self._str_or(e, "direction", "positive"),
+            stats=tuple(str(s) for s in stats),
+            scope=self._str_or(e, "scope", "battlefield"),
+            source=e.get("source"),
+            **self._common_fields(e),
+        )
+
+    def _parse_stat_convert(self, e: dict) -> StatConvertOp:
+        """RISC: stat_convert → StatConvertOp（属性增益 ⇄ 属性减益）。"""
+        return StatConvertOp(
+            target=self._str_or(e, "target", "sprite_opp"),
+            from_=self._str_or(e, "from", "positive"),
+            to=self._str_or(e, "to", ""),
+            name=e.get("name"),
+            source=e.get("source"),
+            **self._common_fields(e),
+        )
 
     def _parse_stat_stage(self, e: dict) -> StatStageOp:
         """RISC: stat_stage → StatStageOp (stage changes only, 1 step = 10%)."""

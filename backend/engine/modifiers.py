@@ -76,7 +76,9 @@ def _collect_modifiers_from_entries(entries: list[ModifierInjection], ctx: Ctx) 
             power_mult_base = m.value
         elif m.stat == "damage_reduction":
             dr_base = m.value
-        elif m.stat == "combo":
+        elif m.stat in ("combo", "combo_set"):
+            # op_power_mod 会把 mode:"set" 的连击数改写成 combo_set（绝对语义），
+            # 两个名字都要认，否则「改为 N 连击」会被静默丢弃
             mods["combo_set"] = int(m.value)
         elif m.stat == "power" and m.value != 0:
             mods["power_base"] = m.value
@@ -102,7 +104,7 @@ def _collect_modifiers_from_entries(entries: list[ModifierInjection], ctx: Ctx) 
                 mods["damage_reduction"] = min(1.0, mods["damage_reduction"] + value)
             elif mode == "multiply":
                 mods["damage_reduction"] = 1.0 - (1.0 - mods["damage_reduction"]) * (1.0 - value)
-        elif stat == "combo":
+        elif stat in ("combo", "combo_set"):
             if mode == "add":
                 mods["combo_add"] += int(m.value)
         elif stat == "power":

@@ -2,11 +2,29 @@
 
 Pure function: from_dict(dict, source) -> EffectObject | None.
 Returns None for opcodes that don't need objectification (raw VM ops like hit, mark, etc.).
+
+也接受**已编译的 typed op**（dataclass）：字段名与 JSON 键同名（`from_` ↔ `from`），
+因此 `inherit` op 的 `effects[]` 无论来自技能 JSON（已被 SkillParsePass 编译）
+还是特性 JSON（仍是 dict）都能走同一条落地路径。
 """
 
 from __future__ import annotations
 
+import dataclasses
+import re
+
 from .effect import AbnormalEffect, EffectObject, MarkEffect, ModifierEffect, ObserverEffect
+
+#: typed op 类名 → 数据面 op 名。通用规则是 CamelCase → snake_case，
+#: 下面这些是「类名 ≠ op 名」的例外（与 skill_parse 的 `_parse_<op>` 方法名对齐）。
+_OP_ALIASES: dict[str, str] = {
+    "InheritEffects": "inherit",
+    "TeamCounterWrite": "team_counter",
+    "LivesChange": "lives",
+    "Schedule": "defer",
+    "ReplayChoiceOp": "replay_branch",
+    "BurstGrantOp": "burst_grant",
+}
 
 
 def _normalize_listen(listen) -> frozenset:
@@ -20,12 +38,41 @@ def _normalize_listen(listen) -> frozenset:
     return frozenset()
 
 
-def from_dict(d: dict, *, source: str = "") -> EffectObject | None:
-    """Convert a JSON effect dict to the appropriate EffectObject subtype.
+def _op_name(d) -> str:
+    """typed op → 数据面 op 名（dict 走 op 键，typed op 由类名反推）。"""
+    class_name = type(d).__name__
+    if class_name in _OP_ALIASES:
+        return _OP_ALIASES[class_name]
+    if class_name.endswith("Op"):
+        class_name = class_name[:-2]
+    return re.sub(r"(?<!^)(?=[A-Z])", "_", class_name).lower()
+
+
+def _as_effect_dict(d):
+    """dict 原样返回；typed op（frozen slots dataclass）转成等价的字段 dict。
+
+    typed op 没有 `op` 字段，由类名反推（见 `_op_name`），使技能 JSON 里已被
+    SkillParsePass 编译过的 `effects[]`（如 inherit 的携带效果）与特性 JSON 里
+    仍是 dict 的写法都能走同一条落地路径。
+    """
+    if isinstance(d, dict):
+        return d
+    if dataclasses.is_dataclass(d) and not isinstance(d, type):
+        out: dict = {"op": _op_name(d)}
+        for f in dataclasses.fields(d):
+            key = "from" if f.name == "from_" else f.name
+            out[key] = getattr(d, f.name)
+        return out
+    return {}
+
+
+def from_dict(d, *, source: str = "") -> EffectObject | None:
+    """Convert a JSON effect dict (or a compiled typed op) to an EffectObject.
 
     Returns None for opcodes handled directly by the VM (hit, mark, etc.)
     that don't need identity wrapping.
     """
+    d = _as_effect_dict(d)
     op = d.get("op", "")
     scope = d.get("scope", "battlefield")
     ttl = d.get("ttl", 0)
@@ -79,6 +126,9 @@ def from_dict(d: dict, *, source: str = "") -> EffectObject | None:
                 decay_on_tick=d.get("decay_on_tick", template.decay_on_tick),
                 max_stacks=d.get("max_stacks", template.max_stacks),
                 tick_per_stack=d.get("tick_per_stack", template.tick_per_stack),
+                # 情报遮蔽状态（木桶/月陨星）的解除时机随模板带上
+                release_on_action=getattr(template, "release_on_action", False),
+                release_on_damage=getattr(template, "release_on_damage", False),
             )
         return AbnormalEffect(
             name=name or source,

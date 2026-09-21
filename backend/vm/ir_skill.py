@@ -66,6 +66,36 @@ class StatStageOp:
     priority: int = 0
 
 @dataclass(frozen=True, slots=True)
+class StatRandomOp:
+    """RISC: stat_random — 随机 N 层属性增益/减益（逐层随机分配到五维）。
+
+    随机分配无法用 stat_stage 组合表达（编译期不知道分配结果），故单独一条指令。
+    分配在 replayer 落地（`_apply_stat_random`），随机源是全局 random（可播种）。
+    """
+    target: str = "sprite_self"
+    layers: int = 0
+    value: IRValue | None = None      # Query/RefExpr 形式的 layers（动态层数）
+    direction: str = "positive"      # "positive" | "negative"
+    stats: tuple[str, ...] = ()      # 空 = 五维（物攻/物防/魔攻/魔防/速度）
+    scope: str = "battlefield"
+    source: str | None = None
+    feeds: str = ""
+    needs: str = ""
+    priority: int = 0
+
+@dataclass(frozen=True, slots=True)
+class StatConvertOp:
+    """RISC: stat_convert — 属性增益 ⇄ 属性减益转换（层数不变、只翻符号）。"""
+    target: str = "sprite_opp"
+    from_: str = "positive"          # "positive" | "negative"
+    to: str = ""                     # 空 = from 的反面
+    name: str | None = None          # 只转换指定维度
+    source: str | None = None
+    feeds: str = ""
+    needs: str = ""
+    priority: int = 0
+
+@dataclass(frozen=True, slots=True)
 class PowerModOp:
     """RISC: power_mod — modify skill attributes (power/energy_cost/combo/priority)."""
     target: str = "sprite_self"
@@ -239,6 +269,17 @@ class AbnormalOp:
 class WeatherOp:
     weather: str
     turns: int = 8
+    extend: bool = False   # true = 延长同天气（见 IR_GUIDE §3B weather）
+    feeds: str = ""
+    needs: str = ""
+    priority: int = 0
+
+@dataclass(frozen=True, slots=True)
+class ReplaceSkillOp:
+    """RISC: replace_skill — 把对手本回合的技能替换为指定技能（回合末还原）。"""
+    target: str = "skill_opp_current"
+    skill: str = ""
+    scope: str = "turn"
     feeds: str = ""
     needs: str = ""
     priority: int = 0
@@ -578,13 +619,13 @@ class CounterOp:
 
 SkillIROp = (
     # RISC register-modifying ops
-    StatStageOp | PowerModOp | MultModOp | FlagSetOp |
+    StatStageOp | StatRandomOp | StatConvertOp | PowerModOp | MultModOp | FlagSetOp |
     HealOp | EnergizeOp | ReviveOp | CounterOp | AuraOp |
     ElementConvertOp | MorphOp | GrantChoiceOp |
     # Team resources
     DevotionOp |
     # Specialist ops
-    HitOp | MarkOp | AbnormalOp | WeatherOp |
+    HitOp | MarkOp | AbnormalOp | WeatherOp | ReplaceSkillOp |
     DispelOp | StealOp | TickOp | DoubleOp | EffectDeltaOp | ChargeOp |
     EscapeOp | ReturnOp | LockOp | InterruptOp |
     ExchangeOp | ResetOp | RedirectOp | ReplayOp |

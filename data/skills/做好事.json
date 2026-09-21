@@ -5,5 +5,27 @@
   "skill_type": "魔攻",
   "power": 80,
   "energy_cost": 3,
-  "description": "✦造成魔伤，自己每使用过1次选择技能，自己获得3层随机永久属性增益，使用后重置。"
+  "effects": [
+    {
+      "op": "stat_random",
+      "target": "sprite_self",
+      "direction": "positive",
+      "layers": {
+        "q": "counter",
+        "of": "sprite_self",
+        "name": "choice_skill_used",
+        "scale": 3
+      },
+      "scope": "permanent",
+      "source": "做好事"
+    },
+    {
+      "op": "counter",
+      "target": "sprite_self",
+      "key": "choice_skill_used",
+      "mode": "set",
+      "value": 0
+    }
+  ],
+  "description": "✦造成魔伤，自己每使用过1次选择技能，自己获得3层随机永久属性增益，使用后重置。// 层数 = 精灵级计数器 choice_skill_used（每次「选择」技能结算由引擎 +1）×3，随后清零。"
 }

@@ -18,7 +18,10 @@ from backend.vm.ir_skill import (
     PowerModOp,
     ResetOp,
     ReviveOp,
+    ReplaceSkillOp,
     SkillIROp,
+    StatConvertOp,
+    StatRandomOp,
     StatStageOp,
     WhenBlock,
 )
@@ -30,6 +33,7 @@ VALID_POWER_ATTRS = frozenset({
     "energy_cost_mult", "combo_mult", "energy_cost_delta_mult",
     "max_energy",        # 突破能量上限（地脉馈赠）
     "use_count_bonus",   # 技能使用次数加成（噼啪噼啪！）
+    "attach_abnormal",   # 携带型「命中后追加 N 层中毒」（重金属粉尘，3013）
 })
 VALID_MULT_ATTRS = frozenset({
     "power_mult", "damage_mult", "damage_reduction", "life_drain",
@@ -174,6 +178,21 @@ class SkillValidatePass:
         if isinstance(op, StatStageOp) and op.stat:
             self._check(op.stat in VALID_STAGE_STATS,
                         f"Invalid stat_stage stat '{op.stat}'", idx, "stat")
+        if isinstance(op, StatRandomOp):
+            self._check(op.direction in ("positive", "negative"),
+                        f"Invalid stat_random direction '{op.direction}'", idx, "direction")
+            for s in op.stats:
+                self._check(s in VALID_STAGE_STATS or s in ("atk", "def", "sp_atk", "sp_def", "speed"),
+                            f"Invalid stat_random stat '{s}'", idx, "stats")
+        if isinstance(op, StatConvertOp):
+            self._check(op.from_ in ("positive", "negative"),
+                        f"Invalid stat_convert from '{op.from_}'", idx, "from")
+            self._check(not op.to or op.to in ("positive", "negative"),
+                        f"Invalid stat_convert to '{op.to}'", idx, "to")
+        if isinstance(op, ReplaceSkillOp):
+            self._check(bool(op.skill), "replace_skill skill cannot be empty", idx, "skill")
+            self._check(op.target == "skill_opp_current",
+                        f"replace_skill target '{op.target}' not supported", idx, "target")
         if isinstance(op, PowerModOp) and op.attr:
             self._check(op.attr in VALID_POWER_ATTRS,
                         f"Invalid power_mod attr '{op.attr}'", idx, "attr")

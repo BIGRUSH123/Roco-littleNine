@@ -213,6 +213,8 @@ CONDITION_TRIGGERS: dict[str, frozenset[str]] = {
     "sprite_entered":          frozenset({"post_entry"}),
     "sprite_acted":            frozenset({"post_skill"}),
     "have_skill_of":           frozenset({"post_entry", "post_skill"}),
+    # 混血是纯状态判定（Ctx 预计算），任何触发点都成立 → 与 have 同组兜底
+    "is_mixed_blood":          frozenset({"post_entry", "post_skill"}),
     # Abnormal / state change events
     "on_abnormal_tick":        frozenset({"post_abnormal_tick"}),
     "on_abnormal_changed":     frozenset({"post_abnormal_change"}),
@@ -401,6 +403,14 @@ COND_EVAL = {
         resolve(ctx, cond["element"]) in _sprite_of(ctx, cond["of"]).skill_elements
         if isinstance(cond.get("element"), dict)
         else cond["element"] in _sprite_of(ctx, cond["of"]).skill_elements
+    ),
+
+    # ── Bloodline（混血，游戏内文本 3015）──
+    # 判定预计算在 Ctx（backend/engine/bloodline.py + snapshot.build_ctx），
+    # 这里只读寄存器 —— 与 bloodline/elements 同一条口径。
+    "is_mixed_blood": lambda ctx, cond: (
+        ctx.is_mixed_blood_opp if cond.get("of", "sprite_self") == "sprite_opp"
+        else ctx.is_mixed_blood_self
     ),
 
     # ── Entry / abnormal / state change events ──

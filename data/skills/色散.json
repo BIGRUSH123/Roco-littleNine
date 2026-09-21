@@ -5,5 +5,22 @@
   "skill_type": "魔攻",
   "power": 80,
   "energy_cost": 3,
-  "description": "✦造成魔伤，对混血精灵造成伤害+50%。"
+  "effects": [
+    {
+      "when": {
+        "cond": "is_mixed_blood",
+        "of": "sprite_opp"
+      },
+      "then": [
+        {
+          "op": "mult_mod",
+          "target": "skill_off_0",
+          "attr": "damage_mult",
+          "value": 1.5,
+          "source": "色散"
+        }
+      ]
+    }
+  ],
+  "description": "✦造成魔伤，对混血精灵造成伤害+50%。// 混血（3015）：非本系血脉（含首领/污染/奇异血脉）——条件 is_mixed_blood。"
 }

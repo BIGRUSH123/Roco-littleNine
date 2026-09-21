@@ -1,16 +1,32 @@
 {
   "id": 20071,
   "name": "木桶戏法",
-  "description": "离场后，更换入场的精灵以木桶状态登场。//pass",
-  "triggers": [
+  "description": "离场后，更换入场的精灵以木桶状态登场。// 木桶（3024）：该状态下会隐藏精灵的信息，自己行动或被敌方攻击时解除。// 本引擎是完全信息对局，「隐藏信息」无战斗后果，只落地获得/解除时机（见 data/IR_GUIDE.md 异常模板·情报遮蔽状态）。",
+  "effects": [
     {
-      "on": "leave",
-      "pending_effects": [
+      "op": "observer",
+      "cond": {
+        "cond": "sprite_left",
+        "of": "sprite_self"
+      },
+      "listen": "post_leave",
+      "scope": "persistent",
+      "then": [
         {
-          "kind": "state",
-          "name": "木桶状态",
+          "op": "inherit",
+          "source": "self",
+          "via_pending": true,
           "scope": "battlefield",
-          "source": "木桶戏法"
+          "effects": [
+            {
+              "op": "abnormal",
+              "name": "木桶状态",
+              "stacks": 1,
+              "scope": "battlefield",
+              "source": "木桶戏法"
+            }
+          ],
+          "target": "ally_new"
         }
       ]
     }

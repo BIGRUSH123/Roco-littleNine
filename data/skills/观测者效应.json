@@ -4,6 +4,27 @@
   "element": "幻",
   "skill_type": "状态",
   "energy_cost": 3,
-  "effects": [],
-  "description": "✦自己脱离，更换入场的精灵以月陨星状态登场。"
+  "effects": [
+    {
+      "op": "escape",
+      "target": "sprite_self"
+    },
+    {
+      "op": "inherit",
+      "source": "self",
+      "via_pending": true,
+      "inherit_target": "ally_new",
+      "scope": "battlefield",
+      "effects": [
+        {
+          "op": "abnormal",
+          "name": "月陨星状态",
+          "stacks": 1,
+          "scope": "battlefield",
+          "source": "观测者效应"
+        }
+      ]
+    }
+  ],
+  "description": "✦自己脱离，更换入场的精灵以月陨星状态登场。// 月陨星（3025）：该状态下会隐藏精灵的信息，自己行动或被敌方攻击时解除。// 本引擎是完全信息对局，「隐藏信息」无战斗后果，只落地获得/解除时机（见 data/IR_GUIDE.md 异常模板·情报遮蔽状态）。"
 }

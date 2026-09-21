@@ -245,6 +245,9 @@ class GlobalEffects:
 
     def consume_starfall_stacks(self, team: str, amount: int, sprite: Sprite) -> int:
         """消耗星陨印记层数。若 sprite 有守望星 → 只消耗一半。
+
+        `sprite` 必须是**印记持有方**（防守方）的在场精灵：守望星是防守方特性
+        （「触发星陨印记时仅消耗一半层数」），传攻击方则半耗永远不生效。
         返回实际消耗层数（用于伤害计算）。"""
         for me in self.mark_effects.get(team, []):
             if isinstance(me, MarkEffect) and me.name == '星陨印记' and me.stacks > 0:
@@ -274,6 +277,11 @@ class GlobalEffects:
         星陨威力 = X^2 + 24X - 24，其中 X 为触发前层数。
         攻防属性类型跟随触发技能：物攻→物攻/物防，魔攻→魔攻/魔防，
         动态攻击沿用技能的动态攻防判定。返回实际伤害值。
+
+        守望星（361 半耗）：特性属于**防守方**（`defender`，即印记持有方），
+        「仅消耗一半层数，仍造成满层伤害」——消耗量按 `defender` 上的
+        `starfall_consume_ratio` 折算，威力仍用 `total_stacks` 全层计算。
+        （修复前读的是 `attacker`，该特性从不生效。）
         """
         skill_type = getattr(trigger_skill, 'skill_type', '魔攻') if trigger_skill is not None else '魔攻'
         if skill_type not in ('物攻', '魔攻', '动态攻击'):
@@ -300,8 +308,9 @@ class GlobalEffects:
 
             total_stacks = me.stacks
             consume = total_stacks
-            if attacker is not None:
-                for e in getattr(attacker, 'active_effects', []):
+            # 守望星：印记持有方（防守方）才有半耗；防守方缺失时退化为全耗
+            if defender is not None:
+                for e in getattr(defender, 'active_effects', []):
                     if isinstance(e, ModifierEffect) and e.attr == "starfall_consume_ratio":
                         consume = max(1, int(total_stacks * e.value))
                         break
@@ -343,6 +352,25 @@ class GlobalEffects:
         from backend.common.constants import normalize_weather
         self.weather = normalize_weather(weather)
         self.weather_turns = turns
+
+    def extend_weather(self, weather: str, turns: int) -> str:
+        """延长当前天气的回合数（汇流：「雨天的回合数延长4回合」）。
+
+        口径（见 data/IR_GUIDE.md §3B weather `extend`）：
+          - 当前天气与 `weather` 相同 → 回合数累加，返回归一后的天气名；
+          - 当前无天气 → 按 `set_weather` 起 `turns` 回合（兜底，技能不空转）；
+          - 当前是其它天气 → 返回 ""（不生效），避免「延长」被读成「覆盖对手天气」。
+        """
+        from backend.common.constants import normalize_weather
+        target = normalize_weather(weather)
+        current = normalize_weather(self.weather) if self.weather else ""
+        if current and current != target:
+            return ""
+        if not current:
+            self.set_weather(weather, turns)
+            return self.weather
+        self.weather_turns += int(turns)
+        return current
 
     @staticmethod
     def classify_mark(name: str) -> str:

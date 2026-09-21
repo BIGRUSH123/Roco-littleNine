@@ -7,10 +7,11 @@
       "op": "observer",
       "then": [
         {
-          "target": "sprite_self",
-          "op": "lives",
-          "delta": 1,
-          "target_team": "own"
+          "op": "devotion",
+          "target": "team_own",
+          "name": "random",
+          "value": 1,
+          "mode": "add"
         }
       ],
       "scope": "persistent",

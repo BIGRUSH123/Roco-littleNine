@@ -5,6 +5,32 @@
   "skill_type": "物攻",
   "power": 70,
   "energy_cost": 3,
-  "tag": "传动",
+  "transmission": 1,
+  "effects": [],
+  "choices": [
+    {
+      "name": "明",
+      "effects": [
+        {
+          "when": {
+            "cond": "skill_at",
+            "position": 0
+          },
+          "then": [
+            {
+              "op": "power_mod",
+              "target": "skill_off_0",
+              "attr": "power",
+              "delta": 65
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "暗",
+      "effects": []
+    }
+  ],
   "description": "✦造成物伤，传动1，选择：本技能位于1号位时威力+65或本回合额外传动1。"
 }

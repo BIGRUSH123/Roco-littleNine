@@ -5,6 +5,21 @@
   "skill_type": "物攻",
   "energy_cost": 3,
   "power": 55,
-  "effects": [],
+  "effects": [
+    {
+      "when": {
+        "cond": "opp_switched"
+      },
+      "then": [
+        {
+          "op": "devotion",
+          "target": "team_own",
+          "name": "random",
+          "value": 3,
+          "mode": "add"
+        }
+      ]
+    }
+  ],
   "description": "✦造成物伤，若敌方本回合更换精灵，己方队伍获得3次随机奉献。"
 }

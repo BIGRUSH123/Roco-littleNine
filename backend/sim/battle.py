@@ -360,6 +360,7 @@ class Battle(BattleMechanicsMixin):
             "pending_escape": self.pending_escape,
             "borrowed_restore": dict(self._borrowed_restore),
             "wish_restore": dict(self._wish_restore),
+            "replaced_restore": dict(self._replaced_restore),
             "active_a": self.player_a.active_index,
             "active_b": self.player_b.active_index,
             "lives_a": self.player_a.lives,
@@ -530,6 +531,7 @@ class Battle(BattleMechanicsMixin):
         self.pending_escape = saved["pending_escape"]
         self._borrowed_restore = dict(saved["borrowed_restore"])
         self._wish_restore = dict(saved["wish_restore"])
+        self._replaced_restore = dict(saved.get("replaced_restore", {}))
         self.player_a.active_index = saved["active_a"]
         self.player_b.active_index = saved["active_b"]
         self.player_a.lives = saved["lives_a"]
@@ -583,6 +585,8 @@ class Battle(BattleMechanicsMixin):
         self.verbose = verbose
         self._borrowed_restore: dict[tuple[str, int], Skill] = {}
         self._wish_restore: dict[tuple[str, int], BattleSkill] = {}   # 愿力一回合后还原
+        # replace_skill（透镜实验「被应对的技能变为透射」）：回合末清 replaced_by 的槽位登记
+        self._replaced_restore: dict[tuple[str, int], bool] = {}
         # VM engine + skill cache
         from backend.engine.battle import BattleVMEngine
         from backend.engine.snapshot import build_ctx as _build_ctx
@@ -1176,12 +1180,14 @@ class Battle(BattleMechanicsMixin):
                 self.inc_team_counter('A', 'counter_success')
                 # Observer: post_counter
                 ctx_ca = self._make_ctx(s_a, s_b, skill_a, None, self.globals, team='A', turn=self.turn, counter_succeeded=True)
-                ar_a.events += self._vm_engine.fire_trigger("post_counter", ctx_ca, s_a, s_b, self.globals, team='A', battle=self)
+                # self_skill 要传：叠势等「应对成功 → 本技能…」的 target:"skill_off_0"
+                # 依赖 replayer._self_skill 定位当前技能
+                ar_a.events += self._vm_engine.fire_trigger("post_counter", ctx_ca, s_a, s_b, self.globals, team='A', battle=self, self_skill=skill_a)
             if counter_b:
                 self.inc_team_counter('B', 'counter_success')
                 # Observer: post_counter
                 ctx_cb = self._make_ctx(s_b, s_a, skill_b, None, self.globals, team='B', turn=self.turn, counter_succeeded=True)
-                ar_b.events += self._vm_engine.fire_trigger("post_counter", ctx_cb, s_b, s_a, self.globals, team='B', battle=self)
+                ar_b.events += self._vm_engine.fire_trigger("post_counter", ctx_cb, s_b, s_a, self.globals, team='B', battle=self, self_skill=skill_b)
             return []
 
         # 无应对 → 按优先级先后执行。skill_a/skill_b 已在上方解析过，
@@ -1493,8 +1499,16 @@ class Battle(BattleMechanicsMixin):
             chosen = choices[branch_idx]
             cond = chosen.get("cond")
             if cond is not None:
-                probe_ctx = self._make_ctx(user, target, record, None, self.globals,
-                                           team=team, turn=self.turn)
+                # 分支 cond 在「结算时」求值：必须带上本次应对的瞬时标志与对手技能，
+                # 否则「应对状态时…」这类分支（驱赶/撒花/透镜实验）永远判不成立，
+                # 被强制回退到 0 号分支。
+                probe_opp = countered_skill or countering_skill or opp_skill
+                probe_ctx = self._make_ctx(
+                    user, target, record, probe_opp, self.globals,
+                    team=team, turn=self.turn,
+                    was_countered=is_countered,
+                    counter_succeeded=countered_skill is not None,
+                )
                 from backend.vm.cond import eval_one as _eval_branch
                 try:
                     cond_ok = _eval_branch(probe_ctx, cond)
@@ -1735,6 +1749,8 @@ class Battle(BattleMechanicsMixin):
         # ═══ 「选择」分支使用计数（猫精灵的礼物：明暗各 1 次为一对） ═══
         if choices:
             self.inc_team_counter(team, f'choice_used:{chosen_branch_name}')
+            # 精灵级「选择技能使用次数」：做好事/吃独食「每使用过1次选择技能」读它
+            user.inc_counter('choice_skill_used')
             names = [c.get("name", f"branch{i}") for i, c in enumerate(choices)]
             if len(names) > 1 and all(
                     self.get_team_counter(team, f'choice_used:{n}') > 0 for n in names):
@@ -1786,6 +1802,13 @@ class Battle(BattleMechanicsMixin):
                 events.append(f'{user.name} 迸发延长({remaining - 1}回剩余)')
         # Clear "charged" state — consumed after the sprite acts
         user.remove_effect("charged", "state")
+
+        # 情报遮蔽状态（木桶/月陨星，3024/3025）：「自己行动时解除」。
+        # 接在**行动完成**这个点（与上面 charged 的消费同一处），只对持有者生效。
+        from backend.engine.abnormal_config import release_intel_states
+        _released = release_intel_states(user, on="action")
+        if _released and not mcts_sim:
+            events.append(f'{user.name} {("/".join(_released))}解除')
 
         # Defense skill cooldown
         if bs.base.is_defense:
@@ -2095,6 +2118,24 @@ class Battle(BattleMechanicsMixin):
                 if not mcts_sim:
                     events.append(f'{sprite.name} 归还 {borrowed_name}')
         self._borrowed_restore.clear()
+
+        # 技能替换还原（replace_skill：透镜实验「被应对的技能变为透射」——本回合有效）
+        # 登记的是 (队伍, 槽位)；换人/力竭后槽位归属可能变化，故遍历该队全部精灵
+        # 逐个还原带 replaced_by 的槽位。只清 replaced_by，不碰 _morph_temp
+        # （巧变状态由 morph 独占，见 IR_GUIDE §3C replace_skill）
+        for (team, si), _flag in self._replaced_restore.items():
+            player = self.get_player(team)
+            for sprite in player.team:
+                if si >= len(sprite.skills or ()):
+                    continue
+                bs = sprite.skills[si]
+                if bs.replaced_by is None:
+                    continue
+                gone = bs.name
+                bs.replaced_by = None
+                if not mcts_sim:
+                    events.append(f'{sprite.name} {gone} 还原')
+        self._replaced_restore.clear()
 
         # 愿力还原（一回合后换回原技能）
         for (team, si), original in self._wish_restore.items():

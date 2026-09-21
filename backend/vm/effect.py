@@ -105,6 +105,12 @@ class AbnormalEffect(EffectObject):
     # 寄生：回合末伤害回补给施加方（游戏内文本「从寄生来源吸收2%生命」）
     absorb_to_source: bool = False
     origin_team: str = ""              # 施加方队伍（'A'/'B'，落盘时由 replayer 写入）
+    # 情报遮蔽状态（木桶/月陨星，3024/3025）的解除时机标记。
+    # 「自己行动或被敌方攻击时解除」——两个时点分别在
+    # `battle._execute_skill_vm()` 执行尾与 `replayer._apply_damage()` 消费
+    # （`engine/abnormal_config.py:release_intel_states`）。
+    release_on_action: bool = False
+    release_on_damage: bool = False
 
     def tick_params(self) -> dict:
         """Engine reads this to compute tick damage."""

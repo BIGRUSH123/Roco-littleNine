@@ -97,6 +97,11 @@ class Ctx:
     # ── 血脉 / 属性 ──
     bloodline_self: str = ""             # own sprite bloodline (e.g. "首领")
     bloodline_opp: str = ""              # opponent sprite bloodline
+    # 混血（游戏内文本 3015）：非本系血脉 / 首领 / 污染 / 奇异血脉。
+    # 判定在 backend/engine/bloodline.py:is_mixed_blood()，由 snapshot 预计算，
+    # 条件 is_mixed_blood 只读寄存器（backend/vm/cond.py）。
+    is_mixed_blood_self: bool = False
+    is_mixed_blood_opp: bool = False
     elements_self: tuple[str, ...] = ()  # own sprite species elements (e.g. ("水", "冰"))
     elements_opp: tuple[str, ...] = ()   # opponent sprite species elements
 
@@ -209,7 +214,7 @@ class Ctx:
                          "charged", "skills_energy_sum",
                          "power_mult", "damage_mult",
                          "last_tick_damage", "prev_damage_taken",
-                         "bloodline", "elements",
+                         "bloodline", "elements", "is_mixed_blood",
                          "heal_delta", "energy_delta"):
                 field_self = f"{base}{suffix_self}"
                 field_opp = f"{base}{suffix_opp}"
@@ -298,6 +303,7 @@ ADDRESS_MAP: dict[tuple[str, str], str] = {
     ("sprite_self", "first_action"):       "first_action_self",
     ("sprite_self", "first_action_battle"): "first_action_battle_self",
     ("sprite_self", "bloodline"):          "bloodline_self",
+    ("sprite_self", "is_mixed_blood"):     "is_mixed_blood_self",
     ("sprite_self", "elements"):           "elements_self",
     ("sprite_self", "element_advantage"):  "element_advantage",
     ("sprite_self", "energy_cost_sum"):    "energy_cost_sum_self",
@@ -312,6 +318,7 @@ ADDRESS_MAP: dict[tuple[str, str], str] = {
 
     # sprite_opp
     ("sprite_opp", "bloodline"):           "bloodline_opp",
+    ("sprite_opp", "is_mixed_blood"):      "is_mixed_blood_opp",
     ("sprite_opp", "elements"):            "elements_opp",
     ("sprite_opp", "hp"):                  "hp_opp",
     ("sprite_opp", "hp_ratio"):            "hp_opp_ratio",

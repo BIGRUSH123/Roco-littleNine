@@ -100,6 +100,7 @@
 | `life_drain_self` | `float` | 吸血比例 | — |
 | `mark_bonus_own` | `float` | 己方印记伤害加成 | — |
 | `bloodline_self` | `str` | 己方血脉 | 如 "首领" |
+| `is_mixed_blood_self` | `bool` | 己方是否**混血**精灵 | 判定见 §五 `is_mixed_blood`；与 `bloodline_self`（血脉名字）不同：这是派生的布尔判定 |
 | `elements_self` | `tuple[str, ...]` | 己方精灵种族系别 | 如 `("水", "冰")` |
 | `damage_reduced_self` | `int` | 本回合被减免的伤害量 | 累计值；与 `damage_reduction_self`（减伤系数）不同 |
 | `last_tick_damage_self` | `int` | 最近一次 tick 受到的伤害 | — |
@@ -136,6 +137,7 @@
 | `heal_delta_opp` | `int` | 敌方本次事件治疗变化量 | — |
 | `prev_damage_taken_opp` | `bool` | 敌方上回合是否受伤 | — |
 | `bloodline_opp` | `str` | 敌方血脉 | — |
+| `is_mixed_blood_opp` | `bool` | 敌方是否**混血**精灵 | 同 `is_mixed_blood_self` |
 | `elements_opp` | `tuple[str, ...]` | 敌方精灵种族系别 | — |
 
 #### 双方队伍
@@ -214,8 +216,8 @@
 
 | of | 可查询的 q |
 |----|-----------|
-| `sprite_self` | `hp`, `hp_ratio`, `hp_max`, `energy`, `energy_cost`, `skills_energy_sum`, `abnormal_count`, `abnormal_stacks`, `times_entered`, `times_left`, `elements_used_count`, `positive_count`, `zero_cost_skill_count`, `priority`, `atk`, `def`, `sp_atk`, `sp_def`, `speed`, `adjacent_power_sum`, `damage_reduced`, `damage_reduction`, `last_tick_damage`, `charged`, `is_charging`, `first_action`, `first_action_battle`, `bloodline`, `elements`, `element_advantage`, `energy_cost_sum`, `power_mult`, `damage_mult`, `energy_cost_mult`, `combo_mult`, `life_drain`, `mark_bonus`, `energy_delta`, `heal_delta`, `lives`, `counter` |
-| `sprite_opp` | `hp`, `hp_ratio`, `hp_max`, `energy`, `energy_cost`, `abnormal_count`, `abnormal_stacks`, `positive_count`, `last_tick_damage`, `atk`, `def`, `sp_atk`, `sp_def`, `speed`, `charged`, `damage_reduction`, `skills_energy_sum`, `power_mult`, `damage_mult`, `bloodline`, `elements`, `is_charging`, `heal_delta`, `lives`, `counter` |
+| `sprite_self` | `hp`, `hp_ratio`, `hp_max`, `energy`, `energy_cost`, `skills_energy_sum`, `abnormal_count`, `abnormal_stacks`, `times_entered`, `times_left`, `elements_used_count`, `positive_count`, `zero_cost_skill_count`, `priority`, `atk`, `def`, `sp_atk`, `sp_def`, `speed`, `adjacent_power_sum`, `damage_reduced`, `damage_reduction`, `last_tick_damage`, `charged`, `is_charging`, `first_action`, `first_action_battle`, `bloodline`, `is_mixed_blood`, `elements`, `element_advantage`, `energy_cost_sum`, `power_mult`, `damage_mult`, `energy_cost_mult`, `combo_mult`, `life_drain`, `mark_bonus`, `energy_delta`, `heal_delta`, `lives`, `counter` |
+| `sprite_opp` | `hp`, `hp_ratio`, `hp_max`, `energy`, `energy_cost`, `abnormal_count`, `abnormal_stacks`, `positive_count`, `last_tick_damage`, `atk`, `def`, `sp_atk`, `sp_def`, `speed`, `charged`, `damage_reduction`, `skills_energy_sum`, `power_mult`, `damage_mult`, `bloodline`, `is_mixed_blood`, `elements`, `is_charging`, `heal_delta`, `lives`, `counter` |
 | `team_own` | `mark_count`, `mark_stacks`, `skill_count`, `team_counter`, `devotion`, `fainted`, `burst_triggered_count`, `lives`, `elements`, `moe_stacks` |
 | `team_opp` | `mark_count`, `mark_stacks`, `team_counter`, `devotion`, `fainted`, `lives`, `elements` |
 | `team_both` | `mark_count` (双方合计) |
@@ -310,6 +312,54 @@
   `speed_flat` 1 步 = **1 点**，用于不足 10 点的零头（变形活画「速度+5」→ `steps: 5`）。
   两者在 `effective_stat("speed")` 与快照 `speed_self/speed_opp` 中相加后，再乘 `_modifiers["speed"]` 的百分比修正。
 
+#### `stat_random` — 随机属性增益/减益
+
+把 N 层属性增益（或减益）**随机分配**到五维（`atk` / `def` / `sp_atk` / `sp_def` / `speed`），
+每层各占 1 步。用于「获得随机 N 层属性增益/减益」（叠加态 / 做好事 / 吃独食）与
+「随机 N 层属性减益」（暗涌印记同款语义）。
+
+- **实现**: `backend/vm/ops/mod.py:op_stat_random()`
+- **Mutation**: `StatRandom`
+- **消费点**: `backend/engine/replayer.py:_apply_stat_random()` — 逐层 `random.choice(五维)`
+  后按层调用 `stat_stage` 的同一条落地路径（写 `StatBuffEffect`）。
+  随机源是全局 `random`：对局由 `random.seed(seed)` 播种（与 `morph.pick` 同一约定），
+  因此录制/回放仍可复现；MCTS 回滚走 `save_mutable_state` 的效果快照。
+- **与 `stat_stage` 的区别**: `stat_stage` 的 `stat` 是确定的单维；`stat_random` 只给总层数，
+  分配由引擎随机决定。**无法用 `stat_stage` 组合表达随机分配，故单独设一条指令。**
+- **与 `abnormal` 的区别**: 这里产生的是**属性增益/减益**（3014/3018，`StatBuffEffect`），
+  不是异常层数。
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `target` | `target` | 目标精灵（`sprite_self` / `sprite_opp`） |
+| `layers` | `int` / Query | 总层数（每层 = 该维 +1 步；负值按 `direction` 处理前先取绝对值）。Query 走 `value` 通道（`stat_stage` 同款 `steps`+`value` 双字段），可用于「每使用过 N 次选择技能 → 3N 层」这类动态层数 |
+| `direction` | `"positive"`(默认) / `"negative"` | 增益 / 减益 |
+| `stats` | `list[str]` | 可选，参与随机分配的维度；缺省 = 物攻/物防/魔攻/魔防/速度五维 |
+| `scope` | `str` | 生命周期，默认 `"battlefield"`；「永久」类文本写 `"permanent"` |
+| `source` | `str` | 效果来源（追踪/驱散用） |
+
+#### `stat_convert` — 属性增益 ⇄ 属性减益转换
+
+把目标身上的**属性增益**整体翻转为同等层数的**属性减益**（或反向）。
+用于「敌方的属性增益变为对应的属性减益」（掉包）。
+
+- **实现**: `backend/vm/ops/mod.py:op_stat_convert()`
+- **Mutation**: `StatConvert`
+- **消费点**: `backend/engine/replayer.py:_apply_stat_convert()` — 就地翻转
+  `StatBuffEffect.steps` 的符号（`atk/def/sp_atk/sp_def/speed/speed_flat`，含 `power/combo/priority/energy_cost` 等
+  进入 `active_effects` 的可见修饰），并同步 `_modifiers` 取反；
+  层数不变，只换正负 → 「化为对应的减益」。
+- **与 `dispel` 的区别**: `dispel what:"positive"` 把增益**移除**；`stat_convert` 保留层数、只翻转符号。
+- **与 `double` 的区别**: `double` 是层数 ×2，不改变正负。
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `target` | `target` | 目标精灵 |
+| `from` | `"positive"`(默认) / `"negative"` | 要转换的方向 |
+| `to` | `"negative"`(默认) / `"positive"` | 转换后的方向（缺省 = `from` 的反面） |
+| `name` | `str` | 可选，只转换指定 `stat` 维（如 `"atk"`）；缺省 = 全部匹配维度 |
+| `source` | `str` | 来源名（记录用；不改写已有 `StatBuffEffect.source`） |
+
 #### `power_mod` — 技能属性修正
 
 修改技能的 power / energy_cost / combo / priority 等属性。
@@ -320,7 +370,7 @@
 | 字段 | 类型 | 说明 |
 |------|------|------|
 | `target` | `target` | 目标技能或精灵 |
-| `attr` | `"power"` / `"energy_cost"` / `"combo"` / `"priority"` / `"energy_cost_mult"` / `"combo_mult"` / `"energy_cost_delta_mult"` / `"use_count_bonus"` | 目标属性 |
+| `attr` | `"power"` / `"energy_cost"` / `"combo"` / `"priority"` / `"energy_cost_mult"` / `"combo_mult"` / `"energy_cost_delta_mult"` / `"use_count_bonus"` / `"attach_abnormal"` | 目标属性 |
 | `delta` | `int` / Query / RefExpr | 变化量 |
 | `skill_where` | `dict` | 技能筛选条件（`{"q": "energy_cost", "op": "gt", "value": 3}`） |
 | `skill_filter` | `str` | 批量技能筛选：`"attack"` / `"defense"` / `"status"` / `"all"` / `"others"` / `"adjacent"` / `"bare_attack"` / `"bare_defense"` / `"bare_status"` |
@@ -334,6 +384,18 @@
 - **`attr: "use_count_bonus"`**: 精灵级「技能使用次数加成」，在下一次行动时被引擎消费——
   技能行动则把该次 `skill_used:<技能名>` 计数额外 +N（喂给「每使用过 N 次」类效果），
   聚能行动则直接丢弃（对齐「入场后首次行动」语义）。可复用于任何「使用次数 +N」效果。
+- **`attr: "attach_abnormal"`**（**携带型**属性，3013 附加中毒）：给命中的**技能**挂一个
+  「命中后追加 N 层中毒」标记，`value` = 层数。写在技能级 `_modifiers["attach_abnormal"]`
+  （配 `skill_filter`/`skill_where`/`name` 选定技能）或精灵级
+  `_modifiers["attach_abnormal"]`（不带筛选时）。
+  **消费点**：`backend/engine/replayer.py:_apply_damage()` — 技能对**敌方**造成实际伤害后，
+  按同一个 `max(精灵级, 技能级)` 口径（与 `life_drain` 一致）给受伤方追加该层数中毒；
+  **每次行动只追加一次**（连击不会按段数叠加）。中毒层数走 `replayer._apply_abnormal_change`
+  的同一条路（受毒系免疫、`max_stacks` 等约束）。
+  应对分支「改为获得附加中毒N」用 `mode:"set"` 覆盖即可。
+  **生命周期**：`attach_abnormal` 不在 `_PER_TURN_KEYS` 里，写在技能槽上即跨回合保留；
+  因此**不**登记进 `_trait_direct_effects`（登记会每回合重放一次 → 层数叠加，
+  见 `replayer._NO_DIRECT_MOD_PERSIST`）。
 
 #### `mult_mod` — 倍率修正
 
@@ -527,6 +589,26 @@
 |--------|------|
 | `tick_damage_pct` / `tick_element` / `decay_on_tick` / `tick_per_stack` / `max_stacks` | 回合末结算（中毒/灼烧/寄生/冻结…） |
 | `threshold_stacks` / `threshold_damage_pct` / `threshold_element` / `threshold_consume` / `threshold_immune_element` | **层数阈值即时效果**（引电：获得 2 层立即受 25% 生命电系伤害并失去 2 层，电系免疫），由 `replayer._apply_abnormal_threshold()` 消费 |
+| `release_on_action` / `release_on_damage` | **情报遮蔽状态的解除时机**（见下） |
+
+##### 木桶 / 月陨星 — 情报遮蔽状态（3024 / 3025）
+
+游戏内文本：「该状态下会隐藏精灵的信息，自己行动或被敌方攻击时解除。」
+
+- **状态本体**：`ABNORMAL_TEMPLATES` 的 `木桶状态` / `月陨星状态` 两条模板
+  （`release_on_action = release_on_damage = True`，无 tick），因此
+  **可施加**（`abnormal` op / `inherit` 的 `effects`），层数 = 1。
+- **解除时机**（引擎在事件点统一消费，只对**持有该状态**的精灵生效）：
+  | 时机 | 引擎落点 |
+  |------|----------|
+  | 自己行动（行动完成） | `backend/sim/battle.py:_execute_skill_vm()` 执行尾（`remove_effect("charged","state")` 同一处） |
+  | 被敌方攻击（受伤落地） | `backend/engine/replayer.py:_apply_damage()`（**只对受击方**，自我伤害不解） |
+- **本引擎不实现观测遮蔽**：本引擎对局是完全信息（双方 agent 读同一份 state），
+  「隐藏精灵的信息」没有任何可观测的战斗后果，因此只落地**获得/解除**两个时点；
+  隐藏信息本身在数据注释里说明，不写代码。这使「状态在哪个回合消失」可被差分录制观察到。
+- **施加方式**：`{"op": "abnormal", "target": "sprite_self", "name": "月陨星状态",
+  "stacks": 1, "scope": "battlefield", "source": "观测者效应"}`（scope 走 `battlefield`：
+  离场即随 scope 清除，符合「更换入场者才带此状态」的场景）。
 
 #### `weather` — 天气
 
@@ -536,6 +618,15 @@
 |------|------|------|
 | `weather` | `str` | 天气名称 |
 | `turns` | `int` | 持续回合数 |
+| `extend` | `bool` | `true` = **延长**语义而非重设（见下） |
+
+- **`extend: true` 口径**（汇流：「雨天的回合数延长4回合」）：
+  - 当前天气（`GlobalEffects.weather`，经 `normalize_weather` 归一）与 `weather` **相同** →
+    `weather_turns += turns`（延长，不重置剩余回合）；
+  - 当前**无天气** → 按 `set_weather` 起 `turns` 回合（兜底：技能不会空转）；
+  - 当前是**其它天气** → 不生效（返回空事件），避免「延长」被读成「覆盖对手天气」。
+- **应对分支取最大值而非叠加**：同一技能里既有无条件 4 回合又有应对 8 回合时，
+  用 `when: counter_succeeded → then/else` 二选一表达（汇流即此写法），不要串联两条 `extend`。
 
 #### `dispel` — 驱散
 
@@ -574,6 +665,36 @@
 | `target` | `target` | 目标 |
 | `name` | `str` | 异常名称 |
 
+#### `replace_skill` — 把对手当前技能替换为指定技能（本回合有效）
+
+把**对手本回合正在使用的那只技能**替换为指定技能，替换在**本回合内生效**、
+回合末自动还原。用于「应对状态时被应对的技能变为透射」（透镜实验）。
+
+- **实现**: `backend/vm/ops/replace_skill.py:op_replace_skill()`
+- **Mutation**: `ReplaceSkill`
+- **消费点**: `backend/engine/replayer.py:_apply_replace_skill()` — 按名字定位对手的
+  `BattleSkill`（与 `flag_set flag:"cooldown" target:"skill_opp_current"` **同一套定位**：
+  对手队伍 `battle._turn_skills[opp_team]["name"]`），置 `replaced_by = Skill(目标技能)`，
+  并把 `(team, slot)` 登记进 `battle._replaced_restore`；`backend/sim/battle.py:_phase_turn_end()`
+  统一 `replaced_by = None` 还原。
+- **生效时机**：应对方（如透镜实验，`counter: "状态"`）行动**必定先手**，所以替换发生在
+  对手行动**之前**，对手那一手就会真的用出替换后的技能；`battle._get_skill()` 每次从
+  `sprite.skills[index]` 现取，因此替换无需额外通知谁。
+- **与 `morph`（巧变）的关系**：两者共用 `BattleSkill.replaced_by`，但**互不破坏**——
+  - 巧变产物由 `_morph_temp` 标记、使用后由 `morph.revert_after_use()` 还原；本 op **不写**
+    `_morph_temp`，因此不会把巧变状态误当成本 op 的产物；
+  - 若目标槽位当时正挂着巧变产物，本 op 覆盖 `replaced_by` 后 `_morph_temp` 仍为真 →
+    对手用完替换技能后槽位**还原为原技能**（巧变本就是一次性，语义不冲突）；
+  - 回合末 `_replaced_restore` 只清 `replaced_by`，不碰 `_morph_temp`。
+- **与 `borrow` 的区别**: `borrow` 替换的是**自己**当前技能槽（复制对手技能属性）；
+  `replace_skill` 改的是**对手**的槽位。
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `target` | `"skill_opp_current"` | 目标定位（当前仅支持对手本回合技能） |
+| `skill` | `str` | 替换后的技能名（数据里须存在同名技能 JSON） |
+| `scope` | `str` | 生命周期，固定 `"turn"`（回合末还原） |
+
 #### `double` — 翻倍
 
 将指定类型效果的层数/步数 ×2。
@@ -586,6 +707,12 @@
 | `target` | `target` | 目标 |
 | `what` | `"positive"` / `"negative"` / `"abnormal"` / `"mark"` | 翻倍类型 |
 | `name` | `str` | 指定具体 abnormal/mark 名称 |
+
+- **`what: "mark"` 口径**（二律背反「应对防御：额外使敌方星陨印记层数翻倍」）：
+  `target` 是**队伍**（`team_own` / `team_opp` / `own_team` / `opp_team`），
+  按 `name` 定位该队印记并把 `stacks ×2`（不指定 `name` 时翻倍该队全部印记）；
+  目标队伍须按 `self.team` 换算，`team_opp` = 对手队。
+  消费点 `backend/engine/replayer.py:_apply_double()`。
 
 ### 3C. 战斗流控类
 
@@ -731,11 +858,27 @@ Observer 是 IR 第一公民，显式声明触发条件、可选计数器和生�
 离场时将效果传递给入场精灵。替代旧 `inherit_effects`。
 
 - **实现**: `backend/vm/ops/inherit_effects.py:op_inherit_effects()`
+- **消费点**: `backend/engine/replayer.py:_apply_inherit_effects_mutation()`
 
 | 字段 | 类型 | 说明 |
 |------|------|------|
-| `target` | `str` | 继承目标（解析为 `inherit_target`，默认 `"enemy_new"`） |
-| `effects` | `[RiscIROp]` | 要传递的效果列表 |
+| `target` | `str` | 继承目标（解析为 `inherit_target`，默认 `"enemy_new"`；`"ally_new"` = 己方新入场者） |
+| `scope` | `str` | 取源精灵身上该 scope 的效果（`inherit_stat_effects: true` 时改为取全部 `StatBuffEffect`） |
+| `via_pending` | `bool` | `true` = 不立刻给谁，而是压入 `battle.pending_effects[team]`，由**下一个入场者**在入场流程里领取（`battle_mechanics._apply_pending_entry_effects`） |
+| `effects` | `[RiscIROp]` | **显式效果列表**：非空时以它为准（不再从源精灵拷效果），每条经 `effect_factory.from_dict` 变成 `EffectObject` 后同样走 `via_pending` / 立即施加两条路 |
+| `inherit_stat_effects` | `bool` | `true` = 继承全部属性增益（六维/连击/威力/吸血） |
+
+- **`effects` 是「离场后换入者以 X 状态登场」的标准写法**（木桶戏法 / 观测者效应）：
+  ```jsonc
+  { "op": "observer", "cond": { "cond": "sprite_left", "of": "sprite_self" },
+    "listen": "post_leave", "scope": "persistent",
+    "then": [
+      { "op": "inherit", "source": "self", "via_pending": true,
+        "effects": [ { "op": "abnormal", "name": "木桶状态", "stacks": 1,
+                       "scope": "battlefield", "source": "木桶戏法" } ] }
+    ] }
+  ```
+  只声明 `effects` 时不需要读源精灵状态，因此**不依赖**离场精灵身上真的带着该效果。
 
 #### 其他持久化 opcode
 
@@ -975,6 +1118,24 @@ Observer 是 IR 第一公民，显式声明触发条件、可选计数器和生�
 
 - **`on_abnormal_tick` vs `on_abnormal_changed` vs `on_abnormal_applied`**: `tick`=异常回合末结算伤害时，`changed`=异常层数变化时（增减），`applied`=主动施加异常时
 
+#### 血脉
+
+| cond | 参数 | 访问路径 | 说明 |
+|------|------|----------|------|
+| `is_mixed_blood` | `of`（默认 `sprite_self`） | `ctx.is_mixed_blood_self` / `ctx.is_mixed_blood_opp` | 目标是否**混血**精灵（色散「对混血精灵造成伤害+50%」） |
+
+- **混血判定**（游戏内文本 3015：「非本系血脉的精灵，包括非本系的系别血脉、首领血脉、奇异血脉、污染血脉等」）：
+  - `sprite.bloodline` 是**特殊血脉**（`首领` / `污染` / `奇异`，见 `common/constants.SPECIAL_BLOODLINES`）→ 混血；
+  - `sprite.bloodline` 是系别，但**不在**该精灵种族系别 `species.elements` 里 → 混血；
+  - 血脉为空 → 按**非混血**处理（拿不到血脉时不误判）；
+  - 其余（血脉 = 自身某一系别）→ 非混血。
+- 判定在 `backend/engine/snapshot.py:build_ctx()` 预计算为 `is_mixed_blood_self/opp`
+  （条件求值只读寄存器，故不在 cond 里现算）；纯函数实现在
+  `backend/engine/bloodline.py:is_mixed_blood()`，供引擎与数据两侧复用。
+  **Cython 路径**（`snapshot_cy.build_ctx_cy`，签名固定、不认识新寄存器）由
+  `snapshot.py:fill_extended_registers()` 在构造后补齐，两条路径行为一致。
+- 也可用 Query 直接读名字：`{"q": "bloodline", "of": "sprite_self"}`（配合 `compare` 的 `in`/`contains`）。
+
 #### 回合边界
 
 | cond | 参数 | 访问路径 |
@@ -1006,6 +1167,7 @@ Observer 是 IR 第一公民，显式声明触发条件、可选计数器和生�
 | `counter_success` | 应对成功时 | 该队应对成功次数 |
 | `defense_skill` / `status_skill` | 技能结算后 | 该队使用的防御/状态技能次数 |
 | `choice_used:<分支名>` / `choice_pair` | 「选择」技能结算后 | 分支使用次数 / 明暗各一次的对数（猫精灵的礼物） |
+| `choice_skill_used`* | 「选择」技能结算后 | **精灵级**（`sprite.counters`，不是队伍计数器）：「选择」技能使用次数；做好事/吃独食读它（×3 层随机属性增益/减益，用完清零） |
 | `energy_spent` | 技能耗能后 | 该队累计消耗能量（整点报时） |
 
 #### 泛用比较
@@ -1186,6 +1348,9 @@ feeds:cost → Gate(付能耗) → feeds:power → 威力确定 → feeds:mult
 
 - 有 `choices` 时，`effects[]` 仅为共性兜底；结算使用所分支的 `effects`
 - 分支可带 `cond`（如"应对状态时"）——结算时条件成立则自动生效；动作指定该分支但条件不成立时回退到第一个无条件分支
+- **分支 `cond` 的求值 ctx**（`battle._execute_skill_vm`）带上本次应对的瞬时标志
+  （`counter_succeeded` / `was_countered`）与对手技能（`opp_is_attack` 可读），
+  否则「应对状态时…」这类分支（驱赶/撒花/透镜实验）永远判不成立而被强制回退到 0 号分支
 - 引擎按 `Action.branch` 选择分支；未指定时取 0 号分支（条件分支自动裁决）
 - 分支使用情况写入队伍计数器 `choice_used:{分支名}`；同一技能明暗各用 1 次计 1 组 `choice_pair`（猫精灵的礼物）
 - `replay_branch` op 可重放本次分支的另一支/相同一支（有求必应/一意孤行）

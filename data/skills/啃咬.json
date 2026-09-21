@@ -8,12 +8,6 @@
   "combo": 1,
   "effects": [
     {
-      "target": "skill_off_0",
-      "op": "power_mod",
-      "attr": "combo",
-      "delta": 1
-    },
-    {
       "op": "observer",
       "then": [
         {

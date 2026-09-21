@@ -4,6 +4,14 @@
   "element": "恶",
   "skill_type": "状态",
   "energy_cost": 2,
-  "effects": [],
-  "description": "✦敌方的属性增益变为对应的属性减益。"
+  "effects": [
+    {
+      "op": "stat_convert",
+      "target": "sprite_opp",
+      "from": "positive",
+      "to": "negative",
+      "source": "掉包"
+    }
+  ],
+  "description": "✦敌方的属性增益变为对应的属性减益。// 层数不变，只翻转符号（属性增益 3014 ⇄ 属性减益 3018）。"
 }

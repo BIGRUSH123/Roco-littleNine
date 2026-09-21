@@ -530,7 +530,9 @@ cpdef build_ctx_cy(
 
     if bs is not None:
         power_self = bs.power
-        combo_base = bs.base.combo if hasattr(bs, 'base') else getattr(sk, 'combo', 1)
+        # bs.combo 已含技能级 _modifiers（永久+连击 / combo_set）；直接用 bs.base.combo
+        # 会让「每次使用后本技能连击数永久+N」这类效果永远不生效
+        combo_base = bs.combo if hasattr(bs, 'base') else getattr(sk, 'combo', 1)
         energy_cost_self = bs.energy_cost
     else:
         power_self = sk.power if hasattr(sk, 'power') else 0
