@@ -50,6 +50,7 @@ from backend.engine.ai.data.meta_teams import (
 from backend.engine.ai.data.sprite_random_pool import SPRITE_RANDOM_POOL
 from backend.engine.ai.train import _random_teams
 from backend.sim.agent_v2 import RuleAgentV2, SpriteStrategy, TeamStrategy
+from backend.sim.agent_v3 import RuleAgentV3
 from backend.sim.factory import SimFactory
 
 
@@ -75,6 +76,11 @@ def parse_args() -> argparse.Namespace:
     ap.add_argument("--workers", type=int, default=1,
                     help="并行 worker 进程数（1 = 单进程；0 = 自动：规划层 → 8，"
                          "纯规则 → cpu-1。实测规划层在 6 P 核上就到顶，见模块 docstring）")
+    ap.add_argument("--expert", choices=("v2", "v3"), default="v2",
+                    help="专家实现：v2 = RuleAgentV2（出厂口径）｜ "
+                         "v3 = RuleAgentV3（社区 PVP 攻略版，同局配对 A/B 见 "
+                         "native/tools/eval_expert_change.py --ab v3）。"
+                         "换专家会改变 BC 数据分布，历史夹具/曲线不可直接比 (default: v2)")
     ap.add_argument("--start-game", type=int, default=0,
                     help="从第 N 局开始打（仍会完整产队，保证与整跑一致；用于复现慢局）")
     ap.add_argument("--hang-dump-sec", type=int, default=0,
@@ -159,6 +165,8 @@ def _build_plans(args, meta_teams, sprite_skills, rng, team_game_counts) -> list
             "n_optimal": n_optimal,
             "max_turns": args.max_turns, "draw_margin": args.draw_margin,
             "hang_dump_sec": args.hang_dump_sec,
+            # 专家实现（v2 = 旧规则层，v3 = 吃进社区攻略的版本；见 agent_v3 模块说明）
+            "expert": getattr(args, "expert", "v2"),
             # 每局独立派生的随机种子：引擎掷骰走全局 random，若不显式播种，
             # 同一 seed 在不同进程/不同 worker 数下结果不同（曾导致串并行数据集不一致）
             "rng_seed": _game_rng_seed(args.seed, g),
@@ -235,10 +243,11 @@ def _play_plan(plan: dict) -> tuple:
         random.seed(plan["rng_seed"])  # 引擎掷骰的确定性来源
         factory = _worker_factory()
         strat_a, strat_b = plan["strat_a"], plan["strat_b"]
+        agent_cls = RuleAgentV3 if plan.get("expert") == "v3" else RuleAgentV2
         samples, outcome_a, end_reason, turns = run_recorded_battle(
             factory, plan["team_a"], plan["team_b"],
-            lambda tag, player: RuleAgentV2(tag, player, strategy=strat_a),
-            lambda tag, player: RuleAgentV2(tag, player, strategy=strat_b),
+            lambda tag, player: agent_cls(tag, player, strategy=strat_a),
+            lambda tag, player: agent_cls(tag, player, strategy=strat_b),
             item_a=plan["item_a"], item_b=plan["item_b"],
             max_turns=plan["max_turns"], draw_margin=plan["draw_margin"],
             game_id=plan["g"],
