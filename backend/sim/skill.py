@@ -46,6 +46,7 @@ class Skill:
     description: str = ''      # 人类可读描述（API/前端展示用）
     usable_while_charging: bool = False  # 蓄力期间是否可使用
     qiaobian: object = None    # 巧变类别（str 池名 或 spec dict；使用后变为该类别的技能）
+    morph: object = None       # 变身声明（dict；每回合开始时本槽变为池中随机技能，见 IR_GUIDE「变身」）
 
     @classmethod
     def load(cls, data: dict) -> Skill:
@@ -71,6 +72,7 @@ class Skill:
             description=data.get('description', ''),
             usable_while_charging=data.get('usable_while_charging', False),
             qiaobian=data.get('qiaobian'),
+            morph=data.get('morph'),
         )
 
     @classmethod

@@ -4,20 +4,13 @@
   "element": "普通",
   "skill_type": "状态",
   "energy_cost": 0,
-  "effects": [
-    {
-      "target": "skill_off_0",
-      "op": "power_mod",
-      "scope": "battlefield",
-      "attr": "energy_cost",
-      "delta": -2
-    }
-  ],
+  "effects": [],
   "description": "✦每回合随机变成自己未携带的技能，且该技能能耗-2。",
   "morph": {
     "from": "team_own",
     "mode": "random",
     "exclude_self": true,
-    "exclude_owned": true
+    "exclude_owned": true,
+    "energy_delta": -2
   }
 }

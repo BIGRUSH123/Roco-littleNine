@@ -168,6 +168,110 @@ register_pool_builder("same_element", _build_same_element)
 register_pool_builder("filter", _build_filter)
 
 
+# ── 变身（技能顶层 morph 字段）────────────────────────────────────────
+# 与巧变（qiaobian）不是同一机制，只共用 BattleSkill.replaced_by 字段：
+#   巧变   = 使用后变化 + 用掉还原 + 产物能耗-1（来源是授予，见 apply_after_use）
+#   变身   = 每回合开始时重掷（来源是技能自带的顶层 morph 字段，见 apply_henshin）
+# 见 data/IR_GUIDE.md「变身」小节。
+
+
+def _sprite_team(battle: Battle, sprite: Sprite) -> str:
+    """判断精灵在哪一侧（A/B）；两侧都找不到返回 ""。"""
+    if battle is None or sprite is None:
+        return ""
+    for team in ("A", "B"):
+        try:
+            if sprite in battle.get_player(team).team:
+                return team
+        except Exception:  # noqa: BLE001 — 部分构造场景没有完整 player
+            continue
+    return ""
+
+
+def _effective_names(sprite: Sprite) -> tuple[str, ...]:
+    """精灵当前有效技能名（巧变/变身产物算数）。"""
+    names = []
+    for bs in (getattr(sprite, "skills", None) or ()):
+        base = getattr(bs, "base", None)
+        if bs.replaced_by is not None:
+            names.append(bs.replaced_by.name)
+        elif base is not None:
+            names.append(base.name)
+    return tuple(names)
+
+
+def _build_team_own(battle, sprite, bs, params) -> tuple[str, ...]:
+    """己方队伍**其他精灵**的技能池（变身「借用/复写」用）。
+
+    - 来源：同队每只**其他**精灵的当前有效技能（去重）；
+    - `exclude_owned: true` 再剔除施法者自己携带的技能（复写「自己未携带的技能」）；
+    - 按技能 id 升序排序（与巧变池同一确定性约定）。
+    """
+    params = params or {}
+    team = _sprite_team(battle, sprite)
+    if not team:
+        return ()
+    own = set(_effective_names(sprite)) if params.get("exclude_owned") else set()
+    names: set[str] = set()
+    for other in battle.get_player(team).team:
+        if other is sprite:
+            continue
+        for name in _effective_names(other):
+            if name and name not in own:
+                names.add(name)
+    index = _load_index()
+    pool = sorted((index[n][0], n) for n in names if n in index)
+    return tuple(n for _, n in pool)
+
+
+register_pool_builder("team_own", _build_team_own)
+
+
+def henshin_spec(bs) -> dict:
+    """该技能槽的变身声明（无则空 dict）。"""
+    base = getattr(bs, "base", None)
+    spec = getattr(base, "morph", None)
+    return spec if isinstance(spec, dict) else {}
+
+
+def apply_henshin(battle: Battle, team: str, sprite: Sprite) -> str:
+    """回合开始重掷：把带变身声明的槽位换成池中随机技能。返回事件文本。
+
+    只对**场上**精灵调用（`Battle._phase_turn_start`）。池为空则不替换，槽位保持原技能。
+    产物**不**标记 `_morph_temp`（不吃巧变的能耗-1，也不会被用掉后还原）；
+    每回合重掷覆盖，`replaced_by` 交由快照/回滚的既有通路管理。
+    """
+    if sprite is None or battle is None:
+        return ""
+    texts: list[str] = []
+    for bs in (getattr(sprite, "skills", None) or ()):
+        spec = henshin_spec(bs)
+        if not spec or spec.get("from") != "team_own":
+            continue
+        if spec.get("mode", "random") != "random":
+            continue
+        target = pick(battle, sprite, bs, "team_own", 0)
+        if not target:
+            continue
+        new_skill = load_skill(target)
+        if new_skill is None or new_skill.name == getattr(bs.replaced_by, "name", None):
+            continue
+        bs.replaced_by = new_skill
+        texts.append(f"{bs.base.name} 变身 → {target}")
+    return "；".join(texts)
+
+
+def henshin_cost_delta(bs) -> int:
+    """变身产物的能耗修正（复写 -2）；非变身槽位返回 0。"""
+    if getattr(bs, "_morph_temp", False) or bs.replaced_by is None:
+        return 0
+    spec = henshin_spec(bs)
+    try:
+        return int(spec.get("energy_delta", 0) or 0)
+    except (TypeError, ValueError):
+        return 0
+
+
 def _resolve_category(category) -> str:
     """把 category 解析成池构造器名：内置名，或 spec dict（→ filter 池）。"""
     if isinstance(category, str):

@@ -127,6 +127,7 @@ class SimFactory:
                     description=data.get('description', ''),
                     usable_while_charging=data.get('usable_while_charging', False),
                     qiaobian=data.get('qiaobian'),
+                    morph=data.get('morph'),
                 )
                 skills.append(BattleSkill(base=skill))
             else:

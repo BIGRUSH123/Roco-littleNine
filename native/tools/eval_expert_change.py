@@ -27,8 +27,10 @@ import argparse
 import collections
 import copy
 import dataclasses
+import json
 import math
 import random
+import statistics
 import sys
 import time
 from pathlib import Path
@@ -51,11 +53,14 @@ from backend.sim.agent_v2 import RuleAgentV2, SpriteStrategy, TeamStrategy  # no
 from backend.sim.agent_v3 import RuleAgentV3  # noqa: E402
 from backend.sim.factory import SimFactory  # noqa: E402
 
-NEW_VALUES = {"trade": 0.15, "antiloop": True, "defend": 0.30, "status": True, "plan": 1}
-OLD_VALUES = {"trade": 1e9, "antiloop": False, "defend": 0.0, "status": False, "plan": 0}
+NEW_VALUES = {"trade": 0.15, "antiloop": True, "defend": 0.30, "status": True,
+              "plan": 1, "switchcap": 5, "setup": 6.0}
+OLD_VALUES = {"trade": 1e9, "antiloop": False, "defend": 0.0, "status": False,
+              "plan": 0, "switchcap": 0, "setup": 0.0}
 _AB_FIELDS = {"trade": "trade_margin", "antiloop": "anti_switch_loop",
               "defend": "defend_threshold", "status": "status_counter",
-              "plan": "plan_depth"}
+              "plan": "plan_depth", "switchcap": "max_consecutive_switches",
+              "setup": "setup_min_gain"}
 # `both` = 三条蒸馏规则（trade+antiloop+defend，语义固定，便于与历史数字对照）；
 # `all` = 再加状态反制（status_counter）。
 _BUNDLES = {"both": ["trade", "antiloop", "defend"],
@@ -65,7 +70,9 @@ _BUNDLES = {"both": ["trade", "antiloop", "defend"],
             "shipped": ["trade", "antiloop", "status"],
             # E2 规划层：把"最高即时伤害贪心"换成 1 回合 rollout + 效果感知叶子
             # （`backend/sim/plan.py` + `backend/sim/value.py`）
-            "plan": ["plan"]}
+            "plan": ["plan"],
+            # 反僵局两条（2026-09-22 第八批）：连续换人上限 + 打不动先增益自己
+            "antistall": ["switchcap", "setup"]}
 
 
 def parse_args() -> argparse.Namespace:
@@ -74,11 +81,17 @@ def parse_args() -> argparse.Namespace:
     ap.add_argument("--ab", default="both",
                     choices=("trade", "antiloop", "defend", "status",
                              "both", "no_defend", "all", "shipped", "plan",
-                             "v3"))
+                             "switchcap", "setup", "antistall", "v3"))
     ap.add_argument("--meta-frac", type=float, default=0.6)
     ap.add_argument("--max-turns", type=int, default=40)
     ap.add_argument("--seed", type=int, default=2026)
     ap.add_argument("--seeds", default="", help="多 seed 复核（逗号分隔；非空时忽略 --seed）")
+    ap.add_argument("--teams", default="random", choices=("random", "cycle"),
+                    help="random=按 meta-frac 抽（默认）｜cycle=逐套 meta 阵容轮转，每队样本量相等")
+    ap.add_argument("--only-team", default="",
+                    help="只打名字含该子串的 meta 阵容（单队高样本 A/B）")
+    ap.add_argument("--per-team", action="store_true", help="打印逐阵容战绩分解")
+    ap.add_argument("--json-out", default="", help="把聚合 + 逐阵容结果写成 JSON（分片批量跑用）")
     return ap.parse_args()
 
 
@@ -100,19 +113,32 @@ def _ab_strategy(base: TeamStrategy, new: bool, mode: str) -> TeamStrategy:
     )
 
 
-def _draw_roster(factory, args, meta, rng):
-    """抽一套阵容 + 两侧基准策略（成对的两局复用同一套）。"""
+def _draw_roster(factory, args, meta, rng, team_index=None):
+    """抽一套阵容 + 两侧基准策略（成对的两局复用同一套），返回 (roster, 阵容标签)。
+
+    `team_index` 给定 → 强制用该 meta 阵容（逐阵容实验：每队样本量均等；随机抽签下
+    40 支队每队只有几对局，噪声比效应大一个量级，看不出"这条规则对哪支队有利"）。
+    """
+    if team_index is not None and meta:
+        i = team_index % len(meta)
+        sa, _ = spec_from_team(meta[i], rng)
+        sb, _ = spec_from_team(meta[i], rng)
+        ia, ib = item_from_team(meta[i], sa), item_from_team(meta[i], sb)
+        st_a = st_b = strategy_from_team(meta[i], rng)
+        return (sa, sb, ia, ib, st_a, st_b), (meta[i].get("name") or f"#{i}")
     if meta and rng.random() < args.meta_frac:
         i = rng.randrange(len(meta))
         sa, _ = spec_from_team(meta[i], rng)
         sb, _ = spec_from_team(meta[i], rng)
         ia, ib = item_from_team(meta[i], sa), item_from_team(meta[i], sb)
         st_a = st_b = strategy_from_team(meta[i], rng)
+        label = meta[i].get("name") or f"#{i}"
     else:
         sa, sb, ia, ib = T._random_teams(factory, dict(SPRITE_RANDOM_POOL),
                                         optimal_frac=0.95, meta_frac=0.0, rng=rng)
         st_a = st_b = TeamStrategy(default=SpriteStrategy())
-    return sa, sb, ia, ib, st_a, st_b
+        label = "随机阵容"
+    return (sa, sb, ia, ib, st_a, st_b), label
 
 
 def _play(factory, args, mode: str, roster, new_is_a: bool,
@@ -163,12 +189,31 @@ def main() -> None:
     # （旧版分开累加 new_games/old_games，算出来的"平局记 0.5 分数"能超过 1.0）。
     new_wins = new_losses = new_draws = draws = turns_sum = games = 0
     stats: collections.Counter = collections.Counter()
+    per_team: dict[str, list[int]] = {}      # 阵容标签 -> [新胜, 新负, 平]
+    only = args.only_team.strip()
+    forced_index = None
+    if only:
+        hits = [i for i, t in enumerate(meta) if only in (t.get("name") or "")]
+        if not hits:
+            raise SystemExit(f"--only-team {only!r} 在 meta 阵容里没有匹配项")
+        forced_index = hits[0]
+        print(f"[只打阵容] {meta[forced_index].get('name')}（共 {len(hits)} 个匹配，取第一个）")
     t0 = time.time()
+    pair_no = -1
     for seed in seeds:
         rng = random.Random(seed)
         for pair_start in range(0, per_seed, 2):
             # 成对：同一套阵容连打两局，第二局把新口径换到另一侧
-            roster = _draw_roster(factory, args, meta, rng)
+            pair_no += 1
+            if forced_index is not None:
+                roster, label = _draw_roster(factory, args, meta, rng,
+                                             team_index=forced_index)
+            elif args.teams == "cycle":
+                roster, label = _draw_roster(factory, args, meta, rng,
+                                             team_index=pair_no)
+            else:
+                roster, label = _draw_roster(factory, args, meta, rng)
+            bucket = per_team.setdefault(label, [0, 0, 0])
             for offset in (0, 1):
                 if pair_start + offset >= per_seed:
                     break
@@ -181,11 +226,14 @@ def main() -> None:
                 draws += draw
                 if draw:
                     new_draws += 1
+                    bucket[2] += 1
                     continue
                 if (win_a == 1) == new_is_a:
                     new_wins += 1
+                    bucket[0] += 1
                 else:
                     new_losses += 1
+                    bucket[1] += 1
     decisive = new_wins + new_losses
     wr = new_wins / max(1, decisive)
     half = 1.96 * math.sqrt(max(1e-9, wr * (1 - wr)) / max(1, decisive))
@@ -201,7 +249,41 @@ def main() -> None:
     kinds = collections.Counter({k.split(":", 1)[1]: v for k, v in stats.items()})
     total = sum(kinds.values()) or 1
     print("  动作分布:", {k: round(v / total, 3) for k, v in kinds.most_common()})
+    if args.per_team or args.teams == "cycle" or forced_index is not None:
+        # 逐阵容：胜率 <0.5 表示这条新口径**对这支队有害**。异质性本身就是结论——
+        # 全局一个值时看总胜率，逐阵容看它是不是"几队大赚、几队大亏"相互抵消。
+        print("  === 逐阵容（新口径胜率；<0.5 = 该规则对这队有害）===")
+        rows = []
+        for label, (w, l, d) in per_team.items():
+            dec = w + l
+            wr_t = w / dec if dec else 0.0
+            half_t = 1.96 * math.sqrt(max(1e-9, wr_t * (1 - wr_t)) / dec) if dec else 0.0
+            rows.append((wr_t, label, w, l, d, half_t))
+        for wr_t, label, w, l, d, half_t in sorted(rows):
+            bar = "▁" * int(round(wr_t * 20)) + "▔" * (20 - int(round(wr_t * 20)))
+            print(f"    {label[:16]:18s} {w:3d}胜 {l:3d}负 平{d:3d}  "
+                  f"{wr_t:.3f}±{half_t:.3f}  {bar}")
+        spread = [r[0] for r in rows if (r[2] + r[3]) >= 10]
+        if len(spread) >= 2:
+            print(f"    逐阵容胜率跨度: {min(spread):.3f} ~ {max(spread):.3f} "
+                  f"（std={statistics.pstdev(spread):.3f}，n≥10 的 {len(spread)} 支队）")
     print("判定：CI 下界 > 0.5 才算改动有效。")
+    if args.json_out:
+        payload = {
+            "ab": args.ab, "games": games, "draws": draws, "seeds": seeds,
+            "max_turns": args.max_turns, "teams_mode": args.teams,
+            "only_team": only,
+            "new_wins": new_wins, "new_losses": new_losses, "new_draws": new_draws,
+            "win_rate": wr, "ci_half": half,
+            "score_delta": score_new - score_old,
+            "mean_turns": turns_sum / max(1, games),
+            "per_team": {k: {"胜": v[0], "负": v[1], "平": v[2]} for k, v in per_team.items()},
+            "action_mix": {k: round(v / total, 4) for k, v in kinds.most_common()},
+        }
+        Path(args.json_out).parent.mkdir(parents=True, exist_ok=True)
+        Path(args.json_out).write_text(
+            json.dumps(payload, ensure_ascii=False, indent=1), encoding="utf-8")
+        print(f"  JSON 已写入 {args.json_out}")
 
 
 if __name__ == "__main__":

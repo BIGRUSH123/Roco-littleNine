@@ -35,7 +35,10 @@ from typing import Any
 
 from . import plan
 from .action import Action
-from .agent import _GATHER_ACTION, _ITEM_ACTION, _skill_action, _switch_action
+from .agent import (
+    _GATHER_ACTION, _ITEM_ACTION, _skill_action, _switch_action,
+    SwitchStreak, best_self_buff_skill_index, first_usable_skill_index, gather_is_noop,
+)
 from .battleskill import SkillUse
 from .item_policy import should_evolve, wish_decision
 from .skill_ir import SkillProfile, skill_profile, total_buff_steps
@@ -84,6 +87,8 @@ class V3Params:
 
     # ④ 叠层窗口：对手这回合最高伤害 < 我血量的该比例 → 安全，可以叠
     setup_safe_ratio: float = 0.65
+    # 连续换人上限（0=关闭；防"双方无限轮转"僵局）
+    max_consecutive_switches: int = 5
     # 叠层收益门槛（自身增益步数 ≥ 该值才算"值得花一回合"）
     setup_min_gain: float = 6.0
 
@@ -142,6 +147,8 @@ class RuleAgentV3:
         self.opp_model = _OpponentModel()
         # 诊断（不影响行为）：最近一次决策走了哪条规则
         self.last_rule: str = ""
+        # 连续换人计数（决策层状态，不进战斗快照）
+        self._switches = SwitchStreak()
         self.last_read: str = "unknown"
         self._last_seen_turn: int = -1
         self._last_hp: int = 0
@@ -281,6 +288,13 @@ class RuleAgentV3:
         return best_idx
 
     def choose_action(self, battle):
+        active = self.player.active
+        forced = bool(getattr(active, "is_fainted", False))
+        action = self._decide(battle)
+        self._switches.note(battle, action, forced=forced)
+        return action
+
+    def _decide(self, battle):
         self._observe(battle)
         p = self.player
         s = p.active
@@ -324,6 +338,8 @@ class RuleAgentV3:
         opp_reacting = opponent_likely_switch(battle, self.team, opp_player, best_dmg)
         mode = self.opp_model.mode(pr.read_window, pr.read_burst_ratio, pr.read_control_count)
         self.last_read = mode
+
+        may_switch = not self._switches.blocked(pr.max_consecutive_switches)
 
         def emit(rule: str, action: Action) -> Action:
             self.last_rule = rule
@@ -434,9 +450,16 @@ class RuleAgentV3:
         if setup is not None:
             return emit("setup", _skill_action(setup))
 
-        rotate = self._try_rotate(battle, s, opp, opp_player, best_dmg, hp_ratio)
+        rotate = (self._try_rotate(battle, s, opp, opp_player, best_dmg, hp_ratio)
+                  if may_switch else None)
         if rotate is not None:
             return emit("rotate", _switch_action(rotate))
+
+        # 满能量时"聚能"是空操作（+0 能量、白丢一回合）→ 能出招就出招
+        if gather_is_noop(s):
+            idx = first_usable_skill_index(battle, self.team, s)
+            if idx >= 0:
+                return emit("attack", _skill_action(idx))
 
         return emit("gather", _GATHER_ACTION)
 
@@ -517,20 +540,9 @@ class RuleAgentV3:
             return None                      # 它这回合够疼，先防守/换人/输出
         if s.energy < 3:
             return None
-        best_i, best_val = -1, 0.0
-        for i in range(len(s.skills)):
-            sk = self._usable(s, i)
-            if sk is None or sk.is_attack or sk.is_defense:
-                continue
-            prof: SkillProfile = skill_profile(battle, sk)
-            val = prof.self_buff_value
-            if prof.doubles_buffs and prof.counters == "防御":
-                val *= 1.3                   # 应对成功会翻倍，值得赌
-            if val > best_val:
-                best_i, best_val = i, val
-        if best_i >= 0 and best_val >= pr.setup_min_gain:
-            return best_i
-        return None
+        return best_self_buff_skill_index(
+            battle, s, min_gain=pr.setup_min_gain,
+            usable=lambda i, _sk: self._usable(s, i) is not None) or None
 
     def _is_held_closer(self, battle, sprite: Sprite) -> bool:
         """收割位保护：对手还活着 ≥ closer_hold_alive 只时不派它上场。"""
@@ -623,18 +635,21 @@ class RuleAgentV3:
         # 否则换人会挤掉出招候选 —— 第一版按 `dmg*0.6` 算，换人分数直接压过技能，
         # 规划层于是偏好换人，A/B 立刻掉到 0.42。
         opp_best, _, _ = self._best_hit(battle, opp, s)
-        for idx in self._safe_bench(battle, self.player):
-            cand = self.player.team[idx]
-            dmg, _, _ = self._best_hit(battle, cand, opp)
-            if opp_best >= cand.current_hp * self.params.rotate_safe_ratio:
-                continue                      # 换上去就被打死，不进候选
-            if self._is_held_closer(battle, cand):
-                continue                      # 收割位留着
-            gain = dmg / max(1.0, float(my_best))
-            scored.append((min(20.0, 10.0 * gain), _switch_action(idx)))
+        # 连续换人到上限 → 本轮不再提供换人候选（防"双方无限轮转"的僵局）
+        if not self._switches.blocked(self.params.max_consecutive_switches):
+            for idx in self._safe_bench(battle, self.player):
+                cand = self.player.team[idx]
+                dmg, _, _ = self._best_hit(battle, cand, opp)
+                if opp_best >= cand.current_hp * self.params.rotate_safe_ratio:
+                    continue                  # 换上去就被打死，不进候选
+                if self._is_held_closer(battle, cand):
+                    continue                  # 收割位留着
+                gain = dmg / max(1.0, float(my_best))
+                scored.append((min(20.0, 10.0 * gain), _switch_action(idx)))
         cap = max(_PLAN_MAX_CANDIDATES, len(attacks) + 1)
         out = [act for _score, act in scored[:cap]]
-        out.append(_GATHER_ACTION)
+        if not gather_is_noop(s):
+            out.append(_GATHER_ACTION)
         return out
 
     def choose_replacement(self, battle) -> int:

@@ -439,13 +439,28 @@ def main() -> None:
              f"（例：{sign_bad[:5]}）——value 标签可能未按视角取反", args)
 
     stacked: dict[str, np.ndarray] = {}
+    nonfinite: dict[str, int] = {}
     for key in all_states[0]:
         arr = np.stack([s[key] for s in all_states])
         if arr.dtype == np.float32:
+            # 护栏：先夹越界值再降精度。float16 上限 65504，**越界是在 astype 时才变 inf 的**
+            # （源 float32 数组本身有限，所以必须按「绝对值越界」判定），inf 进 log1p
+            # 归一化后会让整批训练损失变 NaN（实测 2026-09-22：新 BC 数据里 1 局把
+            # def 步数翻倍到 3e9 → 56 个样本 inf → v_loss=nan、top-1 掉到 0.19）。
+            # 夹住 + 记进 sidecar 便于事后审计。
+            n_nonfinite = int((~np.isfinite(arr)).sum())
+            n_over = int((np.abs(arr) > 65504.0).sum())
+            if n_nonfinite or n_over:
+                nonfinite[key] = {"非有限": n_nonfinite, "越界夹取": n_over}
+                arr = np.nan_to_num(arr, nan=0.0, posinf=65504.0, neginf=-65504.0)
+            arr = np.clip(arr, -65504.0, 65504.0)
             arr = arr.astype(np.float16)
         elif key == "ast_tokens":
             arr = arr.astype(np.int16)
         stacked[key] = arr
+
+    if nonfinite:
+        _log(f"!! 非有限值已夹到 float16 范围（可能伤及标签/特征）: {nonfinite}", args)
 
     savez = {
         **stacked,
@@ -480,6 +495,9 @@ def main() -> None:
         "team_game_counts": team_game_counts,
         # 决定性对局中「A/B 视角标签异号」的比例（1.0 = 标签约定正确）
         "perspective_sign_ok_rate": sign_ok / max(1, sign_ok + len(sign_bad)),
+        # 非有限值（inf/nan）被夹到 float16 范围的计数：非空说明引擎产出了极端数值
+        # （实测 2026-09-22：增益翻倍类技能被反复使用 → 属性步数指数爆炸）
+        "nonfinite_clipped": nonfinite,
         "holdout_hint": "整队留出验证用 team_id（meta 队索引）；留出最后 --holdout-teams 支",
     }
     sidecar_path = out_path.with_suffix(".json")

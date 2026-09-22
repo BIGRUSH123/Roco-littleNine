@@ -35,7 +35,10 @@ from dataclasses import dataclass, field
 from . import ev
 from . import plan
 from .action import Action
-from .agent import _GATHER_ACTION, _ITEM_ACTION, _skill_action, _switch_action
+from .agent import (
+    _GATHER_ACTION, _ITEM_ACTION, _skill_action, _switch_action,
+    SwitchStreak, best_self_buff_skill_index, first_usable_skill_index, gather_is_noop,
+)
 from .battleskill import SkillUse
 from .item_policy import should_evolve, wish_decision
 from .sprite import Sprite
@@ -109,7 +112,10 @@ class SpriteStrategy:
     role: str = "attack"       # attack / support / tank / closer
     lead: bool = False         # 首发候选
     preserve: bool = False     # 必保精灵：换宠时避免牺牲，被威胁时优先撤出
-    energy_hold: int = 0       # 能量预算：低于此值且无斩杀窗口时不低耗泄招（0=关闭）
+    energy_hold: int = 0       # 能量预算：低于此值且无斩杀窗口时不低泄招（0=关闭）
+    max_consecutive_switches: int = 5   # 连续换人上限：到顶后换人不再进候选（0=关闭；防换人空转僵局）
+    setup_min_gain: float = 6.0         # 打不动时先增益自己的收益门槛（步数；0=关闭）
+    setup_safe_ratio: float = 0.65      # 叠层安全线：对手最强一击 ≥ 我血 × 该值 时不叠（怕被一击打崩）
     threat_switch_hp: float = 0.9   # 规则2 被杀威胁换位的己方血量上限
     switch_hp: float = 0.35         # 规则5 残血换位阈值
     # ── 概率预判 / 期望值（E3，见 backend/sim/ev.py）──
@@ -180,9 +186,13 @@ class RuleAgentV2:
         self.last_ev: dict | None = None
         # 最近一次规划层的诊断（候选/响应/各候选价值；不影响行为）
         self.last_plan: dict | None = None
+        # 最近一次「打不动 → 先增益自己」的诊断（不影响行为）
+        self.last_setup: dict | None = None
         # 信念注入点：可调用对象 (battle) -> {列: 概率}，用于剥削者/校准模型覆盖
         # `belief.py` 的手设先验（None = 用先验）。见 native/tools/eval_prediction_mix.py。
         self.belief_provider = None
+        # 连续换人计数（决策层状态，不进战斗快照）：防"双方无限轮转"的僵局
+        self._switches = SwitchStreak()
 
     def _st(self, sprite: Sprite) -> SpriteStrategy:
         return self.strategy.for_species(sprite.name)
@@ -207,6 +217,7 @@ class RuleAgentV2:
         打不动又耗光的攻击不进候选，剩下的（打哪个技能 / 强化 / 换人 / 聚能）交给期望值。
         """
         out: list[ev.Candidate] = []
+        may_switch = not self._switches.blocked(st.max_consecutive_switches)
         attack_idx = {i for i, _dmg, _cost in table}
         for i, dmg, cost in table:
             if dmg >= opp.current_hp * _WEAK_ATTACK_RATIO or (
@@ -218,9 +229,11 @@ class RuleAgentV2:
             if skill.energy_cost > s.energy:
                 continue
             out.append(ev.Candidate('skill', i, skill.name))
-        for idx in self._safe_bench(battle, self.player):
-            out.append(ev.Candidate('switch', idx, f"→{self.player.team[idx].name}"))
-        out.append(ev.Candidate('gather', 0, "聚能"))
+        if may_switch:
+            for idx in self._safe_bench(battle, self.player):
+                out.append(ev.Candidate('switch', idx, f"→{self.player.team[idx].name}"))
+        if not gather_is_noop(s):
+            out.append(ev.Candidate('gather', 0, "聚能"))
         return out
 
     def _candidate_action(self, cand: ev.Candidate) -> Action:
@@ -240,6 +253,7 @@ class RuleAgentV2:
         代价是候选变多，所以按"即时伤害 + 效果条数"粗排后截到 `_PLAN_MAX_CANDIDATES` 个。
         """
         attack_dmg = {i: dmg for i, dmg, _cost in table}
+        may_switch = not self._switches.blocked(st.max_consecutive_switches)
         scored: list[tuple[float, Action]] = []
         for i, skill in enumerate(s.skills):
             if skill.cooldown > 0 or skill.sealed or skill.energy_cost > s.energy:
@@ -248,11 +262,13 @@ class RuleAgentV2:
             # IR 语料下恒为 0，粗排结果与今天的实际行为一致
             score = float(attack_dmg.get(i, 0))
             scored.append((score, _skill_action(i)))
-        for idx in self._safe_bench(battle, self.player):
-            scored.append((0.0, _switch_action(idx)))
+        if may_switch:
+            for idx in self._safe_bench(battle, self.player):
+                scored.append((0.0, _switch_action(idx)))
         scored.sort(key=lambda x: -x[0])
         out = [act for _score, act in scored[:_PLAN_MAX_CANDIDATES]]
-        out.append(_GATHER_ACTION)
+        if not gather_is_noop(s):
+            out.append(_GATHER_ACTION)
         return out
 
     # ── 通用计算 ──
@@ -320,12 +336,21 @@ class RuleAgentV2:
         return best_idx
 
     def choose_action(self, battle):
+        active = self.player.active
+        forced = bool(getattr(active, "is_fainted", False))
+        action = self._decide(battle)
+        self._switches.note(battle, action, forced=forced)
+        return action
+
+    def _decide(self, battle):
         p = self.player
         s = p.active
         opp_player = battle.get_opponent(self.team)
         opp = opp_player.active
         opp_team = opponent_team(self.team)
         st = self._st(s)
+        # 连续换人到上限后，本轮不再考虑任何主动换人（"不能连续 5 次换人"）
+        may_switch = not self._switches.blocked(st.max_consecutive_switches)
 
         # 力竭 → 强制换宠
         if s.is_fainted:
@@ -482,6 +507,25 @@ class RuleAgentV2:
                     best = max(cands, key=lambda sk: -sk.energy_cost)
                     return _skill_action(s.skills.index(best))
 
+        # ── 3‴. 打不动 → 先增益自己（"进攻不划算时叠层，比空过/换人强"）──
+        # 判据：最强一发 < 对手血量 × `_WEAK_ATTACK_RATIO`（＝缺乏有效输出），
+        # 且对手这一击不够疼（不至于被一击打崩）、手上确实有值得叠的自身增益技。
+        # 旧 kind 层的 `e.kind == 'stat'` 判据在 IR 语料下恒不成立（2026-09-22 删除），
+        # 这里用 `sim.skill_ir` 的画像（与 V3 `_try_setup` 同一实现）。
+        if st.setup_min_gain > 0 and table:
+            if best_dmg < opp.current_hp * _WEAK_ATTACK_RATIO:
+                opp_best, _, _ = self._best_hit(battle, opp, s)
+                if opp_best < s.current_hp * st.setup_safe_ratio:
+                    buff_i = best_self_buff_skill_index(
+                        battle, s, min_gain=st.setup_min_gain,
+                        usable=lambda i, _sk: battle.action_legality(
+                            self.team, Action(kind='skill', skill_index=i)).ok)
+                    if buff_i >= 0:
+                        self.last_setup = {"skill": s.skills[buff_i].name,
+                                           "best_dmg": best_dmg,
+                                           "opp_hp": opp.current_hp}
+                        return _skill_action(buff_i)
+
         # ── 3″. 规划（E2）：一回合 rollout + 效果感知叶子（`plan_depth > 0` 时启用）──
         # 取代下面的"最高即时伤害贪心"与"强化只在打不出招时兜底"两条；手写的特例
         # （斩杀/防御/撤人/状态反制/道具）在两条路上都保留，A/B 量的就是这一处替换。
@@ -512,7 +556,7 @@ class RuleAgentV2:
         # ── 5. 残血换位（对位更优才换；触发式，非无谓换人）──
         # 刚换上来的那只不参与：审计里"换出去又换回来"的空转占了 11% 的换人决策
         just_entered = battle.turn - getattr(s, 'entry_turn', 0) <= 1
-        if hp_ratio < st.switch_hp and not (just_entered and st.anti_switch_loop):
+        if may_switch and hp_ratio < st.switch_hp and not (just_entered and st.anti_switch_loop):
             bench = self._safe_bench(battle, p)
             if bench:
                 idx, bench_dmg = self._best_matchup(battle, bench, opp)
@@ -521,6 +565,13 @@ class RuleAgentV2:
                     return _switch_action(idx)
 
         # ── 6. 兜底：聚能攒爆发 ──
+        # 满能量时"聚能"是空操作（+0 能量、白丢一回合）：能出招就出招（哪怕伤害不高），
+        # 只剩换人/空过时也优先换人。挡不住的话镜像局会双方互不进攻、打满 60 回合
+        # （实测星陨队镜像 114/120 局平局，见 docs/引擎机制对账-游戏描述图鉴.md「僵局」）。
+        if gather_is_noop(s):
+            idx = first_usable_skill_index(battle, self.team, s)
+            if idx >= 0:
+                return _skill_action(idx)
         return _GATHER_ACTION
 
     def choose_replacement(self, battle) -> int:

@@ -72,3 +72,8 @@ backend/engine/ai/data/nrc_cache/
 # duel_harness 的对局工作目录（config.json/actions.jsonl 是脚本写出的运行残留；
 # 可复用的队伍规格放 native/tools/duel_teams/）
 /_duel/
+
+# 远端实验通道（native/tools/remote）：凭据与内核句柄不入库
+/native/tools/remote/cookies.json
+/native/tools/remote/kernel.json
+/native/tools/remote/*.zip

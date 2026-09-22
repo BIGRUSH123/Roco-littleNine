@@ -35,6 +35,101 @@ def _switch_action(index: int) -> Action:
     return _SWITCH_ACTIONS[index] if 0 <= index < len(_SWITCH_ACTIONS) else Action(kind='switch', switch_index=index)
 
 
+def gather_is_noop(sprite) -> bool:
+    """满能量聚能 = **严格劣着**（+0 能量、白丢一回合）。
+
+    引擎侧"聚能"始终合法（它是游戏里可以随时做的行动），所以这条只约束**决策层**：
+    AI 不该把空过当候选，更不该在能出招时用它兜底。判定用能量上限而非固定常量，
+    因为上限会随血脉/首领化等变化。见 docs/引擎机制对账-游戏描述图鉴.md「僵局」。
+    """
+    max_e = getattr(sprite, "max_energy", 0) or 0
+    return max_e > 0 and getattr(sprite, "energy", 0) >= max_e
+
+
+MAX_CONSECUTIVE_SWITCHES = 5   # 连续换人上限（防"换人空转"僵局；0 = 关闭该规则）
+
+
+class SwitchStreak:
+    """连续换人计数 —— **决策层状态**，不进战斗快照（不被 MCTS 回滚，也不影响引擎）。
+
+    同一回合内 agent 可能因非法动作被重问多次，用 `turn` 去重只记一次实际选择。
+    """
+
+    __slots__ = ("streak", "_turn")
+
+    def __init__(self) -> None:
+        self.streak = 0
+        self._turn = -1
+
+    def note(self, battle, action, *, forced: bool = False) -> None:
+        """记一次实际选择。（力竭顶替等非主动换人）→ 计数归零而不是 +1。"""
+        turn = getattr(battle, "turn", -1)
+        if turn == self._turn:
+            return
+        self._turn = turn
+        if forced:
+            self.streak = 0
+        elif getattr(action, "kind", "") == "switch":
+            self.streak += 1
+        else:
+            self.streak = 0
+
+    def blocked(self, limit) -> bool:
+        """连续换人是否已达上限（`limit` 为 0/None = 不限制）。"""
+        if not limit:
+            return False
+        return self.streak >= int(limit)
+
+
+def best_self_buff_skill_index(battle, sprite, *, min_gain: float, usable=None) -> int:
+    """值得花一回合叠的**自身增益**技能下标（没有返回 -1）。
+
+    "进攻不划算时先增益自己"这条规则的判据：旧 kind 层的 `e.kind == 'stat'`
+    在 IR 语料下恒不成立（2026-09-22 删除），这里改用 `sim.skill_ir.skill_profile`
+    的 `self_buff_value`（步数口径）——与 V3 的 `_try_setup` 同源，单一实现。
+    """
+    from .skill_ir import skill_profile
+
+    if not min_gain:
+        return -1
+    best_i, best_val = -1, 0.0
+    for i, bs in enumerate(getattr(sprite, "skills", None) or ()):
+        if usable is not None and not usable(i, bs):
+            continue
+        if getattr(bs, "is_attack", False) or getattr(bs, "is_defense", False):
+            continue
+        prof = skill_profile(battle, bs)
+        val = prof.self_buff_value
+        if prof.doubles_buffs and prof.counters == "防御":
+            val *= 1.3                   # 应对成功会翻倍，值得赌
+        if val > best_val:
+            best_i, best_val = i, val
+    if best_i >= 0 and best_val >= float(min_gain):
+        return best_i
+    return -1
+
+
+def first_usable_skill_index(battle, team: str, sprite, *, attack_first: bool = True) -> int:
+    """本次**真能放出去**的技能下标（走引擎唯一判据 `Battle.action_legality`）。
+
+    用于"满能量不能空过"的兜底：攻击优先（`attack_first`），其次任意可用技能；没有返回 -1。
+    """
+    if sprite is None:
+        return -1
+    fallback = -1
+    for i, skill in enumerate(getattr(sprite, "skills", None) or ()):
+        try:
+            if not battle.action_legality(team, Action(kind='skill', skill_index=i)).ok:
+                continue
+        except Exception:  # noqa: BLE001 — 判据不可用时不阻断决策
+            continue
+        if attack_first and getattr(skill, "is_attack", False):
+            return i
+        if fallback < 0:
+            fallback = i
+    return fallback
+
+
 class Agent(Protocol):
     """决策代理协议。"""
 
@@ -52,6 +147,8 @@ class RuleAgent:
     def __init__(self, team: str, player: Player):
         self.team = team
         self.player = player
+        # 连续换人计数（决策层状态，不进战斗快照）
+        self._switches = SwitchStreak()
 
     def choose_lead(self, battle: Battle) -> int:
         """选择出场精灵：选对对手威胁最大的。"""
@@ -77,9 +174,17 @@ class RuleAgent:
         return best_idx
 
     def choose_action(self, battle: Battle) -> Action:
+        forced = bool(getattr(self.player.active, "is_fainted", False))
+        action = self._decide(battle)
+        self._switches.note(battle, action, forced=forced)
+        return action
+
+    def _decide(self, battle: Battle) -> Action:
         p = self.player
         s = p.active
         style = p.style
+        # 连续换人到上限后不再主动换人（"不能连续 5 次换人"）
+        may_switch = not self._switches.blocked(MAX_CONSECUTIVE_SWITCHES)
 
         # 已力竭 → 强制换宠
         if s.is_fainted:
@@ -98,7 +203,7 @@ class RuleAgent:
 
         # 低 HP → 可能换宠
         hp_ratio = s.current_hp / s.max_hp if s.max_hp > 0 else 0
-        if hp_ratio < style.switch_hp_threshold:
+        if may_switch and hp_ratio < style.switch_hp_threshold:
             replacement = p.find_replacement()
             if replacement is not None:
                 return _switch_action(replacement)
@@ -119,7 +224,7 @@ class RuleAgent:
                 pass  # fall through to normal skill selection
             elif charged_skill is not None:
                 return _skill_action(charged_idx)
-            else:
+            elif may_switch:
                 replacement = p.find_replacement()
                 if replacement is not None:
                     return _switch_action(replacement)
@@ -169,9 +274,10 @@ class RuleAgent:
         # 无可用技能 → 聚能或换宠
         if s.energy < 10:
             return _GATHER_ACTION
-        replacement = p.find_replacement()
-        if replacement is not None:
-            return _switch_action(replacement)
+        if may_switch:
+            replacement = p.find_replacement()
+            if replacement is not None:
+                return _switch_action(replacement)
         return _GATHER_ACTION
 
     def choose_replacement(self, battle: Battle) -> int:

@@ -239,6 +239,9 @@ class Battle(BattleMechanicsMixin):
         # 巧变产物：能耗-1（wiki: 使用后会变为指定范围内的随机技能，且能耗-1）
         if getattr(skill, '_morph_temp', False):
             cost -= 1
+        # 变身产物的声明级能耗修正（复写「该技能能耗-2」，见 IR_GUIDE「变身」）
+        from backend.engine import morph as _morph
+        cost += _morph.henshin_cost_delta(skill)
         return max(0, cost)
 
     def can_pay_skill_energy_cost(
@@ -1192,6 +1195,17 @@ class Battle(BattleMechanicsMixin):
                     events.append(f'{sprite.name} 本回合回复能量{armed:+d}')
 
         events += TurnPipeline.execute_turn_start(self)
+        # 变身（技能顶层 `morph` 字段）：每回合开始时把场上精灵的变身槽重掷成池中随机技能。
+        # 与巧变（qiaobian，使用后变化）不同：这里不写 `_morph_temp`，产物不会被用掉后还原。
+        # 见 data/IR_GUIDE.md「变身」小节。
+        from backend.engine import morph as _morph
+        for team in ('A', 'B'):
+            active = self.get_player(team).active
+            if active is None:
+                continue
+            text = _morph.apply_henshin(self, team, active)
+            if text and not mcts_sim:
+                events.append(text)
         # reset:"turn" 观察者命中计数清零（王子的诺言 等每回合限次）
         self._vm_engine.registry.reset_turn_counters()
         # 引擎机制：按声明重算 aura（和弦共振/守护之心/先知 等），幂等

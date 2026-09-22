@@ -1228,6 +1228,31 @@ Observer 是 IR 第一公民，显式声明触发条件、可选计数器和生�
 该随机技能被使用后 → `revert_after_use()` 还原原技能。池按 id 升序后 `random.choice`
 （对局由 `random.seed(seed)` 播种，录制/回放可复现）。
 
+#### `morph`（技能顶层字段）— 变身
+
+与巧变（`qiaobian`）**不是同一机制**，只是共用 `BattleSkill.replaced_by` 这一个字段：
+
+| | 巧变 `qiaobian` | 变身 `morph` |
+|---|---|---|
+| 形态 | 顶层 `qiaobian`：池名 / spec dict | 顶层 `morph`：`{"from", "mode", "exclude_self", "exclude_owned", "energy_delta"}` |
+| 触发 | **使用后**变化（`morph.apply_after_use`） | **每回合开始时**重掷（`morph.apply_henshin`，由 `Battle._phase_turn_start` 调用） |
+| 能耗 | 产物能耗-1（`_morph_temp`） | 无（只有 `energy_delta` 声明的修正，见下） |
+| 还原 | 产物被使用后还原原技能 | 不还原：每回合重掷覆盖（回合末不清理，下回合再掷） |
+| 池 | `same_element` / `filter` | `team_own` |
+
+**池（`from: "team_own"`）** = 己方队伍中**其他精灵**的技能槽（取当前有效技能名，去重、按技能 id 升序，
+再 `random.choice`，与巧变同一确定性约定）。`exclude_owned: true` 再从池中剔除**施法者已携带**的技能
+（复写「自己未携带的技能」）。`mode` 目前仅 `"random"`。
+
+**能耗修正 `energy_delta`**：产物技能本回合的能耗加该值（复写 -2）。落地在
+`Battle.skill_energy_cost()`：仅当槽位由变身写入（`bs.base.morph` 存在且 `_morph_temp` 为假）时生效。
+
+**来源与边界**（wiki.biligame.com/nrc「借用」/「复写」）：
+- 借用「每回合随机变成己方队伍中其他精灵的技能」→ `from: team_own`（可抽到自己也有的技能）。
+- 复写「每回合随机变成自己未携带的技能，且该技能能耗-2」→ `exclude_owned: true` + `energy_delta: -2`。
+- 只有**场上（active）**精灵在回合开始时重掷；换上的精灵从下个回合开始吃变身。
+- 池为空（单只精灵队伍、或队友无技能）→ 不替换，该槽保持原技能。
+
 #### `grant_choice` — 分支授予
 
 给命中的技能（或聚能行动）**追加一个可选分支**（如 异类「翼系攻击技能获得选择：能耗+1，攻击时吸血50%」）。
@@ -1570,7 +1595,8 @@ Observer 是 IR 第一公民，显式声明触发条件、可选计数器和生�
 |------|------|----------|------|
 | `aura` | `sprite.active_effects` 中的 `AuraEffect` + `sprite.counters["aura:<source>:<stat>"]` 追踪已应用步数 | 回合开始、每次行动后、每次换人后（`auras.refresh()` 幂等重算） | 随 scope 清除效果，`Sprite.clear_effects()` 同步把追踪计数归零 |
 | `element_convert` | `BattleSkill._element_override` | Ctx 构建（伤害/克制计算读生效属性） | 同上，非在场时撤销覆写 |
-| `morph` | `BattleSkill._morph_source` | 技能结算完成后（`morph.apply_after_use()`） | 同上清空 `_morph_source`（已变化的技能槽保留，直到再次变化） |
+| `morph` | `BattleSkill._morph_source`（巧变：授予型） | 技能结算完成后（`morph.apply_after_use()`） | 同上清空 `_morph_source`（已变化的技能槽保留，直到再次变化） |
+| `morph`（变身） | `BattleSkill.replaced_by`（技能顶层 `morph` 字段，非授予） | **回合开始**（`morph.apply_henshin()`，见「变身」小节） | 不清理：每回合重掷覆盖 |
 | `grant_choice` | `BattleSkill._granted_choices` / 精灵级聚能分支 | 行动选择与分支解析（`_execute_skill_vm`） | 同上 |
 
 > 这些都是**引擎通用能力**：新增同类特性只需写数据，不需要改引擎。
@@ -1663,7 +1689,7 @@ feeds:cost → Gate(付能耗) → feeds:power → 威力确定 → feeds:mult
 | `use_devotion` | 触发队伍奉献 | `false` |
 | `usable_while_charging` | 蓄力中可用 | `false` |
 | `transmission` | 传动等级：`-1` = **主轴（位置不参与传动，= 旧 `position_locked` 的语义）** / `0` = 普通 / `1+` = 传动等级。旧字段 `main_axis` 已于 2026-09-22 删除（主轴只由本字段表示） | `0` |
-| `morph` | 变身 `{"from": "team_own", "mode": "random"}` — **当前引擎未实现**（无读取点；「每回合随机变成 X 的技能」尚未落地） | 无 |
+| `morph` | **变身**：`{"from": "team_own", "mode": "random", "exclude_self": true, "exclude_owned": true, "energy_delta": -2}` — **每回合开始时**把该槽位替换为池中随机技能（借用/复写）。与「巧变」（`qiaobian`）不是同一机制，见下「变身」小节 | 无 |
 | `passive` | 被动效果数组 | `[]` |
 | `counter` | 应对类型：`"攻击"` / `"防御"` / `"状态"` | 无 |
 
