@@ -1,6 +1,7 @@
 # 忽略所有以 . 开头的文件和目录
 .*
 !.pre-commit-config.yaml
+!.gitattributes
 !.github/
 # native 的 Cargo 忽略规则（/target）本身要入库，否则换个工作区就会漏掉 target/
 !native/.gitignore

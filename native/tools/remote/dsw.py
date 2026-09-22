@@ -26,7 +26,15 @@ import uuid
 import requests
 
 HOST = "dsw-gateway-cn-hangzhou.data.aliyun.com"
-PREFIX = "/dsw-2203190"
+# 实例号会随重开实例变化：优先读环境变量 DSW_INSTANCE，其次读同目录 instance.txt
+_DEFAULT_INSTANCE = "dsw-2203962"
+_env = os.environ.get("DSW_INSTANCE", "").strip()
+if not _env:
+    _f = os.path.join(os.path.dirname(os.path.abspath(__file__)), "instance.txt")
+    if os.path.exists(_f):
+        with open(_f, encoding="utf-8") as fh:
+            _env = fh.read().strip()
+PREFIX = "/" + (_env or _DEFAULT_INSTANCE)
 BASE = f"https://{HOST}{PREFIX}"
 HERE = os.path.dirname(os.path.abspath(__file__))
 COOKIE_FILE = os.path.join(HERE, "cookies.json")

@@ -54,13 +54,13 @@ from backend.sim.agent_v3 import RuleAgentV3  # noqa: E402
 from backend.sim.factory import SimFactory  # noqa: E402
 
 NEW_VALUES = {"trade": 0.15, "antiloop": True, "defend": 0.30, "status": True,
-              "plan": 1, "switchcap": 5, "setup": 6.0}
+              "plan": 1, "switchcap": 5, "setup": 6.0, "clock": 1.0}
 OLD_VALUES = {"trade": 1e9, "antiloop": False, "defend": 0.0, "status": False,
-              "plan": 0, "switchcap": 0, "setup": 0.0}
+              "plan": 0, "switchcap": 0, "setup": 0.0, "clock": 0.0}
 _AB_FIELDS = {"trade": "trade_margin", "antiloop": "anti_switch_loop",
               "defend": "defend_threshold", "status": "status_counter",
               "plan": "plan_depth", "switchcap": "max_consecutive_switches",
-              "setup": "setup_min_gain"}
+              "setup": "setup_min_gain", "clock": "clock_weight"}
 # `both` = 三条蒸馏规则（trade+antiloop+defend，语义固定，便于与历史数字对照）；
 # `all` = 再加状态反制（status_counter）。
 _BUNDLES = {"both": ["trade", "antiloop", "defend"],
@@ -72,7 +72,9 @@ _BUNDLES = {"both": ["trade", "antiloop", "defend"],
             # （`backend/sim/plan.py` + `backend/sim/value.py`）
             "plan": ["plan"],
             # 反僵局两条（2026-09-22 第八批）：连续换人上限 + 打不动先增益自己
-            "antistall": ["switchcap", "setup"]}
+            "antistall": ["switchcap", "setup"],
+            # 叶子"临场血量加权"（第十一批）：靠近回合上限时按血量差判胜的市场口径
+            "clockterm": ["clock"]}
 
 
 def parse_args() -> argparse.Namespace:
@@ -81,7 +83,7 @@ def parse_args() -> argparse.Namespace:
     ap.add_argument("--ab", default="both",
                     choices=("trade", "antiloop", "defend", "status",
                              "both", "no_defend", "all", "shipped", "plan",
-                             "switchcap", "setup", "antistall", "v3"))
+                             "switchcap", "setup", "antistall", "clockterm", "v3"))
     ap.add_argument("--meta-frac", type=float, default=0.6)
     ap.add_argument("--max-turns", type=int, default=40)
     ap.add_argument("--seed", type=int, default=2026)

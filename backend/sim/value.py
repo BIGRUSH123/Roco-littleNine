@@ -45,6 +45,11 @@ class ValueParams:
     switch_hazard: float = 0.50    # 自侧印记的进场伤害/掉能量（换人代价，打 5 折）
     bench_weight: float = 0.30     # 板凳身上的效果打折
     short_ttl_discount: float = 0.5  # 只剩 1 回合的效果打折
+    # 「临场加权」：打满回合上限时按**血量差**判胜（`core/outcome.py` 的 draw_margin 口径，
+    # 30K 数据集里打满的 4749 局有 62% 是这样判出来的），而叶子对血量的权重与回合数无关。
+    # 该项 = clock_hp_weight × (turn / turn_cap) × (我血比 − 它血比)：越接近上限，血量差越当钱。
+    clock_hp_weight: float = 0.0   # 0 = 关闭（出厂行为）
+    turn_cap: int = 60             # 与 `core/outcome.py: DEFAULT_SELFPLAY_MAX_TURNS` 同口径
 
 
 DEFAULT_PARAMS = ValueParams()
@@ -188,4 +193,20 @@ def state_value(battle, side: str, params: ValueParams = DEFAULT_PARAMS) -> floa
     me = battle.player_a if side == "A" else battle.player_b
     opp = battle.player_b if side == "A" else battle.player_a
     other = "B" if side == "A" else "A"
-    return team_value(battle, me, side, params) - team_value(battle, opp, other, params)
+    v = team_value(battle, me, side, params) - team_value(battle, opp, other, params)
+    if params.clock_hp_weight:
+        cap = max(1, int(params.turn_cap))
+        prog = min(1.0, max(0.0, getattr(battle, "turn", 0) / cap))
+        me_hp = _team_hp_frac(me)
+        opp_hp = _team_hp_frac(opp)
+        v += params.clock_hp_weight * prog * (me_hp - opp_hp)
+    return v
+
+
+def _team_hp_frac(player) -> float:
+    """全队血量比（存活精灵血量和 / 其最大血量和）——与判胜口径同量纲。"""
+    cur = tot = 0.0
+    for sp in getattr(player, "team", ()) or ():
+        tot += max(1, int(getattr(sp, "max_hp", 0) or 0))
+        cur += max(0, int(getattr(sp, "current_hp", 0) or 0))
+    return cur / tot if tot else 0.0

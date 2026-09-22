@@ -9,7 +9,8 @@ import { readFileSync, writeFileSync } from 'node:fs';
 
 const HOST = '127.0.0.1:9222';
 const PATTERN = 'dsw-gateway-cn-hangzhou.data.aliyun.com';
-const LAB = 'https://dsw-gateway-cn-hangzhou.data.aliyun.com/dsw-2203190/lab';
+const INSTANCE = process.env.DSW_INSTANCE || 'dsw-2203962';
+const LAB = `https://dsw-gateway-cn-hangzhou.data.aliyun.com/${INSTANCE}/lab`;
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 

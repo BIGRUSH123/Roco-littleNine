@@ -30,6 +30,7 @@
 from __future__ import annotations
 
 import random
+import dataclasses
 from dataclasses import dataclass, field
 
 from . import ev
@@ -116,6 +117,7 @@ class SpriteStrategy:
     max_consecutive_switches: int = 5   # 连续换人上限：到顶后换人不再进候选（0=关闭；防换人空转僵局）
     setup_min_gain: float = 6.0         # 打不动时先增益自己的收益门槛（步数；0=关闭）
     setup_safe_ratio: float = 0.65      # 叠层安全线：对手最强一击 ≥ 我血 × 该值 时不叠（怕被一击打崩）
+    clock_weight: float = 0.0           # 叶子"临场血量加权"（0=关；靠近回合上限时按血量差判胜）
     threat_switch_hp: float = 0.9   # 规则2 被杀威胁换位的己方血量上限
     switch_hp: float = 0.35         # 规则5 残血换位阈值
     # ── 概率预判 / 期望值（E3，见 backend/sim/ev.py）──
@@ -531,8 +533,15 @@ class RuleAgentV2:
         # （斩杀/防御/撤人/状态反制/道具）在两条路上都保留，A/B 量的就是这一处替换。
         if st.plan_depth > 0:
             cands = self._plan_candidates(battle, s, opp, table, st)
+            if st.clock_weight:
+                from .value import DEFAULT_PARAMS as _VALUE_PARAMS
+                plan_params = dataclasses.replace(_VALUE_PARAMS,
+                                                  clock_hp_weight=st.clock_weight)
+            else:
+                plan_params = None
             picked, info = plan.choose(battle, self.team, cands, plies=st.plan_depth,
-                                       k_responses=st.plan_responses, rng=random)
+                                       k_responses=st.plan_responses, rng=random,
+                                       params=plan_params)
             self.last_plan = info
             if picked is not None:
                 return picked
