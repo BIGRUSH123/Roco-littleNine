@@ -104,6 +104,11 @@ class Ctx:
     is_mixed_blood_opp: bool = False
     elements_self: tuple[str, ...] = ()  # own sprite species elements (e.g. ("水", "冰"))
     elements_opp: tuple[str, ...] = ()   # opponent sprite species elements
+    # 体重（kg）：`SpeciesStats.weight`（sidecar `data/sprites/_weights.json`，
+    # 由 nrc Catalog.lua 区间**取中点**）。派生查询 `weight_diff` = 自己 − 对方
+    # （带符号；取绝对值的写法见 data/IR_GUIDE.md §1.2）。
+    weight_self: float = 0.0
+    weight_opp: float = 0.0
 
     # ── 敌方精灵 ──
     hp_opp: int = 0
@@ -153,9 +158,20 @@ class Ctx:
     counters_self: dict[str, int] = field(default_factory=dict)  # sprite counters {key: n}
     counters_opp: dict[str, int] = field(default_factory=dict)   # opponent sprite counters
 
+    # ── 上回合系别/能耗寄存器（覆盖写快照，见 IR_GUIDE §1.2 / §五）──
+    # 与 team_counters 的 `element:<系别>`（累计、从不清零）不同：这几项只描述
+    # **上一回合**，由 sim/battle.py:_write_turn_match_counters 在回合末覆盖写入。
+    last_turn_element_own: dict[str, int] = field(default_factory=dict)   # {系别: 使用次数}
+    last_turn_element_opp: dict[str, int] = field(default_factory=dict)
+    last_turn_element_both: dict[str, int] = field(default_factory=dict)  # own + opp 逐键求和
+    last_turn_energy_sum_own: int = 0    # 上一回合己方使用技能的能耗之和
+    last_turn_energy_sum_opp: int = 0
+    last_turn_energy_sum_both: int = 0
+
     # ── 技能（当前发动的技能） ──
     power_self: int = 0                  # skill base power
     adjacent_power_sum: int = 0          # sum of adjacent skill powers
+    adjacent_power_diff: int = 0         # |left adjacent power − right adjacent power|
     power_opp: int = 0                   # opponent current skill base power
     skill_type_self: str = ""            # "物攻" | "魔攻" | "动态攻击" | "防御" | "状态"
     skill_type_opp: str = ""             # opponent skill type
@@ -215,7 +231,7 @@ class Ctx:
                          "power_mult", "damage_mult",
                          "last_tick_damage", "prev_damage_taken",
                          "bloodline", "elements", "is_mixed_blood",
-                         "heal_delta", "energy_delta"):
+                         "heal_delta", "energy_delta", "weight"):
                 field_self = f"{base}{suffix_self}"
                 field_opp = f"{base}{suffix_opp}"
                 if hasattr(other, field_self) and hasattr(other, field_opp):
@@ -262,6 +278,11 @@ class Ctx:
         other.lives_own, other.lives_opp = self.lives_opp, self.lives_own
         other.counters_self = dict(self.counters_opp)
         other.counters_opp = dict(self.counters_self)
+        # 上回合系别/能耗的 own ↔ opp（both 是对称量，不参与换视角）
+        other.last_turn_element_own = dict(self.last_turn_element_opp)
+        other.last_turn_element_opp = dict(self.last_turn_element_own)
+        other.last_turn_energy_sum_own, other.last_turn_energy_sum_opp = (
+            self.last_turn_energy_sum_opp, self.last_turn_energy_sum_own)
 
         return other
 
@@ -292,6 +313,9 @@ ADDRESS_MAP: dict[tuple[str, str], str] = {
     ("sprite_self", "speed"):             "speed_self",
     ("sprite_self", "hp_max"):            "hp_self_max",
     ("sprite_self", "adjacent_power_sum"): "adjacent_power_sum",
+    ("sprite_self", "adjacent_power_diff"): "adjacent_power_diff",
+    ("sprite_self", "weight"):             "weight_self",
+    ("sprite_opp",  "weight"):             "weight_opp",
     ("sprite_self", "damage_reduced"):     "damage_reduced_self",
     ("sprite_self", "damage_reduction"):   "damage_reduction_self",
     ("sprite_self", "last_tick_damage"):   "last_tick_damage_self",
@@ -376,10 +400,19 @@ ADDRESS_MAP: dict[tuple[str, str], str] = {
     # battle (世界状态)
     ("battle", "is_night"):                "is_night",
 
+    # 上回合系别/能耗（覆盖写寄存器；last_turn_element 需 name 子索引）
+    ("team_own", "last_turn_element"):      "last_turn_element_own",
+    ("team_opp", "last_turn_element"):      "last_turn_element_opp",
+    ("team_both", "last_turn_element"):     "last_turn_element_both",
+    ("team_own", "last_turn_energy_sum"):   "last_turn_energy_sum_own",
+    ("team_opp", "last_turn_energy_sum"):   "last_turn_energy_sum_opp",
+    ("team_both", "last_turn_energy_sum"):  "last_turn_energy_sum_both",
+
     # skill_off_0 (current attacking skill)
     ("skill_off_0", "power_base"):         "power_self",
     ("skill_off_0", "element"):            "element_self",
     ("skill_off_0", "adjacent_power_sum"): "adjacent_power_sum",
+    ("skill_off_0", "adjacent_power_diff"): "adjacent_power_diff",
     ("skill_off_0", "combo_current"):      "combo_self",
     ("skill_off_0", "energy_cost"):        "energy_cost_self",
     ("skill_off_0", "counter_value"):      "counter_values",

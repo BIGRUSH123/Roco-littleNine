@@ -265,9 +265,6 @@ def sprite_to_dict(sprite) -> dict:
         ],
         "_modifiers": dict(sprite._modifiers),
         "_mod_scopes": dict(sprite._mod_scopes),
-        "_pending_effects": [
-            (effect_to_dict(e), delay) for e, delay in sprite._pending_effects
-        ],
         "_pending_modifiers": [
             {
                 "stat": m.stat, "value": m.value, "mode": m.mode,
@@ -325,11 +322,6 @@ def sprite_from_dict(d: dict, species_db, skill_loader) -> Any:
     sprite._mod_scopes = dict(d.get("_mod_scopes", {}))
 
     sprite.active_effects = [effect_from_dict(e) for e in d.get("active_effects", [])]
-
-    sprite._pending_effects = [
-        (effect_from_dict(e), delay)
-        for e, delay in d.get("_pending_effects", [])
-    ]
 
     from backend.vm.journal import ModifierInjection
     sprite._pending_modifiers = [
@@ -630,6 +622,13 @@ def battle_to_dict(battle) -> dict:
             "A": dict(battle.team_counters.get("A", {})),
             "B": dict(battle.team_counters.get("B", {})),
         },
+        # 上回合系别/能耗寄存器（Ctx 快照用；团队计数器里也有一份
+        # `last_turn_element:<系别>` / `last_turn_energy_sum`，回溯时要一起回到过去）
+        "last_turn_elements": {
+            "A": dict(battle._last_turn_elements.get("A", {})),
+            "B": dict(battle._last_turn_elements.get("B", {})),
+        },
+        "last_turn_energy": dict(battle._last_turn_energy),
         "pending_effects": {
             team: [effect_to_dict(e) for e in effects]
             for team, effects in battle.pending_effects.items()
@@ -674,6 +673,16 @@ def battle_from_dict(d: dict, species_db, skill_loader) -> Any:
     battle.team_counters = {
         "A": dict(d.get("team_counters", {}).get("A", {})),
         "B": dict(d.get("team_counters", {}).get("B", {})),
+    }
+
+    # 上回合系别/能耗寄存器（旧快照无该键 → 留空，等价于「上一回合什么都没用」）
+    battle._last_turn_elements = {
+        "A": dict(d.get("last_turn_elements", {}).get("A", {})),
+        "B": dict(d.get("last_turn_elements", {}).get("B", {})),
+    }
+    battle._last_turn_energy = {
+        "A": int(d.get("last_turn_energy", {}).get("A", 0) or 0),
+        "B": int(d.get("last_turn_energy", {}).get("B", 0) or 0),
     }
 
     battle.pending_effects = {

@@ -289,104 +289,13 @@ def load_skill_metadata() -> dict[str, dict]:
     for path in SKILLS_DIR.glob("*.json"):
         try:
             data = json.loads(path.read_text(encoding="utf-8"))
-            data["description"] = wiki_desc.get(data["name"]) or _describe_skill(data)
+            data["description"] = (wiki_desc.get(data["name"])
+                                   or data.get("description")
+                                   or "无特殊效果")
             _skill_cache[data["name"]] = data
         except (json.JSONDecodeError, KeyError):
             continue
     return _skill_cache
-
-def _describe_skill(s: dict) -> str:
-    """Generate human-readable skill description from JSON data."""
-    parts: list[str] = []
-    skill_type = s.get('skill_type', '')
-    s.get('power', 0)
-    combo = s.get('combo', 1)
-    effects: list[dict] = s.get('effects', [])
-
-    # Damage type + combo
-    if skill_type == '物攻':
-        parts.append("造成物伤")
-    elif skill_type == '魔攻':
-        parts.append("造成魔伤")
-
-    if combo > 1:
-        if not parts:
-            parts.append(f"{combo}连击")
-        else:
-            parts[-1] += f"，{combo}连击"
-
-    # Describe non-increment effects
-    incr_effects: list[str] = []
-    for e in effects:
-        kind = e.get('kind', '')
-        name = e.get('name', '')
-        if kind == 'special':
-            if name == 'heal':
-                v = e.get('value', 0)
-                pct = f"{int(v * 100)}%" if v < 1 else f"{int(v)}"
-                parts.append(f"回复{pct}HP")
-            elif name == 'gain_energy':
-                parts.append(f"回复{e.get('amount', 0)}能量")
-            elif name == 'steal_energy':
-                parts.append(f"偷取{e.get('amount', 0)}能量")
-            elif name == 'life_drain':
-                v = e.get('value', 0)
-                pct = f"{int(v)}%" if v > 1 else f"{int(v * 100)}%"
-                parts.append(f"吸血{pct}")
-            elif name == 'charge':
-                parts.append(f"蓄力{e.get('amount', 1)}回合")
-            elif name == 'burst':
-                parts.append("迸发")
-            elif name == 'interrupt':
-                parts.append("打断")
-            elif name == 'reflect_damage':
-                parts.append("反伤")
-            elif name == 'counter_damage':
-                parts.append("反击")
-            elif name == 'multi_hit':
-                parts.append(f"额外攻击{e.get('value', '')}次")
-            elif name == 'escape':
-                parts.append("使用后换宠")
-            elif name == 'combo_increment':
-                incr_effects.append(f"连击+{e.get('amount', 1)}")
-            elif name == 'power_increment':
-                incr_effects.append(f"威力+{e.get('amount', 0)}")
-            elif name == 'energy_cost_increment':
-                a = e.get('amount', 0)
-                incr_effects.append(f"能耗{'+' if a >= 0 else ''}{a}")
-            elif name == 'power_bonus':
-                parts.append(f"威力+{e.get('amount', e.get('value', 0))}")
-            elif name == 'direct_heal':
-                parts.append(f"回复{e.get('amount', 0)}HP")
-            elif name == 'dispel_positive':
-                parts.append("驱散对方正面效果")
-            elif name == 'dispel_negative':
-                parts.append("驱散自身负面效果")
-        elif kind == 'stat':
-            stat_name = e.get('stat', '')
-            steps = e.get('steps', 0)
-            target = e.get('target', 'self')
-            label = {'atk': '物攻', 'def': '物防', 'sp_atk': '魔攻', 'sp_def': '魔防',
-                     'speed': '速度', 'power': '威力', 'priority': '先手',
-                     'energy_cost': '能耗', 'combo': '连击', 'combo_mult': '连击倍率'}.get(stat_name, stat_name)
-            if target == 'self':
-                parts.append(f"自身{label}{'+' if steps > 0 else ''}{steps}级")
-            else:
-                parts.append(f"对方{label}{'+' if steps > 0 else ''}{steps}级")
-        elif kind == 'abnormal':
-            parts.append(f"使对方{e.get('name', '')}")
-        elif kind == 'mark':
-            parts.append(f"施加{e.get('name', '')}")
-        elif kind == 'weather':
-            parts.append(f"召唤{e.get('weather', '')}天气")
-
-    if incr_effects:
-        parts.append('每次使用后' + '，'.join(incr_effects))
-
-    if not parts:
-        return '无特殊效果'
-
-    return '。'.join(parts) if '每次使用后' in (parts[-1] if parts else '') else '。'.join(filter(None, parts))
 
 # --- Helper Functions ---
 
@@ -523,7 +432,6 @@ def serialize_battle_state(battle: Battle, session_id: str) -> schemas.BattleSta
                 cooldown=sk.cooldown,
                 sealed=sk.sealed,
                 transmission=getattr(sk, '_transmission', 0),
-                main_axis=(getattr(sk, '_transmission', 0) == -1),
                 usable_while_charging=getattr(sk.base, 'usable_while_charging', False),
             ))
         return schemas.SpriteState(
@@ -660,7 +568,6 @@ def _build_turn_snapshot(battle, turn_log):
                 cooldown=sk.cooldown,
                 sealed=sk.sealed,
                 transmission=getattr(sk, '_transmission', 0),
-                main_axis=False,
             ) for i, sk in enumerate(sprite.skills)],
         )
 

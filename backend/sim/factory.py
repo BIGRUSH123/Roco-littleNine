@@ -107,8 +107,8 @@ class SimFactory:
             path = self._skills_dir / f'{name}.json'
             if path.exists():
                 data = json.loads(path.read_text(encoding='utf-8'))
-                # Build minimal Skill (metadata only, no effects) — RISC IR
-                # effects are served by CompiledSkill, not Skill.effects
+                # Build minimal Skill (metadata only) — effects are IR,
+                # served by CompiledSkill (see sim/skill_ir.py)
                 skill = Skill(
                     id=data.get('id', 0),
                     name=data['name'],
@@ -119,9 +119,11 @@ class SimFactory:
                     counter=data.get('counter', '无'),
                     priority=data.get('priority', 0),
                     combo=data.get('combo', 1),
-                    effects=[],  # effects come from CompiledSkill
+                    # 连击词条 = JSON 写了 combo 键（"combo": 1 也算，即原文「1连击」）
+                    combo_keyword=('combo' in data),
                     exclusive_to=data.get('exclusive_to', ''),
                     transmission=data.get('transmission', 0),
+                    tag=data.get('tag', ''),
                     description=data.get('description', ''),
                     usable_while_charging=data.get('usable_while_charging', False),
                     qiaobian=data.get('qiaobian'),

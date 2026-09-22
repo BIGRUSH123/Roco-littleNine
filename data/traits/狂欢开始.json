@@ -1,6 +1,26 @@
 {
   "id": 20177,
   "name": "狂欢开始",
-  "description": "在场时，背包里会变化出随机精灵，随机精灵只能与本精灵相互更换。本精灵受到的克制伤害+25%。",
-  "effects": []
+  "description": "在场时，背包里会变化出随机精灵，随机精灵只能与本精灵相互更换。本精灵受到的克制伤害+25%。// 「背包里变化出随机精灵 / 只能与本精灵互换」需要运行时改写队伍（含换人约束），IR 无对应 op（见报告·需要新引擎能力）；数据面只落地「本精灵受到的克制伤害+25%」。",
+  "effects": [
+    {
+      "op": "observer",
+      "listen": "pre_calc",
+      "scope": "battlefield",
+      "cond": {
+        "cond": "damage_restraint"
+      },
+      "then": [
+        {
+          "op": "mult_mod",
+          "target": "sprite_self",
+          "attr": "damage_mult",
+          "value": 1.25,
+          "mode": "set",
+          "scope": "turn",
+          "source": "狂欢开始"
+        }
+      ]
+    }
+  ]
 }

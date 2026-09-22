@@ -1,6 +1,29 @@
 {
   "id": 200118,
   "name": "结晶水",
-  "description": "初始能量为0，入场前己方精灵每放1次冰系技能，回复3能量。",
-  "effects": []
+  "description": "初始能量为0，入场前己方精灵每放1次冰系技能，回复3能量。// 「初始能量为0」属开局初始化，IR 无「初始能量」声明（见报告·需要新引擎能力）；数据面只落地入场时的能量回复。",
+  "effects": [
+    {
+      "op": "observer",
+      "listen": "post_entry",
+      "scope": "battlefield",
+      "cond": {
+        "cond": "sprite_entered",
+        "of": "sprite_self"
+      },
+      "then": [
+        {
+          "op": "energize",
+          "target": "sprite_self",
+          "delta": {
+            "q": "team_counter",
+            "of": "team_own",
+            "name": "element:冰",
+            "scale": 3
+          },
+          "source": "结晶水"
+        }
+      ]
+    }
+  ]
 }

@@ -1,8 +1,14 @@
 """Tests for Pass 3: SkillValidatePass."""
+import json
+from pathlib import Path
+
 from backend.vm.compiler.context import CompilerContext
-from backend.vm.compiler.passes.skill_validate import SkillValidatePass
+from backend.vm.compiler.passes.skill_validate import VALID_SCOPES, SkillValidatePass
+from backend.vm.compiler.skill_compiler import SkillCompiler
 from backend.vm.ir_skill import AbnormalOp, HitOp, MultModOp, ResetOp
 from backend.vm.ir_values import Literal
+
+_DATA_SKILLS = Path(__file__).resolve().parents[4] / "data" / "skills"
 
 
 class TestSkillValidatePass:
@@ -126,3 +132,52 @@ class TestSkillValidatePass:
         ]
         SkillValidatePass().process(ctx)
         assert len(ctx.errors) == 0
+
+
+class TestScopeTurnIsValid:
+    """`scope: "turn"` 必须被 accept（曾因 VALID_SCOPES 重复定义被后者覆盖而丢失）。
+
+    回归背景：skill_validate.py 里 VALID_SCOPES 曾定义两次，后一份（不含 "turn"）
+    生效 → 数据里 19 个文件（轮班/透镜实验/侵蚀/基因编辑/冷光源/热成像/顺风…）
+    的 `"scope": "turn"` 会让技能编译直接抛 CompilationError。
+    """
+
+    def test_valid_scopes_contains_turn(self):
+        assert "turn" in VALID_SCOPES
+
+    def test_scope_turn_passes_validation(self):
+        ctx = CompilerContext(raw={})
+        ctx.ir = [
+            MultModOp(target="sprite_self", attr="damage_reduction",
+                      value=Literal(value=1), scope="turn")
+        ]
+        SkillValidatePass().process(ctx)
+        assert len(ctx.errors) == 0
+
+    def test_scope_turn_inside_when_block_passes(self):
+        """`when` 嵌套块内的 scope:"turn" 同样被递归校验（IR op 路径覆盖）。"""
+        from backend.vm.ir_skill import PowerModOp, WhenBlock
+        from backend.vm.ir_values import Literal as _Lit
+        ctx = CompilerContext(raw={})
+        ctx.ir = [
+            WhenBlock(
+                cond={"cond": "counter_succeeded"},
+                then=(PowerModOp(target="skill_off_0", attr="power",
+                                 delta=_Lit(value=50), scope="turn"),),
+            )
+        ]
+        SkillValidatePass().process(ctx)
+        assert len(ctx.errors) == 0
+
+    def test_data_skills_with_turn_scope_compile(self):
+        """钉住真实数据：带 scope:"turn" 的技能必须编译通过（端到端回归）。"""
+        compiler = SkillCompiler()
+        for path in sorted(_DATA_SKILLS.glob("*.json")):
+            if path.name.startswith("_"):
+                continue
+            raw = json.loads(path.read_text(encoding="utf-8"))
+            if '"turn"' not in json.dumps(raw, ensure_ascii=False):
+                continue
+            # 不抛 CompilationError 即为通过
+            compiler.compile(raw)
+

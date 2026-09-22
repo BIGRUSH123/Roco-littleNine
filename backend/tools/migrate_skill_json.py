@@ -1,7 +1,9 @@
 """一次性迁移脚本：将 data/skills/*.json 对齐 SKILL_JSON_GUIDE.md 规范。
 
-1. main_axis → transmission=-1（删除 main_axis 字段）
-2. 防御技能 combo:1 → combo:-1
+1. 防御技能 combo:1 → combo:-1
+
+（历史项 `main_axis → transmission=-1` 随该字段于 2026-09-22 删除；
+主轴现在只由 `transmission: -1` 表示。）
 """
 
 import json
@@ -15,13 +17,7 @@ def migrate_file(path: Path) -> list[str]:
     data = json.loads(path.read_text('utf-8'))
     changes = []
 
-    # 1. main_axis → transmission
-    main_axis = data.pop('main_axis', None)
-    if main_axis is True:
-        data['transmission'] = -1
-        changes.append('main_axis=true → transmission=-1')
-
-    # 2. 防御技能 combo:1 → combo:-1
+    # 防御技能 combo:1 → combo:-1
     if data.get('skill_type') == '防御' and data.get('combo') == 1:
         data['combo'] = -1
         changes.append('combo:1 → combo:-1')

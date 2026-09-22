@@ -5,7 +5,7 @@ Mutation) and the engine replays it against mutable battle state.
 """
 
 from dataclasses import dataclass, field
-from typing import Union
+from typing import Any, Union
 
 
 @dataclass(frozen=True, slots=True)
@@ -71,6 +71,7 @@ class EnergyChange:
     """Energy gain or loss."""
     target: str
     delta: int        # positive = gain, negative = lose
+    overflow: bool = False   # true = 可突破 max_energy（盗魂铃「回复5能量（可突破上限）」）
 
 
 @dataclass(frozen=True, slots=True)
@@ -240,6 +241,9 @@ class BurstGrant:
     skill_filter: str | None = None     # "attack" | "defense" | "status" | "all"
     effects: tuple = ()                 # burst effect dicts to execute on first_action
     source: str = ""                    # trait name
+    # from_="triggered"：忽略 effects，从本队「已触发过的迸发」池里取回效果（踏雷）
+    from_: str = "explicit"             # "explicit" | "triggered"
+    count: Any = 1                      # 取回条数：int（≤0 = 全部）或 "all"
 
 
 @dataclass(frozen=True, slots=True)
@@ -358,6 +362,30 @@ class CounterWrite:
     mode: str = "add"           # "add" | "set"
 
 
+@dataclass(frozen=True, slots=True)
+class SkillRotate:
+    """跨精灵技能轮转（skill_rotate op；过山车「己方队伍中所有精灵携带的技能跨精灵向下移动1个位置」）。
+
+    语义见 data/IR_GUIDE.md §3C `skill_rotate`：`target` 是被轮转的队伍，
+    `offset` 是轮转位数（默认 1，向下移动；末尾技能回到第一只的第一槽位）。
+    """
+    target: str = "team_own"
+    offset: int = 1
+
+
+@dataclass(frozen=True, slots=True)
+class StarfallTrigger:
+    """手动触发星陨印记（starfall_trigger op；引力偏转「以魔法伤害触发敌方的星陨效果」）。
+
+    与攻击命中后的**自然结算**（`battle._execute_skill_vm` 第 6.7 步）走同一个
+    `GlobalEffects.trigger_starfall()`：消耗印记层数 + 按 `X² + 24X − 24` 结算幻系伤害。
+    `target` 指印记**持有方**（`sprite_opp` = 敌方队伍持有的星陨印记），
+    `damage_type` 决定攻防键（物攻→atk/def，魔攻→sp_atk/sp_def，动态攻击按精灵判定）。
+    """
+    target: str = "sprite_opp"
+    damage_type: str = "魔攻"
+
+
 # Union of all mutation types the VM can produce
 Mutation = Union[
     StatChange, ModifierInjection, Damage, Heal, EnergyChange,
@@ -368,7 +396,7 @@ Mutation = Union[
     InheritEffectsMutation, TransformMutation, TraitInteractionMutation,
     GainSkillsMutation,
     MechanismGrant, CounterWrite,
-    StatRandom, StatConvert, ReplaceSkill,
+    StatRandom, StatConvert, ReplaceSkill, StarfallTrigger, SkillRotate,
 ]
 
 # Journal is an ordered list of mutations

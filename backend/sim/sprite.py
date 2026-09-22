@@ -99,11 +99,18 @@ class Sprite:
     # 最近一次异常 tick 的实际伤害（含属性克制），供仁心等 trait observer 查询
     _last_abnormal_dmg: dict[str, int] = field(default_factory=dict)
 
-    # 延迟生效的效果队列：[(effect, delay_remaining), ...]
-    _pending_effects: list = field(default_factory=list)
-
     # on_next 延迟 modifier 队列：引擎下次匹配技能时注入
     _pending_modifiers: list = field(default_factory=list)
+
+    # ── 「下回合回复能量」延迟修正（入梦：敌方下回合回复的能量-5）──
+    # 相位口径（见 data/IR_GUIDE.md §3A power_mod `energy_gain_delta` + on_next）：
+    #   `power_mod{target:"sprite_opp", attr:"energy_gain_delta", delta:-5, on_next:true}`
+    #   先压入 `_pending_energy_gain_delta`，在**目标下一回合开始时**武装
+    #   （转入 `_energy_gain_delta_turn`），持续**该回合整回合**，回合末归零。
+    #   与 `_pending_modifiers`（绑定技能使用）不同：这里绑定的是**回合**，
+    #   聚能/印记回能等所有 `gain_energy()` 路径一并生效。
+    _pending_energy_gain_delta: list = field(default_factory=list)   # [(delta, source)]
+    _energy_gain_delta_turn: int = 0   # 已武装：本回合所有回复能量 +N
 
     # 特性交互（禁用/复制/移除）
     _trait_suppressed: bool = False     # 特性被压制时跳过所有 trait dispatch
@@ -127,6 +134,18 @@ class Sprite:
     @property
     def name(self) -> str:
         return self.species.name
+
+    @property
+    def weight(self) -> float:
+        """精灵体重（kg），取自 `SpeciesStats.weight`（sidecar `data/sprites/_weights.json`）。
+
+        口径：nrc Catalog.lua 的区间**取中点**（模拟口径；游戏内个体体重在区间内浮动）。
+        取不到时为 0.0。消费点：快照 `weight_self`/`weight_opp` 与砂糖弹球的威力档位。
+        """
+        try:
+            return float(getattr(self.species, 'weight', 0.0) or 0.0)
+        except (TypeError, ValueError):
+            return 0.0
 
     # ── 效果查询辅助 ──
 
@@ -589,24 +608,6 @@ class Sprite:
             self._invalidate_effects_cache()
         return removed
 
-    def add_pending_effect(self, effect, delay: int) -> None:
-        """添加延迟生效的效果。delay 回合后再生效。"""
-        self._pending_effects.append((effect, delay))
-
-    def process_pending_effects(self) -> list:
-        """回合初：所有延迟效果 delay-1，delay=0 的生效。返回本次生效的效果列表。"""
-        activated = []
-        remaining = []
-        for eff, delay in self._pending_effects:
-            delay -= 1
-            if delay <= 0:
-                self.add_effect(eff)
-                activated.append(eff)
-            else:
-                remaining.append((eff, delay))
-        self._pending_effects = remaining
-        return activated
-
     def use_cooldown(self, name: str) -> int:
         """触发指定名称效果的冷却：cooldown-1。cooldown 归零时移除效果。返回剩余冷却。"""
         for e in self.active_effects:
@@ -686,9 +687,57 @@ class Sprite:
                 return int(e.value)
         return 10
 
-    def gain_energy(self, amount: int) -> int:
-        room = max(0, self.max_energy - self.energy)
-        actual = min(room, amount)
+    @property
+    def energy_gain_delta(self) -> int:
+        """每次**回复**能量的修正量（盗魂铃「在场时自己回复的能量-4」）。
+
+        读取点与 `max_energy` 同风格：精灵级 `ModifierEffect(attr="energy_gain_delta")`
+        优先，其次 `_modifiers`（`power_mod attr:"energy_gain_delta"` 的落点）；
+        再加上**本回合已武装**的延迟修正 `_energy_gain_delta_turn`
+        （入梦「敌方下回合回复的能量-5」，见 `queue_energy_gain_delta` / `arm_...`）。
+        """
+        from backend.vm.effect import ModifierEffect
+        for e in self.active_effects:
+            if isinstance(e, ModifierEffect) and e.attr == "energy_gain_delta":
+                return int(e.value) + self._energy_gain_delta_turn
+        try:
+            return int(self._modifiers.get("energy_gain_delta", 0) or 0) \
+                + self._energy_gain_delta_turn
+        except (TypeError, ValueError):
+            return self._energy_gain_delta_turn
+
+    # ── 「下回合回复能量」延迟修正的相位控制（入梦）──
+
+    def queue_energy_gain_delta(self, delta: int, source: str = "") -> None:
+        """压入「下个回合整回合生效」的回复能量修正（同一精灵多条累加）。"""
+        if not delta:
+            return
+        self._pending_energy_gain_delta.append((int(delta), source))
+
+    def arm_pending_energy_gain(self) -> int:
+        """回合开始：把待生效的回复能量修正武装到本回合。返回武装的累计值（0=无）。"""
+        if not self._pending_energy_gain_delta:
+            return 0
+        total = sum(d for d, _ in self._pending_energy_gain_delta)
+        self._pending_energy_gain_delta.clear()
+        self._energy_gain_delta_turn += total
+        return total
+
+    def clear_turn_energy_gain(self) -> None:
+        """回合末：清掉本回合武装的回复能量修正（下一回合恢复）。"""
+        self._energy_gain_delta_turn = 0
+
+    def gain_energy(self, amount: int, overflow: bool = False) -> int:
+        """回复能量。`overflow=True` 时可突破 `max_energy`（盗魂铃「可突破上限」）。
+
+        回复量先过精灵级 `energy_gain_delta` 修正（可为负 → 少回/不回）。
+        """
+        if amount <= 0:
+            return 0
+        amount = max(0, amount + self.energy_gain_delta)
+        if amount <= 0:
+            return 0
+        actual = amount if overflow else min(max(0, self.max_energy - self.energy), amount)
         self.energy += actual
         return actual
 

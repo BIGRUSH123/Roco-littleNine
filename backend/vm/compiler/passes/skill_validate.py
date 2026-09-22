@@ -8,6 +8,7 @@ from backend.vm.ir_skill import (
     CounterOp,
     ElementConvertOp,
     EnergizeOp,
+    ExchangeOp,
     FlagSetOp,
     GrantChoiceOp,
     HealOp,
@@ -20,9 +21,11 @@ from backend.vm.ir_skill import (
     ReviveOp,
     ReplaceSkillOp,
     SkillIROp,
+    SkillRotateOp,
     StatConvertOp,
     StatRandomOp,
     StatStageOp,
+    StarfallTriggerOp,
     WhenBlock,
 )
 
@@ -32,6 +35,7 @@ VALID_POWER_ATTRS = frozenset({
     "power", "energy_cost", "combo", "priority",
     "energy_cost_mult", "combo_mult", "energy_cost_delta_mult",
     "max_energy",        # 突破能量上限（地脉馈赠）
+    "energy_gain_delta",  # 每次回复能量的修正量（盗魂铃「在场时自己回复的能量-4」）
     "use_count_bonus",   # 技能使用次数加成（噼啪噼啪！）
     "attach_abnormal",   # 携带型「命中后追加 N 层中毒」（重金属粉尘，3013）
 })
@@ -50,9 +54,20 @@ VALID_TARGETS = frozenset({
     "team_opp", "opp_team",
     "team_both",
     "team_own_benched",
+    # 全队 6 只（含替补与力竭者）——当前仅 `energize` 消费，见
+    # `replayer._apply_energy_change`（小型打劫「敌方队伍中所有精灵失去1能量」）
+    "team_own_all", "team_opp_all",
     "team_burst",
     "skill_off_0", "skill_opp_current",
     "battle",
+})
+
+#: `exchange` 的 `target` 是**对家的选择**（与 replayer.self 配对），不是普通 target
+#: （见 data/IR_GUIDE.md §3C exchange）。"leaving" = 刚离场者，"entering" = 本次换入者。
+VALID_EXCHANGE_TARGETS = frozenset({
+    "sprite_opp", "opp", "opp_team", "team_opp", "enemy",
+    "leaving", "leaver", "enemy_leaving", "sprite_leaving",
+    "entering", "enemy_new", "new_sprite",
 })
 
 VALID_STATS = frozenset({
@@ -86,7 +101,6 @@ VALID_STATS = frozenset({
     "life_drain",
     "ignore_mods",
     "ignore_resistance",
-    "life_as_energy",
     "survive",
     "extra_action",
     "cooldown",
@@ -102,11 +116,7 @@ VALID_SCOPES = frozenset({
 # （backend/engine/morph.py:POOL_BUILDERS）。注册表可扩展，这里只做非空校验，
 # 具体名字由引擎在运行时解析（未知名字会被忽略而非编译失败）。
 VALID_MARK_ACTIONS = frozenset({
-    "apply", "dispel", "steal", "convert", "convert_all",
-})
-
-VALID_SCOPES = frozenset({
-    "persistent", "battlefield", "permanent",
+    "apply", "dispel", "steal", "convert", "convert_all", "enhance_all",
 })
 
 VALID_SKILL_TYPES = frozenset({
@@ -146,7 +156,11 @@ class SkillValidatePass:
             return
 
         # Validate target field where applicable
-        if hasattr(op, "target"):
+        if isinstance(op, ExchangeOp):
+            # exchange.target = 对家选择（不是普通 target），单独校验
+            self._check(op.target in VALID_EXCHANGE_TARGETS,
+                        f"Invalid exchange target '{op.target}'", idx, "target")
+        elif hasattr(op, "target"):
             self._check(op.target in VALID_TARGETS,
                         f"Invalid target '{op.target}'", idx, "target")
         elif hasattr(op, "from_") and op.from_:
@@ -204,6 +218,16 @@ class SkillValidatePass:
                         f"heal ratio must be 0-1, got {op.ratio}", idx, "ratio")
         if isinstance(op, EnergizeOp):
             pass  # delta validated by IRValue resolution
+        if isinstance(op, StarfallTriggerOp):
+            self._check(op.target in ("sprite_self", "sprite_opp"),
+                        f"Invalid starfall_trigger target '{op.target}'", idx, "target")
+            self._check(op.damage_type in VALID_SKILL_TYPES,
+                        f"Invalid starfall_trigger damage_type '{op.damage_type}'",
+                        idx, "damage_type")
+        if isinstance(op, SkillRotateOp):
+            self._check(op.target in ("team_own", "own_team", "team_opp", "opp_team",
+                                      "sprite_self", "sprite_opp"),
+                        f"Invalid skill_rotate target '{op.target}'", idx, "target")
         if isinstance(op, ReviveOp):
             pass  # hp_ratio validated by IRValue resolution
         if isinstance(op, FlagSetOp) and op.flag:

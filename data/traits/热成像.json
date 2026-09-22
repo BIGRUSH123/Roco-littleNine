@@ -2,5 +2,33 @@
   "id": 200315,
   "name": "热成像",
   "description": "若上回合双方有精灵使用火系技能，本回合自己携带的虫系技能威力+100%。",
-  "effects": []
+  "effects": [
+    {
+      "op": "observer",
+      "cond": {
+        "cond": "last_turn_had_element",
+        "element": "火",
+        "of": "team_both"
+      },
+      "listen": [
+        "turn_start",
+        "post_entry"
+      ],
+      "scope": "battlefield",
+      "then": [
+        {
+          "op": "mult_mod",
+          "target": "sprite_self",
+          "attr": "power_mult",
+          "value": 2,
+          "mode": "set",
+          "scope": "turn",
+          "source": "热成像",
+          "skill_where": {
+            "element": "虫"
+          }
+        }
+      ]
+    }
+  ]
 }

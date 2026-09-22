@@ -4,6 +4,12 @@
   "element": "幽",
   "skill_type": "状态",
   "energy_cost": 2,
-  "effects": [],
+  "effects": [
+    {
+      "op": "energize",
+      "target": "team_opp_all",
+      "delta": -1
+    }
+  ],
   "description": "✦敌方队伍中所有精灵失去1能量。"
 }

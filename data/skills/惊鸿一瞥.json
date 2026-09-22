@@ -4,6 +4,14 @@
   "element": "翼",
   "skill_type": "状态",
   "energy_cost": 2,
-  "effects": [],
+  "tag": "迅捷",
+  "effects": [
+    {
+      "target": "sprite_self",
+      "op": "power_mod",
+      "attr": "combo",
+      "delta": 1
+    }
+  ],
   "description": "✦自己获得连击数+1，迅捷。"
 }

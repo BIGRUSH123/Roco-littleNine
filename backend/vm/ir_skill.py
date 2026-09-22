@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import Any
 
 from .ir_values import IRValue
 
@@ -58,7 +59,6 @@ class StatStageOp:
     stat: str = ""
     steps: int = 0
     value: IRValue | None = None   # query-based steps (RefExpr)
-    per_hit: bool = False
     scope: str = "battlefield"
     source: str | None = None
     feeds: str = ""
@@ -103,7 +103,6 @@ class PowerModOp:
     delta: IRValue | None = None
     value: IRValue | None = None
     mode: str = "add"
-    per_hit: bool = False
     scope: str = "battlefield"
     skill_where: dict | None = field(default=None, hash=False, compare=False)
     skill_filter: str | None = None
@@ -123,7 +122,6 @@ class MultModOp:
     attr: str = ""
     value: IRValue | None = None
     mode: str = "set"
-    per_hit: bool = False
     scope: str = "battlefield"
     skill_where: dict | None = field(default=None, hash=False, compare=False)
     skill_filter: str | None = None
@@ -167,6 +165,7 @@ class EnergizeOp:
     """RISC: energize — energy recovery or drain."""
     target: str = "sprite_self"
     delta: IRValue | None = None   # positive=recover, negative=drain
+    overflow: bool = False         # true = 回复可突破 max_energy 上限
     feeds: str = ""
     needs: str = ""
     priority: int = 0
@@ -190,14 +189,12 @@ class ModOp:
     scope: str = "battlefield"
     steps: int = 0
     on_next: bool = False
-    per_hit: bool = False
     skill_filter: str | None = None
     skill_where: dict | None = field(default=None, hash=False, compare=False)
     if_type: str | None = None
     element: str | None = None
     per_element: int | None = None
     name: str | None = None
-    delay: int = 0
     ttl: int = 0
     cooldown: int = 0
     source: str | None = None
@@ -238,7 +235,6 @@ class MarkOp:
     name: str
     stacks: int = 1
     value: IRValue | None = None
-    per_hit: bool = False
     then: tuple[SkillIROp, ...] = ()
     action: str = "apply"           # "apply" | "dispel" | "steal" | "convert"
     ratio: float = 1.0              # convert: abnormal→mark conversion ratio
@@ -255,7 +251,6 @@ class AbnormalOp:
     stacks: int = 1
     value: IRValue | None = None
     scope: str = "battlefield"
-    per_hit: bool = False
     heal_pct: float = 0.0
     energy_gain: int = 0
     then: tuple[SkillIROp, ...] = ()
@@ -311,6 +306,31 @@ class StealOp:
 class TickOp:
     target: str
     name: str
+    feeds: str = ""
+    needs: str = ""
+    priority: int = 0
+
+@dataclass(frozen=True, slots=True)
+class SkillRotateOp:
+    """RISC: skill_rotate — 跨精灵技能轮转（过山车）。
+
+    `target` 是被轮转的队伍（`team_own` 默认 / `team_opp`），
+    `offset` 是轮转位数（默认 1 = 向下移动 1 个位置；语义见 IR_GUIDE §3C）。
+    """
+    target: str = "team_own"
+    offset: int = 1
+    feeds: str = ""
+    needs: str = ""
+    priority: int = 0
+
+@dataclass(frozen=True, slots=True)
+class StarfallTriggerOp:
+    """RISC: starfall_trigger — 手动触发星陨印记（引力偏转「以魔法伤害触发敌方的星陨效果」）。
+
+    走与自然结算相同的 `GlobalEffects.trigger_starfall()`。`target` 是印记**持有方**。
+    """
+    target: str = "sprite_opp"
+    damage_type: str = "魔攻"      # 物攻 | 魔攻 | 动态攻击
     feeds: str = ""
     needs: str = ""
     priority: int = 0
@@ -375,6 +395,8 @@ class InterruptOp:
 @dataclass(frozen=True, slots=True)
 class ExchangeOp:
     what: str
+    # 交换的对家（与 replayer.self 配对）："sprite_opp"(默认) / "leaving" / "entering"
+    target: str = "sprite_opp"
     feeds: str = ""
     needs: str = ""
     priority: int = 0
@@ -519,6 +541,10 @@ class BurstGrantOp:
     skill_filter: str | None = None
     then: tuple[SkillIROp, ...] = ()
     source: str | None = None
+    # from_="triggered"（踏雷）：从本队「已触发过的迸发」池取回效果，忽略 then；
+    # count 选条数（int，≤0 = 全部；也接受 "all"）
+    from_: str = "explicit"
+    count: Any = 1
     feeds: str = ""
     needs: str = ""
     priority: int = 0
@@ -654,6 +680,5 @@ class CompiledSkill:
     tag: str = ""
     use_devotion: bool = False
     usable_while_charging: bool = False
-    position_locked: bool = False
     # 「选择」分支（明/暗 等）：每项 {"name", "cond"(dict|None), "effects"(tuple)}
     choices: tuple = ()

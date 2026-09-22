@@ -5,5 +5,14 @@
   "skill_type": "魔攻",
   "power": 55,
   "energy_cost": 4,
+  "effects": [
+    {
+      "op": "mark",
+      "target": "team_both",
+      "action": "enhance_all",
+      "stacks": 1,
+      "source": "许愿池"
+    }
+  ],
   "description": "✦造成魔伤，双方已有的印记层数+1。"
 }

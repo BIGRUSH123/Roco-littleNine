@@ -5,5 +5,40 @@
   "skill_type": "物攻",
   "power": 115,
   "energy_cost": 5,
+  "effects": [
+    {
+      "op": "observer",
+      "scope": "persistent",
+      "cond": {
+        "cond": "and",
+        "conditions": [
+          {
+            "cond": "on_damage_taken",
+            "of": "sprite_self"
+          },
+          {
+            "cond": "compare",
+            "q": "element_advantage",
+            "of": "sprite_self",
+            "op": "lt",
+            "value": 1.0
+          }
+        ]
+      },
+      "then": [
+        {
+          "op": "power_mod",
+          "target": "sprite_self",
+          "skill_where": {
+            "name": "绞轮"
+          },
+          "scope": "permanent",
+          "attr": "energy_cost",
+          "delta": -1,
+          "source": "绞轮"
+        }
+      ]
+    }
+  ],
   "description": "✦造成物伤，每受到1次抵抗的技能攻击（不含连击），本技能能耗永久-1。"
 }

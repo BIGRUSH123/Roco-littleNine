@@ -5,8 +5,6 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
-from .effects import SPECIAL_KINDS, SpecialName
-
 if TYPE_CHECKING:
     from .skill import Skill
 
@@ -109,11 +107,20 @@ class BattleSkill:
         return base_combo + int(self._modifiers.get("combo", 0))
 
     @property
-    def effects(self) -> list:
+    def combo_keyword(self) -> bool:
+        """是否带**连击词条**（= 技能 JSON 写了 combo 键，`"combo": 1` 也算）。
+
+        词条决定能否吃**精灵级**连击增益（连击+N / 连击率）；技能自身的连击
+        文本（`skill_off_0` 修正、`skill.<名>.combo`）不受门控。
+        无该属性的旧对象（测试里直接构造的 Skill）回退到「基础连击数 ≥2」。
+        """
         if self.nullified:
-            return []
+            return False
         skill = self.replaced_by or self.base
-        return skill.effects
+        flag = getattr(skill, 'combo_keyword', None)
+        if flag is None:
+            return getattr(skill, 'combo', 1) >= 2
+        return bool(flag)
 
     @property
     def is_attack(self) -> bool:
@@ -161,10 +168,14 @@ class BattleSkill:
 
 @dataclass
 class SkillUse:
-    """技能一次使用的快照。预计算 modifiers，打包 is_countered / is_first。
+    """技能一次使用的快照。打包 is_countered / is_first。
 
     构造后只读，由 Battle._execute_single_action 创建并传递给
     calc_damage / dispatch。
+
+    `modifiers` 是**估伤专用**的临时字典：旧版 kind 效果层删除后，静态效果
+    不再向这里写值（`sim/resolver.calc_damage` 改为直接读技能级 / 精灵级
+    修正，与实战同口径），只保留供调用方写入派生值（如 `type_mult`）。
     """
 
     battle_skill: BattleSkill
@@ -174,88 +185,7 @@ class SkillUse:
     countering_skill: BattleSkill | None = None   # 反击我方的对方技能（damage_reduction 注入用）
     skill_index: int = -1                            # 在 sprite.skills 中的位置
 
-    # __post_init__ 预计算
-    modifiers: dict = field(init=False, default_factory=dict)
-
-    def __post_init__(self) -> None:
-        self.modifiers = self._collect_modifiers()
-
-    def _collect_modifiers(self) -> dict:
-        """收集伤害修正：自身技能 + 对方防御技能的 countered_skill 注入。"""
-        modifiers: dict = {}
-        is_attack = self.battle_skill.is_attack
-
-        # ── 自身技能效果 ──
-        for effect in self.battle_skill.effects:
-            kind = getattr(effect, 'kind', '')
-
-            if kind in SPECIAL_KINDS:
-                name = getattr(effect, 'name', '')
-                if name == SpecialName.IGNORE_MODS:
-                    modifiers['ignore_mods'] = True
-                if not is_attack:
-                    continue
-                if name in SpecialName.DAMAGE_SPECIALS:
-                    modifiers[name] = getattr(effect, 'value', 0) or getattr(effect, 'amount', 0)
-
-            elif kind == 'conditional':
-                when = getattr(effect, 'when', None)
-                then = getattr(effect, 'then', None)
-                otherwise = getattr(effect, 'otherwise', None)
-                if not when:
-                    continue
-                cond_met = not (when.get('kind') == 'counter_succeeded' and self.countered_skill is None)
-                branches = then if cond_met else otherwise
-                if not branches:
-                    continue
-                for sub in branches:
-                    if getattr(sub, 'kind', '') not in SPECIAL_KINDS:
-                        continue
-                    sub_name = getattr(sub, 'name', '')
-                    if sub_name == SpecialName.IGNORE_MODS:
-                        modifiers['ignore_mods'] = True
-                    if not is_attack:
-                        continue
-                    if sub_name in SpecialName.DAMAGE_SPECIALS:
-                        modifiers[sub.name] = getattr(sub, 'value', 0) or getattr(sub, 'amount', 0)
-
-        # ── 对方防御技能注入（我被 counter 了，对方的防御效果削弱我的伤害）──
-        if self.is_countered and self.countering_skill:
-            for effect in self.countering_skill.effects:
-                kind = getattr(effect, 'kind', '')
-                if kind in SPECIAL_KINDS:
-                    name = getattr(effect, 'name', '')
-                    val = getattr(effect, 'value', 0) or 0
-                    if name == SpecialName.IGNORE_MODS:
-                        modifiers['ignore_mods'] = True
-                    if name == SpecialName.DAMAGE_REDUCTION:
-                        modifiers['damage_reduction'] = max(
-                            modifiers.get('damage_reduction', 0), val)
-                    elif name == SpecialName.DAMAGE_MULT:
-                        modifiers['damage_mult'] = min(
-                            modifiers.get('damage_mult', 1.0), val or 1.0)
-                elif kind == 'conditional':
-                    when = getattr(effect, 'when', None)
-                    then = getattr(effect, 'then', None)
-                    if not when or not then:
-                        continue
-                    if when.get('kind') != 'counter_succeeded':
-                        continue
-                    for sub in then:
-                        if getattr(sub, 'kind', '') not in SPECIAL_KINDS:
-                            continue
-                        name = getattr(sub, 'name', '')
-                        val = getattr(sub, 'value', 0) or 0
-                        if name == SpecialName.IGNORE_MODS:
-                            modifiers['ignore_mods'] = True
-                        if name == SpecialName.DAMAGE_REDUCTION:
-                            modifiers['damage_reduction'] = max(
-                                modifiers.get('damage_reduction', 0), val)
-                        elif name == SpecialName.DAMAGE_MULT:
-                            modifiers['damage_mult'] = min(
-                                modifiers.get('damage_mult', 1.0), val or 1.0)
-
-        return modifiers
+    modifiers: dict = field(default_factory=dict)
 
     # ── 便捷属性 ──
 
@@ -275,6 +205,27 @@ class SkillUse:
     def damage_reduction(self) -> float:
         return self.modifiers.get('damage_reduction', 0.0)
 
-    @property
-    def multi_hit(self) -> float:
-        return self.modifiers.get('multi_hit', 1.0)
+
+def effective_combo(battle_skill: BattleSkill, sprite=None) -> int:
+    """连击数 = 技能**释放次数**（唯一入口，AI 估伤与引擎同口径）。
+
+    - 技能级：字段 combo + 技能自身修正（`_modifiers['combo'/'combo_set']`，
+      含「每次使用后本技能连击数永久+N」与本次出招的 `skill_off_0` 修正）
+    - 精灵级：`combo`/`combo_set`/`combo_mult`（暴风眼、热身运动、耀眼…）——
+      只对带**连击词条**（技能 JSON 写了 combo 键，`"combo": 1` 也算）的技能生效
+    - 引擎侧等价实现：`engine/snapshot.py` 的 `combo_self`（精灵级 `combo_mult`
+      在 `engine/modifiers.adjust_damage` 乘入，顺序为 set/add 之后）
+    """
+    combo = max(1, battle_skill.combo)
+    keywords = battle_skill.combo_keyword
+    if sprite is not None and keywords:
+        mods = getattr(sprite, '_modifiers', None) or {}
+        combo_set = int(mods.get('combo_set', 0) or 0)
+        if combo_set > 0:
+            combo = max(1, combo_set)
+        else:
+            combo = max(1, combo + int(mods.get('combo', 0) or 0))
+        mult = float(mods.get('combo_mult', 0.0) or 0.0)
+        if mult > 0:
+            combo = max(1, round(combo * (1.0 + mult)))
+    return combo

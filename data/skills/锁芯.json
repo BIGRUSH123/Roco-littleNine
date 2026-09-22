@@ -6,5 +6,5 @@
   "power": 75,
   "energy_cost": 2,
   "description": "✦造成魔伤，此技能位置不会改变。",
-  "position_locked": true
+  "transmission": -1
 }

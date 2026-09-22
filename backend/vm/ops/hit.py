@@ -29,10 +29,14 @@ def _type_mult(element: str, defender_elements) -> float:
 
 
 def _stab_mult(element: str, attacker_elements) -> float:
-    """本系加成：技能系别在自身系别内 ×1.5。"""
+    """本系加成：技能系别在自身系别内 ×1.25。
+
+    与估伤 `sim/resolver._get_stab` 同值。此前这里写 1.5 —— 结果同一手实战比估伤
+    高 20%（用户 2026-09-22 确认游戏真值为 1.25，`vm/damage.py` 注释也写 1.25）。
+    """
     if not element or not attacker_elements:
         return 1.0
-    return 1.5 if element in tuple(attacker_elements) else 1.0
+    return 1.25 if element in tuple(attacker_elements) else 1.0
 
 
 def _weather_mult(weather: str, element: str) -> float:

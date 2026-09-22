@@ -4,5 +4,14 @@
   "element": "机械",
   "skill_type": "状态",
   "energy_cost": 2,
+  "effects": [
+    {
+      "target": "sprite_opp",
+      "op": "power_mod",
+      "skill_filter": "all",
+      "attr": "power",
+      "delta": -20
+    }
+  ],
   "description": "✦敌方获得威力-20，自己每受到1次抵抗伤害（不含连击），敌方额外获得威力-20，使用后重置。"
 }

@@ -139,6 +139,24 @@ def _team_of(ctx: Ctx, of: str):
         }
 
 
+def _last_turn_element_count(ctx: Ctx, cond: dict) -> int:
+    """上一回合该系别技能的使用次数（`of` 选 own / opp / both，默认 both）。
+
+    寄存器由 snapshot 预计算（`Ctx.last_turn_element_own/_opp/_both`），这里只读。
+    """
+    element = cond.get("element", "")
+    if isinstance(element, dict):
+        element = resolve(ctx, element)
+    if not element:
+        return 0
+    of = cond.get("of", "team_both")
+    if of == "team_own":
+        return int(ctx.last_turn_element_own.get(element, 0) or 0)
+    if of == "team_opp":
+        return int(ctx.last_turn_element_opp.get(element, 0) or 0)
+    return int(ctx.last_turn_element_both.get(element, 0) or 0)
+
+
 def _skill_use_matches(ctx: Ctx, cond: dict) -> bool:
     """Check if the current skill matches filter conditions.
 
@@ -234,6 +252,9 @@ CONDITION_TRIGGERS: dict[str, frozenset[str]] = {
     # Have sub-dispatch
     "have":                    frozenset({"post_skill", "post_entry",
                                           "post_abnormal_change", "post_positive_change"}),
+    # 上回合系别寄存器是纯状态判定（Ctx 预计算）→ 与 have 同组兜底
+    "last_turn_had_element":   frozenset({"post_skill", "post_entry", "turn_start",
+                                          "turn_end"}),
 }
 
 
@@ -464,6 +485,11 @@ COND_EVAL = {
         if isinstance(cond.get("element"), dict)
         else cond["element"] in ctx.team_elements_own
     ),
+
+    # ── 上回合系别寄存器（IR_GUIDE §五）──
+    # 「上回合双方有精灵使用 X 系技能」：默认 of=team_both（任一方用过即成立），
+    # 也可收窄到 team_own / team_opp（两条 and 起来即「各有」读法）。
+    "last_turn_had_element": lambda ctx, cond: _last_turn_element_count(ctx, cond) > 0,
 
     # ── Logic gates — recursive combinators ──
     "and": lambda ctx, cond: all(eval_one(ctx, c) for c in cond["conditions"]),

@@ -4,6 +4,19 @@
   "element": "幻",
   "skill_type": "状态",
   "energy_cost": 2,
-  "effects": [],
+  "effects": [
+    {
+      "target": "sprite_self",
+      "op": "stat_stage",
+      "stat": "sp_atk",
+      "steps": 7
+    },
+    {
+      "target": "sprite_self",
+      "op": "stat_stage",
+      "stat": "sp_def",
+      "steps": 7
+    }
+  ],
   "description": "✦自己获得魔攻和魔防+70%。"
 }

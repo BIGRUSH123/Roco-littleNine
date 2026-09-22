@@ -31,8 +31,6 @@ def main():
 
             # 异常标记
             warnings = []
-            if s.get('main_axis'):
-                warnings.append('旧main_axis')
             if s.get('skill_type') == '防御' and s.get('combo', -1) != -1:
                 warnings.append('防御未设combo=-1')
             if s.get('skill_type') in ('物攻', '魔攻', '动态攻击') and s.get('combo', -1) == -1:

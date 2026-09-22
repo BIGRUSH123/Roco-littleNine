@@ -46,9 +46,11 @@ from backend.vm.ir_skill import (
     Schedule,
     SkillCondition,
     SkillIROp,
+    SkillRotateOp,
     StatConvertOp,
     StatRandomOp,
     StatStageOp,
+    StarfallTriggerOp,
     StealOp,
     TeamCounterWrite,
     TickOp,
@@ -208,6 +210,21 @@ class SkillParsePass:
                 per=value.get("per"),
                 default=value.get("default"),
                 sub_key_field="mark_count_both",
+            )
+
+        if q == "element_count":
+            # len(team_elements_*) — frozenset 的元数，由 resolve 的派生查询计算
+            # （分光「队伍中精灵每有1个不同的系别，额外获得魔攻+10%」）
+            key = ("team_opp", "elements") if of == "team_opp" else ("team_own", "elements")
+            if key not in ADDRESS_MAP:
+                raise KeyError(f"Unknown query address (of={of}, q=elements)")
+            return Query(
+                field=ADDRESS_MAP[key],
+                scale=value.get("scale", 1.0),
+                offset=value.get("offset", 0),
+                per=value.get("per"),
+                default=value.get("default"),
+                sub_key_field="element_count",
             )
 
         map_key = (of, q)
@@ -398,7 +415,6 @@ class SkillParsePass:
             name=self._str_or(e, "name", ""),
             stacks=self._int_or(e, "stacks", 1),
             value=value,
-            per_hit=self._bool_or(e, "per_hit", False),
             action=self._str_or(e, "action", "apply"),
             ratio=self._float_or(e, "ratio", 1.0),
             target_team=self._str_or(e, "target_team", ""),
@@ -424,7 +440,6 @@ class SkillParsePass:
             stacks=stacks,
             value=value,
             scope=self._str_or(e, "scope", "battlefield"),
-            per_hit=self._bool_or(e, "per_hit", False),
             heal_pct=self._float_or(e, "heal_pct", 0.0),
             energy_gain=self._int_or(e, "energy_gain", 0),
             then=self._parse_then(e),
@@ -444,6 +459,19 @@ class SkillParsePass:
             target=self._str_or(e, "target", "skill_opp_current"),
             skill=self._str_or(e, "skill", ""),
             scope=self._str_or(e, "scope", "turn"),
+            **self._common_fields(e),
+        )
+
+    def _parse_skill_rotate(self, e: dict) -> SkillRotateOp:
+        return SkillRotateOp(
+            target=self._str_or(e, "target", "team_own"),
+            offset=self._int_or(e, "offset", 1),
+            **self._common_fields(e),
+        )
+
+    def _parse_starfall_trigger(self, e: dict) -> StarfallTriggerOp:        return StarfallTriggerOp(
+            target=self._str_or(e, "target", "sprite_opp"),
+            damage_type=self._str_or(e, "damage_type", "魔攻"),
             **self._common_fields(e),
         )
 
@@ -527,6 +555,7 @@ class SkillParsePass:
     def _parse_exchange(self, e: dict) -> ExchangeOp:
         return ExchangeOp(
             what=self._str_or(e, "what", ""),
+            target=self._str_or(e, "target", "sprite_opp"),
             **self._common_fields(e),
         )
 
@@ -620,7 +649,6 @@ class SkillParsePass:
             stat=stat,
             steps=steps,
             value=value,
-            per_hit=self._bool_or(e, "per_hit", False),
             scope=self._str_or(e, "scope", "battlefield"),
             source=e.get("source"),
             **self._common_fields(e),
@@ -644,7 +672,6 @@ class SkillParsePass:
             delta=delta,
             value=value,
             mode=mode,
-            per_hit=self._bool_or(e, "per_hit", False),
             scope=self._str_or(e, "scope", "battlefield"),
             skill_where=e.get("skill_where"),
             skill_filter=e.get("skill_filter"),
@@ -668,7 +695,6 @@ class SkillParsePass:
             attr=attr,
             value=value,
             mode=self._str_or(e, "mode", "set"),
-            per_hit=self._bool_or(e, "per_hit", False),
             scope=self._str_or(e, "scope", "battlefield"),
             skill_where=e.get("skill_where"),
             skill_filter=e.get("skill_filter"),
@@ -709,6 +735,8 @@ class SkillParsePass:
             skill_filter=e.get("skill_filter"),
             then=then_effects,
             source=e.get("source"),
+            from_=str(e.get("from") or e.get("from_", "explicit")),
+            count=e.get("count", 1),
             **self._common_fields(e),
         )
 
@@ -738,6 +766,7 @@ class SkillParsePass:
         return EnergizeOp(
             target=self._str_or(e, "target", "sprite_self"),
             delta=delta,
+            overflow=self._bool_or(e, "overflow", False),
             **self._common_fields(e),
         )
 

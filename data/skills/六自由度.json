@@ -5,6 +5,14 @@
   "skill_type": "魔攻",
   "power": 30,
   "energy_cost": 4,
-  "tag": "传动",
+  "transmission": 1,
+  "effects": [
+    {
+      "op": "power_mod",
+      "target": "skill_off_0",
+      "attr": "power",
+      "delta": "=round(@adjacent_power_diff / 4)"
+    }
+  ],
   "description": "✦造成魔伤，威力额外增加两侧技能威力差的四分之一，传动1。"
 }

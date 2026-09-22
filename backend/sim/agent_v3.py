@@ -174,7 +174,7 @@ class RuleAgentV3:
             if skill.cooldown > 0 or skill.sealed or not skill.is_attack:
                 continue
             dmg, _ = battle._resolver.calc_damage(
-                attacker, defender, SkillUse(battle_skill=skill),
+                attacker, defender, SkillUse(battle_skill=skill, skill_index=i),
                 battle.globals, attacker_team=self.team,
             )
             table.append((i, dmg, skill.energy_cost))

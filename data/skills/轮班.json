@@ -29,7 +29,16 @@
     },
     {
       "name": "暗",
-      "effects": []
+      "effects": [
+        {
+          "op": "flag_set",
+          "target": "skill_off_0",
+          "flag": "drive",
+          "value": 1,
+          "scope": "turn",
+          "source": "轮班"
+        }
+      ]
     }
   ],
   "description": "✦造成物伤，传动1，选择：本技能位于1号位时威力+65或本回合额外传动1。"

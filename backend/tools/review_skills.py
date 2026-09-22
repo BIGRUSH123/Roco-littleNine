@@ -56,10 +56,9 @@ def review():
         counter = data.get('counter', '无')
         combo = data.get('combo', -1)
         transmission = data.get('transmission', 0)
-        main_axis = data.get('main_axis', None)
 
         flags = []
-        if transmission == -1 or main_axis:
+        if transmission == -1:
             flags.append('主轴')
         if combo == -1:
             flags.append('无连击')

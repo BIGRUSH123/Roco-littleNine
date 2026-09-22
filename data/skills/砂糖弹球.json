@@ -3,8 +3,91 @@
   "name": "砂糖弹球",
   "element": "萌",
   "skill_type": "物攻",
+  "power": 20,
   "energy_cost": 2,
-  "effects": [],
-  "description": "✦造成物伤，双方体重差越大，本次技能威力越高。pass",
-  "power": 20
+  "effects": [
+    {
+      "when": {
+        "cond": "compare",
+        "q": "weight_diff",
+        "of": "sprite_self",
+        "abs": true,
+        "op": "lt",
+        "value": 4
+      },
+      "then": [
+        { "op": "power_mod", "target": "skill_off_0", "attr": "power", "mode": "set", "delta": 0 }
+      ],
+      "else_if": [
+        {
+          "when": {
+            "cond": "compare",
+            "q": "weight_diff",
+            "of": "sprite_self",
+            "abs": true,
+            "op": "lt",
+            "value": 14
+          },
+          "then": [
+            { "op": "power_mod", "target": "skill_off_0", "attr": "power", "mode": "set", "delta": 20 }
+          ]
+        },
+        {
+          "when": {
+            "cond": "compare",
+            "q": "weight_diff",
+            "of": "sprite_self",
+            "abs": true,
+            "op": "lt",
+            "value": 30
+          },
+          "then": [
+            { "op": "power_mod", "target": "skill_off_0", "attr": "power", "mode": "set", "delta": 40 }
+          ]
+        },
+        {
+          "when": {
+            "cond": "compare",
+            "q": "weight_diff",
+            "of": "sprite_self",
+            "abs": true,
+            "op": "lt",
+            "value": 60
+          },
+          "then": [
+            { "op": "power_mod", "target": "skill_off_0", "attr": "power", "mode": "set", "delta": 60 }
+          ]
+        },
+        {
+          "when": {
+            "cond": "compare",
+            "q": "weight_diff",
+            "of": "sprite_self",
+            "abs": true,
+            "op": "lt",
+            "value": 120
+          },
+          "then": [
+            { "op": "power_mod", "target": "skill_off_0", "attr": "power", "mode": "set", "delta": 80 }
+          ]
+        }
+      ],
+      "else": [
+        { "op": "power_mod", "target": "skill_off_0", "attr": "power", "mode": "set", "delta": 100 }
+      ]
+    }
+  ],
+  "description": "✦造成物伤，双方体重差越大，本次技能威力越高。",
+  "tiers": {
+    "source": "nrc Pets_data_Skills.lua skill_000718 effect_details（kind=tiers）",
+    "key": "weight_diff 的绝对值（双方体重差 kg；区间左闭右开，最后一段含等号 120）",
+    "rows": [
+      { "range": "0–4", "power": 20 },
+      { "range": "4–14", "power": 40 },
+      { "range": "14–30", "power": 60 },
+      { "range": "30–60", "power": 80 },
+      { "range": "60–120", "power": 100 },
+      { "range": "120 及以上", "power": 120 }
+    ]
+  }
 }

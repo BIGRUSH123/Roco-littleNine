@@ -6,6 +6,24 @@
   "energy_cost": 2,
   "power": 25,
   "combo": 2,
-  "effects": [],
+  "effects": [
+    {
+      "when": {
+        "cond": "last_turn_had_element",
+        "element": "幻",
+        "of": "team_both"
+      },
+      "then": [
+        {
+          "op": "flag_set",
+          "target": "skill_off_0",
+          "flag": "swift",
+          "value": true,
+          "scope": "battlefield",
+          "source": "月影交错"
+        }
+      ]
+    }
+  ],
   "description": "✦造成物伤，2连击，若上回合双方有精灵使用幻系技能，本技能获得迅捷。"
 }

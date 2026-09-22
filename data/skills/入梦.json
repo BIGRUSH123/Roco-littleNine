@@ -4,5 +4,25 @@
   "element": "幽",
   "skill_type": "状态",
   "energy_cost": 1,
+  "effects": [
+    {
+      "op": "flag_set",
+      "target": "skill_off_0",
+      "flag": "cooldown",
+      "value": 2,
+      "skill_where": {
+        "name": "入梦"
+      }
+    },
+    {
+      "op": "power_mod",
+      "target": "sprite_opp",
+      "attr": "energy_gain_delta",
+      "delta": -5,
+      "on_next": true,
+      "scope": "turn",
+      "source": "入梦"
+    }
+  ],
   "description": "✦敌方下回合回复的能量-5，冷却2回合。"
 }

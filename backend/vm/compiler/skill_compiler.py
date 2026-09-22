@@ -52,7 +52,6 @@ class SkillCompiler:
             tag=data.get("tag", ""),
             use_devotion=data.get("use_devotion", False),
             usable_while_charging=data.get("usable_while_charging", False),
-            position_locked=data.get("position_locked", False),
             choices=self._compile_choices(data),
         )
 
@@ -65,6 +64,10 @@ class SkillCompiler:
             sub = CompilerContext(raw={**data, "effects": ch.get("effects", [])})
             for p_ in self.passes:
                 p_.process(sub)
+            # 分支走的是完整 pass 管线，错误必须上报——此前不查 sub.errors，
+            # 分支内的非法 op 静默通过（哑雷成因，见对账文档 §13 顺带发现）
+            if sub.errors:
+                raise CompilationError(sub.errors)
             out.append({
                 "name": ch.get("name", f"branch{i}"),
                 "cond": ch.get("cond"),

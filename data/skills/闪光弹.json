@@ -3,8 +3,13 @@
   "name": "闪光弹",
   "element": "光",
   "skill_type": "物攻",
-  "energy_cost": 2,
   "power": 40,
-  "effects": [],
+  "energy_cost": 2,
+  "effects": [
+    {
+      "target": "sprite_self",
+      "op": "escape"
+    }
+  ],
   "description": "✦造成物伤，自己脱离。"
 }

@@ -31,6 +31,10 @@ class SpeciesStats:
     ability_id: int = 0
     pre_species: str = ""
     bloodline_skills: dict[str, int] = None  # type: ignore
+    #: 精灵体重（kg）。来源 `data/sprites/_weights.json`（由
+    #: `backend/tools/gen_sprite_weights.py` 从 nrc Catalog.lua 生成，区间取中点）。
+    #: 缺失（sidecar 未生成 / 该形态无对应条目）时 0.0。
+    weight: float = 0.0
 
     _elements: tuple[str, ...] = field(default=(), repr=False, compare=False)
 

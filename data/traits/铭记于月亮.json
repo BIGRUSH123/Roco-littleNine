@@ -1,6 +1,28 @@
 {
   "id": 200314,
   "name": "铭记于月亮",
-  "description": "获得自己击败的精灵的特性，每次攻击后自己失去5%生命。",
-  "effects": []
+  "description": "获得自己击败的精灵的特性，每次攻击后自己失去5%生命。// 「获得击败精灵的特性」需要运行时替换精灵特性（含重挂 observer），IR 无对应 op（见报告·需要新引擎能力）；数据面只落地「每次攻击后失去5%生命」。",
+  "effects": [
+    {
+      "op": "observer",
+      "listen": "post_skill",
+      "scope": "battlefield",
+      "cond": {
+        "cond": "skill_use",
+        "skill_type": "attack"
+      },
+      "then": [
+        {
+          "op": "heal",
+          "target": "sprite_self",
+          "value": {
+            "q": "hp_max",
+            "of": "sprite_self",
+            "scale": -0.05
+          },
+          "source": "铭记于月亮"
+        }
+      ]
+    }
+  ]
 }

@@ -4,6 +4,28 @@
   "element": "火",
   "skill_type": "状态",
   "energy_cost": 3,
-  "effects": [],
+  "effects": [
+    {
+      "op": "abnormal",
+      "target": "sprite_opp",
+      "name": "灼烧",
+      "stacks": 8
+    },
+    {
+      "when": {
+        "cond": "last_turn_had_element",
+        "element": "光",
+        "of": "team_both"
+      },
+      "then": [
+        {
+          "op": "abnormal",
+          "target": "sprite_opp",
+          "name": "灼烧",
+          "stacks": 12
+        }
+      ]
+    }
+  ],
   "description": "✦敌方获得8层灼烧，若上回合双方有精灵使用光系技能，敌方额外获得12层灼烧。"
 }

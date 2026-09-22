@@ -11,8 +11,7 @@
       "op": "abnormal",
       "target": "sprite_opp",
       "name": "冻结",
-      "stacks": 1,
-      "per_hit": true
+      "stacks": 1
     }
   ]
 }

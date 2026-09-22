@@ -367,6 +367,13 @@ cpdef build_ctx_cy(
     dict devotion_opp=None,
     dict abnormal_stacks_battle=None,
     int moe_team_stacks=0,
+    # 上回合系别/能耗寄存器（覆盖写快照；见 data/IR_GUIDE.md §1.2）
+    dict last_turn_element_own=None,
+    dict last_turn_element_opp=None,
+    dict last_turn_element_both=None,
+    int last_turn_energy_sum_own=0,
+    int last_turn_energy_sum_opp=0,
+    int last_turn_energy_sum_both=0,
     battle_skill=None,
 ):
     """Cython 优化版本的 build_ctx
@@ -390,7 +397,11 @@ cpdef build_ctx_cy(
     elements_self = tuple(species_self.elements) if species_self else ()
 
     # 调用 Python 侧已优化且完整的 helpers，保证与 build_ctx 语义一致。
-    from backend.engine.snapshot import _collect_skill_summary, _extract_sprite_effects
+    from backend.engine.snapshot import (
+        _collect_skill_summary,
+        _extract_sprite_effects,
+        adjacent_powers as _adjacent_powers,
+    )
     (
         stat_stages_self,
         abnormal_stacks_self,
@@ -420,7 +431,6 @@ cpdef build_ctx_cy(
     cdef double power_mult_mod_self = self_sprite.power_mult_modifier
     cdef double damage_mult_mod_self = self_sprite.damage_mult_modifier
     cdef double energy_cost_mult_mod_self = self_sprite.energy_cost_mult_modifier
-    cdef double combo_mult_mod_self = self_sprite.combo_mult_modifier
     cdef double life_drain_mod_self = self_sprite.life_drain_modifier
 
     # 计数器
@@ -433,6 +443,12 @@ cpdef build_ctx_cy(
     cdef bint is_fainted_self = self_sprite.is_fainted
     cdef int entry_turn = self_sprite.entry_turn
     cdef bint just_entered = (entry_turn == turn and turn >= 0)
+
+    # 两侧技能威力（六自由度「两侧技能威力差 / 4」与相邻威力读数）：
+    # 与 Python build_ctx 共用同一 helper（不环绕、缺一侧按 0）。
+    cdef int adj_power_sum = 0
+    cdef int adj_power_diff = 0
+    adj_power_sum, adj_power_diff = _adjacent_powers(self_sprite, skill_index)
 
     # Energy cost sum
     ecs = energy_cost_sum_self or {}
@@ -541,6 +557,17 @@ cpdef build_ctx_cy(
 
     combo_mod = int(ss_mods.get("combo", 0))
     combo_set = int(ss_mods.get("combo_set", 0))
+    # 连击词条：技能 JSON **写了** combo 键（`"combo": 1` 也算，即原文「1连击」）。
+    # 精灵级连击增益（combo/combo_set/combo_mult）只对带词条的技能生效，
+    # 否则单发技能会被全局增益（暴风眼「连击数+100%」）变成连击
+    _raw_skill = getattr(bs, "replaced_by", None) or getattr(bs, "base", None) if bs is not None else sk
+    _keyword_flag = getattr(_raw_skill, "combo_keyword", None)
+    cdef bint combo_keyword = (_keyword_flag if _keyword_flag is not None
+                               else getattr(_raw_skill, "combo", 1) >= 2)
+    if not combo_keyword:
+        combo_mod = 0
+        combo_set = 0
+    cdef double combo_mult_mod_self = self_sprite.combo_mult_modifier if combo_keyword else 0.0
     combo_self = max(1, combo_set) if combo_set > 0 else max(1, combo_base + combo_mod)
 
     cdef int energy_cost_reduction_self = 0  # engine tracks this
@@ -556,6 +583,8 @@ cpdef build_ctx_cy(
     element_self = getattr(sk, 'element', "")
     element_opp = getattr(osk, 'element', "") if osk else ""
     skill_tag_self = getattr(sk, 'tag', "")
+    # 当前技能名（`trait_path` path:"skill"）；BattleSkill.name 已按巧变/借用/打断口径解析
+    skill_name_self = getattr(sk, 'name', "") or ""
 
     # Element advantage (使用 Cython 优化版本)
     cdef double element_advantage = get_element_advantage_cy(
@@ -681,15 +710,24 @@ cpdef build_ctx_cy(
         lives_opp=lives_opp,
         burst_triggered_count_own=burst_triggered_count_own,
         moe_team_stacks=moe_team_stacks,
+        # 上回合系别/能耗（覆盖写寄存器，IR_GUIDE §1.2）
+        last_turn_element_own=last_turn_element_own or {},
+        last_turn_element_opp=last_turn_element_opp or {},
+        last_turn_element_both=last_turn_element_both or {},
+        last_turn_energy_sum_own=last_turn_energy_sum_own,
+        last_turn_energy_sum_opp=last_turn_energy_sum_opp,
+        last_turn_energy_sum_both=last_turn_energy_sum_both,
         # Skill
         power_self=power_self,
-        adjacent_power_sum=0,
+        adjacent_power_sum=adj_power_sum,
+        adjacent_power_diff=adj_power_diff,
         power_opp=power_opp,
         skill_type_self=skill_type_self,
         skill_type_opp=skill_type_opp,
         element_self=element_self,
         element_opp=element_opp,
         skill_tag_self=skill_tag_self,
+        skill_name_self=skill_name_self,
         combo_self=combo_self,
         element_advantage=element_advantage,
         energy_cost_self=energy_cost_self,

@@ -11,11 +11,12 @@
       },
       "then": [
         {
-          "op": "stat_stage",
+          "op": "power_mod",
           "target": "sprite_self",
-          "stat": "energy_cost",
-          "steps": "=@player_moe_stacks * -1",
-          "scope": "battlefield",
+          "attr": "energy_cost",
+          "delta": "=@player_moe_stacks * -1",
+          "skill_filter": "all",
+          "scope": "permanent",
           "source": "守护者"
         }
       ],

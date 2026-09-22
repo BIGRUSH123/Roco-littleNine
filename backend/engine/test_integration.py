@@ -1571,50 +1571,6 @@ def test_ttl_decrement_and_expiry():
     assert sprite.active_effects[0].name == "永久防御"
 
 
-def test_delay_stores_on_sprite():
-    """Effects with delay>0 are stored as pending, not applied immediately."""
-    from backend.common.models import SpeciesStats
-    from backend.sim.sprite import Sprite
-    species = SpeciesStats(name="test", hp=100, atk=100, def_=100, sp_atk=100, sp_def=100, speed=100)
-    sprite = Sprite(
-        species=species, current_hp=100, max_hp=100,
-        initial_stats={"atk": 100, "def": 100, "sp_atk": 100, "sp_def": 100, "speed": 100},
-    )
-    # Store a delayed effect
-    pending = StatBuffEffect(name="攻击+20%", source="test", stat_key="atk", steps=2, ttl=0)
-    sprite.add_pending_effect(pending, delay=2)
-    assert len(sprite.active_effects) == 0  # Not applied yet
-    assert len(sprite._pending_effects) == 1
-    assert sprite._pending_effects[0][0].name == "攻击+20%"
-    assert sprite._pending_effects[0][1] == 2  # delay counter
-
-
-def test_delay_decremented_at_turn_start():
-    """Pending effects decrement delay each turn; when delay=0, apply effect."""
-    from backend.common.models import SpeciesStats
-    from backend.sim.sprite import Sprite
-    species = SpeciesStats(name="test", hp=100, atk=100, def_=100, sp_atk=100, sp_def=100, speed=100)
-    sprite = Sprite(
-        species=species, current_hp=100, max_hp=100,
-        initial_stats={"atk": 100, "def": 100, "sp_atk": 100, "sp_def": 100, "speed": 100},
-    )
-    pending = StatBuffEffect(name="攻击+20%", source="test", stat_key="atk", steps=2)
-    sprite.add_pending_effect(pending, delay=2)
-
-    # Turn 1: delay 2→1, still pending
-    applied = sprite.process_pending_effects()
-    assert len(applied) == 0
-    assert len(sprite._pending_effects) == 1
-    assert sprite._pending_effects[0][1] == 1
-
-    # Turn 2: delay 1→0, effect applied
-    applied = sprite.process_pending_effects()
-    assert len(applied) == 1
-    assert len(sprite._pending_effects) == 0
-    assert len(sprite.active_effects) == 1
-    assert sprite.active_effects[0].name == "攻击+20%"
-
-
 def test_cooldown_on_statuseffect():
     """EffectObject can carry a cooldown field (duck-typed)."""
     eff = AbnormalEffect(name="灼烧", source="test", stacks=1)

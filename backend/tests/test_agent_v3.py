@@ -64,10 +64,11 @@ def test_profile_reads_mult_mod_buff(battle):
     assert prof.self_buff_on_counter > prof.self_buff_value   # 应对成功是 160 > 常态 80
 
 
-def test_legacy_effects_are_empty_but_ir_is_not(battle):
-    """死代码那条性质：`Skill.effects` 空、IR 画像非空（守住"别再按 effects 写规则"）。"""
+def test_legacy_effects_layer_is_gone_ir_is_the_only_source(battle):
+    """旧 kind 层已整层删除（2026-09-22）：`Skill` 不再有 `effects` 字段，
+    规则层只能读 IR 画像（`skill_ir.skill_profile`）。"""
     sk = _skill("泥浆铠甲")
-    assert not sk.effects
+    assert not hasattr(sk, "effects")
     assert skill_profile(battle, sk).self_buff_value > 0
 
 

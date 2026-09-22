@@ -4,5 +4,32 @@
   "element": "幻",
   "skill_type": "状态",
   "energy_cost": 3,
+  "effects": [],
+  "choices": [
+    {
+      "name": "明",
+      "effects": [
+        {
+          "op": "mark",
+          "target": "team_opp",
+          "name": "random_negative",
+          "stacks": 1,
+          "source": "薄纱环"
+        }
+      ]
+    },
+    {
+      "name": "暗",
+      "effects": [
+        {
+          "op": "mark",
+          "target": "team_own",
+          "name": "random_positive",
+          "stacks": 1,
+          "source": "薄纱环"
+        }
+      ]
+    }
+  ],
   "description": "✦选择：敌方随机获得1种负面印记或自己随机获得1种正面印记。"
 }

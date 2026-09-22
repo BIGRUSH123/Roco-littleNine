@@ -5,7 +5,7 @@
   "skill_type": "防御",
   "energy_cost": 1,
   "counter": "攻击",
-  "tag": "传动",
+  "transmission": 1,
   "effects": [
     {
       "target": "sprite_self",

@@ -1,6 +1,41 @@
 {
   "id": 20037,
   "name": "天通地明",
-  "description": "攻击时，若敌方血脉是污染血脉，技能威力+100%。//此特性pass",
-  "effects": []
+  "description": "攻击时，若敌方血脉是污染血脉，技能威力+100%。",
+  "effects": [
+    {
+      "op": "observer",
+      "listen": "pre_calc",
+      "scope": "battlefield",
+      "cond": {
+        "cond": "and",
+        "conditions": [
+          {
+            "cond": "compare",
+            "q": "bloodline",
+            "of": "sprite_opp",
+            "op": "eq",
+            "value": "污染"
+          },
+          {
+            "cond": "trait_path",
+            "path": "skill.is_attack",
+            "op": "eq",
+            "value": true
+          }
+        ]
+      },
+      "then": [
+        {
+          "op": "mult_mod",
+          "target": "skill_off_0",
+          "attr": "power_mult",
+          "value": 2.0,
+          "mode": "set",
+          "scope": "turn",
+          "source": "天通地明"
+        }
+      ]
+    }
+  ]
 }

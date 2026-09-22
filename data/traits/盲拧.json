@@ -1,6 +1,26 @@
 {
   "id": 200170,
   "name": "盲拧",
-  "description": "回合开始时，技能顺序打乱，4号位的技能能耗-4。",
-  "effects": []
+  "description": "回合开始时，技能顺序打乱，4号位的技能能耗-4。// 「技能顺序打乱」需要引擎侧洗牌能力（IR 无 shuffle op，见报告·需要新引擎能力）；数据面只落地「4号位技能能耗-4」（位置语义按未洗牌前的槽位 4）。",
+  "effects": [
+    {
+      "op": "observer",
+      "listen": "turn_start",
+      "scope": "battlefield",
+      "cond": {
+        "cond": "turn_start"
+      },
+      "then": [
+        {
+          "op": "power_mod",
+          "target": "skill_at_4",
+          "attr": "energy_cost",
+          "delta": -4,
+          "mode": "add",
+          "scope": "battlefield",
+          "source": "盲拧"
+        }
+      ]
+    }
+  ]
 }

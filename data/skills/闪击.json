@@ -5,6 +5,189 @@
   "skill_type": "物攻",
   "power": 60,
   "energy_cost": 4,
-  "effects": [],
+  "effects": [
+    {
+      "when": {
+        "cond": "compare",
+        "q": "speed",
+        "of": "sprite_self",
+        "op": "gt",
+        "value": "=@target.speed + 270"
+      },
+      "then": [
+        {
+          "op": "power_mod",
+          "target": "skill_off_0",
+          "feeds": "power",
+          "attr": "power",
+          "delta": 140
+        }
+      ],
+      "else_if": [
+        {
+          "cond": {
+            "cond": "compare",
+            "q": "speed",
+            "of": "sprite_self",
+            "op": "gt",
+            "value": "=@target.speed + 240"
+          },
+          "then": [
+            {
+              "op": "power_mod",
+              "target": "skill_off_0",
+              "feeds": "power",
+              "attr": "power",
+              "delta": 130
+            }
+          ]
+        },
+        {
+          "cond": {
+            "cond": "compare",
+            "q": "speed",
+            "of": "sprite_self",
+            "op": "gt",
+            "value": "=@target.speed + 210"
+          },
+          "then": [
+            {
+              "op": "power_mod",
+              "target": "skill_off_0",
+              "feeds": "power",
+              "attr": "power",
+              "delta": 120
+            }
+          ]
+        },
+        {
+          "cond": {
+            "cond": "compare",
+            "q": "speed",
+            "of": "sprite_self",
+            "op": "gt",
+            "value": "=@target.speed + 180"
+          },
+          "then": [
+            {
+              "op": "power_mod",
+              "target": "skill_off_0",
+              "feeds": "power",
+              "attr": "power",
+              "delta": 110
+            }
+          ]
+        },
+        {
+          "cond": {
+            "cond": "compare",
+            "q": "speed",
+            "of": "sprite_self",
+            "op": "gt",
+            "value": "=@target.speed + 150"
+          },
+          "then": [
+            {
+              "op": "power_mod",
+              "target": "skill_off_0",
+              "feeds": "power",
+              "attr": "power",
+              "delta": 100
+            }
+          ]
+        },
+        {
+          "cond": {
+            "cond": "compare",
+            "q": "speed",
+            "of": "sprite_self",
+            "op": "gt",
+            "value": "=@target.speed + 120"
+          },
+          "then": [
+            {
+              "op": "power_mod",
+              "target": "skill_off_0",
+              "feeds": "power",
+              "attr": "power",
+              "delta": 90
+            }
+          ]
+        },
+        {
+          "cond": {
+            "cond": "compare",
+            "q": "speed",
+            "of": "sprite_self",
+            "op": "gt",
+            "value": "=@target.speed + 90"
+          },
+          "then": [
+            {
+              "op": "power_mod",
+              "target": "skill_off_0",
+              "feeds": "power",
+              "attr": "power",
+              "delta": 80
+            }
+          ]
+        },
+        {
+          "cond": {
+            "cond": "compare",
+            "q": "speed",
+            "of": "sprite_self",
+            "op": "gt",
+            "value": "=@target.speed + 60"
+          },
+          "then": [
+            {
+              "op": "power_mod",
+              "target": "skill_off_0",
+              "feeds": "power",
+              "attr": "power",
+              "delta": 60
+            }
+          ]
+        },
+        {
+          "cond": {
+            "cond": "compare",
+            "q": "speed",
+            "of": "sprite_self",
+            "op": "gt",
+            "value": "=@target.speed + 30"
+          },
+          "then": [
+            {
+              "op": "power_mod",
+              "target": "skill_off_0",
+              "feeds": "power",
+              "attr": "power",
+              "delta": 40
+            }
+          ]
+        },
+        {
+          "cond": {
+            "cond": "compare",
+            "q": "speed",
+            "of": "sprite_self",
+            "op": "gt",
+            "value": "=@target.speed + 0"
+          },
+          "then": [
+            {
+              "op": "power_mod",
+              "target": "skill_off_0",
+              "feeds": "power",
+              "attr": "power",
+              "delta": 20
+            }
+          ]
+        }
+      ]
+    }
+  ],
   "description": "✦造成物伤，速度比敌方越高，本次技能威力越高。"
 }

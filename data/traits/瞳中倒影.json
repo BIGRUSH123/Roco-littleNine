@@ -2,5 +2,22 @@
   "id": 20198,
   "name": "瞳中倒影",
   "description": "自己或其他精灵离场时，自己与更换入场的精灵交换血量百分比。",
-  "effects": []
+  "effects": [
+    {
+      "op": "observer",
+      "comment": "「其他精灵离场」这一半：post_enemy_leave 下 self = 己方场上精灵、target:\"entering\" = 敌方换入者。「自己离场」的一半由 sim/battle_mechanics.py:_resolve_switch 内联实现，数据面不要重复声明（会交换两次）",
+      "cond": {
+        "cond": "opp_switched"
+      },
+      "listen": "post_enemy_leave",
+      "scope": "battlefield",
+      "then": [
+        {
+          "op": "exchange",
+          "what": "hp_ratio",
+          "target": "entering"
+        }
+      ]
+    }
+  ]
 }

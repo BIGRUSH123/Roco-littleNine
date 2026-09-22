@@ -10,6 +10,31 @@
       "op": "return",
       "target": "sprite_self",
       "needs": "turn_end"
+    },
+    {
+      "when": {
+        "cond": "counter_succeeded"
+      },
+      "then": [
+        {
+          "op": "burst_grant",
+          "target": "sprite_self",
+          "skill_filter": "attack",
+          "from": "triggered",
+          "count": "all",
+          "source": "踏雷"
+        }
+      ],
+      "else": [
+        {
+          "op": "burst_grant",
+          "target": "sprite_self",
+          "skill_filter": "attack",
+          "from": "triggered",
+          "count": 1,
+          "source": "踏雷"
+        }
+      ]
     }
   ],
   "description": "✦自己回合结束时返场，携带的攻击技能下回合获得1个已触发过的迸发效果，应对防御：改为获得所有触发过的迸发效果。"

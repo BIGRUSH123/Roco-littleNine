@@ -2,5 +2,32 @@
   "id": 200224,
   "name": "消波块",
   "description": "每携带1个水系技能进入战斗，地系技能能耗-1。",
-  "effects": []
+  "effects": [
+    {
+      "op": "observer",
+      "listen": "post_entry",
+      "scope": "battlefield",
+      "cond": {
+        "cond": "sprite_entered",
+        "of": "sprite_self"
+      },
+      "then": [
+        {
+          "op": "power_mod",
+          "target": "sprite_self",
+          "attr": "energy_cost",
+          "delta": "=0 - @self.skills[element=水].count",
+          "mode": "add",
+          "skill_where": {
+            "q": "element",
+            "op": "eq",
+            "value": "地"
+          },
+          "element": "地",
+          "scope": "permanent",
+          "source": "消波块"
+        }
+      ]
+    }
+  ]
 }

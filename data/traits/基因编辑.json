@@ -2,5 +2,37 @@
   "id": 200318,
   "name": "基因编辑",
   "description": "自己携带技能的基础能耗，变为上回合双方使用的技能能耗之和。",
-  "effects": []
+  "effects": [
+    {
+      "op": "observer",
+      "comment": "上回合双方技能能耗之和 > 0 才生效：第一回合没有「上一回合」，若照 0 结算会把全部技能变成 0 能耗（原文未规定，属实现口径）",
+      "cond": {
+        "cond": "compare",
+        "q": "last_turn_energy_sum",
+        "of": "team_both",
+        "op": "gt",
+        "value": 0
+      },
+      "listen": [
+        "turn_start",
+        "post_entry"
+      ],
+      "scope": "battlefield",
+      "then": [
+        {
+          "op": "power_mod",
+          "target": "sprite_self",
+          "attr": "energy_cost",
+          "mode": "set_base",
+          "value": {
+            "q": "last_turn_energy_sum",
+            "of": "team_both"
+          },
+          "skill_filter": "all",
+          "scope": "turn",
+          "source": "基因编辑"
+        }
+      ]
+    }
+  ]
 }

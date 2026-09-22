@@ -3,7 +3,7 @@ from backend.vm.compiler.context import CompilerContext
 from backend.vm.compiler.passes.inject_hit import InjectHitPass
 from backend.vm.compiler.passes.skill_parse import SkillParsePass
 from backend.vm.ir_skill import HitOp, MultModOp, StatStageOp
-from backend.vm.ir_values import Literal
+from backend.vm.ir_values import Query
 
 
 class TestInjectHitPass:
@@ -32,7 +32,7 @@ class TestInjectHitPass:
         assert len(ctx.ir) == 2
         assert isinstance(ctx.ir[0], StatStageOp)
         assert isinstance(ctx.ir[1], HitOp)
-        assert ctx.ir[1].power == Literal(value=90)
+        assert ctx.ir[1].power == Query(field="power_self")
         assert ctx.ir[1].type == "物攻"
         assert ctx.ir[1].element == "冰"
 
@@ -110,4 +110,4 @@ class TestInjectHitPass:
         ctx = self._parse_and_inject(data)
         assert len(ctx.ir) == 1
         assert isinstance(ctx.ir[0], HitOp)
-        assert ctx.ir[0].power == Literal(value=60)
+        assert ctx.ir[0].power == Query(field="power_self")

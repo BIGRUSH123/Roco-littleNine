@@ -9,8 +9,7 @@
     {
       "target": "sprite_self",
       "op": "heal",
-      "ratio": 0.08,
-      "per_hit": true
+      "value": "=round(@self.max_hp * 0.08)"
     },
     {
       "op": "observer",

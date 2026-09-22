@@ -10,9 +10,9 @@
           "target": "sprite_self",
           "scope": "persistent",
           "source": "自由飘",
-          "op": "stat_stage",
-          "stat": "combo",
-          "steps": "=@self.effects[name=萌化].stacks * 3"
+          "op": "power_mod",
+          "attr": "combo",
+          "delta": "=@self.effects[name=萌化].stacks * 3"
         }
       ],
       "scope": "battlefield",

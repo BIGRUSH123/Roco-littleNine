@@ -4,6 +4,7 @@
   "element": "机械",
   "skill_type": "状态",
   "energy_cost": 1,
+  "transmission": 1,
   "effects": [
     {
       "target": "sprite_self",
@@ -37,6 +38,5 @@
       ]
     }
   ],
-  "description": "✦自己获得速度+30，本技能位于1号或3号位时额外获得物攻+80%，传动1。",
-  "tag": "传动"
+  "description": "✦自己获得速度+30，本技能位于1号或3号位时额外获得物攻+80%，传动1。"
 }

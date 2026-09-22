@@ -2,5 +2,32 @@
   "id": 200120,
   "name": "冻土",
   "description": "每携带1个冰系技能进入战斗，地系技能威力+10%。",
-  "effects": []
+  "effects": [
+    {
+      "op": "observer",
+      "listen": "post_entry",
+      "scope": "battlefield",
+      "cond": {
+        "cond": "sprite_entered",
+        "of": "sprite_self"
+      },
+      "then": [
+        {
+          "op": "mult_mod",
+          "target": "sprite_self",
+          "attr": "power_mult",
+          "value": "=1 + @self.skills[element=冰].count * 0.1",
+          "mode": "set",
+          "skill_where": {
+            "q": "element",
+            "op": "eq",
+            "value": "地"
+          },
+          "element": "地",
+          "scope": "permanent",
+          "source": "冻土"
+        }
+      ]
+    }
+  ]
 }

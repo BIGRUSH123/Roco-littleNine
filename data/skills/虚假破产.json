@@ -15,7 +15,7 @@
     {
       "target": "sprite_self",
       "op": "flag_set",
-      "flag": "life_as_energy",
+      "flag": "blood_price",
       "value": 0.05
     }
   ],

@@ -5,6 +5,7 @@
   "skill_type": "魔攻",
   "power": 30,
   "energy_cost": 3,
+  "combo": 3,
   "effects": [
     {
       "target": "sprite_self",

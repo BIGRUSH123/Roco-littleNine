@@ -2,5 +2,41 @@
   "id": 200262,
   "name": "哨兵",
   "description": "回合开始时若敌方技能足够击败自己，自己获得速度+50，行动后脱离。",
-  "effects": []
+  "effects": [
+    {
+      "op": "observer",
+      "listen": "post_entry",
+      "scope": "battlefield",
+      "cond": {
+        "cond": "sprite_entered",
+        "of": "sprite_self"
+      },
+      "then": [
+        {
+          "op": "aura",
+          "target": "sprite_self",
+          "stat": "speed",
+          "per_unit": 5,
+          "count": "lethal_forecast",
+          "source": "哨兵"
+        }
+      ]
+    },
+    {
+      "op": "observer",
+      "listen": "post_skill",
+      "scope": "battlefield",
+      "cond": {
+        "cond": "sprite_acted",
+        "of": "sprite_self"
+      },
+      "then": [
+        {
+          "op": "escape",
+          "target": "sprite_self",
+          "source": "哨兵"
+        }
+      ]
+    }
+  ]
 }

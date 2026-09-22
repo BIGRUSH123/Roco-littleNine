@@ -31,6 +31,120 @@ _DAMAGE_MOD_STATS = frozenset({
     "combo",
 })
 
+_ATTACK_SKILL_TYPES: frozenset[str] = frozenset({"物攻", "魔攻", "动态攻击"})
+
+#: `data/skills/*.json` 的「有无额外效果」缓存（bare_* 判定用）。
+_BARE_SKILL_CACHE: dict[str, bool] = {}
+_SKILLS_DIR: list = []   # 单元素缓存：[Path | None]
+
+
+def _skills_dir():
+    if not _SKILLS_DIR:
+        from pathlib import Path
+        cand = Path("data") / "skills"
+        if not cand.is_dir():
+            cand = Path(__file__).resolve().parents[2] / "data" / "skills"
+        _SKILLS_DIR.append(cand if cand.is_dir() else None)
+    return _SKILLS_DIR[0]
+
+
+def _skill_raw_has_extra_effects(name: str) -> bool | None:
+    """从 `data/skills/<name>.json` 判断「有无额外效果」；拿不到 JSON 时返回 None。"""
+    if name in _BARE_SKILL_CACHE:
+        return _BARE_SKILL_CACHE[name]
+    d = _skills_dir()
+    if d is None:
+        return None
+    import json
+    path = d / f"{name}.json"
+    if not path.exists():
+        return None
+    try:
+        raw = json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return None
+    extra = bool(raw.get("effects") or raw.get("choices") or raw.get("passive"))
+    _BARE_SKILL_CACHE[name] = extra
+    return extra
+
+
+def skill_has_extra_effects(bs, battle=None) -> bool:
+    """技能是否带额外效果（供 `bare_attack` / `bare_defense` / `bare_status` 判定）。
+
+    「无额外效果」= 技能 JSON 的 `effects` / `choices` / `passive` 全为空
+    （不移「携带的无额外效果的攻击技能，威力+30%」）；隐式伤害由 InjectHitPass
+    注入，不算额外效果。
+
+    取不到 JSON（纯程序构造的技能、找不到 data 目录）时保守返回 True（有额外效果），
+    避免把带效果的技能误判成裸技能。`battle` 参数保留兼容旧签名，不参与判定。
+    """
+    skill = getattr(bs, "replaced_by", None) or getattr(bs, "base", None)
+    if skill is None:
+        return True
+    if getattr(skill, "effects", None) or getattr(skill, "choices", None):
+        return True   # 旧 kind 形式效果 / 选择分支
+    name = getattr(skill, "name", "")
+    extra = _skill_raw_has_extra_effects(name) if name else None
+    if extra is None:
+        return True   # 无数据来源 → 保守
+    return extra
+
+
+def matches_skill_filter(skill_filter, bs, *, sprite=None, ref_bs=None, battle=None) -> bool:
+    """skill_filter 匹配：基础类型筛选 + 结构筛选（data/IR_GUIDE.md §3A）。
+
+    - `attack` / `defense` / `status` / `all`：只看 skill_type；
+    - `others`   = 除**参考技能**（`ref_bs`，本回合正在使用的技能）以外的携带技能
+                   ——激怒「敌方除本回合使用的技能，其他技能能耗+3」；
+    - `adjacent` = **参考技能**槽位两侧的技能（不环绕）
+                   ——减压阀/联动装置/能量守恒/轴承支撑「两侧技能…」；
+    - `bare_attack` / `bare_defense` / `bare_status` = 无额外效果的纯类型技能（不移）。
+
+    结构筛选缺上下文（bs / ref_bs / sprite 缺失）时返回 False——此前未知 filter
+    一律「匹配全部」，会把这些筛选静默放大成对全部技能生效。
+    未知 filter 名保持既有行为（放行），以免历史数据里的小众写法变成空操作。
+    """
+    if not skill_filter or skill_filter == "all":
+        return True
+    skill_type = getattr(bs, "skill_type", "") if bs is not None else ""
+    if skill_filter == "attack":
+        return skill_type in _ATTACK_SKILL_TYPES
+    if skill_filter == "defense":
+        return skill_type == "防御"
+    if skill_filter == "status":
+        return skill_type == "状态"
+
+    if skill_filter == "others":
+        return bs is not None and ref_bs is not None and bs is not ref_bs
+
+    if skill_filter == "adjacent":
+        if bs is None or ref_bs is None or sprite is None:
+            return False
+        skills = list(getattr(sprite, "skills", None) or [])
+        try:
+            ref_idx = next(i for i, b in enumerate(skills) if b is ref_bs)
+        except StopIteration:
+            return False
+        idx = next((i for i, b in enumerate(skills) if b is bs), None)
+        return idx is not None and abs(idx - ref_idx) == 1
+
+    if skill_filter.startswith("bare_"):
+        want = skill_filter[5:]
+        if want == "attack":
+            if skill_type not in _ATTACK_SKILL_TYPES:
+                return False
+        elif want == "defense":
+            if skill_type != "防御":
+                return False
+        elif want == "status":
+            if skill_type != "状态":
+                return False
+        else:
+            return False   # 未知 bare_ 类别：不匹配（而不是匹配全部）
+        return not skill_has_extra_effects(bs, battle)
+
+    return True  # unknown filters pass through（保持既有行为）
+
 
 def _collect_modifiers_from_entries(entries: list[ModifierInjection], ctx: Ctx) -> dict:
     """Collect ModifierInjections from journal and compute effective values.

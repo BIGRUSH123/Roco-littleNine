@@ -4,6 +4,29 @@
   "element": "翼",
   "skill_type": "防御",
   "energy_cost": 2,
-  "effects": [],
+  "counter": "攻击",
+  "effects": [
+    {
+      "target": "sprite_self",
+      "op": "mult_mod",
+      "attr": "damage_reduction",
+      "value": 0.5
+    },
+    {
+      "when": {
+        "cond": "counter_succeeded"
+      },
+      "then": [
+        {
+          "target": "sprite_self",
+          "op": "escape"
+        },
+        {
+          "target": "sprite_opp",
+          "op": "escape"
+        }
+      ]
+    }
+  ],
   "description": "✦减伤50%，应对攻击：敌方和自己均脱离。"
 }

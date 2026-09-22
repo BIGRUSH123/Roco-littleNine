@@ -4,6 +4,23 @@
   "element": "机械",
   "skill_type": "状态",
   "energy_cost": 1,
-  "tag": "传动",
+  "transmission": 1,
+  "effects": [
+    {
+      "op": "power_mod",
+      "target": "skill_off_0",
+      "scope": "permanent",
+      "attr": "power",
+      "delta": 20
+    },
+    {
+      "op": "power_mod",
+      "target": "sprite_self",
+      "scope": "permanent",
+      "skill_filter": "adjacent",
+      "attr": "power",
+      "delta": 10
+    }
+  ],
   "description": "✦主动：本技能被动永久额外+20威力，被动：两侧技能威力+10，传动1。"
 }

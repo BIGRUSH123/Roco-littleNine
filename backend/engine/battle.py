@@ -101,6 +101,9 @@ def _make_ctx(*args, **kwargs):
             kwargs.get("self_sprite", args[0] if args else None),
             kwargs.get("opp_sprite", args[1] if len(args) > 1 else None),
             kwargs.get("globals_", args[4] if len(args) > 4 else None),
+            # 当前技能（skill_name_self 等扩展寄存器）
+            kwargs.get("self_skill", args[2] if len(args) > 2 else None),
+            kwargs.get("opp_skill", args[3] if len(args) > 3 else None),
         )
     return build_ctx(*args, **kwargs)
 
@@ -297,11 +300,18 @@ class BattleVMEngine:
         self._register_counters_from_journal(journal, self_sprite, battle_skill)
 
         # 6.6 Track skill history for sprite_self replay
+        # tags 按 `_matches_skill_filter` 认的三种键全记录（tag/skill_type/element）：
+        # 此前只记 tag，`{"skill_type": …}` 这类筛选器永远命不中（疾风连袭「释放
+        # 释放过的迅捷技能」因此整条失效——迅捷是 **tag** 不是 skill_type）。
         skill_name = getattr(self_skill, 'name', '')
         if skill_name:
             sprite_id = id(self_sprite)
             self._skill_history.setdefault(sprite_id, []).append(
-                (skill_name, list(vm_effects), {"tag": getattr(self_skill, 'tag', '')})
+                (skill_name, list(vm_effects), {
+                    "tag": getattr(self_skill, 'tag', ''),
+                    "skill_type": getattr(self_skill, 'skill_type', ''),
+                    "element": getattr(self_skill, 'element', ''),
+                })
             )
 
         # 6.7 Trigger starfall mark: non-幻系 attack → consume marks + deal 幻系 damage

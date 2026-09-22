@@ -66,14 +66,14 @@ def _usable_defense(sprite) -> list:
 
 
 def _usable_status(sprite) -> list:
-    """可用的强化/状态技（有 stat 效果的最像"叠 Buff"，wiki 里换人会清增益）。"""
-    out = []
-    for s in (getattr(sprite, 'skills', ()) or ()):
-        if s.cooldown > 0 or s.sealed or s.is_attack or s.is_defense:
-            continue
-        if any(getattr(e, 'kind', '') == 'stat' for e in s.effects):
-            out.append(s)
-    return out
+    """可用的强化/状态技。
+
+    旧判据（`e.kind == 'stat'`，旧 kind 层）随该层于 2026-09-22 删除：IR 语料下
+    它恒不成立，本函数**一直返回空列表**（`has_stat` 是常数 False）。保持行为不变
+    故按「无结果」保留；要真正识别强化技请改用 `skill_ir.skill_profile`
+    （`self_buff_stats` / `doubles_buffs`…），属需单独量测的决策改动。
+    """
+    return []
 
 
 def _type_advantage(battle, attacker, defender, team: str) -> float:

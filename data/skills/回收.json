@@ -5,6 +5,19 @@
   "skill_type": "魔攻",
   "energy_cost": 3,
   "power": 80,
-  "effects": [],
+  "effects": [
+    {
+      "when": {
+        "cond": "opp_switched"
+      },
+      "then": [
+        {
+          "op": "energize",
+          "target": "sprite_opp",
+          "delta": -4
+        }
+      ]
+    }
+  ],
   "description": "✦造成魔伤，若敌方本回合更换精灵，敌方失去4能量。"
 }

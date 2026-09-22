@@ -16,7 +16,7 @@ from .ir_values import Literal, Query, RefExpr
 # Dict-type register queries that require a 'name' key for sub-indexing
 _NAMED_DICT_QUERIES = frozenset({
     "counter_value", "abnormal_stacks", "devotion", "mark_stacks", "skill_count", "team_counter",
-    "counter",
+    "counter", "last_turn_element",
 })
 
 
@@ -67,6 +67,9 @@ def resolve(ctx: Ctx, value) -> int | float | str:
         raw = getattr(ctx, value.field, value.default)
         if raw is None:
             raw = value.default or 0
+        # Derived query: element_count = 队伍系别集合的元数（frozenset）
+        if value.sub_key_field == "element_count":
+            raw = len(raw) if isinstance(raw, (frozenset, set, tuple, list)) else 0
         # Dict-type registers: sub-index by name (e.g. skill_count_own["虫鸣"])
         if isinstance(raw, dict):
             raw = raw.get(value.name, 0) if value.name else 0
@@ -119,9 +122,25 @@ def _resolve_dict_query(ctx: Ctx, value: dict) -> int | float | str:
         return _apply_transforms(1.0 - ratio, value)
     if q == "mark_count_both":
         return _apply_transforms(ctx.mark_count_own + ctx.mark_count_opp, value)
+    # 队伍系别**数量**（frozenset 的元数）：`team_elements_own/_opp` 是集合，
+    # 不能直接参与数值换算，故单列一条派生查询。
+    # 分光「己方队伍中精灵每有1个不同的系别，额外获得魔攻+10%」→
+    # steps = {"q": "element_count", "of": "team_own", "offset": 2}
+    if q == "element_count":
+        field = "team_elements_opp" if of == "team_opp" else "team_elements_own"
+        elems = getattr(ctx, field, None) or ()
+        return _apply_transforms(len(elems), value)
     if q == "is_fainted":
         val = ctx.event.self_koed if of == "sprite_self" else ctx.event.target_fainted
         return val
+    # 体重差（**带符号**）：of=sprite_self → 自己 − 对方；of=sprite_opp → 对方 − 自己。
+    # 需要「差越大」语义时在数据侧取绝对值：`{"q":"weight_diff","abs":true, ...}`
+    # （abs 变换在 per/scale/offset 之前，见 data/IR_GUIDE.md §2 变换链）。
+    if q == "weight_diff":
+        w_self = float(getattr(ctx, "weight_self", 0.0) or 0.0)
+        w_opp = float(getattr(ctx, "weight_opp", 0.0) or 0.0)
+        raw = (w_opp - w_self) if of == "sprite_opp" else (w_self - w_opp)
+        return _apply_transforms(raw, value)
 
     # ADDRESS_MAP lookup
     map_key = (of, q)
@@ -152,7 +171,10 @@ def _resolve_dict_query(ctx: Ctx, value: dict) -> int | float | str:
     if isinstance(raw, (str, bool)):
         return raw
 
-    # Numeric transforms: per -> scale -> offset
+    # Numeric transforms: abs -> per -> scale -> offset
+    if value.get("abs") and isinstance(raw, (int, float)):
+        raw = abs(raw)
+
     if "per" in value:
         per = value["per"]
         raw = int(raw / per) if per != 0 else raw
@@ -169,9 +191,12 @@ def _resolve_dict_query(ctx: Ctx, value: dict) -> int | float | str:
 
 
 def _apply_transforms(raw, value: dict) -> int | float | str:
-    """Apply per/scale/offset transforms from a dict query to a raw value."""
+    """Apply abs/per/scale/offset transforms from a dict query to a raw value."""
     if isinstance(raw, (str, bool)):
         return raw
+
+    if value.get("abs") and isinstance(raw, (int, float)):
+        raw = abs(raw)
 
     if "per" in value:
         per = value["per"]
@@ -263,6 +288,12 @@ _FORMULA_PATH_MAP: dict[str, str] = {
     "skill.element": "element_self",
     "skill.energy_cost": "energy_cost_self",
     "skill.combo": "combo_self",
+    # 两侧技能威力读数（六自由度「威力 + 两侧技能威力差的四分之一」）
+    "adjacent_power_sum": "adjacent_power_sum",
+    "adjacent_power_diff": "adjacent_power_diff",
+    # 体重（kg）：sidecar `data/sprites/_weights.json`（Catalog 区间取中点）
+    "self.weight": "weight_self",
+    "target.weight": "weight_opp",
     "opponent_skill.power": "power_opp",
     "player_fainted_count": "fainted_own",
     "opponent_fainted_count": "fainted_opp",

@@ -41,9 +41,133 @@ _TYPE_CHART: dict[str, dict[str, float]] = {
 
 _STEP_PCT = 10  # 非速度六维：1步=10%
 
+#: 技能 IR 里「本次使用才生效」的伤害修正，按技能名缓存（估伤用）。
+#: 元素 = (条件要求 tuple[(cond, 期望值), ...], kind, payload)，
+#: kind ∈ {"add_power", "power_mult", "damage_mult"}。
+_SAME_TURN_OPS: dict[str, tuple] = {}
+
+#: `power_mod`/`mult_mod` 的 target 里，属于「当前使用的这个技能」的拼写
+_SELF_SKILL_TARGETS = frozenset({"skill_off_0", "skill_self", "self_skill"})
+
+
+def _cond_name(cond) -> str:
+    if isinstance(cond, dict):
+        return str(cond.get("cond", ""))
+    return str(getattr(cond, "cond", "") or "")
+
+
+def _collect_same_turn(node, reqs: tuple, out: list) -> None:
+    """递归收集技能自身 IR 中影响本次伤害的修正（含 when 条件要求）。"""
+    from backend.vm.ir_skill import MultModOp, PowerModOp, WhenBlock
+
+    for item in node or ():
+        if isinstance(item, WhenBlock):
+            for cond, branch in [(item.cond, item.then)] + [
+                    (b.cond, b.then) for b in item.elif_]:
+                if _cond_name(cond) == "counter_succeeded":
+                    continue          # 估伤按「未应对」口径：应对分支不计
+                _collect_same_turn(branch, reqs + ((cond, True),), out)
+            if item.else_:
+                _collect_same_turn(item.else_, reqs + ((item.cond, False),), out)
+        elif isinstance(item, PowerModOp):
+            if (item.attr == "power" and (item.target or "") in _SELF_SKILL_TARGETS
+                    and getattr(item, "mode", "add") == "add"):
+                out.append((reqs, "add_power", item.delta))
+        elif isinstance(item, MultModOp) and (item.target or "") in _SELF_SKILL_TARGETS:
+            payload = (item.value, getattr(item, "mode", "set") or "set")
+            if item.attr == "power_mult":
+                out.append((reqs, "power_mult", payload))
+            elif item.attr == "damage_mult":
+                out.append((reqs, "damage_mult", payload))
+
+
+def _same_turn_ops(battle, skill_name: str) -> tuple:
+    """技能自身 IR 里「本次使用才生效」的伤害修正（按技能名缓存）。"""
+    cached = _SAME_TURN_OPS.get(skill_name)
+    if cached is not None:
+        return cached
+    ops: tuple = ()
+    try:
+        effects = battle._get_skill_record(skill_name).effects
+    except (KeyError, FileNotFoundError, ValueError, AttributeError, TypeError):
+        effects = ()
+    if effects:
+        found: list = []
+        _collect_same_turn(effects, (), found)
+        ops = tuple(found)
+    _SAME_TURN_OPS[skill_name] = ops
+    return ops
+
+
+def _same_turn_modifiers(battle, bs, attacker, defender, use, globals_,
+                         team: str) -> tuple[int, float, float]:
+    """技能自身的同回合修正 → (power_add, power_mult, damage_mult)。
+
+    实战路径：技能 effect 里的 `power_mod`/`mult_mod` 变成 ModifierInjection，
+    由 `engine/modifiers` 汇总：`power`(add) → power_add → 按 `(power+add)/power`
+    折进 power_mult；`power_mult` 按 mode 加/乘；`damage_mult` 一律相乘。
+    这里用**引擎自己的 Ctx**（`Battle._make_ctx`）+ 引擎自己的条件求值
+    （`vm/cond.compile_cond`）静态复算同一批修正——魔能爆「=@self.energy * 20」
+    这类公式因此也能算；求值失败就不计（保守）。
+    """
+    if battle is None:
+        return 0, 1.0, 1.0
+    name = getattr(bs, 'name', '')
+    if not name:
+        return 0, 1.0, 1.0
+    ops = _same_turn_ops(battle, name)
+    if not ops:
+        return 0, 1.0, 1.0
+    try:
+        # skill_index 传 -1（未知）时 `skill_at` 条件自然不成立 → 保守不计
+        ctx = battle._make_ctx(attacker, defender, use.battle_skill, None, globals_,
+                               team=team, skill_index=use.skill_index)
+    except Exception:
+        return 0, 1.0, 1.0
+
+    from backend.vm.cond import compile_cond
+    from backend.vm.resolve import resolve
+
+    power_add = 0
+    power_mult = 1.0
+    damage_mult = 1.0
+    for reqs, kind, payload in ops:
+        met = True
+        for cond, expected in reqs:
+            try:
+                if bool(compile_cond(cond)(ctx)) is not expected:
+                    met = False
+                    break
+            except Exception:
+                met = False      # 条件求值失败 → 保守不计
+                break
+        if not met:
+            continue
+        if kind == "add_power":
+            try:
+                power_add += int(resolve(ctx, payload))
+            except Exception:
+                continue
+        else:
+            value, mode = payload
+            try:
+                v = float(resolve(ctx, value))
+            except Exception:
+                continue
+            if kind == "power_mult":
+                power_mult = power_mult + v if mode == "add" else power_mult * v
+            else:
+                damage_mult *= v
+    return power_add, power_mult, damage_mult
+
 
 class SkillResolver:
-    """技能效果解析器（无状态，纯方法）。"""
+    """技能效果解析器（纯方法；持 battle 引用只为估伤取同回合修正）。"""
+
+    def __init__(self, battle=None) -> None:
+        #: 估伤（calc_damage）需要 battle 才能取「技能自身的同回合修正」
+        #: （IR 记录 + Ctx）。没有 battle 时退化为只读技能级/精灵级修正。
+        self._battle = battle
 
     @staticmethod
     def resolve_counter(atk_skill: Skill, def_skill: Skill) -> bool:
@@ -54,8 +178,8 @@ class SkillResolver:
             return True
         return bool(def_skill.counter == '状态' and atk_skill.is_status)
 
-    @staticmethod
     def calc_damage(
+        self,
         attacker: Sprite, defender: Sprite,
         use: SkillUse, globals_: GlobalEffects,
         attacker_team: str = 'A',
@@ -63,6 +187,10 @@ class SkillResolver:
         """伤害公式: 37/41 * atk/def * (威力*应对+固定) * 本系 * 克制 * 天气 * 减伤 * 修正 * 连击 * 倍率。
 
         收集输入后委托 vm/damage.calc_damage 执行核心运算。
+
+        输入口径与**实战**一致（`engine/snapshot.build_ctx` + `engine/modifiers`）：
+        技能级与精灵级 `power_mult`/`damage_mult` 相加、防御方精灵级减伤、以及技能
+        自身写在 `effects[]` 里的同回合 `power_mod`（如魔能爆「每消耗 1 点能量威力+20」）。
         """
         from backend.vm.damage import calc_damage as _vm_damage
 
@@ -89,9 +217,22 @@ class SkillResolver:
         atk_stage = atk_steps / _STEP_PCT
         def_stage = def_steps / _STEP_PCT
 
+        # ── 技能级 / 精灵级倍率（与实战 snapshot 的合并公式一致）──
+        # 此前只读 use.modifiers（旧 kind 层，IR 语料下恒空）→ 这两类修正对估伤
+        # 完全不可见（实测：精灵级 power_mult=1.5 时实战 39→59、估伤恒 33）。
+        skill_mods = getattr(bs, '_modifiers', None) or {}
+        power_mult = (1.0
+                      + (float(attacker.power_mult_modifier) - 1.0)
+                      + (float(skill_mods.get('power_mult', 1.0) or 1.0) - 1.0)) * use.power_mult
+        damage_mult = (1.0
+                       + (float(attacker.damage_mult_modifier) - 1.0)
+                       + (float(skill_mods.get('damage_mult', 1.0) or 1.0) - 1.0)) * use.damage_mult
+        # 减伤：实战 op_hit 传的是**防御方**精灵级减伤（防御技在这一手之前已落地）
+        damage_reduction = max(use.damage_reduction,
+                               float(defender.damage_reduction_modifier))
+
         additive_power = (
-            attacker.power_mod * 10
-            + globals_.mark_power_bonus(attacker_team, bs)
+            globals_.mark_power_bonus(attacker_team, bs)
             + use.modifiers.get('power_bonus', 0)
         )
 
@@ -100,6 +241,12 @@ class SkillResolver:
 
         mark_mult = globals_.mark_damage_mult(attacker_team, use.is_first)
         mark_bonus = mark_mult - 1.0
+
+        # 连击 = 技能释放次数（含技能自身修正与门控后的精灵级增益/倍率），
+        # 与引擎同口径：此前这里读 use.multi_hit（旧版 special，全库无数据），
+        # 等于所有连击技能的估伤都少算了 N 倍（虫刺 3 连击：实战 39 / 估伤 13）
+        from .battleskill import effective_combo
+        combo_count = effective_combo(bs, attacker)
 
         damage = _vm_damage(
             power=bs.power,
@@ -110,14 +257,26 @@ class SkillResolver:
             stab_mult=SkillResolver._get_stab(bs, attacker),
             type_mult=type_mult,
             weather_mult=globals_.weather_damage_mult(bs.element or ''),
-            damage_reduction=use.damage_reduction,
-            power_mult=use.power_mult,
+            damage_reduction=damage_reduction,
+            power_mult=power_mult,
             counter_power_mult=use.counter_power_mult,
             additive_power=additive_power,
-            damage_mult=use.damage_mult,
-            combo_count=use.multi_hit,
+            damage_mult=damage_mult,
+            combo_count=combo_count,
             mark_bonus=mark_bonus,
         )
+
+        # ── 技能自身的**同回合**修正：与 `engine/modifiers.adjust_damage` 同序 ──
+        # 实战是先按基础威力算完伤害，再由 adjust_damage 乘折算倍率并取整
+        # （`power_add` 折成 `(power+add)/power`）。这一「先算后乘」的次序对
+        # 低威力技能影响很大：魔能爆 1 威力 +60 → 实战略 61（不是 41），
+        # 所以这里也必须后乘而不是并进公式。
+        power_add, st_power_mult, st_damage_mult = _same_turn_modifiers(
+            self._battle, bs, attacker, defender, use, globals_, attacker_team)
+        if power_add > 0 and bs.power > 0:
+            st_power_mult *= (bs.power + power_add) / bs.power
+        if st_power_mult != 1.0 or st_damage_mult != 1.0:
+            damage = max(1, round(damage * st_power_mult * st_damage_mult))
         return damage, events
 
     @staticmethod

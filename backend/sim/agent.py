@@ -144,20 +144,20 @@ class RuleAgent:
                 continue
 
             if skill.is_attack:
-                # 用伤害公式估算（保守：假设后手）
+                # 用伤害公式估算（保守：假设后手）；带上槽位号 —— 估伤要用它求值
+                # `when{skill_at}` 一类的位置条件（械斗/磁暴/六自由度…）
                 dmg, _ = battle._resolver.calc_damage(
-                    s, opponent, SkillUse(battle_skill=skill), battle.globals,
+                    s, opponent, SkillUse(battle_skill=skill, skill_index=i),
+                    battle.globals,
                     attacker_team=self.team,
                 )
                 score = dmg * style.aggression
-            elif skill.is_defense:
-                # 防御技能：按效果数量 + 应对能力给分
-                n_effects = sum(1 for e in skill.effects if e.kind in ('stat', 'abnormal', 'mark'))
-                score = n_effects * 20 * (1.0 - style.aggression)
             else:
-                # 状态技能：按效果数量给分
-                n_effects = sum(1 for e in skill.effects if e.kind in ('stat', 'abnormal', 'mark'))
-                score = n_effects * 15 * (1.0 - style.aggression)
+                # 防御 / 状态技按槽位序取第一个。旧 kind 层的「效果条数」判据
+                # （`e.kind in ('stat','abnormal','mark')`）随该层于 2026-09-22
+                # 删除：IR 语料下它恒为 0、从未影响过选择；要复活请改用
+                # `sim/skill_ir.skill_profile`（需单独一轮量测）。
+                score = 0.0
 
             if score > best_score:
                 best_score = score

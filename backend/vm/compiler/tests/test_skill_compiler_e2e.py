@@ -70,7 +70,8 @@ class TestCompilerE2E:
         assert len(compiled.effects) == 2  # StatStageOp + HitOp (HitOp injected at end)
         assert isinstance(compiled.effects[0], StatStageOp)
         assert isinstance(compiled.effects[1], HitOp)
-        assert compiled.effects[1].power == Literal(value=90)
+        # 注入的隐式 HitOp 的威力走 `power_self`（含技能级修正），不写死成 JSON 原始威力
+        assert compiled.effects[1].power == Query(field="power_self")
 
     def test_compile_status_skill(self, compiler):
         """三连破: 状态 skill, no HitOp injected."""
@@ -410,13 +411,12 @@ class TestCompilerE2E:
             "tag": "",
             "use_devotion": False,
             "usable_while_charging": False,
-            "position_locked": True,
+            "transmission": -1,   # 主轴：位置不参与传动（原 position_locked 字段已删除）
         }
         compiled = compiler.compile(data)
         assert compiled.id == 10401
         assert compiled.element == "机械"
         assert compiled.energy_cost == 2
-        assert compiled.position_locked is True
         assert compiled.description == "此技能位置不会改变"
 
     def test_compilation_error_on_bad_data(self, compiler):

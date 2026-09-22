@@ -10,8 +10,7 @@
       "target": "team_opp",
       "op": "mark",
       "name": "星陨印记",
-      "stacks": 1,
-      "per_hit": true
+      "stacks": 1
     }
   ],
   "description": "✦2连击，每次连击使敌方获得1层星陨印记。"

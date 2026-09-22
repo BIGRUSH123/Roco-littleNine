@@ -1,6 +1,67 @@
 {
   "id": 200322,
   "name": "盗魂铃",
-  "description": "初始能量为0，首次入场前敌方每聚能1次，回复5能量（可突破上限），在场时自己回复的能量-4。",
-  "effects": []
+  "description": "初始能量为0，首次入场前敌方每聚能1次，回复5能量（可突破上限），在场时自己回复的能量-4。// 已落地：首次入场按敌方聚能回复（队伍计数 enemy_gather + 精灵计数器门控「首次」）、在场期间自己回复能量-4（精灵级 energy_gain_delta）。未落地：「初始能量为0」（`initial_energy` 的语义口径「首次入场 vs 仅开局」待确认）、「可突破上限」（energize 的 overflow）。",
+  "effects": [
+    {
+      "op": "observer",
+      "listen": "post_entry",
+      "scope": "battlefield",
+      "cond": {
+        "cond": "sprite_entered",
+        "of": "sprite_self"
+      },
+      "then": [
+        {
+          "op": "power_mod",
+          "target": "sprite_self",
+          "attr": "energy_gain_delta",
+          "delta": -4,
+          "scope": "battlefield",
+          "source": "盗魂铃"
+        }
+      ]
+    },
+    {
+      "op": "observer",
+      "listen": "post_entry",
+      "scope": "persistent",
+      "cond": {
+        "cond": "and",
+        "conditions": [
+          {
+            "cond": "sprite_entered",
+            "of": "sprite_self"
+          },
+          {
+            "cond": "compare",
+            "q": "counter",
+            "of": "sprite_self",
+            "name": "盗魂铃_首次入场",
+            "op": "eq",
+            "value": 0
+          }
+        ]
+      },
+      "then": [
+        {
+          "op": "energize",
+          "target": "sprite_self",
+          "delta": {
+            "q": "team_counter",
+            "of": "team_own",
+            "name": "enemy_gather",
+            "scale": 5
+          },
+          "source": "盗魂铃"
+        },
+        {
+          "op": "counter",
+          "target": "sprite_self",
+          "key": "盗魂铃_首次入场",
+          "delta": 1
+        }
+      ]
+    }
+  ]
 }

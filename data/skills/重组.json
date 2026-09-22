@@ -4,6 +4,33 @@
   "element": "幻",
   "skill_type": "状态",
   "energy_cost": 1,
-  "effects": [],
+  "counter": "防御",
+  "effects": [
+    {
+      "when": {
+        "cond": "counter_succeeded"
+      },
+      "then": [
+        {
+          "op": "mult_mod",
+          "target": "sprite_self",
+          "on_next": true,
+          "if_type": "attack",
+          "attr": "power_mult",
+          "value": 4
+        }
+      ],
+      "else": [
+        {
+          "op": "mult_mod",
+          "target": "sprite_self",
+          "on_next": true,
+          "if_type": "attack",
+          "attr": "power_mult",
+          "value": 2
+        }
+      ]
+    }
+  ],
   "description": "✦下一次攻击时，额外造成100%幻系伤害，应对防御：改为额外造成300%幻系伤害。"
 }

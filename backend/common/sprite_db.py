@@ -8,6 +8,10 @@
 
 旧数据兼容: 若 JSON 没有 appearance 字段、而 form 是外观名
 （非 '' / '首领形态'），读取时自动规范化为 appearance=form、form=''。
+
+体重: `data/sprites/_weights.json`（sidecar，由 `backend/tools/gen_sprite_weights.py`
+从 nrc `Catalog.lua` 生成，区间取中点）按**展示键**（`_display_key()` 同规则）索引，
+`_read_one()` 读出后填入 `SpeciesStats.weight`。sidecar 不存在时体重一律 0.0。
 """
 
 import json
@@ -32,12 +36,40 @@ def _display_key(name: str, form: str = '', appearance: str = '') -> str:
 
     与 `SpeciesStats.display_name()` 同规则，索引与展示必须一致，否则
     「首领形态（无外观）」条目会在展示上消失（64294b2 的副作用，2026-09-20 还原）。
+    体重 sidecar（`_weights.json`）也用同一个键，两处必须保持同步。
     """
     if appearance:
         return f'{name}（{appearance}）'
     if form:
         return f'{name}（{form}）'
     return name
+
+
+# 体重 sidecar 缓存：{sprites 目录: {展示键: kg}}。
+# 以目录为键（而不是 SpriteDB 实例）是因为 `_read_one()` 是静态方法，
+# 外部调用点（backend/api/main.py 等）只传文件路径；缓存保证只读一次文件。
+_WEIGHT_TABLES: dict[Path, dict[str, float]] = {}
+
+
+def weight_table(sprites_dir: Path) -> dict[str, float]:
+    """读取（并缓存）`data/sprites/_weights.json`；缺失/损坏返回空表。"""
+    key = Path(sprites_dir)
+    cached = _WEIGHT_TABLES.get(key)
+    if cached is not None:
+        return cached
+    table: dict[str, float] = {}
+    path = key / '_weights.json'
+    try:
+        raw = json.loads(path.read_text(encoding='utf-8'))
+        entries = raw.get('weights', raw) if isinstance(raw, dict) else {}
+        if isinstance(entries, dict):
+            table = {str(k): float(v) for k, v in entries.items()
+                     if isinstance(v, (int, float))}
+    except (OSError, json.JSONDecodeError, TypeError, ValueError):
+        table = {}
+    _WEIGHT_TABLES[key] = table
+    return table
+
 
 
 class SpriteDB:
@@ -271,7 +303,10 @@ class SpriteDB:
 
     @staticmethod
     def _read_one(path: Path) -> SpeciesStats | None:
-        """从单个 JSON 文件读取 SpeciesStats（兼容旧 form=外观 数据）。"""
+        """从单个 JSON 文件读取 SpeciesStats（兼容旧 form=外观 数据）。
+
+        体重来自同目录的 `_weights.json` sidecar（按展示键索引），缺失 0.0。
+        """
         try:
             data = json.loads(path.read_text(encoding='utf-8'))
         except (OSError, json.JSONDecodeError):
@@ -286,6 +321,8 @@ class SpriteDB:
         bl_skills = data.get('bloodline_skills', {})
         if not isinstance(bl_skills, dict):
             bl_skills = {}
+        weights = weight_table(path.parent)
+        weight = weights.get(_display_key(name, form, appearance), 0.0)
         try:
             return SpeciesStats(
                 name=name, form=form, appearance=appearance,
@@ -302,6 +339,7 @@ class SpriteDB:
                 ability_id=int(data.get('ability_id', 0)),
                 pre_species=str(data.get('pre_species', '')).strip(),
                 bloodline_skills=bl_skills,
+                weight=weight,
             )
         except (ValueError, TypeError):
             return None

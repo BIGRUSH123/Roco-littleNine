@@ -11,6 +11,22 @@
       "name": "random",
       "value": 1,
       "mode": "add"
+    },
+    {
+      "when": {
+        "cond": "last_turn_had_element",
+        "element": "地",
+        "of": "team_both"
+      },
+      "then": [
+        {
+          "op": "devotion",
+          "target": "team_own",
+          "name": "random",
+          "value": 3,
+          "mode": "add"
+        }
+      ]
     }
   ],
   "description": "✦己方队伍获得1次随机奉献，若上回合双方有精灵使用地系技能，额外获得3次随机奉献。"

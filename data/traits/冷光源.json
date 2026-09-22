@@ -2,5 +2,33 @@
   "id": 200316,
   "name": "冷光源",
   "description": "若上回合双方有精灵使用翼系技能，本回合自己携带的冰系技能威力+100%。",
-  "effects": []
+  "effects": [
+    {
+      "op": "observer",
+      "cond": {
+        "cond": "last_turn_had_element",
+        "element": "翼",
+        "of": "team_both"
+      },
+      "listen": [
+        "turn_start",
+        "post_entry"
+      ],
+      "scope": "battlefield",
+      "then": [
+        {
+          "op": "mult_mod",
+          "target": "sprite_self",
+          "attr": "power_mult",
+          "value": 2,
+          "mode": "set",
+          "scope": "turn",
+          "source": "冷光源",
+          "skill_where": {
+            "element": "冰"
+          }
+        }
+      ]
+    }
+  ]
 }

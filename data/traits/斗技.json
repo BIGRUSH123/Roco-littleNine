@@ -10,10 +10,11 @@
       },
       "then": [
         {
-          "op": "stat_stage",
-          "stat": "power",
+          "op": "power_mod",
           "target": "sprite_self",
-          "steps": 3,
+          "attr": "power",
+          "delta": 30,
+          "skill_filter": "all",
           "scope": "permanent",
           "source": "斗技"
         }

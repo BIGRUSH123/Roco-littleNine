@@ -1,6 +1,17 @@
 {
   "id": 200252,
   "name": "留学生",
-  "description": "自己全技能能耗+2，可以学习全部攻击技能石。",
-  "effects": []
+  "description": "自己全技能能耗+2，可以学习全部攻击技能石。// 「可以学习全部攻击技能石」属对战外技能池/养成范围，不在引擎内。",
+  "effects": [
+    {
+      "op": "power_mod",
+      "target": "sprite_self",
+      "attr": "energy_cost",
+      "delta": 2,
+      "mode": "add",
+      "skill_filter": "all",
+      "scope": "permanent",
+      "source": "留学生"
+    }
+  ]
 }

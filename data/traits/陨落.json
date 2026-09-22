@@ -2,20 +2,6 @@
   "id": 20137,
   "name": "陨落",
   "description": "在场时，双方回合结束时的效果不会触发。",
-  "triggers": [
-    {
-      "on": "entry",
-      "flags": {
-        "_downfall_active": true
-      }
-    },
-    {
-      "on": "leave",
-      "flags": {
-        "_downfall_active": false
-      }
-    }
-  ],
   "effects": [
     {
       "op": "observer",

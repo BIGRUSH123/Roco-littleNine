@@ -10,7 +10,6 @@
       "target": "sprite_opp",
       "op": "power_mod",
       "skill_filter": "all",
-      "per_hit": true,
       "attr": "energy_cost",
       "delta": 1
     }

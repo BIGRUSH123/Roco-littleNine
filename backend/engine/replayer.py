@@ -43,6 +43,8 @@ from backend.vm.journal import (
     Reset,
     Return,
     ScheduleEntry,
+    SkillRotate,
+    StarfallTrigger,
     StatChange,
     StatConvert,
     StatRandom,
@@ -139,7 +141,10 @@ _ATTACK_TYPES: frozenset[str] = frozenset({"物攻", "魔攻", "动态攻击"})
 
 
 def _matches_skill_type(skill_filter: str | None, skill_type: str) -> bool:
-    """Check if a skill's type matches the skill_filter."""
+    """Check if a skill's type matches the skill_filter（只看类型的基础筛选）。
+
+    结构型筛选（`adjacent` / `others` / `bare_*`）需要上下文，见 `_matches_skill_filter`。
+    """
     if not skill_filter or skill_filter == "all":
         return True
     if skill_filter == "attack":
@@ -149,6 +154,32 @@ def _matches_skill_type(skill_filter: str | None, skill_type: str) -> bool:
     if skill_filter == "status":
         return skill_type == "状态"
     return True  # unknown filters pass through
+
+
+def _skill_has_extra_effects(bs, battle=None) -> bool:
+    """技能是否带额外效果（`bare_*` 判定）。实现见 `engine/modifiers.py`。"""
+    from backend.engine.modifiers import skill_has_extra_effects
+    return skill_has_extra_effects(bs, battle)
+
+
+def _matches_skill_filter(
+    skill_filter,
+    bs,
+    *,
+    sprite=None,
+    ref_bs=None,
+    battle=None,
+) -> bool:
+    """skill_filter 匹配（含 adjacent / others / bare_*）。实现见 `engine/modifiers.py`。
+
+    - `others`   = 除**参考技能**（本回合正在使用的技能）以外的携带技能（激怒）
+    - `adjacent` = **参考技能**槽位两侧的技能（不环绕）（减压阀/联动装置/能量守恒/轴承支撑）
+    - `bare_*`   = 无额外效果的纯类型技能（不移）
+    结构筛选缺上下文时返回 False，不再退化为「匹配全部」。
+    """
+    from backend.engine.modifiers import matches_skill_filter
+    return matches_skill_filter(skill_filter, bs, sprite=sprite,
+                                ref_bs=ref_bs, battle=battle)
 
 
 def _matches_direction(stat_key: str, steps: int, what: str) -> bool:
@@ -166,23 +197,46 @@ def _matches_direction(stat_key: str, steps: int, what: str) -> bool:
     return steps < 0
 
 
+def _skill_attr_base(bs, stat: str) -> int | None:
+    """技能**自带基础值**（power / energy_cost），供 `mode:"set_base"` 反算增量。
+
+    「基础值」= 生效技能的自带值（巧变/借用产物按替换后的技能算，与
+    `BattleSkill.power` / `.energy_cost` 的 base 项口径一致）。
+    非「基础值 + 增量」结构的 attr 返回 None（调用方退化为 `mode:"set"`）。
+    """
+    if stat not in ("power", "energy_cost"):
+        return None
+    skill = getattr(bs, "replaced_by", None) or getattr(bs, "base", None)
+    if skill is None:
+        return None
+    return int(getattr(skill, stat, 0) or 0)
+
+
+def _write_skill_mod(bs, bs_mods, m, delta) -> None:
+    """把 MOD 写进技能槽 `_modifiers`（add/set/multiply/set_base 四种语义）。"""
+    cur = bs_mods.get(m.stat, 0.0)
+    if m.mode == "add":
+        bs_mods[m.stat] = cur + delta
+    elif m.mode == "set_base":
+        base = _skill_attr_base(bs, m.stat)
+        bs_mods[m.stat] = delta if base is None else delta - base
+    elif m.mode == "set":
+        bs_mods[m.stat] = delta
+    elif m.mode == "multiply":
+        bs_mods[m.stat] = cur * delta if cur else delta
+
+
 def _apply_to_all_skills(sprite, m, replayer=None) -> str:
     """Distribute a modifier to all BattleSkills on the sprite."""
     label = _STAT_LABELS.get(m.stat, m.stat)
     delta = m.value
-    if m.stat == "energy_cost":
+    if m.stat == "energy_cost" and m.mode != "set_base":
         delta *= sprite._modifiers.get("energy_cost_delta_mult", 1.0)
     for bs in (sprite.skills or []):
         bs_mods = getattr(bs, '_modifiers', None)
         if bs_mods is None:
             continue
-        cur = bs_mods.get(m.stat, 0.0)
-        if m.mode == "add":
-            bs_mods[m.stat] = cur + delta
-        elif m.mode == "set":
-            bs_mods[m.stat] = delta
-        elif m.mode == "multiply":
-            bs_mods[m.stat] = cur * delta if cur else delta
+        _write_skill_mod(bs, bs_mods, m, delta)
         # Permanent scope: persist to sprite._modifiers so load_permanent_mods()
         # can restore after _SKILL_PER_TURN_KEYS cleanup each turn.
         if m.scope == "permanent" and bs.name:
@@ -198,25 +252,29 @@ def _apply_to_all_skills(sprite, m, replayer=None) -> str:
             sprite, m.stat, 0.0, m.scope, source,
             display_value=float(delta))
     if m.stat == "energy_cost":
-        return f"{sprite.name} 全技能能耗{delta:+.0f}"
+        prefix = "基础" if m.mode == "set_base" else ""
+        return f"{sprite.name} 全技能{prefix}能耗{delta:+.0f}"
     return f"{sprite.name} 全技能{label}{delta:+.0f}"
 
 
-def _apply_to_matching_skills(sprite, m, mark_energy_mod: int = 0, replayer=None) -> str:
-    """Apply a modifier to BattleSkills matching skill_where.
+def _apply_to_matching_skills(sprite, m, mark_energy_mod: int = 0, replayer=None,
+                              ref_bs=None) -> str:
+    """Apply a modifier to BattleSkills matching skill_where / skill_filter / element.
 
     Also registers the effect in sprite._trait_direct_effects so
     reapply_all_direct_mods() can restore it after _PER_TURN_KEYS cleanup.
 
     mark_energy_mod: team-level mark energy reduction (not in bs.energy_cost property).
+    ref_bs: 目标精灵本回合正在使用的技能槽（`adjacent` / `others` 的参考技能）。
     """
     from backend.engine.modifiers import eval_skill_where
 
     label = _STAT_LABELS.get(m.stat, m.stat)
     delta = m.value
-    if m.stat == "energy_cost":
+    if m.stat == "energy_cost" and m.mode != "set_base":
         delta *= sprite._modifiers.get("energy_cost_delta_mult", 1.0)
     applied = False
+    battle = getattr(replayer, "_battle", None) if replayer is not None else None
     for bs in (sprite.skills or []):
         bs_mods = getattr(bs, '_modifiers', None)
         if bs_mods is None:
@@ -230,7 +288,9 @@ def _apply_to_matching_skills(sprite, m, mark_energy_mod: int = 0, replayer=None
         if not eval_skill_where(m.skill_where, skill_info):
             continue
         st = skill_info.get("skill_type", "")
-        if m.skill_filter and not _matches_skill_type(m.skill_filter, st):
+        if m.skill_filter and not _matches_skill_filter(
+            m.skill_filter, bs, sprite=sprite, ref_bs=ref_bs, battle=battle
+        ):
             continue
         # Element filter: "光" matches exactly; "!幻" excludes the element
         if m.element:
@@ -242,17 +302,12 @@ def _apply_to_matching_skills(sprite, m, mark_energy_mod: int = 0, replayer=None
             elif actual != expected:
                 continue
         cur = bs_mods.get(m.stat, 0.0)
-        if m.mode == "add":
-            bs_mods[m.stat] = cur + delta
-        elif m.mode == "set":
-            bs_mods[m.stat] = delta
-        elif m.mode == "multiply":
-            bs_mods[m.stat] = cur * delta if cur else delta
+        _write_skill_mod(bs, bs_mods, m, delta)
         applied = True
 
     # Register for turn-to-turn persistence (survives _PER_TURN_KEYS cleanup)
     # attach_abnormal 不在 _PER_TURN_KEYS 里、本来就不被清，且重放会跨回合叠加 → 不登记
-    if (applied and m.scope != "turn" and m.mode in ("add", "set")
+    if (applied and m.scope != "turn" and m.mode in ("add", "set", "set_base")
             and m.stat not in _NO_DIRECT_MOD_PERSIST):
         effect_dict = {
             "op": "power_mod",
@@ -554,6 +609,45 @@ class JournalReplayer:
                 parts.append(f"{bs.name} 冷却 {before}→{bs.cooldown}")
         return "；".join(parts)
 
+    def _apply_skill_drive(self, sprite, m: ModifierInjection) -> str:
+        """`flag:"drive"` + `target:"skill_off_0"`：本回合额外传动 N（轮班暗分支）。
+
+        口径（data/IR_GUIDE.md §3A flag_set drive）：让**当前使用的技能**以传动等级
+        `value` 参与一次**额外的**传动 pass（= 本回合多移动 `value` 个槽位），
+        随后把所有技能等级还原。回合开始的传动 pass 在本回合行动选择之前已经跑完，
+        因此「本回合额外传动1」只能靠这次即时 pass 体现；
+        还原等级保证后续回合的传动量不变。
+
+        实现：把全体技能等级临时夹到 `≤ value`（其余技能仍按自己的等级参与，
+        一次 pass 只移动 1 格），当前技能设为 `value` → `_apply_transmission`
+        的 pass 数正好是 `value`。
+        """
+        bs = self._self_skill
+        if bs is None or getattr(bs, "base", None) is None:
+            return ""
+        try:
+            gain = int(m.value or 0)
+        except (TypeError, ValueError):
+            gain = 1
+        if gain <= 0:
+            gain = 1
+        skills = list(sprite.skills or [])
+        saved = {id(b): getattr(b, "_transmission", 0) for b in skills}
+        for b in skills:
+            b._transmission = min(getattr(b, "_transmission", 0), gain)
+        bs._transmission = gain
+        extra: list[str] = []
+        if self._battle is not None and hasattr(self._battle, "_apply_transmission"):
+            try:
+                extra = self._battle._apply_transmission(sprite, team=self.team)
+            except Exception:
+                extra = []
+        for b in skills:
+            if id(b) in saved:
+                b._transmission = saved[id(b)]
+        label = f"{bs.name} 传动+{gain}"
+        return f"{label}（{'；'.join(extra)}）" if extra else label
+
     def _apply_modifier(self, m: ModifierInjection) -> str:
         """Store modifier on target sprite for later snapshot consumption.
 
@@ -602,7 +696,22 @@ class JournalReplayer:
         if m.stat == "cooldown":
             return self._apply_skill_cooldown(sprite, m)
 
+        # flag:"drive" + target:"skill_off_0"（轮班暗分支「本回合额外传动1」）：
+        # 临时提升**当前技能**的传动等级并立即跑一次传动 pass，随后还原。
+        if (m.stat == "drive" and m.target
+                and m.target.startswith("skill_") and not m.target.startswith("skill_at_")):
+            return self._apply_skill_drive(sprite, m)
+
         if m.on_next:
+            # `attr:"energy_gain_delta"` + on_next 的相位是**回合**而不是「下一次技能」：
+            # 入梦「敌方下回合回复的能量-5」——压入目标的待生效队列，由
+            # `Battle._phase_turn_start` 在**目标下一回合开始时**武装（持续该回合整回合，
+            # 回合末归零）。见 data/IR_GUIDE.md §3A `power_mod`。
+            if m.stat == "energy_gain_delta":
+                delta = int(m.value)
+                sprite.queue_energy_gain_delta(delta, m.source or "")
+                label = _STAT_LABELS.get(m.stat, m.stat)
+                return f"{sprite.name} 下回合{label}{delta:+d}"
             sprite._pending_modifiers.append(m)
             # Track scope for cleanup when consumed (e.g. 野性感官 priority+1 → turn scope)
             skill_scoped_on = m.target.startswith("skill_") if m.target else False
@@ -630,13 +739,19 @@ class JournalReplayer:
         if not skill_scoped and m.skill_filter == "all" and m.stat in _SKILL_DISTRIBUTE_STATS:
             return _apply_to_all_skills(sprite, m, replayer=self)
 
-        # ── skill_where or skill_filter (attack/defense/status/...) on sprite target ──
+        # ── skill_where / skill_filter (attack/defense/status/adjacent/others/
+        #    bare_*) / element on sprite target：走**技能级**落点 ──
+        # `element` 也是技能级筛选：只写 element（不带 skill_filter/skill_where）
+        # 此前落到精灵级 `_modifiers` 而没有读取点 → 静默空操作（消波块 / 冻土）。
         if not skill_scoped and (m.skill_where is not None or
-                                (m.skill_filter and m.skill_filter != "all")):
+                                (m.skill_filter and m.skill_filter != "all") or
+                                m.element):
             mark_mod = 0
             if self._battle is not None and self.team:
                 mark_mod = self._battle.globals.mark_energy_mod(self.team)
-            return _apply_to_matching_skills(sprite, m, mark_energy_mod=mark_mod, replayer=self)
+            return _apply_to_matching_skills(sprite, m, mark_energy_mod=mark_mod,
+                                             replayer=self,
+                                             ref_bs=self._ref_skill_for(sprite))
 
         if skill_scoped:
             if m.target.startswith("skill_at_"):
@@ -697,6 +812,11 @@ class JournalReplayer:
         cur = target_mods.get(m.stat)
         if m.mode == "set":
             target_mods[m.stat] = m.value
+        elif m.mode == "set_base":
+            # 「基础值设为 N」：按 (N − base) 反算增量；非基础值通道退化为 set
+            base = (_skill_attr_base(self._self_skill, m.stat)
+                    if skill_scoped and self._self_skill is not None else None)
+            target_mods[m.stat] = m.value if base is None else m.value - base
         elif m.mode == "add":
             delta = m.value
             if m.stat == "energy_cost":
@@ -918,7 +1038,25 @@ class JournalReplayer:
         return f"{sprite.name} +{actual}HP"
 
     def _apply_energy_change(self, m: EnergyChange) -> str:
+        overflow = bool(getattr(m, "overflow", False))
         # ── Team-level targets: apply to every (non-fainted) sprite of the team ──
+        # `team_*_all`（小型打劫「敌方队伍中所有精灵失去1能量」）：**全队 6 只**，
+        # 含替补与力竭者，下限 0（`lose_energy` 已是 min(当前能量, amount)）。
+        if m.target in ("team_own_all", "team_opp_all") and self._battle is not None:
+            if m.target == "team_own_all":
+                player = self._battle.get_player(self.team)
+            else:
+                player = self._battle.get_opponent(self.team)
+            parts: list[str] = []
+            total = 0
+            for sp in list(player.team):
+                actual = (sp.gain_energy(m.delta, overflow=True) if overflow
+                          else sp.gain_energy(m.delta)) if m.delta > 0 \
+                    else sp.lose_energy(-m.delta)
+                total += actual
+                parts.append(f"{sp.name} {'+' if m.delta > 0 else '-'}{actual}E")
+            self._energy_deltas[id(m)] = total if m.delta > 0 else -total
+            return " ".join(parts) if parts else ""
         if m.target in ("team_own", "team_own_benched", "team_both") and self._battle is not None:
             player = self._battle.get_player(self.team)
             if m.target == "team_own_benched":
@@ -932,14 +1070,16 @@ class JournalReplayer:
             for sp in targets:
                 if sp.is_fainted:
                     continue
-                actual = sp.gain_energy(m.delta) if m.delta > 0 else sp.lose_energy(-m.delta)
+                actual = (sp.gain_energy(m.delta, overflow=True) if overflow
+                          else sp.gain_energy(m.delta)) if m.delta > 0 \
+                    else sp.lose_energy(-m.delta)
                 total += actual
                 parts.append(f"{sp.name} {'+' if m.delta > 0 else '-'}{actual}E")
             self._energy_deltas[id(m)] = total if m.delta > 0 else -total
             return " ".join(parts) if parts else ""
         sprite = self._target_sprite(m.target)
         if m.delta > 0:
-            actual = sprite.gain_energy(m.delta)
+            actual = sprite.gain_energy(m.delta, overflow=overflow)
             self._energy_deltas[id(m)] = actual
             return f"{sprite.name} +{actual}E"
         else:
@@ -993,6 +1133,28 @@ class JournalReplayer:
             coexist = bool(self.self._modifiers.get("mark_coexist", False))
             self.globals.apply_mark(team, m.name, category, m.delta, coexist=coexist)
             return f"{team}队 {m.name} {m.delta:+d}层"
+
+        if m.action == "enhance_all":
+            # 许愿池「双方已有的印记层数+1」：只加层，不新建印记（空队伍是空操作）
+            from backend.vm.effect import MarkEffect
+
+            if m.target_team == "both":
+                teams = ["A", "B"]
+            else:
+                teams = [self.team if m.target_team == "own"
+                         else ("B" if self.team == "A" else "A")]
+            gain = int(m.delta or 1)
+            parts: list[str] = []
+            for t in teams:
+                marks = [mk for mk in self.globals.mark_effects.get(t, [])
+                         if isinstance(mk, MarkEffect) and getattr(mk, 'stacks', 0) > 0]
+                if not marks:
+                    continue
+                for mk in marks:
+                    mk.stacks += gain
+                names = "、".join(f"{mk.name}×{mk.stacks}" for mk in marks)
+                parts.append(f"{t}队 印记增层 +{gain}（{names}）")
+            return "；".join(parts)
 
         if m.action == "dispel":
             team = self.team if m.target_team == "own" else ("B" if self.team == "A" else "A")
@@ -1705,6 +1867,49 @@ class JournalReplayer:
             mult *= _TYPE_CHART.get(element, {}).get(attr.strip(), 1.0)
         return mult
 
+    def _apply_skill_rotate(self, m: SkillRotate) -> str:
+        """跨精灵技能轮转（过山车）——委托可复用 pass `Battle.rotate_team_skills()`。
+
+        `target` 定位队伍：`team_own` / `sprite_self`（默认）为己方，`team_opp` /
+        `sprite_opp` 为对方。`_target_sprite` 对队伍名返回的是**在场精灵**，因此这里
+        单独解析队伍（轮转作用于该队**全部**精灵携带的技能）。
+        """
+        if self._battle is None:
+            return ""
+        target = m.target or "team_own"
+        if target in ("team_opp", "opp_team", "sprite_opp", "enemy"):
+            team = "B" if self.team == "A" else "A"
+        else:
+            team = self.team
+        events = self._battle.rotate_team_skills(team, int(getattr(m, "offset", 1) or 1))
+        return "；".join(events)
+
+    def _apply_starfall_trigger(self, m: StarfallTrigger) -> str:
+        """手动触发星陨印记（starfall_trigger op；引力偏转「以魔法伤害触发敌方的星陨效果」）。
+
+        结算完全复用自然路径 `GlobalEffects.trigger_starfall()`（消耗层数 + X²+24X−24 幻伤），
+        只是把「谁持有印记 / 用哪种伤害类型」交给 op：
+          - `target` 是**印记持有方**：`sprite_opp`（默认）= 对手队伍持有的星陨印记，
+            `sprite_self` = 自己队伍持有的；
+          - 攻防键由 `damage_type` 决定（物攻→atk/def，魔攻→sp_atk/sp_def，
+            动态攻击按**触发方**（攻击者）的物/魔攻高低判定，与自然结算一致）。
+        攻守方向：印记持有方是防守方（吃伤害），触发方（`self.self`）是攻击方。
+        """
+        if self._battle is None or self.self is None or self.opp is None:
+            return ""
+        held_by_opp = (m.target or "sprite_opp") != "sprite_self"
+        mark_team = ("B" if self.team == "A" else "A") if held_by_opp else self.team
+        attacker = self.self
+        defender = self.opp if held_by_opp else self.self
+        damage_type = m.damage_type or "魔攻"
+        from backend.sim.skill import Skill
+        trigger_skill = Skill(name="(星陨触发)", skill_type=damage_type)
+        dmg = self._battle.globals.trigger_starfall(
+            mark_team, attacker, defender, trigger_skill)
+        if dmg <= 0:
+            return ""
+        return f"星陨印记引爆({damage_type}): {defender.name} -{dmg}HP"
+
     def _apply_double(self, m: Double) -> str:
         sprite = self._target_sprite(m.target)
         if m.what == "positive":
@@ -1834,21 +2039,29 @@ class JournalReplayer:
         self._sync_state_effect(sprite, "interrupted")
         return f"{sprite.name} 被打断"
 
+    def _exchange_partner(self, target: str):
+        """`exchange` 的对家选择（与 `replayer.self` 配对的那一只）。
+
+        口径见 data/IR_GUIDE.md §3C exchange：
+          "sprite_opp"（默认）/ 缺省 → `replayer.opp`
+          "leaving" → `replayer._leaving`（刚离场者；仅 post_enemy_leave 提供）
+          "entering" → 本次换入者：post_enemy_leave 下即 `replayer.opp`；
+                       post_leave（自己离场）下引擎不提供 → None（空操作）
+        返回 None 表示该语境下定位不到对家。
+        """
+        key = (target or "sprite_opp").strip()
+        if key in ("sprite_opp", "opp", "opp_team", "team_opp", "enemy"):
+            return self.opp
+        if key in ("leaving", "leaver", "enemy_leaving", "sprite_leaving"):
+            return self._leaving
+        if key in ("entering", "enemy_new", "new_sprite"):
+            # post_enemy_leave 的 ctx 里 opp 就是换入者；离场者存在与否正是该语境的标志
+            return self.opp if self._leaving is not None else None
+        return self.opp
+
     def _apply_exchange(self, m: Exchange) -> str:
-        if m.what == "hp_ratio":
-            self.self.current_hp, self.opp.current_hp = \
-                round(self.opp.current_hp / self.opp.max_hp * self.self.max_hp) if self.opp.max_hp else 0, \
-                round(self.self.current_hp / self.self.max_hp * self.opp.max_hp) if self.self.max_hp else 0
-            return "交换HP比例"
-        elif m.what == "effects":
-            self.self.active_effects, self.opp.active_effects = self.opp.active_effects, self.self.active_effects
-            self.self._invalidate_effects_cache()
-            self.opp._invalidate_effects_cache()
-            return "交换增益减益"
-        elif m.what == "skills":
-            self.self.skills, self.opp.skills = self.opp.skills, self.self.skills
-            return "交换技能"
-        elif m.what == "adjacent_skills":
+        # adjacent_skills 只动自己槽位，与对家无关（不受 target 定位失败影响）
+        if m.what == "adjacent_skills":
             pre_pos = {id(bs): i for i, bs in enumerate(self.self.skills or [])}
             self._swap_adjacent_skills(self.self)
             position_events = []
@@ -1861,11 +2074,80 @@ class JournalReplayer:
             if position_events:
                 return " | ".join(["交换相邻技能位置", *position_events])
             return "交换相邻技能位置"
+
+        other = self._exchange_partner(m.target)
+        if other is None or other is self.self:
+            return ""
+        if m.what == "hp_ratio":
+            self.self.current_hp, other.current_hp = \
+                round(other.current_hp / other.max_hp * self.self.max_hp) if other.max_hp else 0, \
+                round(self.self.current_hp / self.self.max_hp * other.max_hp) if self.self.max_hp else 0
+            if other is not self.opp:
+                return f"交换HP比例（{self.self.name} ↔ {other.name}）"
+            return "交换HP比例"
+        elif m.what == "effects":
+            self.self.active_effects, other.active_effects = other.active_effects, self.self.active_effects
+            self.self._invalidate_effects_cache()
+            other._invalidate_effects_cache()
+            return "交换增益减益"
+        elif m.what == "skills":
+            self.self.skills, other.skills = other.skills, self.self.skills
+            return "交换技能"
         return ""
 
     def _apply_reset(self, m: Reset) -> str:
-        # Reset a stat mod to base — engine handles this for skill slots
-        return f"重置 {m.stat}"
+        """`reset`：把指定 stat 还原到**基础值**（消除永久增量）。
+
+        口径（data/IR_GUIDE.md §3C reset；气沉丹田「每次应对后本技能能耗-3，使用后能耗重置」）：
+        技能槽的最终值 = 技能自带基础值 + `_modifiers[stat]` 增量，因此「还原到基础值」
+        = 清掉该增量；同时清掉`sprite._modifiers["skill.<技能名>.<stat>"]` 的永久登记
+        （`scope:"permanent"` 的 skill_off_0 修正在那里留了一份，否则下一回合
+        `_load_permanent_skill_mods_for_sprite()` 会把增量装回来）。
+
+        target：
+        - `skill_off_0`（默认）→ 本次使用的技能槽（self._self_skill）；
+        - `skill_at_N`（1-indexed）→ 目标精灵的第 N 个技能槽；
+        - 其余（`sprite_self` / `sprite_opp` …）→ 精灵级 `_modifiers[stat]` 增量。
+        """
+        stat = m.stat
+        if not stat:
+            return ""
+        target = m.target or "skill_off_0"
+
+        if target.startswith("skill_"):
+            bs = None
+            if target == "skill_off_0":
+                bs = self._self_skill
+            elif target.startswith("skill_at_"):
+                try:
+                    pos = int(target.rsplit("_", 1)[-1]) - 1
+                except (ValueError, IndexError):
+                    pos = -1
+                skills = list(getattr(self.self, "skills", None) or [])
+                if 0 <= pos < len(skills):
+                    bs = skills[pos]
+            if bs is None:
+                return ""
+            sprite = self.self
+            had = bs._modifiers.pop(stat, None)
+            skill_name = getattr(getattr(bs, "base", None), "name", "") or getattr(bs, "name", "")
+            perm_removed = None
+            if skill_name:
+                key = f"skill.{skill_name}.{stat}"
+                perm_removed = sprite._modifiers.pop(key, None)
+            if had is None and perm_removed is None:
+                return f"{skill_name} {stat} 已为基础值"
+            label = _STAT_LABELS.get(stat, stat)
+            return f"{skill_name} {label}重置（{had if had is not None else perm_removed:+}→0）"
+
+        sprite = self._target_sprite(target)
+        if sprite is None:
+            return ""
+        had = sprite._modifiers.pop(stat, None)
+        if had is None:
+            return ""
+        label = _STAT_LABELS.get(stat, stat)
+        return f"{sprite.name} {label}重置（{had:+}→0）"
 
     def _apply_redirect(self, m: Redirect) -> str:
         # Set redirect flag on self — engine reads this in _handle_redirect
@@ -1880,10 +2162,38 @@ class JournalReplayer:
         return f"借用技能 from={m.from_skill}"
 
     def _apply_burst_grant(self, m: BurstGrant) -> str:
-        """Write burst effects to matching BattleSkills on the target sprite."""
+        """Write burst effects to matching BattleSkills on the target sprite.
+
+        `from_="explicit"`（默认）：注入 `then` 列出的效果。
+        `from_="triggered"`（踏雷）：从本队**已触发过的迸发**池
+        （`BattleVMEngine._burst_effects[team]`，按触发时间升序）取最近 `count` 条效果列表。
+        """
         from backend.engine.modifiers import eval_skill_where
 
         sprite = self._target_sprite(m.target)
+
+        grant_effects: list[dict] = []
+        if m.from_ == "triggered":
+            vm = getattr(self._battle, '_vm_engine', None) if self._battle is not None else None
+            pool = list(getattr(vm, '_burst_effects', {}).get(self.team, []) or []) \
+                if vm is not None else []
+            # 池 ——[(技能名, 效果列表), …]；取最近 count 条（尾部 = 最新触发）
+            count = m.count
+            if isinstance(count, str):
+                take = len(pool)  # "all" 或其它字符串 → 全部
+            else:
+                try:
+                    n = int(count)
+                except (TypeError, ValueError):
+                    n = 1
+                take = len(pool) if n <= 0 else min(n, len(pool))
+            for _skill_name, effects in pool[len(pool) - take:]:
+                grant_effects.extend(list(effects))
+            if not grant_effects:
+                return ""
+        else:
+            grant_effects = list(m.effects)
+
         applied = 0
         for bs in (sprite.skills or []):
             if m.skill_where:
@@ -1899,7 +2209,7 @@ class JournalReplayer:
                 st = getattr(getattr(bs, 'base', None), 'skill_type', '')
                 if not _matches_skill_type(m.skill_filter, st):
                     continue
-            bs._burst_effects.extend(list(m.effects))
+            bs._burst_effects.extend(list(grant_effects))
             bs._modifiers["burst"] = float(len(bs._burst_effects) > 0)
             applied += 1
         if applied:
@@ -2154,6 +2464,32 @@ class JournalReplayer:
             return self.self
         return self.opp
 
+    def _ref_skill_for(self, sprite):
+        """目标精灵「本回合正在使用的技能」槽（`adjacent` / `others` 的参考技能）。
+
+        - 自己：`self._self_skill`（本次行动正在结算的技能）；
+        - 对家：本回合对手使用的那只技能（与 `flag:"cooldown" target:"skill_opp_current"`
+          同源：`battle._turn_skills[opp_team]["name"]`）——激怒「敌方除本回合使用的技能」
+          的目标是**对手**，参考技能必须取对手那一手，不能取自己的；
+        - 两者都不是（场下/离场语境）：None → 结构筛选不匹配。
+        """
+        if sprite is None:
+            return None
+        if sprite is self.self:
+            return self._self_skill
+        if sprite is self.opp:
+            if self._battle is None:
+                return None
+            opp_team = "B" if self.team == "A" else "A"
+            used = (getattr(self._battle, "_turn_skills", None) or {}).get(opp_team) or {}
+            used_name = used.get("name", "") if isinstance(used, dict) else ""
+            if not used_name:
+                return None
+            for bs in (getattr(sprite, "skills", None) or []):
+                if getattr(bs, "name", "") == used_name:
+                    return bs
+        return None
+
     @staticmethod
     def _swap_adjacent_skills(sprite: Sprite) -> None:
         """Swap the current skill with its adjacent neighbors (left and right).
@@ -2203,6 +2539,8 @@ JournalReplayer._DISPATCH = {
     Reset: JournalReplayer._apply_reset,
     Return: JournalReplayer._apply_return,
     ScheduleEntry: JournalReplayer._apply_schedule_entry,
+    SkillRotate: JournalReplayer._apply_skill_rotate,
+    StarfallTrigger: JournalReplayer._apply_starfall_trigger,
     StatChange: JournalReplayer._apply_stat_change,
     StatConvert: JournalReplayer._apply_stat_convert,
     StatRandom: JournalReplayer._apply_stat_random,

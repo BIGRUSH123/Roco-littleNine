@@ -3,8 +3,25 @@
   "name": "月蚀",
   "element": "幻",
   "skill_type": "物攻",
-  "energy_cost": 5,
   "power": 130,
-  "effects": [],
+  "energy_cost": 5,
+  "effects": [
+    {
+      "when": {
+        "cond": "hp_below",
+        "ratio": 0.5,
+        "of": "sprite_opp"
+      },
+      "then": [
+        {
+          "op": "power_mod",
+          "target": "skill_off_0",
+          "feeds": "cost",
+          "attr": "energy_cost",
+          "delta": -3
+        }
+      ]
+    }
+  ],
   "description": "✦造成物伤，若敌方生命低于50%，本次技能能耗-3。"
 }

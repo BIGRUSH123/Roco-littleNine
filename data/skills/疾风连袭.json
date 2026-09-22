@@ -9,7 +9,7 @@
       "op": "replay",
       "from": "sprite_self",
       "skill_filter": {
-        "skill_type": "迅捷"
+        "tag": "迅捷"
       }
     },
     {

@@ -89,7 +89,6 @@ def op_stat_stage(ctx: Ctx, op) -> list[Mutation]:
         stat = op.get("stat", "")
         scope = op.get("scope", "battlefield")
         source = op.get("source")
-        per_hit = op.get("per_hit", False)
         steps = op.get("steps", 0)
         value = op.get("value")
     else:
@@ -97,7 +96,6 @@ def op_stat_stage(ctx: Ctx, op) -> list[Mutation]:
         stat = op.stat
         scope = op.scope
         source = op.source
-        per_hit = op.per_hit
         steps = op.steps
         value = op.value
     if isinstance(stat, str) and stat.startswith("="):
@@ -110,7 +108,8 @@ def op_stat_stage(ctx: Ctx, op) -> list[Mutation]:
         target=target, stat=stat, steps=int(steps),
         scope=scope, source=source,
     )]
-    if per_hit and ctx.combo_self > 1:
+    # 连击技能的效果一律按「每次释放」各结算一次（连击 = 释放次数）
+    if ctx.combo_self > 1:
         result = result * ctx.combo_self
     return result
 
@@ -121,7 +120,6 @@ def op_power_mod(ctx: Ctx, op) -> list[Mutation]:
         target = op.get("target", "sprite_self")
         attr = op.get("attr", "")
         scope = op.get("scope", "battlefield")
-        per_hit = op.get("per_hit", False)
         mode = op.get("mode", "add")
         value_raw = op.get("value")
         delta_raw = op.get("delta")
@@ -135,7 +133,6 @@ def op_power_mod(ctx: Ctx, op) -> list[Mutation]:
         target = op.target
         attr = op.attr
         scope = op.scope
-        per_hit = op.per_hit
         mode = op.mode
         value_raw = op.value
         delta_raw = op.delta
@@ -163,7 +160,14 @@ def op_power_mod(ctx: Ctx, op) -> list[Mutation]:
         on_next=(op.get("on_next", False) if type(op) is dict
                  else getattr(op, "on_next", False)),
     )]
-    if per_hit and ctx.combo_self > 1:
+    # 自技能参数修正（target: skill_off_0 的威力/能耗/连击/优先级…）整次使用只结算一次：
+    # 连击数是释放次数，这些参数描述的是「单次释放」（引雷「迸发：本次技能威力+20」
+    # = 2 段各 55 威力，不是 55+75）；其余效果（如冰捆缚给对方全技能能耗+1）按次结算
+    self_param = (target == "skill_off_0" and stat in (
+        "power", "power_mult", "energy_cost", "priority",
+        "combo", "combo_set", "combo_mult", "use_count_bonus",
+    ))
+    if not self_param and ctx.combo_self > 1:
         result = result * ctx.combo_self
     return result
 
@@ -175,7 +179,6 @@ def op_mult_mod(ctx: Ctx, op) -> list[Mutation]:
         attr = op.get("attr", "")
         scope = op.get("scope", "battlefield")
         mode = op.get("mode", "set")
-        per_hit = op.get("per_hit", False)
         value_raw = op.get("value")
         skill_filter = op.get("skill_filter")
         skill_where = op.get("skill_where")
@@ -190,7 +193,6 @@ def op_mult_mod(ctx: Ctx, op) -> list[Mutation]:
         attr = op.attr
         scope = op.scope
         mode = op.mode
-        per_hit = op.per_hit
         value_raw = op.value
         skill_filter = op.skill_filter
         skill_where = op.skill_where
@@ -213,7 +215,11 @@ def op_mult_mod(ctx: Ctx, op) -> list[Mutation]:
         if_type=if_type,
         ttl=ttl,
     )]
-    if per_hit and ctx.combo_self > 1:
+    self_param = (target == "skill_off_0" and attr in (
+        "power", "power_mult", "energy_cost", "priority",
+        "combo", "combo_set", "combo_mult", "use_count_bonus",
+    ))
+    if not self_param and ctx.combo_self > 1:
         result = result * ctx.combo_self
     return result
 
@@ -258,12 +264,10 @@ def op_heal(ctx: Ctx, op) -> list[Mutation]:
         target = op.get("target", "sprite_self")
         ratio = op.get("ratio")
         value_raw = op.get("value")
-        per_hit = op.get("per_hit", False)
     else:
         target = op.target
         ratio = op.ratio
         value_raw = op.value
-        per_hit = getattr(op, "per_hit", False)
     if ratio is not None:
         hp_max_field = _HP_MAX_MAP.get(target, "hp_self_max")
         hp_max = getattr(ctx, hp_max_field, 100)
@@ -278,9 +282,8 @@ def op_heal(ctx: Ctx, op) -> list[Mutation]:
             amount = int(raw)
     else:
         amount = 0
-    # per_hit：每次连击各结算一次（聚盐「每次连击自己回复8%生命」），
-    # 与 stat_stage/power_mod/abnormal/mark 的 per_hit 同口径
-    combo = max(1, ctx.combo_self) if per_hit else 1
+    # 治疗也按每次释放各结算一次（聚盐「2连击，每次连击自己回复8%生命」= 16%）
+    combo = max(1, ctx.combo_self)
     if amount > 0:
         return [Heal(target=target, amount=amount)] * combo
     elif amount < 0:
@@ -296,13 +299,17 @@ def op_energize(ctx: Ctx, op) -> list[Mutation]:
     if type(op) is dict:
         target = op.get("target", "sprite_self")
         delta_raw = op.get("delta")
+        overflow = bool(op.get("overflow", False))
     else:
         target = op.target
         delta_raw = op.delta
+        overflow = bool(getattr(op, "overflow", False))
     delta = resolve(ctx, delta_raw) if delta_raw is not None else 0
     delta = int(delta)
+    # overflow=true：回复可突破 max_energy 上限（盗魂铃）；扣除不受影响
     if delta != 0:
-        return [EnergyChange(target=target, delta=delta)]
+        return [EnergyChange(target=target, delta=delta,
+                             overflow=bool(overflow and delta > 0))]
     return []
 
 

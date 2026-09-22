@@ -111,7 +111,9 @@ def iter_ops(effects, *, branch: str = "main") -> Iterator[tuple[object, str]]:
                 sub_cond = getattr(getattr(extra, "cond", None), "cond", "") or ""
                 sub_branch = "on_counter" if sub_cond == "counter_succeeded" else "on_other"
                 yield from iter_ops(extra.then, branch=sub_branch)
-                yield from iter_ops(extra.else_, branch="on_other")
+                # `WhenBranch` 只有 (cond, then)——没有 else_（见 vm/ir_skill.py）。
+                # 此前这里读 `extra.else_`：全库 3 处 `else_if`（鸣沙陷阱/砂糖弹球/闪击）
+                # 一进画像就 AttributeError（哑雷，2026-09-22 修）。
         elif isinstance(node, (tuple, list)):
             yield from iter_ops(node, branch=branch)
         else:

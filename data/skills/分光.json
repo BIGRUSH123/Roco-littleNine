@@ -4,6 +4,17 @@
   "element": "光",
   "skill_type": "状态",
   "energy_cost": 1,
-  "effects": [],
+  "effects": [
+    {
+      "target": "sprite_self",
+      "op": "stat_stage",
+      "stat": "sp_atk",
+      "steps": {
+        "q": "element_count",
+        "of": "team_own",
+        "offset": 2
+      }
+    }
+  ],
   "description": "✦自己获得魔攻+20%，己方队伍中精灵每有1个不同的系别，额外获得魔攻+10%。"
 }

@@ -194,7 +194,12 @@ class TraitLoader:
     # ── Direct modifiers (non-observer effects like power_mod in effects[]) ──
 
     # Attrs that apply to sprite properties, not skills (consumed by property methods)
-    _SPRITE_LEVEL_ATTRS = frozenset({'max_energy', 'starfall_consume_ratio', 'immune_abnormal', 'immune_stat_down'})
+    # energy_gain_delta：每次回复能量的修正量（盗魂铃「在场时自己回复的能量-4」，
+    # 由 Sprite.gain_energy 消费）
+    _SPRITE_LEVEL_ATTRS = frozenset({
+        'max_energy', 'starfall_consume_ratio', 'immune_abnormal', 'immune_stat_down',
+        'energy_gain_delta',
+    })
 
     # Ratio stats whose default value is 1.0 (not 0.0)
     _RATIO_BASE_STATS: frozenset[str] = frozenset({
@@ -212,7 +217,7 @@ class TraitLoader:
         mark_energy_mod: team-level mark energy reduction to include in
         skill_where energy_cost checks.
         """
-        from backend.engine.modifiers import eval_skill_where
+        from backend.engine.modifiers import eval_skill_where, matches_skill_filter
 
         # Sort: energy_cost first, then everything else
         sorted_effects = sorted(
@@ -226,12 +231,14 @@ class TraitLoader:
             if op == "burst_grant":
                 self._apply_burst_grant_direct(sprite, effect)
                 continue
-            if op != "power_mod":
+            # power_mod / mult_mod 都写技能槽 `_modifiers`（读取点相同：build_ctx 的
+            # skill_mods）；此前只吃 power_mod，顶层 `mult_mod`（不移 / 目空）整类被丢弃。
+            if op not in ("power_mod", "mult_mod"):
                 continue
             attr = effect.get("attr", "")
             if attr in self._SPRITE_LEVEL_ATTRS:
                 continue  # sprite-level attrs read by property methods
-            delta = effect.get("delta", 0)
+            delta = effect.get("delta", effect.get("value", 0))
             if isinstance(delta, dict):
                 continue
             if attr == "energy_cost":
@@ -255,16 +262,8 @@ class TraitLoader:
                     if not eval_skill_where(skill_where, skill_info):
                         continue
                 if skill_filter and skill_filter != "all":
-                    st = skill_info.get("skill_type", "")
-                    if skill_filter == "attack":
-                        if st not in ("物攻", "魔攻", "动态攻击"):
-                            continue
-                    elif skill_filter == "defense":
-                        if st != "防御":
-                            continue
-                    elif skill_filter == "status":
-                        if st != "状态":
-                            continue
+                    if not matches_skill_filter(skill_filter, bs, sprite=sprite):
+                        continue
                 if element_f:
                     # "光" 精确匹配；"!幻" 排除该系别
                     expected = element_f[1:] if element_f.startswith("!") else element_f
@@ -274,7 +273,8 @@ class TraitLoader:
                             continue
                     elif actual != expected:
                         continue
-                mode = effect.get("mode", "add")
+                # power_mod 默认 add；mult_mod 默认 set（与 op_mult_mod 的 IR 默认一致）
+                mode = effect.get("mode", "set" if op == "mult_mod" else "add")
                 if mode == "set":
                     bs_mods[attr] = delta
                     tracked.setdefault(bs_name, {})[attr] = delta

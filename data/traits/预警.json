@@ -2,5 +2,25 @@
   "id": 200222,
   "name": "预警",
   "description": "若敌方技能足够击败自己，回合开始时自己获得速度+50。",
-  "effects": []
+  "effects": [
+    {
+      "op": "observer",
+      "listen": "post_entry",
+      "scope": "battlefield",
+      "cond": {
+        "cond": "sprite_entered",
+        "of": "sprite_self"
+      },
+      "then": [
+        {
+          "op": "aura",
+          "target": "sprite_self",
+          "stat": "speed",
+          "per_unit": 5,
+          "count": "lethal_forecast",
+          "source": "预警"
+        }
+      ]
+    }
+  ]
 }

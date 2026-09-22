@@ -6,8 +6,29 @@
   "power": 95,
   "energy_cost": 3,
   "counter": "状态",
-  "description": "✦造成魔伤，敌方获得1层冻结，应对状态：额外获得4层冻结，巧变：冻结相关技能。",
   "qiaobian": {
     "contains": "冻结"
-  }
+  },
+  "effects": [
+    {
+      "target": "sprite_opp",
+      "op": "abnormal",
+      "name": "冻结",
+      "stacks": 1
+    },
+    {
+      "when": {
+        "cond": "counter_succeeded"
+      },
+      "then": [
+        {
+          "target": "sprite_opp",
+          "op": "abnormal",
+          "name": "冻结",
+          "stacks": 4
+        }
+      ]
+    }
+  ],
+  "description": "✦造成魔伤，敌方获得1层冻结，应对状态：额外获得4层冻结，巧变：冻结相关技能。"
 }

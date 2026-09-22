@@ -75,7 +75,10 @@ def _can_pay_skill_cost(
     if active.energy >= cost:
         return True
 
-    blood_price = active._modifiers.get("blood_price", 0)
+    # 无 battle 引用时退化为纯精灵级判断（口径同 `Battle.hp_energy_price`：
+    # `blood_price` 与 `life_as_energy` 是同一机制的两个拼写）
+    from backend.sim.battle import sprite_hp_energy_price
+    blood_price = sprite_hp_energy_price(active)
     if blood_price <= 0:
         return False
     deficit = cost - active.energy

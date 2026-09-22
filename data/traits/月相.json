@@ -1,6 +1,28 @@
 {
   "id": 280038,
   "name": "月相",
-  "description": "敌方受到中毒效果伤害时，自己回复等量生命。每过量回复10%生命敌方获得1层中毒。",
-  "effects": []
+  "description": "敌方受到中毒效果伤害时，自己回复等量生命。每过量回复10%生命敌方获得1层中毒。// 「过量回复→层中毒」需要「本次治疗溢出量」寄存器，IR 暂无（见报告·需要新引擎能力），数据面只落地「回复等量生命」这一半。",
+  "effects": [
+    {
+      "op": "observer",
+      "listen": "post_abnormal_tick",
+      "scope": "persistent",
+      "cond": {
+        "cond": "on_abnormal_tick",
+        "of": "sprite_opp",
+        "name": "中毒"
+      },
+      "then": [
+        {
+          "op": "heal",
+          "target": "sprite_self",
+          "value": {
+            "q": "last_tick_damage",
+            "of": "sprite_opp"
+          },
+          "source": "月相"
+        }
+      ]
+    }
+  ]
 }

@@ -4,6 +4,17 @@
   "element": "幽",
   "skill_type": "状态",
   "energy_cost": 3,
-  "effects": [],
+  "effects": [
+    {
+      "op": "steal",
+      "target": "sprite_opp",
+      "what": "energy",
+      "amount": 2
+    },
+    {
+      "target": "sprite_self",
+      "op": "escape"
+    }
+  ],
   "description": "✦偷取敌方2能量，脱离。"
 }

@@ -11,8 +11,7 @@
       "target": "sprite_opp",
       "op": "abnormal",
       "name": "灼烧",
-      "stacks": 2,
-      "per_hit": true
+      "stacks": 2
     }
   ],
   "description": "✦造成魔伤，2连击，每次连击使敌方获得2层灼烧。"

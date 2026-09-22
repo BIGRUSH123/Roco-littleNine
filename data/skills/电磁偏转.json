@@ -22,7 +22,6 @@
           "op": "power_mod",
           "target": "sprite_self",
           "on_next": true,
-          "delay": 1,
           "attr": "combo",
           "delta": 1
         }

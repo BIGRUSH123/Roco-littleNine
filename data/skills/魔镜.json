@@ -4,5 +4,19 @@
   "element": "幽",
   "skill_type": "状态",
   "energy_cost": 2,
+  "effects": [
+    {
+      "target": "sprite_opp",
+      "op": "mult_mod",
+      "attr": "sp_def",
+      "value": -0.5,
+      "mode": "add"
+    },
+    {
+      "target": "sprite_opp",
+      "op": "energize",
+      "delta": -3
+    }
+  ],
   "description": "✦敌方获得魔防-50%，且失去3能量。"
 }

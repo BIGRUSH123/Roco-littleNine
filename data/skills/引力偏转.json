@@ -4,6 +4,24 @@
   "element": "幻",
   "skill_type": "防御",
   "energy_cost": 2,
-  "effects": [],
+  "counter": "攻击",
+  "effects": [
+    {
+      "target": "sprite_self",
+      "op": "mult_mod",
+      "attr": "damage_reduction",
+      "value": 0.8
+    },
+    {
+      "when": { "cond": "counter_succeeded" },
+      "then": [
+        {
+          "op": "starfall_trigger",
+          "target": "sprite_opp",
+          "damage_type": "魔攻"
+        }
+      ]
+    }
+  ],
   "description": "✦减伤80%，应对攻击：以魔法伤害触发敌方的星陨效果。"
 }

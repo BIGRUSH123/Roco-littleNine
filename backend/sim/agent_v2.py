@@ -244,7 +244,9 @@ class RuleAgentV2:
         for i, skill in enumerate(s.skills):
             if skill.cooldown > 0 or skill.sealed or skill.energy_cost > s.energy:
                 continue
-            score = float(attack_dmg.get(i, 0)) + 20.0 * len(skill.effects or [])
+            # 旧 kind 层的「效果条数」加项（`20 * len(skill.effects)`）随该层删除：
+            # IR 语料下恒为 0，粗排结果与今天的实际行为一致
+            score = float(attack_dmg.get(i, 0))
             scored.append((score, _skill_action(i)))
         for idx in self._safe_bench(battle, self.player):
             scored.append((0.0, _switch_action(idx)))
@@ -264,7 +266,7 @@ class RuleAgentV2:
             if not skill.is_attack:
                 continue
             dmg, _ = battle._resolver.calc_damage(
-                attacker, defender, SkillUse(battle_skill=skill),
+                attacker, defender, SkillUse(battle_skill=skill, skill_index=i),
                 battle.globals, attacker_team=self.team,
             )
             table.append((i, dmg, skill.energy_cost))
@@ -472,7 +474,8 @@ class RuleAgentV2:
                          if sk.counter == '防御' and sk.cooldown <= 0 and not sk.sealed
                          and sk.energy_cost <= s.energy]
                 if cands:
-                    best = max(cands, key=lambda sk: (len(sk.effects), -sk.energy_cost))
+                    # 旧 kind 层的 len(skill.effects) 排序键随该层删除（恒 0 → 等价于按能耗）
+                    best = max(cands, key=lambda sk: -sk.energy_cost)
                     return _skill_action(s.skills.index(best))
 
         # ── 3″. 规划（E2）：一回合 rollout + 效果感知叶子（`plan_depth > 0` 时启用）──
@@ -497,19 +500,10 @@ class RuleAgentV2:
                 return _skill_action(i)
 
         # ── 4. 强化推队：缺乏有效输出且能量富余 → 用增益（状态）技能 ──
-        if s.energy >= 3:
-            best_buff, best_n = -1, 0
-            for i, skill in enumerate(s.skills):
-                if skill.cooldown > 0 or skill.sealed:
-                    continue
-                if skill.energy_cost > s.energy or skill.is_attack or skill.is_defense:
-                    continue
-                n_stat = sum(1 for e in skill.effects if e.kind == 'stat')
-                if n_stat > best_n:
-                    best_n = n_stat
-                    best_buff = i
-            if best_buff >= 0:
-                return _skill_action(best_buff)
+        # 旧判据 `e.kind == 'stat'` 随旧 kind 层于 2026-09-22 删除：IR 语料下它
+        # 恒不成立，这条规则**从未触发过**（V3 已改用 `skill_ir` 画像）。保持行为
+        # 不变故整条移除；要复活请用 `skill_ir.skill_profile().self_buff_stats`
+        # 并单独量测决策变化。
 
         # ── 5. 残血换位（对位更优才换；触发式，非无谓换人）──
         # 刚换上来的那只不参与：审计里"换出去又换回来"的空转占了 11% 的换人决策

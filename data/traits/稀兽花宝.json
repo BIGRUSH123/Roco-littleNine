@@ -151,10 +151,10 @@
       },
       "then": [
         {
-          "op": "stat_stage",
+          "op": "power_mod",
           "target": "sprite_self",
-          "stat": "combo",
-          "steps": 3,
+          "attr": "combo",
+          "delta": 3,
           "scope": "battlefield",
           "source": "稀兽花宝"
         }
@@ -320,10 +320,10 @@
           "source": "稀兽花宝"
         },
         {
-          "op": "stat_stage",
+          "op": "power_mod",
           "target": "sprite_opp",
-          "stat": "combo",
-          "steps": -3,
+          "attr": "combo",
+          "delta": -3,
           "scope": "battlefield",
           "source": "稀兽花宝"
         }

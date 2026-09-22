@@ -56,8 +56,11 @@ def response_actions(battle, opp_player, k: int = 3) -> list[tuple[str, object]]
             val = defense_reduction(sk)
             if val > best_def_val:
                 best_def, best_def_val = i, val
-        elif len(sk.effects) > best_st_n:
-            best_st, best_st_n = i, len(sk.effects)
+        elif best_st_n < 0:
+            # 状态技候选：取第一个可用者。旧判据 `len(sk.effects)`（旧 kind 层）
+            # 随该层删除——IR 语料下它恒为 0，`0 > -1` 只对第一个成立，
+            # 语义与今天的实际行为一致。
+            best_st, best_st_n = i, 0
 
     picks: list[tuple[str, object]] = []
     if best_atk is not None:

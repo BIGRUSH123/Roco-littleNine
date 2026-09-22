@@ -49,9 +49,11 @@ from .ir_skill import (
     ReturnOp,
     ReviveOp,
     Schedule,
+    SkillRotateOp,
     StatConvertOp,
     StatRandomOp,
     StatStageOp,
+    StarfallTriggerOp,
     StealOp,
     TeamCounterWrite,
     TickOp,
@@ -108,6 +110,8 @@ from .ops.replace_skill import op_replace_skill
 from .ops.reset import op_reset
 from .ops.return_ import op_return
 from .ops.schedule import op_schedule
+from .ops.skill_rotate import op_skill_rotate
+from .ops.starfall import op_starfall_trigger
 from .ops.steal import op_steal
 from .ops.team_counter_write import op_team_counter_write
 from .ops.tick import op_tick
@@ -291,6 +295,10 @@ def process_one(ctx: Ctx, op) -> list[Mutation]:
             return op_tick(ctx, op)
         case DoubleOp():
             return op_double(ctx, op)
+        case StarfallTriggerOp():
+            return op_starfall_trigger(ctx, op)
+        case SkillRotateOp():
+            return op_skill_rotate(ctx, op)
         case EffectDeltaOp():
             return op_effect_delta(ctx, op)
         case ChargeOp():

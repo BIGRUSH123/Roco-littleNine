@@ -22,11 +22,17 @@
           "target": "sprite_opp"
         },
         {
-          "op": "abnormal",
-          "target": "sprite_opp",
-          "name": "眩晕",
-          "stacks": 1,
-          "delay": 1
+          "op": "defer",
+          "turns": 0,
+          "at": "turn_end",
+          "then": [
+            {
+              "op": "abnormal",
+              "target": "sprite_opp",
+              "name": "眩晕",
+              "stacks": 1
+            }
+          ]
         }
       ]
     }

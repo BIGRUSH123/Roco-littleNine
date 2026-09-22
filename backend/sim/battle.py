@@ -129,6 +129,53 @@ def _sprite_moe_stacks(sprite: "Sprite") -> int:
     return total
 
 
+#: 「能量不足时以生命代替能量」的**精灵级** flag 拼写。唯一名字是 `blood_price`
+#: （石头大餐/盛宴/骗局/虚假破产）；旧别名 `life_as_energy` 已删除（同一机制不留两个拼写）。
+_HP_ENERGY_FLAGS: tuple[str, ...] = ("blood_price",)
+
+
+def sprite_hp_energy_price(sprite) -> float:
+    """精灵级「生命代替能量」兑换率（HP 比例 / 1 点能量缺口）；没有则 0.0。"""
+    mods = getattr(sprite, "_modifiers", None) or {}
+    for key in _HP_ENERGY_FLAGS:
+        try:
+            v = float(mods.get(key, 0) or 0)
+        except (TypeError, ValueError):
+            continue
+        if v > 0:
+            return v
+    return 0.0
+
+
+def declared_hp_energy_price(record) -> float:
+    """技能**自身**声明的「生命代替能量」比率。
+
+    首次使用 虚假破产 / 骗局 时，精灵级 `_modifiers` 里还没有该 flag（它在技能效果里、
+    能量 Gate **之后**才落地），因此 Gate 必须能读到技能自带的声明，否则首次使用
+    永远无法用生命支付（「需要先有 flag」的复现）。
+
+    只扫**顶层** `flag_set`（observer 子树是条件性的持久监听，不代表本次支付可替代），
+    且只接受数值字面量（数据里的两处用例都是字面量 0.05）。
+    """
+    if record is None:
+        return 0.0
+    from backend.vm.ir_skill import FlagSetOp
+    from backend.vm.ir_values import Literal
+    for op in getattr(record, "effects", ()) or ():
+        if not isinstance(op, FlagSetOp) or getattr(op, "flag", "") not in _HP_ENERGY_FLAGS:
+            continue
+        val = getattr(op, "value", None)
+        if not isinstance(val, Literal):
+            continue
+        try:
+            ratio = float(val.value)
+        except (TypeError, ValueError):
+            continue
+        if ratio > 0:
+            return ratio
+    return 0.0
+
+
 class Battle(BattleMechanicsMixin):
     """对局引擎。回合调度 + 动作执行。场地变动由 BattleMechanicsMixin 提供。"""
 
@@ -195,13 +242,31 @@ class Battle(BattleMechanicsMixin):
         if cost <= 0 or user.energy >= cost:
             return True, cost, 0
 
-        blood_price = user._modifiers.get("blood_price", 0)
+        blood_price = self.hp_energy_price(user, skill)
         if blood_price <= 0:
             return False, cost, 0
 
         deficit = cost - user.energy
         hp_cost = round(user.max_hp * blood_price * deficit)
         return user.current_hp > hp_cost, cost, hp_cost
+
+    def hp_energy_price(self, user: "Sprite", skill=None, record=None) -> float:
+        """「能量不足时以生命代替」的兑换率（消耗的 **HP 比例** / 1 点能量缺口）。
+
+        两个来源，后者是 gap：技能**自带**声明（首次使用时精灵级还没写入）——
+        - 精灵级 flag：`blood_price`（石头大餐/盛宴/骗局/虚假破产），
+          由 `flag_set` 落到 `sprite._modifiers`；
+        - 技能自带声明：扫本次技能的 flag_set（见 `declared_hp_energy_price`）。
+        """
+        price = sprite_hp_energy_price(user)
+        if price > 0:
+            return price
+        if record is None and skill is not None:
+            try:
+                record = self._get_skill_record(getattr(skill, "name", ""))
+            except Exception:
+                record = None
+        return declared_hp_energy_price(record)
 
     @staticmethod
     def _charged_skill_index(sprite: "Sprite") -> int:
@@ -305,9 +370,12 @@ class Battle(BattleMechanicsMixin):
                 sprites[-1]["pending_mods"] = [
                     copy(m) for m in getattr(sprite, '_pending_modifiers', [])
                 ]
-                sprites[-1]["pending_effs"] = [
-                    (copy(e), d) for e, d in getattr(sprite, '_pending_effects', [])
-                ]
+                # 入梦「下回合回复能量-N」的两个字段（待生效队列 / 本回合已武装）：
+                # 与 _pending_modifiers 同理，不保存会让仿真中的修正泄漏到真实对局。
+                sprites[-1]["pending_energy_gain"] = list(
+                    getattr(sprite, '_pending_energy_gain_delta', []))
+                sprites[-1]["energy_gain_turn"] = getattr(
+                    sprite, '_energy_gain_delta_turn', 0)
                 sprites[-1]["trait_suppressed"] = getattr(sprite, '_trait_suppressed', False)
                 trait_direct_effects = getattr(sprite, '_trait_direct_effects', None)
                 sprites[-1]["trait_direct_effects"] = (
@@ -369,6 +437,9 @@ class Battle(BattleMechanicsMixin):
             "item_b": copy(self.player_b.item) if self.player_b.item is not None else None,
             "devotion_a": dict(getattr(self.player_a, 'devotion', {})),
             "devotion_b": dict(getattr(self.player_b, 'devotion', {})),
+            # 上回合系别/能耗寄存器（MCTS 仿真会跑完整回合，必须能回滚）
+            "last_turn_elements": {t: dict(v) for t, v in self._last_turn_elements.items()},
+            "last_turn_energy": dict(self._last_turn_energy),
             "vm": vm_state,
         }
 
@@ -479,10 +550,10 @@ class Battle(BattleMechanicsMixin):
                     sprite._mod_scopes = s["mod_scopes"].copy()
                 if "pending_mods" in s:
                     sprite._pending_modifiers = list(s["pending_mods"])
-                if "pending_effs" in s:
-                    sprite._pending_effects = [
-                        (copy(e), d) for e, d in s["pending_effs"]
-                    ]
+                if "pending_energy_gain" in s:
+                    sprite._pending_energy_gain_delta = list(s["pending_energy_gain"])
+                if "energy_gain_turn" in s:
+                    sprite._energy_gain_delta_turn = s["energy_gain_turn"]
                 if "trait_suppressed" in s:
                     sprite._trait_suppressed = s["trait_suppressed"]
                 if "trait_direct_effects" in s:
@@ -542,6 +613,13 @@ class Battle(BattleMechanicsMixin):
             self.player_a.devotion = dict(saved["devotion_a"])
         if hasattr(self.player_b, 'devotion'):
             self.player_b.devotion = dict(saved["devotion_b"])
+        # 上回合系别/能耗（旧快照无该键 → 保持当前值，向后兼容）
+        if "last_turn_elements" in saved:
+            self._last_turn_elements = {
+                t: dict(v) for t, v in saved["last_turn_elements"].items()
+            }
+        if "last_turn_energy" in saved:
+            self._last_turn_energy = dict(saved["last_turn_energy"])
         # ── VM 引擎状态 ──
         vs = saved["vm"]
         self._vm_engine._burst_effects = {
@@ -579,7 +657,9 @@ class Battle(BattleMechanicsMixin):
         self.turn: int = 0
         self.log: list[RoundRecord] = []
         self.winner: str | None = None
-        self._resolver = SkillResolver()
+        # 估伤（calc_damage）需要 battle 才能取「技能自身的同回合修正」：
+        # 读引擎的 IR 记录 + 用 `_make_ctx` 求值同一批 delta（魔能爆等）
+        self._resolver = SkillResolver(self)
         self._agent_a: Agent | None = None
         self._agent_b: Agent | None = None
         self.verbose = verbose
@@ -610,6 +690,15 @@ class Battle(BattleMechanicsMixin):
 
         # ── 本回合双方使用的技能信息（合拍 等：回合末比对系别/类型/能耗）──
         self._turn_skills: dict[str, dict] = {}
+
+        # ── 上回合系别/能耗寄存器（data/IR_GUIDE.md §五）──
+        # `_turn_*` 是本回合累计（每次技能结算后 +1/+cost），`_last_turn_*` 是回合末
+        # 覆盖写下的上一回合快照，两者都由 _write_turn_match_counters 在同一时机更新。
+        # 注意：与累计的 `element:<系别>` 不同，这里**绝不累加**——上一回合没用过就是 0。
+        self._turn_elements: dict[str, dict[str, int]] = {'A': {}, 'B': {}}
+        self._turn_energy: dict[str, int] = {'A': 0, 'B': 0}
+        self._last_turn_elements: dict[str, dict[str, int]] = {'A': {}, 'B': {}}
+        self._last_turn_energy: dict[str, int] = {'A': 0, 'B': 0}
 
         # ── 回合 0: 首发精灵 entry 特性 ──
         from backend.sim.traits import dispatch_entry
@@ -713,12 +802,25 @@ class Battle(BattleMechanicsMixin):
 
         frozen_elements_a = frozenset(elements_a)
         frozen_elements_b = frozenset(elements_b)
+
+        # 队伍携带技能计数 {技能名: 携带该技能的精灵数}（虫鸣「队伍中的精灵每携带
+        # 1个虫鸣，本次技能连击数+1」）。「携带」按技能表字面统计，与是否力竭无关。
+        skill_count_a: dict[str, int] = {}
+        for sprite in player_a.team:
+            for bs in getattr(sprite, 'skills', ()) or ():
+                skill_count_a[bs.name] = skill_count_a.get(bs.name, 0) + 1
+        skill_count_b: dict[str, int] = {}
+        for sprite in player_b.team:
+            for bs in getattr(sprite, 'skills', ()) or ():
+                skill_count_b[bs.name] = skill_count_b.get(bs.name, 0) + 1
+
         self._ctx_team_cache["A"] = {
             "fainted_own": fainted_a,
             "fainted_opp": fainted_b,
             "team_elements_own": frozen_elements_a,
             "team_elements_opp": frozen_elements_b,
             "moe_stacks_own": moe_a,
+            "skill_count_own": skill_count_a,
         }
         self._ctx_team_cache["B"] = {
             "fainted_own": fainted_b,
@@ -726,6 +828,7 @@ class Battle(BattleMechanicsMixin):
             "team_elements_own": frozen_elements_b,
             "team_elements_opp": frozen_elements_a,
             "moe_stacks_own": moe_b,
+            "skill_count_own": skill_count_b,
         }
 
     def _ctx_team_kwargs(self, team: str, self_sprite) -> dict:
@@ -768,6 +871,27 @@ class Battle(BattleMechanicsMixin):
                 if isinstance(e, _AE) and e.stacks:
                     abnormal_battle[e.name] = abnormal_battle.get(e.name, 0) + e.stacks
 
+        # 上回合系别/能耗寄存器（覆盖写快照；见 data/IR_GUIDE.md §1.2）。
+        # own/opp 按视角换算，both 是双方合计（不是「各有」）。
+        last_el_own = dict(self._last_turn_elements.get(team) or {})
+        last_el_opp = dict(self._last_turn_elements.get(opp_team) or {})
+        last_el_both = dict(last_el_own)
+        for element, count in last_el_opp.items():
+            last_el_both[element] = last_el_both.get(element, 0) + count
+        last_en_own = max(0, int(self._last_turn_energy.get(team, 0) or 0))
+        last_en_opp = max(0, int(self._last_turn_energy.get(opp_team, 0) or 0))
+
+        # 精灵级「使用过的不同系别数」（`elements_used_count_self`）。
+        # 来源是该精灵的 `used_elem:<系别>` 计数（首次使用某系别技能时 +1），
+        # 随精灵换人保留；此前该寄存器没有任何写入点 → 恒 0。
+        elements_used_count_self = 0
+        if self_sprite is not None:
+            counters = getattr(self_sprite, 'counters', None) or {}
+            elements_used_count_self = sum(
+                1 for k, v in counters.items()
+                if k.startswith('used_elem:') and v
+            )
+
         return {
             "team_counters_own": team_counters_own,
             "team_counters_opp": team_counters_opp,
@@ -781,6 +905,14 @@ class Battle(BattleMechanicsMixin):
             "team_elements_opp": cached["team_elements_opp"],
             "moe_team_stacks": moe_team_stacks,
             "abnormal_stacks_battle": abnormal_battle,
+            "skill_count_own": cached["skill_count_own"],
+            "last_turn_element_own": last_el_own,
+            "last_turn_element_opp": last_el_opp,
+            "last_turn_element_both": last_el_both,
+            "last_turn_energy_sum_own": last_en_own,
+            "last_turn_energy_sum_opp": last_en_opp,
+            "last_turn_energy_sum_both": last_en_own + last_en_opp,
+            "elements_used_count_self": elements_used_count_self,
         }
 
     def _make_ctx(self, self_sprite, opp_sprite, self_skill=None, opp_skill=None,
@@ -1021,14 +1153,14 @@ class Battle(BattleMechanicsMixin):
         mcts_sim = getattr(self, '_mcts_sim', False)
         events: list[str] = _NO_EVENTS if mcts_sim else []
 
-        # 延迟效果结算：双方精灵 process_pending_effects
+        # 「下回合回复能量-N」（入梦）武装：待生效的延迟修正从**本回合开始**生效，
+        # 覆盖本回合所有 gain_energy 路径；回合末由 clear_turn_energy_gain 归零。
+        # 遍历两队全部精灵（含场下）：修正挂在精灵上，换人/返场后仍随精灵生效。
         for team in ('A', 'B'):
-            sprite = self.get_player(team).active
-            if not sprite.is_fainted:
-                activated = sprite.process_pending_effects()
-                if not mcts_sim:
-                    for eff in activated:
-                        events.append(f'{sprite.name} 延迟效果生效: {eff.name}')
+            for sprite in self.get_player(team).team:
+                armed = sprite.arm_pending_energy_gain()
+                if armed and not mcts_sim:
+                    events.append(f'{sprite.name} 本回合回复能量{armed:+d}')
 
         events += TurnPipeline.execute_turn_start(self)
         # reset:"turn" 观察者命中计数清零（王子的诺言 等每回合限次）
@@ -1267,6 +1399,8 @@ class Battle(BattleMechanicsMixin):
         """回合末结算前写入 turn_match：本回合双方技能在系别/类型/能耗上相同的项数。
 
         数据面用 `{"q": "team_counter", "name": "turn_match"}` 读取（合拍 等）。
+        同处一并覆盖写「上一回合系别/能耗」寄存器（绝不累加）：
+        `last_turn_element:<系别>` 队伍计数器 + `Battle._last_turn_*`（供 Ctx 快照）。
         """
         a = self._turn_skills.get('A')
         b = self._turn_skills.get('B')
@@ -1278,6 +1412,22 @@ class Battle(BattleMechanicsMixin):
         for team in ('A', 'B'):
             self.team_counters.setdefault(team, {})['turn_match'] = match
         self._turn_skills = {}
+
+        # ── 上回合系别/能耗：覆盖写（先清上一轮的键，再写本轮的键）──
+        # 累计口径的 `element:<系别>` 不动；这里只描述「上一回合」。
+        for team in ('A', 'B'):
+            counters = self.team_counters.setdefault(team, {})
+            for key in [k for k in counters if k.startswith('last_turn_element:')]:
+                del counters[key]
+            elements = dict(self._turn_elements.get(team) or {})
+            for element, count in elements.items():
+                counters[f'last_turn_element:{element}'] = count
+            self._last_turn_elements[team] = elements
+            energy = max(0, int(self._turn_energy.get(team, 0) or 0))
+            counters['last_turn_energy_sum'] = energy
+            self._last_turn_energy[team] = energy
+        self._turn_elements = {'A': {}, 'B': {}}
+        self._turn_energy = {'A': 0, 'B': 0}
 
     def _fire_pre_resolve(self, first_team: str, second_team: str,
                           skill_a, skill_b) -> list[str]:
@@ -1653,11 +1803,12 @@ class Battle(BattleMechanicsMixin):
                 user.inc_counter('energy_spent', cost)
                 self._vm_engine._increment_counter('energy_spent', cost)
             else:
-                # 石头大餐：能量不足时消耗HP代替能量
-                blood_price = user._modifiers.get("blood_price", 0)
-                if blood_price > 0:
+                # 生命代替能量：精灵级 blood_price，或**本技能自带**声明
+                # （虚假破产/骗局首次使用时精灵级还没有该 flag → 原来整类无效）
+                hp_ratio = self.hp_energy_price(user, bs, record)
+                if hp_ratio > 0:
                     deficit = cost - user.energy
-                    hp_cost = round(user.max_hp * blood_price * deficit)
+                    hp_cost = round(user.max_hp * hp_ratio * deficit)
                     if user.current_hp > hp_cost:
                         user.lose_energy(user.energy)
                         user.take_damage(hp_cost)
@@ -1822,6 +1973,15 @@ class Battle(BattleMechanicsMixin):
             if user.get_counter(seen_key) == 0:
                 user.inc_counter(seen_key)
                 self.inc_team_counter(team, f'distinct_elem:{eff_element}')
+            # 精灵级「使用过的不同系别」标记（`elements_used_count_self` 寄存器的来源；
+            # 旧玩具「己方精灵每使用过1个不同系别的技能，自己入场时获得双攻+10%」）。
+            # 挂在精灵计数上 → 随精灵换人保留，与队伍级 `element:<系别>`（累计次数）不同。
+            el_key = f'used_elem:{eff_element}'
+            if user.get_counter(el_key) == 0:
+                user.inc_counter(el_key)
+            # 上回合寄存器（last_turn_element:<系别>）的本回合累计：回合末覆盖写
+            turn_el = self._turn_elements.setdefault(team, {})
+            turn_el[eff_element] = turn_el.get(eff_element, 0) + 1
         if record.skill_type == '防御':
             self.inc_team_counter(team, 'defense_skill')
         elif record.skill_type not in ('物攻', '魔攻', '动态攻击'):
@@ -1835,6 +1995,8 @@ class Battle(BattleMechanicsMixin):
             "skill_type": record.skill_type,
             "energy_cost": cost,
         }
+        # 上回合能耗寄存器（last_turn_energy_sum）的本回合累计：按**实际支付**的能耗
+        self._turn_energy[team] = self._turn_energy.get(team, 0) + max(0, int(cost or 0))
 
         # 巧变：本次为授予技能 → 变随机同类技能（能耗-1）；本次为巧变产物 → 还原原技能
         morph_event = morph.apply_after_use(self, team, user, action.skill_index or 0, bs)
@@ -2107,6 +2269,12 @@ class Battle(BattleMechanicsMixin):
                 if not mcts_sim:
                     for eff in expired:
                         events.append(f'{sprite.name} {eff.name} 到期消失')
+
+        # 入梦「下回合回复的能量-5」：本回合武装的延迟修正到期（对全部精灵，
+        # 含力竭者——力竭精灵不参与上面的 scope 清除循环）
+        for team in ('A', 'B'):
+            for sprite in self.get_player(team).team:
+                sprite.clear_turn_energy_gain()
 
         # 借用还原
         for (team, si), original in self._borrowed_restore.items():

@@ -4,6 +4,13 @@
   "element": "机械",
   "skill_type": "状态",
   "energy_cost": 8,
+  "effects": [
+    {
+      "op": "skill_rotate",
+      "target": "team_own",
+      "offset": 1
+    }
+  ],
   "description": "✦使己方队伍中的所有精灵携带的技能跨精灵向下移动1个位置，巧变：机械系技能。",
   "qiaobian": {
     "element": "机械"

@@ -5,5 +5,40 @@
   "skill_type": "魔攻",
   "power": 75,
   "energy_cost": 3,
+  "effects": [
+    {
+      "op": "observer",
+      "scope": "persistent",
+      "cond": {
+        "cond": "and",
+        "conditions": [
+          {
+            "cond": "on_damage_taken",
+            "of": "sprite_self"
+          },
+          {
+            "cond": "compare",
+            "q": "element_advantage",
+            "of": "sprite_self",
+            "op": "lt",
+            "value": 1.0
+          }
+        ]
+      },
+      "then": [
+        {
+          "op": "power_mod",
+          "target": "sprite_self",
+          "skill_where": {
+            "name": "微型斥候"
+          },
+          "scope": "permanent",
+          "attr": "power",
+          "delta": 20,
+          "source": "微型斥候"
+        }
+      ]
+    }
+  ],
   "description": "✦造成魔伤，每受到1次抵抗的技能攻击（不含连击），本技能威力永久+20。"
 }

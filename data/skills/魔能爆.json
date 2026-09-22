@@ -5,5 +5,18 @@
   "skill_type": "魔攻",
   "power": 1,
   "energy_cost": 0,
-  "description": "✦造成魔伤，使用时消耗所有能量，消耗越高，伤害越高。"
+  "description": "✦造成魔伤，使用时消耗所有能量，消耗越高，伤害越高。// 每消耗 1 点能量：基础威力 +20（口径由用户确认；`power` 是基础威力 1，`energy_cost` 为 0）",
+  "effects": [
+    {
+      "op": "power_mod",
+      "target": "skill_off_0",
+      "attr": "power",
+      "delta": "=@self.energy * 20"
+    },
+    {
+      "op": "energize",
+      "target": "sprite_self",
+      "delta": "=0 - @self.energy"
+    }
+  ]
 }

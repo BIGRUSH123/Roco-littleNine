@@ -1,6 +1,32 @@
 {
   "id": 280004,
   "name": "“国王”的威严",
-  "description": "鸭吉吉国王的种族资质大幅增加，能耗为1的技能威力+50%。",
-  "effects": []
+  "description": "鸭吉吉国王的种族资质大幅增加，能耗为1的技能威力+50%。// 「种族资质大幅增加」属对战外养成数据，不在本引擎（对局内）范围；数据面只落地「能耗为1的技能威力+50%」。",
+  "effects": [
+    {
+      "op": "observer",
+      "listen": "post_entry",
+      "scope": "battlefield",
+      "cond": {
+        "cond": "sprite_entered",
+        "of": "sprite_self"
+      },
+      "then": [
+        {
+          "op": "mult_mod",
+          "target": "sprite_self",
+          "attr": "power_mult",
+          "value": 1.5,
+          "mode": "set",
+          "skill_where": {
+            "q": "energy_cost",
+            "op": "eq",
+            "value": 1
+          },
+          "scope": "permanent",
+          "source": "“国王”的威严"
+        }
+      ]
+    }
+  ]
 }

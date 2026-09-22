@@ -8,6 +8,12 @@
 >
 > 运行时只有一种执行路径：RISC VM。
 
+> **唯一表示（2026-09-22）**：`sim` 层不再持有任何「效果对象」。旧版 kind 形式
+> （`sim/effects.py` 的 `SpecialName` / `StatEffect` / `SpecialEffect` / `ConditionalEffect` +
+> `Skill.effects` + `SkillUse._collect_modifiers`）已整层删除——数据面 0 用量，
+> 持久化效果统一用 `backend/vm/effect.py` 的 `StatBuffEffect`/`AbnormalEffect`/`MarkEffect`/`StateEffect`。
+> 规则层要按技能效果做决策，读 `sim/skill_ir.py`（IR 只读画像），不要再按技能 JSON 手写判据。
+
 ## 三层模型
 
 | 层 | 对应 | 职责 | 实现 |
@@ -86,7 +92,7 @@
 | `first_action_battle_self` | `bool` | 本回合首次行动 | 比 `first_action_self` 更细粒度，每回合重置 |
 | `times_entered_self` | `int` | 累计入场次数 | — |
 | `times_left_self` | `int` | 累计离场次数 | 每次脱离/换下 +1 |
-| `elements_used_count_self` | `int` | 使用过的不同系别技能数 | — |
+| `elements_used_count_self` | `int` | 使用过的不同系别**技能**数 | 写入点与 `distinct_elem:<系别>` 同处：首次使用某系别技能时给该精灵记 `used_elem:<系别>` 计数（随精灵换人保留），快照按计数条数取值 |
 | `just_entered` | `bool` | 本回合入场 | 用于 `sprite_entered` 条件；与 `times_entered_self`（累计次数）不同 |
 | `just_acted_self` | `bool` | 刚使用过技能 | 用于 `sprite_acted` 条件 |
 | `skill_elements_self` | `frozenset` | 携带技能的元素集合 | 用于 `have_skill_of` 条件 |
@@ -96,7 +102,7 @@
 | `power_mult_self` | `float` | 威力倍率修饰 | 默认 1.0；来自 VM modifier 注入 |
 | `damage_mult_self` | `float` | 伤害倍率修饰 | 默认 1.0 |
 | `energy_cost_mult_self` | `float` | 能耗倍率修饰 | — |
-| `combo_mult_self` | `float` | 连击倍率修饰 | — |
+| `combo_mult_self` | `float` | 连击倍率修饰（**只对本技能带连击词条（基础 `combo`≥2）时生效**，见 §八「连击语义」） | — |
 | `life_drain_self` | `float` | 吸血比例 | — |
 | `mark_bonus_own` | `float` | 己方印记伤害加成 | — |
 | `bloodline_self` | `str` | 己方血脉 | 如 "首领" |
@@ -166,13 +172,20 @@
 | `moe_team_stacks` | `int` | 己方队伍萌化总层数（不含自身） | — |
 | `counters_self` | `dict[str, int]` | 己方精灵级计数器 `{key: n}` | 与 `team_counters_own`（队伍级）不同：生命周随精灵，换人后保留；需配合 `name` 参数索引 |
 | `counters_opp` | `dict[str, int]` | 敌方精灵级计数器 | — |
+| `last_turn_element_own` | `dict[str, int]` | **上一回合**己方队伍各系别技能的使用次数 `{系别: 次数}` | 与 `team_counters_own["element:<系别>"]`（**累计、从不清零**）不同：这是回合末的**覆盖写**快照，只描述上一回合 |
+| `last_turn_element_opp` | `dict[str, int]` | **上一回合**敌方队伍各系别技能的使用次数 | 同族；`of` 取 `team_opp` 时读它 |
+| `last_turn_element_both` | `dict[str, int]` | **上一回合**双方各系别技能的使用次数合计 | `= own + opp` 逐键求和（不是「各有」而「双方合计是否有」：任一方用过即 >0） |
+| `last_turn_energy_sum_own` | `int` | **上一回合**己方队伍使用技能的能耗之和 | 覆盖写；按**实际支付的能耗**累计 |
+| `last_turn_energy_sum_opp` | `int` | **上一回合**敌方队伍使用技能的能耗之和 | — |
+| `last_turn_energy_sum_both` | `int` | **上一回合**双方使用技能的能耗之和 | 基因编辑「基础能耗变为上回合双方使用的技能能耗之和」读它 |
 
 #### 技能（当前发动的技能）
 
 | 字段 | 类型 | 说明 | 与相似字段的区别 |
 |------|------|------|-----------------|
 | `power_self` | `int` | 技能基础威力 | 不含任何修正；修正后的威力由引擎计算 |
-| `adjacent_power_sum` | `int` | 两侧相邻技能威力之和 | — |
+| `adjacent_power_sum` | `int` | 两侧相邻技能威力之和 | 见 §1.2「两侧技能威力」口径；与 `skill_filter:"adjacent"` 同一份「相邻」定义 |
+| `adjacent_power_diff` | `int` | 两侧相邻技能威力之差的**绝对值** | 与 `adjacent_power_sum` 同源（缺一侧按 0）；六自由度「威力 + 两侧技能威力差的四分之一」读它 |
 | `power_opp` | `int` | 对方当前技能基础威力 | — |
 | `skill_type_self` | `str` | 本技能类型 | `"物攻"` / `"魔攻"` / `"动态攻击"` / `"防御"` / `"状态"` |
 | `skill_type_opp` | `str` | 对方技能类型 | — |
@@ -180,13 +193,35 @@
 | `element_opp` | `str` | 对方技能系别 | — |
 | `element_advantage` | `float` | 属性克制系数 | `0.5`=抵抗, `1.0`=普通, `2.0`=克制 |
 | `skill_tag_self` | `str` | 技能标签 | 如 `"迅捷"`、`"传动"` |
-| `combo_self` | `int` | 当前连击数 | — |
+| `combo_self` | `int` | 当前连击数（= 本技能**释放次数**；已含技能自身修正与（门控后的）精灵级连击增益） | — |
 | `energy_cost_self` | `int` | 当前技能能耗 | 已应用所有修正后的最终值 |
 | `energy_cost_reduction_self` | `int` | 累计能耗减少量 | `= base - current`，≥0 |
 | `energy_cost_opp` | `int` | 对方技能总能耗 | — |
 | `skill_name_self` | `str` | 当前技能名称 | — |
 | `prev_skill_type` | `str` | 上次技能类型 | 用于 `prev_skill_is` 条件 |
 | `prev_damage_taken_self` | `bool` | 己方上回合是否受伤 | — |
+
+##### 体重寄存器与「两侧技能威力」口径
+
+- `weight_self` / `weight_opp`（`float`，kg）：精灵体重，来自
+  `data/sprites/_weights.json`（sidecar，由 `backend/tools/gen_sprite_weights.py`
+  从线上 nrc `Catalog.lua` 生成）。**取值口径：区间取中点**（如 `"77~85.5KG"` → 81.25）——
+  这是模拟口径，游戏内个体体重在区间内浮动，本引擎不建模个体浮动。
+  name/form → Catalog `title` 的对应规则（含首领形态/外观变体）见生成脚本 docstring
+  与 sidecar `_meta`；`Sprite.weight` 是唯一读取点，缺数据为 `0.0`。
+- **派生查询 `weight_diff`**（不存储在 Ctx 中，由 `resolve.py` 计算）：
+  `of: "sprite_self"`（默认）= `weight_self − weight_opp`（**带符号**）；
+  `of: "sprite_opp"` = 反向。需要「差越大」语义时在数据侧取绝对值：
+  `{"q": "weight_diff", "of": "sprite_self", "abs": true}`（`abs` 是 §二 变换链的一环）。
+  用例：砂糖弹球「双方体重差越大，本次技能威力越高」的档位链。
+- **两侧技能威力**（`adjacent_power_sum` / `adjacent_power_diff`）：取**当前技能槽位**的
+  左右邻居（`sprite.skills` 列表索引相减为 1，**不环绕**；边缘槽位缺的一侧按 0），
+  威力取邻居槽**当前生效**技能的 `power`（= 基础威力 + 技能级 `_modifiers["power"]`，
+  与 `power_self` 同口径），与 `skill_filter:"adjacent"` 共用同一份「相邻」定义
+  （`backend/engine/snapshot.py:adjacent_powers`）。用例：六自由度
+  `{"op":"power_mod","target":"skill_off_0","attr":"power","delta":"=round(@adjacent_power_diff / 4)"}`。
+  两条快照路径一致：Python `build_ctx` 直接计算，Cython `build_ctx_cy` 调同一 helper；
+  `fill_extended_registers` 亦会补齐（Cython 产物未重编译时仍正确）。
 
 #### 战场
 
@@ -216,16 +251,23 @@
 
 | of | 可查询的 q |
 |----|-----------|
-| `sprite_self` | `hp`, `hp_ratio`, `hp_max`, `energy`, `energy_cost`, `skills_energy_sum`, `abnormal_count`, `abnormal_stacks`, `times_entered`, `times_left`, `elements_used_count`, `positive_count`, `zero_cost_skill_count`, `priority`, `atk`, `def`, `sp_atk`, `sp_def`, `speed`, `adjacent_power_sum`, `damage_reduced`, `damage_reduction`, `last_tick_damage`, `charged`, `is_charging`, `first_action`, `first_action_battle`, `bloodline`, `is_mixed_blood`, `elements`, `element_advantage`, `energy_cost_sum`, `power_mult`, `damage_mult`, `energy_cost_mult`, `combo_mult`, `life_drain`, `mark_bonus`, `energy_delta`, `heal_delta`, `lives`, `counter` |
-| `sprite_opp` | `hp`, `hp_ratio`, `hp_max`, `energy`, `energy_cost`, `abnormal_count`, `abnormal_stacks`, `positive_count`, `last_tick_damage`, `atk`, `def`, `sp_atk`, `sp_def`, `speed`, `charged`, `damage_reduction`, `skills_energy_sum`, `power_mult`, `damage_mult`, `bloodline`, `is_mixed_blood`, `elements`, `is_charging`, `heal_delta`, `lives`, `counter` |
-| `team_own` | `mark_count`, `mark_stacks`, `skill_count`, `team_counter`, `devotion`, `fainted`, `burst_triggered_count`, `lives`, `elements`, `moe_stacks` |
-| `team_opp` | `mark_count`, `mark_stacks`, `team_counter`, `devotion`, `fainted`, `lives`, `elements` |
-| `team_both` | `mark_count` (双方合计) |
+| `sprite_self` | `hp`, `hp_ratio`, `hp_max`, `energy`, `energy_cost`, `skills_energy_sum`, `abnormal_count`, `abnormal_stacks`, `times_entered`, `times_left`, `elements_used_count`, `positive_count`, `zero_cost_skill_count`, `priority`, `atk`, `def`, `sp_atk`, `sp_def`, `speed`, `adjacent_power_sum`, `adjacent_power_diff`, `weight`, `damage_reduced`, `damage_reduction`, `last_tick_damage`, `charged`, `is_charging`, `first_action`, `first_action_battle`, `bloodline`, `is_mixed_blood`, `elements`, `element_advantage`, `energy_cost_sum`, `power_mult`, `damage_mult`, `energy_cost_mult`, `combo_mult`, `life_drain`, `mark_bonus`, `energy_delta`, `heal_delta`, `lives`, `counter` |
+| `sprite_opp` | `hp`, `hp_ratio`, `hp_max`, `energy`, `energy_cost`, `abnormal_count`, `abnormal_stacks`, `positive_count`, `last_tick_damage`, `atk`, `def`, `sp_atk`, `sp_def`, `speed`, `charged`, `damage_reduction`, `skills_energy_sum`, `power_mult`, `damage_mult`, `bloodline`, `is_mixed_blood`, `elements`, `is_charging`, `heal_delta`, `lives`, `counter`, `weight` |
+| `team_own` | `mark_count`, `mark_stacks`, `skill_count`, `team_counter`, `devotion`, `fainted`, `burst_triggered_count`, `lives`, `elements`, `moe_stacks`, `last_turn_element` (需 `name`), `last_turn_energy_sum` |
+| `team_opp` | `mark_count`, `mark_stacks`, `team_counter`, `devotion`, `fainted`, `lives`, `elements`, `last_turn_element` (需 `name`), `last_turn_energy_sum` |
+| `team_both` | `mark_count` (双方合计), `last_turn_element` (需 `name`, 双方合计), `last_turn_energy_sum` (双方合计) |
 | `battle` | `abnormal_stacks` (双方全场), `weather`, `is_night` |
 | `skill_off_0` | `power_base`, `element`, `adjacent_power_sum`, `combo_current`, `energy_cost`, `counter_value`, `energy_cost_reduction` |
 | `skill_opp_current` | `power_base`, `element`, `energy_total` |
 
-> **派生查询（不存储在 Ctx 中）**: `hp_missing_ratio` (= `1.0 - hp_ratio`) 和 `is_fainted` 由 `resolve.py:_resolve_dict_query()` 动态计算。
+> **派生查询（不存储在 Ctx 中）**: `hp_missing_ratio` (= `1.0 - hp_ratio`)、`is_fainted` 由
+> `resolve.py:_resolve_dict_query()` 动态计算；`mark_count_both` (= own + opp)、
+> `element_count` (= `len(team_elements_own/_opp)`，队伍不同系别数) 由 `resolve.py` 的
+> 派生分支计算（编译期映射到 `team_elements_*` 字段，`sub_key_field` 标记）。
+> `element_count` 的 `of` 取 `team_own`（默认）/ `team_opp`，用例：分光「己方队伍中精灵
+> 每有1个不同的系别，额外获得魔攻+10%」→ `steps: {"q":"element_count","of":"team_own","offset":2}`。
+> `weight_diff` (= `weight_self − weight_opp`，带符号；`of: "sprite_opp"` 反向) 同族，
+> 见 §1.2「体重寄存器」。
 
 ---
 
@@ -242,19 +284,24 @@
 - **格式**: `{ "q": "<query>", "of": "<source>", ... }`
 - **实现**: `backend/vm/resolve.py:_resolve_dict_query()` — ADDRESS_MAP 查找 → `getattr()` → 子索引（dict 型寄存器）→ 变换链
 
-**变换链**（按顺序应用）：`per` → `scale` → `offset`
+**变换链**（按顺序应用）：`abs` → `per` → `scale` → `offset`
 
 | 修饰 | 说明 |
 |------|------|
+| `abs` | `true` 时取绝对值（在 `per`/`scale`/`offset` **之前**）；用于「差越大」类语义（如 `weight_diff`） |
 | `scale` | 乘以系数 |
 | `offset` | 加上偏移 |
 | `per` | 整除（每 N 算 1 步） |
 | `default` | 回退值（raw 为 0/""/None 时使用） |
 
-**需 `name` 参数的 dict 型查询**（定义于 `_NAMED_DICT_QUERIES`）：`counter_value`, `abnormal_stacks`, `devotion`, `mark_stacks`, `skill_count`, `team_counter`, `counter`
+**需 `name` 参数的 dict 型查询**（定义于 `_NAMED_DICT_QUERIES`）：`counter_value`, `abnormal_stacks`, `devotion`, `mark_stacks`, `skill_count`, `team_counter`, `counter`, `last_turn_element`
 
 > `counter` 是**精灵级**计数器（`{"q":"counter","of":"sprite_self","name":"<key>"}`），随精灵换人保留；
 > `team_counter` 是队伍级计数器。二者生命周期不同，写入口分别是 `counter` op 与 `team_counter` op。
+>
+> `last_turn_element` 读**上一回合**的系别使用明细（本回合不累加）：
+> `{"q":"last_turn_element","of":"team_own","name":"水"}` = 上一回合己方队伍使用水系技能的次数；
+> `of` 取 `team_both` 时是双方合计。缺省 `name` 时返回 0，配 `default` 可做兜底。
 
 **需 `skill_type`/`element`/`tag` 参数的查询**：`energy_cost_sum`
 
@@ -282,6 +329,7 @@
 | `team_opp` / `opp_team` | 敌方队伍（后者为别名） |
 | `team_both` | 双方队伍 |
 | `team_own_benched` | 己方场下全体精灵 |
+| `team_own_all` / `team_opp_all` | **全队 6 只**（含替补与**力竭**者）——当前仅 `energize` 消费（`replayer._apply_energy_change`），小型打劫「敌方队伍中所有精灵失去1能量」用它；与 `team_own`（跳过力竭）/`team_own_benched`（保证跳过在场）的区别就在这里。其余 op 收到这两个值时走 `_target_sprite` 兜底（= 在场精灵），与 `team_own`/`team_opp` 在那些 op 上的既有行为一致 |
 | `team_burst` | 迸发技能来源集合（`replay from` 用） |
 | `skill_off_0` | 当前使用的技能 |
 | `skill_opp_current` | 对方当前技能 |
@@ -307,6 +355,12 @@
 | `source` | `str` | 效果来源（追踪/驱散用） |
 
 - **与 `power_mod` 的区别**: `stat_stage` 修改精灵属性阶段（攻防速），每个 stage +10%；`power_mod` 修改技能属性（威力/能耗/连击/优先级），用 delta 加法
+- **只管五维**（2026-09-22 起硬约束）：合法 `stat` = `atk`/`def`/`sp_atk`/`sp_def`/`speed`/`speed_flat`（或运行时求值的 `"=@…"`）。
+  越界维度（`power` / `energy_cost` / `combo` / `combo_mult`）**一律改用 `power_mod`/`mult_mod`**：
+  `stat_stage` 只产生 `StatBuffEffect`，而这三个维度的消费点读的是技能级 `_modifiers`
+  （`bs.power` / `bs.energy_cost`）与精灵级 `_modifiers`（`combo`/`combo_set`/`combo_mult`），
+  写在 `StatBuffEffect` 里**没有任何读取点**（静默失效）。
+  数据面由 `backend/tests/test_stat_stage_to_power_mod.py` 双向 lint 守住（skills + traits 全库扫描）。
 - **与 `mult_mod` 的区别**: `stat_stage` 是阶段累加，`mult_mod` 是直接倍率修正（如 `value: 2.0` 表示翻倍）
 - **速度的两个单位**：`speed` 1 步 = **10 点**（`steps: 6` = 速度+60）；
   `speed_flat` 1 步 = **1 点**，用于不足 10 点的零头（变形活画「速度+5」→ `steps: 5`）。
@@ -372,6 +426,7 @@
 | `target` | `target` | 目标技能或精灵 |
 | `attr` | `"power"` / `"energy_cost"` / `"combo"` / `"priority"` / `"energy_cost_mult"` / `"combo_mult"` / `"energy_cost_delta_mult"` / `"use_count_bonus"` / `"attach_abnormal"` | 目标属性 |
 | `delta` | `int` / Query / RefExpr | 变化量 |
+| `mode` | `"add"`(默认) / `"set"` / `"multiply"` / `"set_base"` | 语义，见下 |
 | `skill_where` | `dict` | 技能筛选条件（`{"q": "energy_cost", "op": "gt", "value": 3}`） |
 | `skill_filter` | `str` | 批量技能筛选：`"attack"` / `"defense"` / `"status"` / `"all"` / `"others"` / `"adjacent"` / `"bare_attack"` / `"bare_defense"` / `"bare_status"` |
 | `name` | `str` | 按技能名精确筛选 |
@@ -381,6 +436,33 @@
 
 - **与 `stat_stage` 的区别**: 见上
 - **与 `mult_mod` 的区别**: `power_mod` 是加法修改（`delta`），`mult_mod` 是乘法修改（`value`）
+- **`skill_filter` 语义**（实现：`backend/engine/modifiers.py:matches_skill_filter`，
+  技能级落点与特性直连落点共用同一份实现）：
+  | 值 | 命中集 | 数据用例 |
+  |----|--------|----------|
+  | `"all"` | 携带的全部技能 | 基因编辑 等 36 处 |
+  | `"attack"` / `"defense"` / `"status"` | 按 `skill_type` 的类别（攻击=物攻/魔攻/动态攻击） | 重金属粉尘 / 壁垒 等 |
+  | `"others"` | 除**本回合正在使用的技能**以外的携带技能（对家为目标时取**对手那一手**，见 `battle._turn_skills`） | 激怒「敌方除本回合使用的技能，其他技能能耗+3」 |
+  | `"adjacent"` | 参考技能槽位**两侧**的技能（**不环绕**：0 号位只有 1 号位一侧） | 减压阀/联动装置/能量守恒/轴承支撑「两侧技能…」 |
+  | `"bare_attack"` / `"bare_defense"` / `"bare_status"` | 无额外效果的纯类型技能（技能 JSON 的 `effects`/`choices`/`passive` 全为空；隐式伤害由 InjectHitPass 注入、不算额外效果） | 不移「携带的无额外效果的攻击技能，威力+30%」 |
+  - **参考技能**：技能效果里 = 本次使用的那只技能；特性 Observer 直连效果 = 目标精灵
+    本回合正在使用的技能（目标是对家时取对手那一手）。缺上下文（拿不到参考技能）时
+    **不匹配**——此前未知 filter 一律「匹配全部」，会把 `adjacent`/`others` 静默放大成
+    对全部技能生效。
+  - **`element` 是技能级筛选**：只写 `element`（不带 `skill_filter` / `skill_where`）也走
+    技能级落点（`power_mod`/`mult_mod` 同为技能槽 `_modifiers`，读取点是 Ctx 的
+    `skill_mods`）；此前这种写法落到精灵级而没有读取点 → 静默空操作。
+    系别匹配用技能**自带**系别，`"!幻"` 为排除语法。
+- **`mode` 三种数值语义**（`power_mod` 与 `mult_mod` 共有，`power_mod` 另有 `set_base`）：
+  - `"add"`（`power_mod` 默认）：在槽位现有增量的基础上累加 `value`；
+  - `"set"`：把槽位增量**设为** `value`（对 `power`/`energy_cost` 而言最终值 = 技能自带基础值 + `value`，
+    因此它设的是**增量**而不是绝对值）；
+  - `"multiply"`：增量 × `value`。
+- **`mode: "set_base"`**（绝对值语义，基因编辑「自己携带技能的基础能耗，变为上回合双方使用的技能能耗之和」）：
+  把技能的**基础值本身**设为 `value` —— 引擎按 `增量 = value − base` 反算后写槽位增量，
+  所以最终值恰好等于 `value`（与 `"set"` 的区别就在这个 `base` 项）。
+  适用 `attr: "energy_cost"` / `attr: "power"`（这两条通道是「基础值 + 增量」结构）；
+  其它 attr 退化为 `"set"`。`value` 支持 Query（如 `{"q":"last_turn_energy_sum","of":"team_both"}`）。
 - **`attr: "use_count_bonus"`**: 精灵级「技能使用次数加成」，在下一次行动时被引擎消费——
   技能行动则把该次 `skill_used:<技能名>` 计数额外 +N（喂给「每使用过 N 次」类效果），
   聚能行动则直接丢弃（对齐「入场后首次行动」语义）。可复用于任何「使用次数 +N」效果。
@@ -396,6 +478,22 @@
   **生命周期**：`attach_abnormal` 不在 `_PER_TURN_KEYS` 里，写在技能槽上即跨回合保留；
   因此**不**登记进 `_trait_direct_effects`（登记会每回合重放一次 → 层数叠加，
   见 `replayer._NO_DIRECT_MOD_PERSIST`）。
+- **`attr: "energy_gain_delta"` + `on_next: true`（「下回合回复能量-N」的唯一写法，入梦）**：
+  数据形如
+  ```jsonc
+  { "op": "power_mod", "target": "sprite_opp", "attr": "energy_gain_delta",
+    "delta": -5, "on_next": true, "scope": "turn", "source": "入梦" }
+  ```
+  **相位口径**（与其它 `on_next` 不同，因为这里绑定的是**回合**而不是「下一次技能」）：
+  1. 落地（入梦结算时）：把 `delta` 压入**目标精灵**的待生效队列
+     （`Sprite._pending_energy_gain_delta`，多条累加）——**当回合不生效**；
+  2. 武装：`Battle._phase_turn_start` 在**目标下一回合开始时**把它转入
+     `Sprite._energy_gain_delta_turn`，于是该**整回合**内所有走
+     `Sprite.gain_energy()` 的回复（聚能、印记/异常回能、`energize`…）都吃这个修正；
+  3. 到期：`Battle._phase_turn_end` 把 `_energy_gain_delta_turn` 归零 → 再下一回合恢复正常。
+  修正挂在**精灵**上（不是场上位置）：目标换人/返场后仍随精灵生效（换在场下时不回能，
+  自然无影响）。实测：A 先手入梦 → B 下一回合聚能 `+5−5 = 0`，再下一回合恢复 `+5`。
+  与 `flag_set flag:"cooldown"` 无相互作用（入梦的冷却 2 回合由后者独立管理）。
 
 #### `mult_mod` — 倍率修正
 
@@ -448,13 +546,37 @@
 | `extra_action` / `extra_turn_end` | 额外行动/回合末额外触发一次（双向光速） |
 | `turn_end_block` | **回合末触发抑制**（陨落）：任意一方场上精灵带此标记（值>0）时，本回合末的**双方**回合末效果全部不触发 |
 | `heal_reverse` | 治疗反转 |
-| `life_as_energy` | 生命代替能量 |
+| `life_as_energy` | 生命代替能量（**与 `blood_price` 同一机制的两个拼写**，见下） |
+| `blood_price` | 生命代替能量（石头大餐/盛宴/骗局；同上） |
 | `ignore_mods` / `ignore_resistance` | 忽略修正/抵抗 |
 | `cooldown` | 冷却中 |
 | `charge_any_skill` | 蓄力中可用任意技能 |
 | `usable_while_charging` | 蓄力中可用（技能 body 字段） |
 
+- **`life_as_energy` / `blood_price` 口径**（消耗生命代替能量，`value` = **生命占最大生命的比例 / 1 点能量缺口**；
+  两处 0.05 = 每缺 1 能量扣 5% 最大生命）：
+  - 读入点是**能量 Gate**（`backend/sim/battle.py`）：能量不足时按
+    `hp_cost = round(max_hp × value × 缺口)` 付生命，生命不够则本回合无法使用该技能；
+    `Battle.can_pay_skill_energy_cost()`（AI 预判）与 `mcts` 的无 battle 分支同口径
+    （`backend/sim/battle.py:sprite_hp_energy_price`）。
+  - **技能自带声明在本技能首次使用时即生效**：`flag_set` 是技能效果、在 Gate **之后**落地，
+    因此引擎还会读「本技能自带的 `flag_set`（同两个名字之一、数值字面量）」——
+    否则 虚假破产 / 骗局 的首次使用永远无法代替（要先用一次才有 flag）。
+  - 落地仍然是精灵级 `sprite._modifiers[<flag>]`（scope 决定存活期），所以一旦用过，
+    之后的技能也按同一比率代替。
+
 - **与 `stat_stage` / `mult_mod` 的区别**: `flag_set` 是布尔开关，不涉及数值，改变的是游戏规则行为
+- **`flag:"drive"` 口径**（传动等级，写的是 `BattleSkill._transmission` 而不是 `_modifiers`）：
+  - `target: "skill_at_N"`（翼轴/向心力/贪心算法）：把该槽位的传动等级**设为** `base.transmission + value`
+    （在技能自带传动上累加，「传动X 可叠加」）；每回合由 `turn_start` 观察者重挂，因此是**持续**语义。
+  - `target: "skill_off_0"`（轮班暗分支「本回合额外传动1」）：让**当前使用的技能**以传动等级
+    `value` 参与一次**额外的**传动 pass（即本回合多移动 `value` 个槽位），
+    随后把所有技能等级还原——后续回合的传动量不变。其余技能仍按各自的传动等级参与这次额外 pass
+    （一次 pass 每人只移动 1 格）。
+    回合开始的传动 pass 在本回合**行动选择之前**已经跑完，所以「本回合额外传动1」只能靠这次即时
+    pass 体现。传动需要技能数 ≥ 2，否则是空操作（`value` 缺省按 1 处理）。
+  - 其它 `skill_*`（无 `skill_at_N` 结构）与不带 `skill_` 前缀的 `target`：写精灵级
+    `_modifiers["drive"]`（保留旧行为，无消费者）。
 - **`flag:"cooldown"` 口径**（`backend/engine/replayer.py` 消费，写的是技能的 `BattleSkill.cooldown` 而不是
   `_modifiers`）：
   - `value: true` → 把选中技能的冷却**设为** `ttl`（缺省 1）；`value: false` → 清 0；
@@ -492,8 +614,21 @@
 
 | 字段 | 类型 | 说明 |
 |------|------|------|
-| `target` | `target` | 目标精灵 |
+| `target` | `target` | 目标精灵（`team_own` 等队伍值走队伍落点，见下） |
 | `delta` | `int` / Query | 变化量（正=回复，负=扣除） |
+| `overflow` | `bool` | `true` = **回复可突破 `max_energy` 上限**（盗魂铃「回复5能量（可突破上限）」）；扣除不受影响，缺省 `false` |
+
+- **队伍落点**（`_apply_energy_change`）：
+  - `team_own` / `team_own_benched` / `team_both`：逐只**跳过力竭**者；
+  - `team_own_all` / `team_opp_all`：**全队 6 只**，含替补与力竭者，下限 0
+    （`lose_energy` 取 `min(当前能量, 扣除量)`，不会为负）——小型打劫用它；
+  - `team_opp` / `opp_team` 在 `energize` 上**不是**队伍落点（落到在场精灵）：
+    「敌方队伍中所有精灵」必须写 `team_opp_all`。
+
+- **回复量的精灵级修正**: `Sprite.gain_energy()` 会先加 `energy_gain_delta`（见 §3A
+  `power_mod` 的 attr 列表；盗魂铃「在场时自己回复的能量-4」）——`energize`、印记/异常回能等
+  所有走 `gain_energy` 的路径一并生效。**「下回合回复能量-N」**（入梦）走
+  `power_mod attr:"energy_gain_delta" on_next:true`，相位见 §3A。
 
 #### `revive` — 复活
 
@@ -562,13 +697,24 @@
 
 | 字段 | 类型 | 说明 |
 |------|------|------|
-| `target` | `team_own` / `team_opp` | 目标队伍 |
+| `target` | `team_own` / `team_opp` | 目标队伍（`team_both` 仅 `enhance_all` 支持 = 双方各结算一遍） |
 | `name` | `str` | 印记名称 |
 | `stacks` | `int` / Query | 层数 |
-| `action` | `"apply"`(默认) / `"dispel"` / `"steal"` / `"convert"` / `"convert_all"` | 动作 |
+| `action` | `"apply"`(默认) / `"dispel"` / `"steal"` / `"convert"` / `"convert_all"` / `"enhance_all"` | 动作 |
 
 - **`action: "convert_all"`**: 把目标队伍**全部印记合并**为一枚 `name` 印记，层数 = 合并前总层数
   （典型写法 `"value": {"q": "mark_count_opp"}`；与 `convert` 不同，后者的来源是异常而非印记）
+- **`action: "enhance_all"`**（许愿池「双方已有的印记层数+1」）：对目标队伍**已存在**的每一枚印记
+  `stacks += delta`（`delta` 走 `stacks` / `value` 通道，默认 1）。
+  与 `apply` 的区别：**不新建印记**（目标队伍没有印记时是空操作），也不按 `name` 挑选；
+  `target: "team_both"` = 双方队伍各加一遍（先己方后对方，各自结算）。
+  「已有的印记」= 施加时点已经在 `globals.mark_effects[team]` 里的条目，含正面与负面。
+- **`name: "random_positive"` / `"random_negative"`**（薄纱环「随机获得1种正面/负面印记」）：
+  `action:"apply"` 时不按固定名施加，而是从 `MARK_TEMPLATES` 的正面（`POSITIVE_MARK_NAMES`）/
+  负面（`NEGATIVE_MARK_NAMES`）集合里随机取**一枚模板名**再施加（同一份模板仍然决定行为字段）。
+  与 `devotion` 的 `name:"random"` 同一写法约定：随机源是全局 `random`，对局由 `random.seed(seed)`
+  播种，因此录制的分支可复现；候选按名字**排序后**取（避免模板字典顺序带来的不可复现）。
+  集合为空（无可用模板）时该次施加为空操作。
 
 
 #### `abnormal` — 异常
@@ -729,6 +875,70 @@
 | `type` | `"物攻"` / `"魔攻"` | 伤害类型 |
 | `element` | `str` | 系别（默认继承技能 element） |
 
+#### `starfall_trigger` — 手动触发星陨印记
+
+把「何时触发、以什么伤害类型触发」交给数据，**结算复用自然路径**
+`GlobalEffects.trigger_starfall()`（消耗印记层数 + `X² + 24X − 24` 幻系伤害，
+`X` = 触发前层数），不复制公式。用于引力偏转「减伤80%，应对攻击：以魔法伤害触发敌方的星陨效果」。
+
+- **实现**: `backend/vm/ops/starfall.py:op_starfall_trigger()`
+- **Mutation**: `StarfallTrigger`
+- **消费点**: `backend/engine/replayer.py:_apply_starfall_trigger()` → `battle.globals.trigger_starfall()`
+- **与自然结算的关系**: 攻击技能（非幻系）命中后的自动引爆炸在同一函数
+  （`battle._execute_skill_vm` 第 6.7 步），因此同样层数/同样攻防键下两者**伤害同值**；
+  本 op 只是把触发时机从「攻击命中」挪到数据指定的位置（如应对成功分支）。
+- **攻守方向**: `target` 是**印记持有方**（= 防守方，吃伤害），触发方（`self.self`）是攻击方。
+  `sprite_opp`（默认）= 打敌方队伍持有的星陨印记；`sprite_self` = 触发自己队持有的。
+- **攻防键**由 `damage_type` 决定：`物攻`→atk/def，`魔攻`→sp_atk/sp_def，
+  `动态攻击`→按触发方（攻击者）的物/魔攻高低判定（与自然结算同一份
+  `Skill.get_atk_def_keys` 口径）。
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `target` | `sprite_self` / `sprite_opp` | 印记**持有方**（默认 `sprite_opp`） |
+| `damage_type` | `"物攻"` / `"魔攻"` / `"动态攻击"` | 触发用的伤害类型（默认 `魔攻`） |
+
+- **空操作**：目标队伍没有星陨印记（或层数 ≤0）时返回 0 伤害，不产生事件。
+
+#### `skill_rotate` — 跨精灵技能轮转
+
+把「轮转哪一队、转几位」交给数据，落地由可复用 pass
+`backend/sim/battle_mechanics.py:BattleMechanicsMixin.rotate_team_skills()` 完成。
+用于过山车「使己方队伍中的所有精灵携带的技能跨精灵向下移动1个位置」。
+
+- **实现**: `backend/vm/ops/skill_rotate.py:op_skill_rotate()`
+- **Mutation**: `SkillRotate`
+- **消费点**: `backend/engine/replayer.py:_apply_skill_rotate()`
+
+**轮转口径**（实现与边界规则）：
+
+1. **序列构造**：按「精灵顺序（`player.team` 顺序）× 槽位顺序」拼接**参与槽位**，
+   得到 `[S0.0, S0.1, S1.0, …]`；**位置锁定**的槽位被跳过、也不占位：
+   - 主轴（`_transmission == -1`）——与传动 pass 同一语义：位置不动；
+   - 临时/被替换槽位（`replaced_by is not None`：借用 / 愿力 / 巧变产物 / `replace_skill`）
+     —— 这些槽位的回合末还原登记是 `(队伍, 槽位号)`，移动槽位对象会让还原命中错误的槽位；
+   - `is_temporary`（`gain_skills` 等临时技能）。
+2. **整体轮转 `offset` 位**（默认 1，向下移动）：`rot[i] = seq[i - offset]`，
+   末尾的 `offset` 个技能回到序列开头；**各精灵槽位数可以不同**——按各精灵**原槽位数**
+   分段写回，因此不需要补齐、技能总数不变。
+   - 3 只 × 2 槽的例：`[A,B,C,D,E,F]` → `[F,A,B,C,D,E]` = 每只的技能列表整体下移 1 位，
+     最后一只的末位技能回到第一只的第一槽位。
+   - 参与槽位 < 2（或 `offset % n == 0`）时为空操作。
+3. **轮转的是 `BattleSkill` 槽位对象整体**（不是底层 `Skill` 数据）：冷却 / `replaced_by` /
+   `_morph_temp` / 技能级 `_modifiers` / `_transmission` 随对象一起移动。
+4. **通知**：移动到新槽位的每个技能各触发一次 `skill_position_changed` 通知
+   （`_fire_skill_position_changed`，与传动 pass 一致），因此
+   `cond: "skill_position_changed"` 的观察者会看到跨精灵移动。
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `target` | `team_own`（默认）/ `team_opp`（也接受 `sprite_self`/`sprite_opp` 作为同义写法） | 被轮转的队伍 |
+| `offset` | `int` | 轮转位数（默认 1 = 向下移动 1 个位置） |
+
+> **不联动**：本 op **不**触发机械变式（20159「若回合内自己携带的技能位置发生变化，
+> 该技能能耗永久-1」，`sim/globals.py` 里由**传动 pass** 单独消费）——
+> **用户 2026-09-22 确认：过山车带来的跨精灵移动不触发机械变式。**
+
 #### `charge` — 蓄力
 
 - **实现**: `backend/vm/ops/charge.py:op_charge()`
@@ -779,17 +989,44 @@
 | `"skills"` | 交换技能 |
 | `"adjacent_skills"` | 交换当前技能两侧技能位置 |
 
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `target` | `"sprite_opp"`(默认) / `"leaving"` / `"entering"` | 交换的**对家**：与 `replayer.self` 配对的那一只 |
+| `what` | `str` | 交换内容（见上表） |
+
+- **交换双方 = `replayer.self` ↔ `target`**：
+  - `"sprite_opp"`（默认）：`replayer.opp`。技能内使用（`假冒`/`恶念交换`/`欺诈契约`/`隐藏条款`）与
+    `post_enemy_leave` 语境（敌方离场）都成立 —— 后者的 `self` 是**己方场上精灵**、`opp` 是
+    **敌方换入者**，正好是「自己与更换入场的精灵」这一对。
+  - `"leaving"`：`replayer._leaving`，即**刚离场的那只**（仅 `post_enemy_leave` 提供；
+    无该语境时为空操作）。
+  - `"entering"`：本次的**换入者**。`post_enemy_leave` 下就是 `replayer.opp`（与默认等价，
+    但把「与更换入场的精灵」写进数据，意图可审计）；`post_leave` 下引擎不提供（空操作）。
+- **与内联实现的关系**：`瞳中倒影` 的「**自己**离场时与换入者交换血量百分比」由
+  `sim/battle_mechanics.py:_resolve_switch` 内联（那是唯一知道「换入者是谁」的位置），
+  数据面不要为这一半再写 observer（会重复交换）；数据面只负责「**其他精灵**离场时」这一半。
+
 #### `reset` — 重置
 
 消除永久增量，将指定 stat 还原到基础值。
 
 - **实现**: `backend/vm/ops/reset.py:op_reset()`
+- **消费点**: `backend/engine/replayer.py:_apply_reset()`
 - **与 `dispel` 的区别**: `reset` 重置技能属性（如能耗），`dispel` 移除效果（增益/减益/印记/异常）
 
 | 字段 | 类型 | 说明 |
 |------|------|------|
 | `target` | `target` | 目标技能 |
 | `stat` | `str` | 要重置的属性（如 `"energy_cost"`） |
+
+- **落地口径**：技能槽的最终值 = 技能自带基础值 + `_modifiers[stat]` 增量，所以「还原到基础值」
+  = 清掉该增量，并同时清掉 `sprite._modifiers["skill.<技能名>.<stat>"]` 的永久登记
+  （`scope:"permanent"` 的 `skill_off_0` 修正会在那里留一份，否则下一回合
+  `_load_permanent_skill_mods_for_sprite()` 又把增量装回来）。
+- `target`：`skill_off_0`（默认）= 本次使用的技能槽；`skill_at_N`（1-indexed）= 第 N 个技能槽；
+  其余值 = 精灵级 `_modifiers[stat]` 增量。
+- 用例：气沉丹田「每次应对后本技能能耗-3，使用后能耗重置」——本次使用已按折后能耗支付，
+  `reset` 在效果阶段执行，清掉累计的 -3 供后续使用。
 
 #### `redirect` — 重定向
 
@@ -879,6 +1116,41 @@ Observer 是 IR 第一公民，显式声明触发条件、可选计数器和生�
     ] }
   ```
   只声明 `effects` 时不需要读源精灵状态，因此**不依赖**离场精灵身上真的带着该效果。
+
+#### `burst_grant` — 迸发注入
+
+给命中的**技能槽**挂上「下次迸发时会额外执行」的效果列表（1010 迸发：`first_action` 为真时
+`sim/battle.py` 执行 `bs._burst_effects`）。
+
+- **实现**: `backend/vm/ops/burst_grant.py:op_burst_grant()` → `BurstGrant`
+- **消费点**: `backend/engine/replayer.py:_apply_burst_grant()` 把效果写进匹配的
+  `BattleSkill._burst_effects`（并置 `_modifiers["burst"]`）
+- **与 `replay from:"team_burst"` 的区别**: `replay` 是**立即执行**本队已触发过的迸发效果；
+  `burst_grant` 是**授予**（挂到技能槽上，等下一次迸发时执行）
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `target` | `target` | 接受授予的精灵（默认 `sprite_self`） |
+| `skill_filter` / `skill_where` | 同 `power_mod` | 选定被授予的技能（如 `"attack"` = 携带的攻击技能） |
+| `then` | `[RiscIROp]` | **显式**注入的迸发效果列表（默认来源） |
+| `from` | `"explicit"`(默认) / `"triggered"` | `"triggered"` = 从**本队已触发过的迸发**里取回效果，忽略 `then` |
+| `count` | `int` / `"all"` | 仅 `from:"triggered"` 生效：取最近 N 条（默认 1）；`"all"` 或 ≤0 = 全部 |
+| `source` | `str` | 来源名（事件文案用） |
+
+- **`from: "triggered"` 口径**（踏雷「携带的攻击技能下回合获得1个已触发过的迸发效果，
+  应对防御：改为获得所有触发过的迸发效果」）：
+  - 来源池是 `BattleVMEngine._burst_effects[team]` —— 每个「以迸发身份使用过的技能」记一条
+    `(技能名, 该技能的完整效果列表)`，按**触发时间升序**存放（`engine/battle.py:execute()` 在
+    `is_first` 时登记）。
+  - `count: N` 取**最近 N 条**（池子的尾部，最新触发的优先），`count:"all"`（或 ≤0）取全部。
+    同一技能重复触发会占多条，本 op **不去重**（池子是什么就授什么）；
+    「获得 1 个」在只有一个候选时就是那一个。
+  - 取到的效果**原样**追加到每个命中技能槽的 `_burst_effects`，与显式 `then` 追加的写法一致
+    （多条叠加、不会被覆盖）。
+  - 池子为空（本队还没触发过迸发）→ 空操作。
+  - 时间语义：本 op 在**技能执行期间**写槽位，槽位上的迸发效果在**下一次**该技能以迸发身份行动时
+    执行；踏雷自带 `return`（回合末返场）会把 `first_action` 置回真，因此「下回合」的首次行动
+    即触发（不需要额外的 `delay` 声明）。
 
 #### 其他持久化 opcode
 
@@ -1161,6 +1433,8 @@ Observer 是 IR 第一公民，显式声明触发条件、可选计数器和生�
 | 计数器 | 写入时机 | 含义 |
 |--------|----------|------|
 | `turn_match` | 回合末结算（turn_end 观察者触发前） | 本回合双方使用的技能在**系别/类型/能耗**上相同的项数（0–3）；每回合覆盖写入 |
+| `last_turn_element:<系别>` | 同上（回合末，覆盖写） | **上一回合**该队使用该系别技能的次数；与累计的 `element:<系别>` 不同，本键每回合被重写（上一回合没用过 → 0），是「上回合有没有用过 X 系技能」的唯一可靠来源 |
+| `last_turn_energy_sum` | 同上（回合末，覆盖写） | **上一回合**该队使用技能的能耗之和；与累计的 `energy_spent` 不同（后者只增不减）。数据面一般读寄存器 `last_turn_energy_sum`（见 §1.2）而非这个计数器 |
 | `enemy_action` | 敌方聚能或换人时 | 敌方累计聚能 + 换人次数（写在**对方**队伍上） |
 | `element:<系别>` | 每次技能结算后 | 该队累计使用该系别技能的次数 |
 | `distinct_elem:<系别>` | 首次使用某系别技能时 | 该队使用过的**不同**该系别技能数（大火球/大雪球） |
@@ -1169,6 +1443,25 @@ Observer 是 IR 第一公民，显式声明触发条件、可选计数器和生�
 | `choice_used:<分支名>` / `choice_pair` | 「选择」技能结算后 | 分支使用次数 / 明暗各一次的对数（猫精灵的礼物） |
 | `choice_skill_used`* | 「选择」技能结算后 | **精灵级**（`sprite.counters`，不是队伍计数器）：「选择」技能使用次数；做好事/吃独食读它（×3 层随机属性增益/减益，用完清零） |
 | `energy_spent` | 技能耗能后 | 该队累计消耗能量（整点报时） |
+| `used_elem:<系别>`* | 首次使用某系别技能时 | **精灵级**（`sprite.counters`，不是队伍计数器）：该精灵用过该系别技能；寄存器 `elements_used_count_self` = 该精灵此类键的条数（旧玩具） |
+
+#### 上回合系别寄存器（跨回合连携）
+
+| cond | 参数 | 访问路径 | 说明 |
+|------|------|----------|------|
+| `last_turn_had_element` | `element`, `of` | `ctx.last_turn_element_own` / `_opp` / `_both` | **上一回合**是否有精灵使用过该系别技能 |
+
+- **`of` 取值**：`"team_both"`（默认，双方任一精灵用过即成立）/ `"team_own"` / `"team_opp"`。
+  「上回合**双方有精灵使用**X系技能」的游戏内文本（奇点/信息素/掠影/星火/月影交错/麦芒/冷光源/热成像
+  共 8 条同款写法）按**存在性**落地：搜索范围是双方精灵，任一方用过即成立（写成「各有」那种
+  更严格读法时，用 `and` 组合 `of:"team_own"` 与 `of:"team_opp"` 两条即可表达）。
+- **与 `team_counter` 的区别**：`element:<系别>` 是**累计**计数且从不清零（`使用草系技能后…` 这类
+  「本场累计 N 次」用它）；`last_turn_had_element` 只描述**上一回合**，上一回合没用过就一定是假。
+  两者都在回合末更新，唯一时机差别是后者每回合被覆盖重写。
+- **本回合内不会变化**：寄存器在回合末写入，因此「本回合使用过 X 系技能」这类条件用不到它
+  （本回合内已用过的技能读 `team_counter` 或 `ctx.element_self`）。
+- 读明细也可直接用 Query：`{"q": "last_turn_element", "of": "team_both", "name": "水"}`
+  （= 上一回合双方水系技能使用次数，见 §2）。
 
 #### 泛用比较
 
@@ -1213,6 +1506,8 @@ Observer 是 IR 第一公民，显式声明触发条件、可选计数器和生�
 - `or`: 并集（任一子条件可能独立匹配）
 - `and`: 并集（在所有子条件关注的触发点都检查）
 - `not`: 内部条件的触发点（取反不改变触发时机）
+- 纯状态类条件（`last_turn_had_element`、`have`、`is_mixed_blood` 等）没有专属事件，
+  默认挂 `post_entry` / `post_skill` / `turn_start`（数据写 `listen` 时按需要收窄即可）。
 
 ---
 
@@ -1333,12 +1628,10 @@ feeds:cost → Gate(付能耗) → feeds:power → 威力确定 → feeds:mult
 | `scope` | `str` | `"turn"` / `"battlefield"` / `"persistent"` / `"permanent"` | `"battlefield"` | 全部 |
 | `source` | `str` | 效果来源名（追踪/驱散用） | — | 全部 |
 | `ttl` | `int` | 存活回合数（仅 `persistent` 时生效） | 永久 | stat_stage/power_mod/flag_set |
-| `per_hit` | `bool` | 每次连击触发 | `false` | mult_mod/flag_set |
 | `feeds` | `str` | 拓扑排序 token | — | 技能 |
 | `needs` | `str` | 拓扑排序 token | — | 技能 |
-| `delay` | `int` | 延迟 N 回合生效 | `0` | 技能 |
 | `cooldown` | `int` | 冷却（次） | `0` | 技能 |
-| `on_next` | `bool` | 延迟到"下一次"生效 | `false` | power_mod |
+| `on_next` | `bool` | 延迟到"下一次"生效（**「延后生效」的唯一表示**；旧的 `delay` 字段已删除，回合末生效用 `defer{turns,at,then}`） | `false` | power_mod |
 | `if_type` | `str` | 配合 `on_next`，限定技能类型 | — | power_mod |
 | `mode` | `str` | `"set"` (默认) / `"add"` / `"multiply"` | `"set"` | mult_mod/power_mod |
 
@@ -1362,12 +1655,26 @@ feeds:cost → Gate(付能耗) → feeds:power → 威力确定 → feeds:mult
 |------|------|------|
 | `element` | 系别（支持 Query；修饰符 element 过滤支持 `"!幻"` 排除语法） | `"普通"` |
 | `tag` | 机制标签（`"迅捷"` / `"传动"`） | 无 |
+| `combo` | **基础释放次数**（游戏描述「N连击」）。**写了这个键 = 该技能带「连击词条」**，`"combo": 1` 也算——原文「1连击」的技能（追打/乘胜追击/音波弹/落石/啃咬/多维击打）就是靠它吃连击加成；不写键 = 无词条、恒 1 次、不吃精灵级连击增益 | 无键（=无词条，1 次） |
 | `use_devotion` | 触发队伍奉献 | `false` |
 | `usable_while_charging` | 蓄力中可用 | `false` |
-| `position_locked` | 不被交换移动 | `false` |
-| `morph` | 变身 `{"from": "team_own", "mode": "random"}` | 无 |
+| `transmission` | 传动等级：`-1` = **主轴（位置不参与传动，= 旧 `position_locked` 的语义）** / `0` = 普通 / `1+` = 传动等级。旧字段 `main_axis` 已于 2026-09-22 删除（主轴只由本字段表示） | `0` |
+| `morph` | 变身 `{"from": "team_own", "mode": "random"}` — **当前引擎未实现**（无读取点；「每回合随机变成 X 的技能」尚未落地） | 无 |
 | `passive` | 被动效果数组 | `[]` |
 | `counter` | 应对类型：`"攻击"` / `"防御"` / `"状态"` | 无 |
+
+### 连击（combo）语义
+
+`combo` 描述的是**技能释放次数**，与技能描述中其余文本不在同一层级：其余文本描述的是**每一次释放**的效果。
+
+| 规则 | 说明 |
+|------|------|
+| 释放次数 | 有效连击数 `N = 技能 combo 字段 + 技能自身连击修正 + （门控后的）精灵级连击增益`，再乘精灵级 `combo_mult`，恒 ≥1 |
+| 效果按次结算 | 技能的所有效果（stat_stage / power_mod / mult_mod / heal / abnormal / mark）**一律按每次释放各结算一次**。没有数据 flag：由 op 与 target 决定（见下一行），避免「数据声明」与「引擎规则」两套判据打架（旧字段 `per_hit` 已删除） |
+| 自技能参数只算一次 | 修改**自己本技能参数**的 `power_mod`/`mult_mod`（`target: "skill_off_0"`，attr ∈ power/power_mult/energy_cost/priority/combo/combo_set/combo_mult/use_count_bonus）整次使用**只结算一次**——连击数是释放次数，这些参数描述的是「单次释放」的威力/能耗/段数（如引雷「迸发：本次技能威力+20」是 2 段各 55 威力，不是 55+75） |
+| 连击增益门控 | `combo`/`combo_set`/`combo_mult` 的**精灵级**修正（`target: "sprite_self"` / `"sprite_opp"`，如暴风眼「连击数+100%」、耀眼「敌方连击数-4」）**只对带连击词条的技能生效**。词条判据 = **技能 JSON 写了 `combo` 键**（值可以是 1，即原文「1连击」）；技能自身的连击文本（`target: "skill_off_0"`、`skill.<技能名>.combo` 永久修正、队伍奉献）不受门控。落地：`sim.skill.Skill.combo_keyword` ← `'combo' in data`（两个加载器都写），`BattleSkill.combo_keyword` 委托它，`engine/snapshot.py`/`snapshot_cy.pyx` 据此门控 |
+| 伤害结算 | 伤害把 `N` 作为倍率计入公式（单次伤害事件 × N），与「N 次独立命中」的差异仅在每段最小 1 点与每段触发计数；这是当前实现的已知近似 |
+| 预测口径 | `sim/resolver.calc_damage`（AI 估伤）与引擎同口径：`combo` 字段 + 技能修正 + 门控后的精灵级增益与倍率；并逐项对齐实战输入——技能级/精灵级 `power_mult`/`damage_mult` 按 `1+(精灵级-1)+(技能级-1)` 相加、减伤取**防御方**精灵级、技能自身写在 `effects[]` 里的同回合 `power_mod`/`mult_mod` 按 `engine/modifiers.adjust_damage` 的次序**先算伤害再后乘取整**（`power_add` 折成 `(power+add)/power`）。`when` 条件（含 `skill_at`）用引擎自己的 `vm/cond.compile_cond` 求值，求不出就不计（保守） |
 
 ---
 
@@ -1500,7 +1807,6 @@ feeds:cost → Gate(付能耗) → feeds:power → 威力确定 → feeds:mult
 **涉及 opcode**: `observer` (持久化条件), `have_skill_of` + Query 嵌套, `mult_mod` mode=add
 
 #### 仁心 (异常 tick 触发治疗)
-
 来源: `data/traits/仁心.json`
 
 ```json
@@ -1520,3 +1826,33 @@ feeds:cost → Gate(付能耗) → feeds:power → 威力确定 → feeds:mult
 ```
 
 **涉及 opcode**: `observer` + `on_abnormal_tick`, `heal` + Query (`last_tick_damage`)
+
+#### 砂糖弹球 (体重差档位表 — `when`/`else_if` 链 + 派生查询 + `abs`)
+
+来源: `data/skills/砂糖弹球.json`（档位表来自 nrc 技能 `effect_details`，即游戏内「体重差与威力」工具提示档位表）
+
+```json
+{
+  "name": "砂糖弹球", "power": 20,
+  "effects": [
+    { "when": { "cond": "compare", "q": "weight_diff", "of": "sprite_self",
+                "abs": true, "op": "lt", "value": 4 },
+      "then": [ { "op": "power_mod", "target": "skill_off_0", "attr": "power",
+                  "mode": "set", "delta": 0 } ],
+      "else_if": [
+        { "when": { "cond": "compare", "q": "weight_diff", "abs": true, "op": "lt", "value": 14 },
+          "then": [ { "op": "power_mod", "target": "skill_off_0", "attr": "power",
+                      "mode": "set", "delta": 20 } ] }
+      ],
+      "else": [ { "op": "power_mod", "target": "skill_off_0", "attr": "power",
+                  "mode": "set", "delta": 100 } ] }
+  ]
+}
+```
+
+**档位**（取 `|weight_diff|`，区间左闭右开，最后一段含等号）：`0–4`→20 / `4–14`→40 /
+`14–30`→60 / `30–60`→80 / `60–120`→100 / `≥120`→120。
+`mode:"set"` 设的是**增量**，故 `delta = 档位 − 基础威力(20)`。
+
+**涉及 opcode**: `when`/`else_if`/`else` 条件链, `compare` + 派生查询 `weight_diff`（`abs` 取绝对值）,
+`power_mod` `mode:"set"`

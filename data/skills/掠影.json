@@ -5,6 +5,22 @@
   "skill_type": "物攻",
   "energy_cost": 3,
   "power": 65,
-  "effects": [],
+  "effects": [
+    {
+      "when": {
+        "cond": "last_turn_had_element",
+        "element": "火",
+        "of": "team_both"
+      },
+      "then": [
+        {
+          "op": "steal",
+          "target": "sprite_opp",
+          "what": "energy",
+          "amount": 3
+        }
+      ]
+    }
+  ],
   "description": "✦造成物伤，若上回合双方有精灵使用火系技能，偷取敌方3能量。"
 }

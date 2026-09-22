@@ -5,5 +5,13 @@
   "skill_type": "魔攻",
   "power": 110,
   "energy_cost": 4,
+  "effects": [
+    {
+      "target": "sprite_self",
+      "op": "flag_set",
+      "flag": "blood_price",
+      "value": 0.05
+    }
+  ],
   "description": "✦造成魔伤，能量不足时，消耗5%生命代替1能量。"
 }

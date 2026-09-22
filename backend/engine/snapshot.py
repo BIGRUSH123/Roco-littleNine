@@ -59,6 +59,41 @@ def _compute_speed(stats: dict[str, int], stat_stages: dict[str, int], modifiers
     return base
 
 
+def adjacent_powers(sprite, skill_index: int) -> tuple[int, int]:
+    """当前技能槽**两侧**技能的威力读数 → (两侧之和, 两侧之差绝对值)。
+
+    口径（与 `skill_filter:"adjacent"` 同一份「相邻」定义，见
+    `backend/engine/modifiers.py:matches_skill_filter`）：
+      - 相邻 = 技能列表中索引相减为 1 的槽位，**不环绕**；
+      - 边缘槽位只有一侧，另一侧按 0 处理（缺一侧 → 该侧威力 0）；
+      - 威力取**当前生效**技能的 `power`（`BattleSkill.power` = 基础威力 + 技能级
+        `_modifiers["power"]`，与 Ctx `power_self` 同口径），不是 `base.power`；
+      - 无技能 / 拿不到槽位（skill_index 越界、sprite 无 skills）→ (0, 0)。
+    """
+    skills = getattr(sprite, 'skills', None) or ()
+    n = len(skills)
+    if n < 2:
+        return 0, 0
+    try:
+        idx = int(skill_index)
+    except (TypeError, ValueError):
+        return 0, 0
+    if idx < 0 or idx >= n:
+        return 0, 0
+
+    def _power(i: int) -> int:
+        if i < 0 or i >= n:
+            return 0
+        try:
+            return int(skills[i].power)
+        except (AttributeError, TypeError, ValueError):
+            return 0
+
+    left = _power(idx - 1) if idx - 1 >= 0 else 0
+    right = _power(idx + 1) if idx + 1 < n else 0
+    return left + right, abs(left - right)
+
+
 def _battle_skill_summary_key(skills) -> tuple | None:
     key = []
     for sk in skills:
@@ -194,6 +229,13 @@ def build_ctx(
     devotion_opp: dict[str, int] | None = None,
     abnormal_stacks_battle: dict[str, int] | None = None,
     moe_team_stacks: int = 0,
+    # 上回合系别/能耗寄存器（覆盖写；由 sim/battle.py 在回合末写入，Battle 侧取用）
+    last_turn_element_own: dict[str, int] | None = None,
+    last_turn_element_opp: dict[str, int] | None = None,
+    last_turn_element_both: dict[str, int] | None = None,
+    last_turn_energy_sum_own: int = 0,
+    last_turn_energy_sum_opp: int = 0,
+    last_turn_energy_sum_both: int = 0,
     # BattleSkill reference (for _modifiers and synthesized power/energy/combo)
     battle_skill: Any = None,
 ) -> Ctx:
@@ -306,6 +348,17 @@ def build_ctx(
         energy_cost_self = sk.energy_cost if hasattr(sk, 'energy_cost') else 0
     combo_mod = int(ss_mods.get("combo", 0))
     combo_set = int(ss_mods.get("combo_set", 0))
+    # 连击词条：技能 JSON **写了** combo 键（`"combo": 1` 也算——游戏原文里的「1连击」
+    # 就是为吃连击加成而标）。精灵级连击增益（暴风眼「连击数+100%」、耀眼「敌方连击数-4」、
+    # 热身运动「自己获得连击数+3」）只对带词条的技能生效，否则单发技能会被全局增益变成连击。
+    # 技能自身的连击修正（skill_off_0 / skill.<名>.combo）不受门控——那是技能自身文本。
+    _raw_skill = (getattr(bs, "replaced_by", None) or getattr(bs, "base", None)) if bs is not None else sk
+    _keyword_flag = getattr(_raw_skill, "combo_keyword", None)
+    combo_keyword = (bool(_keyword_flag) if _keyword_flag is not None
+                     else bool(getattr(_raw_skill, "combo", 1) >= 2))
+    if not combo_keyword:
+        combo_mod = 0
+        combo_set = 0
     # combo_mult 不在 snapshot 阶段乘入 — 留给 adjust_damage 在
     # 同技能 combo 修改（set/add）之后再乘，确保正确的执行顺序。
     combo_self = max(1, combo_set) if combo_set > 0 else max(1, combo_base + combo_mod)
@@ -315,6 +368,9 @@ def build_ctx(
     osk = opp_skill
     power_opp = osk.power if osk and hasattr(osk, 'power') else 0
     energy_cost_opp = osk.energy_cost if osk and hasattr(osk, 'energy_cost') else 0
+
+    # ── 两侧技能威力（六自由度「两侧技能威力差的四分之一」/ 减压阀 等）──
+    adj_power_sum, adj_power_diff = adjacent_powers(ss, skill_index)
 
     # ── Build EventContext ──
     event_ctx = EventContext(
@@ -346,7 +402,7 @@ def build_ctx(
     power_mult_mod_self = ss.power_mult_modifier
     damage_mult_mod_self = ss.damage_mult_modifier
     energy_cost_mult_mod_self = ss.energy_cost_mult_modifier
-    combo_mult_mod_self = ss.combo_mult_modifier
+    combo_mult_mod_self = ss.combo_mult_modifier if combo_keyword else 0.0
     life_drain_mod_self = ss.life_drain_modifier
 
     # Self sprite counters
@@ -371,6 +427,9 @@ def build_ctx(
         is_mixed_blood_opp=is_mixed_blood(os),
         elements_self=elements_self,
         elements_opp=elements_opp,
+        # 体重（kg）：sidecar `data/sprites/_weights.json`（Catalog 区间取中点）
+        weight_self=float(getattr(ss, 'weight', 0.0) or 0.0),
+        weight_opp=float(getattr(os, 'weight', 0.0) or 0.0),
         # Self sprite
         hp_self=hp_self,
         hp_self_ratio=hp_self_ratio,
@@ -463,16 +522,27 @@ def build_ctx(
         lives_opp=lives_opp,
         burst_triggered_count_own=burst_triggered_count_own,
         moe_team_stacks=moe_team_stacks,
+        # 上回合系别/能耗（覆盖写寄存器）
+        last_turn_element_own=last_turn_element_own or {},
+        last_turn_element_opp=last_turn_element_opp or {},
+        last_turn_element_both=last_turn_element_both or {},
+        last_turn_energy_sum_own=last_turn_energy_sum_own,
+        last_turn_energy_sum_opp=last_turn_energy_sum_opp,
+        last_turn_energy_sum_both=last_turn_energy_sum_both,
 
         # Skill
         power_self=power_self,
-        adjacent_power_sum=0,  # engine should compute this
+        adjacent_power_sum=adj_power_sum,
+        adjacent_power_diff=adj_power_diff,
         power_opp=power_opp,
         skill_type_self=getattr(sk, 'skill_type', ""),
         skill_type_opp=getattr(osk, 'skill_type', "") if osk else "",
         element_self=getattr(sk, 'element', ""),
         element_opp=getattr(osk, 'element', "") if osk else "",
         skill_tag_self=getattr(sk, 'tag', ""),
+        # 当前技能名（`trait_path` path:"skill"）；sk 是 BattleSkill 时 .name 已按
+        # 巧变/借用/打断口径解析，裸 Skill/dict 走 getattr 兜底
+        skill_name_self=getattr(sk, 'name', "") or "",
         combo_self=combo_self,
         element_advantage=_get_element_advantage(
             getattr(sk, 'element', ''),
@@ -505,11 +575,13 @@ def build_ctx(
     )
 
 
-def fill_extended_registers(ctx: Ctx, self_sprite, opp_sprite, globals_) -> Ctx:
+def fill_extended_registers(ctx: Ctx, self_sprite, opp_sprite, globals_,
+                            self_skill=None, opp_skill=None) -> Ctx:
     """填充 Cython build_ctx 未覆盖的扩展寄存器（Python 版已原生填充）。
 
-    新增寄存器（精灵级计数器 / 世界状态 / 血脉派生判定）只在 Python build_ctx 中构建；
-    Cython 版由于签名固定，需在构造后补齐，两条路径行为保持一致。
+    新增寄存器（精灵级计数器 / 世界状态 / 血脉派生判定 / 当前技能名 / 体重 /
+    两侧技能威力）只在 Python build_ctx 中构建；Cython 版由于签名固定，
+    需在构造后补齐，两条路径行为保持一致。
     """
     ctx.counters_self = self_sprite.counters if self_sprite is not None else {}
     ctx.counters_opp = opp_sprite.counters if opp_sprite is not None else {}
@@ -517,6 +589,19 @@ def fill_extended_registers(ctx: Ctx, self_sprite, opp_sprite, globals_) -> Ctx:
     # 混血（3015）：Cython build_ctx 不认识这两个字段，在此补齐（cond 只读寄存器）
     ctx.is_mixed_blood_self = is_mixed_blood(self_sprite)
     ctx.is_mixed_blood_opp = is_mixed_blood(opp_sprite)
+    # 体重（kg，Catalog 区间取中点）
+    if self_sprite is not None:
+        ctx.weight_self = float(getattr(self_sprite, 'weight', 0.0) or 0.0)
+    if opp_sprite is not None:
+        ctx.weight_opp = float(getattr(opp_sprite, 'weight', 0.0) or 0.0)
+    # 两侧技能威力（当前技能槽的左右邻居；不环绕，缺一侧按 0）
+    if self_sprite is not None:
+        ctx.adjacent_power_sum, ctx.adjacent_power_diff = adjacent_powers(
+            self_sprite, ctx.skill_index)
+    # 当前技能名（`trait_path` path:"skill"；cond 只读寄存器）。用生效技能名 ——
+    # BattleSkill.name 已按巧变/借用/打断口径解析。
+    if self_skill is not None:
+        ctx.skill_name_self = getattr(self_skill, "name", "") or ""
     return ctx
 
 

@@ -635,6 +635,89 @@ class BattleMechanicsMixin:
             events.append(f'{user.name} 借用 {donor.name} 的 {borrowed.name}')
 
     # ═══════════════════════════════════════════════════════════════
+    # 跨精灵技能轮转（过山车）
+    # ═══════════════════════════════════════════════════════════════
+
+    @staticmethod
+    def _skill_slot_locked(bs) -> bool:
+        """该技能槽位是否**位置锁定**（不参与跨精灵轮转、也不占位）。
+
+        口径（见 data/IR_GUIDE.md §3C `skill_rotate`）：
+          - 主轴：`_transmission == -1`（与传动 pass 同一语义：位置不动）；
+          - 临时/被替换槽位：`replaced_by is not None`（借用 / 愿力 / 巧变产物 /
+            `replace_skill`）——这些槽位的还原登记是 `(队伍, 槽位号)`，移动槽位对象会让
+            回合末还原命中错误的槽位，故视作位置锁定；
+          - `is_temporary`（`gain_skills` 等临时技能）。
+        """
+        if bs is None:
+            return True
+        if getattr(bs, '_transmission', 0) == -1:
+            return True
+        if getattr(bs, 'replaced_by', None) is not None:
+            return True
+        if getattr(bs, 'is_temporary', False):
+            return True
+        return False
+
+    def rotate_team_skills(self, team: str, offset: int = 1) -> list[str]:
+        """过山车：己方**全队**携带技能跨精灵整体轮转 `offset` 位（向下移动）。
+
+        语义（数据 `skill_rotate`，见 data/IR_GUIDE.md §3C）：
+          - 取序列 = 按「精灵顺序（`player.team` 顺序）× 槽位顺序」拼接**参与槽位**
+            （位置锁定的槽位被跳过，不占位）；
+          - 整体轮转 `offset` 位：`rot[i] = seq[i-offset]`，末尾的 `offset` 个技能回到
+            序列开头（= 每只精灵的技能列表整体向下移动 1 位、最后一位回到第一只的第一槽位）；
+          - 按各精灵**原槽位数**分段写回：槽位数不同的精灵也无需补齐，技能总数不变；
+          - 轮转的是 `BattleSkill` **槽位对象整体**：冷却 / 替换 / 临时标记 / 技能级
+            `_modifiers` 随对象一起移动（底层 `Skill` 数据不动）。
+          - 移动到的每个槽位触发一次 `skill_position_changed` 通知（与传动 pass 一致）。
+        返回事件列表。
+        """
+        events: list[str] = []
+        mcts_sim = getattr(self, '_mcts_sim', False)
+        try:
+            step = int(offset)
+        except (TypeError, ValueError):
+            step = 1
+        if step == 0:
+            return events
+
+        player = self.get_player(team)
+        slots: list[tuple] = []          # [(sprite, slot_index, BattleSkill)]
+        for sprite in player.team:
+            for i, bs in enumerate(getattr(sprite, 'skills', None) or ()):
+                if self._skill_slot_locked(bs):
+                    continue
+                slots.append((sprite, i, bs))
+        n = len(slots)
+        if n < 2:
+            return events
+        step %= n
+        if step == 0:
+            return events
+
+        values = [bs for _, _, bs in slots]
+        new_values = values[-step:] + values[:-step]
+        moved: list[tuple] = []          # [(sprite, slot_index, bs)]
+        for (sprite, i, old_bs), new_bs in zip(slots, new_values):
+            if new_bs is old_bs:
+                continue
+            sprite.skills[i] = new_bs
+            moved.append((sprite, i, new_bs))
+        if not moved:
+            return events
+        if not mcts_sim:
+            for sprite in player.team:
+                names = '/'.join(getattr(b, 'name', '?') for b in (sprite.skills or ()))
+                events.append(f'{sprite.name} 技能轮转→ {names}')
+        for sprite, _i, bs in moved:
+            position_events = self._fire_skill_position_changed(team, sprite, bs)
+            if not mcts_sim:
+                events += position_events
+        self._invalidate_ctx_team_cache()
+        return events
+
+    # ═══════════════════════════════════════════════════════════════
     # 传动系统
     # ═══════════════════════════════════════════════════════════════
 

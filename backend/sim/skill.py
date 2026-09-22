@@ -2,10 +2,8 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import TYPE_CHECKING
-
-from .effects import Effect, effect_from_dict
 
 if TYPE_CHECKING:
     from .sprite import Sprite
@@ -22,7 +20,14 @@ _ATTACK_TYPES: frozenset[str] = frozenset({'物攻', '魔攻', '动态攻击'})
 
 @dataclass
 class Skill:
-    """战斗技能。从 JSON 反序列化，不再依赖 wiki/SkillInfo。"""
+    """战斗技能。从 JSON 反序列化，不再依赖 wiki/SkillInfo。
+
+    效果**只有一种表示**：JSON `effects[]` 的 IR，由 `SkillCompiler` 编译成
+    `CompiledSkill.effects`（VM 执行、规则层经 `sim/skill_ir.py` 只读查询）。
+    sim 层因此不再持有任何效果对象——旧版 `kind` 形式的 `SpecialName` /
+    `effect_from_dict` 层与 `Skill.effects` 字段已于 2026-09-22 删除
+    （0 数据用量；遗留读取方已按「保持行为不变」清理）。
+    """
 
     id: int = 0
     name: str = ''
@@ -32,43 +37,19 @@ class Skill:
     energy_cost: int = 0
     counter: str = '无'        # 无|攻击|防御|状态
     priority: int = 0
-    combo: int = -1            # 连击数：-1=不参与连击，1=单次，2+=多次
-    effects: list[Effect] = field(default_factory=list)
+    combo: int = -1            # 基础释放次数（连击词条的值）
+    combo_keyword: bool | None = None  # 连击词条：True/False 由加载器按「JSON 有没有 combo 键」
+                               # 写入；None = 未知（直接构造的合成技能）→ 回退按 combo≥2 判
     exclusive_to: str = ''     # 专属技能归属精灵名（萌化后不匹配则封印）
     transmission: int = 0      # 传动：-1=主轴（不参与传动），0=普通，1+=传动等级
+    tag: str = ''              # 机制标签：'迅捷' / '传动'（技能自带，入场迅捷/传动 pass 读它）
     description: str = ''      # 人类可读描述（API/前端展示用）
     usable_while_charging: bool = False  # 蓄力期间是否可使用
     qiaobian: object = None    # 巧变类别（str 池名 或 spec dict；使用后变为该类别的技能）
 
     @classmethod
     def load(cls, data: dict) -> Skill:
-        """从 JSON dict 反序列化。自动迁移 main_axis → transmission=-1。
-
-        技能 JSON 的 `effects[]` 是 IR（op 形式），由 SkillCompiler 编译后供 VM
-        执行；sim 层 `Skill.effects` 只承载旧版 kind 形式，因此这里跳过无法识别
-        的条目（不报错），使巧变/换装等按名加载技能的路径对全语料安全。
-        """
-        effects_raw = data.get('effects', [])
-        effects = []
-        for e in effects_raw:
-            if not isinstance(e, dict) or not e.get('kind'):
-                continue
-            try:
-                effects.append(effect_from_dict(e))
-            except ValueError:
-                continue
-
-        # transmission: 旧格式 main_axis=true → transmission=-1
-        transmission = data.get('transmission', 0)
-        if data.get('main_axis', False):
-            if transmission not in (0, -1):
-                import warnings
-                warnings.warn(
-                    f"Skill {data.get('name', '?')}: main_axis=true conflicts with "
-                    f"transmission={transmission}, using -1", stacklevel=2
-                )
-            transmission = -1
-
+        """从 JSON dict 反序列化（只取元数据；技能效果是 IR，见下方类注释）。"""
         return cls(
             id=data.get('id', 0),
             name=data['name'],
@@ -78,13 +59,15 @@ class Skill:
             energy_cost=data.get('energy_cost', 0),
             counter=data.get('counter', '无'),
             priority=data.get('priority', 0),
-            # 缺省 1=单次（与 SimFactory._build_skill_list 一致；-1=不参与
-            # 连击须在 JSON 显式写——此前 -1/1 双加载器不一致，编码器裸值
-            # 消费时暴露，引擎 ctx max(1,·) 归一故无行为差）
+            # 缺省 1=单次（与 SimFactory._build_skill_list 一致）。combo_keyword
+            # 记录「JSON 是否写了 combo 键」= 是否带连击词条：写了（哪怕 "combo": 1，
+            # 游戏原文里的「1连击」）才能吃精灵级连击增益；没写则恒 1 次。
+            # 见 data/IR_GUIDE.md §八「连击语义」。
             combo=data.get('combo', 1),
-            effects=effects,
+            combo_keyword=('combo' in data),
             exclusive_to=data.get('exclusive_to', ''),
-            transmission=transmission,
+            transmission=data.get('transmission', 0),
+            tag=data.get('tag', ''),
             description=data.get('description', ''),
             usable_while_charging=data.get('usable_while_charging', False),
             qiaobian=data.get('qiaobian'),

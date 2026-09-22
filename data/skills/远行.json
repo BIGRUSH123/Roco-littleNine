@@ -5,5 +5,23 @@
   "skill_type": "魔攻",
   "power": 50,
   "energy_cost": 2,
+  "effects": [
+    {
+      "op": "observer",
+      "scope": "persistent",
+      "cond": {
+        "cond": "is_first"
+      },
+      "then": [
+        {
+          "op": "power_mod",
+          "target": "skill_off_0",
+          "scope": "permanent",
+          "attr": "power",
+          "delta": 25
+        }
+      ]
+    }
+  ],
   "description": "✦造成魔伤，自己每先于敌方行动1次，本技能威力永久+25。"
 }

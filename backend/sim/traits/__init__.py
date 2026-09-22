@@ -93,6 +93,24 @@ def dispatch_entry(sprite: Sprite, battle: Battle, team: str) -> list[str]:
     except Exception:
         pass
 
+    # 特性顶层 `initial_energy`：该精灵**首次入场**时把能量设为声明值
+    # （盗魂铃/结晶水「初始能量为0」）。用精灵计数器门控「首次」，因为
+    # 首发精灵的 entry_turn 会被写成 0（battle.turn == 0），此后无法与「未入场」区分。
+    try:
+        if sprite.get_counter("initial_energy_applied") == 0:
+            species = getattr(sprite, "species", None)
+            trait_id = getattr(species, "ability_id", 0) if species else 0
+            trait_name = getattr(species, "ability", "") if species else ""
+            loader = getattr(battle._vm_engine, "trait_loader", None)
+            data = (loader._load_trait_data(trait_id, trait_name)
+                    if loader is not None and (trait_id or trait_name) else None)
+            if data and data.get("initial_energy") is not None:
+                sprite.energy = max(0, int(data["initial_energy"]))
+                sprite.inc_counter("initial_energy_applied")
+                events.append(f'{sprite.name} 初始能量={sprite.energy}')
+    except Exception:
+        pass
+
     # IR_GUIDE trait pipeline: load trait JSON → compile observers → register
     with contextlib.suppress(Exception):
         battle._vm_engine.trait_loader.load_for_sprite(sprite)
