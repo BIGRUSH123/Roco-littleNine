@@ -13,9 +13,11 @@
 from __future__ import annotations
 
 from .ground_wu import GroundWuExpert
+from .iron_seal import IronSealExpert
 from .poison import PoisonExpert
 from .rain import RainExpert
 from .shadow import ShadowPoisonExpert
+from .squirrel import SquirrelExpert
 from .starfall import StarfallExpert
 
 # 队名（meta_teams.json 的 name）→ 专家类
@@ -25,6 +27,8 @@ _EXPERTS = {
     "首领毒": PoisonExpert,
     "新地武": GroundWuExpert,
     "【搬运】黑影平衡毒": ShadowPoisonExpert,
+    "铁头海豹平衡队": IronSealExpert,
+    "电羊松鼠平衡队": SquirrelExpert,
 }
 
 
@@ -38,4 +42,5 @@ def expert_names() -> dict[str, str]:
 
 
 __all__ = ["expert_for_team", "expert_names", "StarfallExpert", "RainExpert",
-           "PoisonExpert", "GroundWuExpert", "ShadowPoisonExpert"]
+           "PoisonExpert", "GroundWuExpert", "ShadowPoisonExpert",
+           "IronSealExpert", "SquirrelExpert"]

@@ -12,6 +12,8 @@ case "$TEAM" in
   首领毒) RULES="venom_cheap water_spreads spread_poison hold_converter" ;;
   新地武) RULES="counter_setup invest_cost off_status_counter off_trade" ;;
   【搬运】黑影平衡毒) RULES="punish_rotation spread_poison no_idle_rotate infect_finisher" ;;
+  铁头海豹平衡队) RULES="hold_filter heal_bot_guard cry_loop counter_scale" ;;
+  电羊松鼠平衡队) RULES="charge_ramp burn_shield burn_marks combo_warmup" ;;
   *) echo "未知队伍 $TEAM"; exit 1 ;;
 esac
 
