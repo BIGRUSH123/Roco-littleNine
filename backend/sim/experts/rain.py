@@ -34,7 +34,11 @@ class RainExpert(RuleAgentV2):
     `rules` 可只开子集：`rain_first` / `borrow_slot` / `charge_combo` / `rain_water`。
     """
 
-    RULES = ("rain_first", "borrow_slot", "charge_combo", "rain_water")
+    # 实测（120 局/档，镜像）：四条全在噪声内（borrow_slot 0.517 / rain_water 0.483 /
+    # charge_combo 0.458 / rain_first 0.458，对照 0.492），四条全开 0.433 偏负 →
+    # **判定无效、默认集清空**（= 与通用专家一致），规则保留供复测。见 docs §20.2。
+    RULES = ()
+    OPTIONAL_RULES = ("rain_first", "borrow_slot", "charge_combo", "rain_water")
 
     def __init__(self, *a, rules=None, **kw):
         super().__init__(*a, **kw)

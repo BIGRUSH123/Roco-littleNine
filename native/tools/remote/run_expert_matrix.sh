@@ -14,6 +14,8 @@ case "$TEAM" in
   【搬运】黑影平衡毒) RULES="punish_rotation spread_poison no_idle_rotate infect_finisher" ;;
   铁头海豹平衡队) RULES="hold_filter heal_bot_guard cry_loop counter_scale" ;;
   电羊松鼠平衡队) RULES="charge_ramp burn_shield burn_marks combo_warmup" ;;
+  羽刃翼王铁头队) RULES="heal_bot_guard wing_edge" ;;
+  虫) RULES="farm_over_gather" ;;
   *) echo "未知队伍 $TEAM"; exit 1 ;;
 esac
 
