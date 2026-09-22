@@ -169,9 +169,12 @@ class RuleAgentV3:
     # ── 通用计算（与 V2 同口径，避免两份实现漂移）──
 
     def _attack_table(self, battle, attacker: Sprite, defender: Sprite):
+        """**合法**攻击技能的 (index, dmg, cost)（合法性 = 引擎唯一判据，同 V2）。"""
         table = []
         for i, skill in enumerate(attacker.skills):
-            if skill.cooldown > 0 or skill.sealed or not skill.is_attack:
+            if not skill.is_attack:
+                continue
+            if not battle.action_legality(self.team, Action(kind='skill', skill_index=i)).ok:
                 continue
             dmg, _ = battle._resolver.calc_damage(
                 attacker, defender, SkillUse(battle_skill=skill, skill_index=i),

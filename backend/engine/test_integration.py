@@ -161,11 +161,19 @@ def test_modifier_chain():
     assert mods["damage_mult"] == 1.3
     assert mods["combo_add"] == 2
 
-    # (72 * power_mult * damage_mult * (1 + combo_add))
+    # 连击不再折进伤害值：amount 保持**单段**值，段数写在 hits 上（连击 = N 次独立命中）
     adjusted = adjust_damage(journal[3], mods)
-    expected = round(round(72 * 2.0 * 1.3) * 3)  # intermediate rounding
+    expected = round(72 * 2.0 * 1.3)
     assert adjusted.amount == expected, f"Expected {expected}, got {adjusted.amount}"
-    print(f"  Modifier chain: power_mult×2.0 + damage_mult×1.3 + combo+2, damage={72}→{adjusted.amount}")
+    assert adjusted.hits == 0, "hits=0（非连击命中）不参与段数改写"
+
+    # 同一条如果是**连击命中**（op_hit 产出，hits=base）：段数改写为 base+2
+    hit = Damage(target="sprite_opp", amount=72, element="水", type="魔攻", hits=1)
+    marked = adjust_damage(hit, mods)
+    assert marked.amount == expected and marked.hits == 3, \
+        f"连击命中应改写段数为 3: hits={marked.hits}"
+    print(f"  Modifier chain: power_mult×2.0 + damage_mult×1.3 + combo+2, "
+          f"damage={72}→{marked.amount}×{marked.hits}段")
 
 
 def test_modifier_collection_end_to_end():

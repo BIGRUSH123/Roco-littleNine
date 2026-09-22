@@ -16,7 +16,7 @@ from backend.vm.ir_skill import ChargeOp, CompiledSkill, WhenBlock, WhenBranch
 from backend.vm.effect import AbnormalEffect, StateEffect, StatBuffEffect
 
 from .action import Action
-from .battle_mechanics import BattleMechanicsMixin
+from .battle_mechanics import ActionCheck, BattleMechanicsMixin
 from .battleskill import BattleSkill
 from .globals import GlobalEffects, kingdom_is_night
 from .resolver import SkillResolver
@@ -195,6 +195,17 @@ class Battle(BattleMechanicsMixin):
         sprite._charging = False
         sprite._charged_skill_ref = None
         sprite._charged_skill_index = -1
+
+    @classmethod
+    def _cancel_charge(cls, sprite: "Sprite") -> None:
+        """取消蓄力：**属性与状态效果一起清**。
+
+        `_charging`（属性）与 `StateEffect("charging")`（快照 `is_charging` 的来源）
+        是同一件事的两种表示——只清属性会让替补席/返场精灵的 `is_charging` 类数据
+        条件继续为真（实测：换宠离场只清属性，状态效果留在身上）。
+        """
+        cls._clear_charge_target(sprite)
+        sprite.remove_effect("charging", "state")
 
     def skill_energy_cost(
         self,
@@ -676,6 +687,11 @@ class Battle(BattleMechanicsMixin):
         self._skill_compiler = SkillCompiler()
         self._skill_cache: dict[str, CompiledSkill] = {}
         self._charge_skill_cache: dict[str, bool] = {}
+        #: 各队最近一次行动执行的合法性判定（`ActionCheck`）——回合末盖章进
+        #: ActionRecord（status/code/turn_consumed），不改回合推进逻辑
+        self._last_action_check_by_team: dict[str, ActionCheck] = {}
+        #: 各队本轮被拒的非法动作（`_select_action` 记账，写进 ActionRecord.rejected）
+        self._rejected_actions: dict[str, list[str]] = {}
         self.team_counters: dict[str, dict[str, int]] = {'A': {}, 'B': {}}  # pre-entry accumulators
         self.pending_effects: dict[str, list] = {'A': [], 'B': []}  # leave-buff → next entry
         self.scheduled_effects: list[dict] = []  # 延时效果队列 [{turn, phase, effects, ...}]
@@ -1064,6 +1080,19 @@ class Battle(BattleMechanicsMixin):
         # 3. 行动结算阶段
         self._phase_resolve(action_a, action_b, rec)
 
+        # 3.5 盖章：把引擎的合法性判定写进 ActionRecord（status/code/turn_consumed），
+        # 以及本轮被拒的非法动作（`_select_action` 的记账）。
+        if record_events:
+            for _ar in (rec.action_a, rec.action_b):
+                if _ar is None:
+                    continue
+                _chk = self._last_action_check_by_team.get(_ar.team)
+                if _chk is not None:
+                    _ar.status, _ar.code = _chk.status, _chk.code
+                    _ar.turn_consumed = _chk.turn_consumed
+                _ar.rejected = list(self._rejected_actions.get(_ar.team, ()))
+        self._rejected_actions = {}
+
         # 4. 回合结束阶段（已内含 >>>PHASE:TURN_END 标记）
         te_events = self._phase_turn_end()
         if record_events:
@@ -1175,16 +1204,49 @@ class Battle(BattleMechanicsMixin):
     # ═══════════════════════════════════════════════════════════════
 
     def _select_action(self, agent: Agent, team: str) -> tuple[Action, str]:
-        """道具循环：使用道具后重新选择。返回 (最终行动, 道具名)。"""
+        """选招循环：**道具不消耗回合**（结算道具后重新选）+ **非法动作不推进回合**
+        （拒绝后重新选，被拒的尝试记进 `self._rejected_actions[team]` 以便回看）。
+
+        非法动作按 `Battle.action_legality`（唯一判据）判定——与动作掩码同源，
+        AI 的正常路径不会走到这里；走到这里说明 agent 的候选过滤漏了，或者状态
+        在它决策之后变了。达到上限则用掩码兜底（顺序第一个合法动作，最后退聚能）。
+        """
         item_used = ''
-        for _ in range(8):  # 安全上限：防止道具无限循环卡死
+        rejected: list[str] = self._rejected_actions.setdefault(team, [])
+        fallback: Action | None = None
+        for attempt in range(8):  # 安全上限：防止无限循环卡死
             action = agent.choose_action(self)
             if action.kind == 'item':
                 item_used = self._resolve_item(team, action.variant)
                 continue
-            return action, item_used
-        # 道具使用超限：退回聚能兜底
-        return Action('gather'), item_used
+            check = self.action_legality(team, action)
+            # `state_skip`（眩晕：「合法但被状态吃掉」）**不算拒收**——
+            # 动作本身合法，交给引擎按规则消耗回合（不重复征询 agent）
+            if check.ok or check.status == "state_skip":
+                return action, item_used
+            desc = (action.kind
+                    + (f":{action.skill_index}" if action.kind == 'skill' else "")
+                    + f"[{check.code}]")
+            rejected.append(desc)
+            if attempt == 7:
+                break
+        fallback = self._first_legal_action(team)
+        rejected.append(f"→兜底 {fallback.kind}")
+        return fallback, item_used
+
+    def _first_legal_action(self, team: str) -> Action:
+        """掩码兜底：按动作索引顺序取第一个合法动作（都没有则聚能）。"""
+        try:
+            from backend.engine.ai.core.mcts import action_index_to_action, get_valid_actions
+            player = self.get_player(team)
+            valid, _mask = get_valid_actions(player, self)
+            for idx in valid:
+                act = action_index_to_action(player, idx)
+                if act is not None and self.action_legality(team, act).ok:
+                    return act
+        except Exception:
+            pass
+        return Action(kind='gather')
 
     # ═══════════════════════════════════════════════════════════════
     # Phase 3: 行动结算（优先级排序）
@@ -1544,18 +1606,23 @@ class Battle(BattleMechanicsMixin):
         target = opponent.active
 
         if user.is_fainted:
+            self._last_action_check_by_team[team] = ActionCheck(False, "illegal", "fainted")
             return events
 
-        # ── 眩晕：本回合无法行动，每层抵挡一次行动 ──
-        if user.get_stacks('眩晕') > 0:
+        # ── 行动合法性（唯一判据：`Battle.action_legality`）──
+        # 这里只处理**与能量支付无关**的分支（力竭/眩晕/封印/冷却/蓄力锁定）：
+        # 能耗相关的判定必须留在下面的能量门控处——那之前还会消费 `on_next`
+        # 能耗修正，判早了会把「消费后付得起」的技能误判成付不起。
+        check = self.action_legality(team, action)
+        self._last_action_check_by_team[team] = check
+        if check.status == "state_skip":
+            # 眩晕：每层抵挡一次行动（合法但被吃掉，照规则消耗回合）
             user.remove_effect('眩晕', 'abnormal')
             if not mcts_sim:
                 events.append(f'{user.name} 眩晕，无法行动!')
             return events
-
-        # ── 蓄力中禁止聚能 ──
-        if getattr(user, '_charging', False):
-            if not mcts_sim:
+        if not check.ok and check.code not in ("insufficient_energy", "no_hp_price"):
+            if not mcts_sim and check.code == "charging_locked" and action.kind == 'gather':
                 events.append(f'{user.name} 蓄力中无法聚能')
             return events
 
@@ -1708,6 +1775,8 @@ class Battle(BattleMechanicsMixin):
             )
             return events  # entering charge
         if charge_result is False:
+            # 蓄力锁定：合法判据说「不合法的技能」才会走到这里（掩码已排除）
+            self._last_action_check_by_team[team] = ActionCheck(False, "illegal", "charging_locked")
             return events  # blocked
 
         # ═══ 应对日志 ═══
@@ -1798,6 +1867,16 @@ class Battle(BattleMechanicsMixin):
         cost = self.skill_energy_cost(team, user, bs, action.skill_index) + branch_cost_delta
         cost = max(0, cost)
         if cost > 0:
+            # 付不起 → 用唯一判据给出原因码（消息文案保持历史原样）
+            _check = self.action_legality(team, action)
+            if not _check.ok and _check.code in ("insufficient_energy", "no_hp_price"):
+                self._last_action_check_by_team[team] = _check
+                if not mcts_sim:
+                    if _check.code == "no_hp_price":
+                        events.append(f'{user.name} HP不足无法代替能量')
+                    else:
+                        events.append(f'{user.name} E不足{user.energy}<{cost}')
+                return events
             if user.energy >= cost:
                 user.lose_energy(cost)
                 user.inc_counter('energy_spent', cost)
@@ -1806,22 +1885,15 @@ class Battle(BattleMechanicsMixin):
                 # 生命代替能量：精灵级 blood_price，或**本技能自带**声明
                 # （虚假破产/骗局首次使用时精灵级还没有该 flag → 原来整类无效）
                 hp_ratio = self.hp_energy_price(user, bs, record)
-                if hp_ratio > 0:
-                    deficit = cost - user.energy
-                    hp_cost = round(user.max_hp * hp_ratio * deficit)
-                    if user.current_hp > hp_cost:
-                        user.lose_energy(user.energy)
-                        user.take_damage(hp_cost)
-                        if not mcts_sim:
-                            events.append(f'{user.name} 消耗{hp_cost}HP代替{deficit}E')
-                    else:
-                        if not mcts_sim:
-                            events.append(f'{user.name} HP不足无法代替能量')
-                        return events
-                else:
-                    if not mcts_sim:
-                        events.append(f'{user.name} E不足{user.energy}<{cost}')
-                    return events
+                deficit = cost - user.energy
+                hp_cost = round(user.max_hp * hp_ratio * deficit)
+                user.lose_energy(user.energy)
+                user.take_damage(hp_cost)
+                if not mcts_sim:
+                    events.append(f'{user.name} 消耗{hp_cost}HP代替{deficit}E')
+
+        # 支付通过 → 本次行动合法（顶层判定可能因 `on_next` 能耗修正而偏严）
+        self._last_action_check_by_team[team] = ActionCheck(True)
 
         # Clear one-shot on_next energy_cost modifier after consumption.
         # Only on_next writes to sprite._modifiers["energy_cost"];
@@ -2026,9 +2098,8 @@ class Battle(BattleMechanicsMixin):
         charged_idx, charged_skill = self._charged_skill(user)
 
         if is_charging and has_charge and bs is charged_skill:
-            self._clear_charge_target(user)
-            # Remove "charging" effect, add "charged" for condition checks
-            user.remove_effect("charging", "state")
+            # 释放：清掉蓄力（属性+状态效果），加上 "charged" 供条件判定
+            self._cancel_charge(user)
             user.add_effect(StateEffect(
                 name="charged", state_type="charged", scope="battlefield", source="charge",
             ))
@@ -2037,8 +2108,7 @@ class Battle(BattleMechanicsMixin):
         if is_charging:
             if bs.base.usable_while_charging or user._modifiers.get("charge_any_skill", 0) > 0:
                 # Cancel charging — the sprite used a different skill instead of releasing the charged one
-                self._clear_charge_target(user)
-                user.remove_effect("charging", "state")
+                self._cancel_charge(user)
                 return None  # pass through: skill can be used while charging
             return False  # blocked: must use charge skill
 

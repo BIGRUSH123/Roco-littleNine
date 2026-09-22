@@ -808,13 +808,15 @@ class BattleVMEngine:
                     atk_stage=atk_stage,
                     def_stage=def_stage,
                     damage_reduction=ctx.damage_reduction_opp,
-                    combo_count=ctx.combo_self,
+                    # 借用的攻击同样按单段算，段数交给 Damage.hits（连击 = N 次独立命中）
+                    combo_count=1,
                 )
                 journal.append(Damage(
                     target="sprite_opp",
                     amount=amount,
                     element=borrowed_element,
                     type=borrowed_type,
+                    hits=max(1, ctx.combo_self),
                 ))
 
         return journal
@@ -842,6 +844,7 @@ class BattleVMEngine:
                     amount=m.amount,
                     element=m.element,
                     type=m.type,
+                    hits=m.hits,   # 段数随重定向一起搬，别把连击丢了
                 ))
             elif isinstance(m, Redirect):
                 continue  # consume redirect

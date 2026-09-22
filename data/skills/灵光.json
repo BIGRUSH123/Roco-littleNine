@@ -16,7 +16,7 @@
           "op": "power_mod",
           "target": "skill_off_0",
           "attr": "combo_mult",
-          "delta": 2
+          "delta": 1
         }
       ]
     }

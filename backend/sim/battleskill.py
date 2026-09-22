@@ -184,6 +184,7 @@ class SkillUse:
     countered_skill: BattleSkill | None = None    # 我方反击的对方技能（reflect_damage 用）
     countering_skill: BattleSkill | None = None   # 反击我方的对方技能（damage_reduction 注入用）
     skill_index: int = -1                            # 在 sprite.skills 中的位置
+    branch: int | None = None                        # 「选择」分支索引（None = 0 号分支，同引擎）
 
     modifiers: dict = field(default_factory=dict)
 
@@ -206,8 +207,26 @@ class SkillUse:
         return self.modifiers.get('damage_reduction', 0.0)
 
 
+def combo_base_count(battle_skill: BattleSkill, sprite=None) -> int:
+    """连击段数中**不含 `combo_mult`** 的部分（= 引擎 `ctx.combo_self` 的口径）。
+
+    引擎把 `combo_mult` 留到 `engine/modifiers.effective_combo_count` 最后乘入
+    （保证「set/add 之后再乘倍率」的次序），估伤要与之逐项对齐，所以这里把
+    「基础段数」单独拆出来；`effective_combo` 在此之上乘倍率，两者的终值一致。
+    """
+    combo = max(1, battle_skill.combo)
+    if sprite is not None and battle_skill.combo_keyword:
+        mods = getattr(sprite, '_modifiers', None) or {}
+        combo_set = int(mods.get('combo_set', 0) or 0)
+        if combo_set > 0:
+            combo = max(1, combo_set)
+        else:
+            combo = max(1, combo + int(mods.get('combo', 0) or 0))
+    return combo
+
+
 def effective_combo(battle_skill: BattleSkill, sprite=None) -> int:
-    """连击数 = 技能**释放次数**（唯一入口，AI 估伤与引擎同口径）。
+    """连击数 = 技能**释放次数**（AI 估伤唯一入口，与引擎同口径）。
 
     - 技能级：字段 combo + 技能自身修正（`_modifiers['combo'/'combo_set']`，
       含「每次使用后本技能连击数永久+N」与本次出招的 `skill_off_0` 修正）
@@ -216,15 +235,9 @@ def effective_combo(battle_skill: BattleSkill, sprite=None) -> int:
     - 引擎侧等价实现：`engine/snapshot.py` 的 `combo_self`（精灵级 `combo_mult`
       在 `engine/modifiers.adjust_damage` 乘入，顺序为 set/add 之后）
     """
-    combo = max(1, battle_skill.combo)
-    keywords = battle_skill.combo_keyword
-    if sprite is not None and keywords:
+    combo = combo_base_count(battle_skill, sprite)
+    if sprite is not None and battle_skill.combo_keyword:
         mods = getattr(sprite, '_modifiers', None) or {}
-        combo_set = int(mods.get('combo_set', 0) or 0)
-        if combo_set > 0:
-            combo = max(1, combo_set)
-        else:
-            combo = max(1, combo + int(mods.get('combo', 0) or 0))
         mult = float(mods.get('combo_mult', 0.0) or 0.0)
         if mult > 0:
             combo = max(1, round(combo * (1.0 + mult)))

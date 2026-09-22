@@ -2,9 +2,15 @@
 
 换宠、返场、脱离、借用、力竭中断 —— 精灵进出场的全部逻辑，
 从 Battle 中提取为 Mixin，保持 Battle 的回合调度和动作执行精简。
+
+同时提供**唯一的行动合法性判据** `Battle.action_legality()`：引擎门控
+（`_execute_skill_vm` / `_resolve_switch`）、动作掩码（`ai/core/mcts.get_valid_actions`）、
+规则 agent 的候选过滤都调它 —— 同类判据各写一份会漂移（实测过一次：掩码说
+「释放蓄力技能合法」，引擎守卫却把释放也拒了 → 精灵被永久锁死在蓄力中）。
 """
 
 import random
+from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from backend.common.constants import ELEMENTAL_BLOODLINES, ITEM_VARIANT_SLOTS
@@ -16,6 +22,27 @@ if TYPE_CHECKING:
     from .sprite import Sprite
 
 
+@dataclass(frozen=True)
+class ActionCheck:
+    """行动合法性判定结果。
+
+    - `status == "ok"`：可执行（`turn_consumed=True`；道具是 `False`，它不消耗回合）；
+    - `status == "illegal"`：**AI 不该提这个动作**（不可能成功），调用方应重新选招，
+      掩码/agent 的候选过滤应提前排除；
+    - `status == "state_skip"`：动作合法但被状态吃掉（眩晕），按规则消耗回合。
+    """
+    ok: bool
+    status: str = "ok"            # "ok" | "illegal" | "state_skip"
+    code: str = ""                # fainted/stunned/sealed/cooldown/charging_locked/
+                                  # insufficient_energy/no_hp_price/switch_locked/
+                                  # target_fainted/same_slot/no_such_skill
+    turn_consumed: bool = True
+    detail: dict | None = None    # 诊断用（如 {"cost": 30, "energy": 10}）
+
+
+_OK = ActionCheck(True)
+
+
 class BattleMechanicsMixin:
     """场地变动：换宠 / 返场 / 脱离 / 借用 / 力竭 / 道具。
 
@@ -23,6 +50,70 @@ class BattleMechanicsMixin:
       get_player, get_opponent, _get_agent,
       turn, winner, globals, is_finished, _borrowed_restore.
     """
+
+    def action_legality(self, team: str, action: Action) -> ActionCheck:
+        """判定一个行动在当前状态下能否执行。**只读**，不改任何状态。
+
+        判据与执行路径一一对应：
+          - 力竭 → illegal/fainted；眩晕 → state_skip/stunned（动作合法但被吃掉）；
+          - 技能 → 封印/冷却/蓄力锁定/付不起（含 HP 代替）各自的原因码；
+          - 聚能 → 蓄力中 illegal/charging_locked；
+          - 换宠 → 禁足 illegal/switch_locked、目标力竭 illegal/target_fainted、
+                   原地换 illegal/same_slot；蓄力中换宠合法（会打断蓄力）。
+        """
+        player = self.get_player(team)
+        user = player.active
+        if user is None or user.is_fainted:
+            return ActionCheck(False, "illegal", "fainted")
+        if user.get_stacks('眩晕') > 0:
+            return ActionCheck(False, "state_skip", "stunned", True)
+
+        kind = action.kind
+        if kind == 'gather':
+            if getattr(user, '_charging', False):
+                return ActionCheck(False, "illegal", "charging_locked", True)
+            return _OK
+
+        if kind == 'switch':
+            if getattr(user, 'locked_turns', 0) > 0:
+                return ActionCheck(False, "illegal", "switch_locked", True)
+            idx = action.switch_index
+            if idx is None or idx >= len(player.team):
+                return ActionCheck(False, "illegal", "target_fainted", True)
+            if idx == player.active_index:
+                return ActionCheck(False, "illegal", "same_slot", True)
+            if player.team[idx].is_fainted:
+                return ActionCheck(False, "illegal", "target_fainted", True)
+            return _OK
+
+        if kind == 'item':
+            # 道具不消耗回合（`_select_action` 结算后重新选招），由调用方处理
+            return ActionCheck(True, "ok", "", False)
+
+        if kind == 'skill':
+            idx = action.skill_index
+            if idx is None or idx < 0 or idx >= len(user.skills):
+                return ActionCheck(False, "illegal", "no_such_skill", True)
+            bs = user.skills[idx]
+            if bs.sealed:
+                return ActionCheck(False, "illegal", "sealed", True)
+            if bs.cooldown > 0:
+                return ActionCheck(False, "illegal", "cooldown", True)
+            if getattr(user, '_charging', False):
+                charged_idx, charged_bs = self._charged_skill(user)
+                releases = charged_bs is not None and charged_bs is bs
+                usable = (bool(getattr(getattr(bs, 'base', None), 'usable_while_charging', False))
+                          or int(user._modifiers.get('charge_any_skill', 0) or 0) > 0)
+                if not (releases or usable):
+                    return ActionCheck(False, "illegal", "charging_locked", True)
+            can_pay, cost, hp_cost = self.can_pay_skill_energy_cost(team, user, bs, idx)
+            if not can_pay:
+                code = "no_hp_price" if hp_cost > 0 else "insufficient_energy"
+                return ActionCheck(False, "illegal", code, True,
+                                   {"cost": cost, "energy": user.energy, "hp_cost": hp_cost})
+            return _OK
+
+        return _OK
 
     def _apply_pending_entry_effects(self, team: str, sprite: 'Sprite') -> None:
         pending = self.pending_effects.get(team, [])
@@ -92,6 +183,8 @@ class BattleMechanicsMixin:
         events: list[str] = []
         player = self.get_player(team)
         old = player.active
+        # 记录合法性（唯一判据）：回合末盖章进 ActionRecord
+        self._last_action_check_by_team[team] = self.action_legality(team, action)
 
         # 禁足：无法离场（游戏内文本 3023）。主动换人被拒时该行动作废。
         if getattr(old, 'locked_turns', 0) > 0:
@@ -108,7 +201,7 @@ class BattleMechanicsMixin:
 
         # 换宠打断蓄力
         if getattr(old, '_charging', False):
-            self._clear_charge_target(old)
+            self._cancel_charge(old)
             if not mcts_sim:
                 events.append(f'{old.name} 蓄力中断（换宠）')
 

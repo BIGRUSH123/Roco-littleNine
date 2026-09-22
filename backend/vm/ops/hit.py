@@ -53,6 +53,11 @@ def op_hit(ctx: Ctx, effect) -> list[Mutation]:
     Passes all ctx-snapshot modifiers to calc_damage. Same-skill modifiers
     (power_mult, damage_mult, etc.) are applied by the engine's modifier
     collection step after VM execution.
+
+    连击：返回的是**单段**伤害 + `hits=ctx.combo_self`（段数），由
+    `engine/modifiers.adjust_damage` 按同回合连击修正改写、`expand_combo_hits`
+    展开（见 `vm/journal.Damage.hits`）。此前把段数并进公式（单事件 ×N），
+    等于 N 段只在末尾取整一次、只触发一次受击钩子。
     """
     if isinstance(effect, dict):
         power = resolve(ctx, effect.get("power", 0))
@@ -80,6 +85,9 @@ def op_hit(ctx: Ctx, effect) -> list[Mutation]:
         atk_stage = _stage_mult(ctx.stat_stages_self.get("sp_atk", 0))
         def_stage = _stage_mult(ctx.stat_stages_opp.get("sp_def", 0))
 
+    # 连击 = **N 次独立命中**（用户 2026-09-22 确认）：这里只算单段伤害
+    # （`combo_count=1`），段数写进 `hits` 由执行管线展开成 N 个独立 Damage
+    # ——每段各自取整、各自最低 1 点、各自触发「每次命中」类效果。
     # 属性克制 / 本系加成 / 天气 也走实战路径（此前只有评估器口径算了这三项，
     # 引擎实际结算漏掉，等于实战没有克制关系）
     amount = calc_damage(
@@ -93,7 +101,7 @@ def op_hit(ctx: Ctx, effect) -> list[Mutation]:
         power_mult=ctx.power_mult_self,
         damage_mult=ctx.damage_mult_self,
         mark_bonus=ctx.mark_bonus_own,
-        combo_count=ctx.combo_self,
+        combo_count=1,
     )
 
     return [Damage(
@@ -101,4 +109,5 @@ def op_hit(ctx: Ctx, effect) -> list[Mutation]:
         amount=amount,
         element=element,
         type=type_,
+        hits=max(1, ctx.combo_self),
     )]

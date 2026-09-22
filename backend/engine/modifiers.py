@@ -29,6 +29,7 @@ _DAMAGE_MOD_STATS = frozenset({
     "damage_mult",
     "damage_reduction",
     "combo",
+    "combo_mult",
 })
 
 _ATTACK_SKILL_TYPES: frozenset[str] = frozenset({"物攻", "魔攻", "动态攻击"})
@@ -194,6 +195,10 @@ def _collect_modifiers_from_entries(entries: list[ModifierInjection], ctx: Ctx) 
             # op_power_mod 会把 mode:"set" 的连击数改写成 combo_set（绝对语义），
             # 两个名字都要认，否则「改为 N 连击」会被静默丢弃
             mods["combo_set"] = int(m.value)
+        elif m.stat == "combo_mult":
+            # 同回合「本次连击数翻倍」（灵光）：此前**没有这条分支**，日志里的
+            # combo_mult 没人读 → 翻倍整条静默失效
+            mods["combo_mult"] = float(m.value)
         elif m.stat == "power" and m.value != 0:
             mods["power_base"] = m.value
 
@@ -221,6 +226,13 @@ def _collect_modifiers_from_entries(entries: list[ModifierInjection], ctx: Ctx) 
         elif stat in ("combo", "combo_set"):
             if mode == "add":
                 mods["combo_add"] += int(m.value)
+        elif stat == "combo_mult":
+            # combo_mult 是**加成分数**（1 = +100%），不是总量：与精灵级
+            # `_modifiers["combo_mult"]` 同口径（读取方一律 `×(1 + combo_mult)`）
+            if mode == "add":
+                mods["combo_mult"] += float(m.value)
+            elif mode == "multiply":
+                mods["combo_mult"] = (1.0 + mods["combo_mult"]) * float(m.value) - 1.0
         elif stat == "power":
             if mode == "add":
                 mods["power_add"] += value
@@ -247,35 +259,56 @@ def collect_modifiers(journal: Journal, ctx: Ctx) -> dict:
     return _collect_modifiers_from_entries(entries, ctx)
 
 
+def effective_combo_count(mods: dict) -> int:
+    """本次使用的**最终连击段数**（已含同回合连击修正）。
+
+    口径与 `engine/snapshot.py` 的 `combo_self` 同构，但把段数放在
+    「同技能 set/add 之后」再乘 `combo_mult`：
+
+        combo_set > 0 → max(1, combo_set + combo_add)
+        否则          → max(1, combo_base + combo_add)
+        最后          → combo_mult > 0 时 max(1, round(x * (1 + combo_mult)))
+
+    `combo_mult` 是连击倍率的**加成分数**（1 = +100%），来源两处且同口径：
+    精灵级 `_modifiers["combo_mult"]`（暴风眼「获得连击数+100%」）与本次使用的
+    日志级修正（灵光「本次技能连击数翻倍」）。全库只有这两处写它。
+    """
+    combo_add = int(mods.get("combo_add", 0) or 0)
+    combo_set = int(mods.get("combo_set", 0) or 0)
+    combo_base = max(1, int(mods.get("combo_base", 1) or 1))
+    combo_mult = float(mods.get("combo_mult", 0.0) or 0.0)
+
+    effective = max(1, combo_set + combo_add) if combo_set > 0 else max(1, combo_base + combo_add)
+    if combo_mult > 0:
+        effective = max(1, round(effective * (1 + combo_mult)))
+    return effective
+
+
 def adjust_damage(dmg: Damage, mods: dict) -> Damage:
     """Apply collected modifiers to a Damage mutation.
 
-    power_mult, damage_mult, and combo_add are applied multiplicatively.
-    damage_reduction is skipped here because op_hit already applied the
-    Ctx snapshot value — only same-skill ModifierInjections of
-    damage_reduction need to be accounted for.
+    power_mult and damage_mult are applied multiplicatively. damage_reduction
+    is skipped here because op_hit already applied the Ctx snapshot value —
+    only same-skill ModifierInjections of damage_reduction need to be
+    accounted for.
+
+    连击（`hits`）不再折算进伤害值，而是**改写段数**：`op_hit` 已经把伤害算成
+    单段口径，同回合的 `combo`/`combo_set`/`combo_mult` 只决定「打几段」，
+    由 `expand_combo_hits` 展开成 N 个独立结算。此前这里是
+    `amount *= effective_combo / combo_base`——段数被折成一个乘数，于是 N 段
+    只取整一次、只触发一次受击钩子（与「N 次独立命中」不符）。
     """
     power_mult = mods.get("power_mult", 1.0)
     damage_mult = mods.get("damage_mult", 1.0)
-    combo_add = mods.get("combo_add", 0)
-    combo_set = mods.get("combo_set", 0)
-    combo_base = mods.get("combo_base", 1)
-    combo_mult = mods.get("combo_mult", 0.0)
-    mods.get("damage_reduction", 0.0)
 
     # Only adjust for same-skill modifier deltas
     amount = dmg.amount
     amount = round(amount * power_mult * damage_mult)
 
-    # combo: set overrides base, add adds to it
-    effective_combo = max(1, combo_set + combo_add) if combo_set > 0 else max(1, combo_base + combo_add)
-
-    # combo_mult 在最后乘入（跨技能倍率，排序在 set/add 之后）
-    if combo_mult > 0:
-        effective_combo = max(1, round(effective_combo * (1 + combo_mult)))
-
-    if effective_combo != combo_base and combo_base > 0:
-        amount = round(amount * effective_combo / combo_base)
+    # 连击命中（hits > 0）→ 段数改写为同回合修正后的最终段数
+    hits = dmg.hits
+    if hits > 0:
+        hits = effective_combo_count(mods)
 
     # Only apply extra damage_reduction beyond what op_hit already applied
     # (op_hit uses ctx snapshot damage_reduction; same-skill mods add extra)
@@ -292,6 +325,7 @@ def adjust_damage(dmg: Damage, mods: dict) -> Damage:
             amount=0,
             element=dmg.element,
             type=dmg.type,
+            hits=hits,
         )
 
     return Damage(
@@ -299,7 +333,38 @@ def adjust_damage(dmg: Damage, mods: dict) -> Damage:
         amount=max(1, amount),
         element=dmg.element,
         type=dmg.type,
+        hits=hits,
     )
+
+
+def expand_combo_hits(journal: Journal) -> Journal:
+    """把 `Damage.hits` 展开成 N 个独立 Damage（连击 = N 次独立命中）。
+
+    - `hits <= 1`（含缺省 0）→ 原样返回，不分配新列表（热路径）；
+    - `hits >= 2` → 该条替换成 `hits` 条 `hits=1` 的等价结算，**保持位置**，
+      因此每段各自扣血、各自触发「被击中」类钩子、各自结算吸血/致命拦截。
+
+    展开点选在 `JournalReplayer.replay()`（所有 journal 的唯一出口：
+    技能执行、特性 then 块、迸发重放、机制授予），保证每条路径同口径。
+    """
+    if not any(type(m) is Damage and m.hits > 1 for m in journal):
+        return journal
+    out: Journal = []
+    for m in journal:
+        if type(m) is Damage and m.hits > 1:
+            out.extend(
+                Damage(
+                    target=m.target,
+                    amount=m.amount,
+                    element=m.element,
+                    type=m.type,
+                    hits=1,
+                )
+                for _ in range(m.hits)
+            )
+        else:
+            out.append(m)
+    return out
 
 
 def eval_skill_where(skill_where: dict | None, skill: dict) -> bool:

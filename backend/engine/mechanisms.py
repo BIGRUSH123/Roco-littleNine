@@ -116,15 +116,15 @@ def forecast_lethal(enemy: Sprite, me: Sprite) -> bool:
         type_mult = 1.0
         for el in my_elements:
             type_mult *= chart.get(el, 1.0)
-        # 连击走与实战同口径的有效次数（技能自身修正 + 门控后的精灵级增益/倍率），
-        # 否则连击技能的一击斩杀线会被低估 N 倍
+        # 连击 = N 次独立命中：单段伤害 × 段数（与实战同序；此前把段数并进公式，
+        # 等于只在末尾取整一次）
         from backend.sim.battleskill import effective_combo
         amount = calc_damage(
             bs.power, atk, dfn,
             type_mult=type_mult,
             damage_reduction=reduction,
-            combo_count=effective_combo(bs, enemy),
-        )
+            combo_count=1,
+        ) * effective_combo(bs, enemy)
         if amount >= hp:
             return True
     return False

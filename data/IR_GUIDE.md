@@ -511,6 +511,7 @@
 
 - **与 `power_mod` 的区别**: `mult_mod` 是乘法倍率（`value`），`power_mod` 是加法增量（`delta`）
 - **与 `stat_stage` 的区别**: `mult_mod` 直接修改最终倍率，`stat_stage` 修改属性阶段（间接影响）
+- **`attr:"combo_mult"`** 是**加成分数**（`value: 1` = 连击数 +100%，即段数 ×2；`value: 0.5` = ×1.5）。精灵级（`target:"sprite_self"`，暴风眼）与本次使用（`target:"skill_off_0"`，灵光）同一口径；读取方 = `engine/modifiers.effective_combo_count` 与 `sim/battleskill.effective_combo`（`×(1 + combo_mult)`）
 - **速度两条通道**（勿混用）：
   - `attr:"speed"` 是**百分比**倍率（`value: 0.2` = 速度+20%，用于「攻防速+20%」类文本）；
   - `attr:"speed_flat"` 是**点数**（`value: 30` = 速度+30，用于「速度+30」类文本，含 +5 这类零头）。
@@ -942,6 +943,9 @@
 #### `charge` — 蓄力
 
 - **实现**: `backend/vm/ops/charge.py:op_charge()`
+- **技能写法**：`{"when": {"cond": "charged"}, "then": [...], "else": [{"op": "charge"}]}`——未蓄力时走 `else`（本回合只开始蓄力、**0 伤且不付能耗**），下一回合门控把状态升成 `charged` 后走 `then`（正常结算，能耗在释放回合支付）。全库 5 条：升龙咆哮 / 吹炎 / 怨力打击 / 龙之利爪 / 龙吟。
+- **门控**：`sim/battle.py::_gate_charge_vm`（蓄力中禁止聚能、释放蓄力技能、`usable_while_charging` 放行、`pre_charged` 跳过首次蓄力）。「蓄力中禁止聚能」**只挡聚能**——此前漏了 `action.kind == 'gather'` 限定，把释放动作也挡下，精灵被永久锁死在蓄力中（第 2 回合起全是「蓄力中无法聚能」，0 伤；2026-09-22 修）。
+- **估伤口径**：`sim/resolver._would_charge` 与门控同判据（复用 `Battle._skill_has_charge`）——未蓄力时估伤为 **0**，蓄力中（释放回合）为满值。
 
 #### `escape` — 换宠
 
@@ -1669,12 +1673,17 @@ feeds:cost → Gate(付能耗) → feeds:power → 威力确定 → feeds:mult
 
 | 规则 | 说明 |
 |------|------|
-| 释放次数 | 有效连击数 `N = 技能 combo 字段 + 技能自身连击修正 + （门控后的）精灵级连击增益`，再乘精灵级 `combo_mult`，恒 ≥1 |
+| 释放次数 | 有效连击数 `N = 技能 combo 字段 + 技能自身连击修正 + （门控后的）精灵级连击增益`，再乘 `combo_mult`，恒 ≥1。`N` 同时是**独立命中次数**（见「伤害结算」行） |
 | 效果按次结算 | 技能的所有效果（stat_stage / power_mod / mult_mod / heal / abnormal / mark）**一律按每次释放各结算一次**。没有数据 flag：由 op 与 target 决定（见下一行），避免「数据声明」与「引擎规则」两套判据打架（旧字段 `per_hit` 已删除） |
 | 自技能参数只算一次 | 修改**自己本技能参数**的 `power_mod`/`mult_mod`（`target: "skill_off_0"`，attr ∈ power/power_mult/energy_cost/priority/combo/combo_set/combo_mult/use_count_bonus）整次使用**只结算一次**——连击数是释放次数，这些参数描述的是「单次释放」的威力/能耗/段数（如引雷「迸发：本次技能威力+20」是 2 段各 55 威力，不是 55+75） |
 | 连击增益门控 | `combo`/`combo_set`/`combo_mult` 的**精灵级**修正（`target: "sprite_self"` / `"sprite_opp"`，如暴风眼「连击数+100%」、耀眼「敌方连击数-4」）**只对带连击词条的技能生效**。词条判据 = **技能 JSON 写了 `combo` 键**（值可以是 1，即原文「1连击」）；技能自身的连击文本（`target: "skill_off_0"`、`skill.<技能名>.combo` 永久修正、队伍奉献）不受门控。落地：`sim.skill.Skill.combo_keyword` ← `'combo' in data`（两个加载器都写），`BattleSkill.combo_keyword` 委托它，`engine/snapshot.py`/`snapshot_cy.pyx` 据此门控 |
-| 伤害结算 | 伤害把 `N` 作为倍率计入公式（单次伤害事件 × N），与「N 次独立命中」的差异仅在每段最小 1 点与每段触发计数；这是当前实现的已知近似 |
-| 预测口径 | `sim/resolver.calc_damage`（AI 估伤）与引擎同口径：`combo` 字段 + 技能修正 + 门控后的精灵级增益与倍率；并逐项对齐实战输入——技能级/精灵级 `power_mult`/`damage_mult` 按 `1+(精灵级-1)+(技能级-1)` 相加、减伤取**防御方**精灵级、技能自身写在 `effects[]` 里的同回合 `power_mod`/`mult_mod` 按 `engine/modifiers.adjust_damage` 的次序**先算伤害再后乘取整**（`power_add` 折成 `(power+add)/power`）。`when` 条件（含 `skill_at`）用引擎自己的 `vm/cond.compile_cond` 求值，求不出就不计（保守） |
+| 伤害结算 | **连击 = N 次独立命中**（2026-09-22 落地）：`op_hit` 只算**单段**伤害（`combo_count=1`，各自 `round`、各自 `max(1, …)`、各自套属性克制/减伤/天气/应对），段数写进 `Damage.hits`；同回合连击修正（`combo`/`combo_set`/`combo_mult`）**改写段数**而不是折进伤害值，最后由 `engine.modifiers.expand_combo_hits`（在 `JournalReplayer.replay` 入口统一展开）变成 N 条独立 `Damage`。旧口径「单次伤害事件 × N」已废弃（只在末尾取整一次、且只触发一次受击结算） |
+| 受击类钩子 | 观察者钩子（`post_damage` 系：扎手/诅咒/微型斥候/绞轮/排气）**每次技能攻击只触发一次，不含连击段数**——数据原文写「每受到1次技能攻击（**不含连击**）」。技能自身的「每次连击」效果（连续毒针加中毒、星链加印记、三连破加属性）走 op 展开（`op_abnormal`/`op_mark`/`op_stat_stage` 按 `ctx.combo_self` 复制 mutation），与 N 条伤害事件**同时**按段生效 |
+| `combo_mult` 口径 | **加成分数**：`1` = 「+100%」（×2），读取方一律 `round(段数 × (1 + combo_mult))`。精灵级（暴风眼）与日志级（灵光「本次连击数翻倍」，`power_mod attr:"combo_mult" delta:1`）同一口径；`add` 通道基准是 `0.0`（不是 ratio 通道的 1.0）——基准写错会把 +100% 读成 ×3（2026-09-22 修）。此前日志级 `combo_mult` **没有任何读取方**，灵光的翻倍整条静默失效 |
+| 预测口径 | `sim/resolver.calc_damage`（AI 估伤）与引擎同口径：`combo` 字段 + 技能修正 + 门控后的精灵级增益与倍率；并逐项对齐实战输入——技能级/精灵级 `power_mult`/`damage_mult` 按 `1+(精灵级-1)+(技能级-1)` 相加、减伤取**防御方**精灵级、技能自身写在 `effects[]` 里的同回合 `power_mod`/`mult_mod` 按 `engine/modifiers.adjust_damage` 的次序**先算伤害再后乘取整**（`power_add` 折成 `(power+add)/power`，**保留浮点**）；段数同理：单段值算完取整后再乘同回合修正后的段数（`combo_base_count` → 同回合 `combo`/`combo_set` → `×(1+combo_mult)`）。另外四种「本次使用打不出来」一律估 0：**蓄力未完成**（`_would_charge`）、**重定向到自己**（`_would_redirect_to_self`，灾厄）、**付不起能耗**（引擎 `can_pay_skill_energy_cost`）、**技能不存在**。`choices` 分支按引擎规则镜像（分支 0；cond 不成立 → 第一个无条件分支）。同回合修正的 Ctx 建在**支付后**状态上（引擎先付能耗再执行 effects）。`when` 条件（含 `skill_at`）用引擎自己的 `vm/cond.compile_cond` 求值，求不出就不计（保守） |
+| 预测层口径核验（2026-09-22） | 全库 595 技能（365 个攻击技能）中性对局逐技能对拍：**不一致 0 条**（此前 15 条：蓄力 4、choices 6、支付次序 1、取整 1、redirect 1、不可支付 1、命中描述 1）。回归测试见 `backend/tests/test_charge_semantics.py` 与审计报告（对账文档 §17） |
+| 行动合法性（唯一判据） | `sim/battle_mechanics.Battle.action_legality(team, action) → ActionCheck(ok, status, code, turn_consumed)`：引擎门控（`_execute_skill_vm` / `_resolve_switch`）、动作掩码（`ai/core/mcts.get_valid_actions`）、规则 agent 的候选过滤（`_attack_table`）**共用这一份**。`status`：`ok` / `illegal` / `state_skip`（眩晕等：合法但被吃掉，照规则消耗回合）。**选招循环**（`Battle._select_action`）：`illegal` → **拒绝、不推进回合、重新征询 agent**（上限 8 次，超限用掩码兜底 `_first_legal_action`），被拒的尝试记进 `ActionRecord.rejected`；`state_skip` 不重选。回合记录字段见 `RoundRecord`/`ActionRecord`（`status`/`code`/`turn_consumed`/`rejected`，随 `round_record_to_dict` 序列化）。门禁测试：`backend/tests/test_action_legality.py`（掩码合法集 == 引擎判据合法集，逐决策点核对 + 拒收/兜底/记账） |
+| `Damage.hits` | `vm/journal.py` 的 Damage 字段：`0` = 单次结算（自伤/反噬/特性追加，不参与段数改写）；`>=1` = 本次命中的段数（`op_hit`/借用伤害写 `ctx.combo_self`，`adjust_damage` 按同回合修正改写）。`amount` 一律是单段伤害 |
 
 ---
 

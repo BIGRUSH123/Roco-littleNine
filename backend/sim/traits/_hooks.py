@@ -25,9 +25,17 @@ def _immortal_bird_fatal(sprite, damage, battle, team) -> bool:
     # 锁血：留 1 HP
     sprite.current_hp = 1
 
-    # 敌方获得 15 层灼烧
-    opp_team = "B" if team == "A" else "A"
-    attacker = battle.get_opponent(team).active if battle else None
+    # 敌方获得 15 层灼烧。「敌方」= **持有者（sprite）的对面**：传进来的 `team` 是
+    # **行动方**（通常就是刚打出致命一击的那一方），直接 `get_opponent(team)` 取到的
+    # 是受击的这只自己——实测 15 层灼烧落到了持有者头上。
+    attacker = None
+    if battle is not None:
+        if sprite is battle.player_a.active:
+            attacker = battle.player_b.active
+        elif sprite is battle.player_b.active:
+            attacker = battle.player_a.active
+        else:
+            attacker = battle.get_opponent(team).active
     if attacker is not None:
         from backend.engine.abnormal_config import ABNORMAL_TEMPLATES
         template = ABNORMAL_TEMPLATES.get("灼烧")

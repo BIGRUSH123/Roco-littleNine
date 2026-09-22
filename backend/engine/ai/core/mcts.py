@@ -121,59 +121,67 @@ def get_valid_actions(player: Player, battle=None) -> tuple[list[int], np.ndarra
         team = "A" if battle.player_a is player else "B"
         mark_energy_mod = getattr(battle.globals, 'mark_energy_mod', lambda t: 0)(team)
 
-    # 蓄力中：允许释放蓄力技能（如有足够能量），同时允许换宠取消蓄力
+    # ── 合法性来源：引擎自己的唯一判据 `Battle.action_legality` ──
+    # 掩码与引擎门控必须同源，否则「掩码说合法、引擎拒绝」会静默吃掉一次行动
+    # （实测过一次：掩码允许释放蓄力技能、引擎守卫却把释放也拒了 → 永久锁死）。
+    use_engine = battle is not None and hasattr(battle, "action_legality")
+    team = "A" if (battle is not None and battle.player_a is player) else "B"
+
+    def _legal(action) -> bool:
+        if use_engine:
+            return bool(battle.action_legality(team, action).ok)
+        # 无 battle 的 dry-run：退化为纯精灵级判断（沿旧口径）
+        if action.kind == "skill":
+            sk = active.skills[action.skill_index] if action.skill_index < len(active.skills) else None
+            return bool(sk is not None and not sk.sealed and sk.cooldown <= 0
+                        and _can_pay_skill_cost(player, active, sk, action.skill_index, battle,
+                                                energy_cost_mod, energy_cost_mult, mark_energy_mod))
+        if action.kind == "switch":
+            idx = action.switch_index
+            return bool(idx is not None and idx != player.active_index
+                        and idx < len(player.team) and not player.team[idx].is_fainted
+                        and active.locked_turns <= 0)
+        if action.kind == "gather":
+            return not getattr(active, "_charging", False)
+        return True
+
+    # 蓄力中：只有「释放蓄力技能」与「换宠（会打断蓄力）」合法；
     # 引擎在 _resolve_switch 中明确中断蓄力，因此换宠是合法分支
     charging = getattr(active, '_charging', False)
     if charging:
-        charged_idx, sk = battle._charged_skill(active) if battle is not None else (-1, None)
-        if 0 <= charged_idx < 10:
-            if (
-                sk
-                and sk.cooldown <= 0
-                and _can_pay_skill_cost(
-                    player, active, sk, charged_idx, battle,
-                    energy_cost_mod, energy_cost_mult, mark_energy_mod,
-                )
-            ):
-                mask[charged_idx] = 1.0
-        # 换宠 (10-14)：引擎允许蓄力中断换宠（_resolve_switch 取消 _charging）
+        for i in range(min(10, len(active.skills))):
+            if _legal(_SKILL_ACTIONS[i]):
+                mask[i] = 1.0
+        # 换宠 (10-14)：固定槽位映射（力竭者保留槽位、mask=0）
         bench_slot = 0
-        for i, s in enumerate(player.team):
+        for i in range(len(player.team)):
             if i == player.active_index:
                 continue
             if bench_slot < 5:
-                mask[10 + bench_slot] = 1.0 if not s.is_fainted else 0.0
+                mask[10 + bench_slot] = 1.0 if _legal(_SWITCH_ACTIONS[i]) else 0.0
                 bench_slot += 1
         valid = _valid_from_mask(mask)
         return valid, mask
 
-    # 技能 (0-9)：遍历前 10 个技能
-    for i, sk in enumerate(active.skills[:10]):
-        if (
-            not sk.sealed
-            and sk.cooldown <= 0
-            and _can_pay_skill_cost(
-                player, active, sk, i, battle,
-                energy_cost_mod, energy_cost_mult, mark_energy_mod,
-            )
-        ):
+    # 技能 (0-9)：合法性来自引擎唯一判据（封印/冷却/付不起/蓄力锁）
+    for i in range(min(10, len(active.skills))):
+        if _legal(_SKILL_ACTIONS[i]):
             mask[i] = 1.0
 
     # 换宠 (10-14): 固定槽位映射（与 encode.py 的 _encode_bench_all 一致）
     #   力竭精灵保留在槽位中（mask=0），不跳过，确保动作索引与编码槽位
     #   始终一一对应。若跳过力竭精灵，槽位编号会随力竭状态漂移，
     #   导致网络输入槽位 N 与动作索引 10+N 对应不同精灵 → 策略学习混乱。
-    locked = active.locked_turns > 0
     bench_slot = 0
-    for i, s in enumerate(player.team):
+    for i in range(len(player.team)):
         if i == player.active_index:
             continue
         if bench_slot < 5:
-            mask[10 + bench_slot] = 1.0 if (not s.is_fainted and not locked) else 0.0
+            mask[10 + bench_slot] = 1.0 if _legal(_SWITCH_ACTIONS[i]) else 0.0
             bench_slot += 1
 
     # 聚能 (15): 蓄力中不可聚能（引擎侧会阻止，标记为非法避免无效分支）
-    mask[15] = 1.0 if not charging else 0.0
+    mask[15] = 1.0 if _legal(_GATHER_ACTION) else 0.0
 
     # 道具：16 = 愿力；17-21 = 进化之力的首领形态候选（玩家选目标形态）
     # 进化之力需首领血脉 + 基础阶段 + 同编号有首领形态；愿力需元素血脉。

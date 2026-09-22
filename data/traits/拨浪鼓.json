@@ -13,20 +13,18 @@
       },
       "then": [
         {
-          "op": "mult_mod",
-          "attr": "power_mod",
+          "op": "power_mod",
+          "attr": "power",
           "target": "sprite_self",
-          "value": "=@team_counters[status_skill]",
-          "mode": "set",
+          "delta": "=@team_counters[status_skill] * 10",
           "skill_where": {"element": "毒"},
           "source": "拨浪鼓"
         },
         {
-          "op": "mult_mod",
-          "attr": "power_mod",
+          "op": "power_mod",
+          "attr": "power",
           "target": "sprite_self",
-          "value": "=@team_counters[status_skill]",
-          "mode": "set",
+          "delta": "=@team_counters[status_skill] * 10",
           "skill_where": {"element": "萌"},
           "source": "拨浪鼓"
         }

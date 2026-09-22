@@ -14,13 +14,22 @@ from dataclasses import dataclass, field
 
 @dataclass(slots=True)
 class ActionRecord:
-    """单个行动记录（技能/聚能/换宠/道具）。"""
+    """单个行动记录（技能/聚能/换宠/道具）。
+
+    `status`/`code`/`turn_consumed` 来自引擎的唯一合法性判据
+    （`Battle.action_legality`）：`illegal` 表示 AI 不该提这个动作（掩码应提前排除），
+    `turn_consumed` 表示这次尝试是否消耗了回合（道具/非法动作**不**消耗）。
+    """
     team: str           # 'A' | 'B'
     actor: str          # 精灵名
     kind: str           # 'skill' | 'gather' | 'switch' | 'item'
     skill_name: str = ''  # 技能名（kind != skill 时可为空）
     events: list[str] = field(default_factory=list)
     branch: str = ''      # 「选择」分支名（无分支/未选为空；置尾保持位置参数兼容）
+    status: str = 'ok'    # 'ok' | 'illegal' | 'state_skip'
+    code: str = ''        # 原因码（illegal/state_skip 时非空）
+    turn_consumed: bool = True  # 该行动是否消耗回合（道具/非法动作 = False）
+    rejected: list[str] = field(default_factory=list)  # 本轮被拒的非法动作（重选前）
 
 
 @dataclass(slots=True)

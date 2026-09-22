@@ -59,8 +59,9 @@ from backend.vm.journal import (
 if TYPE_CHECKING:
     from backend.sim.globals import GlobalEffects
     from backend.sim.sprite import Sprite
-
     from .observer import ObserverRegistry
+
+from .modifiers import expand_combo_hits
 
 
 # Stats whose values are ratios (display as percentage)
@@ -474,6 +475,11 @@ class JournalReplayer:
 
     def replay(self, journal: Journal) -> list[str]:
         """Replay all mutations. Returns event strings for logging."""
+        # 连击 = N 次独立命中：先把 Damage.hits 展开成 N 条独立结算（每段各自扣血、
+        # 各自触发被击中类钩子）。展开放在这里是因为 replay 是**所有** journal 的
+        # 唯一出口（技能执行 / 特性 then 块 / 迸发重放 / 机制授予）。
+        if any(type(m) is Damage and m.hits > 1 for m in journal):
+            journal = expand_combo_hits(journal)
         self._cleared_position_stats.clear()
         self._energy_deltas.clear()
         self._attached_abnormal_done.clear()
@@ -824,7 +830,10 @@ class JournalReplayer:
             if cur is None:
                 # damage_reduction and life_drain base is 0.0 (0%=none),
                 # unlike multiplier ratio stats whose base is 1.0 (1.0×=no change).
-                cur = 0.0 if m.stat in ("damage_reduction", "life_drain") else 1.0 if m.stat in _RATIO_STATS else 0.0
+                # combo_mult 也是「加成分数」通道（读取方 `×(1 + combo_mult)`）：
+                # 基准必须是 0.0，否则暴风眼「连击数+100%」会被读成 ×3（实测 3 连击
+                # 曾变 9 段）。全库只有暴风眼/灵光写这个 stat。
+                cur = 0.0 if m.stat in ("damage_reduction", "life_drain", "combo_mult") else 1.0 if m.stat in _RATIO_STATS else 0.0
             target_mods[m.stat] = cur + delta
         elif m.mode == "multiply":
             target_mods[m.stat] = (cur or 1.0) * m.value if cur is not None else m.value

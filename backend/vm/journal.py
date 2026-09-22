@@ -52,11 +52,21 @@ class ModifierInjection:
 
 @dataclass(frozen=True, slots=True)
 class Damage:
-    """Final computed damage to apply to a sprite."""
+    """Final computed damage to apply to a sprite.
+
+    `hits` = 连击段数（**连击 = N 次独立命中**）：
+      - `0`（缺省）= 单次结算，不参与连击段数改写（自伤/反噬/特性追加伤害等）；
+      - `>=1` = 本次命中的段数，`op_hit` 填 `ctx.combo_self`，执行管线再按本次
+        使用的同回合连击修正（`combo_set`/`combo`/`combo_mult`）改写成最终段数，
+        由 `expand_combo_hits` 展开成 N 个独立结算。
+
+    `amount` 一律是**单段**伤害（每段各自取整、各自最低 1 点）。
+    """
     target: str       # "sprite_opp" | "sprite_self"
     amount: int
     element: str
     type: str         # "物攻" | "魔攻"
+    hits: int = 0     # 0 = 单次结算；>=1 = 连击段数
 
 
 @dataclass(frozen=True, slots=True)

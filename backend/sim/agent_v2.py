@@ -258,12 +258,16 @@ class RuleAgentV2:
     # ── 通用计算 ──
 
     def _attack_table(self, battle, attacker: Sprite, defender: Sprite):
-        """(index, dmg, cost) 列表：可用攻击技能的伤害/能耗（含克制/印记）。"""
+        """(index, dmg, cost) 列表：**合法**攻击技能的伤害/能耗（含克制/印记）。
+
+        合法性走引擎唯一判据 `Battle.action_legality`（封印/冷却/蓄力锁定/付不起）：
+        表里只留本次真能打出去的手，免得「威力大但放不出」的技能污染斩杀与威胁判定。
+        """
         table = []
         for i, skill in enumerate(attacker.skills):
-            if skill.cooldown > 0 or skill.sealed:
-                continue
             if not skill.is_attack:
+                continue
+            if not battle.action_legality(self.team, Action(kind='skill', skill_index=i)).ok:
                 continue
             dmg, _ = battle._resolver.calc_damage(
                 attacker, defender, SkillUse(battle_skill=skill, skill_index=i),

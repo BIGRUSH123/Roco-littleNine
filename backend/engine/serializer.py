@@ -563,6 +563,12 @@ def round_record_to_dict(rec) -> dict:
             "kind": rec.action_a.kind,
             "skill_name": rec.action_a.skill_name,
             "events": list(rec.action_a.events),
+            # 行动合法性（唯一判据 `Battle.action_legality` 盖章）：
+            # illegal = AI 不该提这个动作；turn_consumed = 是否消耗回合（道具/非法 = False）
+            "status": rec.action_a.status,
+            "code": rec.action_a.code,
+            "turn_consumed": rec.action_a.turn_consumed,
+            "rejected": list(rec.action_a.rejected),
         } if rec.action_a else None,
         "action_b": {
             "team": rec.action_b.team,
@@ -570,6 +576,10 @@ def round_record_to_dict(rec) -> dict:
             "kind": rec.action_b.kind,
             "skill_name": rec.action_b.skill_name,
             "events": list(rec.action_b.events),
+            "status": rec.action_b.status,
+            "code": rec.action_b.code,
+            "turn_consumed": rec.action_b.turn_consumed,
+            "rejected": list(rec.action_b.rejected),
         } if rec.action_b else None,
         "turn_end_events": list(rec.turn_end_events),
     }
@@ -590,12 +600,18 @@ def round_record_from_dict(d: dict) -> Any:
         rec.action_a = ActionRecord(
             team=a["team"], actor=a["actor"], kind=a["kind"],
             skill_name=a.get("skill_name", ""), events=list(a.get("events", [])),
+            status=a.get("status", "ok"), code=a.get("code", ""),
+            turn_consumed=a.get("turn_consumed", True),
+            rejected=list(a.get("rejected", [])),
         )
     if d.get("action_b"):
         b = d["action_b"]
         rec.action_b = ActionRecord(
             team=b["team"], actor=b["actor"], kind=b["kind"],
             skill_name=b.get("skill_name", ""), events=list(b.get("events", [])),
+            status=b.get("status", "ok"), code=b.get("code", ""),
+            turn_consumed=b.get("turn_consumed", True),
+            rejected=list(b.get("rejected", [])),
         )
     return rec
 
