@@ -65,7 +65,6 @@ from .ir_skill import (
 )
 from .journal import Journal, Mutation
 from .ops.abnormal import op_abnormal
-from .ops.abnormal import op_abnormal
 from .ops.aura import (
     op_aura,
     op_counter,
@@ -152,6 +151,46 @@ def compile_effects_batch(effects: list) -> tuple:
         else:
             result.append(eff)
     return tuple(result)
+
+
+def normalize_effects(effects):
+    """边界归一：效果列表里**只要含 raw dict 就地编译成 IR**，已是 IR 时原样返回。
+
+    与 `assert_ir_effects` 分工不同：本函数负责"修"，断言负责"查"。
+    用在效果**进入引擎状态之前**的入口（技能侧 `BattleVMEngine._get_effects`、
+    显式 `execute_skill(effects=…)`）——两者是同一个契约的两个入口，
+    所以逻辑只写在这里一份。
+
+    已经是 IR 时不重建容器：`execute()` 里 `_sort_effects_cached` 按 `id(effects)`
+    命中排序缓存，每次重建会让缓存全失效。
+    """
+    if not effects:
+        return effects
+    for e in effects:
+        if type(e) is dict:
+            return compile_effects_batch(list(effects))
+    return effects
+
+
+def assert_ir_effects(effects, *, where: str) -> None:
+    """断言"效果列表已编译成 IR"（契约见 `data/IR_GUIDE.md` §3D）。
+
+    引擎里凡是**留在状态里**的效果列表（迸发槽 `BattleSkill._burst_effects`、迸发池
+    `BattleVMEngine._burst_effects`、技能历史 `_skill_history`、延时队列
+    `scheduled_effects[*]["effects"]`）都只准存 IR：raw dict 混进去过一次，
+    代价是千局级才撞上的崩溃（`'WhenBlock' object has no attribute 'get'`，
+    2026-09-23），而且读的人无法从类型上判断里面是什么。
+
+    只在 `__debug__`（即非 `python -O`）下检查；调用点放在**写入/登记边界**，
+    每次技能使用最多遍历十几条，成本可忽略。
+    """
+    if not __debug__:
+        return
+    for e in effects or ():
+        if type(e) is dict:
+            raise AssertionError(
+                f"{where}: 效果列表里混进了未编译的 dict —— {e!r}"
+                "（效果要在边界用 compile_effects_batch 编译后再存）")
 
 
 def execute(ctx: Ctx, effects, *, sort: bool = True) -> Journal:

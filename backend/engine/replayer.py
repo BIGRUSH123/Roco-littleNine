@@ -11,6 +11,7 @@ import random
 from copy import copy
 from typing import TYPE_CHECKING
 
+from backend.vm.executor import assert_ir_effects, execute as vm_execute
 from backend.vm.journal import (
     AbnormalChange,
     Borrow,
@@ -288,7 +289,6 @@ def _apply_to_matching_skills(sprite, m, mark_energy_mod: int = 0, replayer=None
         }
         if not eval_skill_where(m.skill_where, skill_info):
             continue
-        st = skill_info.get("skill_type", "")
         if m.skill_filter and not _matches_skill_filter(
             m.skill_filter, bs, sprite=sprite, ref_bs=ref_bs, battle=battle
         ):
@@ -302,7 +302,6 @@ def _apply_to_matching_skills(sprite, m, mark_energy_mod: int = 0, replayer=None
                     continue
             elif actual != expected:
                 continue
-        cur = bs_mods.get(m.stat, 0.0)
         _write_skill_mod(bs, bs_mods, m, delta)
         applied = True
 
@@ -2218,6 +2217,7 @@ class JournalReplayer:
                 st = getattr(getattr(bs, 'base', None), 'skill_type', '')
                 if not _matches_skill_type(m.skill_filter, st):
                     continue
+            assert_ir_effects(grant_effects, where=f"burst_grant 写入({m.source or m.from_})")
             bs._burst_effects.extend(list(grant_effects))
             bs._modifiers["burst"] = float(len(bs._burst_effects) > 0)
             applied += 1

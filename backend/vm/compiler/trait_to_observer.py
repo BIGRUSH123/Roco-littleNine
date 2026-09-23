@@ -8,6 +8,8 @@ This module MUST NOT import from backend.engine to avoid circular imports.
 
 from __future__ import annotations
 
+from copy import deepcopy
+
 from backend.vm.cond import infer_triggers
 
 
@@ -31,7 +33,11 @@ class TraitToObserver:
 
     def _compile_one(self, effect: dict) -> dict:
         cond = effect.get("cond", {})
-        then = effect.get("then", [])
+        # `then` 必须**拷贝**：注册时 `ObserverRegistry._index` 会往效果树里原地注入
+        # source/scope（`_bake_inject_*` 是原地改）。直接引用的话改的是**共享的 trait JSON**，
+        # 第二个持有者（或任何读原始数据的地方）看到的就是被注入过的树
+        # —— 今天幂等（source/scope 都取自同一份 JSON），但这是随时会烂的耦合（2026-09-23 审计）。
+        then = deepcopy(effect.get("then", []))
         scope = effect.get("scope", "persistent")
         source = effect.get("source", "")
         name = effect.get("name", "")

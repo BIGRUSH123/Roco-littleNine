@@ -17,7 +17,7 @@ from dataclasses import dataclass, field
 
 from backend.vm.cond import infer_triggers
 from backend.vm.ctx import Ctx
-from backend.vm.executor import compile_effects_batch, process_effects
+from backend.vm.executor import assert_ir_effects, compile_effects_batch, process_effects
 from backend.vm.journal import Mutation
 
 
@@ -106,7 +106,10 @@ class Observer:
     Equivalent to a trait-watcher or a persistent counter in the prototype.
     """
     cond: dict                # Trigger condition dict (COND_EVAL-compatible)
-    then: list[dict]          # Effects to execute when triggered
+    # 契约：**注册前**是 raw dict 列表（特性 JSON / counter mutation 传进来），
+    # `ObserverRegistry._index()` 注册时注入 source·scope 并编译成 IR —— **注册后**是
+    # `tuple[SkillIROp, ...]`（`process_effects` 直接吃）。读它的代码要按当前阶段理解。
+    then: list[dict] | tuple
     scope: str = "persistent" # "battlefield" | "persistent" | "permanent"
     name: str = ""            # Optional identifier
     source: str = ""          # Where this observer came from (skill/trait name)
@@ -208,19 +211,22 @@ class ObserverRegistry:
     # ── Registration ──
 
     def _index(self, obs: Observer) -> None:
-        # 注册时一次性注入 source 到 then 效果树（原地修改，无拷贝），
-        # 消除 _fire_pre_event / _fire_post_event 运行时的 copy.copy 开销。
-        if obs.source and obs.then:
-            _bake_inject_source(obs.then, obs.source)
-
-        # 注册时一次性编译 obs.then 为 typed IR，消除触发时的 JIT 开销。
-        # Post-event observers 需要先 bake scope（因为 Observer 默认 scope="persistent"，
-        # 而 parser 默认大多数 op 为 "battlefield"），pre-event observers 保持 parser 默认。
-        # 通过检查 listen 集合判断：若包含任何 post_* 或 turn_end 触发点，则 bake scope。
-        if obs.then and obs.then and type(obs.then[0]) is dict:
+        # `then` 的契约（见 Observer 字段注释）：**注册前**是 raw dict 列表，**注册后**是编译好的
+        # IR tuple。是否还要处理由**全量判据**决定（`any(type(e) is dict ...)`）而不是嗅探首元素
+        # —— 首元素判据遇到混合列表会整列跳过，静默漏掉 bake/编译（2026-09-23 审计记录）。
+        # 已经是纯 IR 时整段跳过：不重建 tuple（身份稳定，外部按 id 做的缓存不失效），也免了重复 bake。
+        if obs.then and any(type(e) is dict for e in obs.then):
+            # 注入 source（原地修改，无拷贝）：消除 _fire_pre_event / _fire_post_event
+            # 运行时的 copy.copy 开销。
+            if obs.source:
+                _bake_inject_source(obs.then, obs.source)
+            # Post-event observers 需要先 bake scope（Observer 默认 scope="persistent"，而
+            # parser 默认大多数 op 为 "battlefield"）；pre-event observers 保持 parser 默认。
             if obs.listen and obs.listen & POST_EVENT_TRIGGERS:
                 _bake_inject_scope(obs.then, obs.scope)
+            # 一次性编译成 typed IR，消除触发时的 JIT 开销。
             obs.then = compile_effects_batch(obs.then)
+        assert_ir_effects(obs.then, where="observer 注册")
 
         obs._reg_seq = self._seq_counter
         self._seq_counter += 1

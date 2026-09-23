@@ -1141,6 +1141,24 @@ Observer 是 IR 第一公民，显式声明触发条件、可选计数器和生�
 | `count` | `int` / `"all"` | 仅 `from:"triggered"` 生效：取最近 N 条（默认 1）；`"all"` 或 ≤0 = 全部 |
 | `source` | `str` | 来源名（事件文案用） |
 
+- **`_burst_effects` 的唯一表示是 IR**：`[RiscIROp]`（与技能 `effects[]`、observer `then` 同格式）。
+  `sim/battle.py` 的迸发执行点把它直接交给 VM（`execute_effects`），因此三条写入路径**都必须在
+  写入前编译**：
+  1. 技能显式 `then` —— 编译期由 `SkillParsePass._parse_burst_grant` 编译，`op_burst_grant` 原样传下去；
+  2. `from: "triggered"` —— 池子里存的就是「该技能的完整效果列表」（已编译 IR），原样取回；
+  3. **特性 direct-mods 通道**（`trait_loader._apply_burst_grant_direct`，生物电/电流刺激/超负荷）——
+     这条通道运行期直接解释特性 JSON、**不经过编译器**，所以它自己负责 `compile_effects_batch(then)`
+     后再写入（2026-09-23 修：此前写的是未编译的 dict，与 IR 条目混在同一列表里，
+     同源去重按 dict 读 `source` 就崩在 `WhenBlock` 上）。
+  写入端去重（同 `source` 替换）读 `source` 时用属性访问（IR 字段）；
+  池子里的顶层条目可能是 `WhenBlock`（**没有 `source` 字段**）→ 读不到就当作"不同源"保留。
+- **可执行检查**：`backend/vm/executor.py:assert_ir_effects(effects, where=...)` 在
+  写入/登记边界断言"列表里没有未编译 dict"（非 `-O` 时生效），调用点：迸发池登记、
+  `_skill_history` 登记、`burst_grant` 两条写入路径、observer 注册。
+  技能侧效果的唯一出口 `BattleVMEngine._get_effects()` 也保证**出口一律 IR**
+  （拿到 raw dict 记录会就地编译；已是 IR 时原样返回，保住按 `id(tuple)` 命中的排序缓存）。
+  回归测试：`backend/tests/test_effect_representation.py`。
+
 - **`from: "triggered"` 口径**（踏雷「携带的攻击技能下回合获得1个已触发过的迸发效果，
   应对防御：改为获得所有触发过的迸发效果」）：
   - 来源池是 `BattleVMEngine._burst_effects[team]` —— 每个「以迸发身份使用过的技能」记一条

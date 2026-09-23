@@ -27,7 +27,11 @@ class BattleSkill:
     _element_override: str = ''     # 属性覆写（元素转换特性）
     _morph_temp: bool = False       # 巧变产物：槽位当前技能为巧变结果（能耗-1，使用后还原）
     _mech_energy_reduction: int = 0 # 机械变式：传动后位置变化技能能耗-1
-    _burst_effects: list[dict] = field(default_factory=list)  # 迸发效果列表
+    # 迸发效果列表：**IR**（`[RiscIROp]`，与技能 effects[]、observer then 同格式，见 IR_GUIDE §3D）。
+    # 三条写入路径都在写入前编译：技能显式 then（编译期）、from:"triggered"（池里就是 IR）、
+    # 特性 direct-mods 通道（trait_loader 自己 compile_effects_batch）。
+    # 读它时按 IR 字段访问（`getattr(e, "source", None)`），不要用 dict 的 `.get()`。
+    _burst_effects: list = field(default_factory=list)
 
     def __post_init__(self) -> None:
         if self.base.transmission:

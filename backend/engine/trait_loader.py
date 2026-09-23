@@ -288,12 +288,20 @@ class TraitLoader:
     _ATTACK_TYPES: frozenset[str] = frozenset({"物攻", "魔攻", "动态攻击"})
 
     def _apply_burst_grant_direct(self, sprite, effect: dict):
-        """Apply burst_grant direct effect: write then[] to matching skills' _burst_effects."""
+        """Apply burst_grant direct effect: write then[] to matching skills' _burst_effects.
+
+        `_burst_effects` 的唯一表示是 **IR**（`data/IR_GUIDE.md` §3D `burst_grant`）。技能显式
+        `then` 与 `from:"triggered"` 两条路径写进去的本来就是已编译 IR，而**本函数所在的特性
+        direct-mods 通道运行期直接解释特性 JSON、不经过编译器**，所以要在这里补编译：
+        写 dict 会与 IR 条目混在同一列表，同源去重按 dict 读 `source` 就崩在 `WhenBlock` 上
+        （2026-09-23 打局千局级实测，`AttributeError: 'WhenBlock' object has no attribute 'get'`）。
+        """
         from backend.engine.modifiers import eval_skill_where
+        from backend.vm.executor import compile_effects_batch
 
         skill_where = effect.get("skill_where")
         skill_filter = effect.get("skill_filter")
-        then_effects = effect.get("then", [])
+        then_effects = compile_effects_batch(effect.get("then", []) or [])
         source = effect.get("source", "")
         if not then_effects:
             return
@@ -312,9 +320,11 @@ class TraitLoader:
                 st = getattr(getattr(bs, 'base', None), 'skill_type', '')
                 if skill_filter == "attack" and st not in self._ATTACK_TYPES or skill_filter == "defense" and st != "防御" or skill_filter == "status" and st != "状态":
                     continue
-            # Remove existing burst effects from same source before re-adding
+            # Remove existing burst effects from same source before re-adding。
+            # `source` 是 IR 字段；池子里取回的顶层条目可能是 `WhenBlock`（没有该字段）
+            # → 读不到就当"不同源"保留，绝不用 `.get()`（那正是崩溃点）。
             bs._burst_effects = [e for e in bs._burst_effects
-                                if e.get("source") != source]
+                                if getattr(e, "source", None) != source]
             bs._burst_effects.extend(then_effects)
             bs._modifiers["burst"] = float(len(bs._burst_effects) > 0)
 

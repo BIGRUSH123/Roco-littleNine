@@ -249,7 +249,7 @@ class BurstGrant:
     target: str                         # "sprite_self"
     skill_where: dict | None = None     # per-skill conditional filter
     skill_filter: str | None = None     # "attack" | "defense" | "status" | "all"
-    effects: tuple = ()                 # burst effect dicts to execute on first_action
+    effects: tuple = ()                 # burst IR effects (RiscIROp) to execute on first_action
     source: str = ""                    # trait name
     # from_="triggered"：忽略 effects，从本队「已触发过的迸发」池里取回效果（踏雷）
     from_: str = "explicit"             # "explicit" | "triggered"

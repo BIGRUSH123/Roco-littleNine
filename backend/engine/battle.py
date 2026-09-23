@@ -18,7 +18,8 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from backend.vm.ctx import Ctx
-from backend.vm.executor import compile_effects_batch, execute as vm_execute
+from backend.vm.executor import (assert_ir_effects, compile_effects_batch,
+                                 normalize_effects, execute as vm_execute)
 from backend.vm.executor import process_effects
 from backend.vm.ir_skill import AndCond, CondExpr, NotCond, OrCond
 from backend.vm.journal import CounterRegister, Journal, ModifierInjection, Replay
@@ -163,14 +164,16 @@ class BattleVMEngine:
     def __init__(self, registry: ObserverRegistry | None = None):
         self.registry = registry if registry is not None else ObserverRegistry()
         self.trait_loader = TraitLoader(self.registry)  # IR_GUIDE trait pipeline
-        # Burst tracking: team → list of (skill_name, effects)
-        self._burst_effects: dict[str, list[tuple[str, list[dict]]]] = {"A": [], "B": []}
+        # Burst tracking: team → list of (skill_name, effects) —— effects 是**已编译 IR**
+        # （登记点见 `execute()` 的 `is_first` 分支，那里对 vm_effects 断言过形状）
+        self._burst_effects: dict[str, list[tuple[str, tuple]]] = {"A": [], "B": []}
         # Distinct burst skill names per team (for burst_triggered_count)
         self._burst_names: dict[str, set[str]] = {"A": set(), "B": set()}
         # Counter values: name → count (for counter_value queries)
         self._counter_values: dict[str, int] = {}
-        # Skill history: sprite_id → [(skill_name, effects, tags_dict)]
-        self._skill_history: dict[str, list[tuple[str, list[dict], dict]]] = {}
+        # Skill history: sprite_id → [(skill_name, effects, tags_dict)]，effects 同样是 IR
+        # （`replay from:"sprite_self"` 直接把它们交给 VM 执行）
+        self._skill_history: dict[str, list[tuple[str, tuple, dict]]] = {}
         # Skill tag lookup: sprite_id → {skill_name: tag}
         self._skill_tags: dict[str, dict[str, str]] = {}
 
@@ -256,6 +259,9 @@ class BattleVMEngine:
         pre_mods = self._fire_pre_event("pre_modifier", ctx, id(self_sprite))
 
         # 3. Execute VM on the skill's effects
+        # 显式 effects（分支效果、调用方注入）与技能自带效果两个入口都过一遍归一：
+        # 契约要求"进引擎状态前编译成 IR"（下面的迸发池 / _skill_history 都按 IR 存）。
+        effects = normalize_effects(effects)
         vm_effects = effects if effects is not None else self._get_effects(self_skill)
         journal = vm_execute(ctx, vm_effects)
 
@@ -271,6 +277,7 @@ class BattleVMEngine:
         # 4.5 Register burst effects (first action = burst)
         if is_first and vm_effects:
             skill_name = getattr(self_skill, 'name', '')
+            assert_ir_effects(vm_effects, where="迸发池登记")
             self._burst_effects[team].append((skill_name, vm_effects))
             self._burst_names[team].add(skill_name)
 
@@ -306,6 +313,7 @@ class BattleVMEngine:
         skill_name = getattr(self_skill, 'name', '')
         if skill_name:
             sprite_id = id(self_sprite)
+            assert_ir_effects(vm_effects, where="技能历史登记")
             self._skill_history.setdefault(sprite_id, []).append(
                 (skill_name, list(vm_effects), {
                     "tag": getattr(self_skill, 'tag', ''),
@@ -701,18 +709,22 @@ class BattleVMEngine:
 
     @staticmethod
     def _get_effects(skill) -> list:
-        """Extract effects from a skill object.
+        """取出技能效果 —— **出口一律 IR**（契约见 IR_GUIDE §3D）。
 
-        CompiledSkill.effects are tuple[SkillIROp, ...] (typed IR nodes).
-        SkillRecord/dict-based effects are list[dict] in op/when format.
-        The executor handles both formats.
+        `CompiledSkill.effects` 是 `tuple[SkillIROp, ...]`（编译产物、身份稳定，
+        `execute()` 里 `_sort_effects_cached` 按 `id(effects)` 命中缓存）；
+        `Skill`（sim 层）的 `effects` 字段已于 2026-09-22 删除。这里保留一个兜底：
+        万一调用方塞进来的是 raw dict 列表（历史夹具、外部集成），就地编译一次再交出去
+        —— 因为下面的迸发池、`_skill_history`、迸发槽都按"只存 IR"处理。
+
+        已经是 IR 时**原样返回**（不重建 tuple），否则每次都要重排效果。
         """
         if hasattr(skill, 'effects'):
             effs = skill.effects
             if callable(effs):
                 effs = effs()
             if effs:
-                return effs
+                return normalize_effects(effs)
         return []
 
     def register_counter(self, mutation: CounterRegister, owner_sprite=None, owner_skill=None) -> None:
@@ -952,7 +964,7 @@ class BattleVMEngine:
             history = self._skill_history.get(sprite_id, [])
             for skill_name, effects, tags in history:
                 if skill_filter and not self._matches_skill_filter(
-                    skill_name, effects, tags, skill_filter
+                    skill_name, tags, skill_filter
                 ):
                     continue
                 accumulated.extend(vm_execute(ctx, effects))
@@ -961,7 +973,7 @@ class BattleVMEngine:
             for _sprite_id, history in self._skill_history.items():
                 for skill_name, effects, tags in history:
                     if skill_filter and not self._matches_skill_filter(
-                        skill_name, effects, tags, skill_filter
+                        skill_name, tags, skill_filter
                     ):
                         continue
                     accumulated.extend(vm_execute(ctx, effects))
@@ -969,9 +981,13 @@ class BattleVMEngine:
 
     @staticmethod
     def _matches_skill_filter(
-        skill_name: str, effects: list[dict], tags: dict, skill_filter: dict
+        skill_name: str, tags: dict, skill_filter: dict
     ) -> bool:
-        """Check if a historical skill matches the replay filter."""
+        """Check if a historical skill matches the replay filter.
+
+        `skill_name` 留给"按名筛选"的扩展位；三种键（tag/skill_type/element）都在 `tags` 里。
+        （此前还有个 `effects` 形参，从头到尾没用过：效果列表已统一为 IR，筛选只认 tags。）
+        """
         # tag filter
         if "tag" in skill_filter and tags.get("tag", "") != skill_filter["tag"]:
             return False

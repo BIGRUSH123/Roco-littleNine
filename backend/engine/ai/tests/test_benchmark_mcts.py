@@ -12,7 +12,6 @@ from backend.engine.ai.core.mcts import (
     NUM_ACTIONS,
     MCTSNode,
     NetworkPolicyAgent,
-    NUM_ACTIONS,
     _step_battle,
     action_index_to_action,
     get_valid_actions,
@@ -28,6 +27,7 @@ from backend.sim.factory import SimFactory
 from backend.sim.skill import Skill
 from backend.sim.sprite import Sprite
 from backend.common.models import SpeciesStats
+from backend.vm.executor import compile_effects_batch
 
 
 def _assert_encoded_equal(left: dict[str, np.ndarray], right: dict[str, np.ndarray]) -> None:
@@ -395,7 +395,12 @@ def test_mutable_state_restores_full_skill_runtime_state():
     skill._transmission = 3
     skill._element_override = "fire"
     skill._mech_energy_reduction = 1
-    skill._burst_effects.append({"kind": "damage", "value": 1})
+    # 迸发槽只存 IR（IR_GUIDE §3D）：早先这里塞的是已删除的 kind 层形状
+    # `{"kind": "damage", "value": 1}`，被人抄走就会复现"混形状"那类 bug（2026-09-23 审计）
+    burst_op = compile_effects_batch([
+        {"op": "power_mod", "target": "sprite_self", "attr": "power", "delta": 5},
+    ])[0]
+    skill._burst_effects.append(burst_op)
 
     saved = battle.save_mutable_state()
 
@@ -426,7 +431,7 @@ def test_mutable_state_restores_full_skill_runtime_state():
     assert restored._transmission == 3
     assert restored._element_override == "fire"
     assert restored._mech_energy_reduction == 1
-    assert restored._burst_effects == [{"kind": "damage", "value": 1}]
+    assert restored._burst_effects == [burst_op]
 
 
 def test_mcts_uses_non_network_opponent_agent_actions():

@@ -25,7 +25,9 @@ from backend.sim.globals import kingdom_is_night
 from backend.sim.player import Player, PlayStyle
 from backend.sim.resolver import _TYPE_CHART
 from backend.sim.skill import Skill
+from backend.sim.skill_ir import iter_ops
 from backend.sim.sprite import Sprite
+from backend.vm.compiler.skill_compiler import SkillCompiler
 
 # Agent registry: whitelist of registered AI agents.
 # NEVER accept raw file paths — agents are loaded by registered name only.
@@ -988,17 +990,23 @@ def debug_init():
 
     # Load all skills, classify by whether they have special effects
     # Sort order: 物攻/魔攻 (0) < 防御 (1) < 状态 (2)
+    # 「特殊效果」旧口径读的是已删除的 kind 层（`{"kind": "special"}` = 技能自带修正
+    # power_mult/damage_mult/multi_hit/ignore_mods/burst…），该层 2026-09-22 删除后这里恒为空
+    # —— A 侧一个技能都没有（静默失效）。现口径走编译后的 IR：除 `Damage` 之外还有别的 op
+    # 就算"有特殊效果"（状态/增益/印记/连击都算），与 `sim/skill_ir.iter_ops` 同源。
     _TYPE_ORDER = {'物攻': 0, '魔攻': 0, '动态攻击': 0, '防御': 1, '状态': 2}
     all_skills: list[BattleSkill] = []
     special_skills: list[BattleSkill] = []
+    compiler = SkillCompiler()
     for path in sorted(SKILLS_DIR.glob("*.json")):
         try:
             data = json.loads(path.read_text(encoding='utf-8'))
             bs = BattleSkill(base=Skill.load(data))
             all_skills.append(bs)
+            record = compiler.compile(data)
             has_special = any(
-                e.get('kind') == 'special'
-                for e in data.get('effects', [])
+                type(op).__name__ != "Damage"
+                for op, _branch in iter_ops(record.effects)
             )
             if has_special:
                 special_skills.append(bs)
@@ -1141,7 +1149,6 @@ def export_battle(req: schemas.ExportRequest):
 @app.post("/api/battle/import")
 def import_battle(req: schemas.ImportRequest):
     """Import a battle from a saved .roco-match.json file."""
-    from pathlib import Path
     from roco.serializer import _EXPORT_DIR
 
     path = _EXPORT_DIR / f"{req.name}.roco-match.json"

@@ -9,11 +9,15 @@
 
 from __future__ import annotations
 
+import json
+from pathlib import Path
+
 from backend.sim.action import Action
 from backend.sim.battle import Battle
 from backend.sim.factory import SimFactory
 from backend.sim.pipeline import TurnPipeline
 from backend.sim.traits import dispatch_entry
+from backend.vm.executor import compile_effects_batch
 
 factory = SimFactory()
 
@@ -120,3 +124,46 @@ def test_tailei_real_timeline_replays_triggered_burst_next_turn():
 
     use(battle, "A", 2, is_first=True)                 # 第3回合：猛烈撞击（迸发）
     assert battle.player_b.active._cached_abnormals.get("灼烧", 0) == burn_before * 2
+
+
+def _trait_effect(name: str) -> dict:
+    """取 data/traits/<name>.json 的第一条效果（与数据同步，别在测试里手抄）。"""
+    path = Path(__file__).resolve().parents[2] / "data" / "traits" / f"{name}.json"
+    return json.loads(path.read_text(encoding="utf-8"))["effects"][0]
+
+
+def test_direct_burst_grant_writes_ir_and_replaces_same_source():
+    """特性 burst_grant 必须把 `then` **编译成 IR** 再写入 `_burst_effects`。
+
+    `_burst_effects` 的唯一表示是 IR（IR_GUIDE §3D）：技能显式 `then` 与 `from:"triggered"`
+    写进去的都是已编译 IR，而特性 direct-mods 通道运行期直接解释特性 JSON、不经过编译器，
+    2026-09-23 之前它写的是未编译 dict → 同源去重按 dict 读 `source` 时崩在从迸发池取回的
+    IR 条目上（`AttributeError: 'WhenBlock' object has no attribute 'get'`，打局千局级才撞上，
+    直接把一整轮 BC 数据生成打崩）。
+    """
+    battle = make_battle(["踏雷", "猛烈撞击"])
+    sprite = battle.player_a.active
+    loader = battle._vm_engine.trait_loader
+
+    ir_other = compile_effects_batch([
+        {"op": "power_mod", "target": "sprite_self", "attr": "power", "delta": 10,
+         "source": "星火"},
+    ])
+    ir_same = compile_effects_batch([
+        {"op": "power_mod", "target": "sprite_self", "attr": "energy_cost",
+         "delta": -1, "source": "生物电"},
+    ])
+    assert ir_other and not isinstance(ir_other[0], dict)
+    tailei = next(bs for bs in sprite.skills if bs.name == "踏雷")
+    tailei._burst_effects = [*ir_other, *ir_same]
+
+    loader._apply_direct_mods(sprite, [_trait_effect("生物电")])   # 不该抛异常
+
+    effects = tailei._burst_effects
+    assert all(not isinstance(e, dict) for e in effects)          # 列表里没有 dict
+    assert sum(1 for e in effects if getattr(e, "source", None) == "星火") == 1
+    same = [e for e in effects if getattr(e, "source", None) == "生物电"]
+    assert len(same) == 1                                        # 同源替换，不是叠加
+    assert getattr(same[0], "attr", "") == "energy_cost"          # 换成新写入的那条
+    # delta 进了编译器就成了值表达式节点（Literal）而不是裸数字 —— 这本身就是"已编译"的证据
+    assert getattr(getattr(same[0], "delta", None), "value", None) == -2
