@@ -1,4 +1,4 @@
-.PHONY: install dev-install test lint lint-fix clean demo
+.PHONY: install dev-install test lint lint-fix clean
 
 install:
 	pip install -e .
@@ -14,9 +14,6 @@ lint:
 
 lint-fix:
 	ruff check --fix .
-
-demo:
-	python scripts/demo.py
 
 clean:
 	rm -rf __pycache__ .pytest_cache .ruff_cache

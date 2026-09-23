@@ -4,6 +4,14 @@
 1.   Always run `pwd` (or PowerShell 的 `Get-Location`) to verify you're in the correct project directory before creating or modifying any files. 
 1.  After any Python code change, run `pytest -x --tb=short` before offering to commit — catch bugs immediately.
 
+## 目录约定（详见 `docs/README.md`）
+
+- 生产代码只在 `backend/`；`native/` 是 Rust/Cython 双实现与工具，`frontend/` 是前端 SPA。
+- 文档索引只有一处：`docs/README.md`（含各文档"什么时候必须读"）；机制契约是 `data/IR_GUIDE.md`。
+- 测试：模块级/集成测试与包代码同目录；跨模块/端到端的新测试放 `backend/tests/`；`pytest` 的 `testpaths` 就是 `backend`。
+- 一次性脚本放 `native/tools/`（**脚本入库、脚本写出的转储不入库**）；实验结论进 `docs/`，原始日志留在被忽略的 `backend/engine/ai/log/`，不要把文档链接指过去。
+- 改动前后自查：`native/tools/find_undefined_names.py backend`（秒级扫未绑定名）+ `pytest -q`。
+
 ## Version Control
 
 - After completing any file-modifying task, always offer to commit and push with a descriptive Chinese commit message summarizing all changes. 

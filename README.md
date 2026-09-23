@@ -323,33 +323,52 @@ JSON 数据  →  编译器（解析/校验/注入命中/排序）  →  RISC �
 
 ```
 格斗小九/
-├── backend/
-│   ├── api/          FastAPI 服务端（对战 API、精灵/技能数据接口）
-│   ├── engine/       VM 执行器、快照、回放、序列化、特性观察者、AI 训练管线
-│   ├── vm/           Battle VM 编译器管线（解析 → 校验 → 排序 → 执行）
-│   ├── sim/          模拟层（精灵、技能、对战流程、回合记录、回溯快照）
-│   └── common/       共享模型、数值公式、常量、精灵种族值数据库
-├── frontend/         Vue 3 + Pinia + Tailwind CSS 前端 SPA
-│   └── src/
-│       ├── components/   12 个对战相关组件
-│       └── stores/       Pinia 状态管理（对战状态、精灵素材）
-├── roco/             SDK 包：AI Agent 协议、VM 桥接层、锦标赛运行器
-├── data/             游戏数据：精灵(465) / 技能(472) / 特性(166) JSON
-├── wiki/             Markdown 知识库：精灵图鉴 / 技能图鉴 / 对战机制
-├── tests/            集成测试
-├── scripts/          工具脚本（demo.py 等）
-└── examples/         自定义 Agent 示例
+├── backend/                生产代码（唯一入库的 Python 包）
+│   ├── api/                FastAPI 服务端（对战 API、精灵/技能数据接口）
+│   ├── engine/             VM 执行编排、快照、回放、序列化、特性观察者
+│   │   ├── ai/             AI 训练管线（BC/自博弈/MCTS/服务端 advisor）
+│   │   ├── differential/   逐回合差分夹具（24 个对局快照）
+│   │   └── test_*.py       与引擎同目录的单元/集成测试（含大块 test_integration.py）
+│   ├── vm/                 Battle VM：IR 定义 + 编译管线（解析→校验→排序）+ 执行器
+│   ├── sim/                模拟层（精灵、技能、对战流程、规则层智能体与阵容专家）
+│   ├── common/             共享模型、数值公式、常量、精灵种族值数据库
+│   ├── tools/              开发工具（trait_editor 等）
+│   └── tests/              跨模块测试集中放这里（其余与包代码同目录）
+├── frontend/               Vue 3 + Pinia + Tailwind 前端 SPA
+├── data/                   游戏数据契约与语料：skills/ sprites/ traits/ + IR_GUIDE.md
+├── docs/                   设计口径与实验记录（**索引见 docs/README.md**）
+├── native/                 Rust/Cython 双实现 + 工具（tools/ 索引见 native/tools/README.md）
+├── checkpoints/            训练产物索引（只入库 README，权重本体不入库）
+└── AGENTS.md / CLAUDE.md   Agent 协作约定；pyproject.toml / Makefile 为工程入口
 ```
+
+**本地存在但有意不入库**（`.gitignore` 里逐条有原因）：`wiki/`（知识库）、`raw/`（抓取原始件）、
+`env/`（虚拟环境）、`.agents/`（项目技能）、`_attachments/`（与 `frontend/public/sprites` 重复）、
+`backend/engine/ai/log/`（训练运行日志）、`/native/tools/*.{txt,log,err,out,pkl}`（调试转储；
+**脚本入库存、脚本写出的转储忽略**）、根目录 `_*.log`。
+
+v1.0 起裁掉的 SDK 层（`roco/`、`examples/`、根 `tests/`、`scripts/`）**已不在仓库里**；
+`backend/api/main.py` 里仍有几处 `roco.*` 的运行时导入，属于历史残留（见下"已知残留"）。
+
+---
+
+## 已知残留（v1.0 裁剪后未清干净的地方）
+
+| 位置 | 现象 |
+|---|---|
+| `backend/api/main.py`（7 处 `from roco.…`） | 自定义 Agent / 导出对局相关端点会 ImportError；`AGENT_REGISTRY` 里 `examples/my_agent.py`、`scripts/demo.py` 指向已不存在的文件 |
+| `Makefile` 的 `demo` 目标、旧 README 的 demo 命令 | 已随 `scripts/` 一起裁掉，现已移除 |
+| `frontend/public/sprites/*.png` | 68 个 >1 MB 的立绘，合计约 430 MB，占入库体积的大部分（考虑 Git LFS 或按需拉取） |
 
 ---
 
 ## 开发
 
 ```bash
-# 安装开发依赖
+# 安装开发依赖（含 pytest / ruff）
 pip install -e ".[dev]"
 
-# 运行全部测试
+# 运行全部测试（testpaths = backend，见 pyproject.toml）
 pytest -x --tb=short
 
 # 代码检查
@@ -357,9 +376,6 @@ ruff check .
 
 # 自动修复
 ruff check --fix .
-
-# 运行 Agent 锦标赛 Demo
-python scripts/demo.py
 ```
 
 亦可使用 Makefile：

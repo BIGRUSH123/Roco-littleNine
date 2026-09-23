@@ -56,18 +56,19 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"wiki/**" = ["E501"]  # scraper has long strings
-"_debug_trait_tooltip.py" = ["E501", "F841", "SIM"]  # debug script
+"wiki/**" = ["E501"]  # scraper has long strings（wiki/ 未入库，仅本地知识库）
 "backend/engine/test_*.py" = ["E501", "N814", "N805", "B011", "F841", "B017", "N802", "N806"]  # test files
+# 开发工具：trait_editor 里塞了 JS 代码字符串，F821 会误报
 "backend/tools/**" = ["E501", "F841", "F821"]  # dev tools
 "backend/api/main.py" = ["E501"]  # API routes have long strings
 "__init__.py" = ["F401"]  # re-exports
 "**/test_*.py" = ["E501", "F401", "F841", "B017"]  # all test files
 "**/tests/**" = ["E501", "F401", "F841", "B017"]  # all test directories
-"roco/**" = ["E501", "F841", "SIM"]  # package
 
 [tool.pytest.ini_options]
-testpaths = ["tests", "roco/tests", "backend"]
+# 测试全部在 backend/ 下（backend/tests 集中放跨模块/端到端，其它与包代码同目录）。
+# 此前写成 ["tests", "roco/tests", "backend"]：前两个随 v1.0 裁掉的目录一起消失了。
+testpaths = ["backend"]
 addopts = "-x --tb=short"
 filterwarnings = [
     "ignore:The PyTorch API of nested tensors is in prototype stage.*:UserWarning",
