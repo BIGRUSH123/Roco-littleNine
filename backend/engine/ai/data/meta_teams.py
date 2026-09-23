@@ -37,6 +37,11 @@ import json
 import os
 import random
 from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:               # 只服务于下面两个函数的返回标注（函数体内是惰性导入）
+    from backend.sim.agent_v2 import TeamStrategy
+    from backend.sim.player import Item
 
 DEFAULT_META_TEAMS_PATH = Path("backend/engine/ai/data/meta_teams.json")
 

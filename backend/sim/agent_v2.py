@@ -33,6 +33,7 @@ import random
 import dataclasses
 from dataclasses import dataclass, field
 
+from . import belief
 from . import ev
 from . import plan
 from .action import Action
@@ -395,7 +396,6 @@ class RuleAgentV2:
         best_dmg = max((dmg for _i, dmg, _c in table), default=0)
         # 回合末固定伤害（异常 tick + 印记末伤）的致死预判，只算不落伤
         my_tick_death = 0 < s.current_hp <= predict_turn_end_damage(battle, s, self.team)
-        opp_tick_death = 0 < opp.current_hp <= predict_turn_end_damage(battle, opp, opp_team)
         # 对手大概率撤人（留场必死 + 有替补）→ 它这回合不会来打我，也不必为它花道具
         opp_reacting = opponent_likely_switch(battle, self.team, opp_player, best_dmg)
 

@@ -17,7 +17,7 @@ from typing import Any
 def effect_to_dict(effect: Any) -> dict:
     """Serialize any EffectObject subclass to dict."""
     from backend.vm.effect import (
-        AbnormalEffect, EffectObject, MarkEffect, ModifierEffect,
+        AbnormalEffect, MarkEffect, ModifierEffect,
         ObserverEffect, StatBuffEffect, StateEffect,
     )
     base = {
@@ -289,7 +289,6 @@ def sprite_to_dict(sprite) -> dict:
 
 def sprite_from_dict(d: dict, species_db, skill_loader) -> Any:
     """Reconstruct Sprite from dict."""
-    from backend.common.models import SpeciesStats
     from backend.sim.sprite import Sprite
 
     species = species_db(d["species_name"], d.get("species_form", ""))
@@ -678,7 +677,6 @@ def battle_from_dict(d: dict, species_db, skill_loader) -> Any:
     battle.winner = d.get("winner")
 
     gd = d.get("globals", {})
-    from backend.sim.globals import GlobalEffects
     battle.globals = globals_from_dict(gd)
 
     battle.log = [round_record_from_dict(r) for r in d.get("log", [])]

@@ -11,7 +11,6 @@ from __future__ import annotations
 
 import argparse
 import copy
-import json
 import multiprocessing as mp
 import os
 import pickle
@@ -35,7 +34,6 @@ warnings.filterwarnings(
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent
 
-from backend.common.skill_trait_ids import SKILL_ID_TO_NAME
 from backend.engine.ai.battle_log import BattleLogWriter, extract_battle_summary
 from backend.engine.ai.console import safe_print as _console_print
 from backend.engine.ai.data.build_from_reference import (
@@ -258,7 +256,7 @@ def _random_teams(
     rnd = random if rng is None else rng
     used: set[str] = set()  # 两队共享排重，避免 AB 重复选同一批精灵
 
-    max_possible = min(max_team_size, len(names := list(sprite_skills)) // 2)
+    max_possible = min(max_team_size, len(sprite_skills) // 2)
     team_size = min(max_team_size, max_possible)
 
     def build_team(size: int, optimal: bool) -> list[dict]:
@@ -1955,7 +1953,7 @@ def main():
             state = state["state_dict"]  # 标准 save() 格式
         model.load_state_dict(state)
     model.to(device)
-    _log(f"模型类型: ModularBattleNet (模块化+残差+注意力)")
+    _log("模型类型: ModularBattleNet (模块化+残差+注意力)")
     _log(f"模型参数量: {model.num_params:,}")
 
     # 最优模型副本（门控基准）
@@ -1973,7 +1971,7 @@ def main():
     if args.mcts_parallel:
         mcts_pool = mp.Pool(args.mcts_workers)
         _log(f"🚀 MCTS 并行化已启用: {args.mcts_workers} workers")
-        _log(f"   预期加速: ~2x, 推荐模拟次数: 800+")
+        _log("   预期加速: ~2x, 推荐模拟次数: 800+")
 
     # 门控两侧的叶节点权重：-1 = 跟随自博弈的口径（保证门控和生成用同一个搜索）
     eval_cand_leaf = (args.leaf_value_weight if args.eval_candidate_leaf_weight < 0

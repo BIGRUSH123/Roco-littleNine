@@ -230,7 +230,9 @@ def test_phantom_kill_removed_when_opponent_acts_first_and_lethal():
 
 def _candidates(b):
     cands = [ev.Candidate('skill', i, s.name) for i, s in enumerate(b.player_a.active.skills)]
-    cands += [ev.Candidate('switch', i, f"→{s.name}")
+    # 替补候选要取**该替补**：此前写的是上一个推导式的 `s`，它不在本推导式作用域里
+    # （现有用例 A 队只有 1 只 → range 为空，所以从没炸过；ruff F821 抓出来的，2026-09-23）
+    cands += [ev.Candidate('switch', i, f"→{b.player_a.team[i].name}")
               for i in range(1, len(b.player_a.team))]
     cands.append(ev.Candidate('gather', 0, "聚能"))
     return cands

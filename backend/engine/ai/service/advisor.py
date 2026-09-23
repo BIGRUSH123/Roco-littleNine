@@ -38,6 +38,7 @@ import torch
 from backend.common.constants import ITEM_VARIANT_ACTION_BASE, ITEM_VARIANT_SLOTS
 from backend.engine.ai.core.encoder import encode_battle_state
 from backend.engine.ai.core.mcts import (
+    ITEM_ACTION_IDX,
     NUM_ACTIONS,
     NetworkPolicyAgent,
     get_valid_actions,

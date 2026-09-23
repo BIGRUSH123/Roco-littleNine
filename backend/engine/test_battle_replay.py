@@ -343,8 +343,6 @@ def test_battle3_round22_final_ko():
 # Trait: 吉利丁片 — ally_new target resolution
 # ═══════════════════════════════════════════════════════════════
 
-from backend.sim.player import Player
-
 
 def test_trait_gelatin_ally_new_target():
     """吉利丁片: post_leave→mult_mod target=ally_new should go to incoming ally, not opponent.

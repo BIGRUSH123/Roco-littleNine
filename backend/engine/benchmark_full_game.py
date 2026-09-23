@@ -13,7 +13,6 @@ import random
 import statistics
 import time
 
-from backend.sim.agent import RuleAgent
 
 from .differential.recorder import build_seeded_battle
 from .differential.generate_fixtures import parse_seeds

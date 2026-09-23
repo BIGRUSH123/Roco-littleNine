@@ -3572,8 +3572,8 @@ if __name__ == "__main__":
     test_priority_sort_mixed_phases()
     test_ttl_on_statuseffect()
     test_ttl_decrement_and_expiry()
-    test_delay_stores_on_sprite()
-    test_delay_decremented_at_turn_start()
+    # （旧 delay 层的两条用例随 schedule→defer 迁移删除，这里的调用一并去掉：
+    #   留着会让 `python test_integration.py` 直接 NameError）
     test_cooldown_on_statuseffect()
     test_cooldown_decrement_on_use()
     # ── Advanced mod filters: on_next, skill_where, element:each ──

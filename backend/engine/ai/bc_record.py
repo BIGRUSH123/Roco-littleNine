@@ -22,7 +22,6 @@ from backend.engine.ai.core.encoder import encode_battle_state
 from backend.engine.ai.core.mcts import (
     ITEM_ACTION_IDX,
     NUM_ACTIONS,
-    _bench_to_team_index,
     _replacement_mask,
     get_valid_actions,
 )

@@ -30,7 +30,7 @@ from backend.engine.ai.core.outcome import (
     battle_outcome_a,
     eval_score_for_candidate,
 )
-from backend.engine.ai.train import MCTSAgent, _load_sprite_skills, _random_item, _random_teams
+from backend.engine.ai.train import MCTSAgent, _load_sprite_skills, _random_teams
 from backend.sim.agent import RuleAgent
 from backend.sim.factory import SimFactory
 

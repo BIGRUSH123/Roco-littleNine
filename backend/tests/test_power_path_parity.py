@@ -44,7 +44,7 @@ def _estimate(b) -> int:
 def _with_perm_power(delta: int):
     b = _battle()
     me = b.player_a.active
-    me._modifiers[f"skill.猛烈撞击.power"] = delta
+    me._modifiers["skill.猛烈撞击.power"] = delta
     _load_permanent_skill_mods_for_sprite(me)
     return b
 

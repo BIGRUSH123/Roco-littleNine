@@ -18,7 +18,7 @@ from backend.vm.effect import AbnormalEffect, StateEffect, StatBuffEffect
 from .action import Action
 from .battle_mechanics import ActionCheck, BattleMechanicsMixin
 from .battleskill import BattleSkill
-from .globals import GlobalEffects, kingdom_is_night
+from .globals import GlobalEffects
 from .resolver import SkillResolver
 from .round_record import ActionRecord, RoundRecord
 from .round_record import _action_short as _rr_action_short

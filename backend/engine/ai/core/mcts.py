@@ -20,7 +20,6 @@ from backend.sim.action import Action
 
 if TYPE_CHECKING:
     from backend.engine.ai.core.model import ModularBattleNet
-    from backend.sim.agent import Agent
     from backend.sim.battle import Battle
     from backend.sim.factory import SimFactory
     from backend.sim.player import Player

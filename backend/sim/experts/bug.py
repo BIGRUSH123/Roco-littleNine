@@ -71,8 +71,6 @@ class BugExpert(RuleAgentV2):
         opp = battle.get_opponent(self.team).active
         if s is None or opp is None or s.is_fainted:
             return super()._decide(battle)
-        pool = self._pool(battle)
-
         base = super()._decide(battle)
 
         # 只在"通用逻辑选择空过（聚能）"时替换：刷子是投资，不能挤掉真正的出招
@@ -86,11 +84,3 @@ class BugExpert(RuleAgentV2):
                     self.last_rule = "farm_over_gather"
                     return _skill_action(i)
         return base
-
-    # （v1 的 hold_farmer 实测有害 0.360，已删除：被动刷子不值得为它放弃换人）
-    def _unused_hold_farmer(self, battle, s, cands):
-        if "hold_farmer" not in self.rules:
-            return cands
-        if not s.name.startswith(FARMER) or self._pool(battle) >= POOL_SPEND_AT:
-            return cands
-        return [c for c in cands if getattr(c, "kind", "") != "switch"]

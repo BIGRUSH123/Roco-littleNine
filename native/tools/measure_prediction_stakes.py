@@ -200,7 +200,11 @@ def _run_one_card(plan, args, stats, costs):
 
 
 def main() -> None:
-    ensure_hash_seed()
+    # 与 gen_bc_data 同口径：PYTHONHASHSEED=0（引擎里有依赖 set/dict 迭代顺序的逻辑，
+    # 不锚住 hash seed 的话同一 seed 跑不出同一批对局）。此前这里调的是个不存在的名字，
+    # 一跑就 NameError（2026-09-23 静态扫描发现）。
+    from native.tools.gen_bc_data import _ensure_hash_seed
+    _ensure_hash_seed()
     args = parse_args()
     factory = SimFactory()
     sprite_skills = dict(SPRITE_RANDOM_POOL)

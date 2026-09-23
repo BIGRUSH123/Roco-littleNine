@@ -238,7 +238,6 @@ def payoff_terms(battle, me, my_player, opp_player, my_cand: Candidate, scenario
                  and SkillResolver.resolve_counter(their_skill, my_skill))
     they_counter = (my_skill is not None and their_skill is not None
                     and SkillResolver.resolve_counter(my_skill, their_skill))
-    counter_path = i_counter or they_counter
     first = acts_first(battle, me, my_team, my_skill, opp, opp_team, their_skill,
                        my_switch=(my_cand.kind == 'switch'))
     # 引擎：应对成立时**应对成功方先手**，另一侧按后手结算（battle.py

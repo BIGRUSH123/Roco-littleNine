@@ -19,7 +19,7 @@ from __future__ import annotations
 
 from backend.sim.action import Action
 from backend.sim.agent_v2 import RuleAgentV2, _skill_action
-from .poison import POISON, abnormal_stacks, mark_stacks
+from .poison import POISON, abnormal_stacks
 
 VENOM_SKILL = "毒液渗透"
 FINISHER = "感染病"                 # 击败 → 中毒转印记

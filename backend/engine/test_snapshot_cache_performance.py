@@ -272,7 +272,7 @@ def test_mcts_simulation_scenario():
     per_call = elapsed / total_calls * 1_000_000  # μs
     throughput = total_calls / elapsed
 
-    print(f"\nMCTS 模拟场景:")
+    print("\nMCTS 模拟场景:")
     print(f"  模拟次数: {simulations}")
     print(f"  每次节点: {nodes_per_sim}")
     print(f"  总调用数: {total_calls:,}")
@@ -325,10 +325,10 @@ def test_cache_memory_footprint():
     # Result: (frozenset, dict, int, int)
     assert isinstance(cache_result, tuple) and len(cache_result) == 4
 
-    print(f"\n缓存内存占用:")
+    print("\n缓存内存占用:")
     print(f"  缓存键长度:   {len(cache_key)} 技能")
-    print(f"  缓存结果:     4 元组 (frozenset, dict, int, int)")
-    print(f"  ✓ 缓存结构紧凑，内存占用合理")
+    print("  缓存结果:     4 元组 (frozenset, dict, int, int)")
+    print("  ✓ 缓存结构紧凑，内存占用合理")
 
 
 if __name__ == "__main__":

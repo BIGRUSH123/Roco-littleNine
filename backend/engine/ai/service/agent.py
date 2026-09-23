@@ -11,7 +11,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-import numpy as np
 
 from backend.engine.ai.core.encoder import encode_battle_state
 from backend.engine.ai.core.evaluator import TorchEvaluator

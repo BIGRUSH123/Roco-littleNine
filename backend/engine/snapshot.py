@@ -248,7 +248,6 @@ def build_ctx(
     # ── Self sprite ──
     ss = self_sprite
     ss_mods = ss._modifiers
-    ss_stats = ss.initial_stats
     ss_counters = ss.counters
     hp_self = ss.current_hp
     hp_self_max = ss.max_hp

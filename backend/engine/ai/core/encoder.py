@@ -38,7 +38,6 @@ from backend.vm.effect import ObserverEffect, StateEffect
 
 if TYPE_CHECKING:
     from backend.sim.battle import Battle
-    from backend.sim.battleskill import BattleSkill
     from backend.sim.player import Player
     from backend.sim.sprite import Sprite
 
@@ -771,7 +770,7 @@ def _collect_ast_token_ids(
         all_values.extend(v)
 
 
-from backend.engine.ai.core.vocab import VOCAB_TO_ID, VAL_NUMERIC, VAL_STRING
+from backend.engine.ai.core.vocab import VOCAB_TO_ID
 
 _ENUM_TOKEN_CACHE: dict[tuple[str, tuple[str, ...]], str | None] = {}
 _UNK_ID = VOCAB_TO_ID["<UNK>"]  # 模块级常量，避免重复查找

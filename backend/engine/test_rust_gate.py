@@ -6,7 +6,6 @@
 
 from __future__ import annotations
 
-import dataclasses
 import glob
 import json
 import random
@@ -42,7 +41,6 @@ def battle_from_spec(spec: dict) -> Battle:
     for ps in spec["players"]:
         sprites: list[Sprite] = []
         for ss in ps["sprites"]:
-            import dataclasses
 
             from backend.common.models import SpeciesStats
 
