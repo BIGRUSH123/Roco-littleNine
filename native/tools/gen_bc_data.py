@@ -76,10 +76,12 @@ def parse_args() -> argparse.Namespace:
     ap.add_argument("--workers", type=int, default=1,
                     help="并行 worker 进程数（1 = 单进程；0 = 自动：规划层 → 8，"
                          "纯规则 → cpu-1。实测规划层在 6 P 核上就到顶，见模块 docstring）")
-    ap.add_argument("--expert", choices=("v2", "v3"), default="v2",
+    ap.add_argument("--expert", choices=("v2", "v3", "team"), default="v2",
                     help="专家实现：v2 = RuleAgentV2（出厂口径）｜ "
                          "v3 = RuleAgentV3（社区 PVP 攻略版，同局配对 A/B 见 "
-                         "native/tools/eval_expert_change.py --ab v3）。"
+                         "native/tools/eval_expert_change.py --ab v3）｜ "
+                         "team = meta 队各自挂 `backend/sim/experts` 的专精专家"
+                         "（没有专精的队回落 v2；随机阵容一律 v2）。"
                          "换专家会改变 BC 数据分布，历史夹具/曲线不可直接比 (default: v2)")
     ap.add_argument("--start-game", type=int, default=0,
                     help="从第 N 局开始打（仍会完整产队，保证与整跑一致；用于复现慢局）")
@@ -130,6 +132,8 @@ def _build_plans(args, meta_teams, sprite_skills, rng, team_game_counts) -> list
         is_meta = 0
         team_ids = (-1, -1)
         n_optimal = 0
+        expert = getattr(args, "expert", "v2")
+        expert_a = expert_b = expert
         if meta_teams and rng.random() < args.meta_frac:
             is_meta = 1
             i_a = rng.randrange(len(meta_teams))
@@ -147,6 +151,13 @@ def _build_plans(args, meta_teams, sprite_skills, rng, team_game_counts) -> list
                 nm = meta_teams[idx]["name"]
                 team_game_counts[nm] = team_game_counts.get(nm, 0) + 1
             tag = f"meta {meta_teams[i_a]['name']} vs {meta_teams[i_b]['name']}"
+            if expert == "team":
+                from backend.sim.experts import expert_for_team
+
+                cls_a = expert_for_team(meta_teams[i_a]["name"])
+                cls_b = expert_for_team(meta_teams[i_b]["name"])
+                expert_a = cls_a.__name__ if cls_a else "v2"
+                expert_b = cls_b.__name__ if cls_b else "v2"
         else:
             team_a, team_b, item_a, item_b = _random_teams(
                 factory, sprite_skills,
@@ -157,6 +168,8 @@ def _build_plans(args, meta_teams, sprite_skills, rng, team_game_counts) -> list
             n_optimal = sum(1 for t in (team_a, team_b)
                             if t and all(s.get("_mode") == "optimal" for s in t))
             tag = "random " + "|".join(s["name"] for s in team_a)
+            # 随机阵容没有队名，`team` 无从查表 → 一律通用专家
+            expert_a = expert_b = "v2" if expert == "team" else expert
         plans.append({
             "g": g, "team_a": team_a, "team_b": team_b,
             "item_a": item_a, "item_b": item_b,
@@ -166,7 +179,8 @@ def _build_plans(args, meta_teams, sprite_skills, rng, team_game_counts) -> list
             "max_turns": args.max_turns, "draw_margin": args.draw_margin,
             "hang_dump_sec": args.hang_dump_sec,
             # 专家实现（v2 = 旧规则层，v3 = 吃进社区攻略的版本；见 agent_v3 模块说明）
-            "expert": getattr(args, "expert", "v2"),
+            # `team` 模式在 meta 局里逐侧展开成具体专家**类名**（计划要跨进程传，不能带类对象）
+            "expert": expert, "expert_a": expert_a, "expert_b": expert_b,
             # 每局独立派生的随机种子：引擎掷骰走全局 random，若不显式播种，
             # 同一 seed 在不同进程/不同 worker 数下结果不同（曾导致串并行数据集不一致）
             "rng_seed": _game_rng_seed(args.seed, g),
@@ -225,6 +239,17 @@ def _worker_factory():
 _WORKER_FACTORY = None
 
 
+def _agent_class(name: str):
+    """专家标识 → 智能体类：`v2` 通用 ｜ `v3` 攻略版 ｜ 专精专家类名（见 experts 注册表）。"""
+    if name == "v3":
+        return RuleAgentV3
+    if not name or name == "v2":
+        return RuleAgentV2
+    from backend.sim.experts import expert_by_class_name
+
+    return expert_by_class_name(name) or RuleAgentV2
+
+
 def _play_plan(plan: dict) -> tuple:
     """打一局并返回 (g, samples, outcome_a, end_reason, turns)（可在子进程执行）。
 
@@ -243,11 +268,12 @@ def _play_plan(plan: dict) -> tuple:
         random.seed(plan["rng_seed"])  # 引擎掷骰的确定性来源
         factory = _worker_factory()
         strat_a, strat_b = plan["strat_a"], plan["strat_b"]
-        agent_cls = RuleAgentV3 if plan.get("expert") == "v3" else RuleAgentV2
+        cls_a = _agent_class(plan.get("expert_a") or plan.get("expert", "v2"))
+        cls_b = _agent_class(plan.get("expert_b") or plan.get("expert", "v2"))
         samples, outcome_a, end_reason, turns = run_recorded_battle(
             factory, plan["team_a"], plan["team_b"],
-            lambda tag, player: agent_cls(tag, player, strategy=strat_a),
-            lambda tag, player: agent_cls(tag, player, strategy=strat_b),
+            lambda tag, player: cls_a(tag, player, strategy=strat_a),
+            lambda tag, player: cls_b(tag, player, strategy=strat_b),
             item_a=plan["item_a"], item_b=plan["item_b"],
             max_turns=plan["max_turns"], draw_margin=plan["draw_margin"],
             game_id=plan["g"],
@@ -368,6 +394,15 @@ def main() -> None:
     opt_rate = n_opt_teams / max(1, 2 * n_rand_plans)
     _log(f"随机阵容 {n_rand_plans} 局：最优培养 {n_opt_teams}/{2 * n_rand_plans} 队 = "
          f"{opt_rate:.1%}（目标 --optimal-frac {args.optimal_frac:.2f}）", args)
+    if getattr(args, "expert", "v2") == "team":
+        used: dict[str, int] = {}
+        for p in plans:
+            if p["is_meta"]:
+                for key in ("expert_a", "expert_b"):
+                    if p[key] != "v2":
+                        used[p[key]] = used.get(p[key], 0) + 1
+        _log(f"专精教师出场（每侧一次计一）：{dict(sorted(used.items(), key=lambda kv: -kv[1]))}"
+             f"｜其余侧用通用专家 v2", args)
 
     # ── 第二阶段：打局（单进程 或 多进程池） ──
     # 结果先按局号收齐再按序写入：imap_unordered 的完成顺序与局号无关，
@@ -488,6 +523,7 @@ def main() -> None:
         "max_turns": args.max_turns,
         "draw_margin": args.draw_margin,
         "samples": int(len(all_actions)),
+        "expert": getattr(args, "expert", "v2"),
         "decisive_rate": sum(v for k, v in reason_counts.items()
                              if k.startswith("decisive")) / max(1, args.games),
         "mean_turns": turn_sum / max(1, args.games),

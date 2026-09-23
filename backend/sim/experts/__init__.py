@@ -49,6 +49,19 @@ def expert_names() -> dict[str, str]:
     return {k: v.__name__ for k, v in _EXPERTS.items()}
 
 
-__all__ = ["expert_for_team", "expert_names", "StarfallExpert", "RainExpert",
+def expert_by_class_name(name: str):
+    """按类名取专家类（没有则 None）。
+
+    对局计划要跨进程传（multiprocessing spawn），**不能带类对象**，所以计划里存类名、
+    worker 侧再用本函数还原。见 `native/tools/gen_bc_data.py --expert team`。
+    """
+    for cls in _EXPERTS.values():
+        if cls.__name__ == name:
+            return cls
+    return None
+
+
+__all__ = ["expert_for_team", "expert_names", "expert_by_class_name",
+           "StarfallExpert", "RainExpert",
            "PoisonExpert", "GroundWuExpert", "ShadowPoisonExpert",
            "IronSealExpert", "SquirrelExpert", "WingKingExpert", "BugExpert"]
