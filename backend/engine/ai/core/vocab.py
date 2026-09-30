@@ -673,6 +673,13 @@ VOCAB_SIZE = len(ALL_TOKENS)
 VOCAB_TO_ID: dict[str, int] = {tok: idx for idx, tok in enumerate(ALL_TOKENS)}
 ID_TO_VOCAB: dict[int, str] = {idx: tok for idx, tok in enumerate(ALL_TOKENS)}
 
+# 技能槽位哨兵：编码器在**每个技能槽**前打一个，顺序与动作 0-9 对齐
+# （见 `encoder._collect_ast_tokens`）。模型用它们把 AST token 流切成 10 段，
+# 让「第 i 个槽的技能到底干什么」直接进策略头，而不是被全局池化抹平。
+SLOT_MARKER_TOKENS = ("<EMPTY_SKILL>", "<SEALED_SKILL>", "<ACTIVE_SKILL>")
+SLOT_MARKER_IDS = tuple(VOCAB_TO_ID[t] for t in SLOT_MARKER_TOKENS)
+SLOT_COUNT = 10  # 与技能子头的宽度一致（动作 0-9）
+
 
 # ═══════════════════════════════════════════════════════════════════
 # 公开 API

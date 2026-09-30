@@ -233,6 +233,13 @@ class RecentIterationsReplayBuffer:
         self.mask_buffer = np.zeros((0, NUM_ACTIONS), dtype=np.float32)
         self.outcome_buffer = np.zeros((0,), dtype=np.float32)
         self.game_id_buffer = np.zeros((0,), dtype=np.int64)
+        # 可选的辅助监督标签（v5 辅助头用）：形状 (N, AUX_TARGET_DIM)。
+        # 只有**每个** chunk 都带 aux 时才启用 —— 混着来时训练侧会拿到 None，
+        # 而不是把缺失的标签当 0 训（那等于喂错标签）。
+        self.aux_buffer: np.ndarray | None = None
+        # 额外观测通道（v6 回合历史等）：键 → 数组，形状 (N, ...)。会一起进 batch，
+        # 由模型自己按 key 取用。同样要求每个 chunk 齐备，缺就整体关闭。
+        self.obs_extra: dict[str, np.ndarray] | None = None
         self._next_game_id = 0
         self.size = 0
         self._reset_obs_buffers()
@@ -256,6 +263,8 @@ class RecentIterationsReplayBuffer:
             self.mask_buffer = np.zeros((0, NUM_ACTIONS), dtype=np.float32)
             self.outcome_buffer = np.zeros((0,), dtype=np.float32)
             self.game_id_buffer = np.zeros((0,), dtype=np.int64)
+            self.aux_buffer = None
+            self.obs_extra = None
             self.size = 0
             return
 
@@ -277,6 +286,20 @@ class RecentIterationsReplayBuffer:
         self.game_id_buffer = np.concatenate(
             [chunk["game_ids"] for chunk in self._iterations], axis=0,
         )
+        with_aux = [chunk for chunk in self._iterations if chunk.get("aux") is not None]
+        if with_aux and len(with_aux) == len(self._iterations):
+            self.aux_buffer = np.concatenate([chunk["aux"] for chunk in self._iterations], axis=0)
+        else:
+            self.aux_buffer = None
+        extras = [chunk.get("obs_extra") for chunk in self._iterations]
+        if extras and all(e is not None for e in extras) and \
+                all(set(e.keys()) == set(extras[0].keys()) for e in extras):
+            self.obs_extra = {
+                key: np.concatenate([e[key] for e in extras], axis=0)
+                for key in extras[0]
+            }
+        else:
+            self.obs_extra = None
         self.size = int(self.outcome_buffer.shape[0])
 
     def push_batch(
@@ -286,6 +309,8 @@ class RecentIterationsReplayBuffer:
         masks: np.ndarray,
         outcomes: np.ndarray,
         game_ids: np.ndarray | None = None,
+        aux: np.ndarray | None = None,
+        obs_extra: dict[str, np.ndarray] | None = None,
     ) -> int:
         """将一整轮样本作为一个 chunk 追加到 replay。"""
         n = min(len(states), len(policies), len(masks), len(outcomes))
@@ -297,6 +322,8 @@ class RecentIterationsReplayBuffer:
             np.asarray(masks[:n], dtype=np.float32).copy(),
             np.asarray(outcomes[:n], dtype=np.float32).copy(),
             None if game_ids is None else np.asarray(game_ids[:n], dtype=np.int64),
+            None if aux is None else np.asarray(aux[:n], dtype=np.float32),
+            None if obs_extra is None else {k: v[:n] for k, v in obs_extra.items()},
         )
 
     def push_arrays(
@@ -306,6 +333,8 @@ class RecentIterationsReplayBuffer:
         masks: np.ndarray,
         outcomes: np.ndarray,
         game_ids: np.ndarray | None = None,
+        aux: np.ndarray | None = None,
+        obs_extra: dict[str, np.ndarray] | None = None,
     ) -> int:
         """按**已堆叠好的数组**追加一轮样本（从 npz 直接装载的场景，如 bc_pretrain）。
 
@@ -327,6 +356,8 @@ class RecentIterationsReplayBuffer:
             np.asarray(masks[:n], dtype=np.float32),
             np.asarray(outcomes[:n], dtype=np.float32),
             None if game_ids is None else np.asarray(game_ids[:n], dtype=np.int64),
+            None if aux is None else np.asarray(aux[:n], dtype=np.float32),
+            None if obs_extra is None else {k: np.asarray(v[:n]) for k, v in obs_extra.items()},
         )
 
     def _append_chunk(
@@ -336,6 +367,8 @@ class RecentIterationsReplayBuffer:
         mask: np.ndarray,
         outcome: np.ndarray,
         raw_game_ids: np.ndarray | None,
+        aux: np.ndarray | None = None,
+        obs_extra: dict[str, np.ndarray] | None = None,
     ) -> int:
         """把一组已就绪的数组作为一轮样本入队（game_id 归一化 + 重建视图）。"""
         n = len(outcome)
@@ -360,6 +393,8 @@ class RecentIterationsReplayBuffer:
             "mask": mask,
             "outcome": outcome,
             "game_ids": normalized_game_ids,
+            "aux": aux,
+            "obs_extra": obs_extra,
         })
         self._rebuild_view()
         return n
@@ -376,6 +411,8 @@ class RecentIterationsReplayBuffer:
         batch["policy"] = torch.from_numpy(self.policy_buffer[idxs].copy())
         batch["mask"] = torch.from_numpy(self.mask_buffer[idxs].copy())
         batch["outcome"] = torch.from_numpy(self.outcome_buffer[idxs].copy())
+        if self.aux_buffer is not None:
+            batch["aux"] = torch.from_numpy(self.aux_buffer[idxs].copy())
         return batch
 
     def sample_obs_only(self, batch_size: int) -> dict[str, torch.Tensor]:

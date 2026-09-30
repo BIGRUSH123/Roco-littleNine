@@ -476,6 +476,40 @@ def test_eval_roster_suite_is_fixed_across_evaluations(monkeypatch):
     assert len(first) == 3          # 相邻两局复用同一阵容
 
 
+def test_eval_roster_suite_ignores_process_global_random():
+    """真套件必须只由 `_eval_roster_rng()` 决定：换全局 random 的种子也要得到同一批阵容。
+
+    上一条测试 monkeypatch 掉了 `_random_eval_matchup`，所以测不到 meta 队配装
+    （`meta_teams.spec_from_team`）仍在用进程级全局 random 这个漏点 —— 实测同一条
+    命令两次运行，200 个局号里有 198 个阵容不同（形态/性格/个体/技能都在漂）。
+    """
+    import random as _random
+
+    factory = SimFactory()
+    sprite_skills = _load_sprite_skills()
+
+    def signature() -> list[tuple]:
+        tasks = train_module._paired_eval_tasks(
+            factory, sprite_skills, n_games=40, rng=train_module._eval_roster_rng())
+        sig: list[tuple] = []
+        for _, (team_a, team_b, item_a, item_b) in tasks:
+            for team in (team_a, team_b):
+                for spec in team:
+                    sig.append((spec.get("name"), spec.get("nature"),
+                                tuple(spec.get("iv", {}).items()),
+                                tuple(spec.get("skills") or ()),
+                                spec.get("bloodline", "")))
+            sig.append((getattr(item_a, "name", ""), getattr(item_b, "name", "")))
+        return sig
+
+    _random.seed(1)
+    first = signature()
+    _random.seed(2)
+    second = signature()
+
+    assert first == second
+
+
 def test_seed_eval_game_ignores_stream_position():
     """单局随机数只由局号决定：worker 之前消耗过多少随机数都不影响（work-stealing 顺序无关）。"""
     import random as _random

@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import argparse
 import copy
+import json
 import multiprocessing as mp
 import os
 import pickle
@@ -351,7 +352,10 @@ def _maybe_meta_team(used: set[str], meta_frac: float | None = None,
     if not pool:
         return None, None
     team = rnd.choice(pool)
-    specs, names = spec_from_team(team)
+    # 必须把 rnd 传下去：spec_from_team/spec_from_entry 的默认值是**进程级全局
+    # random**，漏传会让 meta 队的形态/个体/性格脱离 _eval_roster_rng 的固定流，
+    # 同一批局号的阵容每次进程启动都不一样（实测 200 局里 198 局不同）。
+    specs, names = spec_from_team(team, rnd)
     used |= names
     return specs, item_from_team(team, specs)
 
@@ -625,6 +629,7 @@ def collect_rl_samples(
     tanh_k: float = 0.0,
     leaf_batch_size: int = DEFAULT_MCTS_LEAF_BATCH_SIZE,
     mirror: bool = False,
+    game_timeout_s: float = 450.0,   # 单局 wall-clock 上限（秒）；超时局标记 timeout 且不入训练样本
     mcts_parallel: bool = False,  # 新增：启用 MCTS 根并行
     mcts_workers: int = 4,  # 新增：MCTS 并行 worker 数
     mcts_pool = None,  # 新增：复用的进程池
@@ -705,14 +710,14 @@ def collect_rl_samples(
         while not battle.is_finished and turn < max_turns:
             battle.execute_turn(agent_a, agent_b)
             turn += 1
-            if time.monotonic() - battle_started >= 450:  # 7.5min 单局上限
+            if time.monotonic() - battle_started >= game_timeout_s:  # 单局 wall-clock 上限
                 break
 
         outcome_a, end_reason = battle_outcome_a(
             battle, max_turns, draw_margin=draw_margin,
             gamma=gamma, tanh_k=tanh_k,
         )
-        if time.monotonic() - battle_started >= 450:
+        if time.monotonic() - battle_started >= game_timeout_s:
             end_reason = "timeout"
 
         # 写入对局技能日志（timeout 对局也记录，用于分析）
@@ -877,6 +882,7 @@ def collect_rl_samples_parallel(
     verbose: bool = True,
     progress_every: int = 1,
     stall_timeout_s: float = 600.0,
+    game_budget_s: float = 0.0,      # >0 时直接作为单局 wall-clock 上限（秒）
     battle_log_writer = None,
     gamma: float = 1.0,
     tanh_k: float = 0.0,
@@ -919,8 +925,10 @@ def collect_rl_samples_parallel(
     # 使用 TemporaryDirectory 对象管理生命周期，finally 中显式 cleanup
     temp_dir_ctx = tempfile.TemporaryDirectory(prefix="selfplay_")
     temp_dir = temp_dir_ctx.name
-    # 单局时间预算取 stall_timeout_s 的 75%，确保慢局在全局卡死保护之前自行退出
-    game_timeout_s = stall_timeout_s * 0.75
+    # 单局 wall-clock 上限：显式给 game_budget_s 就用它，否则沿用 stall_timeout×0.75
+    # （历史上就是 450s。实测 2026-09-24：sims=400 时 45% 的局撞上限被丢弃 →
+    #   每轮可用样本塌到 ~5800，训练等于在小样本上过拟合；这就是 --game-budget-s 的由来）
+    game_timeout_s = game_budget_s if game_budget_s > 0 else stall_timeout_s * 0.75
     for wid in range(n_workers):
         reply_q = ctx.Queue()
         reply_queues[wid] = reply_q
@@ -1134,6 +1142,9 @@ def train_rl(
     policy_loss_weight: float = 1.0,
     val_indices: np.ndarray | None = None,
     on_epoch=None,
+    aux_loss_weight: float = 0.0,
+    value_loss_mode: str = "mse",
+    aux_loss: str = "bce",
 ) -> list[dict]:
     """训练双头网络：value loss (MSE) + policy loss (cross-entropy)。
 
@@ -1146,6 +1157,16 @@ def train_rl(
     val_indices: 外部指定的验证样本索引（BC 整队留出切分用）；None 时按
     game_id 分组随机切分。on_epoch(epoch_stats, model)：每 epoch 结束回调
     （BC 用它快照最优权重）。
+
+    aux_loss_weight: 辅助头损失权重（>0 且模型开了 aux_heads、replay 带 aux 标签时
+    才生效）。标签是终局每只精灵的血量比，只给共享主干补梯度，推理路径不用它。
+
+    value_loss_mode: 价值损失口径。
+      - "mse"（旧行为）：对 outcome ∈ [-1,1] 直接回归。
+      - "bce"：把 tanh 输出映射成 p=(v+1)/2、标签 t=(outcome+1)/2，用交叉熵。
+        实测（同一冻结主干特征、同一测试集）二值胜负的可分性 0.868 AUC，而按软
+        margin 回归只有 0.850 —— 软标签的异方差会把排序糊掉；换成概率口径能白拿
+        ~1.8 pt AUC（不改数据：`(outcome+1)/2` 就是现成的胜率表示）。
     """
     batch_size = max(1, int(batch_size))
     n = len(replay)
@@ -1182,6 +1203,12 @@ def train_rl(
         batch["policy"] = torch.from_numpy(replay.policy_buffer[indices])
         batch["mask"] = torch.from_numpy(replay.mask_buffer[indices])
         batch["outcome"] = torch.from_numpy(replay.outcome_buffer[indices])
+        if use_aux and replay.aux_buffer is not None:
+            batch["aux"] = torch.from_numpy(replay.aux_buffer[indices])
+        # 额外观测（回合历史等）：直接进 state dict，模型按 key 自取
+        if getattr(replay, "obs_extra", None):
+            for key, arr in replay.obs_extra.items():
+                batch[key] = torch.from_numpy(arr[indices])
         if use_pin:
             batch = {key: value.pin_memory() for key, value in batch.items()}
         return batch
@@ -1194,12 +1221,20 @@ def train_rl(
         xb = {
             k: v.to(device, non_blocking=use_pin)
             for k, v in batch.items()
-            if k not in ("policy", "mask", "outcome")
+            if k not in ("policy", "mask", "outcome", "aux")
         }
         pb = batch["policy"].to(device, non_blocking=use_pin)
         mb = batch["mask"].to(device, non_blocking=use_pin)
         vb = batch["outcome"].unsqueeze(1).to(device, non_blocking=use_pin)
-        return xb, pb, mb, vb
+        raw_aux = batch.get("aux")
+        ab = None if raw_aux is None else raw_aux.to(device, non_blocking=use_pin)
+        return xb, pb, mb, vb, ab
+
+    # 辅助头只有在「模型开了 + 数据带了 + 权重 > 0」三者齐备时才训练
+    use_aux = bool(getattr(model, "aux_heads", False)) and aux_loss_weight > 0 \
+        and getattr(replay, "aux_buffer", None) is not None
+    if getattr(model, "aux_heads", False) and not use_aux:
+        print("  [train_rl] 模型开了辅助头，但数据/权重未就绪 → 本轮不计辅助损失")
 
     history: list[dict] = []
 
@@ -1211,14 +1246,26 @@ def train_rl(
         model.train()
         total_value_loss = 0.0
         total_policy_loss = 0.0
+        total_aux_loss = 0.0
+        aux_samples = 0
 
         shuffled_train_indices = np.random.permutation(train_indices).astype(np.int64, copy=False)
         for batch in iter_batches(shuffled_train_indices):
-            xb, pb, mb, vb = move_batch(batch)
+            xb, pb, mb, vb, ab = move_batch(batch)
 
-            value, logits = model(xb)
-            value_loss = F.mse_loss(value, vb)
+            if use_aux:
+                value, logits, aux_pred = model.forward_with_aux(xb)
+            else:
+                value, logits = model(xb)
+                aux_pred = None
             nn = len(vb)
+            if value_loss_mode == "bce":
+                # tanh 输出 → 胜率：p=(v+1)/2；标签同样映射到 [0,1]
+                p = ((value + 1.0) * 0.5).clamp(1e-6, 1.0 - 1e-6)
+                t = (vb + 1.0) * 0.5
+                value_loss = F.binary_cross_entropy(p, t)
+            else:
+                value_loss = F.mse_loss(value, vb)
             pb_safe = pb * mb
             pb_sum = pb_safe.sum(dim=-1, keepdim=True).clamp(min=1e-8)
             pb_safe = pb_safe / pb_sum
@@ -1226,6 +1273,15 @@ def train_rl(
             per_sample = -torch.sum(pb_safe * F.log_softmax(masked_logits, dim=-1), dim=-1)
             policy_loss = per_sample.mean()
             loss = value_loss + policy_loss_weight * policy_loss
+            aux_loss_val = None
+            if use_aux and ab is not None and aux_pred is not None:
+                if aux_loss == "ce":
+                    # 分类式辅助目标（如"对手本回合出的哪一手"，22 类 + 1 个未知位）
+                    aux_loss_val = F.cross_entropy(aux_pred, ab.long(),
+                                                   ignore_index=aux_pred.shape[1] - 1)
+                else:
+                    aux_loss_val = F.binary_cross_entropy_with_logits(aux_pred, ab)
+                loss = loss + aux_loss_weight * aux_loss_val
 
             optimizer.zero_grad()
             loss.backward()
@@ -1234,22 +1290,46 @@ def train_rl(
 
             total_value_loss += value_loss.item() * nn
             total_policy_loss += policy_loss.item() * nn
+            if aux_loss_val is not None:
+                total_aux_loss += aux_loss_val.item() * nn
+                aux_samples += nn
 
         train_v_loss = total_value_loss / n_train
         train_p_loss = total_policy_loss / n_train
+        train_aux_loss = total_aux_loss / aux_samples if aux_samples else 0.0
 
         model.eval()
         val_v_loss = 0.0
         val_p_loss = 0.0
+        val_aux_loss = 0.0
+        val_aux_samples = 0
         val_correct = 0.0
         val_top1_count = 0.0
         val_top3_count = 0.0
         val_entropy_sum = 0.0
         with torch.no_grad():
             for batch in iter_batches(val_indices):
-                xv, pv, mv, vv = move_batch(batch)
-                val_v, val_logits = model(xv)
-                val_v_loss += F.mse_loss(val_v, vv).item() * len(vv)
+                xv, pv, mv, vv, av = move_batch(batch)
+                if use_aux:
+                    val_v, val_logits, val_aux_pred = model.forward_with_aux(xv)
+                else:
+                    val_v, val_logits = model(xv)
+                    val_aux_pred = None
+                if use_aux and av is not None and val_aux_pred is not None:
+                    if aux_loss == "ce":
+                        val_aux_loss += F.cross_entropy(
+                            val_aux_pred, av.long(),
+                            ignore_index=val_aux_pred.shape[1] - 1).item() * len(av)
+                    else:
+                        val_aux_loss += F.binary_cross_entropy_with_logits(
+                            val_aux_pred, av).item() * len(av)
+                    val_aux_samples += len(av)
+                if value_loss_mode == "bce":
+                    vp = ((val_v + 1.0) * 0.5).clamp(1e-6, 1.0 - 1e-6)
+                    vt = (vv + 1.0) * 0.5
+                    val_v_loss += F.binary_cross_entropy(vp, vt).item() * len(vv)
+                else:
+                    val_v_loss += F.mse_loss(val_v, vv).item() * len(vv)
                 pb_safe = pv * mv
                 pb_sum = pb_safe.sum(dim=-1, keepdim=True).clamp(min=1e-8)
                 pb_safe = pb_safe / pb_sum
@@ -1272,6 +1352,7 @@ def train_rl(
                 val_entropy_sum += -torch.sum(probs * log_probs, dim=-1).sum().item()
         val_v_loss /= n_val
         val_p_loss /= n_val
+        val_aux_loss = val_aux_loss / val_aux_samples if val_aux_samples else 0.0
         val_acc = val_correct / n_val
         val_policy_top1 = val_top1_count / n_val
         val_policy_top3 = val_top3_count / n_val
@@ -1284,8 +1365,10 @@ def train_rl(
             "epoch": epoch + 1,
             "train_v_loss": train_v_loss,
             "train_p_loss": train_p_loss,
+            "train_aux_loss": train_aux_loss,
             "val_v_loss": val_v_loss,
             "val_p_loss": val_p_loss,
+            "val_aux_loss": val_aux_loss,
             "val_acc": val_acc,
             "val_policy_top1": val_policy_top1,
             "val_policy_top3": val_policy_top3,
@@ -1297,9 +1380,11 @@ def train_rl(
 
         if (epoch + 1) % 5 == 0 or epoch == 0:
             current_lr = scheduler.get_last_lr()[0] if scheduler is not None else optimizer.param_groups[0]["lr"]
+            aux_msg = (f"aux={train_aux_loss:.4f}/{val_aux_loss:.4f}  " if use_aux else "")
             _timestamp_print(f"  Epoch {epoch + 1:3d}/{epochs}  "
                   f"v_loss={train_v_loss:.4f}/{val_v_loss:.4f}  "
                   f"p_loss={train_p_loss:.4f}/{val_p_loss:.4f}  "
+                  f"{aux_msg}"
                   f"val_acc={val_acc:.3f}  p_top1={val_policy_top1:.3f}  H={val_policy_entropy:.2f}  "
                   f"lr={current_lr:.2e}")
 
@@ -1335,6 +1420,10 @@ def _clone_model(model, device: str):
         vocab_size=model.vocab_size,
         ast_max_len=model.ast_max_len,
         with_attention=model.with_attention,
+        slot_pool=getattr(model, "slot_pool", False),
+        aux_heads=getattr(model, "aux_heads", False),
+        aux_dim=getattr(model, "aux_dim", 12),
+        history=getattr(model, "history", 0),
     )
     clone.load_state_dict(model.state_dict())
     clone.to(device)
@@ -1410,6 +1499,8 @@ def evaluate(
     early_stop_gate: float | None = None,
     candidate_leaf_weight: float = 0.0,
     best_leaf_weight: float = 0.0,
+    candidate_sims: int | None = None,
+    best_sims: int | None = None,
 ) -> float:
     """candidate vs best 对打，返回 candidate 胜率（平局计 0.5）。
 
@@ -1432,6 +1523,8 @@ def evaluate(
         cand_is_a = (g % 2 == 0)
         model_a = candidate if cand_is_a else best
         model_b = best if cand_is_a else candidate
+        sims_a = (candidate_sims if cand_is_a else best_sims) or num_simulations
+        sims_b = (best_sims if cand_is_a else candidate_sims) or num_simulations
 
         eval_a = TorchEvaluator(model_a, device)
         eval_b = TorchEvaluator(model_b, device)
@@ -1440,7 +1533,7 @@ def evaluate(
         opp_a = NetworkPolicyAgent(evaluator=eval_b, greedy=True)
         opp_b = NetworkPolicyAgent(evaluator=eval_a, greedy=True)
         agent_a = MCTSAgent(
-            "A", p1, factory, opp_a, num_simulations,
+            "A", p1, factory, opp_a, sims_a,
             temperature=0.0, root_noise=0.0, record=False,
             evaluator=eval_a, opp_greedy=True, max_turns=max_turns,
             draw_margin=draw_margin,
@@ -1448,7 +1541,7 @@ def evaluate(
             leaf_value_weight=candidate_leaf_weight if cand_is_a else best_leaf_weight,
         )
         agent_b = MCTSAgent(
-            "B", p2, factory, opp_b, num_simulations,
+            "B", p2, factory, opp_b, sims_b,
             temperature=0.0, root_noise=0.0, record=False,
             evaluator=eval_b, opp_greedy=True, max_turns=max_turns,
             draw_margin=draw_margin,
@@ -1499,6 +1592,9 @@ def _play_one_eval_game(
     candidate_leaf_weight: float = 0.0,
     best_leaf_weight: float = 0.0,
     leaf_value_scale: float = DEFAULT_LEAF_VALUE_SCALE,
+    candidate_sims: int | None = None,
+    best_sims: int | None = None,
+    stats_out: dict | None = None,
 ) -> float:
     """单局 candidate vs best，返回 candidate 得分：胜=1，平=0.5，负=0。
 
@@ -1507,6 +1603,14 @@ def _play_one_eval_game(
     candidate_leaf_weight / best_leaf_weight: 两侧各自的叶节点附加估值权重。
     两侧用**同一个网络**、只让叶子权重不同时，这就是「同一网络、只换搜索」
     的干净 A/B —— 判定某个搜索改动是不是真把棋下强了（而不是只看它把目标挪了多少）。
+
+    candidate_sims / best_sims: 两侧各自的 MCTS 仿真数（None = 都用 num_simulations）。
+    传 `candidate_sims=100, best_sims=1` 就是「搜索 vs 自己的策略头」对照：sims=1 时只有
+    一个子节点被访问，选择≈先验 argmax（等价策略贪心）；这一臂用来量"搜索到底比策略强多少"
+    —— 若≈0.5，说明自博弈数据里没有可学的增量（该修搜索，而不是调训练旋钮）。
+
+    stats_out: 诊断用出参。传 dict 时回填 turns / end / elapsed_s，用于定位
+    "评估卡在最后一局" 类长尾（`end` ∈ finished / max_turns / wall）。
     """
     if matchup is None:
         matchup = _random_eval_matchup(factory, sprite_skills)
@@ -1519,12 +1623,14 @@ def _play_one_eval_game(
     eval_b = best_evaluator if cand_is_a else candidate_evaluator
     leaf_a = candidate_leaf_weight if cand_is_a else best_leaf_weight
     leaf_b = best_leaf_weight if cand_is_a else candidate_leaf_weight
+    sims_a = (candidate_sims if cand_is_a else best_sims) or num_simulations
+    sims_b = (best_sims if cand_is_a else candidate_sims) or num_simulations
 
     # opp_a 是 A 方 MCTS 搜索中的"对手"（即 B），应使用 B 的网络
     opp_a = NetworkPolicyAgent(evaluator=eval_b, greedy=True)
     opp_b = NetworkPolicyAgent(evaluator=eval_a, greedy=True)
     agent_a = MCTSAgent(
-        "A", p1, factory, opp_a, num_simulations,
+        "A", p1, factory, opp_a, sims_a,
         temperature=0.0, root_noise=0.0, record=False,
         evaluator=eval_a, opp_greedy=True, max_turns=max_turns,
         draw_margin=draw_margin,
@@ -1532,7 +1638,7 @@ def _play_one_eval_game(
         leaf_value_weight=leaf_a, leaf_value_scale=leaf_value_scale,
     )
     agent_b = MCTSAgent(
-        "B", p2, factory, opp_b, num_simulations,
+        "B", p2, factory, opp_b, sims_b,
         temperature=0.0, root_noise=0.0, record=False,
         evaluator=eval_b, opp_greedy=True, max_turns=max_turns,
         draw_margin=draw_margin,
@@ -1542,11 +1648,21 @@ def _play_one_eval_game(
 
     battle_started = time.monotonic()
     turn = 0
+    hit_wall = False
     while not battle.is_finished and turn < max_turns:
         battle.execute_turn(agent_a, agent_b)
         turn += 1
         if time.monotonic() - battle_started >= game_timeout_s:
+            hit_wall = True
             break
+
+    if stats_out is not None:
+        if hit_wall:
+            end = "wall"
+        else:
+            end = "finished" if battle.is_finished else "max_turns"
+        stats_out.update(turns=turn, end=end,
+                         elapsed_s=time.monotonic() - battle_started)
 
     outcome_a, _ = battle_outcome_a(
         battle, max_turns, draw_margin=draw_margin,
@@ -1574,6 +1690,8 @@ def evaluate_parallel(
     early_stop_gate: float | None = None,
     candidate_leaf_weight: float = 0.0,
     best_leaf_weight: float = 0.0,
+    candidate_sims: int | None = None,
+    best_sims: int | None = None,
 ) -> float:
     """多进程局级门控评估 + 主进程双模型批量推理。
 
@@ -1624,6 +1742,7 @@ def evaluate_parallel(
                 num_simulations, max_turns, draw_margin, progress_every,
                 game_timeout_s, leaf_batch_size,
                 candidate_leaf_weight, best_leaf_weight,
+                candidate_sims, best_sims,
                 task_queue, request_queue, candidate_q, best_q, result_queue,
             ),
         )
@@ -1747,6 +1866,55 @@ def evaluate_parallel(
 # 主入口
 # ═══════════════════════════════════════════════════════════════════
 
+def _round_samples_path(checkpoints_dir: str, iteration: int) -> str:
+    """本轮样本的落盘路径（离线复训的入口）。"""
+    return f"{checkpoints_dir}/samples/round{iteration}.npz"
+
+
+def _dump_round_samples(
+    checkpoints_dir: str,
+    iteration: int,
+    states: list[dict[str, np.ndarray]],
+    policies: np.ndarray,
+    masks: np.ndarray,
+    outcomes: np.ndarray,
+    game_ids: np.ndarray | None,
+    **meta,
+) -> None:
+    """把一轮自我博弈的样本写成 npz（+ sidecar JSON），供 `bc_pretrain --data` 离线复训。
+
+    键与 BC 数据集保持一致（`_OBS_KEYS` + `mask`/`outcome`/`game_id`），额外存
+    `policy`（MCTS 访问分布，(N, 22)）与 `action`（其 argmax，兼容只认 one-hot 的旧路径）；
+    `is_meta`/`team_id` 写 0——自我博弈用的是随机阵容，没有 meta 队/队伍 id，
+    于是 `holdout_split` 会走"按对局随机切分"那条 ✓。
+    """
+    from pathlib import Path
+
+    from backend.engine.ai.core.replay_buffer import _OBS_KEYS
+
+    out = Path(_round_samples_path(checkpoints_dir, iteration))
+    out.parent.mkdir(parents=True, exist_ok=True)
+
+    n = len(outcomes)
+    arrays: dict[str, np.ndarray] = {}
+    for key in _OBS_KEYS:
+        arrays[key] = np.stack([s[key] for s in states[:n]], axis=0)
+    arrays["mask"] = np.asarray(masks[:n], dtype=np.float32)
+    arrays["outcome"] = np.asarray(outcomes[:n], dtype=np.float32)
+    arrays["policy"] = np.asarray(policies[:n], dtype=np.float32)
+    arrays["action"] = arrays["policy"].argmax(axis=1).astype(np.int64)
+    arrays["game_id"] = (np.arange(n, dtype=np.int64) if game_ids is None
+                         else np.asarray(game_ids[:n], dtype=np.int64))
+    arrays["is_meta"] = np.zeros(n, dtype=np.int8)
+    arrays["team_id"] = np.zeros(n, dtype=np.int64)
+    np.savez(out, **arrays)
+
+    sidecar = out.with_suffix(".json")
+    sidecar.write_text(json.dumps(
+        {"round": int(iteration), "samples": int(n), **{k: v for k, v in meta.items()}},
+        ensure_ascii=False, indent=1), encoding="utf-8")
+
+
 def main():
     # 训练全程可复现的前提：钉死字符串哈希（见 determinism 模块说明）。
     # 必须在解析参数之前执行 —— 它会带 PYTHONHASHSEED=0 重执行自己。
@@ -1766,7 +1934,6 @@ def main():
     parser.add_argument("--lr", type=float, default=1e-3)
     parser.add_argument("--hidden", type=str, default="256,128")
     parser.add_argument("--dropout", type=float, default=0.0)
-    parser.add_argument("--output", type=str, default="checkpoints/model_rl.pt")
     parser.add_argument("--resume", type=str, default="")
     parser.add_argument("--base-model", type=str,
                         default="",
@@ -1837,6 +2004,15 @@ def main():
     parser.add_argument("--worker-stall-timeout", type=float, default=600.0,
                         help="并行采样/评估时，若全部 worker 在 N 秒内都无任何对局完成，"
                              "判定为卡死并终止剩余 worker，用已完成的对局继续 (default: 600)")
+    parser.add_argument("--game-budget-s", type=float, default=0.0,
+                        help="自我博弈单局 wall-clock 上限（秒）；0 = 沿用旧默认"
+                             "（并行 stall_timeout×0.75=450、串行 450）。超时局标记 timeout 且"
+                             "不入训练样本——sims 拉高后每局变慢，这个上限会吃掉大量样本"
+                             " (default: 0)")
+    parser.add_argument("--no-dump-samples", action="store_true",
+                        help="不把每轮自我博弈的样本落盘到 checkpoints/<run>/samples/round{N}.npz。"
+                             "默认**落盘**：自我博弈是最贵的一段，落盘后才能用 "
+                             "`bc_pretrain --data <npz>` 离线扫训练配方")
     parser.add_argument("--max-turns", type=int, default=DEFAULT_SELFPLAY_MAX_TURNS,
                         help=f"自我博弈单局回合上限 (default: {DEFAULT_SELFPLAY_MAX_TURNS})")
     parser.add_argument("--eval-max-turns", type=int, default=DEFAULT_EVAL_MAX_TURNS,
@@ -1933,6 +2109,21 @@ def main():
     if args.resume:
         _log(f"加载模型: {args.resume}")
         model = ModularBattleNet.load(args.resume, device=device)
+    elif args.bc_init:
+        # 必须按**检查点自身的结构**加载：`--bc-init` 常指向带可选件的权重
+        # （slot_pool / aux_heads / history），新建一个默认模型再塞权重会缺键直接崩。
+        _log(f"加载 BC 预训练权重: {args.bc_init}（按检查点结构加载，保留其架构开关）")
+        model = ModularBattleNet.load(args.bc_init, device=device)
+        want = hidden[0] if hidden else 256
+        if model.trunk_dim != want:
+            _log(f"  注意: 检查点 trunk_dim={model.trunk_dim}，与 --hidden {want} 不一致 → 以检查点为准")
+        if getattr(model, "slot_pool", False) or getattr(model, "aux_heads", False) \
+                or getattr(model, "history", 0):
+            _log(f"  可选件: slot_pool={model.slot_pool} aux_heads={model.aux_heads}"
+                 f"(dim={model.aux_dim}) history={model.history}")
+        if args.dropout != model.dropout_val:
+            _log(f"  注意: --dropout {args.dropout} 不覆盖检查点里的 {model.dropout_val}"
+                 f"（dropout 是结构件，随检查点）")
     elif args.base_model and Path(args.base_model).exists():
         _log(f"加载基座模型: {args.base_model}")
         model = ModularBattleNet.load(args.base_model, device=device)
@@ -1946,12 +2137,6 @@ def main():
             vocab_size=VOCAB_SIZE,
             with_attention=True,
         )
-    if args.bc_init and not args.resume:
-        _log(f"加载 BC 预训练权重: {args.bc_init}")
-        state = torch.load(args.bc_init, map_location=device, weights_only=False)
-        if isinstance(state, dict) and "state_dict" in state:
-            state = state["state_dict"]  # 标准 save() 格式
-        model.load_state_dict(state)
     model.to(device)
     _log("模型类型: ModularBattleNet (模块化+残差+注意力)")
     _log(f"模型参数量: {model.num_params:,}")
@@ -2045,6 +2230,7 @@ def main():
                 root_noise=args.root_noise,
                 progress_every=args.progress_every,
                 stall_timeout_s=args.worker_stall_timeout,
+                game_budget_s=args.game_budget_s,
                 battle_log_writer=battle_log,
                 gamma=args.gamma,
                 tanh_k=args.tanh_k,
@@ -2065,6 +2251,7 @@ def main():
                 root_noise=args.root_noise,
                 progress_every=args.progress_every,
                 battle_log_writer=battle_log,
+                game_timeout_s=(args.game_budget_s or 450.0),
                 gamma=args.gamma,
                 tanh_k=args.tanh_k,
                 leaf_batch_size=args.leaf_batch_size,
@@ -2101,6 +2288,23 @@ def main():
         pushed = replay.push_batch(X, P, M, v, game_ids=game_ids)
         _log(f"  回放缓冲: {len(replay)} 样本 (本轮 +{pushed})")
 
+        # ── 本轮样本落盘（离线复训用） ──
+        # 自我博弈是整条链里最贵的一段（300 局 @400 sims ≈ 4 小时），而样本原先只活在
+        # 内存里：换个训练配方就得整轮重跑。落盘后可以用 `bc_pretrain --data <npz>`
+        # 在几分钟内扫配方（它认 MCTS 访问分布当 policy 目标）。
+        if not args.no_dump_samples:
+            try:
+                _dump_round_samples(
+                    checkpoints_dir, iteration, X, P, M, v, game_ids,
+                    sims=args.sims, max_turns=args.max_turns,
+                    temperature=args.temperature, decisive=decisive_games,
+                    total_games=total_games, draw=zero,
+                )
+                _log(f"  样本已落盘: {_round_samples_path(checkpoints_dir, iteration)}")
+            except Exception as exc:  # noqa: BLE001
+                # 落盘失败不该毁掉训练（磁盘满等），只告警
+                _log(f"  ⚠ 样本落盘失败（不影响训练）: {exc}")
+
         # ── 训练（候选 = 在 best 基础上继续训练） ──
         _log(f"训练 ({args.epochs} epochs)...")
         t0 = time.time()
@@ -2116,11 +2320,22 @@ def main():
         final_metrics = history[-1] if history else {}
         best_val_acc = max((h["val_acc"] for h in history), default=0.0)
 
+        # ── 保存本轮检查点（**必须在门控之前**） ──
+        # 门控在大 sims 下要给 300 局 × 双方搜索，实测 400 sims 要 ~1.5 小时；
+        # 实例到期/进程被杀正好落在门控里的话，"保存放门控之后"会把整轮自我博弈
+        # （300 局 @400 sims，~2.5 小时）连着丢掉。先落盘 → 门控随时可以另起
+        # （`probe_reward_ab --only ckpt --ckpt <iterN> --ckpt-other <best>`）补跑。
+        checkpoint_sec = 0.0
+        ckpt = f"{checkpoints_dir}/model_rl_iter{iteration}.pt"
+        t_save = time.time()
+        model.save(ckpt)
+        checkpoint_sec += time.time() - t_save
+        _log(f"  检查点已保存: {ckpt}")
+
         # ── 门控评估：候选 vs 最优 ──
         win_rate = None
         promoted = False
         eval_sec = 0.0
-        checkpoint_sec = 0.0
         if args.eval_games > 0:
             eval_mode = f"{eval_workers} workers + 批量推理" if eval_workers > 1 else "串行"
             _log(
@@ -2186,13 +2401,6 @@ def main():
             # 未启用门控：直接把候选当作最优（用于产生下一轮自我博弈）
             best_model.load_state_dict(model.state_dict())
             best_iteration = iteration
-
-        # ── 保存检查点 ──
-        ckpt = f"{checkpoints_dir}/model_rl_iter{iteration}.pt"
-        t_save = time.time()
-        model.save(ckpt)
-        checkpoint_sec += time.time() - t_save
-        _log(f"  检查点已保存: {ckpt}")
 
         if logger is not None:
             iteration_sec = time.time() - iteration_started

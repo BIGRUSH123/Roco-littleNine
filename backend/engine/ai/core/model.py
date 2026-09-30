@@ -7,6 +7,13 @@
     实体级交叉注意力（6×6 博弈矩阵） → 展平保留位置
     AST 双流 Transformer（token emb + value proj） → masked mean 池化
     多流展平拼接（1248）→ 残差主干 → 双头输出（价值 + 17 动作策略）
+
+v5 可选项（默认关，旧检查点照原样加载；见 `__init__` 的 slot_pool / aux_heads）:
+    slot_pool   — 用技能槽位哨兵把 AST 流切成 10 段分别池化，保住「第 i 个槽
+                  的技能干什么」与动作 0-9 的绑定（原来全局 mean 会抹平它）
+    aux_heads   — 辅助头：预测终局每只精灵的血量比（KataGo ownership 头的同构物）。
+                  价值头只盯「终局胜负」这一稀疏目标，实测局内几乎没有区分度；
+                  加一个稠密、短程的辅助目标给共享主干补梯度。
 """
 
 from __future__ import annotations
@@ -21,7 +28,11 @@ import torch.nn.functional as F
 
 from backend.common.constants import ITEM_VARIANT_SLOTS
 from backend.engine.ai.core.mcts import NUM_ACTIONS as MCTS_NUM_ACTIONS
-from backend.engine.ai.core.vocab import VOCAB_SIZE
+from backend.engine.ai.core.vocab import SLOT_COUNT, SLOT_MARKER_IDS, VOCAB_SIZE
+
+# 辅助目标维度：旧版=终局 12 只精灵（己 6 + 敌 6）的血量比；
+# 新版（`aux_targets.AUX_DIM`）= 赛制货币 + 短程动态，由调用方传 `aux_dim`。
+AUX_TARGET_DIM = 12
 
 warnings.filterwarnings(
     "ignore",
@@ -155,6 +166,10 @@ class EntityBottleneckNet(nn.Module):
         ast_max_len: int = 384,
         *,
         with_attention: bool = True,
+        slot_pool: bool = False,
+        aux_heads: bool = False,
+        aux_dim: int = AUX_TARGET_DIM,
+        history: int = 0,
     ):
         super().__init__()
         self.trunk_dim = trunk_dim
@@ -163,6 +178,10 @@ class EntityBottleneckNet(nn.Module):
         self.vocab_size = vocab_size
         self.ast_max_len = ast_max_len
         self.with_attention = with_attention
+        self.slot_pool = bool(slot_pool)
+        self.aux_heads = bool(aux_heads)
+        self.aux_dim = int(aux_dim)
+        self.history = int(history)
 
         # ── 归一化 ──
         self.log1p_stats = Log1pNorm(max_val=1000.0)
@@ -252,10 +271,31 @@ class EntityBottleneckNet(nn.Module):
         )
         form_flat_dim = ITEM_VARIANT_SLOTS * 16  # 80
 
+        # ── AST 槽位分段池化（v5，可选） ──
+        # 10 个技能槽各出一个向量（共享投影），与策略头的技能子头同序。
+        slot_flat_dim = 0
+        if self.slot_pool:
+            self.ast_slot_proj = nn.Sequential(
+                nn.Linear(self.ast_dim, 64),
+                nn.LayerNorm(64),
+                nn.GELU(),
+            )
+            slot_flat_dim = SLOT_COUNT * 64
+
         # ── 延迟融合 ──
         # sp_own_flat(6*64=384) + sp_opp_flat(384) + sk_flat(10*32=320) + g_pool(32)
-        # + ast(128) + form(80) = 1328
-        fusion_in = 384 + 384 + 320 + 32 + self.ast_dim + form_flat_dim
+        # + ast(128) + form(80) [+ slot_flat(640)] [+ hist(64)] = 1328 / 1968 / 2032
+        hist_dim = 0
+        if self.history > 0:
+            from backend.engine.ai.history_features import HIST_FEAT_DIM
+
+            hist_dim = 64
+            # 动作 id：-1（补位）→ 0 号槽（padding_idx），0..21 → 1..22
+            self.hist_action_emb = nn.Embedding(23, 16, padding_idx=0)
+            self.hist_gru = nn.GRU(HIST_FEAT_DIM + 32, hist_dim, batch_first=True)
+
+        fusion_in = (384 + 384 + 320 + 32 + self.ast_dim + form_flat_dim
+                     + slot_flat_dim + hist_dim)
         self.fusion = nn.Sequential(
             nn.Linear(fusion_in, trunk_dim),
             nn.LayerNorm(trunk_dim),
@@ -312,6 +352,17 @@ class EntityBottleneckNet(nn.Module):
             nn.Linear(policy_hidden, 1 + ITEM_VARIANT_SLOTS),
         )
 
+        # ── 辅助头（v5，可选）：终局每只精灵的血量比 ──
+        # 只训练时用；`forward()` 不返回它，推理路径零开销。
+        if self.aux_heads:
+            self.aux_head = nn.Sequential(
+                nn.Linear(trunk_dim, policy_hidden),
+                nn.LayerNorm(policy_hidden),
+                nn.GELU(),
+                nn.Dropout(dropout),
+                nn.Linear(policy_hidden, self.aux_dim),
+            )
+
         self._init_weights()
 
     def _init_weights(self):
@@ -328,7 +379,46 @@ class EntityBottleneckNet(nn.Module):
                         m.weight[m.padding_idx] = 0.0
 
     def forward(self, state: dict[str, torch.Tensor]) -> tuple[torch.Tensor, torch.Tensor]:
-        """返回 (value, policy_logits)。"""
+        """返回 (value, policy_logits)。辅助头开着也只算不返回（推理路径零额外开销）。"""
+        value, logits, _ = self.forward_with_aux(state)
+        return value, logits
+
+    def _pool_ast_slots(
+        self,
+        ast_out: torch.Tensor,
+        ast_tokens: torch.Tensor,
+        non_pad_mask: torch.Tensor,
+        batch: int,
+    ) -> torch.Tensor:
+        """按技能槽位把 AST 流切成 SLOT_COUNT 段做 masked mean → (B, SLOT_COUNT*64)。
+
+        分段规则：编码器在每个技能槽前打一个槽位哨兵（`<EMPTY_SKILL>` /
+        `<SEALED_SKILL>` / `<ACTIVE_SKILL>`），按出现顺序即第 0..9 槽 → 段号 =
+        哨兵累计数 - 1。哨兵之前的 token 与哨兵数不足的尾巴都并进最近的段；
+        哨兵数为 0（老数据/异常样本）时全部 token 落进第 0 段，退化成全局 mean 的
+        单段版本 —— 不会崩，也不会静默改变别的样本。
+        """
+        marker = torch.zeros_like(ast_tokens, dtype=torch.bool)
+        for marker_id in SLOT_MARKER_IDS:
+            marker |= ast_tokens == marker_id
+        seg = torch.cumsum(marker.long(), dim=1) - 1           # (B, L)，-1 = 首个哨兵之前
+        seg = seg.clamp_(min=0, max=SLOT_COUNT - 1)            # 观察者等尾部 token 并入末段
+
+        weights = non_pad_mask.unsqueeze(1).to(ast_out.dtype)  # (B, 1, L)
+        one_hot = torch.zeros(
+            batch, SLOT_COUNT, ast_tokens.shape[1],
+            device=ast_out.device, dtype=ast_out.dtype,
+        )
+        one_hot.scatter_(1, seg.unsqueeze(1), 1.0)
+        one_hot = one_hot * weights                             # 排除 PAD
+        denom = one_hot.sum(dim=2, keepdim=True).clamp(min=1.0)
+        slots = torch.einsum("bsl,bld->bsd", one_hot, ast_out) / denom   # (B, 10, 128)
+        return self.ast_slot_proj(slots).reshape(batch, -1)              # (B, 640)
+
+    def forward_with_aux(
+        self, state: dict[str, torch.Tensor],
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor | None]:
+        """返回 (value, policy_logits, aux_logits|None)。aux 只在 aux_heads 开启时非空。"""
         B = state["sprite_stats"].shape[0]
 
         # ── 解包 ──
@@ -387,10 +477,13 @@ class EntityBottleneckNet(nn.Module):
         # 双流融合: Token 词向量 + Value 浮点投影 + 位置编码
         B_ast, SeqLen = ast_tokens.shape
         non_pad_mask = ast_tokens != 0
+        ast_slots = None
 
         if not non_pad_mask.any():
             # 全部为 PAD（无 AST 数据）：直接用零向量
             ast_global = torch.zeros(B, self.ast_dim, device=ast_tokens.device)
+            if self.slot_pool:
+                ast_slots = torch.zeros(B, SLOT_COUNT * 64, device=ast_tokens.device)
         else:
             effective_len = int(non_pad_mask.any(dim=0).nonzero()[-1].item()) + 1
             if effective_len < SeqLen:
@@ -419,6 +512,10 @@ class EntityBottleneckNet(nn.Module):
                 mask_expanded = non_pad_mask.unsqueeze(-1).float()
                 ast_global = (ast_out * mask_expanded).sum(dim=1) / mask_expanded.sum(dim=1).clamp(min=1e-8)  # (B, 128)
 
+            if self.slot_pool:
+                ast_slots = self._pool_ast_slots(
+                    ast_out, ast_tokens, non_pad_mask, B)   # (B, SLOT_COUNT*64)
+
         # ── 首领形态候选编码 ──
         # 与动作索引 17-21 同序：槽 k 的属性直接喂给策略头，避免靠槽位记忆。
         # 主/副属性各占 16 维（不求和），双属性形态的差别不被压缩掉。
@@ -429,8 +526,29 @@ class EntityBottleneckNet(nn.Module):
         f_enc = self.form_candidate_enc(f_cat)         # (B, 5, 16)
         f_flat = f_enc.reshape(B, -1)                  # (B, 80)
 
+        # ── 回合历史（v6，可选）：最近 K 回合的双方状态与动作 ──
+        hist_vec = None
+        if self.history > 0:
+            hf = state.get("hist_feats")
+            ha = state.get("hist_actions")
+            if hf is None or ha is None:
+                # 缺历史（老调用点/搜索路径）→ 用零历史，不炸；但训练时不该走到这
+                hist_vec = torch.zeros(B, self.hist_gru.hidden_size, device=sp_own_flat.device)
+            else:
+                hf = hf.float()
+                ha = (ha.long().clamp(min=0) + 1).clamp(
+                    max=self.hist_action_emb.num_embeddings - 1)
+                emb = self.hist_action_emb(ha).reshape(B, self.history, -1)
+                _, hn = self.hist_gru(torch.cat([hf, emb], dim=-1))
+                hist_vec = hn[-1]           # 补位在前、真实步在后 → 末步即"最近一回合"
+
         # ── 延迟融合 ──
-        fused = torch.cat([sp_own_flat, sp_opp_flat, sk_flat, g_pool, ast_global, f_flat], dim=-1)
+        streams = [sp_own_flat, sp_opp_flat, sk_flat, g_pool, ast_global, f_flat]
+        if ast_slots is not None:
+            streams.append(ast_slots)
+        if hist_vec is not None:
+            streams.append(hist_vec)
+        fused = torch.cat(streams, dim=-1)
         h = self.fusion(fused)
 
         # ── 残差塔 ──
@@ -445,7 +563,8 @@ class EntityBottleneckNet(nn.Module):
             self.gather_head(h),   # (B, 1)
             self.item_head(h),     # (B, 6)  → 16 愿力 + 17-21 首领形态槽
         ], dim=-1)                 # → (B, 22)
-        return value, logits
+        aux = self.aux_head(h) if self.aux_heads else None   # (B, AUX_TARGET_DIM)
+        return value, logits, aux
 
     def forward_with_mask(
         self, state: dict[str, torch.Tensor], mask: torch.Tensor,
@@ -471,6 +590,10 @@ class EntityBottleneckNet(nn.Module):
             "vocab_size": self.vocab_size,
             "with_attention": self.with_attention,
             "ast_max_len": self.ast_max_len,
+            "slot_pool": self.slot_pool,
+            "aux_heads": self.aux_heads,
+            "aux_dim": self.aux_dim,
+            "history": self.history,
             "type": "EntityBottleneckNet",
         }, path)
 
@@ -489,6 +612,11 @@ class EntityBottleneckNet(nn.Module):
             vocab_size=data.get("vocab_size", VOCAB_SIZE),
             ast_max_len=data.get("ast_max_len", 384),
             with_attention=data.get("with_attention", True),
+            # v5/v6 可选件：老检查点没有这些键 → 默认关，按老结构重建，权重一一对应
+            slot_pool=bool(data.get("slot_pool", False)),
+            aux_heads=bool(data.get("aux_heads", False)),
+            aux_dim=int(data.get("aux_dim", AUX_TARGET_DIM)),
+            history=int(data.get("history", 0)),
         )
         model.load_state_dict(data["state_dict"])
         model.to(device)

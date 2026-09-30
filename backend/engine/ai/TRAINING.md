@@ -291,9 +291,10 @@ python -m backend.engine.ai.benchmark_mcts \
 | `--buffer` | `5` | 回放池保留的最近完整迭代数 |
 | `--resume` | `""` | 从已有 checkpoint 继续训练 |
 | `--base-model` | `""` | 无 `--resume` 时加载基座模型 |
-| `--output` | `checkpoints/model_rl.pt` | 兼容参数；当前保存路径实际为 `checkpoints/` 或 `checkpoints/<run-name>/` |
+| ~~`--output`~~ | — | **已于 2026-09-24 移除**：RL 分支从来不读这个参数（保存路径一直是 `checkpoints/` 或 `checkpoints/<run-name>/`），留着只会让人以为改了它就能改产物位置 |
 | `--device` | 自动 | `cuda` / `cpu` |
 | `--workers` | `1` | 自我博弈 worker 数 |
+| `--game-budget-s` | `0`（=并行 `stall_timeout×0.75`=450s、串行 450s） | **单局 wall-clock 上限（秒）**；超时局标记 `timeout` 且**不入训练样本**。sims 拉高后每局变慢，这个上限会成片吃掉样本（实测 2026-09-24：sims=400 时 150 局里 67 局超时 → 每轮可用样本从 ~1 万塌到 ~5800，训练退化成小样本过拟合、门控分掉到 44.5%）| 
 | `--batched-inference` | 关 | 多 worker 时由主进程合并 CUDA 推理 |
 | `--inference-batch-size` | `128` | 批量推理最大 batch |
 | `--inference-timeout-ms` | `5` | 攒 batch 等待毫秒 |

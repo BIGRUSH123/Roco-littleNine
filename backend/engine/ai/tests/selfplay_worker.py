@@ -114,6 +114,8 @@ def run_evaluate_worker(
     leaf_batch_size: int,
     candidate_leaf_weight: float,
     best_leaf_weight: float,
+    candidate_sims: int | None,
+    best_sims: int | None,
     task_queue,
     request_queue,
     candidate_reply_q,
@@ -168,6 +170,8 @@ def run_evaluate_worker(
                     matchup=matchup,
                     candidate_leaf_weight=candidate_leaf_weight,
                     best_leaf_weight=best_leaf_weight,
+                    candidate_sims=candidate_sims,
+                    best_sims=best_sims,
                 )
                 result_queue.put(("game", worker_id, float(score), game_index))
 
