@@ -4,6 +4,7 @@
 """
 
 import multiprocessing as mp
+
 import numpy as np
 
 from backend.engine.ai.core.mcts_parallel import parallel_mcts_search_root
@@ -99,55 +100,48 @@ class ParallelMCTSAgent:
         逻辑与 MCTSAgent 完全相同，只是用 parallel_mcts_search_root
         替代 mcts_search。
         """
-        from backend.sim.action import Action
         from backend.engine.ai.core.encoder import encode_battle_state
-        from backend.engine.ai.core.mcts import get_valid_actions, action_index_to_action
+        from backend.engine.ai.core.mcts import action_index_to_action, get_valid_actions
         from backend.engine.ai.train import _sample_action
+        from backend.sim.action import Action
 
-        swapped = False
-        if self.team == "B":
-            battle.player_a, battle.player_b = battle.player_b, battle.player_a
-            swapped = True
+        # 编码状态（用于训练记录）
+        state = encode_battle_state(battle, perspective=self.team) if self._record else None
 
-        try:
-            # 编码状态（用于训练记录）
-            state = encode_battle_state(battle) if self._record else None
+        # 使用并行 MCTS（关键差异）
+        probs = parallel_mcts_search_root(
+            battle=battle,
+            model=None,
+            factory=self._factory,
+            opponent_agent=self._opponent,
+            num_simulations=self._num_simulations,
+            num_workers=self._num_workers,
+            pool=self._pool,  # 复用进程池
+            root_noise=self._root_noise,
+            max_turns=self._max_turns,
+            opp_greedy=self._opp_greedy,
+            evaluator=self._evaluator,
+            root_state=state,
+            draw_margin=self._draw_margin,
+            gamma=self._gamma,
+            tanh_k=self._tanh_k,
+            leaf_batch_size=self._leaf_batch_size,
+            device="cpu",  # 并行版本使用 CPU
+            perspective=self.team,
+        )
 
-            # 使用并行 MCTS（关键差异）
-            probs = parallel_mcts_search_root(
-                battle=battle,
-                model=None,
-                factory=self._factory,
-                opponent_agent=self._opponent,
-                num_simulations=self._num_simulations,
-                num_workers=self._num_workers,
-                pool=self._pool,  # 复用进程池
-                root_noise=self._root_noise,
-                max_turns=self._max_turns,
-                opp_greedy=self._opp_greedy,
-                evaluator=self._evaluator,
-                root_state=state,
-                draw_margin=self._draw_margin,
-                gamma=self._gamma,
-                tanh_k=self._tanh_k,
-                leaf_batch_size=self._leaf_batch_size,
-                device="cpu",  # 并行版本使用 CPU
-            )
+        # 防御性归一化（与原版相同）
+        player = battle.player_a if self.team == "A" else battle.player_b
+        _, valid_mask = get_valid_actions(player, battle)
+        probs = probs * valid_mask
+        s = probs.sum()
+        if s > 0:
+            probs = probs / s
+        else:
+            return Action(kind="gather")
 
-            # 防御性归一化（与原版相同）
-            _, valid_mask = get_valid_actions(battle.player_a, battle)
-            probs = probs * valid_mask
-            s = probs.sum()
-            if s > 0:
-                probs = probs / s
-            else:
-                return Action(kind="gather")
-
-            if self._record and state is not None:
-                self.history.append((state, probs.copy(), valid_mask.copy()))
-        finally:
-            if swapped:
-                battle.player_a, battle.player_b = battle.player_b, battle.player_a
+        if self._record and state is not None:
+            self.history.append((state, probs.copy(), valid_mask.copy()))
 
         action_idx = _sample_action(probs, self._temperature)
         if action_idx < 0:
@@ -174,37 +168,28 @@ class ParallelMCTSAgent:
         if not alive:
             return -1
 
-        swapped = False
-        if self.team == "B":
-            battle.player_a, battle.player_b = battle.player_b, battle.player_a
-            swapped = True
+        state = encode_battle_state(battle, perspective=self.team)
+        mask = np.zeros(NUM_ACTIONS, dtype=np.float32)
+        bench_slot = 0
+        for i, s in enumerate(self.player.team):
+            if i == self.player.active_index:
+                continue
+            if bench_slot < 5 and not s.is_fainted:
+                mask[10 + bench_slot] = 1.0
+            bench_slot += 1
+        _, probs = self._evaluator.evaluate(state, mask)
 
-        try:
-            state = encode_battle_state(battle)
-            mask = np.zeros(NUM_ACTIONS, dtype=np.float32)
-            bench_slot = 0
-            for i, s in enumerate(self.player.team):
-                if i == self.player.active_index:
-                    continue
-                if bench_slot < 5 and not s.is_fainted:
-                    mask[10 + bench_slot] = 1.0
+        best_idx = -1
+        best_score = -1.0
+        bench_slot = 0
+        for i, s in enumerate(self.player.team):
+            if i == self.player.active_index:
+                continue
+            if bench_slot < 5:
+                if not s.is_fainted and probs[10 + bench_slot] > best_score:
+                    best_score = probs[10 + bench_slot]
+                    best_idx = i
                 bench_slot += 1
-            _, probs = self._evaluator.evaluate(state, mask)
-
-            best_idx = -1
-            best_score = -1.0
-            bench_slot = 0
-            for i, s in enumerate(self.player.team):
-                if i == self.player.active_index:
-                    continue
-                if bench_slot < 5:
-                    if not s.is_fainted and probs[10 + bench_slot] > best_score:
-                        best_score = probs[10 + bench_slot]
-                        best_idx = i
-                    bench_slot += 1
-        finally:
-            if swapped:
-                battle.player_a, battle.player_b = battle.player_b, battle.player_a
 
         return best_idx if best_idx >= 0 else alive[0]
 

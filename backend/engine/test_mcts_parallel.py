@@ -124,3 +124,48 @@ def test_parallel_agent_records_public_history():
     assert state
     assert probs.shape == (NUM_ACTIONS,)
     assert mask.shape == (NUM_ACTIONS,)
+
+
+def test_parallel_agent_b_keeps_side_identity_and_records_b_view():
+    from backend.engine.ai.core.encoder import encode_battle_state
+    from backend.engine.ai.core.mcts import NetworkPolicyAgent
+    from backend.engine.ai.parallel_agent import ParallelMCTSAgent
+
+    factory, battle = _build_battle()
+    original_a, original_b = battle.player_a, battle.player_b
+    battle.team_counters["A"]["element:水"] = 1
+    battle.team_counters["B"]["element:水"] = 4
+    expected = encode_battle_state(battle, perspective="B")
+    evaluator = UniformEvaluator()
+    agent = ParallelMCTSAgent(
+        "B", battle.player_b, factory,
+        NetworkPolicyAgent(evaluator=evaluator, greedy=True),
+        num_simulations=2, num_workers=1, pool=InlinePool(),
+        record=True, evaluator=evaluator, root_noise=0.0, leaf_batch_size=1,
+    )
+    agent.choose_action(battle)
+    assert battle.player_a is original_a
+    assert battle.player_b is original_b
+    assert battle.team_counters["A"]["element:水"] == 1
+    assert battle.team_counters["B"]["element:水"] == 4
+    assert len(agent.history) == 1
+    for key in expected:
+        np.testing.assert_array_equal(agent.history[0][0][key], expected[key])
+
+
+def test_parallel_zero_visits_fallback_uses_requested_side():
+    from backend.engine.ai.core.mcts import NetworkPolicyAgent, get_valid_actions
+    from backend.engine.ai.core.mcts_parallel import parallel_mcts_search_root
+
+    class ZeroPool:
+        def starmap(self, func, args):
+            return [np.zeros(NUM_ACTIONS, dtype=np.float32)]
+
+    factory, battle = _build_battle()
+    evaluator = UniformEvaluator()
+    _, expected = get_valid_actions(battle.player_b, battle)
+    probs = parallel_mcts_search_root(
+        battle, None, factory, NetworkPolicyAgent(evaluator=evaluator),
+        num_simulations=1, num_workers=1, pool=ZeroPool(), perspective="B",
+    )
+    np.testing.assert_allclose(probs, expected / expected.sum())

@@ -11,7 +11,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-
 from backend.engine.ai.core.encoder import encode_battle_state
 from backend.engine.ai.core.evaluator import TorchEvaluator
 from backend.engine.ai.core.mcts import (
@@ -52,8 +51,9 @@ def _load_model():
     if _MODEL is not None:
         return _MODEL
 
-    import torch
     from pathlib import Path
+
+    import torch
 
     path = Path(_CHECKPOINT)
     if not path.exists():
@@ -177,17 +177,13 @@ class NeuralMCTSAgent(_BaseAgent):
             from backend.sim.action import Action
             return Action(kind="gather")
 
-        # MCTS 要求 battle.player_a = 搜索方。交换视角使 B 成为 A。
-        battle.player_a, battle.player_b = battle.player_b, battle.player_a
-        try:
-            probs = mcts_search(
-                battle, None, None, self._opponent,
-                num_simulations=self.NUM_SIMULATIONS,
-                evaluator=self._evaluator,
-                opp_greedy=True,
-            )
-        finally:
-            battle.player_a, battle.player_b = battle.player_b, battle.player_a
+        probs = mcts_search(
+            battle, None, None, self._opponent,
+            num_simulations=self.NUM_SIMULATIONS,
+            evaluator=self._evaluator,
+            opp_greedy=True,
+            perspective="B",
+        )
 
         idx = policy_select_idx(probs, temperature=0.0)
         action = action_index_to_action(player, idx)

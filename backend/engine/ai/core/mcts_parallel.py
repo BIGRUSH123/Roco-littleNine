@@ -100,7 +100,8 @@ def parallel_mcts_search_root(
 
     # 回退：均匀分布
     from backend.engine.ai.core.mcts import get_valid_actions
-    _, mask = get_valid_actions(battle.player_a, battle)
+    player = battle.player_b if kwargs.get("perspective", "A") == "B" else battle.player_a
+    _, mask = get_valid_actions(player, battle)
     return mask / max(mask.sum(), 1.0)
 
 
@@ -179,8 +180,8 @@ def _serialize_opponent(opponent_agent) -> dict:
 
 def _deserialize_opponent(config: dict, model, device: str, evaluator=None):
     """反序列化对手 agent"""
-    from backend.engine.ai.core.mcts import NetworkPolicyAgent
     from backend.engine.ai.core.evaluator import TorchEvaluator
+    from backend.engine.ai.core.mcts import NetworkPolicyAgent
 
     if config['type'] == 'NetworkPolicyAgent':
         if evaluator is None:

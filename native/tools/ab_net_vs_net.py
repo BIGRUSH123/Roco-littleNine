@@ -1,85 +1,106 @@
-# -*- coding: utf-8 -*-
-"""ab_net_vs_net.py — 两个权重直接对打（双方都开搜索），只跑一臂。
+"""Frozen checkpoint head-to-head, with matched search and auditable pairs.
 
-为什么要独立工具：`probe_reward_ab --only ckpt` 会跑两臂，且两臂参数相同
-（gate_games == hi_games 时是同一次测量，容易误读成两个证据 ✗）。
-
-分辨率参考（配对协议，成对交换先后手）：
-    300 局 ≈ ±5.7 pt｜600 局 ≈ ±4 pt｜1200 局 ≈ ±2.9 pt
-sims=100 每局约 4× 便宜于 sims=400 —— 对"候选 vs 起点"这种 1~5 pt 的效应，
-**降 sims、加局数**是严格更优的协议（双方同等削弱，比的是相对强弱）。
-
-用法（本地）:
-  python -X utf8 native/tools/ab_net_vs_net.py --a checkpoints/it1.pt --b checkpoints/v5.pt \
-      --games 1200 --sims 100 --workers 14 --json-out logs/ab_it1_v5.json
+Use --a <candidate> --b <frozen M0> --games 1200 --sims 100 --json-out <path>.
+Both leaf weights default to zero. Explicit asymmetric settings are ablations.
+More games improve precision at the chosen search budget; confirm rankings at
+production search budget rather than assuming rankings survive a budget change.
 """
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
-import random
 import sys
 import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-if not (ROOT / "backend").is_dir():
-    ROOT = Path(r"D:\projects\Roco-LittleNine")
 sys.path.insert(0, str(ROOT))
-os.chdir(str(ROOT))
+
+
+def checkpoint_sha256(path: str) -> str:
+    digest = hashlib.sha256()
+    with open(path, "rb") as stream:
+        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 def main() -> None:
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--a", required=True, help="候选权重")
-    ap.add_argument("--b", required=True, help="对手权重（基准）")
+    from backend.engine.ai.determinism import ensure_hash_seed
+    ensure_hash_seed()
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("--a", required=True, help="Candidate checkpoint (read only)")
+    ap.add_argument("--b", required=True, help="Frozen reference / M0 checkpoint (read only)")
     ap.add_argument("--games", type=int, default=1200)
     ap.add_argument("--sims", type=int, default=100)
     ap.add_argument("--eval-max-turns", type=int, default=150)
     ap.add_argument("--workers", type=int, default=14)
-    ap.add_argument("--seed", type=int, default=20260927)
+    ap.add_argument("--seed", type=int, default=None, help="Legacy alias for roster and game seed")
+    ap.add_argument("--roster-seed", type=int, default=None)
+    ap.add_argument("--game-seed", type=int, default=None)
+    ap.add_argument("--leaf-value-weight", type=float, default=0.0, help="Shared leaf weight")
+    ap.add_argument("--candidate-leaf-weight", type=float, default=None)
+    ap.add_argument("--best-leaf-weight", type=float, default=None)
+    ap.add_argument("--stall-timeout-s", type=float, default=1200.0)
     ap.add_argument("--device", default="")
     ap.add_argument("--json-out", default="")
     args = ap.parse_args()
-
+    if args.games <= 0 or args.games % 2:
+        ap.error("--games must be a positive even number")
+    if args.sims <= 0 or args.workers <= 0 or args.stall_timeout_s <= 0:
+        ap.error("--sims, --workers, --stall-timeout-s must be positive")
+    if args.json_out and Path(args.json_out).resolve() in {Path(args.a).resolve(), Path(args.b).resolve()}:
+        ap.error("--json-out must not overwrite a checkpoint")
     import torch
 
     from backend.engine.ai.core.model import ModularBattleNet
     from backend.engine.ai.train import (
-        _load_sprite_skills, evaluate_parallel,
+        _EVAL_GAME_SEED,
+        _EVAL_ROSTER_SEED,
+        _load_sprite_skills,
+        evaluate_parallel,
     )
     from backend.sim.factory import SimFactory
 
     dev = args.device or ("cuda" if torch.cuda.is_available() else "cpu")
+    roster_seed = args.roster_seed if args.roster_seed is not None else (args.seed if args.seed is not None else _EVAL_ROSTER_SEED)
+    game_seed = args.game_seed if args.game_seed is not None else (args.seed if args.seed is not None else _EVAL_GAME_SEED)
+    w_a = args.leaf_value_weight if args.candidate_leaf_weight is None else args.candidate_leaf_weight
+    w_b = args.leaf_value_weight if args.best_leaf_weight is None else args.best_leaf_weight
+    if not 0 <= w_a <= 1 or not 0 <= w_b <= 1:
+        ap.error("Leaf weights must lie in [0, 1]")
+    hashes = {"a_sha256": checkpoint_sha256(args.a), "b_sha256": checkpoint_sha256(args.b)}
     net_a = ModularBattleNet.load(args.a, device=dev)
     net_b = ModularBattleNet.load(args.b, device=dev)
     factory = SimFactory()
     skills = _load_sprite_skills()
-
-    random.seed(args.seed)
     t0 = time.time()
-    print(f"[A/B] {Path(args.a).name} vs {Path(args.b).name}｜{args.games} 局｜"
-          f"sims={args.sims}｜max_turns={args.eval_max_turns}｜{args.workers} workers", flush=True)
-    wr = evaluate_parallel(
+    result = evaluate_parallel(
         net_a, net_b, factory, skills,
         n_games=args.games, num_workers=args.workers, device=dev,
         inference_batch_size=256, inference_timeout_ms=5.0,
         num_simulations=args.sims, max_turns=args.eval_max_turns,
         draw_margin=0.15, progress_every=max(1, args.games // 12),
-        stall_timeout_s=1200.0, leaf_batch_size=16,
-        candidate_leaf_weight=1.0, best_leaf_weight=1.0,
+        stall_timeout_s=args.stall_timeout_s, leaf_batch_size=16,
+        candidate_leaf_weight=w_a, best_leaf_weight=w_b,
+        roster_seed=roster_seed, game_seed=game_seed, return_details=True,
     )
-    dt = time.time() - t0
-    half = 1.96 * (0.25 / max(args.games, 1)) ** 0.5
-    print(f"[A/B] {Path(args.a).name} 得分 {wr:.4f}（±{half:.3f}，{args.games} 局，"
-          f"{dt / 60:.1f} 分钟）", flush=True)
+    result.update(a=args.a, b=args.b, **hashes, sims=args.sims,
+                  minutes=round((time.time() - t0) / 60, 1),
+                  python_hash_seed=os.environ.get("PYTHONHASHSEED"))
+    print(f"[A/B] score={result['score']} ci95={result['ci95']} "
+          f"W/D/L={result['wins']}/{result['draws']}/{result['losses']} "
+          f"scored={result['scored_games']}/{result['requested_games']} "
+          f"pairs={result['complete_pairs']} timeouts={result['timeout_games']}", flush=True)
+    print(f"[A/B] {result['ci_method']}", flush=True)
     if args.json_out:
-        Path(args.json_out).write_text(json.dumps({
-            "a": args.a, "b": args.b, "games": args.games, "sims": args.sims,
-            "score_a": wr, "ci95_half": half, "minutes": round(dt / 60, 1),
-        }, ensure_ascii=False, indent=1), encoding="utf-8")
-        print(f"[A/B] 写出 {args.json_out}", flush=True)
+        output = Path(args.json_out)
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(json.dumps(result, ensure_ascii=False, indent=2, allow_nan=False), encoding="utf-8")
+    if not result["complete"]:
+        raise SystemExit("Incomplete evaluation: inspect counts/timeouts; do not treat as a completed gate")
 
 
 if __name__ == "__main__":

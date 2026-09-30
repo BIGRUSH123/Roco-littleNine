@@ -532,10 +532,9 @@ def _find_effect_of_type(sprite: Sprite, state_type: str) -> bool:
 
 
 def _classify_marks_global(g, team: str) -> tuple[list, list]:
-    marks = getattr(g, 'marks', {}) or {}
-    pos = marks.get(team, {}).get('positive', [])
-    neg = marks.get(team, {}).get('negative', [])
-    return pos, neg
+    # GlobalEffects owns MarkEffect lists; the obsolete `marks` dict silently
+    # encoded every battle as having zero marks.
+    return g.get_marks(team)
 
 
 def _sum_mark_stacks(marks: list) -> float:

@@ -883,8 +883,9 @@ def test_neural_mcts_agent_does_not_create_factory_per_action(monkeypatch):
             created_factories.append(self)
 
     def fake_mcts(bt, model_arg, factory_arg, opponent, **kwargs):
-        assert bt.player_a is original_b
-        assert bt.player_b is original_a
+        assert bt.player_a is original_a
+        assert bt.player_b is original_b
+        assert kwargs["perspective"] == "B"
         assert factory_arg is None
         assert kwargs["opp_greedy"] is True
         return np.eye(1, NUM_ACTIONS, 15, dtype=np.float32)[0]

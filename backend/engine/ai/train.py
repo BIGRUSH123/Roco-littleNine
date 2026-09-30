@@ -43,6 +43,7 @@ from backend.engine.ai.data.build_from_reference import (
     sample_build,
 )
 from backend.engine.ai.data.meta_teams import item_from_team, load_meta_teams, spec_from_team
+from backend.engine.ai.core.eval_statistics import PairedEvaluation, evaluation_return
 from backend.engine.ai.core.encoder import encode_battle_state
 from backend.engine.ai.core.evaluator import (
     BatchedInferenceServer,
@@ -388,22 +389,25 @@ def _paired_eval_tasks(
     return tasks
 
 
-def _eval_roster_rng() -> random.Random:
+def _eval_roster_rng(seed: int | None = None) -> random.Random:
     """门控阵容套件：由固定基准种子生成 —— **每次评估都是同一批阵容**。
 
     否则每轮门控抽到的阵容不同，候选模型分数在阵容抽样方差里漂移
     （实测同一对模型两次门控可差数个百分点），门控门槛就失去意义。
     """
-    return random.Random(_EVAL_ROSTER_SEED)
+    return random.Random(_EVAL_ROSTER_SEED if seed is None else seed)
 
 
-def _seed_eval_game(game_index: int) -> None:
+def _seed_eval_game(game_index: int, seed: int | None = None) -> None:
     """单局门控随机数种子由局号决定，与 worker 领取顺序无关。
 
     此前 worker 只在启动时 seed 一次，之后按 work-stealing 顺序连续消耗随机数流，
     同一模型两次门控的结果因此不同（详见 docs §4f）。
     """
-    random.seed(_EVAL_GAME_SEED + int(game_index))
+    game_seed = (_EVAL_GAME_SEED if seed is None else seed) + int(game_index)
+    random.seed(game_seed)
+    np.random.seed(game_seed % (2**32 - 1))
+    torch.manual_seed(game_seed)
 
 
 def _build_eval_battle(factory: SimFactory, matchup: EvalMatchup):
@@ -424,8 +428,7 @@ def _build_eval_battle(factory: SimFactory, matchup: EvalMatchup):
 class MCTSAgent:
     """使用 MCTS 选择动作的 Agent，兼容 battle.execute_turn 接口。
 
-    当 team=="B" 时，在调用 mcts_search 前临时交换 player_a/player_b，
-    因为 mcts_search 始终从 player_a 视角工作。
+    通过显式 perspective 搜索，始终保留 battle 的真实 A/B 身份。
     """
 
     def __init__(
@@ -488,48 +491,40 @@ class MCTSAgent:
     def choose_action(self, battle):
         from backend.sim.action import Action
 
-        swapped = False
-        if self.team == "B":
-            battle.player_a, battle.player_b = battle.player_b, battle.player_a
-            swapped = True
-
-        try:
-            # 本方视角下编码一次，同时用于 MCTS 根节点评估 + 训练样本记录
-            state = encode_battle_state(battle) if self._record else None
-            probs = mcts_search(
-                battle, None, self._factory, self._opponent,
-                num_simulations=self._num_simulations,
-                root_noise=self._root_noise,
-                max_turns=self._max_turns,
-                opp_greedy=self._opp_greedy,
-                evaluator=self._evaluator,
-                root_state=state,  # 复用已编码状态，省掉 mcts_search 内部二次编码
-                draw_margin=self._draw_margin,
-                gamma=self._gamma,
-                tanh_k=self._tanh_k,
-                leaf_batch_size=self._leaf_batch_size,
-                leaf_value_fn=self._leaf_value_fn,
-                leaf_value_weight=self._leaf_value_weight,
-                leaf_value_scale=self._leaf_value_scale,
-            )
-            # 防御 save/restore 状态微小差异：MCTS 中合法的动作
-            # 在恢复后可能被判为非法。将 mask=0 位置的 probs 清零
-            # 并重归一化，确保动作采样和训练数据都使用一致的分布。
-            _, valid_mask = get_valid_actions(battle.player_a, battle)
-            probs = probs * valid_mask
-            s = probs.sum()
-            if s > 0:
-                probs = probs / s
-            else:
-                # valid_mask 全零：精灵被锁死且无替补，无任何合法动作。
-                # 直接返回聚能作为安全兜底，避免 _sample_action 对全零数组
-                # 返回 index=0 导致错误地执行被禁用的技能。
-                return Action(kind="gather")
-            if self._record and state is not None:
-                self.history.append((state, probs.copy(), valid_mask.copy()))
-        finally:
-            if swapped:
-                battle.player_a, battle.player_b = battle.player_b, battle.player_a
+        # 本方视角下编码一次，同时用于 MCTS 根节点评估 + 训练样本记录
+        state = encode_battle_state(battle, perspective=self.team) if self._record else None
+        probs = mcts_search(
+            battle, None, self._factory, self._opponent,
+            num_simulations=self._num_simulations,
+            root_noise=self._root_noise,
+            max_turns=self._max_turns,
+            opp_greedy=self._opp_greedy,
+            evaluator=self._evaluator,
+            perspective=self.team,
+            root_state=state,  # 复用已编码状态，省掉 mcts_search 内部二次编码
+            draw_margin=self._draw_margin,
+            gamma=self._gamma,
+            tanh_k=self._tanh_k,
+            leaf_batch_size=self._leaf_batch_size,
+            leaf_value_fn=self._leaf_value_fn,
+            leaf_value_weight=self._leaf_value_weight,
+            leaf_value_scale=self._leaf_value_scale,
+        )
+        # 防御 save/restore 状态微小差异：MCTS 中合法的动作
+        # 在恢复后可能被判为非法。将 mask=0 位置的 probs 清零
+        # 并重归一化，确保动作采样和训练数据都使用一致的分布。
+        _, valid_mask = get_valid_actions(self.player, battle)
+        probs = probs * valid_mask
+        s = probs.sum()
+        if s > 0:
+            probs = probs / s
+        else:
+            # valid_mask 全零：精灵被锁死且无替补，无任何合法动作。
+            # 直接返回聚能作为安全兜底，避免 _sample_action 对全零数组
+            # 返回 index=0 导致错误地执行被禁用的技能。
+            return Action(kind="gather")
+        if self._record and state is not None:
+            self.history.append((state, probs.copy(), valid_mask.copy()))
 
         action_idx = _sample_action(probs, self._temperature)
         if action_idx < 0:
@@ -548,41 +543,32 @@ class MCTSAgent:
             return -1  # 通知引擎扣魔力
 
         # 用网络评估当前"力竭待换"状态，从 switch head (10-14) 选最佳
-        swapped = False
-        if self.team == "B":
-            battle.player_a, battle.player_b = battle.player_b, battle.player_a
-            swapped = True
-
-        try:
-            state = encode_battle_state(battle)
-            # 构造 mask：仅启用存活板凳对应的 switch 动作
-            mask = np.zeros(NUM_ACTIONS, dtype=np.float32)
-            bench_slot = 0
-            for i, s in enumerate(self.player.team):
-                if i == self.player.active_index:
-                    continue
-                if bench_slot < 5 and not s.is_fainted:
-                    mask[10 + bench_slot] = 1.0
+        state = encode_battle_state(battle, perspective=self.team)
+        # 构造 mask：仅启用存活板凳对应的 switch 动作
+        mask = np.zeros(NUM_ACTIONS, dtype=np.float32)
+        bench_slot = 0
+        for i, s in enumerate(self.player.team):
+            if i == self.player.active_index:
+                continue
+            if bench_slot < 5 and not s.is_fainted:
+                mask[10 + bench_slot] = 1.0
+            bench_slot += 1
+        _, probs = self._evaluator.evaluate(state, mask)
+        # 从 switch head (10-14) 中选概率最高的板凳槽位
+        # bench_slot 必须与 mask 构造和 get_valid_actions 对齐：
+        # 力竭精灵占槽位但不参与评分，槽位号始终递增。
+        best_idx = -1
+        best_score = -1.0
+        bench_slot = 0
+        for i, s in enumerate(self.player.team):
+            if i == self.player.active_index:
+                continue
+            if bench_slot < 5:
+                if not s.is_fainted:
+                    if probs[10 + bench_slot] > best_score:
+                        best_score = probs[10 + bench_slot]
+                        best_idx = i
                 bench_slot += 1
-            _, probs = self._evaluator.evaluate(state, mask)
-            # 从 switch head (10-14) 中选概率最高的板凳槽位
-            # bench_slot 必须与 mask 构造和 get_valid_actions 对齐：
-            # 力竭精灵占槽位但不参与评分，槽位号始终递增。
-            best_idx = -1
-            best_score = -1.0
-            bench_slot = 0
-            for i, s in enumerate(self.player.team):
-                if i == self.player.active_index:
-                    continue
-                if bench_slot < 5:
-                    if not s.is_fainted:
-                        if probs[10 + bench_slot] > best_score:
-                            best_score = probs[10 + bench_slot]
-                            best_idx = i
-                    bench_slot += 1
-        finally:
-            if swapped:
-                battle.player_a, battle.player_b = battle.player_b, battle.player_a
 
         return best_idx if best_idx >= 0 else alive[0]
 
@@ -1501,80 +1487,54 @@ def evaluate(
     best_leaf_weight: float = 0.0,
     candidate_sims: int | None = None,
     best_sims: int | None = None,
-) -> float:
-    """candidate vs best 对打，返回 candidate 胜率（平局计 0.5）。
+    roster_seed: int | None = None,
+    game_seed: int | None = None,
+    game_timeout_s: float = 900.0,
+    return_details: bool = False,
+) -> float | dict:
+    """Paired, noiseless comparison. Detailed results retain actual counts.
 
-    每局双方各用自己的网络做 MCTS（贪心、无探索噪声）；偶数局 candidate
-    执先手 A、奇数局执后手 B，以消除先后手偏置。两侧叶节点权重可分别指定，
-    同一个模型 + 不同权重 = 「只换搜索」的 A/B。
+    Legacy float callers receive NaN for an incomplete or timed-out suite.
     """
-    if n_games <= 0:
-        return 0.0
-
-    wins = 0.0
+    results = PairedEvaluation(n_games)
     gate_tracker = _PairedGateTracker(n_games, early_stop_gate)
+    candidate.eval()
+    best.eval()
+    eval_candidate = TorchEvaluator(candidate, device)
+    eval_best = TorchEvaluator(best, device)
+    stopped_early = False
+    had_timeout = False
     for g, matchup in _paired_eval_tasks(factory, sprite_skills, n_games,
-                                        rng=_eval_roster_rng()):
-        _seed_eval_game(g)
-        battle = _build_eval_battle(factory, matchup)
-        p1 = battle.player_a
-        p2 = battle.player_b
-
-        cand_is_a = (g % 2 == 0)
-        model_a = candidate if cand_is_a else best
-        model_b = best if cand_is_a else candidate
-        sims_a = (candidate_sims if cand_is_a else best_sims) or num_simulations
-        sims_b = (best_sims if cand_is_a else candidate_sims) or num_simulations
-
-        eval_a = TorchEvaluator(model_a, device)
-        eval_b = TorchEvaluator(model_b, device)
-        # opp_a 是 A 方 MCTS 搜索中的"对手"（即 B），应使用 B 的网络
-        # opp_b 是 B 方 MCTS 搜索中的"对手"（即 A），应使用 A 的网络
-        opp_a = NetworkPolicyAgent(evaluator=eval_b, greedy=True)
-        opp_b = NetworkPolicyAgent(evaluator=eval_a, greedy=True)
-        agent_a = MCTSAgent(
-            "A", p1, factory, opp_a, sims_a,
-            temperature=0.0, root_noise=0.0, record=False,
-            evaluator=eval_a, opp_greedy=True, max_turns=max_turns,
-            draw_margin=draw_margin,
-            leaf_batch_size=leaf_batch_size,
-            leaf_value_weight=candidate_leaf_weight if cand_is_a else best_leaf_weight,
+                                         rng=_eval_roster_rng(roster_seed)):
+        _seed_eval_game(g, game_seed)
+        stats = {}
+        score = _play_one_eval_game(
+            factory, sprite_skills, eval_candidate, eval_best, g,
+            num_simulations, max_turns, draw_margin=draw_margin,
+            game_timeout_s=game_timeout_s, leaf_batch_size=leaf_batch_size,
+            matchup=matchup, candidate_leaf_weight=candidate_leaf_weight,
+            best_leaf_weight=best_leaf_weight, candidate_sims=candidate_sims,
+            best_sims=best_sims, stats_out=stats,
         )
-        agent_b = MCTSAgent(
-            "B", p2, factory, opp_b, sims_b,
-            temperature=0.0, root_noise=0.0, record=False,
-            evaluator=eval_b, opp_greedy=True, max_turns=max_turns,
-            draw_margin=draw_margin,
-            leaf_batch_size=leaf_batch_size,
-            leaf_value_weight=best_leaf_weight if cand_is_a else candidate_leaf_weight,
-        )
-
-        turn = 0
-        while not battle.is_finished and turn < max_turns:
-            battle.execute_turn(agent_a, agent_b)
-            turn += 1
-
-        outcome_a, _ = battle_outcome_a(
-            battle, max_turns, draw_margin=draw_margin,
-        )
-        game_score = eval_score_for_candidate(outcome_a, cand_is_a)
-        wins += game_score
-        decision = gate_tracker.add(g, game_score)
-        if early_stop_gate is not None:
-            if decision is not None:
-                if verbose:
-                    status = "pass" if decision else "fail"
-                    _timestamp_print(
-                        f"    eval early-stop {status}: {g + 1}/{n_games} games, "
-                        f"paired_score={gate_tracker.score:.2%}, gate={early_stop_gate:.2%}",
-                        flush=True,
-                    )
-                return gate_tracker.score
-
+        results.add(g, score, **stats)
+        had_timeout |= score is None
+        decision = gate_tracker.add(g, score) if score is not None else None
+        if not had_timeout and early_stop_gate is not None and decision is not None:
+            stopped_early = True
+            break
         if verbose and (g + 1) % 10 == 0:
-            _timestamp_print(f"    评估 {g + 1}/{n_games} 局, 当前胜率 {wins / (g + 1):.2%}")
-
-    return gate_tracker.score
+            _timestamp_print(f"    评估 {g + 1}/{n_games} 局")
+    result = results.summary(
+        stopped_early=stopped_early,
+        roster_seed=_EVAL_ROSTER_SEED if roster_seed is None else roster_seed,
+        game_seed=_EVAL_GAME_SEED if game_seed is None else game_seed,
+        candidate_leaf_weight=candidate_leaf_weight, best_leaf_weight=best_leaf_weight,
+        candidate_sims=candidate_sims or num_simulations,
+        best_sims=best_sims or num_simulations,
+        max_turns=max_turns, draw_margin=draw_margin,
+        game_timeout_s=game_timeout_s,
+    )
+    return evaluation_return(result, return_details)
 
 
 def _play_one_eval_game(
@@ -1595,7 +1555,7 @@ def _play_one_eval_game(
     candidate_sims: int | None = None,
     best_sims: int | None = None,
     stats_out: dict | None = None,
-) -> float:
+) -> float | None:
     """单局 candidate vs best，返回 candidate 得分：胜=1，平=0.5，负=0。
 
     game_timeout_s: 单局 wall-time 上限，超时强制退出（避免慢局拖死 worker）。
@@ -1652,7 +1612,7 @@ def _play_one_eval_game(
     while not battle.is_finished and turn < max_turns:
         battle.execute_turn(agent_a, agent_b)
         turn += 1
-        if time.monotonic() - battle_started >= game_timeout_s:
+        if not battle.is_finished and time.monotonic() - battle_started >= game_timeout_s:
             hit_wall = True
             break
 
@@ -1664,6 +1624,8 @@ def _play_one_eval_game(
         stats_out.update(turns=turn, end=end,
                          elapsed_s=time.monotonic() - battle_started)
 
+    if hit_wall:
+        return None
     outcome_a, _ = battle_outcome_a(
         battle, max_turns, draw_margin=draw_margin,
     )
@@ -1692,7 +1654,10 @@ def evaluate_parallel(
     best_leaf_weight: float = 0.0,
     candidate_sims: int | None = None,
     best_sims: int | None = None,
-) -> float:
+    roster_seed: int | None = None,
+    game_seed: int | None = None,
+    return_details: bool = False,
+) -> float | dict:
     """多进程局级门控评估 + 主进程双模型批量推理。
 
     work-stealing + 卡死保护（见 collect_rl_samples_parallel）。若发生卡死，
@@ -1701,8 +1666,9 @@ def evaluate_parallel(
     candidate_leaf_weight / best_leaf_weight 允许两侧用不同的叶节点估值——
     两侧传同一个模型、只改这两个权重时，就是「同一网络只换搜索」的 A/B 测。
     """
-    if n_games <= 0:
-        return 0.0
+    results = PairedEvaluation(n_games)
+    if n_games == 0:
+        return evaluation_return(results.summary(), return_details)
 
     n_workers = max(1, min(num_workers, n_games))
 
@@ -1719,7 +1685,7 @@ def evaluate_parallel(
     # 任务队列：相邻两局复用同一阵容/道具，仅交换候选模型所在侧。
     task_queue = ctx.Queue()
     for task in _paired_eval_tasks(factory, sprite_skills, n_games,
-                                   rng=_eval_roster_rng()):
+                                   rng=_eval_roster_rng(roster_seed)):
         task_queue.put(task)
     for _ in range(n_workers):
         task_queue.put(None)
@@ -1744,6 +1710,7 @@ def evaluate_parallel(
                 candidate_leaf_weight, best_leaf_weight,
                 candidate_sims, best_sims,
                 task_queue, request_queue, candidate_q, best_q, result_queue,
+                _EVAL_GAME_SEED if game_seed is None else game_seed,
             ),
         )
         proc.start()
@@ -1766,6 +1733,7 @@ def evaluate_parallel(
     last_progress = time.monotonic()
     stalled = False
     gate_decision: bool | None = None
+    had_timeout = False
     try:
         while done_workers < n_workers and gate_decision is None:
             try:
@@ -1812,11 +1780,15 @@ def evaluate_parallel(
                 done_workers += 1
                 continue
             # tag == "game"
-            game_score = float(raw_result[2])
+            game_score = None if raw_result[2] is None else float(raw_result[2])
             game_index = int(raw_result[3])
-            wins += game_score
+            stats = raw_result[4] if len(raw_result) > 4 else {}
+            results.add(game_index, game_score, **stats)
+            had_timeout |= game_score is None
+            wins += game_score if game_score is not None else 0.0
             completed_games += 1
-            gate_decision = gate_tracker.add(game_index, game_score)
+            decision = gate_tracker.add(game_index, game_score) if game_score is not None else None
+            gate_decision = decision if not had_timeout else None
             if early_stop_gate is not None:
                 if gate_decision is not None and verbose:
                     status = "pass" if gate_decision else "fail"
@@ -1829,7 +1801,7 @@ def evaluate_parallel(
             if verbose and (completed_games % max(1, progress_every) == 0):
                 _timestamp_print(
                     f"  评估进度: {completed_games}/{n_games} 局, "
-                    f"当前胜率 {wins / max(1, completed_games):.2%}",
+                    f"有效配对得分 {results.summary()['score']}",
                     flush=True,
                 )
 
@@ -1853,13 +1825,17 @@ def evaluate_parallel(
     finally:
         server.stop()
 
-    if gate_decision is True:
-        return gate_tracker.score
-    if gate_decision is False:
-        return gate_tracker.score
-    if stalled:
-        return gate_tracker.score
-    return wins / n_games
+    result = results.summary(
+        stopped_early=gate_decision is not None,
+        roster_seed=_EVAL_ROSTER_SEED if roster_seed is None else roster_seed,
+        game_seed=_EVAL_GAME_SEED if game_seed is None else game_seed,
+        candidate_leaf_weight=candidate_leaf_weight, best_leaf_weight=best_leaf_weight,
+        candidate_sims=candidate_sims or num_simulations,
+        best_sims=best_sims or num_simulations,
+        max_turns=max_turns, draw_margin=draw_margin,
+        game_timeout_s=game_timeout_s, stalled=stalled,
+    )
+    return evaluation_return(result, return_details)
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -1911,7 +1887,8 @@ def _dump_round_samples(
 
     sidecar = out.with_suffix(".json")
     sidecar.write_text(json.dumps(
-        {"round": int(iteration), "samples": int(n), **{k: v for k, v in meta.items()}},
+        {"round": int(iteration), "samples": int(n), **{k: v for k, v in meta.items()},
+         "state_semantics": "side-aware-marks-v2"},
         ensure_ascii=False, indent=1), encoding="utf-8")
 
 
@@ -1978,11 +1955,8 @@ def main():
                              "次模拟标定的；本项目 100 次模拟下 0.25 会让训练目标里噪声的扰动"
                              "(TV 0.14) 比搜索本身 (TV 0.04) 还大 3 倍，实测见 "
                              "native/tools/audit_selfplay_signal.py (default: 0.05)")
-    parser.add_argument("--leaf-value-weight", type=float, default=1.0,
-                        help="自博弈搜索叶节点混入效果感知局面分 backend.sim.value.state_value "
-                             "的权重 w（0 = 纯网络价值头，即旧行为）。价值头在局内几乎没有"
-                             "区分度时搜索会退化成「先验 + 噪声」；接上效果感知估值后搜索才"
-                             "真正改变策略目标 (default: 1.0)")
+    parser.add_argument("--leaf-value-weight", type=float, default=0.0,
+                        help="启发式叶值混合权重，0 = 纯网络价值（默认；见 TRAINING §9.11）")
     parser.add_argument("--leaf-value-scale", type=float, default=DEFAULT_LEAF_VALUE_SCALE,
                         help=f"附加估值 → (-1,1) 的 tanh 缩放系数 (default: {DEFAULT_LEAF_VALUE_SCALE})")
     parser.add_argument("--workers", type=int, default=1,
@@ -2144,6 +2118,10 @@ def main():
     # 最优模型副本（门控基准）
     best_model = _clone_model(model, device)
     Path(checkpoints_dir).mkdir(parents=True, exist_ok=True)
+    from backend.engine.ai.baseline import preserve_initial_baseline
+
+    m0_path, m0_created = preserve_initial_baseline(model, checkpoints_dir)
+    _log(f"冻结 M0 对照: {m0_path}（{'新建' if m0_created else '保留已有，不覆盖'}）")
     best_ckpt = f"{checkpoints_dir}/model_rl_best.pt"
 
     # 经验回放缓冲：按 iteration 保留最近 N 轮完整样本。
@@ -2373,7 +2351,10 @@ def main():
                     best_leaf_weight=eval_best_leaf,
                 )
             eval_sec = time.time() - t0
-            _log(f"  候选胜率: {win_rate:.2%}  ({eval_sec:.1f}s)")
+            if np.isfinite(win_rate):
+                _log(f"  候选胜率: {win_rate:.2%}  ({eval_sec:.1f}s)")
+            else:
+                _log("  ⚠ 评估未完成或含超时：本轮无有效门控结论，不晋升 best；保留既定回滚策略")
             if win_rate >= args.gate:
                 best_model.load_state_dict(model.state_dict())
                 t_save = time.time()

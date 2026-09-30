@@ -121,6 +121,7 @@ def run_evaluate_worker(
     candidate_reply_q,
     best_reply_q,
     result_queue,
+    game_seed: int | None = None,
 ) -> None:
     """子进程：动态领取单局门控评估任务，候选/最优推理经主进程批量服务。
 
@@ -128,8 +129,8 @@ def run_evaluate_worker(
     candidate_reply_q / best_reply_q 分别为两个模型分配独立回复队列，
     避免共享 mp.Queue 导致 Windows pipe 竞态死锁。
 
-    result_queue 消息为 4 元组 (tag, worker_id, score, game_index/error)：
-      ("game",  wid, score, game_index)  单局候选得分
+    result_queue 消息按 tag 区分：
+      ("game",  wid, score, game_index, stats)  单局得分及超时/回合诊断
       ("done",  wid, None, None)   该 worker 已领完退出
       ("error", wid, None, traceback)  worker 异常
     """
@@ -159,8 +160,8 @@ def run_evaluate_worker(
                 # 单局随机数由局号决定，**不用** worker 自己的随机数流：worker 领取
                 # 任务的顺序（work-stealing）不确定，共用一个流会让同一模型两次门控
                 # 得到不同的分数（详见 docs §4f）。
-                _seed_eval_game(game_index)
-                battle_started = time.monotonic()
+                _seed_eval_game(game_index, game_seed)
+                stats = {}
                 score = _play_one_eval_game(
                     factory, sprite_skills, candidate_eval, best_eval,
                     game_index, num_simulations, max_turns,
@@ -172,8 +173,9 @@ def run_evaluate_worker(
                     best_leaf_weight=best_leaf_weight,
                     candidate_sims=candidate_sims,
                     best_sims=best_sims,
+                    stats_out=stats,
                 )
-                result_queue.put(("game", worker_id, float(score), game_index))
+                result_queue.put(("game", worker_id, score, game_index, stats))
 
                 done += 1
         finally:

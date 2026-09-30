@@ -331,10 +331,8 @@ class NetworkPolicyAgent:
     """用网络策略头（无搜索）为 battle.player_b 选动作的轻量 agent。
 
     设计为"槽位驱动"：始终为传入 battle 的 **player_b** 决策，
-    与 mcts_search 的规范化（我方=player_a、对手=player_b）一致。
-    因此在自我博弈里既可作为 A 侧搜索中 B 的对手，也可作为 B 侧
-    （已交换）搜索中 A 的对手——无需关心真实队标，且不持有任何
-    会因状态重建而失效的 player 引用。
+    直接调用 choose_action 时为 B 方决策。MCTS 使用 evaluate_policy
+    接口并显式编码真实对手视角，因此 A/B 搜索均无需交换玩家。
     """
 
     team = "B"
@@ -505,6 +503,7 @@ def mcts_search(
     root_noise: float = 0.25,
     *,
     max_turns: int = 100,
+    perspective: str = "A",
     opp_greedy: bool = False,
     evaluator: PolicyValueEvaluator | None = None,
     root_state: np.ndarray | None = None,
@@ -519,10 +518,11 @@ def mcts_search(
     """从当前对战状态执行 MCTS，返回动作概率分布 (17,)。
 
     Args:
-        battle: 当前对战（player_a 是己方）。
+        battle: 当前对战，保持真实 A/B 身份不变。
+        perspective: 搜索方（A/B）；编码、动作与价值均以该方为准。
         model: 双头网络（与 evaluator 二选一；并行 worker 传 None）。
         factory: 工厂（用于状态快照恢复）。
-        opponent_agent: 对手 agent（player_b 侧，如 RuleAgent）。
+        opponent_agent: 对手 agent（非网络 agent 必须绑定真实对手队标）。
         num_simulations: 模拟次数。
         c_puct: 探索系数。
         device: 推理设备（仅 TorchEvaluator 使用）。
@@ -544,6 +544,13 @@ def mcts_search(
     Returns:
         (17,) float32 动作概率（∝ 访问次数）。
     """
+    if perspective not in ("A", "B"):
+        raise ValueError("perspective must be A or B")
+    own_player = battle.player_a if perspective == "A" else battle.player_b
+    other_player = battle.player_b if perspective == "A" else battle.player_a
+    other_team = "B" if perspective == "A" else "A"
+    value_sign = 1.0 if perspective == "A" else -1.0
+
     if evaluator is None:
         if model is None:
             raise ValueError("mcts_search 需要 model 或 evaluator")
@@ -560,22 +567,22 @@ def mcts_search(
     battle._mcts_sim = True
     try:
 
-        player = battle.player_a
+        player = own_player
         valid, mask = get_valid_actions(player, battle)
         if not valid:
             return mask / max(mask.sum(), 1.0)
 
         # ── 根节点先验（复用调用方预编码的状态） ──
         if root_state is None:
-            root_state = encode_battle_state(battle)
+            root_state = encode_battle_state(battle, perspective=perspective)
         batch_eval = getattr(evaluator, "evaluate_batch", None)
         use_network_opponent = isinstance(opponent_agent, NetworkPolicyAgent)
         if use_network_opponent:
-            opp_player = battle.player_b
+            opp_player = other_player
             opp_valid, opp_mask = get_valid_actions(opp_player, battle)
             _, prior = evaluator.evaluate(root_state, mask)
             root_opp_prior = (
-                opponent_agent.evaluate_policy(encode_battle_state(battle, perspective="B"), opp_mask)
+                opponent_agent.evaluate_policy(encode_battle_state(battle, perspective=other_team), opp_mask)
                 if opp_valid else None
             )
         else:
@@ -598,15 +605,16 @@ def mcts_search(
         # 预计算根节点对手策略（博弈树首次选择时直接采样，省 encode+eval）
         if use_network_opponent and opp_valid:
             if root_opp_prior is None:
-                opp_state = encode_battle_state(battle, perspective="B")
+                opp_state = encode_battle_state(battle, perspective=other_team)
                 _, root_opp_prior = evaluator.evaluate(opp_state, opp_mask)
             root.opp_policy = root_opp_prior
         elif use_network_opponent:
             # 对手无合法动作：赋值兜底策略（均匀分布），避免 _step_battle 重复推理
             root.opp_policy = opp_mask / max(opp_mask.sum(), 1.0)
 
-        agent_a_proxy = _PlayerSwappedAgent(opponent_agent, battle.player_a)
-        fixed_b_proxy = _OppFixedAgent(_GATHER_ACTION, battle.player_b, opponent_agent) if use_network_opponent else None
+        own_policy = NetworkPolicyAgent(evaluator=evaluator, greedy=True)
+        agent_a_proxy = _PlayerSwappedAgent(own_policy, own_player, team=perspective)
+        fixed_b_proxy = _OppFixedAgent(_GATHER_ACTION, other_player, opponent_agent, team=other_team) if use_network_opponent else None
 
         use_extra_leaf_value = leaf_value_fn is not None and leaf_value_weight > 0.0
         batch_leaf_eval = leaf_batch_size > 1 and callable(batch_eval)
@@ -653,7 +661,7 @@ def mcts_search(
                                     best_a = a
                             if best_a < 0:
                                 break
-                            if battle.is_finished or battle.player_a.active.is_fainted or battle.turn >= max_turns:
+                            if battle.is_finished or own_player.active.is_fainted or battle.turn >= max_turns:
                                 break
                             path.append((node, best_a))
                             node = node.children[best_a]
@@ -663,6 +671,7 @@ def mcts_search(
                                 opp_greedy=opp_greedy,
                                 agent_a_proxy=agent_a_proxy,
                                 fixed_b_proxy=fixed_b_proxy,
+                                perspective=perspective,
                             ):
                                 step_ok = False
                                 break
@@ -670,23 +679,23 @@ def mcts_search(
                         if not step_ok:
                             continue
 
-                        sim_player = battle.player_a
+                        sim_player = own_player
                         sim_valid, sim_mask = get_valid_actions(sim_player, battle)
                         if sim_valid and not battle.is_finished and battle.turn < max_turns:
-                            leaf_state = encode_battle_state(battle)
+                            leaf_state = encode_battle_state(battle, perspective=perspective)
                             leaf_idx = len(pending_states)
                             pending_states.append(leaf_state)
                             pending_masks.append(sim_mask)
                             if use_extra_leaf_value:
-                                pending_plan.append(float(leaf_value_fn(battle)))
+                                pending_plan.append(value_sign * float(leaf_value_fn(battle)))
 
                             opp_idx: int | None = None
                             if use_network_opponent:
-                                opp_player = battle.player_b
+                                opp_player = other_player
                                 opp_valid, opp_mask = get_valid_actions(opp_player, battle)
                                 if opp_valid:
                                     opp_idx = len(pending_opp_states)
-                                    pending_opp_states.append(encode_battle_state(battle, perspective="B"))
+                                    pending_opp_states.append(encode_battle_state(battle, perspective=other_team))
                                     pending_opp_masks.append(opp_mask)
                                 else:
                                     node.opp_policy = opp_mask / max(opp_mask.sum(), 1.0)
@@ -700,6 +709,7 @@ def mcts_search(
                                 battle, max_turns, draw_margin=draw_margin,
                                 gamma=gamma, tanh_k=tanh_k,
                             )
+                            leaf_value *= value_sign
                             for parent, _ in reversed(path):
                                 parent.visit_count += 1
                                 parent.total_value += leaf_value
@@ -764,7 +774,7 @@ def mcts_search(
                         break
                     # 终端守卫：对局已结束、active 已力竭、或达到最大回合数时停止降序，
                     # 避免在无效状态下推进回合导致树结构偏离。
-                    if battle.is_finished or battle.player_a.active.is_fainted or battle.turn >= max_turns:
+                    if battle.is_finished or own_player.active.is_fainted or battle.turn >= max_turns:
                         break
                     path.append((node, best_a))
                     node = node.children[best_a]
@@ -773,7 +783,8 @@ def mcts_search(
                                         opp_policy=path[-1][0].opp_policy if use_network_opponent else None,
                                         opp_greedy=opp_greedy,
                                         agent_a_proxy=agent_a_proxy,
-                                        fixed_b_proxy=fixed_b_proxy):
+                                        fixed_b_proxy=fixed_b_proxy,
+                                        perspective=perspective):
                         # action_idx 无法转为有效动作（bench slot 映射失败）。
                         # 跳过本次仿真的 backprop，避免树边与实际动作不匹配。
                         step_ok = False
@@ -783,23 +794,23 @@ def mcts_search(
                     continue  # 跳过本仿真
 
                 # ── Expansion & Evaluation ──
-                sim_player = battle.player_a
+                sim_player = own_player
                 sim_valid, sim_mask = get_valid_actions(sim_player, battle)
 
                 if sim_valid and not battle.is_finished and battle.turn < max_turns:
-                    leaf_state = encode_battle_state(battle)
+                    leaf_state = encode_battle_state(battle, perspective=perspective)
                     if use_network_opponent:
-                        opp_player = battle.player_b
+                        opp_player = other_player
                         opp_valid, opp_mask = get_valid_actions(opp_player, battle)
                     if use_network_opponent and opp_valid:
-                        opp_state = encode_battle_state(battle, perspective="B")
+                        opp_state = encode_battle_state(battle, perspective=other_team)
                         leaf_value, sim_prior = evaluator.evaluate(leaf_state, sim_mask)
                         node.opp_policy = opponent_agent.evaluate_policy(opp_state, opp_mask)
                     else:
                         leaf_value, sim_prior = evaluator.evaluate(leaf_state, sim_mask)
                     leaf_value = _blend_leaf_value(
                         leaf_value,
-                        leaf_value_fn(battle) if use_extra_leaf_value else None,
+                        value_sign * leaf_value_fn(battle) if use_extra_leaf_value else None,
                         leaf_value_weight,
                         leaf_value_scale,
                     )
@@ -809,7 +820,7 @@ def mcts_search(
                     node.prior = sim_prior
                     # 预计算对手策略
                     if use_network_opponent and opp_valid and node.opp_policy is None:
-                        opp_state = encode_battle_state(battle, perspective="B")
+                        opp_state = encode_battle_state(battle, perspective=other_team)
                         node.opp_policy = opponent_agent.evaluate_policy(opp_state, opp_mask)
                     elif use_network_opponent and not opp_valid:
                         node.opp_policy = opp_mask / max(opp_mask.sum(), 1.0)
@@ -824,6 +835,7 @@ def mcts_search(
                         battle, max_turns, draw_margin=draw_margin,
                         gamma=gamma, tanh_k=tanh_k,
                     )
+                    leaf_value *= value_sign
 
                 # ── Backprop ──
                 # 更新选择路径上的所有祖先节点以及当前展开的叶节点。
@@ -863,66 +875,48 @@ def _step_battle(
     opp_greedy: bool = False,
     agent_a_proxy=None,
     fixed_b_proxy=None,
+    perspective: str = "A",
 ) -> bool:
-    """在 battle 上执行一回合：A 按 action_idx 行动，B 由 opponent_agent 决定。
+    """Advance one real-coordinate turn using the search side's action.
 
-    Args:
-        opp_policy: 若提供，从该策略分布采样对手动作（省掉 encode+eval）；
-                    否则调用 opponent_agent.choose_action（旧路径）。
-        opp_greedy: 若 True，对手动作取 argmax（评估模式）；否则随机采样（训练模式）。
-
-    Returns:
-        True 表示执行成功；False 表示 action_idx 无法转为有效动作
-        （bench slot 映射失败），调用方应跳过本次仿真的 backprop。
-
-    使用 FixedAgent 包装双方，使 execute_turn 按预定动作执行。
+    Never swap players: marks, VM registrations, pending effects and counters
+    keep their original A/B identity throughout search.
     """
-    player_a = battle.player_a
-    action_a = action_index_to_action(player_a, action_idx)
-    # bench 精灵可能已力竭导致换宠动作失效。此时返回 False
-    # 让调用方跳过本次 backprop，避免树边与实际动作不匹配
-    # 导致 value 估计偏移。
-    if action_a is None:
+    own = battle.player_a if perspective == "A" else battle.player_b
+    other = battle.player_b if perspective == "A" else battle.player_a
+    other_team = "B" if perspective == "A" else "A"
+    action = action_index_to_action(own, action_idx)
+    if action is None:
         return False
-
+    own_agent = agent_a_proxy or _PlayerSwappedAgent(opponent_agent, own, team=perspective)
+    kwargs = {"fixed_action_a" if perspective == "A" else "fixed_action_b": action}
     if opp_policy is not None:
         opp_idx = policy_select_idx(opp_policy, temperature=0.0 if opp_greedy else 1.0)
-        if opp_idx < 0:
-            action_b = _GATHER_ACTION
-        else:
-            player_b = battle.player_b
-            action_b = action_index_to_action(player_b, opp_idx)
-            if action_b is None:
-                action_b = _GATHER_ACTION
-        agent_a = agent_a_proxy or _PlayerSwappedAgent(opponent_agent, player_a)
-        fixed_b = fixed_b_proxy or _OppFixedAgent(action_b, battle.player_b, opponent_agent)
-        fixed_b._action = action_b
-        battle.execute_turn_headless(
-            agent_a,
-            fixed_b,
-            fixed_action_a=action_a,
-            fixed_action_b=action_b,
-        )
-        return True
-
-    agent_a = agent_a_proxy or _PlayerSwappedAgent(opponent_agent, player_a)
+        other_action = action_index_to_action(other, opp_idx) if opp_idx >= 0 else None
+        other_action = other_action or _GATHER_ACTION
+        other_agent = fixed_b_proxy or _OppFixedAgent(
+            other_action, other, opponent_agent, team=other_team)
+        other_agent._action = other_action
+        kwargs["fixed_action_b" if perspective == "A" else "fixed_action_a"] = other_action
+    else:
+        other_agent = opponent_agent
     battle.execute_turn_headless(
-        fixed_action_a=action_a,
-        agent_a=agent_a,
-        agent_b=opponent_agent,
+        agent_a=own_agent if perspective == "A" else other_agent,
+        agent_b=other_agent if perspective == "A" else own_agent,
+        **kwargs,
     )
     return True
 
 
 class _PlayerSwappedAgent:
-    """将 opponent agent 的 player 替换为 player_a，用于委托 choose_lead/choose_replacement。"""
+    """搜索方替补代理；保留真实队标，使用搜索方自己的策略网络。"""
 
     __slots__ = ("_source", "player", "team")
 
-    def __init__(self, source, player):
+    def __init__(self, source, player, team="A"):
         self._source = source
         self.player = player
-        self.team = "A"
+        self.team = team
 
     def choose_lead(self, battle) -> int:
         alive = [i for i, s in enumerate(self.player.team) if not s.is_fainted]
@@ -934,7 +928,7 @@ class _PlayerSwappedAgent:
                 battle,
                 self.player,
                 self._source._evaluator,
-                perspective="A",
+                perspective=self.team,
                 temperature=self._source._temperature,
                 greedy=self._source._greedy,
             )
@@ -951,11 +945,11 @@ class _OppFixedAgent:
 
     __slots__ = ("_action", "_source", "player", "team")
 
-    def __init__(self, action, player, source=None):
+    def __init__(self, action, player, source=None, team="B"):
         self._action = action
         self._source = source
         self.player = player
-        self.team = "B"
+        self.team = team
 
     def choose_action(self, battle):
         return self._action
@@ -970,7 +964,7 @@ class _OppFixedAgent:
                 battle,
                 self.player,
                 self._source._evaluator,
-                perspective="B",
+                perspective=self.team,
                 temperature=self._source._temperature,
                 greedy=self._source._greedy,
             )
