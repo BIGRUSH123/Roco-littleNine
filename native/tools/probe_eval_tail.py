@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """probe_eval_tail.py — 定位"评估卡在最后 1-2 局"的原因。
 
 现象（2026-09-24 多次观测）：`evaluate_parallel` 的进度会长时间停在 N-1/N
@@ -25,7 +24,6 @@ from __future__ import annotations
 
 import argparse
 import os
-import random
 import sys
 import time
 from pathlib import Path
@@ -112,8 +110,11 @@ def main() -> None:
     from backend.engine.ai.core.evaluator import TorchEvaluator
     from backend.engine.ai.core.model import ModularBattleNet
     from backend.engine.ai.train import (
-        _eval_roster_rng, _load_sprite_skills, _paired_eval_tasks,
-        _play_one_eval_game, _seed_eval_game,
+        _eval_roster_rng,
+        _load_sprite_skills,
+        _paired_eval_tasks,
+        _play_one_eval_game,
+        _seed_eval_game,
     )
     from backend.sim.factory import SimFactory
 

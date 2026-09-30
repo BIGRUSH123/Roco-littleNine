@@ -19,14 +19,15 @@ import random  # noqa: E402
 
 import numpy as np  # noqa: E402
 
+import backend.engine.ai.train as tm  # noqa: E402
+
 # 模拟 worker 的导入顺序：先 evaluator（触发 hook 安装）
 from backend.engine.ai.core.evaluator import QueuePolicyEvaluator  # noqa: E402,F401
+from backend.engine.ai.core.mcts import NUM_ACTIONS
+from backend.engine.ai.rust_selfplay_hook import _rust_play_one_rl_battle  # noqa: E402
 
 # 再延迟导入 train 的 _play_one_rl_battle —— 应拿到 shim
 from backend.engine.ai.train import _load_sprite_skills, _play_one_rl_battle  # noqa: E402
-from backend.engine.ai.rust_selfplay_hook import _rust_play_one_rl_battle  # noqa: E402
-from backend.engine.ai.core.mcts import NUM_ACTIONS
-import backend.engine.ai.train as tm  # noqa: E402
 
 assert tm._play_one_rl_battle is _rust_play_one_rl_battle, "hook 未生效！"
 print("✓ hook 已生效（train._play_one_rl_battle → rust shim）", flush=True)

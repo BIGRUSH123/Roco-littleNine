@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """星陨印记使用情况诊断：AI 到底有没有在"叠印记"。
 
 逐回合打印：双方场上精灵 / 动作 / 双方星陨印记层数；结束给出统计：
@@ -20,13 +19,15 @@ sys.path.insert(0, str(ROOT))
 sys.stdout.reconfigure(encoding="utf-8")
 
 from backend.engine.ai.data.meta_teams import (  # noqa: E402
-    item_from_team, load_meta_teams, spec_from_team,
+    item_from_team,
+    load_meta_teams,
+    spec_from_team,
 )
 from backend.engine.ai.determinism import ensure_hash_seed  # noqa: E402
 
 ensure_hash_seed()
 
-from backend.engine import morph  # noqa: E402
+from backend.engine import morph as morph  # Register morph pool builders.
 from backend.sim import plan as plan_mod  # noqa: E402
 from backend.sim.agent_v2 import RuleAgentV2, SpriteStrategy, TeamStrategy  # noqa: E402
 from backend.sim.factory import SimFactory  # noqa: E402
@@ -47,7 +48,7 @@ def mark_skills(battle, sprite) -> list[str]:
     """该精灵手上能叠星陨印记的技能名。"""
     out = []
     for bs in getattr(sprite, "skills", None) or ():
-        prof = skill_profile(battle, bs)
+        _prof = skill_profile(battle, bs)
         desc = getattr(bs.base, "description", "") or ""
         if "星陨印记" in desc or "星陨" in str(getattr(bs.base, "morph", "") or ""):
             out.append(bs.name)

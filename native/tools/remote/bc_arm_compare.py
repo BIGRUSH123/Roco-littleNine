@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """两臂 BC 训练结果对照：读 `--out` 旁边的 json sidecar 打印关键指标与差值。
 
 用法: python bc_arm_compare.py <旧臂.json> <新臂.json> [标签A] [标签B]

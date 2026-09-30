@@ -14,7 +14,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 sys.stdout.reconfigure(encoding="utf-8")
 
-from backend.engine import replayer as R  # noqa: E402
+from backend.engine import replayer as r_module  # noqa: E402
 from backend.engine.test_rust_gate import battle_from_spec  # noqa: E402
 from backend.sim.agent import RuleAgent  # noqa: E402
 
@@ -22,7 +22,7 @@ spec = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
 turn = int(sys.argv[2])
 stat = sys.argv[3]
 
-orig = R.JournalReplayer._apply_modifier
+orig = r_module.JournalReplayer._apply_modifier
 
 _last_trigger = {"v": ""}
 
@@ -49,10 +49,10 @@ def wrap(self, m):
     return orig(self, m)
 
 
-for _k, _v in list(R.JournalReplayer._DISPATCH.items()):
+for _k, _v in list(r_module.JournalReplayer._DISPATCH.items()):
     if getattr(_k, "__name__", "") == "ModifierInjection":
-        R.JournalReplayer._DISPATCH[_k] = wrap
-R.JournalReplayer._apply_modifier = wrap
+        r_module.JournalReplayer._DISPATCH[_k] = wrap
+r_module.JournalReplayer._apply_modifier = wrap
 
 random.seed(spec["seed"] + 1)
 battle = battle_from_spec(spec)

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """native/tools/measure_prediction_stakes.py — E0 度量：预测换人的"赌注"有多大。
 
 问题（用户提出）：场上我方克制对面时，对面**可能换、也可能不换**；我可以预判换人
@@ -34,7 +33,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 sys.stdout.reconfigure(encoding="utf-8")
 
-from backend.engine.ai.bc_record import run_recorded_battle  # noqa: E402
+from backend.engine.ai import train as t_module  # noqa: E402
 from backend.engine.ai.data.meta_teams import (  # noqa: E402
     item_from_team,
     load_meta_teams,
@@ -42,7 +41,6 @@ from backend.engine.ai.data.meta_teams import (  # noqa: E402
     strategy_from_team,
 )
 from backend.engine.ai.data.sprite_random_pool import SPRITE_RANDOM_POOL  # noqa: E402
-from backend.engine.ai import train as T  # noqa: E402
 from backend.sim import tactics  # noqa: E402
 from backend.sim.agent_v2 import RuleAgentV2, SpriteStrategy, TeamStrategy  # noqa: E402
 from backend.sim.battleskill import SkillUse  # noqa: E402
@@ -225,7 +223,7 @@ def main() -> None:
             sa, sb = strategy_from_team(meta[i_a], rng), strategy_from_team(meta[i_b], rng)
             ia, ib = item_from_team(meta[i_a], ta), item_from_team(meta[i_b], tb)
         else:
-            ta, tb, ia, ib = T._random_teams(factory, sprite_skills,
+            ta, tb, ia, ib = t_module._random_teams(factory, sprite_skills,
                                              optimal_frac=args.optimal_frac, meta_frac=0.0)
             sa = sb = TeamStrategy(default=SpriteStrategy())
         plan = {

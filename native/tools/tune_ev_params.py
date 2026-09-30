@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """native/tools/tune_ev_params.py — 校准期望值层的常数（E5 之后的调参轮）。
 
 为什么调参而不是继续加机制：EV 层与旧启发式在 300 局配对上打成平手
@@ -21,28 +20,26 @@
 from __future__ import annotations
 
 import argparse
-import collections
 import json
 import math
 import random
 import sys
 import time
-from dataclasses import asdict, dataclass, fields, replace
+from dataclasses import asdict, fields
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 sys.stdout.reconfigure(encoding="utf-8")
 
-from backend.engine.ai import train as T  # noqa: E402
+from backend.engine.ai import train as t_module  # noqa: E402
 from backend.engine.ai.core.outcome import battle_outcome_a  # noqa: E402
-from backend.engine.ai.determinism import ensure_hash_seed  # noqa: E402
 from backend.engine.ai.data.meta_teams import (  # noqa: E402
     item_from_team,
     load_meta_teams,
     spec_from_team,
-    strategy_from_team,
 )
 from backend.engine.ai.data.sprite_random_pool import SPRITE_RANDOM_POOL  # noqa: E402
+from backend.engine.ai.determinism import ensure_hash_seed  # noqa: E402
 from backend.sim import belief as belief_mod  # noqa: E402
 from backend.sim import ev  # noqa: E402
 from backend.sim.agent_v2 import RuleAgentV2, SpriteStrategy, TeamStrategy  # noqa: E402
@@ -111,7 +108,7 @@ def _play_pair_games(factory, args, meta, seed: int, games: int,
             item_a = item_from_team(meta[meta_i], specs_a)
             item_b = item_from_team(meta[meta_i], specs_b)
         else:
-            specs_a, specs_b, item_a, item_b = T._random_teams(
+            specs_a, specs_b, item_a, item_b = t_module._random_teams(
                 factory, dict(SPRITE_RANDOM_POOL),
                 optimal_frac=args.optimal_frac, meta_frac=0.0)
         p1 = factory.build_player("A", specs_a, item=item_a)

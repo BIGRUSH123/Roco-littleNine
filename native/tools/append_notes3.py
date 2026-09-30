@@ -1,6 +1,4 @@
-# -*- coding: utf-8 -*-
 """append_notes3.py — 训练诊断与 exp17/18 交付记录。"""
-import io
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -39,6 +37,6 @@ TEXT = """
   eval 150 局 / gate 0.54（门控噪声↓）、16 轮 ≈ 5h。交付取两者最优。
 """
 
-with io.open(P, "a", encoding="utf-8", newline="\n") as f:
+with open(P, "a", encoding="utf-8", newline="\n") as f:
     f.write(TEXT)
 print("appended", len(TEXT), "chars")

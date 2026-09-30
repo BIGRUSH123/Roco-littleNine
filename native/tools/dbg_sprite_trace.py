@@ -28,7 +28,7 @@ py_digests, _ = run_python(spec)
 result = json.loads(roco_engine.py_run_battle(json.dumps(spec, ensure_ascii=False)))
 rust_digests = result["turns"]
 
-for i, (pd, rd) in enumerate(zip(py_digests, rust_digests)):
+for i, (pd, rd) in enumerate(zip(py_digests, rust_digests, strict=False)):
     if not (lo <= i <= hi):
         continue
     ps = pd["players"][pi]["sprites"][si]
@@ -40,7 +40,7 @@ for i, (pd, rd) in enumerate(zip(py_digests, rust_digests)):
         print(f"     rust hp={rs['hp']} e={rs['energy']} chg={rs['charging']} fa={rs['first_action']} "
               f"eff={[e[0] for e in rs['effects']]}")
         # 技能级差异
-        for a, b in zip(ps["skills"], rs["skills"]):
+        for a, b in zip(ps["skills"], rs["skills"], strict=False):
             if a != b:
                 print(f"     skill {a['name']}: py={a} rust={b}")
         if ps.get("modifiers") != rs.get("modifiers"):

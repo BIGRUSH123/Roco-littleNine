@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """探针：从自博弈对局日志体检「训练分布是否真的用的是 meta 队/道具/首领形态」。
 
 背景：BC 数据是 60% meta 队（含 20 支首领血脉进化流 + 携带进化之力/愿力），
@@ -10,9 +9,9 @@
 """
 from __future__ import annotations
 
+import glob as _glob
 import json
 import sys
-import glob as _glob
 from collections import Counter
 from pathlib import Path
 
@@ -99,11 +98,11 @@ def main() -> int:
     print(f"含 meta 队的对局 {meta_games} ({meta_games / max(1, n_games):.1%})"
           f"  ← 每侧 _META_FRAC=0.6，含至少一侧期望 ≈84%")
     print(f"meta 侧占比 {meta_side / max(1, 2 * n_games):.1%}  ← 期望 ≈60%")
-    print(f"\n动作分布: " + "  ".join(f"{k}={v}" for k, v in kinds.most_common()))
+    print("\n动作分布: " + "  ".join(f"{k}={v}" for k, v in kinds.most_common()))
     total_acts = sum(kinds.values())
     for k, v in kinds.most_common():
         print(f"  {k:<8} {v:>7} ({v / max(1, total_acts):.2%})")
-    print(f"\n道具动作明细（前 15）：")
+    print("\n道具动作明细（前 15）：")
     for name, cnt in item_skills.most_common(15):
         print(f"  {cnt:>6}  {name}")
     print(f"\n首领进化（进化之力/首领形态）出现次数: {leader_form_hits}")

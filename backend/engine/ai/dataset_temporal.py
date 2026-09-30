@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """backend/engine/ai/dataset_temporal.py — 数据集的时间结构索引（历史/辅助目标共用）。
 
 `bc_record` 每局存的是 **A 侧全部决策样本 + B 侧全部决策样本**（两侧各自按回合递增、
@@ -25,7 +24,7 @@ def iter_side_blocks(gid: np.ndarray, turns: np.ndarray):
     order = np.argsort(gid, kind="stable")
     sorted_gid = gid[order]
     bounds = np.flatnonzero(np.r_[True, sorted_gid[1:] != sorted_gid[:-1], True])
-    for start, end in zip(bounds[:-1], bounds[1:]):
+    for start, end in zip(bounds[:-1], bounds[1:], strict=False):
         idx = order[start:end]
         cuts = np.flatnonzero(np.diff(turns[idx]) < 0) + 1
         blocks = np.split(np.arange(len(idx)), cuts)

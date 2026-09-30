@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """效果表示契约：**留在引擎状态里的效果列表只准存 IR**（`data/IR_GUIDE.md` §3D）。
 
 为什么单独立一个测试：`BattleSkill._burst_effects` 里混进未编译 dict 曾经造成千局级才撞上的

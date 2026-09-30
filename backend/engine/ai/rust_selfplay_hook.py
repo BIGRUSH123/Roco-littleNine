@@ -81,8 +81,8 @@ def _find_leader_form(species_db, number: str):
 
 
 def _build_sprite_spec(species_db, spec: dict) -> dict:
-    from backend.common.formulas import StatsCalc
     from backend.common.constants import STAT_KEYS
+    from backend.common.formulas import StatsCalc
     from backend.common.skill_trait_ids import SKILL_ID_TO_NAME
 
     species = species_db.get(spec["name"], spec.get("form", ""))

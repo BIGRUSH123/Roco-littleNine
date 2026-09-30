@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """quick_grep.py — 查 Sprite.speed / BattleSkill 字段 / agent 动作助手。"""
 import subprocess
 

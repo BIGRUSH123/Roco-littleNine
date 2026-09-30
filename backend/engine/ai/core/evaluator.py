@@ -13,12 +13,12 @@ import os
 import queue
 import threading
 import time
+from contextlib import suppress
+from multiprocessing.reduction import ForkingPickler as _ForkingPickler
 from typing import TYPE_CHECKING, Protocol, runtime_checkable
 
 import numpy as np
 import torch
-
-from multiprocessing.reduction import ForkingPickler as _ForkingPickler
 
 logger = logging.getLogger(__name__)
 
@@ -368,10 +368,9 @@ class BatchedInferenceServer:
         """
         self._stop.set()
         # 推入哨兵解除 worker 阻塞 + 通知 _collect_batch 退出
-        try:
+        with suppress(Exception):
             self._request_queue.put(INFERENCE_STOP, timeout=1.0)
-        except Exception:
-            pass
+
         if self._thread is not None:
             self._thread.join(timeout=30.0 if drain else 1.0)
             self._thread = None
@@ -459,10 +458,9 @@ class BatchedInferenceServer:
                         "BatchedInference: 无法向 worker %d 发送结果 (队列满/管道损坏)",
                         worker_id, exc_info=True,
                     )
-                    try:
+                    with suppress(Exception):
                         reply_q.put(None, timeout=1.0)
-                    except Exception:
-                        pass
+
 
 
 class BatchedModelInferenceServer:
@@ -504,10 +502,9 @@ class BatchedModelInferenceServer:
         向 request_queue 注入 INFERENCE_STOP 哨兵以立即唤醒 daemon 线程。
         """
         self._stop.set()
-        try:
+        with suppress(Exception):
             self._request_queue.put(INFERENCE_STOP, timeout=1.0)
-        except Exception:
-            pass
+
         if self._thread is not None:
             self._thread.join(timeout=30.0 if drain else 1.0)
             self._thread = None
@@ -573,10 +570,9 @@ class BatchedModelInferenceServer:
                         q_map = self._reply_queues.get(worker_id)
                         reply_q = q_map.get(model_id) if q_map else None
                         if reply_q is not None:
-                            try:
+                            with suppress(Exception):
                                 reply_q.put(None, timeout=1.0)
-                            except Exception:
-                                pass
+
                     continue
 
                 states: list[dict[str, np.ndarray]] = []
@@ -623,10 +619,9 @@ class BatchedModelInferenceServer:
                             "(model=%s, 队列满/管道损坏)",
                             worker_id, model_id, exc_info=True,
                         )
-                        try:
+                        with suppress(Exception):
                             reply_q.put(None, timeout=1.0)
-                        except Exception:
-                            pass
+
 
 # worker 进程内 rust 引擎自博弈挂钩（env 门控，详见 rust_selfplay_hook.py）
 from backend.engine.ai.rust_selfplay_hook import install_if_enabled as _install_selfplay_hook

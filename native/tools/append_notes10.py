@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """向 PORTING_NOTES.md 追加首领入池章节。"""
 from pathlib import Path
 

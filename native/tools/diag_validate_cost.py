@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """探针：validate_meta_teams 耗时（怀疑每只精灵新建 SimFactory）。"""
 from __future__ import annotations
 

@@ -27,7 +27,7 @@ DEFAULT_GAMMA = 1.0
 DEFAULT_TANH_K = 0.0
 
 
-def team_battle_score(player: "Player") -> float:
+def team_battle_score(player: Player) -> float:
     """综合存活数、队伍 HP 比例、魔力、在场能量，用于打满回合裁决。"""
     alive = len(player.alive_sprites)
     hp_cur = sum(s.current_hp for s in player.team)
@@ -42,7 +42,7 @@ def team_battle_score(player: "Player") -> float:
 
 
 def battle_outcome_a(
-    battle: "Battle",
+    battle: Battle,
     max_turns: int,
     *,
     draw_margin: float = DEFAULT_DRAW_MARGIN,

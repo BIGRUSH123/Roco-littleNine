@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """dbg_swap_sym.py — 编码器视角对称性探针。
 
 验证：encode(state, perspective="B") 是否等于
@@ -6,7 +5,6 @@
 若有差 → A/B 双视角样本给价值头的是互相矛盾的特征（真实病根）；
 若全等 → 双视角数据天然对称，换边增强无额外收益。
 """
-import io
 import os
 import sys
 from pathlib import Path
@@ -15,7 +13,9 @@ ROOT = Path(__file__).resolve().parents[2]
 os.chdir(str(ROOT))
 sys.path.insert(0, str(ROOT))
 
-_log = io.open(ROOT / "native" / "tools" / "_swap_sym_log.txt", "w", encoding="utf-8")
+from native.tools.process_log import open_process_log
+
+_log = open_process_log(ROOT / "native" / "tools" / "_swap_sym_log.txt", "w", encoding="utf-8")
 
 
 def out(*a):
@@ -49,7 +49,7 @@ def main() -> None:
     agents = (RuleAgent("A", battle.player_a), RuleAgent("B", battle.player_b))
 
     def probe(turn: int) -> None:
-        ea = encode_battle_state(battle, perspective="A")
+        _ea = encode_battle_state(battle, perspective="A")
         eb = encode_battle_state(battle, perspective="B")
         battle.player_a, battle.player_b = battle.player_b, battle.player_a
         try:

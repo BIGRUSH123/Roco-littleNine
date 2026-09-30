@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """native/tools/scrape_meta_teams.py — 爬取共享阵容 → 池子校验 → meta_teams.json。
 
 数据源：rocopvp（洛克王国世界 PvP 助手，三个镜像域名同一部署）
@@ -138,8 +137,7 @@ def load_cache(path: str | Path) -> tuple[list[dict], list[dict], dict]:
 def iter_builds(team_items: list[dict], build_items: list[dict]):
     """遍历所有 build 记录（队伍展开 + 单配置）。"""
     for it in team_items:
-        for b in (it.get("snapshot") or {}).get("builds") or []:
-            yield b
+        yield from (it.get("snapshot") or {}).get("builds") or []
     for it in build_items:
         snap = it.get("snapshot") or {}
         if snap:
@@ -165,10 +163,10 @@ class Resolver:
     """站点 build → 池内精灵名 / 合法技能集。"""
 
     def __init__(self, pool: dict[str, list[str]], team_items: list[dict], build_items: list[dict]):
-        from backend.sim.factory import SimFactory
-        from backend.common.skill_trait_ids import SKILL_ID_TO_NAME
         from backend.common.constants import BLOODLINES
         from backend.common.nature import NATURE_TABLE
+        from backend.common.skill_trait_ids import SKILL_ID_TO_NAME
+        from backend.sim.factory import SimFactory
 
         self.pool = pool
         self.pool_skill_sets = {n: set(s) for n, s in pool.items()}
@@ -297,7 +295,7 @@ def parse_item_hint(team_raw: dict, sprites: list[dict]) -> tuple[str, str]:
 # ══════════════════════════════════════════════════
 # 归一化 + 校验
 # ══════════════════════════════════════════════════
-def normalize_team(item: dict, res: Resolver, roles: "RoleTable | None" = None,
+def normalize_team(item: dict, res: Resolver, roles: RoleTable | None = None,
                    fill: bool = True) -> tuple[dict | None, list[str]]:
     """单条站点 item → meta 队伍 dict；返回 (队伍, 修补/问题记录)。"""
     snap = item.get("snapshot") or {}
@@ -370,7 +368,7 @@ def normalize_team(item: dict, res: Resolver, roles: "RoleTable | None" = None,
 
 
 def _fill_skills(name: str, current: list[str], allowed: set[str],
-                 roles: "RoleTable | None", res: Resolver) -> list[str]:
+                 roles: RoleTable | None, res: Resolver) -> list[str]:
     """从池内补技能：优先与已有技能同类型，再按名字确定性排序。"""
     pool = [s for s in res.pool.get(name, []) if s not in current]
     if not pool:

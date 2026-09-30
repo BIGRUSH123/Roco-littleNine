@@ -6,11 +6,10 @@ Backtracking and import/export share this layer.
 
 from __future__ import annotations
 
-from backend.common.constants import DEFAULT_LIVES
-
 from copy import deepcopy
 from typing import Any
 
+from backend.common.constants import DEFAULT_LIVES
 
 # ═══════════════════════════════════════════════════════════════
 # Effect serialization
@@ -19,8 +18,12 @@ from typing import Any
 def effect_to_dict(effect: Any) -> dict:
     """Serialize any EffectObject subclass to dict."""
     from backend.vm.effect import (
-        AbnormalEffect, MarkEffect, ModifierEffect,
-        ObserverEffect, StatBuffEffect, StateEffect,
+        AbnormalEffect,
+        MarkEffect,
+        ModifierEffect,
+        ObserverEffect,
+        StatBuffEffect,
+        StateEffect,
     )
     base = {
         "name": effect.name,
@@ -84,8 +87,12 @@ def effect_to_dict(effect: Any) -> dict:
 def effect_from_dict(d: dict) -> Any:
     """Deserialize a dict back to an EffectObject subclass."""
     from backend.vm.effect import (
-        AbnormalEffect, MarkEffect, ModifierEffect,
-        ObserverEffect, StatBuffEffect, StateEffect,
+        AbnormalEffect,
+        MarkEffect,
+        ModifierEffect,
+        ObserverEffect,
+        StatBuffEffect,
+        StateEffect,
     )
     _type = d.get("_type", "")
     if _type == "StatBuffEffect":

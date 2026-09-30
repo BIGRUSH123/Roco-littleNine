@@ -202,7 +202,7 @@ def test_status_counter_skips_when_no_kill_threat():
     agent = RuleAgentV2("A", b.player_a, strategy=TeamStrategy(
         default=SpriteStrategy(status_counter=True, plan_depth=0)))
     action = agent.choose_action(b)
-    assert action.kind != "skill" or not me.skills[action.skill_index].name == "剧毒"
+    assert action.kind != "skill" or me.skills[action.skill_index].name != "剧毒"
 
 
 def test_no_defend_when_kill_available():

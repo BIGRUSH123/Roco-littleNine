@@ -4,8 +4,7 @@ import json
 import sys
 from pathlib import Path
 
-from backend.common.constants import BLOODLINES
-from backend.common.constants import DEFAULT_LIVES
+from backend.common.constants import BLOODLINES, DEFAULT_LIVES
 from backend.common.sprite_db import SpriteDB
 
 from .battle import Battle

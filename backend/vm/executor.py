@@ -19,8 +19,8 @@ from .ir_skill import (
     BorrowOp,
     BurstGrantOp,
     ChargeOp,
-    CountOp,
     CounterOp,
+    CountOp,
     DevotionOp,
     DispelOp,
     DoubleOp,
@@ -43,6 +43,7 @@ from .ir_skill import (
     MultModOp,
     PowerModOp,
     RedirectOp,
+    ReplaceSkillOp,
     ReplayChoiceOp,
     ReplayOp,
     ResetOp,
@@ -50,16 +51,15 @@ from .ir_skill import (
     ReviveOp,
     Schedule,
     SkillRotateOp,
+    StarfallTriggerOp,
     StatConvertOp,
     StatRandomOp,
     StatStageOp,
-    StarfallTriggerOp,
     StealOp,
     TeamCounterWrite,
     TickOp,
     TraitInteraction,
     Transform,
-    ReplaceSkillOp,
     WeatherOp,
     WhenBlock,
 )
@@ -103,9 +103,9 @@ from .ops.mod import (
     op_stat_stage,
 )
 from .ops.redirect import op_redirect
+from .ops.replace_skill import op_replace_skill
 from .ops.replay import op_replay
 from .ops.replay_branch import op_replay_branch
-from .ops.replace_skill import op_replace_skill
 from .ops.reset import op_reset
 from .ops.return_ import op_return
 from .ops.schedule import op_schedule

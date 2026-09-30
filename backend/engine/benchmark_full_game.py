@@ -13,9 +13,8 @@ import random
 import statistics
 import time
 
-
-from .differential.recorder import build_seeded_battle
 from .differential.generate_fixtures import parse_seeds
+from .differential.recorder import build_seeded_battle
 
 
 def bench_full(battles: list[int]) -> None:

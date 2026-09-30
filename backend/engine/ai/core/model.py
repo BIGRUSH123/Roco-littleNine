@@ -24,7 +24,7 @@ from pathlib import Path
 
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
+import torch.nn.functional as functional
 
 from backend.common.constants import ITEM_VARIANT_SLOTS
 from backend.engine.ai.core.mcts import NUM_ACTIONS as MCTS_NUM_ACTIONS
@@ -107,7 +107,7 @@ class MutualCrossAttention(nn.Module):
             v = v.view(B, H, D)
 
         attn = (q @ k.transpose(-2, -1)) / self.scale
-        attn = F.softmax(attn, dim=-1)
+        attn = functional.softmax(attn, dim=-1)
         attn = self.dropout(attn)
         out = attn @ v
 
@@ -572,7 +572,7 @@ class EntityBottleneckNet(nn.Module):
         """返回 (value, masked_softmax_probs)。mask 中 1=可用, 0=禁用。"""
         value, logits = self.forward(state)
         masked_logits = logits.masked_fill(mask < 0.5, -1e9)
-        probs = F.softmax(masked_logits, dim=-1)
+        probs = functional.softmax(masked_logits, dim=-1)
         probs = probs * mask  # 全零 mask 时 softmax 输出均匀分布，乘 mask 归零
         return value, probs
 
@@ -598,7 +598,7 @@ class EntityBottleneckNet(nn.Module):
         }, path)
 
     @classmethod
-    def load(cls, path: str, device: str = "cpu") -> "EntityBottleneckNet":
+    def load(cls, path: str, device: str = "cpu") -> EntityBottleneckNet:
         data = torch.load(path, map_location=device, weights_only=False)
         # 兼容裸 state_dict：bc_pretrain 早期直接 torch.save(model.state_dict())，
         # 而评估/部署/selfplay 一律走本方法读盘，不兼容就是 KeyError: 'state_dict'

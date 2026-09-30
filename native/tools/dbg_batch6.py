@@ -39,14 +39,14 @@ def diff_one(sid: str, t: int) -> None:
             for k in ("hp", "energy", "entry_turn"):
                 if ps[k] != rs[k]:
                     print(f"   {k}: py={ps[k]} ru={rs[k]}")
-            for a, b in zip(ps["skills"], rs["skills"]):
+            for a, b in zip(ps["skills"], rs["skills"], strict=False):
                 if a != b:
                     print(f"   skill py={a['name']} {a['modifiers']} cd={a['cooldown']} sealed={a['sealed']}")
                     print(f"   skill ru={b['name']} {b['modifiers']} cd={b['cooldown']} sealed={b['sealed']}")
             if ps.get("modifiers") != rs.get("modifiers"):
                 print(f"   sprite mods py={ps['modifiers']}")
                 print(f"   sprite mods ru={rs['modifiers']}")
-            for a, b in zip(ps["effects"], rs["effects"]):
+            for a, b in zip(ps["effects"], rs["effects"], strict=False):
                 if a != b:
                     print(f"   eff py={a} ru={b}")
             if len(ps["effects"]) != len(rs["effects"]):

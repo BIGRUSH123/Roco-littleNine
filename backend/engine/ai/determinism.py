@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """backend/engine/ai/determinism.py — 度量与训练的可复现前提。
 
 两件直接决定"同 seed 同命令会不会给出同一个数"的事：

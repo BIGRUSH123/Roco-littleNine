@@ -22,7 +22,8 @@ except ImportError:
     pytest.skip("roco_engine 未编译（maturin develop --release）", allow_module_level=True)
 
 from backend.vm.ctx import Ctx, EventContext
-from backend.vm.resolve import _resolve_formula_string, resolve as py_resolve
+from backend.vm.resolve import _resolve_formula_string
+from backend.vm.resolve import resolve as py_resolve
 
 
 def _make_ctx(seed: int) -> Ctx:
@@ -123,7 +124,8 @@ def _collect_corpus():
              + glob.glob("backend/engine/*.json"))
     for path in paths:
         try:
-            data = json.loads(open(path, encoding="utf-8").read())
+            with open(path, encoding="utf-8") as source:
+                data = json.load(source)
         except Exception:
             continue
         _walk_collect(data, formulas, queries)

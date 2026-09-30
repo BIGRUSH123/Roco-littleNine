@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """native/tools/rebuild_pool.py — 重建精灵随机池缓存。
 
 data/sprites + data/skills 更新后，sprite_random_pool.json（缓存）不会
@@ -16,8 +15,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 sys.stdout.reconfigure(encoding="utf-8")
 
-from backend.engine.ai.data import sprite_random_pool as pool_mod
 from backend.common.formulas import StatsCalc
+from backend.engine.ai.data import sprite_random_pool as pool_mod
 from backend.sim.factory import SimFactory
 
 POOL_FILE = pool_mod._POOL_FILE

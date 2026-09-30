@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """backend/engine/ai/aux_targets.py — 辅助头的目标（按本作赛制设计）。
 
 设计动机（2026-09-24 实测，本地 2500 局）
@@ -29,7 +28,10 @@ from __future__ import annotations
 import numpy as np
 
 from backend.engine.ai.dataset_temporal import (
-    future_sample, iter_side_blocks, per_turn_first, turns_of,
+    future_sample,
+    iter_side_blocks,
+    per_turn_first,
+    turns_of,
 )
 
 AUX_HORIZON = 3                 # 短程动态窗口（回合）

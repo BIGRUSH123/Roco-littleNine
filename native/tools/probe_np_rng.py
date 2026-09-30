@@ -4,8 +4,9 @@ Rust 侧 native/roco-core/src/np_random.rs 必须逐位复现这些值，
 MCTS 的 Dirichlet 根噪声与策略采样才能与 Python 完全一致。
 """
 
-import numpy as np
 import random
+
+import numpy as np
 
 print("numpy", np.__version__)
 

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """native/tools/diag_special_forms.py — 对每个受影响的编号，摊开全部条目面板。
 
 判断依据：

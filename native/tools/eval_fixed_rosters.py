@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """native/tools/eval_fixed_rosters.py — **固定阵容**下的专家对比（当前 vs 会话前）。
 
 为什么单独做：随机阵容时"阵容/克制"的方差会淹没 agent 差异（此前 3000 局随机阵容测到的
@@ -60,10 +59,9 @@ def main() -> None:
     args = parse_args()
     ensure_hash_seed()
 
+    from backend.engine.ai import train as t_module
     from backend.engine.ai.core.outcome import battle_outcome_a
-    from backend.engine.ai.data.meta_teams import (item_from_team, load_meta_teams,
-                                                   spec_from_team, strategy_from_team)
-    from backend.engine.ai import train as T
+    from backend.engine.ai.data.meta_teams import item_from_team, load_meta_teams, spec_from_team, strategy_from_team
     from backend.engine.ai.data.sprite_random_pool import SPRITE_RANDOM_POOL
     from backend.sim.agent_v2 import RuleAgentV2, SpriteStrategy, TeamStrategy
     from backend.sim.factory import SimFactory
@@ -89,7 +87,7 @@ def main() -> None:
             # rng 必须显式传入：`_random_teams` 默认用**全局 random**，而这里的全局流
             # 由 OS 熵播种 → 同一命令两次运行抽到不同阵容，1000 局下能差 5 个百分点
             # （见 docs §4f）。
-            sa, sb, item_a, item_b = T._random_teams(
+            sa, sb, item_a, item_b = t_module._random_teams(
                 factory, dict(SPRITE_RANDOM_POOL), optimal_frac=0.95, meta_frac=0.0,
                 rng=rng)
             stra = strb = TeamStrategy(default=SpriteStrategy())
@@ -170,11 +168,11 @@ def main() -> None:
     if agent_decided:
         print("  agent 决定胜负的阵容：")
         for tag in sorted(agent_decided, key=lambda t: -abs(per_tag[t][0] - per_tag[t][1])):
-            w, l, d = per_tag[tag]
-            print(f"    {w:>3}-{l:<3} (平{d}) {tag[:72]}")
+            w, row_value, d = per_tag[tag]
+            print(f"    {w:>3}-{row_value:<3} (平{d}) {tag[:72]}")
     print("  ── 逐阵容（新口径胜/负/平）──")
-    for tag, (w, l, d) in sorted(per_tag.items(), key=lambda kv: -(kv[1][0] - kv[1][1]))[:12]:
-        print(f"    {w:>3}-{l:<3} (平{d}) {tag[:72]}")
+    for tag, (w, row_value, d) in sorted(per_tag.items(), key=lambda kv: -(kv[1][0] - kv[1][1]))[:12]:
+        print(f"    {w:>3}-{row_value:<3} (平{d}) {tag[:72]}")
     print("判定：CI 下界 > 0.5 才算当前版确实更强。")
 
 

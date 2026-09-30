@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """找出 BC 数据里越界（float16 上限被夹到 ±65504）的状态值落在哪些局/哪些特征位。
 
 背景：`gen_bc_data` 会把 |x|>65504 的 float32 特征先夹再降精度（否则 inf 进 log1p
@@ -11,7 +10,6 @@
 from __future__ import annotations
 
 import sys
-from pathlib import Path
 
 import numpy as np
 

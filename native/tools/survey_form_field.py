@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """native/tools/survey_form_field.py — 统计 form 字段取值分布，为迁移做准备。
 
 输出: native/tools/_form_survey.txt

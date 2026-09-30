@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """向 PORTING_NOTES.md 追加 9.2 节（首领不可二次进化 + 道具掩码）。"""
 from pathlib import Path
 

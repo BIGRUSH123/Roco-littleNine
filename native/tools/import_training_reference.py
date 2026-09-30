@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """native/tools/import_training_reference.py — 导入线上 wiki 的「培养参考」数据。
 
 数据源（wiki.biligame.com/nrc，2026-09-20 定位）：
@@ -243,7 +242,7 @@ def main() -> int:
         print("抓取线上 wiki 模块…", flush=True)
         ref = fetch(s, "TrainingReference")
         catalog = fetch(s, "Catalog")
-        config = fetch(s, "Config")
+        _config = fetch(s, "Config")
 
         labels = parse_labels(ref)
         print(f"  词表: talent={len(labels.get('talent', []))} nature={len(labels.get('nature', []))} "

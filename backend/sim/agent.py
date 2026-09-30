@@ -11,10 +11,9 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Protocol
 
-from .item_policy import should_evolve, should_use_wish
-
 from .action import Action
 from .battleskill import SkillUse
+from .item_policy import should_evolve, should_use_wish
 
 if TYPE_CHECKING:
     from .battle import Battle

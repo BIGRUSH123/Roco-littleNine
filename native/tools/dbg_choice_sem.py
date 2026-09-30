@@ -9,7 +9,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
-_logf = open(ROOT / "native" / "tools" / "_dbg_choice_sem_log.txt", "w", encoding="utf-8")
+from native.tools.process_log import open_process_log
+
+_logf = open_process_log(ROOT / "native" / "tools" / "_dbg_choice_sem_log.txt", "w", encoding="utf-8")
 
 
 class _Tee:

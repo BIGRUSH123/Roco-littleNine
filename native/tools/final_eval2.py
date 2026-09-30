@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """final_eval2.py — 终评：exp19_best vs exp17_best / vs exp13_best（各配对 200 局）。"""
 import os
 import sys

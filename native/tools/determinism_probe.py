@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """native/tools/determinism_probe.py — 同种子可复现性探针（逐回合轨迹 + 状态指纹）。
 
 背景：`eval_fixed_rosters.py` 同命令同 seed 多次运行给出 0.612 / 0.564 / 0.573（1000 局），
@@ -76,9 +75,8 @@ def _digest(obj) -> str:
     return hashlib.sha256(blob.encode("utf-8")).hexdigest()[:16]
 
 
-def _build_rosters(args, rng, meta, factory, T, pool):
-    from backend.engine.ai.data.meta_teams import (item_from_team, spec_from_team,
-                                                   strategy_from_team)
+def _build_rosters(args, rng, meta, factory, t, pool):
+    from backend.engine.ai.data.meta_teams import item_from_team, spec_from_team, strategy_from_team
     rosters = []
     for _ in range(args.games):
         use_meta = bool(meta) and (args.meta_frac >= 1.0 or rng.random() < args.meta_frac)
@@ -91,7 +89,7 @@ def _build_rosters(args, rng, meta, factory, T, pool):
             strb = strategy_from_team(meta[ib_], rng)
             tag = f"meta:{meta[ia_]['name']} vs {meta[ib_]['name']}"
         else:
-            sa, sb, item_a, item_b = T._random_teams(
+            sa, sb, item_a, item_b = t._random_teams(
                 factory, dict(pool), optimal_frac=0.95, meta_frac=0.0, rng=rng)
             stra = strb = None
             tag = "random:" + "/".join(s["name"] for s in sa)
@@ -100,7 +98,7 @@ def _build_rosters(args, rng, meta, factory, T, pool):
     return rosters
 
 
-def _run_game(args, roster, factory, AgentCls, TeamStrategy, SpriteStrategy, gidx, trace):
+def _run_game(args, roster, factory, agent_cls, team_strategy, sprite_strategy, gidx, trace):
     from backend.engine.ai.core.outcome import battle_outcome_a
     random.seed(args.seed * 1000003 + gidx * 7919)
     p1 = factory.build_player("A", copy.deepcopy(roster["specs_a"]),
@@ -108,10 +106,10 @@ def _run_game(args, roster, factory, AgentCls, TeamStrategy, SpriteStrategy, gid
     p2 = factory.build_player("B", copy.deepcopy(roster["specs_b"]),
                               item=copy.deepcopy(roster["item_b"]))
     battle = factory.build_battle(p1, p2)
-    stra = roster["strat_a"] or TeamStrategy(default=SpriteStrategy())
+    stra = roster["strat_a"] or team_strategy(default=sprite_strategy())
     strb = roster["strat_b"] or stra
-    a1 = AgentCls("A", p1, strategy=stra)
-    a2 = AgentCls("B", p2, strategy=strb)
+    a1 = agent_cls("A", p1, strategy=stra)
+    a2 = agent_cls("B", p2, strategy=strb)
     turns = 0
     while not battle.is_finished and turns < args.max_turns:
         battle.execute_turn(a1, a2)
@@ -134,7 +132,7 @@ def main() -> None:
     args = parse_args()
     ensure_hash_seed()
 
-    from backend.engine.ai import train as T
+    from backend.engine.ai import train as t_module
     from backend.engine.ai.data.meta_teams import load_meta_teams
     from backend.engine.ai.data.sprite_random_pool import SPRITE_RANDOM_POOL
     from backend.sim.agent_v2 import RuleAgentV2, SpriteStrategy, TeamStrategy
@@ -143,7 +141,7 @@ def main() -> None:
     factory = SimFactory()
     meta = load_meta_teams()
     rng = random.Random(args.seed)
-    rosters = _build_rosters(args, rng, meta, factory, T, SPRITE_RANDOM_POOL)
+    rosters = _build_rosters(args, rng, meta, factory, t_module, SPRITE_RANDOM_POOL)
 
     print(f"=== 探针：{args.games} 局，seed={args.seed}，inner_repeat={args.inner_repeat} ===")
     t0 = time.time()

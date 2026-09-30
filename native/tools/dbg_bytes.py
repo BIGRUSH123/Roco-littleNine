@@ -13,9 +13,9 @@ for enc in ("utf-16", "utf-8", "gbk"):
     try:
         text = data.decode(enc)
         print(f"--- {enc} ok, lines={len(text.splitlines())}")
-        hits = [l for l in text.splitlines() if "op_hit" in l]
-        for l in hits[:4]:
-            print("   ", l[-70:])
+        hits = [row_value for row_value in text.splitlines() if "op_hit" in row_value]
+        for row_value in hits[:4]:
+            print("   ", row_value[-70:])
         break
     except Exception as exc:  # noqa: BLE001
         print(f"--- {enc} fail: {exc}")

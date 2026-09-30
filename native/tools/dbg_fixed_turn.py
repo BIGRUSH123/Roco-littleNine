@@ -320,8 +320,8 @@ def _compare(spec: dict, sims, *, dump: bool = False, expected=None) -> bool:
 
     if expected is not None:
         bad = None
-        for i, (ps, es) in enumerate(zip(py_digests, expected)):
-            for j, (p, e) in enumerate(zip(ps, es)):
+        for i, (ps, es) in enumerate(zip(py_digests, expected, strict=False)):
+            for j, (p, e) in enumerate(zip(ps, es, strict=False)):
                 if p != e["d"]:
                     bad = (i, j, p, e["d"])
                     break
@@ -350,7 +350,7 @@ def _compare(spec: dict, sims, *, dump: bool = False, expected=None) -> bool:
             continue
         if len(ps) != len(rs):
             print(f"      步数 py={len(ps)} rust={len(rs)}")
-        for j, (p, r) in enumerate(zip(ps, rs)):
+        for j, (p, r) in enumerate(zip(ps, rs, strict=False)):
             if p == r:
                 continue
             print(f"    step {j}: {_first_diff(p, r)}")

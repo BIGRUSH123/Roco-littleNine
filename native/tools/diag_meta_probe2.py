@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """探针 2：直接调 Resolver，检查血脉技能是否被 allowed_skills 接受。"""
 from __future__ import annotations
 
@@ -32,6 +31,6 @@ for name, blraw, skill in cases:
                  f"skill={skill!r} 允许={skill in allowed} 池内={skill in res.pool_skill_sets.get(name, set())}")
     if skill not in allowed:
         lines.append(f"    索引名存在={name in SPRITE_RANDOM_POOL}  db解析={res.factory.sprite_db.get(name) is not None}")
-        lines.append(f"    血脉技能表={dict((res.factory.sprite_db.get(name).bloodline_skills or {})) if res.factory.sprite_db.get(name) else None}")
+        lines.append(f"    血脉技能表={dict(res.factory.sprite_db.get(name).bloodline_skills or {}) if res.factory.sprite_db.get(name) else None}")
 Path(_ROOT / "_meta_probe2.txt").write_text("\n".join(lines), encoding="utf-8")
 print("probe2 -> _meta_probe2.txt")

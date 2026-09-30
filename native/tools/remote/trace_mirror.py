@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """单局镜像追踪：逐回合打印动作/事件/血线，用来诊断"打满回合无人力竭"的僵局。
 
 用法:
@@ -21,7 +20,10 @@ from backend.engine.ai.determinism import ensure_hash_seed  # noqa: E402
 ensure_hash_seed()
 
 from backend.engine.ai.data.meta_teams import (  # noqa: E402
-    item_from_team, load_meta_teams, spec_from_team, strategy_from_team,
+    item_from_team,
+    load_meta_teams,
+    spec_from_team,
+    strategy_from_team,
 )
 from backend.sim.agent_v2 import RuleAgentV2  # noqa: E402
 from backend.sim.factory import SimFactory  # noqa: E402

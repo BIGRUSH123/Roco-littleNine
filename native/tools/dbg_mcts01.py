@@ -14,7 +14,6 @@ sys.path.insert(0, str(ROOT / "native" / "tools"))
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 import roco_engine  # noqa: E402
-
 from mcts_gate import CFG, _first_diff, run_python  # noqa: E402
 
 name = sys.argv[1] if len(sys.argv) > 1 else "spec_0001.json"
@@ -26,21 +25,21 @@ py = run_python(spec, CFG)
 ru = json.loads(roco_engine.py_mcts_stub(json.dumps(spec, ensure_ascii=False), json.dumps(CFG)))
 
 print("py trace len", len(py["trace"]), "ru trace len", len(ru["trace"]))
-for i, (pt, rt) in enumerate(zip(py["trace"], ru["trace"])):
+for i, (pt, rt) in enumerate(zip(py["trace"], ru["trace"], strict=False)):
     if pt != rt:
         print(f"trace[{i}] py={pt} ru={rt}")
         break
 
-for i, (pd, rd) in enumerate(zip(py["digest_trace"], ru["digest_trace"])):
+for i, (pd, rd) in enumerate(zip(py["digest_trace"], ru["digest_trace"], strict=False)):
     if pd != rd:
-        for j, (x, y) in enumerate(zip(pd, rd)):
+        for j, (x, y) in enumerate(zip(pd, rd, strict=False)):
             if x != y:
                 print(f"首个状态分歧: sim={i} step={j}  actions={py['trace'][i][:j + 1]}")
                 print("   ", _first_diff(x, y))
                 print("--- 全部差异字段 ---")
                 for pi in (0, 1):
                     for si, (sx, sy) in enumerate(zip(x["players"][pi]["sprites"],
-                                                     y["players"][pi]["sprites"])):
+                                                     y["players"][pi]["sprites"], strict=False)):
                         for k in ("hp", "energy", "modifiers", "effects", "skills"):
                             if sx[k] != sy[k]:
                                 print(f"  P{pi}S{si}.{k}: py={sx[k]} ru={sy[k]}")

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """native/tools/diag_meta_rejects.py — 诊断阵容校验失败的根因（技能/精灵解析）。
 
 输出 UTF-8 报告：对每个 (精灵, 技能) 失败项，标注技能是否在 data/skills 落盘、
@@ -15,8 +14,8 @@ _PROJECT_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(_PROJECT_ROOT))
 sys.stdout.reconfigure(encoding="utf-8")
 
-from backend.engine.ai.data.sprite_random_pool import SPRITE_RANDOM_POOL  # noqa: E402
 from backend.common.skill_trait_ids import SKILL_ID_TO_NAME  # noqa: E402
+from backend.engine.ai.data.sprite_random_pool import SPRITE_RANDOM_POOL  # noqa: E402
 from backend.sim.factory import SimFactory  # noqa: E402
 
 skill_dir = _PROJECT_ROOT / "data" / "skills"

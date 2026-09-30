@@ -11,7 +11,8 @@ import random
 from copy import copy
 from typing import TYPE_CHECKING
 
-from backend.vm.executor import assert_ir_effects, execute as vm_execute
+from backend.vm.executor import assert_ir_effects
+from backend.vm.executor import execute as vm_execute
 from backend.vm.journal import (
     AbnormalChange,
     Borrow,
@@ -38,9 +39,9 @@ from backend.vm.journal import (
     ModifierInjection,
     Mutation,
     Redirect,
+    ReplaceSkill,
     Replay,
     ReplayChoice,
-    ReplaceSkill,
     Reset,
     Return,
     ScheduleEntry,
@@ -60,10 +61,10 @@ from backend.vm.journal import (
 if TYPE_CHECKING:
     from backend.sim.globals import GlobalEffects
     from backend.sim.sprite import Sprite
+
     from .observer import ObserverRegistry
 
 from .modifiers import expand_combo_hits
-
 
 # Stats whose values are ratios (display as percentage)
 _RATIO_STATS: frozenset[str] = frozenset({

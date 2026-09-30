@@ -1,12 +1,15 @@
-# -*- coding: utf-8 -*-
 """read_logs.py — 汇总 exp14/15/16 运行日志摘要 + 用户未提交训练代码 diff。"""
-import io
 import json
 import subprocess
+import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-out = io.open(ROOT / "native" / "tools" / "_logs_read.txt", "w", encoding="utf-8")
+sys.path.insert(0, str(ROOT))
+
+from native.tools.process_log import open_process_log
+
+out = open_process_log(ROOT / "native" / "tools" / "_logs_read.txt", "w", encoding="utf-8")
 
 
 def w(*a):
@@ -22,7 +25,8 @@ for d in ("exp14-debug_policy_collapse", "exp15_pipeline_fix", "exp16"):
         w("  file:", f.name, f"({f.stat().st_size}B)")
     jsonls = sorted(dd.glob("*.jsonl"))
     if jsonls:
-        rows = [json.loads(l) for l in io.open(jsonls[-1], encoding="utf-8") if l.strip()]
+        with open(jsonls[-1], encoding="utf-8") as source:
+            rows = [json.loads(row_value) for row_value in source if row_value.strip()]
         its = [r for r in rows if r.get("type") == "iteration"]
         starts = [r for r in rows if r.get("type") == "run_start"]
         if starts:

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """native/tools/audit_meta_teams.py — meta 队伍与引擎语义的一致性审计。
 
 对 40 支 meta 队的每只精灵检查：
@@ -20,9 +19,9 @@ _ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(_ROOT))
 sys.stdout.reconfigure(encoding="utf-8")
 
-from backend.common.constants import ELEMENTAL_BLOODLINES  # noqa: E402
 from backend.engine.ai.data.meta_teams import load_meta_teams  # noqa: E402
 from backend.sim.factory import SimFactory  # noqa: E402
+
 
 def _find_boss(db_, number: str, appearance: str):
     """同编号是否存在首领形态（同外观优先，回退默认外观）。"""

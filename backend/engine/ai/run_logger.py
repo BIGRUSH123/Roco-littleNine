@@ -19,12 +19,12 @@ from __future__ import annotations
 
 import json
 import logging
+from contextlib import ExitStack
 from datetime import datetime
 from pathlib import Path
 from typing import Any
 
 from backend.engine.ai.console import safe_print
-
 
 # ═══════════════════════════════════════════════════════════════════
 # 内部 Logger
@@ -80,7 +80,10 @@ class RunLogger:
         self._logger = _build_logger(self.full_log_path)
 
         # ── metrics JSONL（缓冲写入） ──
-        self._metrics_fp = open(self.metrics_path, "w", encoding="utf-8")
+        # The log remains open for this writer's lifetime, not just __init__.
+        with ExitStack() as stack:
+            self._metrics_fp = stack.enter_context(open(self.metrics_path, "w", encoding="utf-8"))
+            self._file_contexts = stack.pop_all()
         self._metrics_buffer_size = metrics_buffer_size
         self._metrics_write_count = 0
 
@@ -177,7 +180,7 @@ class RunLogger:
             f"  指标: {self.metrics_path}\n  汇总: {self.summary_path}"
         )
 
-        self._metrics_fp.close()
+        self._file_contexts.close()
 
         if self._tb_writer is not None:
             self._tb_writer.close()

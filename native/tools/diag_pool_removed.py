@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """native/tools/diag_pool_removed.py — 诊断精灵为何不在随机池中。
 
 池子构建的三条排除规则（见 sprite_random_pool._build_pool）：

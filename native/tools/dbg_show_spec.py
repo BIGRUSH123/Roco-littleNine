@@ -15,7 +15,7 @@ sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 sid = sys.argv[1]
 spec = json.loads((ROOT / f"native/gate_specs/spec_{sid}.json").read_text(encoding="utf-8"))
 lines = [f"seed: {spec.get('seed')} max_turns: {spec.get('max_turns')}"]
-for lbl, p in zip("AB", spec["players"]):
+for lbl, p in zip("AB", spec["players"], strict=False):
     lines.append(f"player {lbl}:")
     for i, sp in enumerate(p["sprites"]):
         skills = [s if isinstance(s, str) else s.get("name") for s in sp.get("skills", [])]

@@ -29,6 +29,7 @@
 
 from __future__ import annotations
 
+from contextlib import suppress
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
@@ -84,7 +85,7 @@ class Advice:
 # 动作描述
 # ═══════════════════════════════════════════════════════════════════
 
-def describe_action(player: "Player", idx: int) -> str:
+def describe_action(player: Player, idx: int) -> str:
     """把动作索引转成人类可读描述（己方视角，22 动作空间）。"""
     active = player.active if player.active_index < len(player.team) else None
     if idx < 10:
@@ -113,7 +114,7 @@ def describe_action(player: "Player", idx: int) -> str:
     return f"动作{idx}"
 
 
-def _bench_target(player: "Player", bench_slot: int):
+def _bench_target(player: Player, bench_slot: int):
     count = 0
     for i, s in enumerate(player.team):
         if i == player.active_index:
@@ -129,9 +130,9 @@ def _bench_target(player: "Player", bench_slot: int):
 # ═══════════════════════════════════════════════════════════════════
 
 def advise_single(
-    battle: "Battle",
-    model: "ModularBattleNet",
-    factory: "SimFactory",
+    battle: Battle,
+    model: ModularBattleNet,
+    factory: SimFactory,
     opponent_agent=None,
     num_simulations: int = 400,
     device: str = "cpu",
@@ -157,9 +158,9 @@ def advise_single(
 # ═══════════════════════════════════════════════════════════════════
 
 def advise(
-    determinizations: list["Battle"],
-    model: "ModularBattleNet",
-    factory: "SimFactory",
+    determinizations: list[Battle],
+    model: ModularBattleNet,
+    factory: SimFactory,
     opponent_agent=None,
     num_simulations: int = 200,
     device: str = "cpu",
@@ -182,7 +183,7 @@ def advise(
     win_acc = 0.0
     w_sum = 0.0
     default_opponent = opponent_agent or NetworkPolicyAgent(model, device=device, greedy=True)
-    for bt, w in zip(determinizations, weights):
+    for bt, w in zip(determinizations, weights, strict=False):
         if w <= 0:
             continue
         probs = mcts_search(
@@ -206,12 +207,12 @@ def advise(
 
 
 def make_determinizations(
-    battle: "Battle",
-    factory: "SimFactory",
+    battle: Battle,
+    factory: SimFactory,
     bench_pool: list[dict] | None = None,
     k: int = 20,
     rng: np.random.Generator | None = None,
-) -> list["Battle"]:
+) -> list[Battle]:
     """从当前局面生成 K 套决定化副本（重采样对手未知板凳）。
 
     bench_pool: 对手可能的板凳精灵规格列表，元素形如
@@ -227,21 +228,20 @@ def make_determinizations(
         rng = np.random.default_rng()
 
     snapshot = battle_to_dict(battle)
-    out: list["Battle"] = []
+    out: list[Battle] = []
     for _ in range(max(1, k)):
         clone = battle_from_dict(snapshot, factory.sprite_db, factory._build_skill_list)
         if bench_pool:
-            try:
+            with suppress(Exception):
                 _resample_opponent_bench(clone, factory, bench_pool, rng)
-            except Exception:  # noqa: BLE001 — 决定化失败则退回纯克隆
-                pass
+
         out.append(clone)
     return out
 
 
 def _resample_opponent_bench(
-    battle: "Battle",
-    factory: "SimFactory",
+    battle: Battle,
+    factory: SimFactory,
     bench_pool: list[dict],
     rng: np.random.Generator,
 ) -> None:
@@ -284,7 +284,7 @@ def _resample_opponent_bench(
 # 内部辅助
 # ═══════════════════════════════════════════════════════════════════
 
-def _estimate_win_prob(battle: "Battle", model: "ModularBattleNet", device: str) -> float:
+def _estimate_win_prob(battle: Battle, model: ModularBattleNet, device: str) -> float:
     """用 value 头估计己方(player_a)胜率，映射到 [0,1]。
 
     使用 EntityBottleneckNet 的 dict 输入格式。
@@ -299,7 +299,7 @@ def _estimate_win_prob(battle: "Battle", model: "ModularBattleNet", device: str)
 
 
 def _build_advice(
-    player: "Player",
+    player: Player,
     probs: np.ndarray,
     win_prob: float,
     num_determinizations: int,

@@ -25,19 +25,19 @@ sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(Path(__file__).parent))
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
-import roco_engine  # noqa: E402
 
-import mcts_gate as G  # noqa: E402
-from dbg_fixed_turn import _compare, _dump  # noqa: E402
+import mcts_gate as g_module  # noqa: E402
+import roco_engine as roco_engine  # Preserve native module initialization.
+from dbg_fixed_turn import _compare  # noqa: E402
 
 spec_no = int(sys.argv[1])
 sim_idx = int(sys.argv[2])
 dump = "--dump" in sys.argv
 
 spec = json.loads((ROOT / "native" / "gate_specs" / f"spec_{spec_no:04d}.json").read_text("utf-8"))
-cfg = dict(G.CFG)
+cfg = dict(g_module.CFG)
 cfg["num_simulations"] = int(os.environ.get("ROCO_SIMS", "200"))
-py = G.run_python(spec, cfg)
+py = g_module.run_python(spec, cfg)
 
 sims: list[list[tuple[int, int]]] = []
 for i in range(sim_idx + 1):
@@ -48,7 +48,7 @@ for i in range(sim_idx + 1):
         print("   A 动作:", a_acts)
         print("   B 动作:", [s["b"] for s in steps])
         sys.exit(1)
-    sims.append([(int(a), int(s["b"])) for a, s in zip(a_acts, steps)])
+    sims.append([(int(a), int(s["b"])) for a, s in zip(a_acts, steps, strict=False)])
 
 print(f"重放 0..{sim_idx} 轮，共 {sum(len(s) for s in sims)} 个回合")
 _compare(spec, sims, dump=dump, expected=py["digest_trace"][: sim_idx + 1])

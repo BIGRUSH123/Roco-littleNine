@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """v5 可选架构件测试：AST 槽位分段池化、辅助头、旧检查点向后兼容。
 
 这三件事的共同风险都是"静默改语义"：老权重能不能按 v4 结构原样加载、
@@ -127,7 +126,7 @@ def test_v5_checkpoint_roundtrip(tmp_path):
     with torch.no_grad():
         expected = model.forward_with_aux(state)
         actual = loaded.forward_with_aux(state)
-    for a, b in zip(expected, actual):
+    for a, b in zip(expected, actual, strict=False):
         assert torch.allclose(a, b, atol=1e-6)
 
 

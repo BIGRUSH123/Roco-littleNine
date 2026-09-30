@@ -8,8 +8,8 @@
 规则 agent 的候选过滤都调它 —— 同类判据各写一份会漂移（实测过一次：掩码说
 「释放蓄力技能合法」，引擎守卫却把释放也拒了 → 精灵被永久锁死在蓄力中）。
 """
-
 import random
+from contextlib import suppress
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
@@ -210,7 +210,7 @@ class BattleMechanicsMixin:
         new = player.active
 
         # 瞳中倒影：离场者持有该特性时，与换入者交换血量百分比
-        try:
+        with suppress(Exception):
             from .traits import get_trait as _get_trait_swap
             _old_trait = _get_trait_swap(old)
             if _old_trait is not None and _old_trait.name == "瞳中倒影" \
@@ -221,8 +221,7 @@ class BattleMechanicsMixin:
                 new.current_hp = max(1, round(new.max_hp * _r1))
                 if not mcts_sim:
                     events.append(f'{old.name} 与 {new.name} 交换了血量比例')
-        except Exception:
-            pass
+
 
         opp_team = 'B' if team == 'A' else 'A'
         # 印记归属：mark_effects[X] 上的「离场」系印记，作用于 X 方自己的换入者
@@ -748,9 +747,7 @@ class BattleMechanicsMixin:
             return True
         if getattr(bs, 'replaced_by', None) is not None:
             return True
-        if getattr(bs, 'is_temporary', False):
-            return True
-        return False
+        return bool(getattr(bs, 'is_temporary', False))
 
     def rotate_team_skills(self, team: str, offset: int = 1) -> list[str]:
         """过山车：己方**全队**携带技能跨精灵整体轮转 `offset` 位（向下移动）。
@@ -792,7 +789,7 @@ class BattleMechanicsMixin:
         values = [bs for _, _, bs in slots]
         new_values = values[-step:] + values[:-step]
         moved: list[tuple] = []          # [(sprite, slot_index, bs)]
-        for (sprite, i, old_bs), new_bs in zip(slots, new_values):
+        for (sprite, i, old_bs), new_bs in zip(slots, new_values, strict=False):
             if new_bs is old_bs:
                 continue
             sprite.skills[i] = new_bs

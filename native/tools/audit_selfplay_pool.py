@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """native/tools/audit_selfplay_pool.py — 自博弈精灵池体检。
 
 三类独立失败路径，任何一条出问题都会让「随机阵容」这一半训练数据失真：
@@ -66,7 +65,7 @@ def audit_roles() -> None:
     from backend.engine.ai.train import _sprite_roles
 
     roles = _sprite_roles(SimFactory(), dict(SPRITE_RANDOM_POOL))
-    print(f"\n=== B. 角色分桶 ===")
+    print("\n=== B. 角色分桶 ===")
     for key in sorted(roles):
         if key == "info":
             continue

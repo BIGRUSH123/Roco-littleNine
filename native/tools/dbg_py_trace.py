@@ -8,6 +8,7 @@ from __future__ import annotations
 import json
 import random
 import sys
+from contextlib import suppress
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -43,14 +44,10 @@ def patched(self, self_sprite, opp_sprite, self_skill, opp_skill, globals_, **kw
         ctx = res.ctx
         print(f"=== team={t} turn={tn} skill={getattr(self_skill, 'name', '?')}")
         print(f"    ctx.combo_self={ctx.combo_self} combo_mult={ctx.combo_mult_self} power={ctx.power_self}")
-        try:
+        with suppress(Exception):
             print(f"    sprite._modifiers={{k: v for k, v in {self_sprite._modifiers!r}}}")
-        except Exception:
-            pass
-        try:
+        with suppress(Exception):
             print(f"    skill.base.combo={self_skill.base.combo} skill._modifiers={self_skill._modifiers!r}")
-        except Exception:
-            pass
         for m in res.journal:
             print(f"    {type(m).__name__}: {m}")
     return res

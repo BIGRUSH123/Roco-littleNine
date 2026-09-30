@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """导出训练精灵池的面板/属性/技能池，用于挑选原型队。"""
 import json
 import sys
@@ -6,9 +5,9 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
+from backend.common.formulas import StatsCalc
 from backend.engine.ai.data.sprite_random_pool import SPRITE_RANDOM_POOL
 from backend.sim.factory import SimFactory
-from backend.common.formulas import StatsCalc
 
 factory = SimFactory()
 rows = []

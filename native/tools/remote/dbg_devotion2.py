@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """探"奉献"机制是否落地：花衣蝶（回合末 +1 随机奉献）／铠甲虫（受击 +1）／飞断（use_devotion）。"""
 from __future__ import annotations
 
@@ -10,9 +9,9 @@ ROOT = Path("/mnt/workspace/roco_remote")
 sys.path.insert(0, str(ROOT))
 sys.stdout.reconfigure(encoding="utf-8")
 
+from backend.engine.ai.determinism import ensure_hash_seed  # noqa: E402
 from backend.sim.agent_v2 import RuleAgentV2, SpriteStrategy, TeamStrategy  # noqa: E402
 from backend.sim.factory import SimFactory  # noqa: E402
-from backend.engine.ai.determinism import ensure_hash_seed  # noqa: E402
 
 ensure_hash_seed()
 factory = SimFactory()

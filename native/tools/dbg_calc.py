@@ -1,4 +1,4 @@
-﻿"""dbg_calc — 打印 py 对局中 calc_damage 实际入参（定位伤害分歧）。
+"""dbg_calc — 打印 py 对局中 calc_damage 实际入参（定位伤害分歧）。
 
 用法：env\\python.exe native/tools/dbg_calc.py <spec> <turn> [skill_name]
 """
@@ -6,9 +6,9 @@
 from __future__ import annotations
 
 import json
-import traceback
 import random
 import sys
+import traceback
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
@@ -59,6 +59,7 @@ def patched_vm(*args, **kwargs):
 vm_damage.calc_damage = patched_vm
 # hit op 直接绑定了模块级名字 → 同时替换其引用
 from backend.vm.ops import hit as vm_hit  # noqa: E402
+
 vm_hit.calc_damage = patched_vm
 
 random.seed(spec["seed"] + 1)

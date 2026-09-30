@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """dbg_game_anatomy.py — 解剖打满回合的对局：行为构成 + 事件样本。"""
 import collections
 import glob
@@ -7,7 +6,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 f = sorted(glob.glob(str(ROOT / "backend/engine/ai/log/exp21_smoke2/battles_*.jsonl")))[-1]
-rows = [json.loads(l) for l in open(f, encoding="utf-8") if l.strip()]
+with open(f, encoding="utf-8") as source:
+    rows = [json.loads(row_value) for row_value in source if row_value.strip()]
 
 
 def turns_of(r):

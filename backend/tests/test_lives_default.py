@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """魔力（lives）默认值必须只有一处来源。
 
 背景：历史上 `Player.lives` 默认 4，而 `Ctx` / `snapshot.build_ctx` / `battle`

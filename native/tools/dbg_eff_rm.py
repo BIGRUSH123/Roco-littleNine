@@ -57,9 +57,9 @@ Sprite.clear_effects = clear
 Sprite.remove_effect = remove
 
 # trait_loader 的两处直赋（load_for_sprite / unload_for_sprite）
-from backend.engine import trait_loader as TL  # noqa: E402
+from backend.engine import trait_loader as tl_module  # noqa: E402
 
-orig_unload = TL.TraitLoader.unload_for_sprite
+orig_unload = tl_module.TraitLoader.unload_for_sprite
 
 
 def unload(self, sprite, reason="leave"):
@@ -71,7 +71,7 @@ def unload(self, sprite, reason="leave"):
     return out
 
 
-orig_load = TL.TraitLoader.load_for_sprite
+orig_load = tl_module.TraitLoader.load_for_sprite
 
 
 def load(self, sprite, *, apply_state=True):
@@ -83,8 +83,8 @@ def load(self, sprite, *, apply_state=True):
     return out
 
 
-TL.TraitLoader.unload_for_sprite = unload
-TL.TraitLoader.load_for_sprite = load
+tl_module.TraitLoader.unload_for_sprite = unload
+tl_module.TraitLoader.load_for_sprite = load
 
 random.seed(spec["seed"] + 1)
 battle = battle_from_spec(spec)

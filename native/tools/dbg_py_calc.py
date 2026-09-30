@@ -34,8 +34,8 @@ import backend.vm.ops.hit as hitmod  # noqa: E402
 
 orig = hitmod.calc_damage if hasattr(hitmod, "calc_damage") else None
 if orig is None:
-    from backend.engine.damage import calc_damage as orig  # noqa: E402
     import backend.engine.damage as dmgmod
+    from backend.engine.damage import calc_damage as orig  # noqa: E402
 else:
     import backend.vm.ops.hit as dmgmod
 

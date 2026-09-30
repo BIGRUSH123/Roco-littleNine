@@ -368,7 +368,7 @@ def softmax_pick(evs: dict[Candidate, float], temperature: float,
     total = sum(weights)
     r = rng.random() * total
     acc = 0.0
-    for (cand, _v), w in zip(ranked, weights):
+    for (cand, _v), w in zip(ranked, weights, strict=False):
         acc += w
         if r <= acc:
             return cand

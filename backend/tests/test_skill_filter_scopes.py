@@ -160,8 +160,8 @@ def test_element_only_modifier_changes_live_damage():
 
 def test_team_element_count_query():
     """{"q":"element_count","of":"team_own"} = 队伍不同系别数（frozenset 元数）。"""
-    from backend.vm.resolve import resolve
     from backend.vm.compiler.passes.skill_parse import SkillParsePass
+    from backend.vm.resolve import resolve
 
     b = _make_battle(["分光", "猛烈撞击"])
     me, opp = b.player_a.active, b.player_b.active

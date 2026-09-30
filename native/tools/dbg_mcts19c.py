@@ -13,11 +13,11 @@ os.chdir(ROOT)
 sys.path.insert(0, str(ROOT / "native" / "tools"))
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
-from backend.engine.battle import BattleVMEngine  # noqa: E402
-from backend.engine.replayer import JournalReplayer  # noqa: E402
-
 import mcts_gate  # noqa: E402
 from mcts_gate import CFG, run_python  # noqa: E402
+
+from backend.engine.battle import BattleVMEngine  # noqa: E402
+from backend.engine.replayer import JournalReplayer  # noqa: E402
 
 CTX = {"trigger": "?"}
 _cur = {"sim": -1}

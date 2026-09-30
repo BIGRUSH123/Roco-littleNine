@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """native/tools/audit_counter_and_lives.py — 对着"职业复盘的胜负因素"体检我们的专家。
 
 三份洛神杯复盘的共性（`wiki/对局记录/单局记录/*.md`）：
@@ -28,8 +27,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 sys.stdout.reconfigure(encoding="utf-8")
 
-from backend.engine.ai import train as T  # noqa: E402
-from backend.engine.ai.determinism import ensure_hash_seed  # noqa: E402
+from backend.engine.ai import train as t_module  # noqa: E402
 from backend.engine.ai.data.meta_teams import (  # noqa: E402
     item_from_team,
     load_meta_teams,
@@ -37,6 +35,7 @@ from backend.engine.ai.data.meta_teams import (  # noqa: E402
     strategy_from_team,
 )
 from backend.engine.ai.data.sprite_random_pool import SPRITE_RANDOM_POOL  # noqa: E402
+from backend.engine.ai.determinism import ensure_hash_seed  # noqa: E402
 from backend.sim import tactics  # noqa: E402
 from backend.sim.agent_v2 import RuleAgentV2, SpriteStrategy, TeamStrategy  # noqa: E402
 from backend.sim.battleskill import SkillUse  # noqa: E402
@@ -110,7 +109,7 @@ def main() -> None:
             ia, ib = item_from_team(meta[meta_i], sa), item_from_team(meta[meta_i], sb)
             stra = strategy_from_team(meta[meta_i], rng)
         else:
-            sa, sb, ia, ib = T._random_teams(factory, dict(SPRITE_RANDOM_POOL),
+            sa, sb, ia, ib = t_module._random_teams(factory, dict(SPRITE_RANDOM_POOL),
                                              optimal_frac=0.95, meta_frac=0.0)
             stra = TeamStrategy(default=SpriteStrategy())
         p1 = factory.build_player("A", sa, item=ia)
@@ -128,7 +127,7 @@ def main() -> None:
                 s, opp_player = p.active, b.get_opponent(_t)
                 opp = opp_player.active
                 opp_team = tactics.opponent_team(_t)
-                table = [(i, _dmg(b, s, opp, sk, _t), sk.energy_cost)
+                _table = [(i, _dmg(b, s, opp, sk, _t), sk.energy_cost)
                          for i, sk in enumerate(s.skills)
                          if sk.is_attack and sk.cooldown <= 0 and not sk.sealed
                          and sk.energy_cost <= s.energy]
@@ -164,7 +163,7 @@ def main() -> None:
                 their_sk = None
                 if other is not None and other.kind == "skill":
                     their_sk = next((sk for sk in opp.skills if sk.name == other.skill_name), None)
-                their_cat = _kind(their_sk) if their_sk is not None else (
+                _their_cat = _kind(their_sk) if their_sk is not None else (
                     {"switch": "换人", "gather": "聚能", "item": "道具"}.get(
                         other.kind if other else "", "?"))
 

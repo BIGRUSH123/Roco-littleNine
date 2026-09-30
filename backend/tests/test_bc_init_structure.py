@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """`--bc-init` 必须按检查点结构加载（带可选件的权重不能被默认结构接收）。
 
 背景：v5/v6/v7 权重带 slot_pool / aux_heads / history，而 main() 原先用

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """native/tools/find_hang_block.py — 分块扫描定位卡死对局。
 
 按 100 局一块单进程重跑同一 seed，给每块设墙钟超时；哪一块超时就说明
@@ -65,7 +64,7 @@ def main() -> int:
         print(f"  块 [{start:4d},{end:4d}) {status:12s} {dt:6.1f}s", flush=True)
         if status != "ok":
             bad.append((start, end, status, dt))
-            print(f"    → 卡点在该块内；stderr 尾部：")
+            print("    → 卡点在该块内；stderr 尾部：")
             print("      " + (_ROOT / "_block_err.txt").read_text(
                 encoding="utf-8", errors="replace")[-800:].replace("\n", "\n      "))
 

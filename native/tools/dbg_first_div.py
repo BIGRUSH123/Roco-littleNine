@@ -11,7 +11,9 @@ os.chdir(str(ROOT))
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(Path(__file__).parent))
 
-_logf = open(ROOT / "native" / "tools" / "_dbg_first_div_log.txt", "w", encoding="utf-8")
+from native.tools.process_log import open_process_log
+
+_logf = open_process_log(ROOT / "native" / "tools" / "_dbg_first_div_log.txt", "w", encoding="utf-8")
 
 
 class _Tee:
@@ -30,6 +32,7 @@ class _Tee:
 sys.stdout = _Tee(sys.stdout, _logf)
 
 from gate_phase5 import _RustEvalAdapter, py_game, rust_game  # noqa: E402
+
 from backend.engine.ai.core.evaluator import TorchEvaluator  # noqa: E402
 from backend.engine.ai.core.model import ModularBattleNet  # noqa: E402
 
@@ -47,7 +50,7 @@ def all_diffs(a, b, path=""):
     elif isinstance(a, list) and isinstance(b, list):
         if len(a) != len(b):
             out.append(f"{path} 长度 py={len(a)} rust={len(b)}")
-        for i, (x, y) in enumerate(zip(a, b)):
+        for i, (x, y) in enumerate(zip(a, b, strict=False)):
             out += all_diffs(x, y, f"{path}[{i}]")
     elif a != b:
         out.append(f"{path}: py={a!r} rust={b!r}")
@@ -58,7 +61,7 @@ def digest_summary(d):
     if isinstance(d, str):
         d = json.loads(d)
     lines = [f"turn={d['turn']} winner={d['winner']}"]
-    for nm, p in zip("AB", d["players"]):
+    for nm, p in zip("AB", d["players"], strict=False):
         lines.append(f"  {nm}: lives={p['lives']} active={p['active_index']}")
         for i, s in enumerate(p["sprites"]):
             eff = ";".join(f"{e[0]}({e[2]})" for e in s["effects"] if e[0])
@@ -91,7 +94,7 @@ def main() -> None:
         if all_diffs(py_dig[t], ru_dig[t]):
             t_star = t
             break
-    print(f"═" * 20 + f" 首个分歧 digest 下标 T*={t_star}（共比到 {n - 1}） " + "═" * 20,
+    print("═" * 20 + f" 首个分歧 digest 下标 T*={t_star}（共比到 {n - 1}） " + "═" * 20,
           flush=True)
     if t_star < 0:
         print("前段全部一致", flush=True)

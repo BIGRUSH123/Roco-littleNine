@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """dbg_dmg_ratio.py — 实测随机 6v6 对局的单发伤害/HP 比值与理论击杀回合数。"""
 import os
 import sys
@@ -10,9 +9,9 @@ sys.path.insert(0, str(ROOT))
 
 import random  # noqa: E402
 
-from backend.engine.ai.train import _load_sprite_skills, _random_item, _random_teams  # noqa: E402
-from backend.sim.factory import SimFactory  # noqa: E402
+from backend.engine.ai.train import _load_sprite_skills, _random_teams  # noqa: E402
 from backend.sim.battleskill import SkillUse  # noqa: E402
+from backend.sim.factory import SimFactory  # noqa: E402
 
 factory = SimFactory()
 sprite_skills = _load_sprite_skills()
@@ -42,6 +41,7 @@ for seed in range(6):
 
 ratios.sort()
 import statistics  # noqa: E402
+
 n = len(ratios)
 print(f"配对数: {n}")
 print(f"最优单发伤害/目标HP: mean={statistics.mean(ratios):.1%} "

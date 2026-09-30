@@ -29,9 +29,9 @@ sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(Path(__file__).parent))
 
 import numpy as np  # noqa: E402
+import roco_engine  # noqa: E402
 import torch  # noqa: E402
 
-import roco_engine  # noqa: E402
 from backend.engine.ai.core.evaluator import (  # noqa: E402
     BatchedInferenceServer,
     QueuePolicyEvaluator,
@@ -39,14 +39,12 @@ from backend.engine.ai.core.evaluator import (  # noqa: E402
 )
 from backend.engine.ai.core.mcts import (  # noqa: E402
     NetworkPolicyAgent,
-    action_index_to_action,
 )
 from backend.engine.ai.core.model import ModularBattleNet  # noqa: E402
 from backend.engine.ai.core.outcome import battle_outcome_a  # noqa: E402
 from backend.engine.ai.train import MCTSAgent  # noqa: E402
-from backend.sim.agent import RuleAgent  # noqa: E402
-from backend.sim.factory import SimFactory  # noqa: E402
 from backend.engine.test_rust_gate import battle_from_spec, gate_digest  # noqa: E402
+from backend.sim.factory import SimFactory  # noqa: E402
 
 OUT = Path(__file__).parent / "_gate_phase5_last.txt"
 LINES: list[str] = []
@@ -77,15 +75,37 @@ def py_game(spec: dict, evaluator, seed: int, sims: int, temperature: float, bat
     opp_a = NetworkPolicyAgent(evaluator=evaluator, greedy=True)
     opp_b = NetworkPolicyAgent(evaluator=evaluator, greedy=True)
     agent_a = MCTSAgent(
-        "A", battle.player_a, SimFactory(), opp_a, sims, temperature,
-        root_noise=0.25, record=True, evaluator=evaluator, max_turns=60,
-        draw_margin=0.15, gamma=1.0, tanh_k=0.0, leaf_batch_size=batch,
+        "A",
+        battle.player_a,
+        SimFactory(),
+        opp_a,
+        sims,
+        temperature,
+        root_noise=0.25,
+        record=True,
+        evaluator=evaluator,
+        max_turns=60,
+        draw_margin=0.15,
+        gamma=1.0,
+        tanh_k=0.0,
+        leaf_batch_size=batch,
         opp_greedy=True,
     )
     agent_b = MCTSAgent(
-        "B", battle.player_b, SimFactory(), opp_b, sims, temperature,
-        root_noise=0.25, record=True, evaluator=evaluator, max_turns=60,
-        draw_margin=0.15, gamma=1.0, tanh_k=0.0, leaf_batch_size=batch,
+        "B",
+        battle.player_b,
+        SimFactory(),
+        opp_b,
+        sims,
+        temperature,
+        root_noise=0.25,
+        record=True,
+        evaluator=evaluator,
+        max_turns=60,
+        draw_margin=0.15,
+        gamma=1.0,
+        tanh_k=0.0,
+        leaf_batch_size=batch,
         opp_greedy=True,
     )
     turn = 0
@@ -97,9 +117,15 @@ def py_game(spec: dict, evaluator, seed: int, sims: int, temperature: float, bat
     outcome_a, _ = battle_outcome_a(battle, 60, draw_margin=0.15, gamma=1.0, tanh_k=0.0)
     states, P, M, v = [], [], [], []
     for st, pi, m in agent_a.history:
-        states.append(st); P.append(pi); M.append(m); v.append(outcome_a)
+        states.append(st)
+        P.append(pi)
+        M.append(m)
+        v.append(outcome_a)
     for st, pi, m in agent_b.history:
-        states.append(st); P.append(pi); M.append(m); v.append(-outcome_a)
+        states.append(st)
+        P.append(pi)
+        M.append(m)
+        v.append(-outcome_a)
     return {
         "states": states,
         "P": np.stack(P).astype(np.float32) if P else np.zeros((0, 17), np.float32),
@@ -117,12 +143,22 @@ def py_game(spec: dict, evaluator, seed: int, sims: int, temperature: float, bat
 
 
 def rust_game(spec: dict, adapter_a, adapter_b, sims: int, temperature: float, batch: int):
-    cfg = json.dumps({
-        "num_simulations": sims, "root_noise": 0.25, "max_turns": 60,
-        "opp_greedy": True, "leaf_batch_size": batch, "temperature": temperature,
-    }, ensure_ascii=False)
+    cfg = json.dumps(
+        {
+            "num_simulations": sims,
+            "root_noise": 0.25,
+            "max_turns": 60,
+            "opp_greedy": True,
+            "leaf_batch_size": batch,
+            "temperature": temperature,
+        },
+        ensure_ascii=False,
+    )
     r = roco_engine.py_selfplay_game(
-        json.dumps(spec, ensure_ascii=False), cfg, adapter_a, adapter_b,
+        json.dumps(spec, ensure_ascii=False),
+        cfg,
+        adapter_a,
+        adapter_b,
     )
     return r
 
@@ -139,7 +175,7 @@ def first_diff(a, b, path=""):
     if isinstance(a, (list, tuple)) and isinstance(b, (list, tuple)):
         if len(a) != len(b):
             return f"{path} 长度 {len(a)} vs {len(b)}"
-        for i, (x, y) in enumerate(zip(a, b)):
+        for i, (x, y) in enumerate(zip(a, b, strict=False)):
             r = first_diff(x, y, f"{path}[{i}]")
             if r:
                 return r
@@ -157,10 +193,8 @@ def main() -> None:
     ap.add_argument("--batch", type=int, default=16)
     ap.add_argument("--speed-sims", type=int, default=48)
     ap.add_argument("--games", type=int, default=1)
-    ap.add_argument("--skip-consistency", action="store_true",
-                    help="跳过一致性段（B 侧 swap 搜索语义对齐前仅测速度）")
-    ap.add_argument("--checkpoint", type=str,
-                    default=str(ROOT / "checkpoints" / "exp16" / "model_rl.pt"))
+    ap.add_argument("--skip-consistency", action="store_true", help="跳过一致性段（B 侧 swap 搜索语义对齐前仅测速度）")
+    ap.add_argument("--checkpoint", type=str, default=str(ROOT / "checkpoints" / "exp16" / "model_rl.pt"))
     args = ap.parse_args()
 
     ckpt = Path(args.checkpoint)
@@ -173,7 +207,7 @@ def main() -> None:
     model.eval()
     torch_ev = TorchEvaluator(model, device="cpu")
     spec = json.loads((ROOT / "native" / "gate_specs" / "spec_0001.json").read_text("utf-8"))
-    spec_json = json.dumps(spec, ensure_ascii=False)
+    _spec_json = json.dumps(spec, ensure_ascii=False)
     seed = spec["seed"] + 1
 
     # ── 1. 一致性（直连 torch，无队列） ──
@@ -229,8 +263,12 @@ def main() -> None:
     request_queue = SyncPickleQueue(maxsize=4, ctx=ctx)
     reply_q = ctx.Queue()
     server = BatchedInferenceServer(
-        model, "cpu", request_queue, {0: reply_q},
-        batch_size=128, timeout_ms=5.0,
+        model,
+        "cpu",
+        request_queue,
+        {0: reply_q},
+        batch_size=128,
+        timeout_ms=5.0,
     )
     server.start()
     qpe = QueuePolicyEvaluator(0, request_queue, reply_q)
@@ -261,12 +299,9 @@ def main() -> None:
 
     py_rate = py_samples / py_total if py_total > 0 else 0.0
     ru_rate = ru_samples / ru_total if ru_total > 0 else 0.0
-    log(f"py   对局: {py_total:.2f}s / {args.games} 局（{args.speed_sims} sims）"
-        f" = {py_samples} 样本, {py_rate:.1f} samples/s")
-    log(f"rust 对局: {ru_total:.2f}s / {args.games} 局（{args.speed_sims} sims）"
-        f" = {ru_samples} 样本, {ru_rate:.1f} samples/s")
-    log(f"单 worker 加速比: {py_total / ru_total:.2f}x"
-        f"（rust 侧含 spec 重建，保守值；多 worker 攒批收益另行叠加）")
+    log(f"py   对局: {py_total:.2f}s / {args.games} 局（{args.speed_sims} sims） = {py_samples} 样本, {py_rate:.1f} samples/s")
+    log(f"rust 对局: {ru_total:.2f}s / {args.games} 局（{args.speed_sims} sims） = {ru_samples} 样本, {ru_rate:.1f} samples/s")
+    log(f"单 worker 加速比: {py_total / ru_total:.2f}x（rust 侧含 spec 重建，保守值；多 worker 攒批收益另行叠加）")
 
     server.stop()
     OUT.write_text("\n".join(LINES) + "\n", encoding="utf-8")

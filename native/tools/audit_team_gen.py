@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """audit_team_gen.py — 统计随机阵容生成器的分布质量。"""
 import os
 import sys
@@ -11,7 +10,7 @@ sys.path.insert(0, str(ROOT))
 import random  # noqa: E402
 
 from backend.engine.ai.determinism import ensure_hash_seed  # noqa: E402
-from backend.engine.ai.train import _load_sprite_skills, _random_item, _random_teams  # noqa: E402
+from backend.engine.ai.train import _load_sprite_skills, _random_teams  # noqa: E402
 from backend.sim.factory import SimFactory  # noqa: E402
 
 ensure_hash_seed()
@@ -75,5 +74,6 @@ print(f"队伍规模分布: 1v1={sizes[1]/N:.1%}  2v2={sizes[2]/N:.1%}  3v3={siz
 print(f"整队无攻击技能: {no_attack_team}/{2*N} = {no_attack_team/(2*N):.2%}")
 print(f"单精灵无攻击技能: {no_attack_sprite}/{total_sprites} = {no_attack_sprite/total_sprites:.2%}")
 import statistics
+
 print(f"每精灵攻击技能数: mean={statistics.mean(atk_counts):.2f} "
       f"0个占比={atk_counts.count(0)/len(atk_counts):.2%}")

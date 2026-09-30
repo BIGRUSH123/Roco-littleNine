@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """E1 叶子估值（`backend/sim/value.py`）的单调性与对称性测试。
 
 v1 的权重是手设值，**只保证符号与单调性**：好坏方向不能反、同局面两侧必须互为相反数。
@@ -19,8 +18,9 @@ def battle():
     from backend.sim.factory import SimFactory
 
     factory = SimFactory()
-    from backend.engine.ai.data.meta_teams import load_meta_teams, spec_from_team
     import random
+
+    from backend.engine.ai.data.meta_teams import load_meta_teams, spec_from_team
 
     rng = random.Random(2026)
     specs_a, _ = spec_from_team(load_meta_teams()[31], rng)

@@ -604,6 +604,7 @@ def _load_ai_agent(name: str, player, model: str | None = None):
                 return cls()
             except (FileNotFoundError, RuntimeError) as err:
                 import sys
+
                 from backend.sim.agent import RuleAgent
 
                 mod.set_checkpoint(mod.DEFAULT_CHECKPOINT)

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """对局骨架的**引擎侧**：建局、局面渲染、合法动作菜单、答案解析与严格校验、会话重放。
 
 不依赖 argparse，也不写提示词（提示词与命令在 `duel.cli`）。所有函数都假定
@@ -600,8 +599,8 @@ class _StrictAgent:
         self.bench = list(bench)
 
     def _resolve(self, cmd: str, battle):
-        from backend.sim.agent import _GATHER_ACTION
         from backend.sim.action import Action
+        from backend.sim.agent import _GATHER_ACTION
 
         parts = cmd.split(maxsplit=1)
         kind = parts[0].lower()
@@ -803,7 +802,7 @@ def _damage_section(battle, side: str) -> str:
     other = "B" if side == "A" else "A"
     opp = battle.get_player(other)
     mine, theirs = me.active, opp.active
-    lines = [f"## 伤害估算（引擎口径，本回合双方当前强化下；不含应对加成/防御减伤）", "",
+    lines = ["## 伤害估算（引擎口径，本回合双方当前强化下；不含应对加成/防御减伤）", "",
              f"- 我方（{mine.name}）可用攻击 → 对手场上 {theirs.name}"
              f"（HP {theirs.current_hp}/{theirs.max_hp}）："]
     for sk in mine.skills:
@@ -851,7 +850,7 @@ def _damage_section(battle, side: str) -> str:
     bench = [sp for i, sp in enumerate(me.team)
              if i != me.active_index and not sp.is_fainted]
     if bench:
-        lines.append(f"- 换人候补（换上后本回合：它打你约 / 你打它约 / 印记进场伤害）：")
+        lines.append("- 换人候补（换上后本回合：它打你约 / 你打它约 / 印记进场伤害）：")
         for sp in bench:
             take = 0
             for sk in theirs.skills:

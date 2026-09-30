@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """按队伍微调的专家（阵容专精层）。
 
 与通用专家（`RuleAgentV2`）的关系：**继承 + 只加"这支队特有"的规则**，其余决策全部回落到
@@ -12,15 +11,15 @@
 """
 from __future__ import annotations
 
-from .ground_wu import GroundWuExpert
 from .bug import BugExpert
+from .ground_wu import GroundWuExpert
 from .iron_seal import IronSealExpert
 from .poison import PoisonExpert
 from .rain import RainExpert
 from .shadow import ShadowPoisonExpert
 from .squirrel import SquirrelExpert
-from .wing_king import WingKingExpert
 from .starfall import StarfallExpert
+from .wing_king import WingKingExpert
 
 # 队名（meta_teams.json 的 name）→ 专家类
 _EXPERTS = {

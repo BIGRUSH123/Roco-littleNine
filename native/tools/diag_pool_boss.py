@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """native/tools/diag_pool_boss.py — 分析首领形态文件对池子的影响。
 
 池子规则: number 出现在"非首领条目"的 pre_species 中 → 该编号整条排除

@@ -15,8 +15,8 @@ from backend.sim.action import Action
 from backend.sim.battle import Battle, _load_permanent_skill_mods_for_sprite
 from backend.sim.battleskill import BattleSkill
 from backend.sim.factory import SimFactory
-from backend.sim.player import Player
 from backend.sim.pipeline import TurnPipeline
+from backend.sim.player import Player
 from backend.sim.skill import Skill
 from backend.sim.sprite import Sprite
 from backend.sim.traits import dispatch_entry, dispatch_leave

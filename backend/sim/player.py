@@ -1,9 +1,9 @@
 """backend/sim/player.py — 玩家 + 操作习惯画像 + 道具"""
 
 from dataclasses import dataclass, field
+from typing import TYPE_CHECKING
 
 from backend.common.constants import DEFAULT_LIVES
-from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from .sprite import Sprite

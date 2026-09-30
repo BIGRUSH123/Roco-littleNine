@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """native/tools/diag_removed2.py — 诊断第二轮移除的 12 个名字的家族明细。
 
 输出每个家族所有条目的 (name, form, appearance, number, pre) 与池内状态。

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """探针 3：无法解析的精灵名 → db 候选 + 技能集匹配可能性。"""
 from __future__ import annotations
 
@@ -11,8 +10,8 @@ _ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(_ROOT))
 sys.stdout.reconfigure(encoding="utf-8")
 
-from backend.engine.ai.data.sprite_random_pool import SPRITE_RANDOM_POOL  # noqa: E402
 from backend.common.nature import NATURE_TABLE  # noqa: E402
+from backend.engine.ai.data.sprite_random_pool import SPRITE_RANDOM_POOL  # noqa: E402
 from backend.sim.factory import SimFactory  # noqa: E402
 
 db = SimFactory().sprite_db

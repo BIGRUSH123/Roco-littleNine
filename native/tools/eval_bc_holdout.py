@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """native/tools/eval_bc_holdout.py — 逐队检查 BC 检查点的泛化。
 
 bc_pretrain 只报整体验证指标（top1/top3/val_acc），看不出「泛化是不是崩在
@@ -19,7 +18,6 @@ from pathlib import Path
 
 import numpy as np
 import torch
-import torch.nn.functional as F
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
@@ -129,7 +127,7 @@ def main() -> int:
             ("留出 meta 队（完全没见过）", top1_hit[held], top3_hit[held],
              v_ok[held], int(held.sum())),
             ("随机阵容", top1_hit[rand], top3_hit[rand], v_ok[rand], int(rand.sum())),
-            (f"训练集抽样（in-sample）", tr_top1, np.zeros(0), tr_v_ok, len(train_sample))):
+            ("训练集抽样（in-sample）", tr_top1, np.zeros(0), tr_v_ok, len(train_sample))):
         if n:
             t3s = f"{t3.mean():.3f}" if t3.size else "  -  "
             print(f"  {tag:<28} n={n:>6}  p_top1={t1.mean():.3f}  p_top3={t3s}"

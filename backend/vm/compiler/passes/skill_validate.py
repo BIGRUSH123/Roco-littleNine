@@ -17,15 +17,15 @@ from backend.vm.ir_skill import (
     MorphOp,
     MultModOp,
     PowerModOp,
+    ReplaceSkillOp,
     ResetOp,
     ReviveOp,
-    ReplaceSkillOp,
     SkillIROp,
     SkillRotateOp,
+    StarfallTriggerOp,
     StatConvertOp,
     StatRandomOp,
     StatStageOp,
-    StarfallTriggerOp,
     WhenBlock,
 )
 

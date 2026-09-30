@@ -26,7 +26,6 @@ for ln in lines[start:]:
     if "rust actions" in ln:
         marker = ln
         break
-import re
 out = []
 capture = False
 for ln in lines:

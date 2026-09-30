@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """定位「局内决策耗时暴涨」：一边推进对局，一边记录双方局内结构规模。
 
 背景（2026-09-24 远端实测，sims=100）：绝大多数对局单次决策 0.1~0.5s，但个别对局
@@ -97,8 +96,13 @@ def main() -> None:
     from backend.engine.ai.core.evaluator import TorchEvaluator
     from backend.engine.ai.core.model import ModularBattleNet
     from backend.engine.ai.train import (
-        MCTSAgent, NetworkPolicyAgent, _build_eval_battle, _eval_roster_rng,
-        _load_sprite_skills, _paired_eval_tasks, _seed_eval_game,
+        MCTSAgent,
+        NetworkPolicyAgent,
+        _build_eval_battle,
+        _eval_roster_rng,
+        _load_sprite_skills,
+        _paired_eval_tasks,
+        _seed_eval_game,
     )
     from backend.sim import battle as battle_mod
     from backend.sim.factory import SimFactory

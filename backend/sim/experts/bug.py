@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """虫队专用专家 —— 围绕"奉献（devotion）"资源。
 
 机制读法（`data/skills` 的 `use_devotion` / 描述里带"奉献"的条目）：

@@ -9,15 +9,14 @@ Accepts any object with the required attributes for skill parameters
 
 from __future__ import annotations
 
-from backend.common.constants import DEFAULT_LIVES
-
 from typing import TYPE_CHECKING, Any
 
+from backend.common.constants import DEFAULT_LIVES
 from backend.engine.bloodline import is_mixed_blood
 from backend.sim.battleskill import BattleSkill
 from backend.sim.resolver import _TYPE_CHART
-from backend.vm.effect import MarkEffect
 from backend.vm.ctx import Ctx, EventContext
+from backend.vm.effect import MarkEffect
 
 if TYPE_CHECKING:
     from backend.sim.globals import GlobalEffects

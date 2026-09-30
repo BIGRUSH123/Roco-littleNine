@@ -105,7 +105,8 @@ def install_py_hooks(ev):
         if fps.startswith(TARGET_FP) and not (ROOT / "native" / "tools" / "_dump_py.pkl").exists():
             import pickle
             dump = [{kk: np.array(s[kk]).copy() for kk in KEYS} for s in states]
-            pickle.dump(dump, open(ROOT / "native" / "tools" / "_dump_py.pkl", "wb"))
+            with open(ROOT / "native" / "tools" / "_dump_py.pkl", "wb") as target:
+                pickle.dump(dump, target)
             emit("[py-dump] saved")
         return v, p
 
@@ -180,8 +181,10 @@ def main() -> None:
         return
     if mode == "cmp":
         import pickle
-        pyd = pickle.load(open(ROOT / "native" / "tools" / "_dump_py.pkl", "rb"))
-        rud = pickle.load(open(ROOT / "native" / "tools" / "_dump_rust.pkl", "rb"))
+        with open(ROOT / "native" / "tools" / "_dump_py.pkl", "rb") as source:
+            pyd = pickle.load(source)
+        with open(ROOT / "native" / "tools" / "_dump_rust.pkl", "rb") as source:
+            rud = pickle.load(source)
         print(f"batch 大小 py={len(pyd)} rust={len(rud)}", flush=True)
         for i in range(min(len(pyd), len(rud))):
             diffs = []

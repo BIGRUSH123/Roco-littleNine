@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """技能和特性数字 ID 常量。由 scripts/build/assign_ids.py 自动生成。"""
 
 # ── 技能 ID ──

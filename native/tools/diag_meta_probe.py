@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """探针：给定精灵+血脉，输出池技能集、血脉技能名、allowed 集合的差异。"""
 from __future__ import annotations
 
@@ -10,8 +9,8 @@ _ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(_ROOT))
 sys.stdout.reconfigure(encoding="utf-8")
 
-from backend.engine.ai.data.sprite_random_pool import SPRITE_RANDOM_POOL  # noqa: E402
 from backend.common.skill_trait_ids import SKILL_ID_TO_NAME  # noqa: E402
+from backend.engine.ai.data.sprite_random_pool import SPRITE_RANDOM_POOL  # noqa: E402
 from backend.sim.factory import SimFactory  # noqa: E402
 
 db = SimFactory().sprite_db

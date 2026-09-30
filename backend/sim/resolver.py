@@ -7,8 +7,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from backend.vm.effect import AbnormalEffect
 from backend.sim.traits import get_trait
+from backend.vm.effect import AbnormalEffect
 
 if TYPE_CHECKING:
     from .battleskill import SkillUse
@@ -260,9 +260,7 @@ def _would_charge(battle, bs, attacker) -> bool:
         return False
     if getattr(attacker, '_charging', False):
         return False
-    if int(getattr(attacker, '_modifiers', {}).get('pre_charged', 0) or 0) > 0:
-        return False
-    return True
+    return int(getattr(attacker, '_modifiers', {}).get('pre_charged', 0) or 0) <= 0
 
 
 def _same_turn_mods(battle, bs, attacker, defender, use, globals_,

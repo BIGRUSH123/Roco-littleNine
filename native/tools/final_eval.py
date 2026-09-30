@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """final_eval.py — 终评①：exp17_best vs exp13_best（基座）配对 200 局。
 
 注意：必须用 if __name__ == "__main__" 守卫 —— Windows spawn 子进程会

@@ -5,6 +5,7 @@ TurnPipeline: 回合开始阶段（trait / 传动 / 位置效果预扫描 / 不�
 
 from __future__ import annotations
 
+from contextlib import suppress
 from typing import TYPE_CHECKING
 
 from .traits import dispatch_turn_start
@@ -38,10 +39,9 @@ def _skill_at_positions(cond, out: set[int] | None = None) -> set[int]:
         return out
     if isinstance(cond, dict):
         if cond.get("cond") == "skill_at":
-            try:
+            with suppress(TypeError, ValueError):
                 out.add(int(cond.get("position", -1)))
-            except (TypeError, ValueError):
-                pass
+
         for sub in (cond.get("conditions") or ()):
             _skill_at_positions(sub, out)
         inner = cond.get("condition")
@@ -50,10 +50,9 @@ def _skill_at_positions(cond, out: set[int] | None = None) -> set[int]:
         return out
     if getattr(cond, "cond", "") == "skill_at":
         params = getattr(cond, "params", None) or {}
-        try:
+        with suppress(TypeError, ValueError):
             out.add(int(params.get("position", -1)))
-        except (TypeError, ValueError):
-            pass
+
     for sub in getattr(cond, "conditions", ()) or ():
         _skill_at_positions(sub, out)
     inner = getattr(cond, "condition", None)

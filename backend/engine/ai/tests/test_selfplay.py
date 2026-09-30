@@ -10,8 +10,8 @@
 from __future__ import annotations
 
 import copy
-import io
 import inspect
+import io
 import queue
 import sys
 
@@ -21,16 +21,16 @@ import numpy as np
 import torch
 
 from backend.engine.ai import train as train_module
-from backend.engine.ai.service import advisor as advisor_module
-from backend.engine.ai.service import agent as service_agent_module
 from backend.engine.ai.core import encoder as encoder_module
-from backend.engine.ai.service.advisor import advise, advise_single, describe_action, make_determinizations
 from backend.engine.ai.core.encoder import encode_battle_state
 from backend.engine.ai.core.evaluator import BatchedInferenceServer, QueuePolicyEvaluator, TorchEvaluator
 from backend.engine.ai.core.mcts import NUM_ACTIONS, NetworkPolicyAgent
 from backend.engine.ai.core.model import ModularBattleNet
 from backend.engine.ai.core.replay_buffer import DictReplayBuffer, RecentIterationsReplayBuffer
 from backend.engine.ai.run_logger import RunLogger
+from backend.engine.ai.service import advisor as advisor_module
+from backend.engine.ai.service import agent as service_agent_module
+from backend.engine.ai.service.advisor import advise, advise_single, describe_action, make_determinizations
 from backend.engine.ai.train import (
     DEFAULT_MCTS_LEAF_BATCH_SIZE,
     MCTSAgent,
@@ -46,7 +46,6 @@ from backend.sim.agent import RuleAgent
 from backend.sim.factory import SimFactory
 from backend.sim.player import Item
 from backend.vm.effect import ObserverEffect
-
 
 # ═══════════════════════════════════════════════════════════════════
 # 测试夹具
@@ -645,7 +644,7 @@ def test_restore_rejected_candidate_clears_rejected_adam_momentum():
         scheduled_lr=scheduled_lr,
     )
 
-    for actual, expected in zip(model.parameters(), best_model.parameters()):
+    for actual, expected in zip(model.parameters(), best_model.parameters(), strict=False):
         assert torch.equal(actual, expected)
     assert not optimizer.state
     assert optimizer.param_groups[0]["lr"] == scheduled_lr

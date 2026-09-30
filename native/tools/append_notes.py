@@ -1,6 +1,4 @@
-# -*- coding: utf-8 -*-
 """append_notes.py — 向 native/PORTING_NOTES.md 追加阶段5a/5b结论（UTF-8 no BOM 追加）。"""
-import io
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -59,6 +57,6 @@ TEXT = """
   为 env 门控调试插桩，生产路径零开销（OnceLock 判断）。
 """
 
-with io.open(P, "a", encoding="utf-8", newline="\n") as f:
+with open(P, "a", encoding="utf-8", newline="\n") as f:
     f.write(TEXT)
 print("appended", len(TEXT), "chars")

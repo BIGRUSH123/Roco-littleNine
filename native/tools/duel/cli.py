@@ -1,21 +1,71 @@
-# -*- coding: utf-8 -*-
 """对局骨架的**命令行层**：会话、提示词、结算、记录与自检。实现细节在 `duel.core`。"""
 from __future__ import annotations
 
 import argparse
 import json
-import random
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 sys.stdout.reconfigure(encoding="utf-8")
 
-from duel.core import *  # noqa: F401,F403
 from duel.core import (  # noqa: F401  显式带上私有名：本模块的命令都要用
-    _ACTION_ALIASES, _NAME_KEYS, _VARIANT_KEYS, _THEN_KEYS, _BENCH_KEYS, _REASON_KEYS, _item_by_name, _load_team_spec, _neutralize, _build_battle, _kind, _skill_brief, _effect_brief, _skill_line, _bloodline_note, _side_block, _last_turn_events, _render, _team_sheet, _skill_blocked, _item_block_reason, _static_post_item_skills, _item_menu, _legal_menu, _extract_json, _pick, _skill_names, _resolve_skill, _resolve_switch, _resolve_answer, _StrictAgent, _session_path, _history_path, _read_session, _read_history, _cfg_from_session, _replay, _prompt_battle, _post_item_skills_fn, _default_bench, _answer_path, _pending_path, _prompt_path, _prompt_sha, _dispatch_path, _note_path, _read_note, _normalize_note, _label, _damage_section
+    _ACTION_ALIASES,
+    _BENCH_KEYS,
+    _NAME_KEYS,
+    _REASON_KEYS,
+    _THEN_KEYS,
+    _VARIANT_KEYS,
+    DEFAULT_MAX_TURNS,
+    PROMPT_REV,
+    SESSION_VERSION,
+    CommandError,
+    _answer_path,
+    _bloodline_note,
+    _build_battle,
+    _cfg_from_session,
+    _damage_section,
+    _default_bench,
+    _dispatch_path,
+    _effect_brief,
+    _extract_json,
+    _history_path,
+    _item_block_reason,
+    _item_by_name,
+    _item_menu,
+    _kind,
+    _label,
+    _last_turn_events,
+    _legal_menu,
+    _load_team_spec,
+    _neutralize,
+    _normalize_note,
+    _note_path,
+    _pending_path,
+    _pick,
+    _post_item_skills_fn,
+    _prompt_battle,
+    _prompt_path,
+    _prompt_sha,
+    _read_history,
+    _read_note,
+    _read_session,
+    _render,
+    _replay,
+    _resolve_answer,
+    _resolve_skill,
+    _resolve_switch,
+    _session_path,
+    _side_block,
+    _skill_blocked,
+    _skill_brief,
+    _skill_line,
+    _skill_names,
+    _static_post_item_skills,
+    _StrictAgent,
+    _team_sheet,
+    collect_notes,
 )
-
 
 # ══════════════════════════════════════════════════════════════════
 # 提示词
@@ -244,7 +294,7 @@ def cmd_answer(args) -> None:
         note = _retry_note(dirpath, len(entries) + 1, args.side, text, reason_txt, options)
         path = _write_prompt(dirpath, sess, entries, args.side, note)
         print(f"  重试提示词 → {path.as_posix()}", file=sys.stderr)
-        raise SystemExit(2)
+        raise SystemExit(2) from None
     payload = {"turn": len(entries) + 1, "answer": ans, "commands": commands,
                "bench": bench, "reason": reason, "raw": text,
                "note": _read_note(dirpath, args.side, args.note),
@@ -257,7 +307,7 @@ def cmd_answer(args) -> None:
         print(f"  自报缺口：{payload['note']}")
     other = "B" if args.side == "A" else "A"
     if _pending_path(dirpath, other).exists():
-        print(f"  两侧齐了 → 现在可以 apply")
+        print("  两侧齐了 → 现在可以 apply")
     else:
         print(f"  等 {other} 方的答案（或 apply 会提示缺哪边）")
 
@@ -357,7 +407,7 @@ def cmd_apply(args) -> None:
             note = _retry_note(dirpath, turn, side, raw, msg, opts)
             path = _write_prompt(dirpath, sess, entries, side, note)
             print(f"  该回合未结算，重试提示词 → {path.as_posix()}", file=sys.stderr)
-        raise SystemExit(2)
+        raise SystemExit(2) from None
 
     try:
         battle, entry = _run_turn(sess, dirpath, entries, parsed["A"], parsed["B"])

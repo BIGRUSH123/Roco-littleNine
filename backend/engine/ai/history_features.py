@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """backend/engine/ai/history_features.py — 从已有 BC/自博弈数据构造「回合历史」输入。
 
 为什么在这里构造而不是改编码器：改编码器输出 schema 会让全部已有 npz 作废
@@ -24,7 +23,8 @@ from __future__ import annotations
 import numpy as np
 
 from backend.engine.ai.dataset_temporal import (
-    iter_side_blocks, per_turn_first, turns_of,
+    iter_side_blocks,
+    turns_of,
 )
 
 HIST_FEAT_DIM = 26
@@ -91,7 +91,6 @@ def _fill_one_side(
     my_rank = np.searchsorted(my_turns, turns[mine])         # 本块内回合序号
     their_rank = np.searchsorted(their_turns, turns[mine])   # 对手在"我当前回合之前"的回合数
     rows_all = idx[mine]
-    their_rows_all = idx[theirs]
 
     for step in range(1, k + 1):
         slot = k - step                      # 旧→新：step 越大越靠前

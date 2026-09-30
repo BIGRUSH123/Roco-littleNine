@@ -1,6 +1,4 @@
-# -*- coding: utf-8 -*-
 """dbg_6v6_parity.py — 6v6 阵容下 py/rust 整局一致性抽查（复用门工具 runner）。"""
-import io
 import os
 import sys
 from pathlib import Path
@@ -9,7 +7,9 @@ ROOT = Path(__file__).resolve().parents[2]
 os.chdir(str(ROOT))
 sys.path.insert(0, str(ROOT))
 
-_log = io.open(ROOT / "native" / "tools" / "_6v6_parity_log.txt", "w", encoding="utf-8")
+from native.tools.process_log import open_process_log
+
+_log = open_process_log(ROOT / "native" / "tools" / "_6v6_parity_log.txt", "w", encoding="utf-8")
 
 
 def out(*a):
@@ -20,13 +20,12 @@ def out(*a):
 
 
 def main() -> None:
-    import json
     import random
 
     import numpy as np
 
-    from backend.engine.ai.train import _load_sprite_skills, _random_item, _random_teams
     from backend.engine.ai.rust_selfplay_hook import _build_spec_from_teams
+    from backend.engine.ai.train import _load_sprite_skills, _random_teams
     from backend.engine.test_rust_gate import _first_diff, run_python, run_rust
     from backend.sim.factory import SimFactory
 
@@ -53,7 +52,7 @@ def main() -> None:
         else:
             out(f"seed {seed}: ✗ 不一致！ py_winner={py_winner} rust={rust_winner} "
                 f"turns py={len(py_digests)} rust={len(rust_digests)}")
-            for i, (pd, rd) in enumerate(zip(py_digests, rust_digests)):
+            for i, (pd, rd) in enumerate(zip(py_digests, rust_digests, strict=False)):
                 if pd != rd:
                     out(f"   首差 turn#{i}: {_first_diff(pd, rd)[:280]}")
                     break

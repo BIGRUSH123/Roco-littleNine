@@ -1,4 +1,4 @@
-﻿"""dbg_persist — 追踪 py 的 skill.{name}.{stat} 持久键写入来源。
+"""dbg_persist — 追踪 py 的 skill.{name}.{stat} 持久键写入来源。
 
 用法：env\\python.exe native/tools/dbg_persist.py <spec> <turn>
 """
@@ -13,12 +13,12 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 sys.stdout.reconfigure(encoding="utf-8")
 
-from backend.engine import replayer as R  # noqa: E402
+from backend.engine import replayer as r_module  # noqa: E402
 from backend.engine.test_rust_gate import battle_from_spec  # noqa: E402
 from backend.sim.agent import RuleAgent  # noqa: E402
 
 # 包装 _apply_to_all_skills / _apply_to_matching_skills，打印 sprite 与技能名
-orig_all = R._apply_to_all_skills
+orig_all = r_module._apply_to_all_skills
 
 
 def wrap_all(sprite, m, replayer=None):
@@ -29,9 +29,9 @@ def wrap_all(sprite, m, replayer=None):
     return out
 
 
-R._apply_to_all_skills = wrap_all
+r_module._apply_to_all_skills = wrap_all
 
-orig_match = R._apply_to_matching_skills
+orig_match = r_module._apply_to_matching_skills
 
 
 def wrap_match(sprite, m, mark_energy_mod=0, replayer=None):
@@ -41,10 +41,10 @@ def wrap_match(sprite, m, mark_energy_mod=0, replayer=None):
     return out
 
 
-R._apply_to_matching_skills = wrap_match
+r_module._apply_to_matching_skills = wrap_match
 
 # 追踪所有 energy_cost / permanent 修改的 replayer 上下文
-orig_apply_mod = R.JournalReplayer._apply_modifier
+orig_apply_mod = r_module.JournalReplayer._apply_modifier
 
 
 def wrap_apply_mod(self, m):
@@ -60,11 +60,11 @@ def wrap_apply_mod(self, m):
     return orig_apply_mod(self, m)
 
 
-R.JournalReplayer._apply_modifier = wrap_apply_mod
+r_module.JournalReplayer._apply_modifier = wrap_apply_mod
 # _DISPATCH 在类创建后显式填充 → 直接替换表项
-for _k, _v in list(R.JournalReplayer._DISPATCH.items()):
+for _k, _v in list(r_module.JournalReplayer._DISPATCH.items()):
     if getattr(_k, "__name__", "") == "ModifierInjection":
-        R.JournalReplayer._DISPATCH[_k] = wrap_apply_mod
+        r_module.JournalReplayer._DISPATCH[_k] = wrap_apply_mod
 
 # 追踪 post 事件触发（含 observer source）
 from backend.engine.battle import BattleVMEngine as VmEngine  # noqa: E402
@@ -88,7 +88,7 @@ def wrap_fire_post(self, trigger, ctx, replayer):
 
 
 # 追踪 replay 调用中带 skill_off_0 的 journal
-orig_replay = R.JournalReplayer.replay
+orig_replay = r_module.JournalReplayer.replay
 
 
 def wrap_replay(self, journal):
@@ -100,7 +100,7 @@ def wrap_replay(self, journal):
     return orig_replay(self, journal)
 
 
-R.JournalReplayer.replay = wrap_replay
+r_module.JournalReplayer.replay = wrap_replay
 
 
 _eb.BattleVMEngine._fire_post_event = wrap_fire_post

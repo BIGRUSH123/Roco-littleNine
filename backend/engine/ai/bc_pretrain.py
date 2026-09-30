@@ -177,7 +177,9 @@ def main() -> None:
             desc = "终局血量比(12，旧版)"
         elif args.aux_mode == "opp_action":
             from backend.engine.ai.aux_targets import (
-                OPP_ACTION_DIM, OPP_ACTION_UNK, derive_opp_action_targets,
+                OPP_ACTION_DIM,
+                OPP_ACTION_UNK,
+                derive_opp_action_targets,
             )
 
             aux_targets = derive_opp_action_targets(ds)

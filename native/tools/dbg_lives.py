@@ -24,21 +24,21 @@ def main() -> None:
     py_digests, _ = run_python(spec)
     result = json.loads(roco_engine.py_run_battle(json.dumps(spec, ensure_ascii=False)))
     rust_digests = result["turns"]
-    for pd, rd in zip(py_digests, rust_digests):
+    for pd, rd in zip(py_digests, rust_digests, strict=False):
         t = pd.get("turn")
         if t < from_turn:
             continue
-        pa = pd["players"][0]
-        ra = rd["players"][0]
-        pb = pd["players"][1]
-        rb = rd["players"][1]
+        _pa = pd["players"][0]
+        _ra = rd["players"][0]
+        _pb = pd["players"][1]
+        _rb = rd["players"][1]
         ph = []
-        for ps, rs in zip(pd["players"], rd["players"]):
+        for ps, rs in zip(pd["players"], rd["players"], strict=False):
             tag = ps["lives"] if ps["lives"] == rs["lives"] else f"{ps['lives']}!={rs['lives']}"
             hp = "/".join(str(s["hp"]) for s in ps["sprites"])
             ph.append(f"lives {tag} act {ps['active_index']} hp [{hp}]")
         print(f"t{t:>2} | A {ph[0]} | B {ph[1]}")
-        if any(p["lives"] != r["lives"] for p, r in zip(pd["players"], rd["players"])):
+        if any(p["lives"] != r["lives"] for p, r in zip(pd["players"], rd["players"], strict=False)):
             for label, dg in (("py  ", pd), ("rust", rd)):
                 for pi, p in enumerate(dg["players"]):
                     det = [f"{s['name']}:{s['hp']}" for s in p["sprites"]]

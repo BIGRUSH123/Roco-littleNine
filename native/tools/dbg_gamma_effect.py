@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """dbg_gamma_effect.py — 分文件分析 exp21 两次启动的对局长度与行为构成。"""
 import collections
 import glob
@@ -7,7 +6,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 for f in sorted(glob.glob(str(ROOT / "backend/engine/ai/log/exp21_6v6/battles_*.jsonl"))):
-    rows = [json.loads(l) for l in open(f, encoding="utf-8") if l.strip()]
+    with open(f, encoding="utf-8") as source:
+        rows = [json.loads(row_value) for row_value in source if row_value.strip()]
     ts = [r.get("turns", r.get("summary", {}).get("turns")) for r in rows]
     ts = [t for t in ts if t is not None]
     if not ts:

@@ -16,8 +16,8 @@ sys.stdout.reconfigure(encoding="utf-8")
 from backend.engine.test_rust_gate import battle_from_spec  # noqa: E402
 from backend.sim.agent import RuleAgent  # noqa: E402
 from backend.sim.battleskill import SkillUse  # noqa: E402
-from backend.vm.damage import calc_damage as vm_damage  # noqa: E402
 from backend.sim.resolver import _TYPE_CHART as TYPE_CHART  # noqa: E402
+from backend.vm.damage import calc_damage as vm_damage  # noqa: E402
 
 spec = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
 team = sys.argv[2].upper()

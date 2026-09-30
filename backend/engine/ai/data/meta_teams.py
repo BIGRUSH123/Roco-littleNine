@@ -281,7 +281,7 @@ def _has_chief(sprites: list[dict], include_alts: bool = False) -> bool:
     return False
 
 
-def item_from_team(team: dict, specs: list[dict] | None = None) -> "Item | None":
+def item_from_team(team: dict, specs: list[dict] | None = None) -> Item | None:
     """meta 队伍的道具（魔法）→ Item 实例；无法判定时返回 None（由调用方兜底）。
 
     优先级：
@@ -340,7 +340,7 @@ def spec_from_team(team: dict, rng=random) -> tuple[list[dict], set[str]]:
     return specs, {s["name"] for s in specs}
 
 
-def strategy_from_team(team: dict, jitter_rng: random.Random | None = None) -> "TeamStrategy":
+def strategy_from_team(team: dict, jitter_rng: random.Random | None = None) -> TeamStrategy:
     """meta 队 dict → RuleAgentV2 的 TeamStrategy；逐局阈值抖动增加对局多样性。
 
     键用**引擎可见名**（`Sprite.name` = 基础名）：RuleAgentV2 是

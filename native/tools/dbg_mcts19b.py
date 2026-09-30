@@ -13,10 +13,10 @@ os.chdir(ROOT)
 sys.path.insert(0, str(ROOT / "native" / "tools"))
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
-from backend.sim.sprite import Sprite  # noqa: E402
-
 import mcts_gate  # noqa: E402
 from mcts_gate import CFG, run_python  # noqa: E402
+
+from backend.sim.sprite import Sprite  # noqa: E402
 
 LOG = []
 _cur = {"sim": -1}
@@ -36,7 +36,7 @@ def _install() -> None:
                     break
                 frames.append(f"{f.f_code.co_name}:{f.f_lineno}")
                 f = f.f_back
-            fr = sys._getframe(2) if sys._getframe(2) is not None else sys._getframe(1)
+            _fr = sys._getframe(2) if sys._getframe(2) is not None else sys._getframe(1)
             LOG.append((_cur["sim"], getattr(self, "name", "?"), old, v,
                         " < ".join(frames), 0))
         self.__dict__["_energy_logged"] = v
@@ -65,5 +65,4 @@ print("trace:", py["trace"])
 print("--- energy 写日志（变化项）---")
 for rec in LOG:
     sim, name, old, new, fn, ln = rec
-    if "幻影灵蕈" in name or True:
-        print(f"  sim={sim} {name} {old}->{new} @{fn}:{ln}")
+    print(f"  sim={sim} {name} {old}->{new} @{fn}:{ln}")

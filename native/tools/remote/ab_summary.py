@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """汇总逐阵容 A/B 的分片结果（读 JSON，不做对局）：
 - 总体胜率（决出局加权）+ 95% CI
 - 逐阵容胜率表（按胜率排序）
@@ -22,8 +21,8 @@ def load(pattern: str) -> dict:
     return rows
 
 
-def ci(w: int, l: int) -> tuple[float, float, float]:
-    dec = w + l
+def ci(w: int, row_value: int) -> tuple[float, float, float]:
+    dec = w + row_value
     if not dec:
         return float('nan'), float('nan'), 0.0
     wr = w / dec
@@ -52,19 +51,19 @@ def main() -> None:
     print(f'\n{"队伍":18s} {"新口径":>6s} {"平":>4s} {"旧口径":>6s} {"Δ":>7s}')
     table = []
     for team, v in rows.items():
-        w, l, d = v['new_wins'], v['new_losses'], v['new_draws']
-        if w + l < a.min_dec:
+        w, row_value, d = v['new_wins'], v['new_losses'], v['new_draws']
+        if w + row_value < a.min_dec:
             table.append((None, team, v, base.get(team)))
             continue
-        t_wr = w / (w + l)
+        t_wr = w / (w + row_value)
         table.append((t_wr, team, v, base.get(team)))
     for wr_t, team, v, b in sorted(table, key=lambda x: (x[0] is None, x[0] or 0)):
-        w, l, d = v['new_wins'], v['new_losses'], v['new_draws']
-        line = f'{team[:16]:18s} {w / max(1, w + l):6.3f} {d:4d}'
+        w, row_value, d = v['new_wins'], v['new_losses'], v['new_draws']
+        line = f'{team[:16]:18s} {w / max(1, w + row_value):6.3f} {d:4d}'
         if b:
-            bw, bl, bd = b['new_wins'], b['new_losses'], b['new_draws']
+            bw, bl, _bd = b['new_wins'], b['new_losses'], b['new_draws']
             b_wr = bw / max(1, bw + bl)
-            line += f' {b_wr:6.3f} {w / max(1, w + l) - b_wr:+7.3f}'
+            line += f' {b_wr:6.3f} {w / max(1, w + row_value) - b_wr:+7.3f}'
         print(line)
 
 

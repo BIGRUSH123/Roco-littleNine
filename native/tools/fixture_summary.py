@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """native/tools/fixture_summary.py — 打印夹具的结局/回合/阵容摘要。
 
 用法: python native/tools/fixture_summary.py [目录] [输出文件]

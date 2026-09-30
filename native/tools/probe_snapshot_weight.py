@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """真实对局每回合的 save_snapshot 有多重（内存/序列化成本），回合数增长它怎么涨。
 
 这是唯一确认在“累积”的东西：battle._snapshots[turn] 每回合存一份整场序列化。
@@ -18,13 +17,17 @@ os.chdir(str(ROOT))
 
 
 def main() -> None:
-    import torch
 
     from backend.engine.ai.core.evaluator import TorchEvaluator
     from backend.engine.ai.core.model import ModularBattleNet
     from backend.engine.ai.train import (
-        MCTSAgent, NetworkPolicyAgent, _build_eval_battle, _eval_roster_rng,
-        _load_sprite_skills, _paired_eval_tasks, _seed_eval_game,
+        MCTSAgent,
+        NetworkPolicyAgent,
+        _build_eval_battle,
+        _eval_roster_rng,
+        _load_sprite_skills,
+        _paired_eval_tasks,
+        _seed_eval_game,
     )
     from backend.sim.factory import SimFactory
 

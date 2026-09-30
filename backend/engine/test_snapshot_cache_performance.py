@@ -9,9 +9,9 @@ _PROJ = Path(__file__).resolve().parent.parent.parent
 if str(_PROJ) not in sys.path:
     sys.path.insert(0, str(_PROJ))
 
+from backend.engine import snapshot
 from backend.sim.battle import Battle
 from backend.sim.factory import SimFactory
-from backend.engine import snapshot
 
 factory = SimFactory()
 

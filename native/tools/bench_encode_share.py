@@ -16,13 +16,12 @@ from __future__ import annotations
 import cProfile
 import io
 import json
+import os
 import pstats
 import random
 import sys
 import time
 from pathlib import Path
-
-import os
 
 ROOT = Path(__file__).resolve().parents[2]
 os.chdir(str(ROOT))
@@ -45,9 +44,9 @@ from backend.engine.ai.core.encoder import encode_battle_state  # noqa: E402
 from backend.engine.ai.core.evaluator import TorchEvaluator  # noqa: E402
 from backend.engine.ai.core.mcts import NetworkPolicyAgent, mcts_search  # noqa: E402
 from backend.engine.ai.core.model import ModularBattleNet  # noqa: E402
+from backend.engine.test_rust_gate import battle_from_spec  # noqa: E402
 from backend.sim.agent import RuleAgent  # noqa: E402
 from backend.sim.factory import SimFactory  # noqa: E402
-from backend.engine.test_rust_gate import battle_from_spec  # noqa: E402
 
 SPEC = json.loads((ROOT / "native" / "gate_specs" / "spec_0001.json").read_text("utf-8"))
 SIMS = 100
@@ -127,7 +126,6 @@ b.player_a.active_index = RuleAgent("A", b.player_a).choose_lead(b)
 b.player_b.active_index = RuleAgent("B", b.player_b).choose_lead(b)
 b._invalidate_ctx_team_cache()
 # 推进 ~15 个固定回合让状态变富（效果/冷却/异常累积）
-from backend.sim.agent import Action  # noqa: E402
 for _ in range(15):
     if b.is_finished:
         break
@@ -155,6 +153,7 @@ dt = time.perf_counter() - t0
 log(f"  save_mutable_state 快照: {dt/300*1e6:7.1f} µs/次（rust 侧仍需再做一次跨语言物化）")
 # 近似 2：状态摘要 digest（递归遍历全部精灵/效果/技能的纯读取）
 from backend.engine.test_rust_gate import gate_digest  # noqa: E402
+
 t0 = time.perf_counter()
 for _ in range(300):
     gate_digest(b)

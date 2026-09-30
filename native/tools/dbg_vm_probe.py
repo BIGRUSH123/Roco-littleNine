@@ -13,8 +13,8 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
-from backend.vm.executor import process_effects  # noqa: E402
 from backend.vm.ctx import Ctx, EventContext  # noqa: E402
+from backend.vm.executor import process_effects  # noqa: E402
 
 skill_name = sys.argv[1]
 flag = (sys.argv[2] == "1") if len(sys.argv) > 2 else True

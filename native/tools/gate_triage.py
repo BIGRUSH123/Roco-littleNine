@@ -32,7 +32,7 @@ def first_diff_path(a, b, path: str = "") -> str:
     if isinstance(a, list) and isinstance(b, list):
         if len(a) != len(b):
             return f"{path}:len"
-        for i, (x, y) in enumerate(zip(a, b)):
+        for i, (x, y) in enumerate(zip(a, b, strict=False)):
             p = first_diff_path(x, y, f"{path}[{i}]")
             if p:
                 return p
@@ -57,7 +57,7 @@ for sid in sys.argv[1:]:
         print(f"spec_{sid}: PASS now")
         continue
     first = next(
-        (i for i, (a, b) in enumerate(zip(py_digests, rust_digests)) if a != b), None
+        (i for i, (a, b) in enumerate(zip(py_digests, rust_digests, strict=False)) if a != b), None
     )
     if first is None:
         key = "count/winner-only"

@@ -1,6 +1,4 @@
-# -*- coding: utf-8 -*-
 """append_notes2.py — 向 PORTING_NOTES.md 追加训练提速优化章节。"""
-import io
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -72,6 +70,6 @@ ROCO_SELFPLAY_GAME=rust
   兑现为端到端优势。
 """
 
-with io.open(P, "a", encoding="utf-8", newline="\n") as f:
+with open(P, "a", encoding="utf-8", newline="\n") as f:
     f.write(TEXT)
 print("appended", len(TEXT), "chars")

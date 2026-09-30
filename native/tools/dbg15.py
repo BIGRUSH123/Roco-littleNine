@@ -11,7 +11,7 @@ sys.stdout.reconfigure(encoding="utf-8")
 
 import roco_engine  # noqa: E402
 
-from backend.engine.test_rust_gate import battle_from_spec, gate_digest, run_python  # noqa: E402
+from backend.engine.test_rust_gate import run_python  # noqa: E402
 
 spec = json.loads(Path("native/gate_specs/spec_0001.json").read_text(encoding="utf-8"))
 py_d, py_w = run_python(spec)

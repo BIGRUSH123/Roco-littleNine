@@ -54,7 +54,7 @@ class UniformStub:
 
     def evaluate_batch(self, states, masks):
         values = np.zeros(len(states), dtype=np.float32)
-        priors = np.stack([self.evaluate(s, m)[1] for s, m in zip(states, masks)], axis=0)
+        priors = np.stack([self.evaluate(s, m)[1] for s, m in zip(states, masks, strict=False)], axis=0)
         return values, priors
 
 
@@ -192,7 +192,7 @@ def _first_diff(a, b, path: str = "") -> str:
     if isinstance(a, list) and isinstance(b, list):
         if len(a) != len(b):
             return f"{path} 长度 {len(a)} vs {len(b)}"
-        for i, (x, y) in enumerate(zip(a, b)):
+        for i, (x, y) in enumerate(zip(a, b, strict=False)):
             r = _first_diff(x, y, f"{path}[{i}]")
             if r:
                 return r
@@ -235,7 +235,7 @@ def main() -> None:
         if len(py["trace"]) != len(ru["trace"]):
             diffs.append(f"trace_len py={len(py['trace'])} ru={len(ru['trace'])}")
         else:
-            for i, (pt, rt) in enumerate(zip(py["trace"], ru["trace"])):
+            for i, (pt, rt) in enumerate(zip(py["trace"], ru["trace"], strict=False)):
                 if pt != rt:
                     diffs.append(f"trace[{i}] py={pt} ru={rt}")
                     break
@@ -244,13 +244,13 @@ def main() -> None:
                 f"digest_trace 轮数 py={len(py['digest_trace'])} ru={len(ru['digest_trace'])}"
             )
         else:
-            for i, (pd, rd) in enumerate(zip(py["digest_trace"], ru["digest_trace"])):
+            for i, (pd, rd) in enumerate(zip(py["digest_trace"], ru["digest_trace"], strict=False)):
                 if pd == rd:
                     continue
                 if len(pd) != len(rd):
                     diffs.append(f"digest[{i}] 步数 py={len(pd)} ru={len(rd)}")
                     break
-                for j, (x, y) in enumerate(zip(pd, rd)):
+                for j, (x, y) in enumerate(zip(pd, rd, strict=False)):
                     if x != y:
                         diffs.append(
                             f"digest[{i}][{j}] 首个差异: {_first_diff(x, y)}"

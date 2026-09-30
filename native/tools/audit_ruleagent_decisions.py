@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """native/tools/audit_ruleagent_decisions.py — 决策审计（"蒸馏"用：先找错，再改规则）。
 
 把 RuleAgentV2 的每个决策点记下来：**决策时的可见状态 + 它选了什么 + 它放弃了什么
@@ -31,8 +30,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 sys.stdout.reconfigure(encoding="utf-8")
 
-from backend.engine.ai import train as T  # noqa: E402
-from backend.engine.ai.determinism import ensure_hash_seed  # noqa: E402
+from backend.engine.ai import train as t_module  # noqa: E402
 from backend.engine.ai.data.meta_teams import (  # noqa: E402
     item_from_team,
     load_meta_teams,
@@ -40,6 +38,7 @@ from backend.engine.ai.data.meta_teams import (  # noqa: E402
     strategy_from_team,
 )
 from backend.engine.ai.data.sprite_random_pool import SPRITE_RANDOM_POOL  # noqa: E402
+from backend.engine.ai.determinism import ensure_hash_seed  # noqa: E402
 from backend.sim import tactics  # noqa: E402
 from backend.sim.agent_v2 import RuleAgentV2, SpriteStrategy, TeamStrategy  # noqa: E402
 from backend.sim.battleskill import SkillUse  # noqa: E402
@@ -192,7 +191,7 @@ def main() -> None:
             ia, ib = item_from_team(meta[meta_i], sa), item_from_team(meta[meta_i], sb)
             st_a = st_b = strategy_from_team(meta[meta_i], rng)
         else:
-            sa, sb, ia, ib = T._random_teams(factory, dict(SPRITE_RANDOM_POOL),
+            sa, sb, ia, ib = t_module._random_teams(factory, dict(SPRITE_RANDOM_POOL),
                                              optimal_frac=0.95, meta_frac=0.0)
             st_a = st_b = TeamStrategy(default=SpriteStrategy())
         if not args.ev:

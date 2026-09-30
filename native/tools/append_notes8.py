@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """向 native/PORTING_NOTES.md 追加 BC 管线章节。"""
 from pathlib import Path
 

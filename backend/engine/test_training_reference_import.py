@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """wiki 培养参考导入的对位门禁。
 
 回归背景（2026-09-20）：`native/tools/import_training_reference.py::parse_catalog`

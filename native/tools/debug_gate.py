@@ -14,7 +14,7 @@ sys.stdout.reconfigure(encoding="utf-8")
 
 import roco_engine  # noqa: E402
 
-from backend.engine.test_rust_gate import gate_digest, battle_from_spec, run_python  # noqa: E402
+from backend.engine.test_rust_gate import run_python  # noqa: E402
 
 
 def main() -> None:
@@ -60,7 +60,7 @@ def _walk(a, b, path: str) -> None:
             print(f"    py  = {json.dumps(a, ensure_ascii=False, default=str)[:240]}")
             print(f"    rust= {json.dumps(b, ensure_ascii=False, default=str)[:240]}")
             return
-        for i, (x, y) in enumerate(zip(a, b)):
+        for i, (x, y) in enumerate(zip(a, b, strict=False)):
             _walk(x, y, f"{path}[{i}]")
     elif a != b:
         print(f"  {path}: py={a!r} rust={b!r}")

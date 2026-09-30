@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """probe_value_quality.py — 价值头的"预测质量"度量（辅助头方向的正经指标）。
 
 背景：辅助头当初是为了治"价值头局内几乎没有区分度"（实测 TV(先验,搜索)=0.036、
@@ -148,7 +147,8 @@ def main() -> None:
         if getattr(model, "aux_heads", False):
             try:
                 from backend.engine.ai.aux_targets import (
-                    derive_aux_targets, derive_opp_action_targets,
+                    derive_aux_targets,
+                    derive_opp_action_targets,
                 )
 
                 tgt = derive_opp_action_targets(ds) if getattr(model, "aux_dim", 0) == 23 \

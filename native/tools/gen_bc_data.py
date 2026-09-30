@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """native/tools/gen_bc_data.py — BC 专家数据生成 CLI。
 
 组队策略（与选队解耦）：
@@ -259,7 +258,6 @@ def _play_plan(plan: dict) -> tuple:
     """
     import faulthandler
 
-    from backend.engine.ai.bc_record import run_recorded_battle
 
     dump_sec = plan.get("hang_dump_sec", 0)
     if dump_sec:
@@ -354,7 +352,7 @@ def main() -> None:
     rng = random.Random(args.seed)
     sys.stdout.reconfigure(encoding="utf-8")
 
-    factory = SimFactory()
+    _factory = SimFactory()
     sprite_skills = dict(SPRITE_RANDOM_POOL)
 
     meta_teams = load_meta_teams(args.meta_file)

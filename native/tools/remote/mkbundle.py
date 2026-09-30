@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """打包当前工作树给远端用（排除大件与本地专属产物）"""
 import os
 import sys
@@ -28,9 +27,7 @@ def keep(rel: str) -> bool:
         return False
     if "/" not in rel and rel.startswith(SKIP_ROOT_GLOB_PREFIX):
         return False
-    if rel.startswith("native/tools/_") or rel.startswith("backend/engine/ai/log"):
-        return False
-    return True
+    return not (rel.startswith("native/tools/_") or rel.startswith("backend/engine/ai/log"))
 
 
 def main() -> None:

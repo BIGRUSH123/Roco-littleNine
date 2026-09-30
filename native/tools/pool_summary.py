@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """打印精灵池紧凑摘要：按输出/坦度/速度/工具度排序，用于原型队选人。"""
 import json
 import sys
@@ -9,7 +8,7 @@ rows = json.loads(Path("native/tools/_pool_dump.json").read_text(encoding="utf-8
 rows = [r for r in rows if not r.get("missing")]
 
 def util(r):
-    atk = sum(1 for s in r["skills"] if s and ("击" in s or "波" in s or "光" in s))
+    _atk = sum(1 for s in r["skills"] if s and ("击" in s or "波" in s or "光" in s))
     return 0  # placeholder
 
 lines = []

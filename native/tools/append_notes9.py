@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """向 native/PORTING_NOTES.md 追加 appearance 数据模型章节。"""
 from pathlib import Path
 

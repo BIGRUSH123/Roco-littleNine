@@ -32,9 +32,9 @@ sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(Path(__file__).parent))
 
 import numpy as np  # noqa: E402
+import roco_engine  # noqa: E402
 import torch  # noqa: E402
 
-import roco_engine  # noqa: E402
 from backend.engine.ai.core.evaluator import (  # noqa: E402
     BatchedInferenceServer,
     QueuePolicyEvaluator,
@@ -42,8 +42,8 @@ from backend.engine.ai.core.evaluator import (  # noqa: E402
 )
 from backend.engine.ai.core.mcts import NetworkPolicyAgent, mcts_search  # noqa: E402
 from backend.engine.ai.core.model import ModularBattleNet  # noqa: E402
-from backend.sim.agent import RuleAgent  # noqa: E402
 from backend.engine.test_rust_gate import battle_from_spec  # noqa: E402
+from backend.sim.agent import RuleAgent  # noqa: E402
 
 OUT = Path(__file__).parent / "_bench_topology_last.txt"
 LINES: list[str] = []

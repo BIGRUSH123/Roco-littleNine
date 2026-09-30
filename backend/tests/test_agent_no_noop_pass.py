@@ -22,6 +22,7 @@ from backend.sim.agent_v3 import RuleAgentV3  # noqa: E402
 from backend.sim.battle import Battle  # noqa: E402
 from backend.sim.factory import SimFactory  # noqa: E402
 from backend.sim.traits import dispatch_entry  # noqa: E402
+
 factory = SimFactory()
 
 

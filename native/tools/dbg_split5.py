@@ -12,7 +12,9 @@ os.chdir(str(ROOT))
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(Path(__file__).parent))
 
-_logf = open(ROOT / "native" / "tools" / "_split5_log.txt", "w", encoding="utf-8")
+from native.tools.process_log import open_process_log
+
+_logf = open_process_log(ROOT / "native" / "tools" / "_split5_log.txt", "w", encoding="utf-8")
 
 
 class _Tee:
@@ -31,6 +33,7 @@ class _Tee:
 sys.stdout = _Tee(sys.stdout, _logf)
 
 from gate_phase5 import py_game, rust_game  # noqa: E402
+
 from backend.engine.ai.core.evaluator import TorchEvaluator  # noqa: E402
 from backend.engine.ai.core.model import ModularBattleNet  # noqa: E402
 

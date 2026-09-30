@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """native/tools/audit_skill_choice_regret.py — E0：把「出招不会计划」量化成 regret。
 
 **要回答的问题**：`RuleAgentV2` 的默认出招是"可负担攻击里取最高即时伤害"
@@ -33,34 +32,40 @@ import random
 import statistics
 import sys
 from collections import Counter
+from contextlib import suppress
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 sys.stdout.reconfigure(encoding="utf-8")
 
-import duel_harness as H  # noqa: E402  复用建局/队伍规格（同一口径）
+import duel_harness as h_module  # noqa: E402  复用建局/队伍规格（同一口径）
 
 from backend.common.constants import ITEM_VARIANT_ACTION_BASE  # noqa: E402
 from backend.engine.ai.core.mcts import (  # noqa: E402
-    get_valid_actions, action_index_to_action, ITEM_ACTION_IDX,
+    ITEM_ACTION_IDX,
+    action_index_to_action,
+    get_valid_actions,
 )
 from backend.engine.ai.core.outcome import team_battle_score  # noqa: E402
 from backend.sim.agent import _GATHER_ACTION  # noqa: E402
+
 # 对手响应集与固定动作代理都复用规划层那一份（`backend/sim/plan.py`）：
 # 审计口径与决策口径必须同源 —— 早先这里有一份副本，参数一改两边就对不上。
 from backend.sim.plan import (  # noqa: E402
     FixedAgent as _FixedAgent,
+)
+from backend.sim.plan import (
     first_alive_bench as _first_alive_bench,
+)
+from backend.sim.plan import (
     response_actions,
 )
 
-try:  # 与其它量测工具同口径的确定性
+with suppress(Exception):
     from backend.engine.ai.determinism import ensure_hash_seed
 
     ensure_hash_seed()
-except Exception:
-    pass
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -232,10 +237,8 @@ def audit_decision(battle, side: str, agent, k_responses: int, records: list[dic
             for _label, their_act in responses:
                 battle.restore_mutable_state(saved)
                 random.setstate(pre_rng)
-                try:
+                with suppress(Exception):
                     vals.append(rollout(battle, side, my_act, their_act, plies, agents))
-                except Exception:
-                    pass
             if vals:
                 values[ci] = sum(vals) / len(vals)
     finally:
@@ -326,8 +329,8 @@ def main() -> None:
                "lead_a": 0, "lead_b": 0, "neutral": True}
         try:
             if args.random_teams:
-                from backend.engine.ai.train import _random_teams
                 from backend.engine.ai.data.sprite_random_pool import SPRITE_RANDOM_POOL
+                from backend.engine.ai.train import _random_teams
                 from backend.sim.factory import SimFactory
 
                 factory = SimFactory()
@@ -338,7 +341,7 @@ def main() -> None:
                     factory.build_player("A", sa, item=item_a),
                     factory.build_player("B", sb, item=item_b))
             else:
-                _factory, battle = H._build_battle(cfg)
+                _factory, battle = h_module._build_battle(cfg)
         except Exception as exc:
             print(f"  建局失败（seed {cfg['seed']}）：{exc}", file=sys.stderr)
             continue

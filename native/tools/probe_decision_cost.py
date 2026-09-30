@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """probe_decision_cost.py — 把"单次决策耗时"按阶段拆开，找出跨对局的差异来源。
 
 一局的一次决策（MCTS）由这些阶段组成，本探针从外部给每一处套计时器：
@@ -111,8 +110,11 @@ def main() -> None:
     from backend.engine.ai.core.evaluator import TorchEvaluator
     from backend.engine.ai.core.model import ModularBattleNet
     from backend.engine.ai.train import (
-        _eval_roster_rng, _load_sprite_skills, _paired_eval_tasks,
-        _play_one_eval_game, _seed_eval_game,
+        _eval_roster_rng,
+        _load_sprite_skills,
+        _paired_eval_tasks,
+        _play_one_eval_game,
+        _seed_eval_game,
     )
     from backend.sim.factory import SimFactory
 

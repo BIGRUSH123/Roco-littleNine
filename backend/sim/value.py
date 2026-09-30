@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """backend/sim/value.py — E1：效果感知的局面估值（搜索用的叶子函数）。
 
 **为什么需要它**：官方局面分 `outcome.team_battle_score` 只看存活数 / 全队血量比 / 心力 /
@@ -19,6 +18,7 @@
 """
 from __future__ import annotations
 
+from contextlib import suppress
 from dataclasses import dataclass
 
 from backend.sim.tactics import predict_turn_end_damage
@@ -164,10 +164,9 @@ def team_value(battle, player, team: str, params: ValueParams = DEFAULT_PARAMS) 
         v += weight * sprite_effect_value(battle, sprite, params)
 
     marks = []
-    try:
+    with suppress(AttributeError):
         marks = list(battle.globals.mark_effects.get(team, []) or [])
-    except AttributeError:
-        pass
+
 
     # 回合末固定伤害（只打场上那只，换人能躲 → 打五折）
     if active is not None and not active.is_fainted:

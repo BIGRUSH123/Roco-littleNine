@@ -20,8 +20,9 @@ try:
 except ImportError:
     pytest.skip("roco_engine 未编译（maturin develop --release）", allow_module_level=True)
 
-from backend.vm.cond import eval_one as py_eval_one, infer_triggers as py_infer_triggers
-from backend.engine.test_native_resolve import _make_ctx, _ctx_json
+from backend.engine.test_native_resolve import _ctx_json, _make_ctx
+from backend.vm.cond import eval_one as py_eval_one
+from backend.vm.cond import infer_triggers as py_infer_triggers
 
 
 def _walk_conds(o, conds: set):
@@ -44,7 +45,8 @@ def _collect_conds():
     conds: set = set()
     for path in glob.glob("data/skills/*.json") + glob.glob("data/traits/*.json"):
         try:
-            data = json.loads(open(path, encoding="utf-8").read())
+            with open(path, encoding="utf-8") as source:
+                data = json.load(source)
         except Exception:
             continue
         _walk_conds(data, conds)

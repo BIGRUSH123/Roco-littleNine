@@ -24,6 +24,7 @@ import numpy as np  # noqa: E402
 
 def build_common():
     import torch  # noqa: F401
+
     from backend.engine.ai.core.evaluator import TorchEvaluator
     from backend.engine.ai.core.model import ModularBattleNet
 

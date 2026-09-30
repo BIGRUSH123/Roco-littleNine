@@ -11,10 +11,9 @@
 from __future__ import annotations
 
 import json
+import os
 import sys
 from pathlib import Path
-
-import os
 
 ROOT = Path(__file__).resolve().parents[2]
 os.chdir(str(ROOT))
@@ -24,9 +23,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 OUT = Path(sys.argv[2]) if len(sys.argv) > 2 else Path(__file__).parent / "_probe64.txt"
 _spec_no = int(sys.argv[1]) if len(sys.argv) > 1 else 64
 
-import io
 
-import backend.sim.traits as traits_mod
 import backend.sim.traits.__init__ as traits_pkg
 from backend.engine.trait_loader import TraitLoader
 from backend.sim.sprite import Sprite
@@ -124,10 +121,10 @@ traits_pkg.dispatch_leave = leave_patched
 
 # resolve_switch 也会调用 dispatch_*，经 traits_pkg 转发即可
 
-import mcts_gate as G  # noqa: E402
+import mcts_gate as g_module  # noqa: E402
 
 spec = json.loads((ROOT / "native" / "gate_specs" / f"spec_{_spec_no:04d}.json").read_text("utf-8"))
-cfg = dict(G.CFG)
+cfg = dict(g_module.CFG)
 cfg["num_simulations"] = 24
 
 # sim 边界探针：包在 mcts_gate 的 save 钩子外层
@@ -143,7 +140,7 @@ def save_probe(self):
 
 Battle.save_mutable_state = save_probe
 
-py = G.run_python(spec, cfg)
+py = g_module.run_python(spec, cfg)
 
 for i, acts in enumerate(py["trace"]):
     log(f"sim {i} A动作: {acts}")

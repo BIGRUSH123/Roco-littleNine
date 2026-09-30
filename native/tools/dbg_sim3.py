@@ -11,7 +11,9 @@ os.chdir(str(ROOT))
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(Path(__file__).parent))
 
-_logf = open(ROOT / "native" / "tools" / "_dbg_sim3_log.txt", "w", encoding="utf-8")
+from native.tools.process_log import open_process_log
+
+_logf = open_process_log(ROOT / "native" / "tools" / "_dbg_sim3_log.txt", "w", encoding="utf-8")
 
 
 class _Tee:
@@ -30,12 +32,12 @@ class _Tee:
 sys.stdout = _Tee(sys.stdout, _logf)
 
 import numpy as np  # noqa: E402
-
 from gate_phase5 import py_game  # noqa: E402
+
+import backend.sim.sprite as _sprite_mod  # noqa: E402
+import backend.vm.ops.abnormal as _abn_mod  # noqa: E402
 from backend.engine.ai.core.evaluator import TorchEvaluator  # noqa: E402
 from backend.engine.ai.core.model import ModularBattleNet  # noqa: E402
-import backend.vm.ops.abnormal as _abn_mod  # noqa: E402
-import backend.sim.sprite as _sprite_mod  # noqa: E402
 
 state = {"search": -1, "active": False}
 
@@ -79,7 +81,7 @@ def dirichlet(alpha, size=None):
     state["search"] += 1
     state["active"] = state["search"] == 3
     if state["active"]:
-        print(f"════ 进入搜索 3（B[1]）════", flush=True)
+        print("════ 进入搜索 3（B[1]）════", flush=True)
     return _orig_dirichlet(alpha, size)
 
 

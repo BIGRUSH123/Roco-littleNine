@@ -13,8 +13,6 @@ os.chdir(ROOT)  # data/skills 为 CWD 相对路径，必须与 gate 同 CWD
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 import roco_engine  # noqa: E402
-
-import mcts_gate  # noqa: E402
 from mcts_gate import CFG, _first_diff, run_python  # noqa: E402
 
 spec_path = ROOT / "native" / "gate_specs" / "spec_0037.json"

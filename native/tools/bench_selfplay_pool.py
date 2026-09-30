@@ -70,6 +70,7 @@ def _worker_direct_rust(wid, ckpt, device, spec, cfg, n_games, torch_threads, ou
     import torch
     torch.set_num_threads(torch_threads)
     import roco_engine
+
     from backend.engine.ai.core.evaluator import TorchEvaluator
     from backend.engine.ai.core.model import ModularBattleNet
 
@@ -118,6 +119,7 @@ def _worker_queue_rust(wid, ckpt, device, spec, cfg, n_games, torch_threads,
                        request_q, reply_q, out_q):
     os.environ["OMP_NUM_THREADS"] = str(torch_threads)
     import roco_engine
+
     from backend.engine.ai.core.evaluator import QueuePolicyEvaluator
 
     qev = QueuePolicyEvaluator(wid, request_q, reply_q)
@@ -135,6 +137,7 @@ def _worker_queue_py(wid, ckpt, device, spec, n_games, torch_threads, out_q,
     import random
 
     import numpy as np
+
     from backend.engine.ai.core.evaluator import QueuePolicyEvaluator
     from backend.engine.ai.core.model import ModularBattleNet
     from backend.engine.ai.train import _load_sprite_skills, _play_one_rl_battle
@@ -166,7 +169,6 @@ def _run_pool(mode, workers, games, sims, leaf, device, torch_threads, base_seed
     warm = 1
 
     if mode in ("queue-rust", "queue-py"):
-        import torch as _t
         from backend.engine.ai.core.evaluator import (
             BatchedInferenceServer,
             SyncPickleQueue,

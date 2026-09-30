@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """打印规划层在某个具体局面里给每个候选打的分（带技能名），用于解释"为什么选它"。
 
 用法: python dbg_plan_scores.py --team 星陨队 --turn 58 [--seed 2026]
@@ -6,7 +5,6 @@
 from __future__ import annotations
 
 import argparse
-import json
 import random
 import sys
 from pathlib import Path
@@ -16,7 +14,10 @@ sys.path.insert(0, str(ROOT))
 sys.stdout.reconfigure(encoding="utf-8")
 
 from backend.engine.ai.data.meta_teams import (  # noqa: E402
-    item_from_team, load_meta_teams, spec_from_team, strategy_from_team,
+    item_from_team,
+    load_meta_teams,
+    spec_from_team,
+    strategy_from_team,
 )
 from backend.engine.ai.determinism import ensure_hash_seed  # noqa: E402
 
@@ -40,7 +41,6 @@ def label(act, player) -> str:
 
 
 def dump(tag: str, battle, agent, player) -> None:
-    from backend.sim.action import Action
     s = player.active
     opp = battle.get_opponent(tag).active
     st = agent._st(s)

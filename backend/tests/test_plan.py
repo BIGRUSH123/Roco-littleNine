@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """E2 规划层（`backend/sim/plan.py`）的不变量测试。
 
 规划层在**真实对局对象**上做 rollout，靠 `save_mutable_state()/restore_mutable_state()`

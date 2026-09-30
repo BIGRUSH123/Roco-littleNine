@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """show_team_gen.py — 演示随机阵容/技能/道具的生成结果。"""
 import os
 import sys
@@ -11,7 +10,7 @@ sys.path.insert(0, str(ROOT))
 import random  # noqa: E402
 
 random.seed(7)
-from backend.engine.ai.train import _load_sprite_skills, _random_item, _random_teams  # noqa: E402
+from backend.engine.ai.train import _load_sprite_skills, _random_teams  # noqa: E402
 from backend.sim.factory import SimFactory  # noqa: E402
 
 sprite_skills = _load_sprite_skills()

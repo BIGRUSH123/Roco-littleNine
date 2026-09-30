@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """找"疑似未定义名"（pyflakes F821）——本机没装 ruff/pyflakes 时的替代。
 
 判据（保守，只报几乎确定的）：模块里出现的某个 `Name(Load)`，
@@ -42,9 +41,7 @@ def _bound_names(tree: ast.AST) -> set[str]:
             names.add(n.name)
         elif isinstance(n, (ast.Global, ast.Nonlocal)):
             names.update(n.names)
-        elif isinstance(n, ast.MatchAs) and n.name:      # match/case 捕获
-            names.add(n.name)
-        elif isinstance(n, ast.MatchStar) and n.name:
+        elif isinstance(n, ast.MatchAs) and n.name or isinstance(n, ast.MatchStar) and n.name:      # match/case 捕获
             names.add(n.name)
         elif isinstance(n, ast.MatchMapping) and n.rest:
             names.add(n.rest)

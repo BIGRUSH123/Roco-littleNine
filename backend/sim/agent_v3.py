@@ -36,8 +36,14 @@ from typing import Any
 from . import plan
 from .action import Action
 from .agent import (
-    _GATHER_ACTION, _ITEM_ACTION, _skill_action, _switch_action,
-    SwitchStreak, best_self_buff_skill_index, first_usable_skill_index, gather_is_noop,
+    _GATHER_ACTION,
+    _ITEM_ACTION,
+    SwitchStreak,
+    _skill_action,
+    _switch_action,
+    best_self_buff_skill_index,
+    first_usable_skill_index,
+    gather_is_noop,
 )
 from .battleskill import SkillUse
 from .item_policy import should_evolve, wish_decision

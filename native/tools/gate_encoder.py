@@ -21,11 +21,10 @@ ROOT = Path(__file__).resolve().parents[2]
 os.chdir(str(ROOT))
 sys.path.insert(0, str(ROOT))
 
-import numpy as np  # noqa: E402
 import roco_engine  # noqa: E402
 
-from backend.engine.test_rust_gate import battle_from_spec  # noqa: E402
 from backend.engine.ai.core.encoder import encode_battle_state  # noqa: E402
+from backend.engine.test_rust_gate import battle_from_spec  # noqa: E402
 from backend.sim.agent import RuleAgent  # noqa: E402
 
 ENCODING_KEYS = [
@@ -69,7 +68,7 @@ def first_diff(a, b, path=""):
     if isinstance(a, list) and isinstance(b, list):
         if len(a) != len(b):
             return f"{path} 长度 {len(a)} vs {len(b)}"
-        for i, (x, y) in enumerate(zip(a, b)):
+        for i, (x, y) in enumerate(zip(a, b, strict=False)):
             r = first_diff(x, y, f"{path}[{i}]")
             if r:
                 return r
@@ -111,7 +110,7 @@ def main() -> None:
             if len(py_encs) != len(ru["encodings"]):
                 diffs.append(f"[{perspective}] 回合数 py={len(py_encs)} rust={len(ru['encodings'])}")
                 continue
-            for ti, (pe, re_) in enumerate(zip(py_encs, ru["encodings"])):
+            for ti, (pe, re_) in enumerate(zip(py_encs, ru["encodings"], strict=False)):
                 py_arrs = {k: pe[k].tolist() for k in ENCODING_KEYS}
                 ru_arrs = {k: re_[k] for k in ENCODING_KEYS}
                 d = first_diff(py_arrs, ru_arrs, f"turn{ti}")

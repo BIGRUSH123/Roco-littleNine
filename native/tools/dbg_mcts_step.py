@@ -16,18 +16,17 @@ sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(Path(__file__).parent))
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
+import mcts_gate as g_module  # noqa: E402
 import roco_engine  # noqa: E402
-
-import mcts_gate as G  # noqa: E402
 
 spec_no = int(sys.argv[1])
 sim_idx = int(sys.argv[2])
 max_steps = int(sys.argv[3]) if len(sys.argv) > 3 else 6
 
 spec = json.loads((ROOT / "native" / "gate_specs" / f"spec_{spec_no:04d}.json").read_text("utf-8"))
-cfg = dict(G.CFG)
+cfg = dict(g_module.CFG)
 cfg["num_simulations"] = int(sys.argv[4]) if len(sys.argv) > 4 else 200
-py = G.run_python(spec, cfg)
+py = g_module.run_python(spec, cfg)
 ru = json.loads(
     roco_engine.py_mcts_stub(json.dumps(spec, ensure_ascii=False), json.dumps(cfg))
 )

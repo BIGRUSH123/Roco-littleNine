@@ -23,8 +23,8 @@ try:
 except ImportError:
     pytest.skip("roco_engine 未编译（maturin develop --release）", allow_module_level=True)
 
+from backend.engine.test_native_resolve import _ctx_json, _make_ctx
 from backend.vm.executor import execute as py_execute
-from backend.engine.test_native_resolve import _make_ctx, _ctx_json
 
 PAYLOAD_KEYS = {"then", "effects", "cond", "elif_", "skill_where", "listen"}
 
@@ -121,7 +121,8 @@ def _corpus():
     cases = []
     for path in sorted(glob.glob("data/skills/*.json")):
         try:
-            data = json.loads(open(path, encoding="utf-8").read())
+            with open(path, encoding="utf-8") as source:
+                data = json.load(source)
         except Exception:
             continue
         effects = data.get("effects")
@@ -130,7 +131,8 @@ def _corpus():
     # 特性 JSON 里的 then 列表（observer/defer 等）
     for path in sorted(glob.glob("data/traits/*.json")):
         try:
-            data = json.loads(open(path, encoding="utf-8").read())
+            with open(path, encoding="utf-8") as source:
+                data = json.load(source)
         except Exception:
             continue
 

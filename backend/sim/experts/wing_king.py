@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """羽刃翼王铁头队专用专家 —— 与"铁头海豹平衡队"共用 5 只精灵，处方也共用一条 + 迅捷羽刃。
 
 机制读法：
@@ -16,6 +15,7 @@ from __future__ import annotations
 
 from backend.sim.action import Action
 from backend.sim.agent_v2 import RuleAgentV2, _skill_action
+
 from .common import heal_bot_guard
 
 HEAL_BOT = "圣剑-X"            # 正位宝剑 → 治疗机器人

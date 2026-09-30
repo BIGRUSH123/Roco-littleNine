@@ -1,9 +1,7 @@
-# -*- coding: utf-8 -*-
 """对比两个 npz 数据集是否完全一致（串行 vs 多进程生成）。"""
 from __future__ import annotations
 
 import sys
-from pathlib import Path
 
 import numpy as np
 

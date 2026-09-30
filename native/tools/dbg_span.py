@@ -21,7 +21,7 @@ for enc in ("utf-16", "utf-8", "gbk"):
     except UnicodeDecodeError:
         continue
 lines = (text or "").splitlines()
-start = next((i for i, l in enumerate(lines) if f"actions] turn={turn}" in l), None)
-end = next((i for i, l in enumerate(lines) if i > (start or 0) and f"actions] turn=" in l), len(lines))
+start = next((i for i, row_value in enumerate(lines) if f"actions] turn={turn}" in row_value), None)
+end = next((i for i, row_value in enumerate(lines) if i > (start or 0) and "actions] turn=" in row_value), len(lines))
 for i in range(start, end):
     print(i, lines[i][:150])

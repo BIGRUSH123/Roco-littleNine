@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """native/tools/append_notes12.py — 追加 PORTING_NOTES 第 10 节。
 
 meta 阵容爬取 + 40 支原型队 + 动作空间 17→22（首领形态由玩家选）。

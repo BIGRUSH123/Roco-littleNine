@@ -14,15 +14,13 @@ sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(Path(__file__).parent))
 
 import numpy as np  # noqa: E402
-import torch  # noqa: E402
 
 from backend.engine.ai.core.evaluator import TorchEvaluator  # noqa: E402
 from backend.engine.ai.core.mcts import NetworkPolicyAgent  # noqa: E402
 from backend.engine.ai.core.model import ModularBattleNet  # noqa: E402
 from backend.engine.ai.train import MCTSAgent  # noqa: E402
-from backend.sim.agent import RuleAgent  # noqa: E402
-from backend.sim.factory import SimFactory  # noqa: E402
 from backend.engine.test_rust_gate import battle_from_spec  # noqa: E402
+from backend.sim.factory import SimFactory  # noqa: E402
 
 spec = json.loads((ROOT / "native" / "gate_specs" / "spec_0001.json").read_text("utf-8"))
 seed = spec["seed"] + 1

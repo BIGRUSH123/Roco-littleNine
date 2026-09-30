@@ -20,7 +20,6 @@ from backend.vm.ctx import Ctx
 from backend.vm.executor import assert_ir_effects, compile_effects_batch, process_effects
 from backend.vm.journal import Mutation
 
-
 # ═══════════════════════════════════════════════════════════════════
 # Pre-bake helpers — 注册时一次性注入 source/scope，消除运行时 copy.copy
 # ═══════════════════════════════════════════════════════════════════

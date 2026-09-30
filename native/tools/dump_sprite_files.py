@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """native/tools/dump_sprite_files.py — 打印指定精灵文件的关键字段（原始 JSON）。
 
 用法: python native/tools/dump_sprite_files.py 文件路径...

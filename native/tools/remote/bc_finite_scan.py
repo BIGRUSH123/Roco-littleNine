@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """扫一份 BC npz 里所有浮点特征/标签的非有限值（inf/nan）计数。
 
 用途：`gen_bc_data --out` 早期版本**没有** float16 越界护栏，越界值在 astype 时

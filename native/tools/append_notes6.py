@@ -1,6 +1,4 @@
-# -*- coding: utf-8 -*-
 """append_notes6.py — 6v6 对齐：格式确认、分布修复、exp21 启动。"""
-import io
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -34,6 +32,6 @@ TEXT = """
   1-3v1-3 分布下训出来的，6v6 强度需重新积累。
 """
 
-with io.open(P, "a", encoding="utf-8", newline="\n") as f:
+with open(P, "a", encoding="utf-8", newline="\n") as f:
     f.write(TEXT)
 print("appended", len(TEXT), "chars")

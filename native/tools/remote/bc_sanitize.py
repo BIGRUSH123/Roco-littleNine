@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """把 BC 数据里的非有限值（inf/nan）夹到 float16 可表示范围，复制出一份干净数据。
 
 用途：`gen_bc_data` 早期版本没有 float16 越界护栏，越界特征在 astype 时变 ±inf 落盘。

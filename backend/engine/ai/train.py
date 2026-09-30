@@ -19,13 +19,14 @@ import queue
 import random
 import tempfile
 import time
-from datetime import datetime
 import warnings
+from contextlib import suppress
+from datetime import datetime
 from pathlib import Path
 
 import numpy as np
 import torch
-import torch.nn.functional as F
+import torch.nn.functional as functional
 
 warnings.filterwarnings(
     "ignore",
@@ -37,20 +38,22 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent
 
 from backend.engine.ai.battle_log import BattleLogWriter, extract_battle_summary
 from backend.engine.ai.console import safe_print as _console_print
-from backend.engine.ai.data.build_from_reference import (
-    item_for_team,
-    optimal_build,
-    sample_build,
-)
-from backend.engine.ai.data.meta_teams import item_from_team, load_meta_teams, spec_from_team
-from backend.engine.ai.core.eval_statistics import PairedEvaluation, evaluation_return
 from backend.engine.ai.core.encoder import encode_battle_state
+from backend.engine.ai.core.eval_statistics import PairedEvaluation, evaluation_return
 from backend.engine.ai.core.evaluator import (
     BatchedInferenceServer,
     BatchedModelInferenceServer,
     SyncPickleQueue,
     TorchEvaluator,
 )
+from backend.engine.ai.core.mcts import (
+    NUM_ACTIONS,
+    NetworkPolicyAgent,
+    action_index_to_action,
+    get_valid_actions,
+    mcts_search,
+)
+from backend.engine.ai.core.model import ModularBattleNet
 from backend.engine.ai.core.outcome import (
     DEFAULT_DRAW_MARGIN,
     DEFAULT_EVAL_MAX_TURNS,
@@ -59,17 +62,15 @@ from backend.engine.ai.core.outcome import (
     eval_score_for_candidate,
     format_reason_counts,
 )
-from backend.engine.ai.tests.selfplay_worker import run_evaluate_worker, run_selfplay_worker
-from backend.engine.ai.core.model import ModularBattleNet
 from backend.engine.ai.core.vocab import VOCAB_SIZE
-from backend.engine.ai.core.mcts import (
-    NUM_ACTIONS,
-    NetworkPolicyAgent,
-    action_index_to_action,
-    get_valid_actions,
-    mcts_search,
+from backend.engine.ai.data.build_from_reference import (
+    item_for_team,
+    optimal_build,
+    sample_build,
 )
+from backend.engine.ai.data.meta_teams import item_from_team, load_meta_teams, spec_from_team
 from backend.engine.ai.parallel_agent import ParallelMCTSAgent
+from backend.engine.ai.tests.selfplay_worker import run_evaluate_worker, run_selfplay_worker
 from backend.sim.factory import SimFactory
 from backend.sim.player import Item
 
@@ -967,7 +968,7 @@ def collect_rl_samples_parallel(
                         raise RuntimeError(
                             f"self-play worker {pid_idx} 提前退出 "
                             f"(pid={proc.pid}, exitcode={proc.exitcode})"
-                        )
+                        ) from None
                 now = time.monotonic()
                 if now - last_progress >= stall_timeout_s:
                     alive = [
@@ -1008,10 +1009,9 @@ def collect_rl_samples_parallel(
                 corrupt = True
                 print(f"  ⚠ worker {wid} 产生脏文件，已跳过: {os.path.basename(filepath)}", flush=True)
             finally:
-                try:
+                with suppress(OSError):
                     os.unlink(filepath)
-                except OSError:
-                    pass
+
             if corrupt:
                 battles_done += 1
                 all_reason_counts["corrupt_worker"] = all_reason_counts.get("corrupt_worker", 0) + 1
@@ -1055,10 +1055,9 @@ def collect_rl_samples_parallel(
     finally:
         server.stop()
         # 清理临时文件（TemporaryDirectory.cleanup 容错处理残余文件）
-        try:
+        with suppress(OSError):
             temp_dir_ctx.cleanup()
-        except OSError:
-            pass
+
 
     if not xs:
         return (
@@ -1249,24 +1248,24 @@ def train_rl(
                 # tanh 输出 → 胜率：p=(v+1)/2；标签同样映射到 [0,1]
                 p = ((value + 1.0) * 0.5).clamp(1e-6, 1.0 - 1e-6)
                 t = (vb + 1.0) * 0.5
-                value_loss = F.binary_cross_entropy(p, t)
+                value_loss = functional.binary_cross_entropy(p, t)
             else:
-                value_loss = F.mse_loss(value, vb)
+                value_loss = functional.mse_loss(value, vb)
             pb_safe = pb * mb
             pb_sum = pb_safe.sum(dim=-1, keepdim=True).clamp(min=1e-8)
             pb_safe = pb_safe / pb_sum
             masked_logits = logits.masked_fill(mb < 0.5, -1e9)
-            per_sample = -torch.sum(pb_safe * F.log_softmax(masked_logits, dim=-1), dim=-1)
+            per_sample = -torch.sum(pb_safe * functional.log_softmax(masked_logits, dim=-1), dim=-1)
             policy_loss = per_sample.mean()
             loss = value_loss + policy_loss_weight * policy_loss
             aux_loss_val = None
             if use_aux and ab is not None and aux_pred is not None:
                 if aux_loss == "ce":
                     # 分类式辅助目标（如"对手本回合出的哪一手"，22 类 + 1 个未知位）
-                    aux_loss_val = F.cross_entropy(aux_pred, ab.long(),
+                    aux_loss_val = functional.cross_entropy(aux_pred, ab.long(),
                                                    ignore_index=aux_pred.shape[1] - 1)
                 else:
-                    aux_loss_val = F.binary_cross_entropy_with_logits(aux_pred, ab)
+                    aux_loss_val = functional.binary_cross_entropy_with_logits(aux_pred, ab)
                 loss = loss + aux_loss_weight * aux_loss_val
 
             optimizer.zero_grad()
@@ -1303,24 +1302,24 @@ def train_rl(
                     val_aux_pred = None
                 if use_aux and av is not None and val_aux_pred is not None:
                     if aux_loss == "ce":
-                        val_aux_loss += F.cross_entropy(
+                        val_aux_loss += functional.cross_entropy(
                             val_aux_pred, av.long(),
                             ignore_index=val_aux_pred.shape[1] - 1).item() * len(av)
                     else:
-                        val_aux_loss += F.binary_cross_entropy_with_logits(
+                        val_aux_loss += functional.binary_cross_entropy_with_logits(
                             val_aux_pred, av).item() * len(av)
                     val_aux_samples += len(av)
                 if value_loss_mode == "bce":
                     vp = ((val_v + 1.0) * 0.5).clamp(1e-6, 1.0 - 1e-6)
                     vt = (vv + 1.0) * 0.5
-                    val_v_loss += F.binary_cross_entropy(vp, vt).item() * len(vv)
+                    val_v_loss += functional.binary_cross_entropy(vp, vt).item() * len(vv)
                 else:
-                    val_v_loss += F.mse_loss(val_v, vv).item() * len(vv)
+                    val_v_loss += functional.mse_loss(val_v, vv).item() * len(vv)
                 pb_safe = pv * mv
                 pb_sum = pb_safe.sum(dim=-1, keepdim=True).clamp(min=1e-8)
                 pb_safe = pb_safe / pb_sum
                 masked_logits = val_logits.masked_fill(mv < 0.5, -1e9)
-                val_p_loss += -torch.sum(pb_safe * F.log_softmax(masked_logits, dim=-1), dim=-1).sum().item()
+                val_p_loss += -torch.sum(pb_safe * functional.log_softmax(masked_logits, dim=-1), dim=-1).sum().item()
                 # 按 draw_margin 三分类：+1=胜, 0=平, -1=负，与训练标签一致
                 val_flat = val_v.squeeze(1)
                 vv_flat = vv.squeeze(1)
@@ -1328,13 +1327,13 @@ def train_rl(
                 true = _value_classes(vv_flat, draw_margin)
                 val_correct += (pred == true).float().sum().item()
                 # ── policy 头诊断指标 ──
-                probs = F.softmax(masked_logits, dim=-1)
+                probs = functional.softmax(masked_logits, dim=-1)
                 target_best = torch.argmax(pb_safe, dim=-1)          # MCTS target 最优动作
                 _, top1 = torch.topk(masked_logits, 1, dim=-1)
                 val_top1_count += (top1.squeeze(1) == target_best).float().sum().item()
                 _, top3 = torch.topk(masked_logits, min(3, masked_logits.size(-1)), dim=-1)
                 val_top3_count += top3.eq(target_best.unsqueeze(1)).any(dim=1).float().sum().item()
-                log_probs = F.log_softmax(masked_logits, dim=-1)
+                log_probs = functional.log_softmax(masked_logits, dim=-1)
                 val_entropy_sum += -torch.sum(probs * log_probs, dim=-1).sum().item()
         val_v_loss /= n_val
         val_p_loss /= n_val
@@ -1749,7 +1748,7 @@ def evaluate_parallel(
                         raise RuntimeError(
                             f"eval worker {pid_idx} 提前退出 "
                             f"(pid={proc.pid}, exitcode={proc.exitcode})"
-                        )
+                        ) from None
                 now = time.monotonic()
                 if now - last_progress >= stall_timeout_s:
                     alive = [

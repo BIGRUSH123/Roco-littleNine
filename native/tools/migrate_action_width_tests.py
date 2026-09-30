@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """把测试里硬编码的动作维度断言改为从 NUM_ACTIONS 派生（动作空间 17→22）。"""
 from __future__ import annotations
 
@@ -45,7 +44,7 @@ for rel, subs in EDITS:
             elif "from backend.engine.ai.core.mcts import NUM_ACTIONS" not in text:
                 # 插到最后一个 backend import 之后
                 lines = text.splitlines()
-                idx = max((i for i, l in enumerate(lines) if l.startswith("from backend")), default=-1)
+                idx = max((i for i, row_value in enumerate(lines) if row_value.startswith("from backend")), default=-1)
                 if idx >= 0:
                     lines.insert(idx + 1, "from backend.engine.ai.core.mcts import NUM_ACTIONS")
                     text = "\n".join(lines) + ("\n" if text.endswith("\n") else "")

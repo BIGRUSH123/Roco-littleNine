@@ -16,7 +16,9 @@ sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 import numpy as np  # noqa: E402
 
 from backend.engine.ai.core.mcts import (  # noqa: E402
-    action_index_to_action, get_valid_actions, policy_select_idx,
+    action_index_to_action,
+    get_valid_actions,
+    policy_select_idx,
 )
 from backend.engine.test_rust_gate import battle_from_spec  # noqa: E402
 from backend.sim.agent import RuleAgent  # noqa: E402

@@ -1,7 +1,6 @@
 """dbg_conv_tax — 隔离测量 rust 路径的 编码+转换 税（stub 评估器，无 torch）。"""
 from __future__ import annotations
 
-import json
 import os
 import sys
 import time
@@ -12,7 +11,9 @@ os.chdir(str(ROOT))
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(Path(__file__).parent))
 
-_logf = open(ROOT / "native" / "tools" / "_conv_tax_log.txt", "w", encoding="utf-8")
+from native.tools.process_log import open_process_log
+
+_logf = open_process_log(ROOT / "native" / "tools" / "_conv_tax_log.txt", "w", encoding="utf-8")
 
 
 class _Tee:

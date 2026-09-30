@@ -12,12 +12,11 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
-from backend.engine.trait_loader import TraitLoader, _trait_file_cache  # noqa: E402
 from backend.engine.observer import ObserverRegistry  # noqa: E402
+from backend.engine.trait_loader import TraitLoader  # noqa: E402
 
 name = sys.argv[1]
 loader = TraitLoader(ObserverRegistry(), data_dir=str(ROOT / "data" / "traits"))
-from backend.common.models import SpeciesStats  # noqa: E402
 
 ids = json_load = __import__("json").loads((ROOT / "data" / "traits" / "_ids.json").read_text(encoding="utf-8"))
 tid = ids.get("ids", {}).get(name)

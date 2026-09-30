@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """统计随机对局里的"空过"与"打满回合"占比（训练数据质量指标）。
 
 口径：
@@ -22,10 +21,13 @@ from pathlib import Path
 sys.path.insert(0, os.environ.get("ROCO_REMOTE_ROOT", "/mnt/workspace/roco_remote"))
 sys.stdout.reconfigure(encoding="utf-8")
 
-from backend.engine.ai import train as T  # noqa: E402
+from backend.engine.ai import train as t_module  # noqa: E402
 from backend.engine.ai.core.outcome import battle_outcome_a  # noqa: E402
 from backend.engine.ai.data.meta_teams import (  # noqa: E402
-    item_from_team, load_meta_teams, spec_from_team, strategy_from_team,
+    item_from_team,
+    load_meta_teams,
+    spec_from_team,
+    strategy_from_team,
 )
 from backend.engine.ai.data.sprite_random_pool import SPRITE_RANDOM_POOL  # noqa: E402
 from backend.engine.ai.determinism import ensure_hash_seed  # noqa: E402
@@ -74,7 +76,7 @@ def main() -> None:
             st_a = strategy_from_team(team_a, rng)
             st_b = strategy_from_team(team_b, rng)
         else:
-            sa, sb, ia, ib = T._random_teams(factory, dict(SPRITE_RANDOM_POOL),
+            sa, sb, ia, ib = t_module._random_teams(factory, dict(SPRITE_RANDOM_POOL),
                                              optimal_frac=a.optimal_frac, meta_frac=0.0,
                                              rng=rng)
             st_a = st_b = TeamStrategy(default=SpriteStrategy())

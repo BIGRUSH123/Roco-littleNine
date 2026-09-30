@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """阵容专家共用的小工具（多条队伍共享同一机制时只留一份实现）。"""
 from __future__ import annotations
 

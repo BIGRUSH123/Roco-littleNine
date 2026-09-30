@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """native/tools/eval_vs_previous_agent.py — 当前专家 vs **本会话改动前**的专家。
 
 基线的定义：**git HEAD 里的 `backend/sim/agent_v2.py`**（本会话开始时该文件未改动）。
@@ -33,7 +32,7 @@ from backend.engine.ai.determinism import ensure_hash_seed  # noqa: E402
 # 注意：这里必须在**导入其余 backend 模块之前**重执行，让 hash seed 从进程启动就固定。
 ensure_hash_seed()
 
-from backend.engine.ai import train as T  # noqa: E402
+from backend.engine.ai import train as t_module  # noqa: E402
 from backend.engine.ai.core.outcome import battle_outcome_a  # noqa: E402
 from backend.engine.ai.data.meta_teams import (  # noqa: E402
     item_from_team,
@@ -55,7 +54,7 @@ def _baseline_source(evolve_any_turn: bool) -> str:
         out = subprocess.run(["git", "show", f"HEAD:{BASELINE_PATH}"],
                              capture_output=True, text=True, encoding="utf-8", check=True)
     except (OSError, subprocess.CalledProcessError) as exc:
-        raise SystemExit(f"取不到 HEAD 版 {BASELINE_PATH}（需要 git 且该文件在 HEAD 里）：{exc}")
+        raise SystemExit(f"取不到 HEAD 版 {BASELINE_PATH}（需要 git 且该文件在 HEAD 里）：{exc}") from exc
     src = out.stdout.replace("from .agent import ELEMENTAL_BLOODLINES",
                              "from backend.common.constants import ELEMENTAL_BLOODLINES")
     if evolve_any_turn:
@@ -115,7 +114,7 @@ def _play(factory, args, meta, rng, new_is_a: bool,
         ia, ib = item_from_team(meta[meta_i], sa), item_from_team(meta[meta_i], sb)
         st_a = st_b = strategy_from_team(meta[meta_i], rng)
     else:
-        sa, sb, ia, ib = T._random_teams(factory, dict(SPRITE_RANDOM_POOL),
+        sa, sb, ia, ib = t_module._random_teams(factory, dict(SPRITE_RANDOM_POOL),
                                          optimal_frac=args.optimal_frac, meta_frac=0.0)
         st_a = st_b = TeamStrategy(default=SpriteStrategy())
     p1 = factory.build_player("A", sa, item=ia)

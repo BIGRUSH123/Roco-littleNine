@@ -223,7 +223,7 @@ def encode_battle_state(
 
     ast_tokens = np.zeros(MAX_SEQ_LEN, dtype=np.int32)
     ast_values = np.zeros(MAX_SEQ_LEN, dtype=np.float32)
-    for i, (tok_id, val) in enumerate(zip(all_tokens, all_values)):
+    for i, (tok_id, val) in enumerate(zip(all_tokens, all_values, strict=False)):
         if i >= MAX_SEQ_LEN:
             break
         ast_tokens[i] = tok_id

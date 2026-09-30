@@ -14,8 +14,6 @@ sys.path.insert(0, str(ROOT))
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 from backend.engine.vm_engine import BattleVMEngine  # noqa: E402
-from backend.engine.snapshot import build_ctx  # noqa: E402
-from backend.vm.journal import ModifierInjection  # noqa: E402
 
 skill_name = sys.argv[1]
 flag = sys.argv[2] == "1" if len(sys.argv) > 2 else True

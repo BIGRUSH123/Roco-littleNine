@@ -30,7 +30,7 @@ def first_diff_path(a, b, path: str = "") -> str:
     if isinstance(a, list) and isinstance(b, list):
         if len(a) != len(b):
             return f"{path}:len"
-        for i, (x, y) in enumerate(zip(a, b)):
+        for i, (x, y) in enumerate(zip(a, b, strict=False)):
             p = first_diff_path(x, y, f"{path}[{i}]")
             if p:
                 return p
@@ -53,7 +53,7 @@ def main() -> None:
     eq = rust_digests == py_digests
     print(f"compare done {time.perf_counter() - t:.2f}s eq={eq}", flush=True)
     t = time.perf_counter()
-    first = next((i for i, (a, b) in enumerate(zip(py_digests, rust_digests)) if a != b), None)
+    first = next((i for i, (a, b) in enumerate(zip(py_digests, rust_digests, strict=False)) if a != b), None)
     print(f"first={first} {time.perf_counter() - t:.2f}s", flush=True)
     if first is not None:
         t = time.perf_counter()

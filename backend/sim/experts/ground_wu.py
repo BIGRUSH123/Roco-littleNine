@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """新地武专用专家 —— "防御 → 应对成功 → 永久滚雪球"。
 
 机制链（`data/skills` + `data/traits`）：

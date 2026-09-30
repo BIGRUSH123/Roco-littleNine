@@ -45,7 +45,7 @@ def main() -> None:
                 and rust_digests == py_digests):
             continue
         hit = False
-        for a, b in zip(py_digests, rust_digests):
+        for a, b in zip(py_digests, rust_digests, strict=False):
             if names_of(a) != names_of(b):
                 hit = True
                 break

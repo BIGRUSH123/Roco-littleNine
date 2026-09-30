@@ -1,9 +1,10 @@
 """验证 SyncPickleQueue 同步 pickle 行为"""
 
 import multiprocessing as mp
-import numpy as np
-import sys
 import os
+import sys
+
+import numpy as np
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "..", ".."))
 
@@ -50,7 +51,7 @@ def test_empty_queue_raises():
 
     try:
         q.get(timeout=0.1)
-        assert False, "应抛出 queue.Empty"
+        raise AssertionError("应抛出 queue.Empty")
     except queue.Empty:
         pass
 

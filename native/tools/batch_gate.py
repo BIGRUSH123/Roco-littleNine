@@ -68,7 +68,7 @@ def main() -> None:
                 if len(rust_digests) != len(py_digests):
                     reason.append(f"turns py={len(py_digests)} rust={len(rust_digests)}")
                 first = next(
-                    (i for i, (a, b) in enumerate(zip(py_digests, rust_digests)) if a != b),
+                    (i for i, (a, b) in enumerate(zip(py_digests, rust_digests, strict=False)) if a != b),
                     None,
                 )
                 if first is not None:

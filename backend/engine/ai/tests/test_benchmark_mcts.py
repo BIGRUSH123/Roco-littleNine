@@ -6,6 +6,7 @@ import numpy as np
 import torch
 
 import backend.engine.ai.core.mcts as mcts_module
+from backend.common.models import SpeciesStats
 from backend.engine.ai.benchmark_mcts import _fixed_battle, run_benchmark
 from backend.engine.ai.core.encoder import encode_battle_state
 from backend.engine.ai.core.mcts import (
@@ -22,11 +23,10 @@ from backend.engine.ai.train import _value_classes
 from backend.sim.action import Action
 from backend.sim.agent import RuleAgent
 from backend.sim.battleskill import BattleSkill
-from backend.sim.player import Player
 from backend.sim.factory import SimFactory
+from backend.sim.player import Player
 from backend.sim.skill import Skill
 from backend.sim.sprite import Sprite
-from backend.common.models import SpeciesStats
 from backend.vm.executor import compile_effects_batch
 
 

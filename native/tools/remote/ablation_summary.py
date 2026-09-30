@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """汇总"全局规则消融"的结果：每队 × 每条规则 → 胜率（新口径 = 该规则 ON）。
 
 WR < 0.5 = 这条全场规则对这支队有害（候选队级例外，如 新地武 关掉 status_counter）。
@@ -27,8 +26,8 @@ def main() -> None:
                 cells.append(f'{"—":>16s}')
                 continue
             d = json.loads(p.read_text(encoding="utf-8"))
-            w, l = d["new_wins"], d["new_losses"]
-            dec = w + l
+            w, row_value = d["new_wins"], d["new_losses"]
+            dec = w + row_value
             if not dec:
                 cells.append(f'{"全平":>16s}')
                 continue

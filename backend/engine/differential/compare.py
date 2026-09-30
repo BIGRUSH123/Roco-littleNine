@@ -35,7 +35,7 @@ def _walk(a: Any, b: Any, path: str, diffs: list[str]) -> None:
     elif isinstance(a, list):
         if len(a) != len(b):
             diffs.append(f'{path}: 长度不一致 {len(a)} vs {len(b)}')
-        for i, (x, y) in enumerate(zip(a, b)):
+        for i, (x, y) in enumerate(zip(a, b, strict=False)):
             if len(diffs) >= MAX_REPORT:
                 return
             _walk(x, y, f'{path}[{i}]', diffs)
@@ -56,7 +56,7 @@ def compare_fixtures(golden: dict, actual: dict) -> list[str]:
         diffs.append('meta.team: 队伍规模不一致')
     else:
         for side in ('team_a', 'team_b'):
-            for i, (ga, aa) in enumerate(zip(golden.get(side, []), actual.get(side, []))):
+            for i, (ga, aa) in enumerate(zip(golden.get(side, []), actual.get(side, []), strict=False)):
                 if ga.get('name') != aa.get('name'):
                     diffs.append(f'meta.{side}[{i}].name: {ga.get("name")} != {aa.get("name")}')
                 if sorted(ga.get('skills', [])) != sorted(aa.get('skills', [])):
@@ -67,7 +67,7 @@ def compare_fixtures(golden: dict, actual: dict) -> list[str]:
     if len(g_turns) != len(a_turns):
         diffs.append(f'turns: 回合数不一致 {len(g_turns)} vs {len(a_turns)}')
 
-    for i, (gt, at) in enumerate(zip(g_turns, a_turns)):
+    for i, (gt, at) in enumerate(zip(g_turns, a_turns, strict=False)):
         if len(diffs) >= MAX_REPORT:
             break
         before = len(diffs)
@@ -81,7 +81,7 @@ def compare_fixtures(golden: dict, actual: dict) -> list[str]:
 def first_divergence_turn(golden: dict, actual: dict) -> int:
     """首个分歧回合号（1-based），完全一致返回 -1。"""
     diffs: list[str] = []
-    for i, (gt, at) in enumerate(zip(golden.get('turns', []), actual.get('turns', []))):
+    for i, (gt, at) in enumerate(zip(golden.get('turns', []), actual.get('turns', []), strict=False)):
         diffs.clear()
         _walk(gt, at, f'turn[{i}]', diffs)
         if diffs:

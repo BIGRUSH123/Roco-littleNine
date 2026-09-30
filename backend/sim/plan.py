@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """backend/sim/plan.py — E2：用「候选 × 对手响应」的一回合 rollout + E1 叶子做决策。
 
 **与 `ev.py` 的分工**：`ev.py` 是解析式一回合期望值（信念 × 手写收益公式）；

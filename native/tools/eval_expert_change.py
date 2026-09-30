@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """native/tools/eval_expert_change.py — 专家层**单条规则**的 A/B 验收（同局对照）。
 
 设计要点（上一版在这里写错过，教训值得留档）：
@@ -38,9 +37,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 sys.stdout.reconfigure(encoding="utf-8")
 
-from backend.engine.ai.determinism import ensure_hash_seed  # noqa: E402
-
-from backend.engine.ai import train as T  # noqa: E402
+from backend.engine.ai import train as t_module  # noqa: E402
 from backend.engine.ai.core.outcome import battle_outcome_a  # noqa: E402
 from backend.engine.ai.data.meta_teams import (  # noqa: E402
     item_from_team,
@@ -49,6 +46,7 @@ from backend.engine.ai.data.meta_teams import (  # noqa: E402
     strategy_from_team,
 )
 from backend.engine.ai.data.sprite_random_pool import SPRITE_RANDOM_POOL  # noqa: E402
+from backend.engine.ai.determinism import ensure_hash_seed  # noqa: E402
 from backend.sim.agent_v2 import RuleAgentV2, SpriteStrategy, TeamStrategy  # noqa: E402
 from backend.sim.agent_v3 import RuleAgentV3  # noqa: E402
 from backend.sim.factory import SimFactory  # noqa: E402
@@ -136,7 +134,7 @@ def _draw_roster(factory, args, meta, rng, team_index=None):
         st_a = st_b = strategy_from_team(meta[i], rng)
         label = meta[i].get("name") or f"#{i}"
     else:
-        sa, sb, ia, ib = T._random_teams(factory, dict(SPRITE_RANDOM_POOL),
+        sa, sb, ia, ib = t_module._random_teams(factory, dict(SPRITE_RANDOM_POOL),
                                         optimal_frac=0.95, meta_frac=0.0, rng=rng)
         st_a = st_b = TeamStrategy(default=SpriteStrategy())
         label = "随机阵容"
@@ -256,14 +254,14 @@ def main() -> None:
         # 全局一个值时看总胜率，逐阵容看它是不是"几队大赚、几队大亏"相互抵消。
         print("  === 逐阵容（新口径胜率；<0.5 = 该规则对这队有害）===")
         rows = []
-        for label, (w, l, d) in per_team.items():
-            dec = w + l
+        for label, (w, row_value, d) in per_team.items():
+            dec = w + row_value
             wr_t = w / dec if dec else 0.0
             half_t = 1.96 * math.sqrt(max(1e-9, wr_t * (1 - wr_t)) / dec) if dec else 0.0
-            rows.append((wr_t, label, w, l, d, half_t))
-        for wr_t, label, w, l, d, half_t in sorted(rows):
+            rows.append((wr_t, label, w, row_value, d, half_t))
+        for wr_t, label, w, row_value, d, half_t in sorted(rows):
             bar = "▁" * int(round(wr_t * 20)) + "▔" * (20 - int(round(wr_t * 20)))
-            print(f"    {label[:16]:18s} {w:3d}胜 {l:3d}负 平{d:3d}  "
+            print(f"    {label[:16]:18s} {w:3d}胜 {row_value:3d}负 平{d:3d}  "
                   f"{wr_t:.3f}±{half_t:.3f}  {bar}")
         spread = [r[0] for r in rows if (r[2] + r[3]) >= 10]
         if len(spread) >= 2:

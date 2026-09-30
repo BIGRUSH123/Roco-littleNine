@@ -28,7 +28,7 @@ rust_digests = result["turns"]
 ps = py_digests[t]["players"][pi]["sprites"][si]
 rs = rust_digests[t]["players"][pi]["sprites"][si]
 print(f"=== t{t} {ps['name']} ===")
-for i, (a, b) in enumerate(zip(ps["skills"], rs["skills"])):
+for i, (a, b) in enumerate(zip(ps["skills"], rs["skills"], strict=False)):
     flag = "  <<<" if a != b else ""
     print(f"  [{i}] py {a['name']:<8} mods={a['modifiers']}{flag}")
     print(f"      ru {b['name']:<8} mods={b['modifiers']}")

@@ -5,31 +5,31 @@
 
 from __future__ import annotations
 
-from backend.common.constants import DEFAULT_LIVES
-
-from copy import copy
 import contextlib
 import itertools
 import random
+from contextlib import suppress
+from copy import copy
 from typing import TYPE_CHECKING
 
+from backend.common.constants import DEFAULT_LIVES
 from backend.common.skill_trait_ids import TRAIT_星地善良
+
+# 巧变（morph）——引擎侧通用服务（模块级 import 无环：engine.morph 只依赖 vm/sim 的惰性导入）
+from backend.engine import morph
+from backend.vm.effect import AbnormalEffect, StatBuffEffect, StateEffect
 from backend.vm.ir_skill import ChargeOp, CompiledSkill, WhenBlock, WhenBranch
-from backend.vm.effect import AbnormalEffect, StateEffect, StatBuffEffect
 
 from .action import Action
 from .battle_mechanics import ActionCheck, BattleMechanicsMixin
 from .battleskill import BattleSkill
 from .globals import GlobalEffects
+from .pipeline import TurnPipeline
 from .resolver import SkillResolver
 from .round_record import ActionRecord, RoundRecord
 from .round_record import _action_short as _rr_action_short
-from .pipeline import TurnPipeline
 from .traits import dispatch_entry, dispatch_leave
 from .traits.trait_engine import fire_hook_first
-
-# 巧变（morph）——引擎侧通用服务（模块级 import 无环：engine.morph 只依赖 vm/sim 的惰性导入）
-from backend.engine import morph
 
 if TYPE_CHECKING:
     from .agent import Agent
@@ -94,7 +94,7 @@ _PER_TURN_KEYS = frozenset({
 _SKILL_PER_TURN_KEYS = _PER_TURN_KEYS | {"combo", "combo_mult"}
 
 
-def _load_permanent_skill_mods_for_sprite(sprite: "Sprite") -> None:
+def _load_permanent_skill_mods_for_sprite(sprite: Sprite) -> None:
     skills = sprite.skills or []
     if not skills:
         return
@@ -123,7 +123,7 @@ def _load_permanent_skill_mods_for_sprite(sprite: "Sprite") -> None:
             skill._modifiers[stat] = value
 
 
-def _sprite_moe_stacks(sprite: "Sprite") -> int:
+def _sprite_moe_stacks(sprite: Sprite) -> int:
     total = 0
     for effect in getattr(sprite, 'active_effects', ()):
         if getattr(effect, 'name', '') == '萌化':
@@ -184,22 +184,22 @@ class Battle(BattleMechanicsMixin):
     MAX_TURNS = 150
 
     # ── 模块级技能 JSON 缓存（跨 Battle 实例共享，消除重复磁盘 I/O） ──
-    _global_skill_cache: dict[str, "CompiledSkill"] = {}
+    _global_skill_cache: dict[str, CompiledSkill] = {}
 
     @staticmethod
-    def _set_charge_target(sprite: "Sprite", skill: BattleSkill, index: int) -> None:
+    def _set_charge_target(sprite: Sprite, skill: BattleSkill, index: int) -> None:
         sprite._charging = True
         sprite._charged_skill_ref = skill
         sprite._charged_skill_index = index
 
     @staticmethod
-    def _clear_charge_target(sprite: "Sprite") -> None:
+    def _clear_charge_target(sprite: Sprite) -> None:
         sprite._charging = False
         sprite._charged_skill_ref = None
         sprite._charged_skill_index = -1
 
     @classmethod
-    def _cancel_charge(cls, sprite: "Sprite") -> None:
+    def _cancel_charge(cls, sprite: Sprite) -> None:
         """取消蓄力：**属性与状态效果一起清**。
 
         `_charging`（属性）与 `StateEffect("charging")`（快照 `is_charging` 的来源）
@@ -212,7 +212,7 @@ class Battle(BattleMechanicsMixin):
     def skill_energy_cost(
         self,
         team: str,
-        user: "Sprite",
+        user: Sprite,
         skill: BattleSkill,
         skill_index: int | None = None,
     ) -> int:
@@ -249,7 +249,7 @@ class Battle(BattleMechanicsMixin):
     def can_pay_skill_energy_cost(
         self,
         team: str,
-        user: "Sprite",
+        user: Sprite,
         skill: BattleSkill,
         skill_index: int | None = None,
     ) -> tuple[bool, int, int]:
@@ -266,7 +266,7 @@ class Battle(BattleMechanicsMixin):
         hp_cost = round(user.max_hp * blood_price * deficit)
         return user.current_hp > hp_cost, cost, hp_cost
 
-    def hp_energy_price(self, user: "Sprite", skill=None, record=None) -> float:
+    def hp_energy_price(self, user: Sprite, skill=None, record=None) -> float:
         """「能量不足时以生命代替」的兑换率（消耗的 **HP 比例** / 1 点能量缺口）。
 
         两个来源，后者是 gap：技能**自带**声明（首次使用时精灵级还没写入）——
@@ -285,7 +285,7 @@ class Battle(BattleMechanicsMixin):
         return declared_hp_energy_price(record)
 
     @staticmethod
-    def _charged_skill_index(sprite: "Sprite") -> int:
+    def _charged_skill_index(sprite: Sprite) -> int:
         skill_ref = getattr(sprite, '_charged_skill_ref', None)
         if skill_ref is not None:
             for i, skill in enumerate(sprite.skills or []):
@@ -301,7 +301,7 @@ class Battle(BattleMechanicsMixin):
         return -1
 
     @classmethod
-    def _charged_skill(cls, sprite: "Sprite") -> tuple[int, BattleSkill | None]:
+    def _charged_skill(cls, sprite: Sprite) -> tuple[int, BattleSkill | None]:
         idx = cls._charged_skill_index(sprite)
         if idx < 0:
             return -1, None
@@ -465,7 +465,8 @@ class Battle(BattleMechanicsMixin):
         idx = 0
         for player in (self.player_a, self.player_b):
             for sprite in player.team:
-                s = saved["sprites"][idx]; idx += 1
+                s = saved["sprites"][idx]
+                idx += 1
                 sprite.species = s["species"]
                 if "species_ability" in s:
                     sprite.species.ability = s["species_ability"]
@@ -526,7 +527,7 @@ class Battle(BattleMechanicsMixin):
                 if "skill_refs" in s:
                     sprite.skills = list(s["skill_refs"])
                 if "skill_states" in s:
-                    for sk, state in zip(sprite.skills or [], s["skill_states"]):
+                    for sk, state in zip(sprite.skills or [], s["skill_states"], strict=False):
                         (
                             modifiers,
                             cooldown,
@@ -1252,7 +1253,7 @@ class Battle(BattleMechanicsMixin):
 
     def _first_legal_action(self, team: str) -> Action:
         """掩码兜底：按动作索引顺序取第一个合法动作（都没有则聚能）。"""
-        try:
+        with suppress(Exception):
             from backend.engine.ai.core.mcts import action_index_to_action, get_valid_actions
             player = self.get_player(team)
             valid, _mask = get_valid_actions(player, self)
@@ -1260,8 +1261,7 @@ class Battle(BattleMechanicsMixin):
                 act = action_index_to_action(player, idx)
                 if act is not None and self.action_legality(team, act).ok:
                     return act
-        except Exception:
-            pass
+
         return Action(kind='gather')
 
     # ═══════════════════════════════════════════════════════════════
@@ -1765,13 +1765,12 @@ class Battle(BattleMechanicsMixin):
                 if (getattr(_e, 'attr', '') == "energy_cost"
                         and getattr(_e, 'target', '') == "skill_off_0"
                         and getattr(_e, 'mode', 'add') == "add"):
-                    try:
+                    with suppress(Exception):
                         from backend.vm.resolve import resolve as _resolve
                         _ctx = self._make_ctx(user, target, record, None, self.globals,
                                               team=team, turn=self.turn)
                         branch_cost_delta += int(_resolve(_ctx, _e.delta) or 0)
-                    except Exception:
-                        pass
+
                 else:
                     kept_effects.append(_e)
             branch_effects = kept_effects

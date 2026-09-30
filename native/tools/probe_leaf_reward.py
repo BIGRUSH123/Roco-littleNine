@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """probe_leaf_reward.py — 自博弈"奖励信号"体检：价值头有没有区分度、叶节点奖励有没有驱动搜索。
 
 背景（2026-09-23）：用户反馈"当前自博弈没有效果，应该是奖励信号没有设置好"。本脚本把这句话
@@ -35,7 +34,10 @@ from backend.engine.ai.core.mcts import get_valid_actions, mcts_search  # noqa: 
 from backend.engine.ai.core.model import ModularBattleNet  # noqa: E402
 from backend.engine.ai.core.outcome import battle_outcome_a  # noqa: E402
 from backend.engine.ai.data.meta_teams import (  # noqa: E402
-    item_from_team, load_meta_teams, spec_from_team, strategy_from_team,
+    item_from_team,
+    load_meta_teams,
+    spec_from_team,
+    strategy_from_team,
 )
 from backend.sim.agent_v2 import RuleAgentV2  # noqa: E402
 from backend.sim.factory import SimFactory  # noqa: E402
@@ -108,8 +110,8 @@ def main() -> None:
     weights = [float(x) for x in str(args.weights).split(",") if x.strip()]
     print(f"\n叶子奖励权重档位: {weights}（0 = 纯网络价值，1 = 纯手感局面分 state_value）")
     print(f"{'局面':>4s} {'V_A+V_B':>9s} {'Vnet 范围':>18s} {'Vnet std':>9s} "
-          + ' '.join(f'{("TV(prior,πw=%g)" % w):>15s}' for w in weights)
-          + ' '.join(f'{("TV(πw=%g,πw=1)" % w):>15s}' for w in weights if w != 1.0))
+          + ' '.join(f'{(f"TV(prior,πw={w:g})"):>15s}' for w in weights)
+          + ' '.join(f'{(f"TV(πw={w:g},πw=1)"):>15s}' for w in weights if w != 1.0))
     vnet_std, tv_prior, tv_cross, sym, agree = [], {w: [] for w in weights}, {w: [] for w in weights}, [], 0
     vnet_by_outcome: dict[float, list[float]] = {}
     for i in range(args.positions):

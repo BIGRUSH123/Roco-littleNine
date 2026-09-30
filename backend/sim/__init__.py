@@ -42,7 +42,6 @@ from .resolver import SkillResolver
 from .round_record import ActionRecord, RoundRecord
 from .skill import Skill
 from .sprite import Sprite
-
 from .traits.trait_engine import register_data_traits
 
 _data_dir = os.path.join(os.path.dirname(__file__), '..', '..', 'data', 'traits')

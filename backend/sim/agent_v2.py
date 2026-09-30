@@ -29,17 +29,21 @@
 """
 from __future__ import annotations
 
-import random
 import dataclasses
+import random
 from dataclasses import dataclass, field
 
-from . import belief
-from . import ev
-from . import plan
+from . import belief, ev, plan
 from .action import Action
 from .agent import (
-    _GATHER_ACTION, _ITEM_ACTION, _skill_action, _switch_action,
-    SwitchStreak, best_self_buff_skill_index, first_usable_skill_index, gather_is_noop,
+    _GATHER_ACTION,
+    _ITEM_ACTION,
+    SwitchStreak,
+    _skill_action,
+    _switch_action,
+    best_self_buff_skill_index,
+    first_usable_skill_index,
+    gather_is_noop,
 )
 from .battleskill import SkillUse
 from .item_policy import should_evolve, wish_decision
@@ -176,8 +180,8 @@ class RuleAgentV2:
     """基于社区 PVP 攻略经验的规则 AI（可挂 TeamStrategy）。"""
 
     def __init__(self, team: str, player, strategy: TeamStrategy | None = None,
-                 ev_params: "ev.EVParams | None" = None,
-                 belief_params: "belief.BeliefParams | None" = None):
+                 ev_params: ev.EVParams | None = None,
+                 belief_params: belief.BeliefParams | None = None):
         self.team = team
         self.player = player
         self.strategy = strategy or TeamStrategy()

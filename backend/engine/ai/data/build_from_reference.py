@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """按线上 wiki 的 PVP 培养参考生成精灵 build（P1 契约见 `docs/培养方案-pvp口径.md`）。
 
 两条生成路径：

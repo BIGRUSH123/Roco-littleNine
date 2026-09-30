@@ -11,6 +11,7 @@
 from __future__ import annotations
 
 import json
+from contextlib import ExitStack
 from pathlib import Path
 from typing import Any
 
@@ -75,7 +76,10 @@ class BattleLogWriter:
         self.log_dir.mkdir(parents=True, exist_ok=True)
         prefix = f"battles_{run_id}" if run_id else "battles"
         self.path = self.log_dir / f"{prefix}.jsonl"
-        self._fp = open(self.path, "w", encoding="utf-8")
+        # The log remains open for this writer's lifetime, not just __init__.
+        with ExitStack() as stack:
+            self._fp = stack.enter_context(open(self.path, "w", encoding="utf-8"))
+            self._file_contexts = stack.pop_all()
         self._buffer_size = buffer_size
         self._write_count = 0
 
@@ -90,9 +94,9 @@ class BattleLogWriter:
     def close(self) -> None:
         """关闭前确保落盘。"""
         self._fp.flush()
-        self._fp.close()
+        self._file_contexts.close()
 
-    def __enter__(self) -> "BattleLogWriter":
+    def __enter__(self) -> BattleLogWriter:
         return self
 
     def __exit__(self, *args) -> None:

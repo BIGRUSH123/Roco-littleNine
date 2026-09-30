@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """build_from_reference 的门禁：合法集、无冲突、槽 0、分布保真、兜底。
 
 契约见 `docs/培养方案-pvp口径.md`。这里刻意**独立重算**规则期望值（不复用模块内部函数），
@@ -21,9 +20,7 @@ if str(_PROJ) not in sys.path:
 from backend.common.constants import STAT_KEYS
 from backend.common.nature import NATURE_TABLE
 from backend.common.skill_trait_ids import SKILL_ID_TO_NAME
-from backend.engine.ai.data.build_from_reference import (item_for_team, legal_bloodlines,
-                                                         legal_skills, optimal_build,
-                                                         sample_build, validate_build)
+from backend.engine.ai.data.build_from_reference import item_for_team, legal_bloodlines, legal_skills, optimal_build, sample_build, validate_build
 from backend.engine.ai.data.role_from_reference import load_reference, pick_entry
 from backend.engine.ai.data.sprite_random_pool import SPRITE_RANDOM_POOL
 from backend.sim.factory import SimFactory

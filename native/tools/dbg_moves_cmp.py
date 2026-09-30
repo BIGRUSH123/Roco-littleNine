@@ -13,12 +13,12 @@ sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(Path(__file__).parent))
 
 import numpy as np  # noqa: E402
+import roco_engine as roco_engine  # Preserve native module initialization.
 import torch  # noqa: E402
+from gate_phase5 import py_game, rust_game  # noqa: E402
 
-import roco_engine  # noqa: E402
 from backend.engine.ai.core.evaluator import TorchEvaluator  # noqa: E402
 from backend.engine.ai.core.model import ModularBattleNet  # noqa: E402
-from gate_phase5 import py_game, rust_game  # noqa: E402
 
 torch.set_num_threads(1)
 model = ModularBattleNet.load("checkpoints/exp16/model_rl.pt", device="cpu")
@@ -38,10 +38,10 @@ class Adapter:
 spec = json.loads((ROOT / "native" / "gate_specs" / "spec_0001.json").read_text("utf-8"))
 seed = spec["seed"] + 1
 
-import backend.engine.ai.train as T  # noqa: E402
+import backend.engine.ai.train as t_module  # noqa: E402
 
 calls = []
-orig = T._sample_action
+orig = t_module._sample_action
 
 
 def spy(probs, temperature):
@@ -50,9 +50,9 @@ def spy(probs, temperature):
     return idx
 
 
-T._sample_action = spy
+t_module._sample_action = spy
 pg = py_game(spec, ev, seed, 12, 1.0, 16)
-T._sample_action = orig
+t_module._sample_action = orig
 
 ru = rust_game(spec, Adapter(ev), Adapter(ev), 12, 1.0, 16)
 

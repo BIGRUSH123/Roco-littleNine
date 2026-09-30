@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """探针 4：popular/builds 载荷结构 + creatureId → 池内名 映射可行性。"""
 from __future__ import annotations
 

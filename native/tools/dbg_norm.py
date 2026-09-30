@@ -22,7 +22,7 @@ rust_digests = result["turns"]
 print("runs done", flush=True)
 
 t = time.perf_counter()
-first = next((i for i, (a, b) in enumerate(zip(py_digests, rust_digests)) if a != b), None)
+first = next((i for i, (a, b) in enumerate(zip(py_digests, rust_digests, strict=False)) if a != b), None)
 print(f"first={first} {time.perf_counter() - t:.3f}s", flush=True)
 
 t = time.perf_counter()

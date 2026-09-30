@@ -1,6 +1,4 @@
-# -*- coding: utf-8 -*-
 """append_notes4.py — exp18/19 结果与最终交付记录。"""
-import io
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -22,6 +20,6 @@ TEXT = """
   或提高网络容量（1.5M 参数可能是 val_acc 0.85 后的下一个瓶颈）。
 """
 
-with io.open(P, "a", encoding="utf-8", newline="\n") as f:
+with open(P, "a", encoding="utf-8", newline="\n") as f:
     f.write(TEXT)
 print("appended", len(TEXT), "chars")

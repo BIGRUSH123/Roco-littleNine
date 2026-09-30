@@ -1,6 +1,4 @@
-# -*- coding: utf-8 -*-
 """append_notes7.py — RuleAgentV2（社区攻略经验重写）交付记录。"""
-import io
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -42,6 +40,6 @@ TEXT = """
 + 价值头 MSE 预训练 → 自博弈微调（AlphaStar/绝悟范式）。
 """
 
-with io.open(P, "a", encoding="utf-8", newline="\n") as f:
+with open(P, "a", encoding="utf-8", newline="\n") as f:
     f.write(TEXT)
 print("appended", len(TEXT), "chars")

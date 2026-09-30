@@ -20,13 +20,13 @@ try:
 except ImportError:
     pytest.skip("roco_engine 未编译（maturin develop --release）", allow_module_level=True)
 
+from backend.sim.agent import RuleAgent
 from backend.sim.battle import Battle
 from backend.sim.battleskill import BattleSkill
+from backend.sim.factory import SimFactory
 from backend.sim.player import Item, Player
 from backend.sim.skill import Skill
 from backend.sim.sprite import Sprite
-from backend.sim.factory import SimFactory
-from backend.sim.agent import RuleAgent
 from backend.vm.effect import AbnormalEffect, StatBuffEffect
 
 SPEC_DIR = "native/gate_specs"
@@ -172,7 +172,8 @@ def _rust_norm(d: dict) -> dict:
 
 @pytest.mark.parametrize('spec_path', _spec_files())
 def test_full_battle_parity(spec_path: str) -> None:
-    spec = json.loads(open(spec_path, encoding="utf-8").read())
+    with open(spec_path, encoding="utf-8") as source:
+        spec = json.load(source)
     py_digests, py_winner = run_python(spec)
     rust_digests, rust_winner = run_rust(spec)
     assert py_winner == rust_winner, (
@@ -181,7 +182,7 @@ def test_full_battle_parity(spec_path: str) -> None:
     assert len(py_digests) == len(rust_digests), (
         f"{spec_path}: 回合数不一致 {len(py_digests)} vs {len(rust_digests)}"
     )
-    for i, (pd, rd) in enumerate(zip(py_digests, rust_digests)):
+    for i, (pd, rd) in enumerate(zip(py_digests, rust_digests, strict=False)):
         if pd != rd:
             # 找出首个差异字段
             diff = _first_diff(pd, rd)
@@ -202,7 +203,7 @@ def _first_diff(a, b, path="") -> str:
     if isinstance(a, list) and isinstance(b, list):
         if len(a) != len(b):
             return f"{path} 长度 {len(a)} vs {len(b)}"
-        for i, (x, y) in enumerate(zip(a, b)):
+        for i, (x, y) in enumerate(zip(a, b, strict=False)):
             r = _first_diff(x, y, f"{path}[{i}]")
             if r:
                 return r

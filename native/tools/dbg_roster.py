@@ -12,7 +12,7 @@ from pathlib import Path
 sys.stdout.reconfigure(encoding="utf-8")
 
 spec = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
-for k, pl in zip(("A", "B"), spec["players"]):
+for k, pl in zip(("A", "B"), spec["players"], strict=False):
     print(k)
     for i, sp in enumerate(pl["sprites"]):
         print(f"  [{i}] {sp['name']} ability={sp['ability']} id={sp['ability_id']}")

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """诊断"奉献（devotion）"的结算方式：池子会不会累积、什么时候被消耗。
 
 用法: python dbg_devotion.py --team 虫 --turns 25
@@ -15,7 +14,10 @@ sys.path.insert(0, str(ROOT))
 sys.stdout.reconfigure(encoding="utf-8")
 
 from backend.engine.ai.data.meta_teams import (  # noqa: E402
-    item_from_team, load_meta_teams, spec_from_team, strategy_from_team,
+    item_from_team,
+    load_meta_teams,
+    spec_from_team,
+    strategy_from_team,
 )
 from backend.engine.ai.determinism import ensure_hash_seed  # noqa: E402
 
@@ -59,7 +61,7 @@ def main() -> None:
     for t in range(a.turns):
         if battle.is_finished:
             break
-        before_a, before_b = dump_dev(p1, "A前"), dump_dev(p2, "B前")
+        before_a, _before_b = dump_dev(p1, "A前"), dump_dev(p2, "B前")
         rec = battle.execute_turn(a1, a2)
         act_a = f"{rec.action_a.kind}:{rec.action_a.skill_name}" if rec.action_a else "-"
         act_b = f"{rec.action_b.kind}:{rec.action_b.skill_name}" if rec.action_b else "-"

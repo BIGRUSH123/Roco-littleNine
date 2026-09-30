@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """native/tools/fix_leader_marks.py — 扫描未标首领的第二形态，并可批量标记。
 
 用法:

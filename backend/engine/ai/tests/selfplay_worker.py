@@ -135,8 +135,7 @@ def run_evaluate_worker(
       ("error", wid, None, traceback)  worker 异常
     """
     # 延迟导入，避免与 train 顶层循环依赖
-    from backend.engine.ai.train import (_load_sprite_skills, _play_one_eval_game,
-                                         _seed_eval_game)
+    from backend.engine.ai.train import _load_sprite_skills, _play_one_eval_game, _seed_eval_game
     from backend.sim.factory import SimFactory
 
     random.seed(seed)

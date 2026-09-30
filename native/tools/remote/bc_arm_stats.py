@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """BC 数据集逐臂对照：世界质量（决定性/回合数/终止原因）+ 标签动作直方图。
 
 动作空间见 `backend/engine/ai/core/mcts.py`: 0-9 技能 / 10-14 换宠 / 15 聚能 /
@@ -53,7 +52,7 @@ def report(path: str) -> dict:
 def _roster_map(roster: dict) -> dict[int, set[int]]:
     """局号 → 该局出现过的队伍编号集合（随机阵容局恒为 {-1}，只对 meta 局有效）。"""
     out: dict[int, set[int]] = {}
-    for g, t in zip(roster["game_id"].tolist(), roster["team_id"].tolist()):
+    for g, t in zip(roster["game_id"].tolist(), roster["team_id"].tolist(), strict=False):
         out.setdefault(int(g), set()).add(int(t))
     return out
 

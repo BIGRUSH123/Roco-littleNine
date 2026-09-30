@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """`ensure_hash_seed` 的重执行必须在**含空格的解释器路径**下也能工作。
 
 背景（2026-09-26）：原实现用 `os.execv`，Windows 上它把 argv 用空格拼起来交给 C

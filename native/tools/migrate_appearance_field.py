@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """native/tools/migrate_appearance_field.py — 为精灵文件新增 appearance 字段。
 
 映射规则:

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """native/tools/eval_prediction_mix.py — E4/E5 验收：概率预判 + 混合策略值不值。
 
 三组配对对局（**相邻两局交换 A/B 抵消先手优势**，与门控口径一致）：
@@ -28,10 +27,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 sys.stdout.reconfigure(encoding="utf-8")
 
-from backend.engine.ai import train as T  # noqa: E402
+from backend.engine.ai import train as t_module  # noqa: E402
 from backend.engine.ai.core.outcome import battle_outcome_a  # noqa: E402
-from backend.engine.ai.determinism import ensure_hash_seed  # noqa: E402
-from backend.sim import agent_v2  # noqa: E402
 from backend.engine.ai.data.meta_teams import (  # noqa: E402
     item_from_team,
     load_meta_teams,
@@ -39,7 +36,11 @@ from backend.engine.ai.data.meta_teams import (  # noqa: E402
     strategy_from_team,
 )
 from backend.engine.ai.data.sprite_random_pool import SPRITE_RANDOM_POOL  # noqa: E402
-from backend.sim import ev  # noqa: E402
+from backend.engine.ai.determinism import ensure_hash_seed  # noqa: E402
+from backend.sim import (
+    agent_v2,  # noqa: E402
+    ev,  # noqa: E402
+)
 from backend.sim.agent_v2 import RuleAgentV2, SpriteStrategy, TeamStrategy  # noqa: E402
 from backend.sim.factory import SimFactory  # noqa: E402
 
@@ -146,7 +147,7 @@ def _play(factory, args, meta, rng, cand_team: str, temperature: float,
         item_b = item_from_team(meta[meta_i], specs_b)
         team_a = team_b = meta[meta_i]
     else:
-        specs_a, specs_b, item_a, item_b = T._random_teams(
+        specs_a, specs_b, item_a, item_b = t_module._random_teams(
             factory, dict(SPRITE_RANDOM_POOL), optimal_frac=args.optimal_frac, meta_frac=0.0)
         team_a = team_b = None
     p1 = factory.build_player("A", specs_a, item=item_a)

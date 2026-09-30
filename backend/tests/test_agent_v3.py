@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """RuleAgentV3（`backend/sim/agent_v3.py`）与技能 IR 查询层（`backend/sim/skill_ir.py`）的测试。
 
 锁住的都是"这版新增/修好的东西"，尤其是那条**曾经是死代码**的性质：

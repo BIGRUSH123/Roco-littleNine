@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """make_random_model.py — 生成同结构随机初始化模型作为校准基线。"""
 import sys
 from pathlib import Path

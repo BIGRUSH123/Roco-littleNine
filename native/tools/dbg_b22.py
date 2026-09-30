@@ -15,7 +15,9 @@ os.chdir(str(ROOT))
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(Path(__file__).parent))
 
-_logf = open(ROOT / "native" / "tools" / "_dbg_b22_log.txt", "w", encoding="utf-8")
+from native.tools.process_log import open_process_log
+
+_logf = open_process_log(ROOT / "native" / "tools" / "_dbg_b22_log.txt", "w", encoding="utf-8")
 
 
 class _Tee:
@@ -34,8 +36,8 @@ class _Tee:
 sys.stdout = _Tee(sys.stdout, _logf)
 
 import numpy as np  # noqa: E402
-
 from gate_phase5 import _RustEvalAdapter, py_game, rust_game  # noqa: E402
+
 from backend.engine.ai.core.evaluator import TorchEvaluator  # noqa: E402
 from backend.engine.ai.core.model import ModularBattleNet  # noqa: E402
 
@@ -66,25 +68,25 @@ def cmp_state(ps, rs, pm, rm):
     return bad
 
 
-def stream_report(tag, py_rows, ru_rows, pyP, ruP, pyM, ruM, focus=None):
+def stream_report(tag, py_rows, ru_rows, py_p, ru_p, py_m, ru_m, focus=None):
     n = min(len(py_rows), len(ru_rows))
     first_state = first_p = -1
     for i in range(n):
         if first_state < 0:
-            bad = cmp_state(py_rows[i], ru_rows[i], pyM[i], ruM[i])
+            bad = cmp_state(py_rows[i], ru_rows[i], py_m[i], ru_m[i])
             if bad:
                 first_state = i
                 print(f"[{tag}] 状态/mask 首个不一致 流下标 {i}（共 {len(bad)} 项）：",
                       flush=True)
                 for b in bad[:8]:
                     print("    ", b, flush=True)
-        if first_p < 0 and not np.array_equal(pyP[i], ruP[i]):
+        if first_p < 0 and not np.array_equal(py_p[i], ru_p[i]):
             first_p = i
-            d = np.abs(pyP[i].astype(np.float64) - ruP[i].astype(np.float64))
+            d = np.abs(py_p[i].astype(np.float64) - ru_p[i].astype(np.float64))
             print(f"[{tag}] P 首个不一致 流下标 {i} max|Δ|={d.max():.4e}", flush=True)
             idx = np.argsort(-d)[:6]
             for j in idx:
-                print(f"    [{j}] py={pyP[i][j]:.9f} rust={ruP[i][j]:.9f}",
+                print(f"    [{j}] py={py_p[i][j]:.9f} rust={ru_p[i][j]:.9f}",
                       flush=True)
         if first_state >= 0 and first_p >= 0:
             break
@@ -94,21 +96,21 @@ def stream_report(tag, py_rows, ru_rows, pyP, ruP, pyM, ruM, focus=None):
         print(f"[{tag}] P 全部 {n} 条一致", flush=True)
     if focus is not None:
         i = focus
-        same = np.array_equal(pyP[i], ruP[i])
+        same = np.array_equal(py_p[i], ru_p[i])
         print(f"[{tag}] focus 流下标 {i}: P {'逐位一致' if same else '不一致'}", flush=True)
         if not same:
-            d = np.abs(pyP[i].astype(np.float64) - ruP[i].astype(np.float64))
+            d = np.abs(py_p[i].astype(np.float64) - ru_p[i].astype(np.float64))
             idx = np.argsort(-d)[:8]
             for j in idx:
-                print(f"    [{j}] py={pyP[i][j]:.9f} rust={ruP[i][j]:.9f} Δ={d[j]:.3e}",
+                print(f"    [{j}] py={py_p[i][j]:.9f} rust={ru_p[i][j]:.9f} Δ={d[j]:.3e}",
                       flush=True)
-        bad = cmp_state(py_rows[i], ru_rows[i], pyM[i], ruM[i])
+        bad = cmp_state(py_rows[i], ru_rows[i], py_m[i], ru_m[i])
         print(f"[{tag}] focus 状态/mask: {'一致' if not bad else bad[:6]}", flush=True)
-        top_p = np.argsort(-pyP[i])[:5]
-        print(f"[{tag}] focus py P top5: {[(int(j), float(pyP[i][j])) for j in top_p]}",
+        top_p = np.argsort(-py_p[i])[:5]
+        print(f"[{tag}] focus py P top5: {[(int(j), float(py_p[i][j])) for j in top_p]}",
               flush=True)
-        top_r = np.argsort(-ruP[i])[:5]
-        print(f"[{tag}] focus rust P top5: {[(int(j), float(ruP[i][j])) for j in top_r]}",
+        top_r = np.argsort(-ru_p[i])[:5]
+        print(f"[{tag}] focus rust P top5: {[(int(j), float(ru_p[i][j])) for j in top_r]}",
               flush=True)
 
 

@@ -64,7 +64,7 @@ def main() -> None:
             ok = False
             reason = f"len py={len(py_masks)} ru={len(ru_masks)}"
         else:
-            for t, (pm, rm) in enumerate(zip(py_masks, ru_masks)):
+            for t, (pm, rm) in enumerate(zip(py_masks, ru_masks, strict=False)):
                 for side in (0, 1):
                     a = [round(x) for x in pm[side]]
                     b = [round(x) for x in rm[side]]

@@ -1,7 +1,5 @@
-# -*- coding: utf-8 -*-
 """validate_v2.py — RuleAgentV2 对比验证：胜率 + 对局长度。"""
 import collections
-import io
 import os
 import random
 import sys
@@ -11,7 +9,9 @@ ROOT = Path(__file__).resolve().parents[2]
 os.chdir(str(ROOT))
 sys.path.insert(0, str(ROOT))
 
-_log = io.open(ROOT / "native" / "tools" / "_v2_validate_log.txt", "w", encoding="utf-8")
+from native.tools.process_log import open_process_log
+
+_log = open_process_log(ROOT / "native" / "tools" / "_v2_validate_log.txt", "w", encoding="utf-8")
 
 
 def out(*a):
@@ -23,7 +23,6 @@ def out(*a):
 
 def play(spec_pair, agent_a_cls, agent_b_cls, factory, max_turns=200):
     """返回 (winner, turns, end_kind)。"""
-    from backend.sim.agent import RuleAgent
 
     ta, tb, ia, ib, seed = spec_pair
     random.seed(seed + 1)
@@ -43,7 +42,7 @@ def play(spec_pair, agent_a_cls, agent_b_cls, factory, max_turns=200):
 
 
 def main() -> None:
-    from backend.engine.ai.train import _load_sprite_skills, _random_item, _random_teams
+    from backend.engine.ai.train import _load_sprite_skills, _random_teams
     from backend.sim.agent import RuleAgent
     from backend.sim.agent_v2 import RuleAgentV2
     from backend.sim.factory import SimFactory

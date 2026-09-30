@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """native/tools/summarize_selfplay_turns.py — 自博弈对局回合数与终局原因统计。
 
 训练汇总只打「终局原因」计数，不打平均回合数。但 `max_turns_*` 占比高意味着

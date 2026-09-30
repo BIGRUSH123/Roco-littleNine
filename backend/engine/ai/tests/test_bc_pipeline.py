@@ -20,8 +20,8 @@ import pytest
 import torch
 
 from backend.common.constants import ITEM_VARIANT_SLOTS
-from backend.engine.ai.bc_record import action_to_index, run_recorded_battle
 from backend.engine.ai.bc_pretrain import holdout_split, load_dataset
+from backend.engine.ai.bc_record import action_to_index, run_recorded_battle
 from backend.engine.ai.data.meta_teams import (
     item_from_team,
     load_meta_teams,
@@ -174,8 +174,8 @@ def test_species_key_groups_same_number_forms(factory):
 
 def test_random_teams_unique_species_and_bloodline_item(factory):
     """随机队的硬不变量：队内编号唯一 / 道具跟随血脉 / 配装逐条合规。"""
-    from backend.engine.ai.data.build_from_reference import validate_build
     from backend.engine.ai import train as train_module
+    from backend.engine.ai.data.build_from_reference import validate_build
 
     db = factory.sprite_db
     sprite_skills = dict(SPRITE_RANDOM_POOL)

@@ -377,7 +377,7 @@ class NetworkPolicyAgent:
             return priors
         mask_list = masks if isinstance(masks, list) else list(masks)
         return np.stack(
-            [self.evaluate_policy(state, mask) for state, mask in zip(states, mask_list)],
+            [self.evaluate_policy(state, mask) for state, mask in zip(states, mask_list, strict=False)],
             axis=0,
         )
 

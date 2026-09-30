@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """native/tools/check_pre_species_cycles.py — 校验精灵 pre_species 链是否有环。
 
 背景（2026-09-20 定位）：Sprite.apply_moe → _build_moe_chain 沿 pre_species

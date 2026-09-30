@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """阵容专精专家的对战检验：**专用专家 vs 通用专家**，同队镜像、交替执先手（成对协议）。
 
 为什么这么测：固定同一支队（两侧阵容/道具/策略配置完全相同），只换一侧的 agent 类，
@@ -26,10 +25,12 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 sys.stdout.reconfigure(encoding="utf-8")
 
-from backend.engine.ai import train as T  # noqa: E402
 from backend.engine.ai.core.outcome import battle_outcome_a  # noqa: E402
 from backend.engine.ai.data.meta_teams import (  # noqa: E402
-    item_from_team, load_meta_teams, spec_from_team, strategy_from_team,
+    item_from_team,
+    load_meta_teams,
+    spec_from_team,
+    strategy_from_team,
 )
 from backend.engine.ai.determinism import ensure_hash_seed  # noqa: E402
 

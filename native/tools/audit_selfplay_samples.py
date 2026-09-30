@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """native/tools/audit_selfplay_samples.py — 自博弈样本不变量审计（真跑几局）。
 
 自博弈数据不进磁盘（只进回放缓冲），所以不能从文件侧检查；本工具直接调

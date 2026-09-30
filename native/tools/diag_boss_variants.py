@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """探针 6：首领形态候选数量分布（动作 17-21 只有 5 个槽位）。"""
 from __future__ import annotations
 
@@ -11,7 +10,6 @@ sys.path.insert(0, str(_ROOT))
 sys.stdout.reconfigure(encoding="utf-8")
 
 from backend.sim.factory import SimFactory  # noqa: E402
-from backend.engine.ai.data.sprite_random_pool import SPRITE_RANDOM_POOL  # noqa: E402
 
 db = SimFactory().sprite_db
 lines = []

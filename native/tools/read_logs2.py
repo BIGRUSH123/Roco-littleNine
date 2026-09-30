@@ -1,11 +1,14 @@
-# -*- coding: utf-8 -*-
 """read_logs2.py — log 目录全览 + exp14/15/16 运行记录 + train.py 参数面 + eval CLI。"""
-import io
 import json
+import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-out = io.open(ROOT / "native" / "tools" / "_logs_read2.txt", "w", encoding="utf-8")
+sys.path.insert(0, str(ROOT))
+
+from native.tools.process_log import open_process_log
+
+out = open_process_log(ROOT / "native" / "tools" / "_logs_read2.txt", "w", encoding="utf-8")
 
 
 def w(*a):
@@ -26,7 +29,8 @@ for name in ("exp14-debug_policy_collapse", "exp15_pipeline_fix", "exp16", "form
         w("  （无 log 目录）")
         continue
     for jf in sorted(d.glob("run_*.jsonl")):
-        rows = [json.loads(l) for l in io.open(jf, encoding="utf-8") if l.strip()]
+        with open(jf, encoding="utf-8") as source:
+            rows = [json.loads(row_value) for row_value in source if row_value.strip()]
         starts = [r for r in rows if r.get("type") == "run_start"]
         its = [r for r in rows if r.get("type") == "iteration"]
         ends = [r for r in rows if r.get("type") == "run_end"]

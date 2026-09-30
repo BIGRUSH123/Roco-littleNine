@@ -21,8 +21,8 @@ for enc in ("utf-16", "utf-8", "gbk"):
     except UnicodeDecodeError:
         continue
 lines = (text or "").splitlines()
-start = next((i for i, l in enumerate(lines) if f"actions] turn={t0}" in l), 0)
-end = next((i for i, l in enumerate(lines) if f"actions] turn={t1}" in l), len(lines))
-for l in lines[start:end]:
-    if any(k in l for k in ("registry]", "candidates] trigger=post_entry", "unregister")):
-        print(l[:160])
+start = next((i for i, row_value in enumerate(lines) if f"actions] turn={t0}" in row_value), 0)
+end = next((i for i, row_value in enumerate(lines) if f"actions] turn={t1}" in row_value), len(lines))
+for row_value in lines[start:end]:
+    if any(k in row_value for k in ("registry]", "candidates] trigger=post_entry", "unregister")):
+        print(row_value[:160])

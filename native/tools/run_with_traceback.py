@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """native/tools/run_with_traceback.py — 带栈转储地跑生成脚本（定位卡死）。
 
 用法:

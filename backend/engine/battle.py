@@ -18,9 +18,8 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from backend.vm.ctx import Ctx
-from backend.vm.executor import (assert_ir_effects, compile_effects_batch,
-                                 normalize_effects, execute as vm_execute)
-from backend.vm.executor import process_effects
+from backend.vm.executor import assert_ir_effects, compile_effects_batch, normalize_effects, process_effects
+from backend.vm.executor import execute as vm_execute
 from backend.vm.ir_skill import AndCond, CondExpr, NotCond, OrCond
 from backend.vm.journal import CounterRegister, Journal, ModifierInjection, Replay
 
@@ -140,7 +139,7 @@ def _cond_contains(cond, cond_name: str) -> bool:
     """Return True when a condition tree references cond_name."""
     if isinstance(cond, CondExpr):
         return cond.cond == cond_name
-    if isinstance(cond, AndCond) or isinstance(cond, OrCond):
+    if isinstance(cond, (AndCond, OrCond)):
         return any(_cond_contains(c, cond_name) for c in cond.conditions)
     if isinstance(cond, NotCond):
         return _cond_contains(cond.condition, cond_name)

@@ -33,11 +33,10 @@ def build_common():
 
 def run_py() -> None:
     import numpy as np  # noqa: F401
+    from gate_phase5 import py_game
 
     import backend.engine.ai.core.mcts as mcts_mod
     import backend.engine.ai.train as train_mod
-    from gate_phase5 import py_game
-
     from backend.engine.test_rust_gate import gate_digest
 
     st = {"k": -1, "acts": [], "digest": False}
@@ -122,10 +121,10 @@ def main() -> None:
         py_f.write_text(r0.stdout, encoding="utf-8")
         run_rust(ru_f, None)
 
-        py_lines = [l for l in py_f.read_text(encoding="utf-8").splitlines()
-                    if l.startswith("[py-sims] ")]
-        ru_lines = [l for l in ru_f.read_text(encoding="utf-8").splitlines()
-                    if l.startswith("[rust-sims] ")]
+        py_lines = [row_value for row_value in py_f.read_text(encoding="utf-8").splitlines()
+                    if row_value.startswith("[py-sims] ")]
+        ru_lines = [row_value for row_value in ru_f.read_text(encoding="utf-8").splitlines()
+                    if row_value.startswith("[rust-sims] ")]
         print(f"py 搜索数={len(py_lines)} rust 搜索数={len(ru_lines)}", flush=True)
         for i in range(min(len(py_lines), len(ru_lines))):
             pk = int(re.search(r"k=(\d+)", py_lines[i]).group(1))
@@ -159,10 +158,10 @@ def main() -> None:
         )
         py_f.write_text(r0.stdout, encoding="utf-8")
         run_rust(ru_f, k)
-        pd = [l for l in py_f.read_text(encoding="utf-8").splitlines()
-              if l.startswith("[py-digest] ")]
-        rd = [l for l in ru_f.read_text(encoding="utf-8").splitlines()
-              if l.startswith("[rust-digest] ")]
+        pd = [row_value for row_value in py_f.read_text(encoding="utf-8").splitlines()
+              if row_value.startswith("[py-digest] ")]
+        rd = [row_value for row_value in ru_f.read_text(encoding="utf-8").splitlines()
+              if row_value.startswith("[rust-digest] ")]
         print(f"py digest 步数={len(pd)} rust={len(rd)}", flush=True)
         for i in range(min(len(pd), len(rd))):
             a = json.loads(pd[i][pd[i].index("{"):])
@@ -191,10 +190,10 @@ def main() -> None:
 
 
 def run_py_shared(st: dict) -> None:
-    import backend.engine.ai.core.mcts as mcts_mod
-    import backend.engine.ai.train as train_mod
     from gate_phase5 import py_game
 
+    import backend.engine.ai.core.mcts as mcts_mod
+    import backend.engine.ai.train as train_mod
     from backend.engine.test_rust_gate import gate_digest
 
     orig_search = mcts_mod.mcts_search
@@ -233,10 +232,10 @@ def run_py_shared(st: dict) -> None:
 if __name__ == "__main__":
     if len(sys.argv) > 2 and sys.argv[1] == "py":
         # 带目标 k 的 py 运行（digest 模式子进程）
-        import backend.engine.ai.core.mcts as mcts_mod
-        import backend.engine.ai.train as train_mod
         from gate_phase5 import py_game
 
+        import backend.engine.ai.core.mcts as mcts_mod
+        import backend.engine.ai.train as train_mod
         from backend.engine.test_rust_gate import gate_digest
 
         target = int(sys.argv[2])

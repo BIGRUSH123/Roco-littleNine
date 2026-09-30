@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """探针 5：gameTeamCode 的「魔法」行分布 + 首领血脉队伍的魔法选择。
 
 用来判断站点阵容是否指定道具（进化之力 / 愿力），供 meta_teams 记录 item。
@@ -48,8 +47,9 @@ from backend.sim.player import Item  # noqa: E402
 
 lines.append(f"本项目道具: 进化之力={Item.leader()} 愿力={Item.wish()}")
 try:
-    from backend.engine.ai.train import _random_item  # noqa: E402
     import inspect  # noqa: E402
+
+    from backend.engine.ai.train import _random_item  # noqa: E402
     lines.append("_random_item 源码:\n" + inspect.getsource(_random_item))
 except Exception as exc:  # noqa: BLE001
     lines.append(f"_random_item 读取失败: {exc}")

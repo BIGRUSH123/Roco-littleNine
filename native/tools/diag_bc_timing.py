@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """native/tools/diag_bc_timing.py — 定位 BC 数据生成的慢对局。
 
 对 meta 分支与随机分支各跑若干局，逐局打印墙钟耗时/回合数/结束原因，
