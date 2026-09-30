@@ -25,6 +25,9 @@ classifiers = [
 
 [project.optional-dependencies]
 dev = [
+    "numpy>=1.26,<3",
+    "torch>=2.8",
+    "requests>=2.32,<3",
     "Cython>=3.0",
     "pytest>=7.0",
     "ruff>=0.4",

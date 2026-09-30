@@ -1,0 +1,9 @@
+# Shared direct-dependency versions support Python 3.10, 3.11 and 3.12.
+# Install torch from the official CPU index before installing .[dev].
+# The == specifier also accepts the CPU wheel's +cpu local version.
+Cython==3.1.4
+numpy==2.2.6
+pytest==8.4.2
+requests==2.32.5
+ruff==0.16.9
+torch==2.8.0
