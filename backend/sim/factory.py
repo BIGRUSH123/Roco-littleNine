@@ -1,10 +1,11 @@
-﻿"""backend/sim/factory.py — 从 wiki 数据构建模拟对象"""
+"""backend/sim/factory.py — 从 wiki 数据构建模拟对象"""
 
 import json
 import sys
 from pathlib import Path
 
 from backend.common.constants import BLOODLINES
+from backend.common.constants import DEFAULT_LIVES
 from backend.common.sprite_db import SpriteDB
 
 from .battle import Battle
@@ -139,7 +140,7 @@ class SimFactory:
     def build_player(
         self, name: str, team_specs: list[dict],
         style: PlayStyle | None = None,
-        lives: int = 4,
+        lives: int = DEFAULT_LIVES,
         item: 'Item | None' = None,
     ) -> Player:
         """从队伍规格列表构建 Player。"""

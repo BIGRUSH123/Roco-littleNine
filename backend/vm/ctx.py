@@ -6,6 +6,8 @@ builds a fresh Ctx per skill invocation so skill #2 observes skill #1's effects.
 
 from dataclasses import dataclass, field
 
+from backend.common.constants import DEFAULT_LIVES
+
 
 @dataclass(slots=True)
 class EventContext:
@@ -151,8 +153,8 @@ class Ctx:
     abnormal_stacks_battle: dict[str, int] = field(default_factory=dict)  # {name: total across both sides}
     fainted_own: int = 0                 # own team fainted count
     fainted_opp: int = 0                 # opponent team fainted count
-    lives_own: int = 5                   # own team lives (魔力值)
-    lives_opp: int = 5                   # opponent team lives
+    lives_own: int = DEFAULT_LIVES          # own team lives (魔力值)
+    lives_opp: int = DEFAULT_LIVES          # opponent team lives
     burst_triggered_count_own: int = 0   # distinct burst types triggered by own team
     moe_team_stacks: int = 0             # total 萌化 stacks on own team (excluding self)
     counters_self: dict[str, int] = field(default_factory=dict)  # sprite counters {key: n}

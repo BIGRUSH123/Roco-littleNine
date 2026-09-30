@@ -9,6 +9,8 @@ Accepts any object with the required attributes for skill parameters
 
 from __future__ import annotations
 
+from backend.common.constants import DEFAULT_LIVES
+
 from typing import TYPE_CHECKING, Any
 
 from backend.engine.bloodline import is_mixed_blood
@@ -221,8 +223,8 @@ def build_ctx(
     burst_triggered_count_own: int = 0,
     fainted_own: int = 0,
     fainted_opp: int = 0,
-    lives_own: int = 5,
-    lives_opp: int = 5,
+    lives_own: int = DEFAULT_LIVES,
+    lives_opp: int = DEFAULT_LIVES,
     team_elements_own: frozenset = frozenset(),
     team_elements_opp: frozenset = frozenset(),
     devotion_own: dict[str, int] | None = None,

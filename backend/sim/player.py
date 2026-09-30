@@ -1,6 +1,8 @@
 """backend/sim/player.py — 玩家 + 操作习惯画像 + 道具"""
 
 from dataclasses import dataclass, field
+
+from backend.common.constants import DEFAULT_LIVES
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -63,7 +65,7 @@ class Player:
     name: str
     team: list['Sprite'] = field(default_factory=list)
     style: PlayStyle = field(default_factory=PlayStyle)
-    lives: int = 4
+    lives: int = DEFAULT_LIVES
     active_index: int = 0
     item: Item | None = None
     devotion: dict[str, int] = field(default_factory=dict)

@@ -12,6 +12,12 @@ import re
 
 STAT_KEYS = ('hp', 'atk', 'sp_atk', 'def', 'sp_def', 'speed')
 
+# 魔力初值：6v6，每次力竭扣 1 点，耗尽即判负（等价于"先力竭 4 只判负"）。
+# 这是**唯一**的默认值来源：Player / Ctx / snapshot.build_ctx / serializer 的兜底
+# 都该用它。历史上它们各写各的（4 与 5 混用），一旦有路径吃到默认值就会比真实
+# 魔力多 1，而 battle_outcome_a 的 margin 里恰好有 lives*0.25 这一项（静默偏一点）。
+DEFAULT_LIVES = 4
+
 STAT_LABELS: dict[str, str] = {
     'hp': '生命', 'atk': '物攻', 'sp_atk': '魔攻',
     'def': '物防', 'sp_def': '魔防', 'speed': '速度',

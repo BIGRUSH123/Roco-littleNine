@@ -6,6 +6,8 @@ Backtracking and import/export share this layer.
 
 from __future__ import annotations
 
+from backend.common.constants import DEFAULT_LIVES
+
 from copy import deepcopy
 from typing import Any
 
@@ -414,7 +416,7 @@ def player_from_dict(d: dict, species_db, skill_loader) -> Any:
         )
     return Player(
         name=d["name"], team=team, style=PlayStyle(),
-        lives=d.get("lives", 4), active_index=d.get("active_index", 0),
+        lives=d.get("lives", DEFAULT_LIVES), active_index=d.get("active_index", 0),
         item=item, devotion=dict(d.get("devotion", {})),
     )
 

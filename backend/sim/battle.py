@@ -5,6 +5,8 @@
 
 from __future__ import annotations
 
+from backend.common.constants import DEFAULT_LIVES
+
 from copy import copy
 import contextlib
 import itertools
@@ -918,8 +920,8 @@ class Battle(BattleMechanicsMixin):
             "devotion_opp": devotion_opp,
             "fainted_own": cached["fainted_own"],
             "fainted_opp": cached["fainted_opp"],
-            "lives_own": getattr(own_player, 'lives', 5),
-            "lives_opp": getattr(opp_player, 'lives', 5),
+            "lives_own": getattr(own_player, 'lives', DEFAULT_LIVES),
+            "lives_opp": getattr(opp_player, 'lives', DEFAULT_LIVES),
             "team_elements_own": cached["team_elements_own"],
             "team_elements_opp": cached["team_elements_opp"],
             "moe_team_stacks": moe_team_stacks,

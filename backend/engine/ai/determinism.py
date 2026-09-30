@@ -17,25 +17,38 @@
 from __future__ import annotations
 
 import os
+import subprocess
 import sys
+
+
+def _reexec_argv() -> list[str]:
+    """重执行自己时的 argv（保持 `-m` 语义；见 ensure_hash_seed 注释）。"""
+    spec = getattr(sys.modules.get("__main__"), "__spec__", None)
+    module_name = getattr(spec, "name", None)
+    if module_name:
+        return [sys.executable, "-m", module_name] + sys.argv[1:]
+    return [sys.executable] + list(sys.argv)
 
 
 def ensure_hash_seed() -> None:
     """确保本进程 `PYTHONHASHSEED=0`，否则带着该变量重执行自己。
 
     幂等：子进程读到环境变量后直接返回。调试时可用 `ROCO_KEEP_HASH_SEED=1` 跳过。
+
+    **不用 `os.execv`**：Windows 上它会把 argv 用空格拼起来交给 C 运行时，
+    解释器路径含空格（`C:\\Program Files\\Python3xx\\python.exe`）时命令行会被
+    拆断 → 报 `can't open file '...\\Files\\Python3xx\\python.exe'`。本地实测
+    直接起不来（远端 `/usr/bin/python3` 无空格所以从没暴露）。改用
+    `subprocess.run(list)` 由标准库负责转义，再退出本进程。
     """
     if os.environ.get("PYTHONHASHSEED") == "0":
         return
     if os.environ.get("ROCO_KEEP_HASH_SEED") == "1":
         return
     os.environ["PYTHONHASHSEED"] = "0"
-    # `python -m pkg.mod` 启动时必须保持 -m 语义（否则 sys.path[0] 变成脚本目录，
-    # `import backend.*` 会失败）；直接跑脚本时保持脚本形式。
-    spec = getattr(sys.modules.get("__main__"), "__spec__", None)
-    module_name = getattr(spec, "name", None)
-    if module_name:
-        argv = [sys.executable, "-m", module_name] + sys.argv[1:]
-    else:
-        argv = [sys.executable] + list(sys.argv)
+    argv = _reexec_argv()
+    if os.name == "nt":
+        sys.stdout.flush()
+        sys.stderr.flush()
+        raise SystemExit(subprocess.run(argv).returncode)
     os.execv(sys.executable, argv)
