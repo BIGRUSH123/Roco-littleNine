@@ -4,11 +4,12 @@
  "generated_at": "2026-09-19T17:32:07+00:00",
  "raw_count": 87,
  "usable_count": 87,
- "selected_count": 40,
+ "selected_count": 41,
  "selection_notes": [
   "首领血脉队 8/8",
   "精灵上限 4 下仅 35 支，放宽到 5",
-  "flex 替补位 40 个"
+  "flex 替补位 40 个",
+  "手工增补：粉粉钥鹿鹤（B站阵容，来源非站点；重建 meta_teams 时会丢）"
  ],
  "teams": [
   {
@@ -6071,6 +6072,140 @@
    ],
    "item": "愿力",
    "item_source": "default"
+  },
+  {
+   "name": "粉粉钥鹿鹤",
+   "tags": [
+    "运营队",
+    "长线",
+    "手工整理"
+   ],
+   "archetype": "运营",
+   "source_id": "manual:粉粉钥鹿鹤",
+   "like_count": null,
+   "item": "进化之力",
+   "sprites": [
+    {
+     "name": "荆棘电环",
+     "role": "support",
+     "lead": true,
+     "preserve": false,
+     "energy_hold": 0,
+     "skills": [
+      "惊雷",
+      "加大功率",
+      "防御",
+      "速冻"
+     ],
+     "iv_fixed": [
+      "def",
+      "hp",
+      "sp_def"
+     ],
+     "nature_fixed": "沉默",
+     "bloodline": "电"
+    },
+    {
+     "name": "锤头鹳",
+     "role": "attack",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0,
+     "skills": [
+      "水炮",
+      "霜降",
+      "洗礼",
+      "恶意逃离"
+     ],
+     "iv_fixed": [
+      "def",
+      "hp",
+      "sp_def"
+     ],
+     "nature_fixed": "沉默",
+     "bloodline": "冰"
+    },
+    {
+     "name": "伊贝粉粉",
+     "role": "attack",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0,
+     "skills": [
+      "光能聚集",
+      "藤绞",
+      "纤维化",
+      "光合作用"
+     ],
+     "iv_fixed": [
+      "def",
+      "hp",
+      "sp_def"
+     ],
+     "nature_fixed": "踏实",
+     "bloodline": "草"
+    },
+    {
+     "name": "爵士鹿",
+     "role": "attack",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0,
+     "skills": [
+      "下注",
+      "裂石",
+      "离子火花",
+      "先发制人"
+     ],
+     "iv_fixed": [
+      "atk",
+      "hp",
+      "speed"
+     ],
+     "nature_fixed": "开朗",
+     "bloodline": "首领"
+    },
+    {
+     "name": "飞飞钥",
+     "role": "support",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0,
+     "skills": [
+      "倾泻",
+      "飞羽",
+      "风隐",
+      "拟寄生"
+     ],
+     "iv_fixed": [
+      "def",
+      "hp",
+      "sp_def"
+     ],
+     "nature_fixed": "沉默",
+     "bloodline": "火"
+    },
+    {
+     "name": "绒光优优",
+     "role": "attack",
+     "lead": false,
+     "preserve": false,
+     "energy_hold": 0,
+     "skills": [
+      "虹光冲击",
+      "放晴",
+      "热砂",
+      "硬化"
+     ],
+     "iv_fixed": [
+      "hp",
+      "sp_atk",
+      "speed"
+     ],
+     "nature_fixed": "聪明",
+     "bloodline": "光"
+    }
+   ]
   }
  ]
 }

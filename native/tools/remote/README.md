@@ -52,6 +52,13 @@ env\python.exe -X utf8 native/tools/remote/dsw.py sh "cd /mnt/workspace/roco_rem
 
 ## 注意
 
+- **刚登录后别急着怀疑 cookie**：登录完成后的一小段时间里 `/api/*` 会 302 到
+  `https://modelscope.cn/error?...&ns=mua`（不是 401/403）。这不是 cookie 过滤或 header 的问题
+  ——把 cookie 过滤改成带 `m_session_id` 也一样失败；等 JupyterLab 页面加载完、页面内
+  `fetch('/dsw-XXXX/api/kernels')` 能返回 200 后再重试即可，同一份 cookie 立刻就通。
+- `dsw.py ls/cat/get/put` 的路径**相对 Jupyter 根**（本实例是 `/mnt/workspace`），不是文件系统绝对路径：
+  列 `/mnt/workspace/roco_remote/logs` 要写 `roco_remote/logs`。要看绝对路径用 `dsw.py sh "ls -la ..."`。
+- 导出 cookie 必须趁 Chrome 还开着（`cdp.mjs` 走 127.0.0.1:9222）；Chrome 一关，`cookies.json` 就停在旧值上。
 - **凭据不入库**：`cookies.json` / `kernel.json` 已 gitignore。cookie 里有 `login_aliyunid_ticket` 之类的账号凭据，
   不要贴进对话、issue 或提交。
 - 远端工作区 `/mnt/workspace/roco_remote` 是持久化的（关机会保留），里面有 30K 局 BC 数据集（10.6 GB）与历史权重。
